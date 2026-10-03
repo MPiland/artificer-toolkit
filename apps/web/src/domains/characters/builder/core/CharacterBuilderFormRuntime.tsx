@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useNavigate } from '@tanstack/react-router'
+import { ConvexError } from 'convex/values'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
+import { characterDraftSaveErrorDataSchema } from '@artificer-toolkit/schema/api/characterDrafts'
 import type {
   CharacterBuilderFeatureSourceHint,
   CharacterBuilderPreviewOutput
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { useAppForm } from '#forms/app-form/AppForm'
+import { readAuthoringStep } from '#forms/layout/authoringSearch'
 import {
   useAuthoringForm,
   type AuthoringFormActionHandlers
@@ -56,7 +59,8 @@ export function CharacterBuilderFormRuntime({
   const evaluation = useCharacterBuilderEvaluation(session)
   const previewMutation = useMutation({ mutationFn: evaluation.preview })
   const commitMutation = useCommitCharacterBuilderMutation()
-  const { activeStepId, updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+  const { activeStepId, goToStep, updateAuthoringFormActions, updateAuthoringFormState } =
+    useAuthoringForm()
 
   const handlePreviewFinalize = useCallback(
     async (value: CharacterFormValues) => {
@@ -85,11 +89,27 @@ export function CharacterBuilderFormRuntime({
   const [autosave] = useState(() =>
     createDraftAutosave<CharacterFormValues>({
       save: async (values) => {
-        await saveDraft(buildCharacterDraftSaveInput(values, session.mode, session.draft.id))
+        try {
+          await saveDraft(buildCharacterDraftSaveInput(values, session.mode, session.draft.id))
+        } catch (error) {
+          if (
+            !(error instanceof ConvexError) ||
+            !characterDraftSaveErrorDataSchema.safeParse(error.data).success
+          )
+            throw error
+          notifications.show({
+            color: 'red',
+            message:
+              'This draft was finalized, discarded or reopened elsewhere. Reload to keep editing.'
+          })
+          return 'replaced'
+        }
         // Saved values become the form's baseline unless the user edited meanwhile.
-        if (form.state.values !== values) return
-        defaultValuesRef.current = values
-        form.reset(values)
+        if (form.state.values === values) {
+          defaultValuesRef.current = values
+          form.reset(values)
+        }
+        return 'saved'
       },
       onStatus: (draftSaveStatus) => updateAuthoringFormState({ draftSaveStatus })
     })
@@ -133,6 +153,22 @@ export function CharacterBuilderFormRuntime({
   useEffect(() => {
     void handleResolve(form.state.values)
   }, [form, handleResolve])
+
+  // Open on the recommended step once, unless the URL named a step or the user already chose one.
+  const urlStepId = useRouterState({ select: (state) => readAuthoringStep(state.location.search) })
+  const openedStepRef = useRef({ activeStepId, handled: false })
+  const recommendedStepId = payload?.resolution.recommendedSectionId
+  useEffect(() => {
+    const opened = openedStepRef.current
+    if (!recommendedStepId || opened.handled) return
+    opened.handled = true
+    if (
+      urlStepId === undefined &&
+      activeStepId === opened.activeStepId &&
+      activeStepId !== recommendedStepId
+    )
+      goToStep(recommendedStepId)
+  }, [activeStepId, goToStep, recommendedStepId, urlStepId])
 
   const handleSaveDraftConfirmed = useCallback(async () => {
     setDraftSaveNoticeAcknowledged(true)

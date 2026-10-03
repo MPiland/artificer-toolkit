@@ -6,6 +6,7 @@ import {
   authoredStoredDraftPayloadSchema,
   type AuthoredDraftResult
 } from '@artificer-toolkit/schema/api/authoredDrafts'
+import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
 import { IMPORT_MAX_ENTRY_BYTES } from '@artificer-toolkit/schema/api/imports'
 import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import {
@@ -334,9 +335,9 @@ export async function insertAuthoredVersion(
     | 'versionId'
     | 'version'
     | 'documentSchemaVersion'
-    | 'compilation'
   >,
-  documentJson: string
+  documentJson: string,
+  compilation?: AuthoredStoredCompilation
 ) {
   if (checksumCanonicalRuleDocument(documentJson) !== metadata.checksum)
     throw new Error('Authored version payload checksum mismatch.')
@@ -355,7 +356,49 @@ export async function insertAuthoredVersion(
       chunkIndex,
       bytes
     })
+  if (compilation) await insertAuthoredVersionCompilation(ctx, metadata, compilation)
   return storedVersionId
+}
+
+export async function insertAuthoredVersionCompilation(
+  ctx: MutationCtx,
+  version: Pick<Doc<'authoredVersions'>, 'id' | 'systemId' | 'versionId'>,
+  compilation: AuthoredStoredCompilation
+) {
+  await ctx.db.insert('authoredVersionCompilations', {
+    subjectId: version.id,
+    systemId: version.systemId,
+    versionId: version.versionId,
+    compilation
+  })
+}
+
+export async function replaceAuthoredVersionCompilation(
+  ctx: MutationCtx,
+  version: Pick<Doc<'authoredVersions'>, 'id' | 'systemId' | 'versionId'>,
+  compilation: AuthoredStoredCompilation
+) {
+  const stored = await readAuthoredVersionCompilationRow(ctx, version)
+  if (stored) await ctx.db.patch(stored._id, { compilation })
+  else await insertAuthoredVersionCompilation(ctx, version, compilation)
+}
+
+/** The compilation lives off the version so reads that only need the document never pay for it. */
+export async function readAuthoredVersionCompilationRow(
+  ctx: QueryCtx,
+  version: Pick<Doc<'authoredVersions'>, 'versionId'>
+) {
+  return ctx.db
+    .query('authoredVersionCompilations')
+    .withIndex('by_versionId', (query) => query.eq('versionId', version.versionId))
+    .unique()
+}
+
+export async function readAuthoredVersionCompilation(
+  ctx: QueryCtx,
+  version: Pick<Doc<'authoredVersions'>, 'versionId'>
+) {
+  return (await readAuthoredVersionCompilationRow(ctx, version))?.compilation
 }
 
 export async function readStoredAuthoredVersionDocument(
@@ -394,10 +437,33 @@ export async function readPublishedDocument(
   return parsePublishedDocument(root, version, documentJson)
 }
 
+/** Stored published documents by root id, read earlier in one transaction (commit reads each once). */
+export type PublishedDocumentReads = Map<
+  string,
+  { version: Doc<'authoredVersions'>; document: ReturnType<typeof parsePublishedDocument> }
+>
+
+/** A root's stored current version and document, from `reads` when this transaction already read it. */
+export async function readPublishedRootDocument(
+  ctx: QueryCtx,
+  root: Doc<'authoredRoots'>,
+  reads?: PublishedDocumentReads,
+  currentImportJobId?: string
+) {
+  const cached = reads?.get(root.id)
+  if (cached) return cached
+  const version = await readAuthoredVersion(ctx, root, currentImportJobId)
+  const read = { version, document: await readPublishedDocument(ctx, root, version) }
+  reads?.set(root.id, read)
+  return read
+}
+
 export async function deleteAuthoredVersion(ctx: MutationCtx, version: Doc<'authoredVersions'>) {
   const loaded = await loadVersionPayload(ctx, version)
   const document = parseStoredVersionDocument(version, loaded.documentJson)
   for (const chunk of loaded.chunks) await ctx.db.delete(chunk._id)
+  const compilation = await readAuthoredVersionCompilationRow(ctx, version)
+  if (compilation) await ctx.db.delete(compilation._id)
   await ctx.db.delete(version._id)
   return document
 }

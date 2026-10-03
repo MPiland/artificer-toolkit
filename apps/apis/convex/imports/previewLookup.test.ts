@@ -255,7 +255,6 @@ describe('native import preview lookup', () => {
       const {
         _id: _versionId,
         _creationTime: _versionCreationTime,
-        compilation: _compilation,
         ...versionFields
       } = version
       for (let index = 0; index < 100; index++) {

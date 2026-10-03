@@ -14,7 +14,8 @@ import schema from '../schema'
 import {
   corruptPublishedVersionPayload,
   importedSubject,
-  publicationFixture
+  publicationFixture,
+  versionWithCompilation
 } from '../../tests/fixtures/publication'
 
 const deleteActive = makeFunctionReference<'mutation', AuthoredDeleteActiveInput, null>(
@@ -92,7 +93,7 @@ async function readChild(t: Awaited<ReturnType<typeof fixture>>['t'], subjectId:
     if (!root) throw new Error('Missing retained child.')
     return {
       root,
-      version: await ctx.db.get(root.currentVersionId),
+      version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId)),
       draft: await ctx.db
         .query('authoredDrafts')
         .withIndex('by_subjectId', (q) => q.eq('subjectId', subjectId))

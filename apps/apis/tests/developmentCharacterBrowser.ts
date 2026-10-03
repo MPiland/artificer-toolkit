@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
@@ -19,6 +19,8 @@ export async function verifyCharacterBrowser(
     )
   )
   await mkdir(evidenceDirectory, { recursive: true })
+  const builderJourneysPath = `${evidenceDirectory}/builder-journeys.json`
+  if (input.journey === 'builder') await rm(builderJourneysPath, { force: true })
   let output = ''
   let passed = false
   try {
@@ -42,7 +44,7 @@ export async function verifyCharacterBrowser(
           CONVEX_E2E_USER_ID: input.userId,
           ...(input.journey !== 'builder'
             ? { CONVEX_E2E_CHARACTER_ID: input.characterPublicId }
-            : {}),
+            : { CONVEX_E2E_BUILDER_JOURNEYS: builderJourneysPath }),
           CONVEX_E2E_OUTPUT: `${evidenceDirectory}/playwright`
         },
         windowsHide: true,

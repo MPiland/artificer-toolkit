@@ -26,7 +26,11 @@ import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subj
 import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, internal } from '../_generated/api'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -213,17 +217,27 @@ describe('native Creature publication', () => {
     }
     const masterIds = selectedCreatures.map((creature) => creature.id).sort()
     expect(
-      (await readVisibleCatalogue(t, first.caller, 'CREATURE', { systemId: defaultSystemId }))
+      (
+        await readVisibleCatalogue(t, first.caller, 'CREATURE', {
+          systemId: defaultSystemId
+        })
+      )
         .map((item) => item.id)
         .sort()
     ).toEqual([...masterIds, ...copies.map(({ draft }) => draft.subjectId)].sort())
     expect(
-      (await readVisibleCatalogue(t, second.caller, 'CREATURE', { systemId: defaultSystemId }))
+      (
+        await readVisibleCatalogue(t, second.caller, 'CREATURE', {
+          systemId: defaultSystemId
+        })
+      )
         .map((item) => item.id)
         .sort()
     ).toEqual(masterIds)
     expect(
-      await readVisibleCatalogue(t, first.caller, 'CREATURE', { systemId: crypto.randomUUID() })
+      await readVisibleCatalogue(t, first.caller, 'CREATURE', {
+        systemId: crypto.randomUUID()
+      })
     ).toEqual([])
     const stored = await t.run(async (ctx) =>
       Promise.all(
@@ -233,7 +247,7 @@ describe('native Creature publication', () => {
             .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
             .unique()
           if (!root) throw new Error(`Missing published Creature ${draft.label}`)
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           const route = await ctx.db
             .query('authoredRouteIds')
             .withIndex('by_subjectId', (q) => q.eq('subjectId', draft.subjectId))

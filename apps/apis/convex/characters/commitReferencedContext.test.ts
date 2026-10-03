@@ -136,6 +136,7 @@ async function evaluateBothWays(
             referenced: {
               featureSourceHints,
               publications: new Map(),
+              documents: new Map(),
               unreadableRootIds: new Set(),
               roots: new Map()
             }

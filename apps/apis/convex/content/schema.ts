@@ -288,13 +288,18 @@ export function buildContentTables() {
       importJobId: v.optional(v.string()),
       versionId: v.string(),
       version: v.number(),
-      documentSchemaVersion: v.number(),
-      compilation: v.optional(zodToConvex(authoredStoredCompilationSchema))
+      documentSchemaVersion: v.number()
     })
       .index('by_versionId', ['versionId'])
       .index('by_importJobId_id', ['importJobId', 'id'])
       .index('by_contentSourceId', ['contentSourceId'])
       .index('by_id_version', ['id', 'version']),
+    authoredVersionCompilations: defineTable({
+      subjectId: v.string(),
+      systemId: v.string(),
+      versionId: v.string(),
+      compilation: zodToConvex(authoredStoredCompilationSchema)
+    }).index('by_versionId', ['versionId']),
     authoredVersionPayloadChunks: defineTable({
       ...zodToConvexFields(authoredStoredVersionPayloadChunkSchema.shape),
       bytes: v.bytes()

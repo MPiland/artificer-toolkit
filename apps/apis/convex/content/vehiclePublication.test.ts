@@ -23,7 +23,11 @@ import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subj
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { api } from '../_generated/api'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -123,7 +127,7 @@ describe('native Vehicle publication', () => {
             .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
             .unique()
           if (!root) throw new Error(`Missing published Vehicle ${draft.label}`)
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           const route = await ctx.db
             .query('authoredRouteIds')
             .withIndex('by_subjectId', (q) => q.eq('subjectId', draft.subjectId))

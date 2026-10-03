@@ -140,7 +140,7 @@ export async function readCharacterEquipmentCatalogue(
   userId: string,
   context: Pick<
     Awaited<ReturnType<typeof loadCharacterRuleContext>>,
-    'sourceAccess' | 'sourceIdentities' | 'publications'
+    'sourceAccess' | 'sourceIdentities' | 'publications' | 'documents'
   >
 ): Promise<
   { entries: ContentSnapshotIndexEntry<'EQUIPMENT'>[] } | { documents: EquipmentAuthored[] }
@@ -164,7 +164,8 @@ export async function readCharacterEquipmentCatalogue(
           systemId,
           userId,
           context.sourceAccess,
-          context.sourceIdentities
+          context.sourceIdentities,
+          context.documents
         )
     if (published?.subjectKind !== 'EQUIPMENT') continue
     if (

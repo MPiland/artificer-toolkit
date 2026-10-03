@@ -8,14 +8,16 @@ const RETRY_MAX_MS = 30_000
 /**
  * Debounced draft autosave (ADR 0036 S8): saves the latest value once edits have been idle for 2 s,
  * and no sooner than 10 s after the previous save began. `flush` saves at once (step change, unload,
- * "Save draft"). Saves never overlap; a failed save retries with doubling backoff up to 30 s.
- * `cancel` stops it for good, before a commit or discard replaces the draft.
+ * "Save draft"). Saves never overlap; a save that throws retries with doubling backoff up to 30 s.
+ * A save that resolves `'replaced'` means the draft was finalized, discarded or reopened elsewhere:
+ * the autosave reports `'replaced'` and stops for good, with no retry. `cancel` also stops it for
+ * good, before a commit or discard replaces the draft.
  */
 export function createDraftAutosave<Value>({
   save,
   onStatus
 }: {
-  save: (value: Value) => Promise<void>
+  save: (value: Value) => Promise<'saved' | 'replaced'>
   onStatus: (status: AuthoringDraftSaveStatus) => void
 }) {
   let pending: { value: Value } | null = null
@@ -49,12 +51,24 @@ export function createDraftAutosave<Value>({
     lastSaveStartedAt = Date.now()
     emit('saving')
     let failed = false
-    inFlight = save(value).catch(() => {
-      failed = true
-    })
+    let replaced = false
+    inFlight = save(value).then(
+      (result) => {
+        replaced = result === 'replaced'
+      },
+      () => {
+        failed = true
+      }
+    )
     await inFlight
     inFlight = null
     if (cancelled) return
+    if (replaced) {
+      cancelled = true
+      pending = null
+      emit('replaced')
+      return
+    }
     if (failed) {
       // Retry the newest value; edits made meanwhile replace the failed one.
       pending ??= { value }

@@ -22,7 +22,11 @@ import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolk
 import { api, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 import { corruptPublishedVersionPayload, importedSubject } from '../../tests/fixtures/publication'
-import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
+import {
+  deleteAuthoredVersion,
+  insertAuthoredVersion,
+  readAuthoredVersionCompilation
+} from '../content/documents'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -80,6 +84,7 @@ async function ownedContent(
     if (!template) throw new Error('Missing Acolyte fixture.')
     const stored = await ctx.db.get(template.currentVersionId)
     if (!stored) throw new Error('Missing Acolyte version fixture.')
+    const compilation = await readAuthoredVersionCompilation(ctx, stored)
     const contentSourceId = crypto.randomUUID()
     const sourceId = await ctx.db.insert('contentSources', {
       ...SRD_CONTENT_SOURCE,
@@ -108,10 +113,10 @@ async function ownedContent(
         contentSourceId,
         versionId: publicVersionId,
         version: stored.version,
-        documentSchemaVersion: stored.documentSchemaVersion,
-        compilation: stored.compilation
+        documentSchemaVersion: stored.documentSchemaVersion
       },
-      canonicalizeRuleDocument(document)
+      canonicalizeRuleDocument(document),
+      compilation
     )
     const rootId = await ctx.db.insert('authoredRoots', {
       id,
@@ -293,6 +298,7 @@ describe('native Campaign content sharing', () => {
       const version = await ctx.db.get(root.currentVersionId)
       if (!version) throw new Error('Missing owned Background version fixture.')
       const checksum = checksumRuleDocument(document)
+      const compilation = await readAuthoredVersionCompilation(ctx, version)
       await deleteAuthoredVersion(ctx, version)
       const currentVersionId = await insertAuthoredVersion(
         ctx,
@@ -305,10 +311,10 @@ describe('native Campaign content sharing', () => {
           contentSourceId: version.contentSourceId,
           versionId: version.versionId,
           version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion,
-          compilation: version.compilation
+          documentSchemaVersion: version.documentSchemaVersion
         },
-        canonicalizeRuleDocument(document)
+        canonicalizeRuleDocument(document),
+        compilation
       )
       await ctx.db.patch(content.rootId, {
         label: document.label,
@@ -365,6 +371,7 @@ describe('native Campaign content sharing', () => {
       const version = await ctx.db.get(root.currentVersionId)
       if (!version) throw new Error('Missing owned Background version fixture.')
       const checksum = checksumRuleDocument(inactive)
+      const compilation = await readAuthoredVersionCompilation(ctx, version)
       await deleteAuthoredVersion(ctx, version)
       const currentVersionId = await insertAuthoredVersion(
         ctx,
@@ -377,10 +384,10 @@ describe('native Campaign content sharing', () => {
           contentSourceId: version.contentSourceId,
           versionId: version.versionId,
           version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion,
-          compilation: version.compilation
+          documentSchemaVersion: version.documentSchemaVersion
         },
-        canonicalizeRuleDocument(inactive)
+        canonicalizeRuleDocument(inactive),
+        compilation
       )
       await ctx.db.patch(content.rootId, { checksum, currentVersionId })
     })

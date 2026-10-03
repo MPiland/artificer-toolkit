@@ -14,6 +14,11 @@ import {
   selectBuilderSpellChoiceAndResolve,
   waitForBuilderResolution
 } from './support/characterBuilder'
+import {
+  recordBuilderEditPhase,
+  recordConvexTraffic,
+  type ConvexCall
+} from './support/convexTraffic'
 
 test.describe('MVP character Builder to Sheet', () => {
   test.describe.configure({ mode: 'serial' })
@@ -26,7 +31,12 @@ test.describe('MVP character Builder to Sheet', () => {
     const characterName = `MVP Martial Multiclass ${Date.now()}`
     characterCleanup.trackLabel(characterName)
 
-    await startNewCharacter(page, characterName, characterCleanup)
+    const editPhase = await startNewCharacter(
+      page,
+      { name: 'Human Fighter Rogue', classCount: 2 },
+      characterName,
+      characterCleanup
+    )
 
     await goToBuilderStep(page, 'Race')
     await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Human')
@@ -82,7 +92,7 @@ test.describe('MVP character Builder to Sheet', () => {
     await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
     const concept = `${characterName} concept`
-    await saveDraftWithConcept(page, concept)
+    await saveDraftWithConcept(page, concept, editPhase)
     characterCleanup.captureRoute(page)
     await expectBuilderReady(page)
 
@@ -135,7 +145,12 @@ test.describe('MVP character Builder to Sheet', () => {
     const characterName = `MVP Prepared ${Date.now()}`
     characterCleanup.trackLabel(characterName)
 
-    await startNewCharacter(page, characterName, characterCleanup)
+    const editPhase = await startNewCharacter(
+      page,
+      { name: 'Human Life Cleric', classCount: 1 },
+      characterName,
+      characterCleanup
+    )
 
     await goToBuilderStep(page, 'Race')
     await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Human')
@@ -176,7 +191,8 @@ test.describe('MVP character Builder to Sheet', () => {
       page,
       characterName,
       characterCleanup,
-      assertPersistedClericChoices
+      assertPersistedClericChoices,
+      editPhase
     )
 
     const sheetSnapshot = await readCoreSheetSnapshot(page)
@@ -283,7 +299,12 @@ test.describe('MVP character Builder to Sheet', () => {
     const characterName = `MVP Choice Heavy ${Date.now()}`
     characterCleanup.trackLabel(characterName)
 
-    await startNewCharacter(page, characterName, characterCleanup)
+    const editPhase = await startNewCharacter(
+      page,
+      { name: 'Dragonborn Champion', classCount: 1 },
+      characterName,
+      characterCleanup
+    )
 
     await goToBuilderStep(page, 'Race')
     await selectBuilderCatalogOptionAndResolve(page, 'Choose Race', 'Choose a race', 'Dragonborn')
@@ -308,7 +329,8 @@ test.describe('MVP character Builder to Sheet', () => {
       page,
       characterName,
       characterCleanup,
-      assertPersistedDragonbornChampionChoices
+      assertPersistedDragonbornChampionChoices,
+      editPhase
     )
 
     const sheetSnapshot = await readCoreSheetSnapshot(page)
@@ -326,17 +348,28 @@ test.describe('MVP character Builder to Sheet', () => {
   })
 })
 
+type BuilderEditPhase = {
+  /** The commit budget grows with distinct Classes (D84). */
+  journey: { name: string; classCount: number }
+  calls: ConvexCall[]
+  startIndex: number
+  startedAt: number
+}
+
 async function startNewCharacter(
   page: Page,
+  journey: BuilderEditPhase['journey'],
   characterName: string,
   characterCleanup: E2ECharacterCleanup
-): Promise<void> {
+): Promise<BuilderEditPhase> {
+  const calls = recordConvexTraffic(page)
   await page.goto('/characters/new', { waitUntil: 'domcontentloaded' })
-  await expect(page).toHaveURL(/\/characters\/[^/]+\/[^/]+\/edit$/, { timeout: 60_000 })
+  await expect(page).toHaveURL(/\/characters\/[^/]+\/[^/]+\/edit(\?|$)/, { timeout: 60_000 })
   characterCleanup.captureRoute(page)
   await expectBuilderReady(page)
   await expect(page.getByLabel('Character Name')).toBeVisible()
   await page.getByLabel('Character Name').fill(characterName)
+  return { journey, calls, startIndex: calls.length, startedAt: Date.now() }
 }
 
 async function expectBuilderReady(page: Page): Promise<void> {
@@ -435,13 +468,14 @@ async function saveReloadPreviewAndFinalize(
   page: Page,
   characterName: string,
   characterCleanup: E2ECharacterCleanup,
-  assertPersistedChoices: (page: Page) => Promise<void>
+  assertPersistedChoices: (page: Page) => Promise<void>,
+  editPhase: BuilderEditPhase
 ): Promise<void> {
   await goToBuilderStep(page, 'Review')
   await expect(page.getByText('Ready to activate', { exact: true })).toBeVisible()
 
   const concept = `${characterName} concept`
-  await saveDraftWithConcept(page, concept)
+  await saveDraftWithConcept(page, concept, editPhase)
   characterCleanup.captureRoute(page)
 
   await page.waitForLoadState('networkidle')
@@ -467,13 +501,21 @@ async function saveReloadPreviewAndFinalize(
   await expect(page.getByRole('heading', { name: characterName, exact: true })).toBeVisible()
 }
 
-async function saveDraftWithConcept(page: Page, concept: string): Promise<void> {
+async function saveDraftWithConcept(
+  page: Page,
+  concept: string,
+  editPhase: BuilderEditPhase
+): Promise<void> {
   await goToBuilderStep(page, 'Basics')
   const saved = page.getByLabel('Saved', { exact: true })
   await expect(saved).toBeVisible({ timeout: 30_000 })
   const editPath = new URL(page.url()).pathname
   expect(editPath).toMatch(/^\/characters\/[^/]+\/[^/]+\/edit$/)
   await page.getByLabel('Concept', { exact: true }).fill(concept)
+  await recordBuilderEditPhase(editPhase.journey, {
+    calls: editPhase.calls.slice(editPhase.startIndex),
+    startedAt: editPhase.startedAt
+  })
   await page.getByRole('button', { name: 'Save Draft', exact: true }).click({ timeout: 10_000 })
   await expect(saved).toBeVisible({ timeout: 30_000 })
   expect(new URL(page.url()).pathname).toBe(editPath)

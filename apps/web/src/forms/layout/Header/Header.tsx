@@ -39,12 +39,17 @@ export function Header({
       ? 'Saving…'
       : draftSaveStatus === 'retrying'
         ? 'Couldn’t save, retrying'
-        : hasChanges
-          ? 'Unsaved changes'
-          : draftSaveStatus === 'saved'
-            ? 'Saved'
-            : 'All changes saved'
-  const isUnsaved = draftSaveStatus === 'retrying' || (draftSaveStatus !== 'saving' && hasChanges)
+        : draftSaveStatus === 'replaced'
+          ? 'Opened elsewhere'
+          : hasChanges
+            ? 'Unsaved changes'
+            : draftSaveStatus === 'saved'
+              ? 'Saved'
+              : 'All changes saved'
+  const isUnsaved =
+    draftSaveStatus === 'retrying' ||
+    draftSaveStatus === 'replaced' ||
+    (draftSaveStatus !== 'saving' && hasChanges)
   const isSaved = draftSaveStatus !== 'saving' && !isUnsaved
   return (
     <header className={styles.header}>

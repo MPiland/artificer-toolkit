@@ -20,7 +20,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { toCharacterBuilderEquipmentCatalogRecord } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { api } from '../_generated/api'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { compileCurrentEquipment } from './equipmentRelationships'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -127,7 +131,7 @@ describe('native Equipment publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', child.subjectId))
         .unique()
       if (!root) throw new Error('Missing child')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version) throw new Error('Missing child version')
       // Source corruption is encountered after commitPublication has staged the parent writes.
       const chunk = await ctx.db
@@ -190,7 +194,7 @@ describe('native Equipment publication', () => {
             .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
             .unique()
           if (!root) throw new Error('Missing equipment root')
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           return {
             root,
             version,
@@ -291,7 +295,7 @@ describe('native Equipment publication', () => {
             .withIndex('by_publicId', (q) => q.eq('id', item.subjectId))
             .unique()
           if (!root) throw new Error('Missing descendant root')
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           return {
             root,
             version,
@@ -309,7 +313,7 @@ describe('native Equipment publication', () => {
             .withIndex('by_publicId', (q) => q.eq('id', item.subjectId))
             .unique()
           if (!root) throw new Error('Missing descendant root')
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           return {
             root,
             version,
@@ -412,7 +416,7 @@ describe('native Equipment publication', () => {
         if (!root) throw new Error('Missing retained variant.')
         return {
           root,
-          version: await ctx.db.get(root.currentVersionId),
+          version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId)),
           draft: await ctx.db
             .query('authoredDrafts')
             .withIndex('by_subjectId', (q) => q.eq('subjectId', variant.subjectId))

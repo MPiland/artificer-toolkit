@@ -64,6 +64,7 @@ const testSchema = defineSchema({
   authoredRouteSequence: contentTables.authoredRouteSequence,
   authoredVersions: contentTables.authoredVersions,
   authoredVersionPayloadChunks: contentTables.authoredVersionPayloadChunks,
+  authoredVersionCompilations: contentTables.authoredVersionCompilations,
   characterDrafts: characterTables.characterDrafts,
   characterDraftPayloads: characterTables.characterDraftPayloads,
   characterDraftPayloadChunks: characterTables.characterDraftPayloadChunks,

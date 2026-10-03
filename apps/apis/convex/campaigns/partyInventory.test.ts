@@ -32,7 +32,10 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { api } from '../_generated/api'
 import * as equipmentRelationships from '../content/equipmentRelationships'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { corruptPublishedVersionPayload } from '../../tests/fixtures/publication'
+import {
+  corruptPublishedVersionPayload,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { insertAuthoredVersion } from '../content/documents'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -40,12 +43,18 @@ const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, Ca
 )
 const items = makeFunctionReference<
   'query',
-  { campaignId: string; paginationOpts: { cursor: string | null; numItems: number } },
+  {
+    campaignId: string
+    paginationOpts: { cursor: string | null; numItems: number }
+  },
   CampaignPartyItemPage
 >('campaigns/partyInventory:items')
 const currencies = makeFunctionReference<
   'query',
-  { campaignId: string; paginationOpts: { cursor: string | null; numItems: number } },
+  {
+    campaignId: string
+    paginationOpts: { cursor: string | null; numItems: number }
+  },
   CampaignPartyCurrencyPage
 >('campaigns/partyInventory:currencies')
 const mutate = makeFunctionReference<
@@ -171,7 +180,7 @@ async function ownedEquipment(
       .withIndex('by_publicId', (q) => q.eq('id', club.id))
       .unique()
     if (!template) throw new Error('Missing Club fixture.')
-    const current = await ctx.db.get(template.currentVersionId)
+    const current = await versionWithCompilation(ctx, await ctx.db.get(template.currentVersionId))
     if (!current) throw new Error('Missing Club version fixture.')
     const contentSourceId = crypto.randomUUID()
     const document = equipmentAuthoredDtoSchema.parse({
@@ -194,10 +203,10 @@ async function ownedEquipment(
         contentSourceId,
         versionId: publicVersionId,
         version: current.version,
-        documentSchemaVersion: current.documentSchemaVersion,
-        compilation: current.compilation
+        documentSchemaVersion: current.documentSchemaVersion
       },
-      canonicalizeRuleDocument(document)
+      canonicalizeRuleDocument(document),
+      current.compilation
     )
     const rootId = await ctx.db.insert('authoredRoots', {
       id,
@@ -245,7 +254,9 @@ describe('native Campaign party inventory', () => {
       await t.run((ctx) => ctx.db.patch(second._id, { retainedRulesJson: '{}' }))
       await expect(gm.caller.query(items, pageInput(campaign.id))).rejects.toThrow()
       await t.run(async (ctx) => {
-        await ctx.db.patch(second._id, { retainedRulesJson: second.retainedRulesJson })
+        await ctx.db.patch(second._id, {
+          retainedRulesJson: second.retainedRulesJson
+        })
         await corruptPublishedVersionPayload(ctx, club.id)
       })
       await expect(gm.caller.query(items, pageInput(campaign.id))).rejects.toThrow(
@@ -304,7 +315,11 @@ describe('native Campaign party inventory', () => {
     )
     await expect(
       gm.caller.mutation(mutate, {
-        input: { ...add, idempotencyKey: crypto.randomUUID(), expectedOwnerVersion: 0 }
+        input: {
+          ...add,
+          idempotencyKey: crypto.randomUUID(),
+          expectedOwnerVersion: 0
+        }
       })
     ).rejects.toThrow('changed')
 
@@ -344,7 +359,10 @@ describe('native Campaign party inventory', () => {
       'different input'
     )
 
-    const history = await gm.caller.query(audit, { campaignId: campaign.id, limit: 20 })
+    const history = await gm.caller.query(audit, {
+      campaignId: campaign.id,
+      limit: 20
+    })
     const decoded = decodeCampaignInventoryAuditPage(history)
     expect(decoded.events).toHaveLength(4)
     expect(
@@ -361,10 +379,19 @@ describe('native Campaign party inventory', () => {
   it('conserves RULESET currency, rejects overspend and overflow, and drains more than 48 balances', async () => {
     const { gm, campaign, readStored } = await setup()
     const denominationId = srdSystemRecord.currencies[3]!.id
-    await gm.caller.mutation(mutate, { input: adjustCurrency(campaign.id, 0, 10) })
-    await gm.caller.mutation(mutate, { input: adjustCurrency(campaign.id, 1, -4) })
+    await gm.caller.mutation(mutate, {
+      input: adjustCurrency(campaign.id, 0, 10)
+    })
+    await gm.caller.mutation(mutate, {
+      input: adjustCurrency(campaign.id, 1, -4)
+    })
     expect((await gm.caller.query(currencies, pageInput(campaign.id))).page).toEqual([
-      expect.objectContaining({ kind: 'RULESET', denominationId, amount: 6, containerId: null })
+      expect.objectContaining({
+        kind: 'RULESET',
+        denominationId,
+        amount: 6,
+        containerId: null
+      })
     ])
     const before = await readStored()
     await expect(
@@ -378,7 +405,9 @@ describe('native Campaign party inventory', () => {
       })
     ).resolves.toBeDefined()
     await expect(
-      overflow.gm.caller.mutation(mutate, { input: adjustCurrency(overflow.campaign.id, 1, 1) })
+      overflow.gm.caller.mutation(mutate, {
+        input: adjustCurrency(overflow.campaign.id, 1, 1)
+      })
     ).rejects.toThrow('supported range')
 
     const grouped = await setup()
@@ -397,7 +426,9 @@ describe('native Campaign party inventory', () => {
         })
       }
     })
-    await grouped.gm.caller.mutation(mutate, { input: adjustCurrency(grouped.campaign.id, 0, -50) })
+    await grouped.gm.caller.mutation(mutate, {
+      input: adjustCurrency(grouped.campaign.id, 0, -50)
+    })
     expect(
       (await grouped.readStored()).currencies.filter((row) => row.denominationId === denominationId)
     ).toEqual([])
@@ -431,7 +462,9 @@ describe('native Campaign party inventory', () => {
         'owner is unavailable'
       )
       await expect(
-        gm.caller.mutation(mutate, { input: adjustCurrency(campaign.id, 0, 1) })
+        gm.caller.mutation(mutate, {
+          input: adjustCurrency(campaign.id, 0, 1)
+        })
       ).rejects.toThrow('owner is unavailable')
       expect(await readStored()).toEqual(before)
     }
@@ -467,9 +500,14 @@ describe('native Campaign party inventory', () => {
     const inventoryHistory = decodeCampaignInventoryAuditPage(
       await gm.caller.query(audit, { campaignId: campaign.id, limit: 20 })
     )
-    expect(inventoryHistory.events[0]?.payload).toMatchObject({ itemLabel: '**** Club' })
+    expect(inventoryHistory.events[0]?.payload).toMatchObject({
+      itemLabel: '**** Club'
+    })
     const ownerHistory = decodeCampaignEventPage(
-      await gm.caller.query(events, { campaignId: campaign.id, characterId: character.id })
+      await gm.caller.query(events, {
+        campaignId: campaign.id,
+        characterId: character.id
+      })
     )
     expect(ownerHistory.events.map((event) => event.id)).toContain(result.eventId)
     expect(ownerHistory.events.find((event) => event.id === result.eventId)?.payload).toMatchObject(
@@ -481,7 +519,10 @@ describe('native Campaign party inventory', () => {
       /actorUserId|commandId|inputFingerprint|inventoryAudit/
     )
     const playerHistory = decodeCampaignEventPage(
-      await player.caller.query(events, { campaignId: campaign.id, characterId: character.id })
+      await player.caller.query(events, {
+        campaignId: campaign.id,
+        characterId: character.id
+      })
     )
     expect(playerHistory.events.map((event) => event.id)).not.toContain(result.eventId)
     const raw = await readStored()
@@ -496,7 +537,9 @@ describe('native Campaign party inventory', () => {
     const { t, gm, campaign, readStored } = await setup()
     const ids: string[] = []
     for (let index = 0; index < 9; index++) {
-      const result = await gm.caller.mutation(mutate, { input: addItem(campaign.id, index, 1) })
+      const result = await gm.caller.mutation(mutate, {
+        input: addItem(campaign.id, index, 1)
+      })
       const rows = (await readStored()).items
       ids.push(rows.find((row) => !ids.includes(row.id))!.id)
       expect(result.eventId).toBeTruthy()
@@ -515,7 +558,9 @@ describe('native Campaign party inventory', () => {
     expect(new Set(found)).toEqual(new Set(ids))
 
     const parent = ids[0]!
-    const childResult = await gm.caller.mutation(mutate, { input: addItem(campaign.id, 9, 1) })
+    const childResult = await gm.caller.mutation(mutate, {
+      input: addItem(campaign.id, 9, 1)
+    })
     const child = (await readStored()).items.find(
       (row) => row.id !== parent && !ids.includes(row.id)
     )
@@ -597,7 +642,10 @@ describe('native Campaign party inventory', () => {
     })
     if (!campaignBeforeDelete) throw new Error('Missing Campaign before deletion.')
     await expect(
-      gm.caller.mutation(deleteActive, { subjectKind: 'EQUIPMENT', subjectId: homebrew.id })
+      gm.caller.mutation(deleteActive, {
+        subjectKind: 'EQUIPMENT',
+        subjectId: homebrew.id
+      })
     ).resolves.toBeNull()
     expect(
       await t.run((ctx) =>
@@ -609,7 +657,11 @@ describe('native Campaign party inventory', () => {
     ).toBeNull()
     await expect(
       gm.caller.mutation(mutate, {
-        input: { ...custom, idempotencyKey: crypto.randomUUID(), expectedOwnerVersion: 1 }
+        input: {
+          ...custom,
+          idempotencyKey: crypto.randomUUID(),
+          expectedOwnerVersion: 1
+        }
       })
     ).rejects.toThrow('unavailable')
     const campaignAfterDelete = await gm.caller.query(api.campaigns.queries.get, {

@@ -7,6 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
 import { ConvexReactClient } from 'convex/react'
+import { ConvexError } from 'convex/values'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   characterBuilderDraftPayloadFixture,
@@ -310,6 +311,46 @@ describe('CharacterBuilderAuthoringRuntime', () => {
         performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED, 'mark')
       ).toHaveLength(1)
     })
+  })
+
+  it('opens on the recommended step once the first evaluation returns, unless the URL named a step', async () => {
+    const payload = structuredClone(characterBuilderDraftPayloadFixture)
+    expect(payload.resolution.recommendedSectionId).toBe('RACE')
+    mocks.resolve.mockResolvedValue(payload)
+    const first = renderWithAppProviders(
+      <AuthoringLayout data={editData(payload)} kind='character-builder' mode='edit' />
+    )
+    expect(await screen.findByRole('heading', { level: 2, name: 'Race' })).toBeInTheDocument()
+    first.unmount()
+
+    renderWithAppProviders(
+      <AuthoringLayout data={editData(payload)} kind='character-builder' mode='edit' />,
+      { initialPath: '/?step=basics' }
+    )
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalled())
+    expect(await screen.findByRole('heading', { level: 2, name: 'Basics' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 2, name: 'Race' })).not.toBeInTheDocument()
+  })
+
+  it('stops autosaving and says so when the draft was replaced elsewhere', async () => {
+    const user = userEvent.setup()
+    mocks.saveDraft.mockRejectedValue(
+      new ConvexError({ code: 'DRAFT_REPLACED', message: 'Character draft generation changed.' })
+    )
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={editData(characterBuilderPayloadFixture)}
+        kind='character-builder'
+        mode='edit'
+      />
+    )
+    await user.click(await screen.findByRole('link', { name: 'Basics' }))
+    await user.type(await screen.findByRole('textbox', { name: /character name/i }), 'x')
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+    expect(await screen.findByText('Opened elsewhere')).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: /character name/i }), 'y')
+    await user.click(screen.getByRole('link', { name: 'Race' }))
+    expect(mocks.saveDraft).toHaveBeenCalledTimes(1)
   })
 
   it('discards active draft from overflow actions with generation-bound draft id', async () => {

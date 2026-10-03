@@ -5,10 +5,14 @@ import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatc
 import { api } from '../_generated/api'
 import { executeCharacterSheetCommand } from './sheetCommands'
 
-/** Measured 2026-09-29: the play record replace is about 500 B, the command receipt 650-680 B. */
+/**
+ * Measured 2026-10-03 with binary fields counted: the play record replace is about 460 B, the
+ * command receipt about 470 B and its receipt-ledger row about 1160 B, about 2100 B in all; an
+ * Encounter damage writes about 2140 B.
+ */
 const PLAY_RECORD_BYTES = 800
-const SHEET_HP_CHANGE_BYTES = 1500
-const ENCOUNTER_DAMAGE_BYTES = 1600
+const SHEET_HP_CHANGE_BYTES = 2400
+const ENCOUNTER_DAMAGE_BYTES = 2500
 
 describe('Character play-state write budget', () => {
   it('writes only the small play record for a Sheet HP change and an Encounter damage', async () => {

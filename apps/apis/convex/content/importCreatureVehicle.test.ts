@@ -9,7 +9,11 @@ import {
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { importedSubject } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  setVersionCompilation,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import schema from '../schema'
 import { sourceImportBatches } from './importBatches'
@@ -51,7 +55,7 @@ describe.each([
           .withIndex('by_publicId', (q) => q.eq('id', subject.id))
           .unique()
         if (!root) throw new Error(`Missing canonical ${subjectKind}`)
-        const version = await ctx.db.get(root.currentVersionId)
+        const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
         if (!version?.compilation) throw new Error(`Missing ${subjectKind} compilation`)
         return {
           root,
@@ -100,7 +104,7 @@ describe.each([
             .withIndex('by_publicId', (q) => q.eq('id', id))
             .unique()
           if (!root) throw new Error(`Missing ${subjectKind} replay fixture`)
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           if (!version?.compilation) throw new Error(`Missing ${subjectKind} replay compilation`)
           return { root, version, compilation: version.compilation }
         })
@@ -113,27 +117,31 @@ describe.each([
       subjects: selected
     }
     await t.run(async (ctx) => {
-      await ctx.db.patch(first.version._id, { compilation: undefined })
-      await ctx.db.patch(second.version._id, {
-        compilation: { ...second.compilation, projectionJson: '{}' }
+      await setVersionCompilation(ctx, first.version, undefined)
+      await setVersionCompilation(ctx, second.version, {
+        ...second.compilation,
+        projectionJson: '{}'
       })
     })
     await expect(t.mutation(internal.content.import.importSubjects, input)).rejects.toThrow(
       'Canonical content conflict'
     )
-    expect(await t.run((ctx) => ctx.db.get(first.version._id))).toEqual({
-      ...first.version,
-      compilation: undefined
-    })
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(first.version._id)))
+    ).toEqual({ ...first.version, compilation: undefined })
     await expect(audit()).rejects.toThrow()
 
-    await t.run((ctx) => ctx.db.patch(second.version._id, { compilation: second.compilation }))
+    await t.run((ctx) => setVersionCompilation(ctx, second.version, second.compilation))
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
       inserted: 0,
       reused: 2
     })
-    expect(await t.run((ctx) => ctx.db.get(first.version._id))).toEqual(first.version)
-    expect(await t.run((ctx) => ctx.db.get(second.version._id))).toEqual(second.version)
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(first.version._id)))
+    ).toEqual(first.version)
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(second.version._id)))
+    ).toEqual(second.version)
     for (const stored of before) {
       expect(await t.run((ctx) => ctx.db.get(stored.root._id))).toEqual(stored.root)
     }

@@ -399,8 +399,10 @@ without a draft is read without creating one during SSR or preload. The mounted 
 opens/reopens its private draft through `drafts.create`; `/characters/new` loads Systems only, then
 the mounted client creates one UUID-backed draft and navigates to its canonical edit route. Retry
 retains that Character UUID. An editable form requires the returned persisted draft generation. The
-Builder opens on its first step (or the step in the URL); step progress arrives with the first
-evaluation.
+Builder renders its first step (or the step in the URL) at once; step progress and the recommended
+step arrive with the first evaluation, which moves a Builder opened without a URL step to the
+recommended step once (never over a URL step or a step the user already chose). An empty draft
+recommends Basics.
 
 The form key includes Character UUID and draft generation, not save time. Same-generation loader
 updates preserve unsaved edits; a reopened generation creates a new form. An autosave marks the
@@ -419,8 +421,12 @@ retired primary catalogue, authored-version upgrade token or target-status overr
 The Builder saves its draft itself (`builder/save/draftAutosave.ts`). A change is saved once edits
 have been idle for 2 s, and no sooner than 10 s after the previous save began; a step change, page
 hide (best effort), leaving the Builder and "Save Draft" save at once. Saves never overlap, and a
-failed save retries the newest values with doubling backoff up to 30 s. The header's save state
-shows "Saving…", "Saved" or "Couldn't save, retrying" (`draftSaveStatus` in the authoring form
+save that throws retries the newest values with doubling backoff up to 30 s. A save rejected with
+the typed `DRAFT_REPLACED` `ConvexError` (`characterDraftSaveErrorDataSchema`: the draft is gone,
+its generation changed or its base revision moved, so it was finalized, discarded or reopened
+elsewhere) is never retried: the autosave stops for good, one notification asks the user to reload,
+and a draft owned by another user stays a plain error. The header's save state shows "Saving…",
+"Saved", "Couldn't save, retrying" or "Opened elsewhere" (`draftSaveStatus` in the authoring form
 state) in place of "Unsaved changes"; nothing else interrupts the form. Evaluation uses the form's
 own ability-intent cache, so autosave never reloads the route.
 

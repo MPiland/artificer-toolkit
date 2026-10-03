@@ -1480,7 +1480,7 @@
           "id": "P02",
           "title": "Character Builder choices, readiness, and commit",
           "proofTier": "LOCAL_E2E",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/movement-replay-duplicates-20260916/p02-root-session/accepted-proof.json",
             ".codex/validation/movement-replay-duplicates-20260916/p02-root-session/builder-browser-03-completed-audit.json",
@@ -1523,15 +1523,17 @@
             },
             {
               "id": "P02.3",
-              "text": "Builder resolution stays within Convex limits with full dynamic validation, and native completions show only expected authentication negatives. Builder evaluation runs in the browser over content snapshots with 0 Convex calls per edit, autosave of 32 KB or less, commit of 300 KB or less, a full build of 1.5 MB or less, and a Builder worker chunk of 300 KB gzipped or less (ADR 0036).",
-              "status": "IN_PROGRESS",
+              "text": "Builder resolution stays within Convex limits with full dynamic validation, and native completions show only expected authentication negatives. Builder evaluation runs in the browser over content snapshots with 0 Convex calls per edit, autosave of 32 KB or less, commit database I/O of 450 KB or less for one Class plus 200 KB for each further distinct Class (D84), a full build of 1.5 MB or less, and a Builder worker chunk of 300 KB gzipped or less (ADR 0036).",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0036); the entries below proved server-side Builder resolution and no longer prove this criterion",
                 ".codex/validation/movement-replay-duplicates-20260916/p02-root-session/accepted-proof.json",
                 "apps/apis/convex/characters/draftSaveBudget.test.ts (S8, convex-test 2026-09-28: autosave of a level-5 Wizard draft: 7.8 KB in create mode, 14.4 KB in edit mode, against 32 KB; never reads the old payload)",
                 "apps/web/src/domains/characters/builder/save/draftAutosave.test.ts (S8: 2 s idle debounce, 10 s minimum interval, immediate flush, no overlapping saves, retry with backoff)",
                 "apps/apis/convex/characters/builderSnapshotParity.test.ts (S9: browser snapshot evaluation equals a pure full-pool evaluation; builder.get, resolve and preview removed)",
-                "missing: local end-to-end Builder journey over snapshots with the Builder budget gates (S6 local bridge, S10)"
+                "docs/validation/phase-08-2/vs6-builder-budgets-2026-10-03.md (VS-6, 2026-10-03: native builder-browser journey over snapshots passes; 0 non-autosave Convex calls per edit; max autosave 14.5 KB; commits 546 KB (2 Classes), 400 KB and 436 KB (1 Class); full builds 628-854 KB; only expected authentication negatives)",
+                "apps/apis/convex/characters/commitReadBudget.test.ts (D84: Fighter 5 328 KB, Wizard 5 376 KB of reads, binary fields and Class compilations counted)",
+                "scripts/builderBudgets.mjs"
               ]
             },
             {

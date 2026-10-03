@@ -9,7 +9,13 @@ import {
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/authored'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
+import {
+  canReadAuthoredRoot,
+  readAuthoredVersion,
+  readPublishedDocument,
+  replaceAuthoredVersionCompilation,
+  type PublishedDocumentReads
+} from './documents'
 import { compilePublicationDocument } from './publicationDocument'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { isImportRowVisible } from '../imports/visibility'
@@ -32,7 +38,9 @@ export async function compileCurrentEquipment(
   userId: string | null,
   allowedSourceIds?: ReadonlySet<string>,
   canReadSharedRoot?: (root: Doc<'authoredRoots'>) => Promise<boolean>,
-  currentImportJobId?: string
+  currentImportJobId?: string,
+  readRoot?: (id: string) => Promise<Doc<'authoredRoots'> | null>,
+  documents?: PublishedDocumentReads
 ) {
   const ancestors = await requireEquipmentParents(
     ctx,
@@ -40,7 +48,10 @@ export async function compileCurrentEquipment(
     userId,
     allowedSourceIds,
     canReadSharedRoot,
-    currentImportJobId
+    currentImportJobId,
+    undefined,
+    readRoot,
+    documents
   )
   // The DTO validates conditional CLASS_LEVEL charge IDs with superRefine; its inferred
   // type cannot express that narrowing. Keep the compiler-type bridge after schema validation.
@@ -114,7 +125,7 @@ export async function recompileEquipmentChildren(
       await ctx.db.patch(root._id, {
         equipmentOptions: equipmentOptionFacts(document, root.checksum, effective)
       })
-      await ctx.db.patch(version._id, { compilation })
+      await replaceAuthoredVersionCompilation(ctx, version, compilation)
       visited.add(root.id)
       parents.push(effective)
     }

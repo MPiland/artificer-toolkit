@@ -517,10 +517,10 @@ async function stageActive(
       importJobId: args.jobId,
       versionId: crypto.randomUUID(),
       version: 1,
-      documentSchemaVersion: 1,
-      compilation: prepared.compilation
+      documentSchemaVersion: 1
     },
-    canonicalizeRuleDocument(prepared.subject.document)
+    canonicalizeRuleDocument(prepared.subject.document),
+    prepared.compilation
   )
   const version = await ctx.db.get(storedVersionId)
   if (!version) throw new Error('Staged authored version is missing.')

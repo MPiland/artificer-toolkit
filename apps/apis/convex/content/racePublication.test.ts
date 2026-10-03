@@ -14,7 +14,12 @@ import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/s
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RaceAuthored } from '@artificer-toolkit/shared/authored'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  setVersionCompilation,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { api, internal } from '../_generated/api'
 import { readStoredAuthoredVersionDocument } from './documents'
@@ -87,6 +92,7 @@ function storedState(t: Awaited<ReturnType<typeof fixture>>['t']) {
     roots: await ctx.db.query('authoredRoots').collect(),
     versions: await ctx.db.query('authoredVersions').collect(),
     versionChunks: await ctx.db.query('authoredVersionPayloadChunks').collect(),
+    compilations: await ctx.db.query('authoredVersionCompilations').collect(),
     drafts: await ctx.db.query('authoredDrafts').collect(),
     routes: await ctx.db.query('authoredRouteIds').collect()
   }))
@@ -105,7 +111,7 @@ describe('native Race publication', () => {
             .withIndex('by_publicId', (q) => q.eq('id', subject.id))
             .unique()
           if (!root) throw new Error('Missing canonical Race root')
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           return {
             root,
             version,
@@ -159,7 +165,10 @@ describe('native Race publication', () => {
           .withIndex('by_publicId', (q) => q.eq('id', copy.subjectId))
           .unique()
         if (!ownedRoot) throw new Error('Missing published Race copy')
-        const version = await ctx.db.get(ownedRoot.currentVersionId)
+        const version = await versionWithCompilation(
+          ctx,
+          await ctx.db.get(ownedRoot.currentVersionId)
+        )
         return {
           root: ownedRoot,
           version,
@@ -240,7 +249,9 @@ describe('native Race publication', () => {
     }
     const systemId = subjects[0]!.systemId
     const masterIds = subjects.map((subject) => subject.id).sort()
-    const ownedCatalogue = await readVisibleCatalogue(t, first.caller, 'RACE', { systemId })
+    const ownedCatalogue = await readVisibleCatalogue(t, first.caller, 'RACE', {
+      systemId
+    })
     expect(ownedCatalogue.map((item) => item.id).sort()).toEqual(
       [...masterIds, ...copiedIds].sort()
     )
@@ -251,7 +262,9 @@ describe('native Race publication', () => {
         .sort()
     ).toEqual(masterIds)
     expect(
-      await readVisibleCatalogue(t, first.caller, 'RACE', { systemId: crypto.randomUUID() })
+      await readVisibleCatalogue(t, first.caller, 'RACE', {
+        systemId: crypto.randomUUID()
+      })
     ).toEqual([])
   }, 30_000)
 
@@ -329,7 +342,7 @@ describe('native Race publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', child.subjectId))
         .unique()
       if (!root) throw new Error('Missing owned subrace')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
         version,
@@ -380,7 +393,7 @@ describe('native Race publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', child.subjectId))
         .unique()
       if (!root) throw new Error('Missing owned subrace')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
         version,
@@ -458,7 +471,7 @@ describe('native Race publication', () => {
         if (!root) throw new Error('Missing retained subrace.')
         return {
           root,
-          version: await ctx.db.get(root.currentVersionId),
+          version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId)),
           draft: await ctx.db
             .query('authoredDrafts')
             .withIndex('by_subjectId', (q) => q.eq('subjectId', child.subjectId))
@@ -642,6 +655,9 @@ describe('native Race publication', () => {
     expect(await storedState(t)).toEqual(before)
     const root = before.roots.find((entry) => entry.id === subjects[0]!.id)!
     const version = before.versions.find((entry) => entry._id === root.currentVersionId)!
+    const compilation = before.compilations.find(
+      (entry) => entry.versionId === version.versionId
+    )?.compilation
     await expect(t.mutation(syncDerived, { id: root.id, checksum: 'wrong' })).rejects.toThrow()
     await t.run((ctx) => ctx.db.patch(root._id, { parentRaceId: crypto.randomUUID() }))
     const parentConflict = await storedState(t)
@@ -650,13 +666,11 @@ describe('native Race publication', () => {
     )
     expect(await storedState(t)).toEqual(parentConflict)
     await t.run((ctx) => ctx.db.patch(root._id, { parentRaceId: root.parentRaceId }))
-    if (!version.compilation) throw new Error('Missing compilation')
+    if (!compilation) throw new Error('Missing compilation')
     await t.run((ctx) =>
-      ctx.db.patch(version._id, {
-        compilation: {
-          ...version.compilation!,
-          projectionChecksum: 'conflict'
-        }
+      setVersionCompilation(ctx, version, {
+        ...compilation,
+        projectionChecksum: 'conflict'
       })
     )
     const compilationConflict = await storedState(t)
@@ -664,7 +678,7 @@ describe('native Race publication', () => {
       'Canonical content conflict'
     )
     expect(await storedState(t)).toEqual(compilationConflict)
-    await t.run((ctx) => ctx.db.patch(version._id, { compilation: version.compilation }))
+    await t.run((ctx) => setVersionCompilation(ctx, version, compilation))
     const draft = await first.caller.mutation(api.content.drafts.duplicate, {
       subjectKind: 'RACE',
       subjectId: root.id

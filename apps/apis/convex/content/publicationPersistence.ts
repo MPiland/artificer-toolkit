@@ -254,10 +254,10 @@ export async function commitPublication(
       contentSourceId,
       versionId: currentVersionPublicId,
       version: (previous?.version ?? 0) + 1,
-      documentSchemaVersion: 1,
-      compilation
+      documentSchemaVersion: 1
     },
-    canonicalizeRuleDocument(document)
+    canonicalizeRuleDocument(document),
+    compilation
   )
   const current = {
     id: input.subjectId,

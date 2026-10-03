@@ -121,7 +121,15 @@ export async function loadCharacterReferencedContext(
     if (!reads.publications.has(root.id))
       reads.publications.set(
         root.id,
-        await readCharacterPublication(ctx, root, systemId, userId, sources, sourceIdentities)
+        await readCharacterPublication(
+          ctx,
+          root,
+          systemId,
+          userId,
+          sources,
+          sourceIdentities,
+          reads.documents
+        )
       )
     return reads.publications.get(root.id) ?? null
   }

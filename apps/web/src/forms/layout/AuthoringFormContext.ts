@@ -25,8 +25,11 @@ import type { AuthoringNavigationNode, AuthoringNavigationTarget } from './autho
 
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 
-/** A draft that saves itself: unsaved edits, a save in flight, saved, or a failed save retrying. */
-export type AuthoringDraftSaveStatus = 'pending' | 'saving' | 'saved' | 'retrying'
+/**
+ * A draft that saves itself: unsaved edits, a save in flight, saved, a failed save retrying, or
+ * replaced (finalized, discarded or reopened elsewhere), after which it no longer saves.
+ */
+export type AuthoringDraftSaveStatus = 'pending' | 'saving' | 'saved' | 'retrying' | 'replaced'
 
 export type AuthoringFormAction = () => Promise<void> | void
 export type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | void

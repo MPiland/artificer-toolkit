@@ -568,6 +568,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write
     it, so the room would write from a stale base and its checkpoint would be refused.
+- **D84 (2026-10-03): the Builder commit budget is per distinct Class, not a flat 300 KB.
+  Decided by the product owner on 2026-10-03 (VS-6).**
+  - **Finding:** the native local run measured commit at 782 KB (Fighter 2 / Rogue 1) and 955 KB
+    (Life Cleric 1). The convex-test counter had counted payload chunk bytes as zero and its fixtures
+    lacked the Class compilation. On the SRD, reading one Class once costs 240–330 KB (root, version,
+    payload), so a commit that revalidates against Convex content cannot fit 300 KB.
+  - **Decision:** read each referenced document once per commit, move the Class compilation off the
+    version document (table `authoredVersionCompilations`) so commit does not pay for it, and budget
+    commit database I/O (read plus write) at 450 KB for one Class plus 200 KB for each further
+    distinct Class (650 KB for two). After both changes convex-test measures Fighter 5 at 328 KB and
+    Wizard 5 at 376 KB of reads. Recheck the free-tier cost model with measured numbers. ADR 0036 and
+    P02.3 are amended to match. A commit that stops reading Class payloads is not pursued.
 - **D83 (2026-10-02): the GM's Blind roll is removed; GM rolls are Public or Private only.
   Decided by the product owner on 2026-10-02 (VS-5).**
   - Q14's toggle is confirmed as recorded: one Public/Private toggle beside the GM's roll controls

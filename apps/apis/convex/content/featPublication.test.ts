@@ -25,7 +25,11 @@ import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
 import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subjects/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, internal } from '../_generated/api'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readStoredAuthoredVersionDocument } from './documents'
 
 const publish = makeFunctionReference<
@@ -108,7 +112,7 @@ describe('native Feat publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
         .unique()
       if (!root) throw new Error('Missing published Feat root')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       const source = await ctx.db
         .query('contentSources')
         .withIndex('by_publicId', (q) => q.eq('id', root.contentSourceId))
@@ -204,7 +208,7 @@ describe('native Feat publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', grappler.id))
         .unique()
       if (!root) throw new Error('Missing canonical Feat root')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
         version,
@@ -244,7 +248,7 @@ describe('native Feat publication', () => {
           .withIndex('by_publicId', (q) => q.eq('id', grappler.id))
           .unique()
         if (!root) return null
-        const version = await ctx.db.get(root.currentVersionId)
+        const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
         return {
           root,
           version,

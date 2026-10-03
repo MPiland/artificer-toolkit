@@ -25,6 +25,7 @@ import schema from '../schema'
 import authSchema from '../betterAuth/schema'
 import { readDetailMeta } from './detailMeta'
 import { deleteAuthoredVersion, insertAuthoredVersion } from './documents'
+import { versionWithCompilation } from '../../tests/fixtures/publication'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
@@ -838,7 +839,7 @@ describe('Convex authored detail reads', () => {
           .unique()
         if (!root) throw new Error('Missing fixture root')
         if (index === 1) {
-          const version = await ctx.db.get(root.currentVersionId)
+          const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
           if (!version) throw new Error('Missing equipment version fixture')
           const document = { ...item, userId: second.identity.userId }
           const checksum = checksumRuleDocument(document)
@@ -854,10 +855,10 @@ describe('Convex authored detail reads', () => {
               contentSourceId: privateSourceId,
               versionId: version.versionId,
               version: version.version,
-              documentSchemaVersion: version.documentSchemaVersion,
-              compilation: version.compilation
+              documentSchemaVersion: version.documentSchemaVersion
             },
-            canonicalizeRuleDocument(document)
+            canonicalizeRuleDocument(document),
+            version.compilation
           )
           await ctx.db.patch(root._id, {
             ownerUserId: second.identity.userId,

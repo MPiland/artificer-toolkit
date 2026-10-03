@@ -5,6 +5,7 @@ import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import { finished } from 'node:stream/promises'
+import { verifyBuilderBudgets } from './builderBudgets.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 // The local Docker deployment shared with scripts/resetLocalConvex.ps1 and scripts/runLocalConvexProof.ps1.
@@ -1296,6 +1297,8 @@ async function main() {
         if (current.name === 'convex-local-deploy') await verifySourceEnd()
       }
       if (current.proofName) entry.proofEvidence = await readLocalProofEvidence(current.proofName)
+      if (current.name === 'r08-browser-builder-browser')
+        entry.builderBudgets = await verifyBuilderBudgets(current.proofName)
       if (current.name === 'convex-reset') {
         const resetStem = `${localResetDirectory}/r08-reset-${releaseProofAttempt}`
         const reset = JSON.parse(await readFile(resolve(root, `${resetStem}.reset.json`), 'utf8'))

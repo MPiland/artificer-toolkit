@@ -50,6 +50,8 @@ import {
 import { authoredStoredCompilationSchema } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
   insertAuthoredVersion,
+  insertAuthoredVersionCompilation,
+  readAuthoredVersionCompilation,
   readAuthoredVersion,
   readPublishedDocument,
   readStoredAuthoredVersionDocument
@@ -291,8 +293,7 @@ export const importSubjects: RegisteredMutation<
         const storedVersion = await ctx.db.get(current.currentVersionId)
         if (!storedVersion) throw new Error('Missing canonical version.')
         const storedVersionFields = storedFields(storedVersion)
-        const storedCompilation = storedVersion.compilation
-        delete storedVersionFields.compilation
+        const storedCompilation = await readAuthoredVersionCompilation(ctx, storedVersion)
         delete storedVersionFields.documentJson
         delete storedVersionFields.documentChunkCount
         delete storedVersionFields.documentByteLength
@@ -318,7 +319,7 @@ export const importSubjects: RegisteredMutation<
           else if (parsed.subjectKind !== 'CLASS')
             throw new Error('Unexpected canonical compilation.')
         } else if (compilation) {
-          await ctx.db.patch(storedVersion._id, { compilation })
+          await insertAuthoredVersionCompilation(ctx, storedVersion, compilation)
         }
         if (storedOptions !== undefined) {
           if (!equipmentOptions) throw new Error('Unexpected equipment option facts.')
@@ -385,11 +386,9 @@ export const importSubjects: RegisteredMutation<
         if (orphan) throw new Error('Orphan canonical version.')
         const currentVersionId = await insertAuthoredVersion(
           ctx,
-          {
-            ...version,
-            ...(compilation ? { compilation } : {})
-          },
-          documentJson
+          version,
+          documentJson,
+          compilation
         )
         const rootId = await ctx.db.insert('authoredRoots', {
           ...root,
@@ -584,7 +583,7 @@ export const readSubjects = internalQuery({
           parsed.subjectKind === 'CREATURE' ||
           parsed.subjectKind === 'VEHICLE'
         )
-          exact(version.compilation, compilePublicationDocument(parsed))
+          exact(await readAuthoredVersionCompilation(ctx, version), compilePublicationDocument(parsed))
         if (parsed.subjectKind === 'CLASS') {
           exact(
             root.parentClassId,
@@ -601,7 +600,10 @@ export const readSubjects = internalQuery({
         if (parsed.subjectKind === 'RACE') {
           const document = raceAuthoredDtoSchema.parse(parsed.document)
           exact(root.parentRaceId, document.category === 'SUBRACE' ? document.parentRaceId : null)
-          exact(version.compilation, (await compileCurrentRace(ctx, document, null)).compilation)
+          exact(
+            await readAuthoredVersionCompilation(ctx, version),
+            (await compileCurrentRace(ctx, document, null)).compilation
+          )
           const parent = await readCatalogueParent(ctx, root, null)
           exact(root.catalogueFamily, {
             id: parent?.id ?? root.id,
@@ -618,7 +620,7 @@ export const readSubjects = internalQuery({
             root.equipmentOptions,
             equipmentOptionFacts(parsed.document, root.checksum, equipment.effective)
           )
-          exact(version.compilation, equipment.compilation)
+          exact(await readAuthoredVersionCompilation(ctx, version), equipment.compilation)
         }
         return audit
       })
@@ -660,8 +662,10 @@ export const syncEquipmentDerived = internalMutation({
       document.category === 'VARIANT' ? document.parentEquipmentId : null
     )
     const { compilation, effective } = await compileCurrentEquipment(ctx, document, null)
-    if (version.compilation === undefined) await ctx.db.patch(version._id, { compilation })
-    else exact(version.compilation, compilation)
+    const storedCompilation = await readAuthoredVersionCompilation(ctx, version)
+    if (storedCompilation === undefined)
+      await insertAuthoredVersionCompilation(ctx, version, compilation)
+    else exact(storedCompilation, compilation)
     const rawFacts = equipmentOptionFacts(document, root.checksum)
     const expectedFacts = equipmentOptionFacts(document, root.checksum, effective)
     if (root.equipmentOptions === undefined) {
@@ -717,9 +721,10 @@ export const syncClassDerived = internalMutation({
     else exact(current.root.parentClassId, args.parentClassId)
     if (current.parentClassId !== args.parentClassId)
       throw new Error('Canonical Class parent mismatch.')
-    if (current.version.compilation === undefined)
-      await ctx.db.patch(current.version._id, { compilation })
-    else exact(current.version.compilation, compilation)
+    const storedCompilation = await readAuthoredVersionCompilation(ctx, current.version)
+    if (storedCompilation === undefined)
+      await insertAuthoredVersionCompilation(ctx, current.version, compilation)
+    else exact(storedCompilation, compilation)
     const root = await ctx.db.get(current.root._id)
     if (!root) throw new Error('Canonical Class root is missing.')
     await backfillCatalogueFamily(ctx, root)
@@ -735,12 +740,13 @@ export const readClassDerived = internalQuery({
   }),
   handler: async (ctx, args) => {
     const current = await readCanonicalClass(ctx, args.id, args.checksum)
-    if (current.root.parentClassId === undefined || current.version.compilation === undefined)
+    const compilation = await readAuthoredVersionCompilation(ctx, current.version)
+    if (current.root.parentClassId === undefined || compilation === undefined)
       throw new Error('Canonical Class derived metadata is missing.')
     exact(current.root.parentClassId, current.parentClassId)
     return {
       parentClassId: current.root.parentClassId,
-      compilation: current.version.compilation
+      compilation
     }
   }
 })

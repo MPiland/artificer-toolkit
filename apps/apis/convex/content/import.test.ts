@@ -34,6 +34,7 @@ import {
   insertAuthoredVersion,
   readStoredAuthoredVersionDocument
 } from './documents'
+import { setVersionCompilation, versionWithCompilation } from '../../tests/fixtures/publication'
 
 const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
 const sourceId = SRD_CONTENT_SOURCE.id
@@ -131,7 +132,7 @@ describe('internal canonical source import', () => {
         .withIndex('by_publicId', (q) => q.eq('id', base.id))
         .unique()
       if (!root?.equipmentOptions?.builder) throw new Error('Missing Builder Equipment facts')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version || version.compilation !== undefined)
         throw new Error('Equipment compilation should remain deferred.')
       return { root, version }
@@ -194,7 +195,7 @@ describe('internal canonical source import', () => {
         .withIndex('by_publicId', (q) => q.eq('id', variant.id))
         .unique()
       if (!root) throw new Error('Missing Equipment fixture')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version?.compilation) throw new Error('Missing Equipment compilation')
       return { root, version }
     })
@@ -226,7 +227,9 @@ describe('internal canonical source import', () => {
       inserted: 0,
       reused: 2
     })
-    expect(await t.run((ctx) => ctx.db.get(before.version._id))).toEqual(before.version)
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(before.version._id)))
+    ).toEqual(before.version)
     await t.run(async (ctx) => {
       if (!before.root.equipmentOptions) throw new Error('Missing Equipment facts')
       const { builder: _builder, ...rawFacts } = before.root.equipmentOptions
@@ -264,11 +267,9 @@ describe('internal canonical source import', () => {
     )
     await t.run((ctx) => ctx.db.patch(before.root._id, { parentEquipmentId: club.id }))
     await t.run((ctx) =>
-      ctx.db.patch(before.version._id, {
-        compilation: {
-          ...before.version.compilation!,
-          projectionChecksum: '0'.repeat(64)
-        }
+      setVersionCompilation(ctx, before.version, {
+        ...before.version.compilation!,
+        projectionChecksum: '0'.repeat(64)
       })
     )
     await expect(t.mutation(internal.content.import.syncEquipmentDerived, sync)).rejects.toThrow(
@@ -277,9 +278,11 @@ describe('internal canonical source import', () => {
     await expect(t.query(internal.content.import.readSubjects, page)).rejects.toThrow(
       'Canonical content conflict'
     )
-    await t.run((ctx) => ctx.db.patch(before.version._id, { compilation: undefined }))
+    await t.run((ctx) => setVersionCompilation(ctx, before.version, undefined))
     await t.mutation(internal.content.import.syncEquipmentDerived, sync)
-    expect(await t.run((ctx) => ctx.db.get(before.version._id))).toEqual(before.version)
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(before.version._id)))
+    ).toEqual(before.version)
   })
 
   it('audits large Class payloads with complete one-document pagination', async () => {
@@ -359,7 +362,7 @@ describe('internal canonical source import', () => {
         label: 'Homebrew',
         description: ''
       })
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version) throw new Error('Missing owned fixture version')
       await deleteAuthoredVersion(ctx, version)
       const currentVersionId = await insertAuthoredVersion(
@@ -373,10 +376,10 @@ describe('internal canonical source import', () => {
           contentSourceId,
           versionId: version.versionId,
           version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion,
-          compilation: version.compilation
+          documentSchemaVersion: version.documentSchemaVersion
         },
-        canonicalizeRuleDocument(document)
+        canonicalizeRuleDocument(document),
+        version.compilation
       )
       await ctx.db.patch(root._id, {
         ownerUserId,
@@ -558,23 +561,29 @@ describe('internal canonical source import', () => {
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     const input = { contentSourceId: sourceId, subjects: [subject()] }
     await t.mutation(internal.content.import.importSubjects, input)
-    const version = await t.run((ctx) =>
-      ctx.db
-        .query('authoredVersions')
-        .withIndex('by_id_version', (q) => q.eq('id', acolyte.id).eq('version', 1))
-        .unique()
+    const version = await t.run(async (ctx) =>
+      versionWithCompilation(
+        ctx,
+        await ctx.db
+          .query('authoredVersions')
+          .withIndex('by_id_version', (q) => q.eq('id', acolyte.id).eq('version', 1))
+          .unique()
+      )
     )
     if (!version?.compilation) throw new Error('Missing compiled Background fixture')
     const compilation = version.compilation
-    await t.run((ctx) => ctx.db.patch(version._id, { compilation: undefined }))
+    await t.run((ctx) => setVersionCompilation(ctx, version, undefined))
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
       inserted: 0,
       reused: 1
     })
-    expect(await t.run((ctx) => ctx.db.get(version._id))).toEqual(version)
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(version._id)))
+    ).toEqual(version)
     await t.run((ctx) =>
-      ctx.db.patch(version._id, {
-        compilation: { ...compilation, projectionChecksum: '0'.repeat(64) }
+      setVersionCompilation(ctx, version, {
+        ...compilation,
+        projectionChecksum: '0'.repeat(64)
       })
     )
     await expect(t.mutation(internal.content.import.importSubjects, input)).rejects.toThrow(

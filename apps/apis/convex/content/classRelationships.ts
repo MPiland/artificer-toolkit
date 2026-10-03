@@ -19,7 +19,10 @@ export async function requireClassParent(
     ctx.db
       .query('authoredRoots')
       .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+      .unique(),
+  /** A transaction-scoped publication lookup; commit reuses the publications it has already read. */
+  readDocument: (root: Doc<'authoredRoots'>) => Promise<unknown> = async (root) =>
+    readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root, currentImportJobId))
 ) {
   const parent = await readRoot(document.parentClassId)
   if (
@@ -34,8 +37,7 @@ export async function requireClassParent(
       !(await canReadSharedRoot?.(parent)))
   )
     throw new Error('A readable base class in the same System is required.')
-  const version = await readAuthoredVersion(ctx, parent, currentImportJobId)
-  const authored = classAuthoredDtoSchema.parse(await readPublishedDocument(ctx, parent, version))
+  const authored = classAuthoredDtoSchema.parse(await readDocument(parent))
   if (authored.category !== 'BASE')
     throw new Error('A readable base class in the same System is required.')
   onRead?.(parent)

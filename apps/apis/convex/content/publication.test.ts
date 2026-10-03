@@ -30,7 +30,11 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
 import { api, components, internal } from '../_generated/api'
 import { removeEmptyFixtureSource } from './development'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -405,7 +409,7 @@ describe('native Background publication', () => {
       await ctx.db.patch(counts._id, { count: 0 })
       return {
         root,
-        version: await ctx.db.get(root.currentVersionId),
+        version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId)),
         route: await ctx.db
           .query('authoredRouteIds')
           .withIndex('by_subjectId', (q) => q.eq('subjectId', input.subjectId))
@@ -419,7 +423,7 @@ describe('native Background publication', () => {
     expect(
       await t.run(async (ctx) => ({
         root: await ctx.db.get(before.root._id),
-        version: await ctx.db.get(before.root.currentVersionId),
+        version: await versionWithCompilation(ctx, await ctx.db.get(before.root.currentVersionId)),
         route: await ctx.db
           .query('authoredRouteIds')
           .withIndex('by_subjectId', (q) => q.eq('subjectId', input.subjectId))
@@ -619,7 +623,7 @@ describe('native Background publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
         .unique()
       if (!root) throw new Error('Missing published root')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       const source = await ctx.db
         .query('contentSources')
         .withIndex('by_publicId', (q) => q.eq('id', root.contentSourceId))

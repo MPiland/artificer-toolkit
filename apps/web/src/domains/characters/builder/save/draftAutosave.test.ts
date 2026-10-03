@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthoringDraftSaveStatus } from '#forms/layout/AuthoringFormContext'
 import { createDraftAutosave } from './draftAutosave'
 
-function setup(save = vi.fn(async (_value: string) => {})) {
+function setup(
+  save = vi.fn(async (_value: string): Promise<'saved' | 'replaced'> => 'saved')
+) {
   const statuses: AuthoringDraftSaveStatus[] = []
   const autosave = createDraftAutosave({ save, onStatus: (status) => statuses.push(status) })
   return { autosave, save, statuses }
@@ -61,8 +63,8 @@ describe('draft autosave', () => {
     let finish: () => void = () => {}
     const save = vi.fn(
       (_value: string) =>
-        new Promise<void>((resolve) => {
-          finish = resolve
+        new Promise<'saved'>((resolve) => {
+          finish = () => resolve('saved')
         })
     )
     const { autosave } = setup(save)
@@ -82,7 +84,7 @@ describe('draft autosave', () => {
 
   it('retries a failed save with backoff and reports it', async () => {
     const save = vi
-      .fn(async (_value: string) => {})
+      .fn(async (_value: string): Promise<'saved' | 'replaced'> => 'saved')
       .mockRejectedValueOnce(new Error('offline'))
       .mockRejectedValueOnce(new Error('offline'))
     const { autosave, statuses } = setup(save)
@@ -101,6 +103,21 @@ describe('draft autosave', () => {
     expect(save).toHaveBeenCalledTimes(3)
     expect(save).toHaveBeenLastCalledWith('a')
     expect(statuses.at(-1)).toBe('saved')
+  })
+
+  it('stops for good when the draft was replaced, without retrying', async () => {
+    const save = vi
+      .fn(async (_value: string): Promise<'saved' | 'replaced'> => 'saved')
+      .mockResolvedValueOnce('replaced')
+    const { autosave, statuses } = setup(save)
+    autosave.change('a')
+    await autosave.flush()
+    expect(statuses).toEqual(['pending', 'saving', 'replaced'])
+    autosave.change('b')
+    await autosave.flush()
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(statuses.at(-1)).toBe('replaced')
   })
 
   it('stops after cancel, and a disposed autosave saves nothing further', async () => {

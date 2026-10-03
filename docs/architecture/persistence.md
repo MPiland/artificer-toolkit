@@ -1387,7 +1387,10 @@ The root supplies its identity and label; the projection also records its direct
 The existing Equipment resolver and shared Builder mapper derive these fields. Full held/selected
 Equipment documents still supply mechanical rules through `loadCharacterRuleContext`.
 
-Publication writes the projection with the source version. Parent publication refreshes descendant
+Publication writes the projection with the source version. A version's compilation lives in
+`authoredVersionCompilations` (one row per version, `by_versionId`), not on the `authoredVersions`
+row, so readers that do not compile, such as Builder commit, do not pay its 90–126 KB per Class
+(D84). Deleting a version deletes its compilation row. Parent publication refreshes descendant
 projections in the same transaction as their derived compilations. Canonical import completes the
 projection after all parent roots exist; exact replay and audit compare the derived value. Existing
 catalogue backfill validates the original source and only fills a missing projection.

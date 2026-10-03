@@ -8,7 +8,11 @@ import { clubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/club-plu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
-import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
+import {
+  deleteAuthoredVersion,
+  insertAuthoredVersion,
+  readAuthoredVersionCompilation
+} from '../content/documents'
 import * as relationships from '../content/equipmentRelationships'
 import { loadCharacterBuilderContext } from './builderContext'
 
@@ -49,6 +53,7 @@ it.each([
       })
       const version = await ctx.db.get(root.currentVersionId)
       if (!version) throw new Error('Missing Equipment version fixture.')
+      const compilation = await readAuthoredVersionCompilation(ctx, version)
       await deleteAuthoredVersion(ctx, version)
       const currentVersionId = await insertAuthoredVersion(
         ctx,
@@ -61,10 +66,10 @@ it.each([
           contentSourceId: version.contentSourceId,
           versionId: version.versionId,
           version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion,
-          compilation: version.compilation
+          documentSchemaVersion: version.documentSchemaVersion
         },
-        canonicalizeRuleDocument(imported.document)
+        canonicalizeRuleDocument(imported.document),
+        compilation
       )
       await ctx.db.patch(root._id, {
         parentEquipmentId: child.id,

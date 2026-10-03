@@ -3,6 +3,7 @@ import { convexTest } from 'convex-test'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
+import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -10,9 +11,17 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { components, internal } from '../../convex/_generated/api'
-import type { MutationCtx } from '../../convex/_generated/server'
+import type { Doc } from '../../convex/_generated/dataModel'
+import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import authSchema from '../../convex/betterAuth/schema'
-import { deleteAuthoredVersion, insertAuthoredVersion } from '../../convex/content/documents'
+import {
+  deleteAuthoredVersion,
+  insertAuthoredVersion,
+  insertAuthoredVersionCompilation,
+  readAuthoredVersionCompilation,
+  readAuthoredVersionCompilationRow
+} from '../../convex/content/documents'
+import { compilePublicationDocument, parsePublicationDocument } from '../../convex/content/publicationDocument'
 import schema from '../../convex/schema'
 
 process.env.SITE_URL = 'http://localhost:3000'
@@ -33,6 +42,17 @@ export function importedSubject(subject: {
     label: subject.label,
     checksum: checksumRuleDocument(document),
     document
+  }
+}
+
+/** The seed's derived-data step for an imported Class: parent link and stored compilation. */
+export function classDerivedArgs(subject: { id: string; checksum: string; document: unknown }) {
+  const parsed = parsePublicationDocument('CLASS', subject.document)
+  return {
+    id: subject.id,
+    checksum: subject.checksum,
+    parentClassId: parsed.document.category === 'SUBCLASS' ? parsed.document.parentClassId : null,
+    compilation: compilePublicationDocument(parsed)
   }
 }
 
@@ -66,6 +86,7 @@ export async function makePublishedRootOwned(
   if (!root) throw new Error('Missing authored fixture.')
   const version = await ctx.db.get(root.currentVersionId)
   if (!version) throw new Error('Missing authored version fixture.')
+  const compilation = await readAuthoredVersionCompilation(ctx, version)
   const contentSourceId = crypto.randomUUID()
   await ctx.db.insert('contentSources', {
     ...SRD_CONTENT_SOURCE,
@@ -91,10 +112,10 @@ export async function makePublishedRootOwned(
       contentSourceId,
       versionId: version.versionId,
       version: version.version,
-      documentSchemaVersion: version.documentSchemaVersion,
-      compilation: version.compilation
+      documentSchemaVersion: version.documentSchemaVersion
     },
-    canonicalizeRuleDocument(document)
+    canonicalizeRuleDocument(document),
+    compilation
   )
   await ctx.db.patch(root._id, {
     ownerUserId,
@@ -172,4 +193,24 @@ export async function publicationFixture(
     })
   }
   return { t, first: actors[0]!, second: actors[1]! }
+}
+
+/** A stored version with its separately stored compilation attached, for assertions. */
+export async function versionWithCompilation<Version extends Doc<'authoredVersions'> | null>(
+  ctx: QueryCtx,
+  version: Version
+) {
+  if (!version) return version as Extract<Version, null>
+  return { ...version, compilation: await readAuthoredVersionCompilation(ctx, version) }
+}
+
+/** Replaces (or, with undefined, removes) a version's separately stored compilation. */
+export async function setVersionCompilation(
+  ctx: MutationCtx,
+  version: Doc<'authoredVersions'>,
+  compilation: AuthoredStoredCompilation | undefined
+) {
+  const stored = await readAuthoredVersionCompilationRow(ctx, version)
+  if (stored) await ctx.db.delete(stored._id)
+  if (compilation) await insertAuthoredVersionCompilation(ctx, version, compilation)
 }

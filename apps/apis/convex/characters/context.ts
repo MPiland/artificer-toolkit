@@ -18,7 +18,7 @@ import type { QueryCtx } from '../_generated/server'
 import { requireClassParent } from '../content/classRelationships'
 import { requireEquipmentParents, requireRaceParent } from '../content/relationshipReads'
 import { requireSystem } from '../content/systemDocuments'
-import { canReadAuthoredRoot } from '../content/documents'
+import { canReadAuthoredRoot, type PublishedDocumentReads } from '../content/documents'
 import type { CampaignInternalScope } from '../campaigns/authority'
 import {
   readCampaignSharedRoot,
@@ -50,6 +50,8 @@ export type CharacterReferencedReads = {
   publications: Map<string, AuthoredPublicationDocument | null>
   /** Referenced ids whose root exists but is not readable to this Character. */
   unreadableRootIds: Set<string>
+  /** Stored published documents by root id, read once per transaction. */
+  documents: PublishedDocumentReads
   /** Roots by public id, read once per transaction. */
   roots: Map<string, Doc<'authoredRoots'> | null>
   /** The System and source access, read once per transaction. */
@@ -59,8 +61,7 @@ export type CharacterReferencedReads = {
   }
 }
 
-/** A root by public id, read once per commit transaction when
-eads is given. */
+/** A root by public id, read once per commit transaction when `reads` is given. */
 export async function readReferencedRoot(
   ctx: QueryCtx,
   id: string,
@@ -114,7 +115,8 @@ export async function loadCharacterRuleContext(
       character.systemId,
       userId,
       sources,
-      sourceIdentities
+      sourceIdentities,
+      referenced?.documents
     )
     publications.set(root.id, published)
     return published
@@ -186,7 +188,8 @@ export async function loadCharacterRuleContext(
         canReadSharedRoot,
         undefined,
         recordSource,
-        readParentRoot
+        readParentRoot,
+        referenced?.documents
       ),
     requireClassParent: async (document) => {
       await requireClassParent(
@@ -197,7 +200,8 @@ export async function loadCharacterRuleContext(
         canReadSharedRoot,
         undefined,
         recordSource,
-        readParentRoot
+        readParentRoot,
+        referenced ? async (root) => (await readId(root.id))?.document : undefined
       )
     },
     readEquipmentParents: (document) =>
@@ -209,7 +213,8 @@ export async function loadCharacterRuleContext(
         canReadSharedRoot,
         undefined,
         recordSource,
-        readParentRoot
+        readParentRoot,
+        referenced?.documents
       ),
     readFeatureSources: async (missingFeatures) => {
       if (referenced)
@@ -314,6 +319,7 @@ export async function loadCharacterRuleContext(
     ...prepared,
     sourceAccess: sources,
     sourceIdentities,
-    publications
+    publications,
+    documents: referenced?.documents
   }
 }

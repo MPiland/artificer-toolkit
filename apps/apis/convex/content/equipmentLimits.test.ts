@@ -5,7 +5,7 @@ import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/e
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime'
 import { api, internal } from '../_generated/api'
-import { publicationFixture } from '../../tests/fixtures/publication'
+import { publicationFixture, versionWithCompilation } from '../../tests/fixtures/publication'
 import { verifyEquipmentCapacity } from '../../tests/developmentEquipmentCapacity'
 import { catalogueMetadata, syncCatalogueMetadata } from './catalogueMetadata'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
@@ -138,7 +138,12 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
         versionId: publicVersionId,
         version: 1,
         documentSchemaVersion: 1,
-        documentJson: canonicalizeRuleDocument(child),
+        documentJson: canonicalizeRuleDocument(child)
+      })
+      await ctx.db.insert('authoredVersionCompilations', {
+        subjectId: child.id,
+        systemId: child.systemId,
+        versionId: publicVersionId,
         compilation: compilePublicationDocument(
           { subjectKind: 'EQUIPMENT', document: child },
           effective
@@ -199,7 +204,9 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
     ...lookup,
     expectedDraftUpdatedAt: replacement.updatedAt
   })
-  const updated = await t.run((ctx) => ctx.db.get(leaf._id))
+  const updated = await t.run(async (ctx) =>
+    versionWithCompilation(ctx, await ctx.db.get(leaf._id))
+  )
   expect(updated?.documentJson).toBe(leaf.documentJson)
   expect(updated?.checksum).toBe(leaf.checksum)
   expect(updated?._creationTime).toBe(leaf._creationTime)
@@ -225,7 +232,7 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
       .withIndex('by_publicId', (q) => q.eq('id', leaf.id))
       .unique()
     if (!root) throw new Error('Missing republished leaf')
-    return await ctx.db.get(root.currentVersionId)
+    return await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
   })
   expect(republishedLeaf?.label).toBe(leafDraft.label)
   expect(JSON.parse(republishedLeaf!.compilation!.projectionJson)).toMatchObject({

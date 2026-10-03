@@ -49,6 +49,7 @@ export async function commitCharacter(
   const reads: CharacterReferencedReads = {
     featureSourceHints,
     publications: new Map(),
+    documents: new Map(),
     unreadableRootIds: new Set(),
     roots: new Map()
   }

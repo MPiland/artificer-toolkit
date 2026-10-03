@@ -11,7 +11,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { prismaticWall } from '@artificer-toolkit/source-data/srd/spells/prismatic-wall.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { importedSubject } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  setVersionCompilation,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import schema from '../schema'
 import { sourceImportBatches } from './importBatches'
@@ -49,7 +53,7 @@ it('compiles every canonical Spell, audits it, and backfills only exact missing 
         .withIndex('by_publicId', (q) => q.eq('id', subject.id))
         .unique()
       if (!root) throw new Error('Missing canonical Spell')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version) throw new Error('Missing canonical Spell version')
       return {
         root,
@@ -91,7 +95,7 @@ it('compiles every canonical Spell, audits it, and backfills only exact missing 
           .withIndex('by_publicId', (q) => q.eq('id', id))
           .unique()
         if (!root) throw new Error('Missing canonical Spell')
-        const version = await ctx.db.get(root.currentVersionId)
+        const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
         if (!version?.compilation) throw new Error('Missing canonical Spell compilation')
         return { root, version, compilation: version.compilation }
       })
@@ -105,26 +109,28 @@ it('compiles every canonical Spell, audits it, and backfills only exact missing 
     reused: 2
   })
   await t.run(async (ctx) => {
-    await ctx.db.patch(first.version._id, { compilation: undefined })
-    await ctx.db.patch(second.version._id, {
-      compilation: { ...second.compilation, projectionJson: '{}' }
+    await setVersionCompilation(ctx, first.version, undefined)
+    await setVersionCompilation(ctx, second.version, {
+      ...second.compilation,
+      projectionJson: '{}'
     })
   })
   await expect(t.mutation(internal.content.import.importSubjects, input)).rejects.toThrow(
     'Canonical content conflict'
   )
   await expect(audit()).rejects.toThrow()
-  expect(await t.run((ctx) => ctx.db.get(first.version._id))).toEqual({
-    ...first.version,
-    compilation: undefined
-  })
-  await t.run((ctx) => ctx.db.patch(second.version._id, { compilation: second.compilation }))
+  expect(
+    await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(first.version._id)))
+  ).toEqual({ ...first.version, compilation: undefined })
+  await t.run((ctx) => setVersionCompilation(ctx, second.version, second.compilation))
   expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
     inserted: 0,
     reused: 2
   })
   for (const stored of before) {
     expect(await t.run((ctx) => ctx.db.get(stored.root._id))).toEqual(stored.root)
-    expect(await t.run((ctx) => ctx.db.get(stored.version._id))).toEqual(stored.version)
+    expect(
+      await t.run(async (ctx) => versionWithCompilation(ctx, await ctx.db.get(stored.version._id)))
+    ).toEqual(stored.version)
   }
 }, 120_000)

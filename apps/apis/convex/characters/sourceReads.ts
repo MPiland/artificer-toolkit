@@ -7,8 +7,8 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import {
   canReadAuthoredRoot,
-  readAuthoredVersion,
-  readPublishedDocument
+  readPublishedRootDocument,
+  type PublishedDocumentReads
 } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { readAuthoringSources } from '../content/sources'
@@ -132,7 +132,8 @@ export async function readCharacterPublication(
   systemId: string,
   userId: string,
   access: Awaited<ReturnType<typeof readCharacterSources>>,
-  sourceIdentities?: Map<string, AuthoredCurrentSourceIdentity>
+  sourceIdentities?: Map<string, AuthoredCurrentSourceIdentity>,
+  documents?: PublishedDocumentReads
 ) {
   if (root.systemId !== systemId) return null
   const source = access.sources.find((source) => source.id === root.contentSourceId)
@@ -140,7 +141,7 @@ export async function readCharacterPublication(
   if (source && (await canReadAuthoredRoot(ctx, root, userId, source))) {
     publication = parsePublicationDocument(
       root.subjectKind,
-      await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
+      (await readPublishedRootDocument(ctx, root, documents)).document
     )
   } else {
     publication = access.campaign

@@ -66,7 +66,7 @@ Q16 makes Convex database I/O the binding free-tier constraint. Published conten
 6. **Budgets** (the Builder criterion of ADR 0035 Decision 9):
    - 0 Convex calls per edit;
    - autosave ≤32 KB;
-   - commit ≤300 KB;
+   - commit database I/O ≤450 KB for one Class, plus 200 KB for each further distinct Class (amended by D84, 2026-10-03: reading one SRD Class once costs 240–330 KB, so the original 300 KB could not hold);
    - a whole build ≤1.5 MB;
    - Builder worker chunk ≤300 KB gzipped.
 

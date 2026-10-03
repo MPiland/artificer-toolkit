@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
+import { characterDraftSaveErrorDataSchema } from '@artificer-toolkit/schema/api/characterDrafts'
 import { describe, expect, it, vi } from 'vitest'
 import type { CharacterBuilderDraftDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import type {
@@ -131,9 +133,8 @@ describe('native Character working drafts', () => {
       mode: 'create'
     }
     await expect(owner.caller.mutation(save, staleSave)).rejects.toThrow('draft is unavailable')
-    await expect(other.caller.mutation(save, staleSave)).rejects.toThrow(
-      'Character draft is unavailable for the current user'
-    )
+    // No draft row exists, so there is nothing of the owner's to hide from another user.
+    await expect(other.caller.mutation(save, staleSave)).rejects.toThrow('DRAFT_REPLACED')
     await expect(other.caller.mutation(create, request)).rejects.toThrow('route is not available')
     const reopened = await owner.caller.mutation(create, request)
     expect(reopened.publicId).toBe(draft.publicId)
@@ -147,6 +148,43 @@ describe('native Character working drafts', () => {
     ).rejects.toThrow('generation changed')
     expect(await owner.caller.query(get, { id: request.id })).toEqual(reopened)
   }, 15_000)
+
+  it('reports a replaced draft as a typed DRAFT_REPLACED error, and a foreign draft as a plain one', async () => {
+    const { t, owner, other } = await fixture()
+    const request = input()
+    const draft = await owner.caller.mutation(create, request)
+    const saveInput: CharacterDraftSaveInput = {
+      expectedDraftId: draft.id,
+      characterId: request.id,
+      character: draft.payload.character,
+      mode: 'create'
+    }
+    const replacedBy = async (promise: Promise<unknown>) => {
+      const error = await promise.then(
+        () => null,
+        (reason: unknown) => reason
+      )
+      if (!(error instanceof ConvexError)) throw new Error('Expected a ConvexError.')
+      return characterDraftSaveErrorDataSchema.parse(error.data)
+    }
+    // Another user's draft stays a plain error: nothing the owner's client should stop on.
+    const foreign = await other.caller.mutation(save, saveInput).catch((reason: unknown) => reason)
+    expect(foreign).not.toBeInstanceOf(ConvexError)
+    // The generation was reopened elsewhere.
+    await expect(
+      replacedBy(owner.caller.mutation(save, { ...saveInput, expectedDraftId: crypto.randomUUID() }))
+    ).resolves.toMatchObject({ code: 'DRAFT_REPLACED' })
+    // The base revision moved on.
+    await expect(
+      replacedBy(owner.caller.mutation(save, { ...saveInput, baseActiveUpdatedAt: '2000-01-01' }))
+    ).resolves.toMatchObject({ code: 'DRAFT_REPLACED' })
+    // The draft was committed or discarded elsewhere.
+    await owner.caller.mutation(discard, { id: request.id, expectedDraftId: draft.id })
+    await expect(replacedBy(owner.caller.mutation(save, saveInput))).resolves.toMatchObject({
+      code: 'DRAFT_REPLACED'
+    })
+    expect(await t.run((ctx) => ctx.db.query('characterDrafts').collect())).toHaveLength(0)
+  })
 
   it('cannot reserve a future seeded authored UUID through a Character draft', async () => {
     const { t, owner } = await fixture()

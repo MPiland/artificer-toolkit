@@ -1,5 +1,5 @@
 import * as zMini from 'zod/mini'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   characterDraftCreateInputSchema,
@@ -9,6 +9,7 @@ import {
   characterDraftLookupInputSchema,
   characterDraftSaveInputSchema,
   type CharacterDraftListPage,
+  type CharacterDraftSaveErrorData,
   type CharacterDraftSaveInput
 } from '@artificer-toolkit/schema/api/characterDrafts'
 import { characterStoredDraftSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
@@ -46,6 +47,11 @@ function parseDraftPayload(
     character: { ...input.character, userId, status: 'DRAFT' },
     ...(input.builderIntent ? { builderIntent: input.builderIntent } : {})
   })
+}
+
+/** The autosave stops on this typed error instead of retrying, since the draft will never accept the save. */
+function draftReplaced(message: string) {
+  return new ConvexError({ code: 'DRAFT_REPLACED', message } satisfies CharacterDraftSaveErrorData)
 }
 
 /** Opens a new draft over the active Character, or over an empty create-mode Character. */
@@ -135,10 +141,11 @@ export async function saveCharacterDraft(
     .query('characterDrafts')
     .withIndex('by_characterId', (q) => q.eq('characterId', input.characterId))
     .unique()
-  if (!draft || draft.userId !== userId)
+  if (!draft) throw draftReplaced('Character draft is unavailable; it was finalized or discarded.')
+  if (draft.userId !== userId)
     throw new Error('Character draft is unavailable for the current user; reopen it before saving.')
   if (draft.id !== input.expectedDraftId)
-    throw new Error('Character draft generation changed; reopen it before saving.')
+    throw draftReplaced('Character draft generation changed; reopen it before saving.')
   if (draft.systemId !== input.character.systemId)
     throw new Error('Character Game System is immutable.')
   if (input.mode !== draft.mode)
@@ -147,7 +154,7 @@ export async function saveCharacterDraft(
     input.baseActiveUpdatedAt !== undefined &&
     input.baseActiveUpdatedAt !== draft.baseActiveUpdatedAt
   )
-    throw new Error('Character draft base revision does not match; reopen the draft before saving.')
+    throw draftReplaced('Character draft base revision does not match; reopen the draft before saving.')
   const payload = parseDraftPayload(userId, input)
   const now = new Date(Math.max(Date.now(), Date.parse(draft.updatedAt) + 1)).toISOString()
   const payloadRecord = await replaceCharacterDraftPayload(ctx, draft, payload, now)

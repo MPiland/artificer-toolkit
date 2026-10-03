@@ -14,7 +14,14 @@ import type { RaceAuthored } from '@artificer-toolkit/shared/authored'
 import { type MutationCtx, type QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { internalMutation } from '../lib/mutations'
-import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
+import {
+  canReadAuthoredRoot,
+  insertAuthoredVersionCompilation,
+  readAuthoredVersion,
+  readAuthoredVersionCompilation,
+  replaceAuthoredVersionCompilation,
+  readPublishedDocument
+} from './documents'
 import { compilePublicationDocument } from './publicationDocument'
 import { backfillCatalogueFamily } from './catalogueFamilies'
 import { requireRaceParent } from './relationshipReads'
@@ -102,9 +109,11 @@ export async function recompileRaceChildren(
     const effective = resolveRaceAuthored(document as RaceAuthored, (id) =>
       id === parent.id ? parent : undefined
     )
-    await ctx.db.patch(version._id, {
-      compilation: compilePublicationDocument({ subjectKind: 'RACE', document }, effective)
-    })
+    await replaceAuthoredVersionCompilation(
+      ctx,
+      version,
+      compilePublicationDocument({ subjectKind: 'RACE', document }, effective)
+    )
     await ctx.db.patch(root._id, {
       catalogueFamily: { id: parent.id, nameKey: parent.label.toLowerCase() }
     })
@@ -134,13 +143,15 @@ export const syncDerived = internalMutation({
     if (root.parentRaceId !== undefined && root.parentRaceId !== parentRaceId)
       throw new Error('Canonical content conflict.')
     const { compilation } = await compileCurrentRace(ctx, document, null)
+    const storedCompilation = await readAuthoredVersionCompilation(ctx, version)
     if (
-      version.compilation !== undefined &&
-      checksumRuleDocument(version.compilation) !== checksumRuleDocument(compilation)
+      storedCompilation !== undefined &&
+      checksumRuleDocument(storedCompilation) !== checksumRuleDocument(compilation)
     )
       throw new Error('Canonical content conflict.')
     if (root.parentRaceId === undefined) await ctx.db.patch(root._id, { parentRaceId })
-    if (version.compilation === undefined) await ctx.db.patch(version._id, { compilation })
+    if (storedCompilation === undefined)
+      await insertAuthoredVersionCompilation(ctx, version, compilation)
     const current = await ctx.db.get(root._id)
     if (!current) throw new Error('Canonical Race root is missing.')
     await backfillCatalogueFamily(ctx, current)

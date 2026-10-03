@@ -191,6 +191,7 @@ registerScope('rulesCatalogues', (_, document) => systemScope(document.gameSyste
 registerScope('authoredRoots', (_, document) => systemScope(document.systemId))
 registerScope('authoredVersions', (_, document) => systemScope(document.systemId))
 registerScope('authoredVersionPayloadChunks', (_, document) => systemScope(document.systemId))
+registerScope('authoredVersionCompilations', (_, document) => systemScope(document.systemId))
 registerScope('authoredDraftPayloads', async (ctx, document) => {
   if (document.systemId !== undefined) return systemScope(document.systemId)
   const draft = await ctx.innerDb

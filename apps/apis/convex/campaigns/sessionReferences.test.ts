@@ -30,7 +30,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, versionWithCompilation } from '../../tests/fixtures/publication'
 import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -79,7 +79,13 @@ async function setup(contentMaturity: 'STANDARD' | 'MATURE' = 'STANDARD') {
   const base = await fixture()
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ subjectKind: 'BACKGROUND', ...acolyte, document: acolyte })]
+    subjects: [
+      importedSubject({
+        subjectKind: 'BACKGROUND',
+        ...acolyte,
+        document: acolyte
+      })
+    ]
   })
   const campaign = await base.owner.caller.mutation(createCampaign, {
     name: 'Session references',
@@ -100,7 +106,9 @@ async function setup(contentMaturity: 'STANDARD' | 'MATURE' = 'STANDARD') {
       leftAt: null
     })
   )
-  const session = await base.owner.caller.mutation(createSession, { campaignId: campaign.id })
+  const session = await base.owner.caller.mutation(createSession, {
+    campaignId: campaign.id
+  })
   return { ...base, campaign, session, membershipId }
 }
 
@@ -137,7 +145,9 @@ describe('native Campaign session references', () => {
       title: 'Keep this note',
       content: ''
     })
-    const secondSession = await owner.caller.mutation(createSession, { campaignId: campaign.id })
+    const secondSession = await owner.caller.mutation(createSession, {
+      campaignId: campaign.id
+    })
     const removedIds: string[] = []
     for (let index = 0; index < 51; index++) {
       const pin = await owner.caller.mutation(create, {
@@ -156,7 +166,11 @@ describe('native Campaign session references', () => {
     const authored = await owner.caller.mutation(create, {
       campaignId: campaign.id,
       sessionId: secondSession.id,
-      target: { kind: 'AUTHORED_ROUTE', routeSubjectKind: 'BACKGROUND', publicId: route.publicId }
+      target: {
+        kind: 'AUTHORED_ROUTE',
+        routeSubjectKind: 'BACKGROUND',
+        publicId: route.publicId
+      }
     })
     const readState = () =>
       t.run(async (ctx) => ({
@@ -165,7 +179,10 @@ describe('native Campaign session references', () => {
         sessions: await ctx.db.query('campaignSessions').collect()
       }))
     const before = await readState()
-    const input = { campaignId: campaign.id.toUpperCase(), sectionId: note.id.toUpperCase() }
+    const input = {
+      campaignId: campaign.id.toUpperCase(),
+      sectionId: note.id.toUpperCase()
+    }
     await expect(other.caller.mutation(removeNotebook, input)).rejects.toThrow('Campaign not found')
     expect(await readState()).toEqual(before)
     await expect(
@@ -177,7 +194,9 @@ describe('native Campaign session references', () => {
       })
     ).rejects.toThrow('Injected failure after notebook and pin deletion')
     expect(await readState()).toEqual(before)
-    expect(await owner.caller.mutation(removeNotebook, input)).toEqual({ ok: true })
+    expect(await owner.caller.mutation(removeNotebook, input)).toEqual({
+      ok: true
+    })
     const after = await readState()
     expect(after.notes).toEqual(before.notes.filter((section) => section.id !== note.id))
     expect(after.pins).toEqual(before.pins.filter((pin) => !removedIds.includes(pin.id)))
@@ -200,7 +219,10 @@ describe('native Campaign session references', () => {
     const pin = await owner.caller.mutation(create, {
       campaignId: campaign.id.toUpperCase(),
       sessionId: session.id.toUpperCase(),
-      target: { kind: 'CAMPAIGN_NOTE', noteSectionId: notebook.id.toUpperCase() }
+      target: {
+        kind: 'CAMPAIGN_NOTE',
+        noteSectionId: notebook.id.toUpperCase()
+      }
     })
     expect(pin).toMatchObject({
       campaignId: campaign.id,
@@ -234,7 +256,10 @@ describe('native Campaign session references', () => {
         .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaign.id).eq('id', notebook.id))
         .unique()
       if (!row) throw new Error('Missing notebook fixture.')
-      await ctx.db.patch(row._id, { title: 'Fresh label', visibility: 'SHARED' })
+      await ctx.db.patch(row._id, {
+        title: 'Fresh label',
+        visibility: 'SHARED'
+      })
     })
     expect(
       (await owner.caller.query(list, pageInput(campaign.id, session.id))).page[0]
@@ -329,14 +354,22 @@ describe('native Campaign session references', () => {
     const pin = await owner.caller.mutation(create, {
       campaignId: campaign.id,
       sessionId: session.id,
-      target: { kind: 'AUTHORED_ROUTE', routeSubjectKind: 'BACKGROUND', publicId: route.publicId }
+      target: {
+        kind: 'AUTHORED_ROUTE',
+        routeSubjectKind: 'BACKGROUND',
+        publicId: route.publicId
+      }
     })
     expect(pin.label).toBeTruthy()
     await expect(
       owner.caller.mutation(create, {
         campaignId: campaign.id,
         sessionId: session.id,
-        target: { kind: 'AUTHORED_ROUTE', routeSubjectKind: 'CLASS', publicId: route.publicId }
+        target: {
+          kind: 'AUTHORED_ROUTE',
+          routeSubjectKind: 'CLASS',
+          publicId: route.publicId
+        }
       })
     ).rejects.toThrow()
     const privateSourceId = crypto.randomUUID()
@@ -352,9 +385,13 @@ describe('native Campaign session references', () => {
         kind: 'USER',
         ownerUserId: owner.userId
       })
-      const document = { ...acolyte, userId: owner.userId, label: 'Fresh owned label' }
+      const document = {
+        ...acolyte,
+        userId: owner.userId,
+        label: 'Fresh owned label'
+      }
       const checksum = checksumRuleDocument(document)
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version) throw new Error('Missing authored version fixture.')
       await deleteAuthoredVersion(ctx, version)
       const currentVersionId = await insertAuthoredVersion(
@@ -368,10 +405,10 @@ describe('native Campaign session references', () => {
           contentSourceId: privateSourceId,
           versionId: version.versionId,
           version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion,
-          compilation: version.compilation
+          documentSchemaVersion: version.documentSchemaVersion
         },
-        canonicalizeRuleDocument(document)
+        canonicalizeRuleDocument(document),
+        version.compilation
       )
       await ctx.db.patch(root._id, {
         ownerUserId: owner.userId,
@@ -429,7 +466,11 @@ describe('native Campaign session references', () => {
       'Unauthenticated'
     )
     await expect(
-      t.mutation(remove, { campaignId: campaign.id, sessionId: session.id, pinId: pin.id })
+      t.mutation(remove, {
+        campaignId: campaign.id,
+        sessionId: session.id,
+        pinId: pin.id
+      })
     ).rejects.toThrow('Unauthenticated')
     expect(await other.caller.query(list, pageInput(campaign.id, crypto.randomUUID()))).toEqual({
       page: [],
@@ -443,7 +484,9 @@ describe('native Campaign session references', () => {
         target: { kind: 'CAMPAIGN_NOTE', noteSectionId: notebook.id }
       })
     ).rejects.toThrow('Campaign not found')
-    const secondSession = await owner.caller.mutation(createSession, { campaignId: campaign.id })
+    const secondSession = await owner.caller.mutation(createSession, {
+      campaignId: campaign.id
+    })
     await expect(
       owner.caller.query(list, pageInput(campaign.id, secondSession.id))
     ).resolves.toMatchObject({ page: [] })
@@ -478,7 +521,10 @@ describe('native Campaign session references', () => {
       pinId: finishedPin.id
     })
     await t.run((ctx) =>
-      ctx.db.insert('accountEntitlements', { userId: owner.userId, tier: 'PRO_GM' })
+      ctx.db.insert('accountEntitlements', {
+        userId: owner.userId,
+        tier: 'PRO_GM'
+      })
     )
     const foreignCampaign = await owner.caller.mutation(createCampaign, {
       name: 'Foreign campaign',
@@ -509,7 +555,10 @@ describe('native Campaign session references', () => {
       })
     ).rejects.toThrow()
     await t.run((ctx) =>
-      ctx.db.patch(membershipId, { status: 'LEFT', leftAt: new Date().toISOString() })
+      ctx.db.patch(membershipId, {
+        status: 'LEFT',
+        leftAt: new Date().toISOString()
+      })
     )
     await expect(other.caller.query(list, pageInput(campaign.id, session.id))).rejects.toThrow()
     await owner.caller.mutation(remove, {

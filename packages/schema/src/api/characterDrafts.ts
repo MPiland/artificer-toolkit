@@ -50,6 +50,14 @@ export const characterDraftSaveInputSchema = lazySchema(() =>
   )
 )
 
+/** `ConvexError` data when a save targets a draft that was finalized, discarded or reopened elsewhere. */
+export const characterDraftSaveErrorDataSchema = lazySchema(() =>
+  z.strictObject({
+    code: z.literal('DRAFT_REPLACED'),
+    message: z.string().check(z.minLength(1))
+  })
+)
+
 export const characterDraftListInputSchema = lazySchema(() =>
   z.pick(authoredDraftListInputSchema, {
     paginationOpts: true
@@ -67,6 +75,7 @@ export const characterDraftListPageSchema = lazySchema(() =>
 
 export type CharacterDraftCreateInput = z.infer<typeof characterDraftCreateInputSchema>
 export type CharacterDraftSaveInput = z.infer<typeof characterDraftSaveInputSchema>
+export type CharacterDraftSaveErrorData = z.infer<typeof characterDraftSaveErrorDataSchema>
 export type CharacterDraftDiscardInput = z.infer<typeof characterDraftDiscardInputSchema>
 export type CharacterDraftLookupInput = z.infer<typeof characterDraftLookupInputSchema>
 export type CharacterDraftListInput = z.infer<typeof characterDraftListInputSchema>

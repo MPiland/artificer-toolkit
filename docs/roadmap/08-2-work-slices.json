@@ -66,7 +66,7 @@
       "purpose": "Each slice closes named criteria with a focused proof and finishes the older slices it includes. The V15 load run, final proof and promotion come last (D80)."
     }
   ],
-  "queue": ["VS-6", "VS-8", "VS-9", "VS-10"],
+  "queue": ["VS-8", "VS-9", "VS-10"],
   "slices": [
     { "id": "A35-S0", "stream": "A35", "state": "done", "title": "Decision gate: ADR 0035, amendments, room CPU, Durable Object cost and checkpoint size measured", "cases": [], "refs": [] },
     { "id": "A35-S1", "stream": "A35", "state": "done", "title": "Encounter writers behind a store interface (package with no Convex runtime dependency)", "cases": ["R06"], "refs": [] },
@@ -100,8 +100,8 @@
     { "id": "A36-S6", "stream": "A36", "state": "done", "title": "Builder runs in the browser (create and edit); private cache cleared on sign-out", "cases": ["P02"], "refs": [] },
     { "id": "A36-S7", "stream": "A36", "state": "done", "title": "Commit reads only referenced content", "cases": ["P02"], "refs": [] },
     { "id": "A36-S8/S9", "stream": "A36", "state": "done", "title": "Debounced autosave (7.8 KB per save); old server Builder deleted", "cases": ["P01", "P02"], "refs": [] },
-    { "id": "A36-S10", "stream": "A36", "state": "integrating", "title": "Room loads content from snapshots", "cases": ["R06", "V15"], "refs": [] },
-    { "id": "A36-F1", "stream": "A36", "state": "remaining", "title": "Builder follow-ups: \"opened elsewhere\" save state, open on the recommended step", "cases": [], "refs": [] },
+    { "id": "A36-S10", "stream": "A36", "state": "done", "title": "Room loads content from snapshots", "cases": ["R06", "V15"], "refs": [] },
+    { "id": "A36-F1", "stream": "A36", "state": "done", "title": "Builder follow-ups: \"opened elsewhere\" save state, open on the recommended step", "cases": [], "refs": [] },
 
     { "id": "CP-S0", "stream": "CP", "state": "done", "title": "Checkpoint Codex relocation", "cases": [], "refs": [] },
     { "id": "CP-S1", "stream": "CP", "state": "done", "title": "Code-quality groundwork", "cases": [], "refs": [] },
@@ -172,7 +172,7 @@
     { "id": "VS-3", "stream": "VS", "state": "done", "title": "Encounter decisions and journeys through the room, with the tied-initiative base fix", "cases": ["R06", "V10", "V12", "V13", "V14"], "criteria": ["R06.1", "R06.2", "R06.4", "V10.5", "V10.6", "V10.7", "V10.8", "V10.9", "V10.10", "V10.11", "V12.4", "V12.5", "V12.6", "V12.7", "V12.8", "V13.1", "V13.2", "V14.1", "V14.3", "V14.4"], "includes": ["A35-S6c1", "A35-S6c3"], "refs": ["D78", "Hot path: checkpoint row and byte counts; the 100-actor write budget"] },
     { "id": "VS-4", "stream": "VS", "state": "done", "title": "Held Sheet play, recovery and account deletion through the room", "cases": ["F12", "P15", "R06", "V14"], "criteria": ["F12.1", "F12.2", "F12.3", "F12.4", "F12.5", "P15.1", "P15.2", "P15.3", "P15.4", "R06.3", "V14.5"], "includes": ["A35-S7a", "A35-S3b", "A35-S7b", "TST-4"], "refs": ["Hot path: room hydration of held Characters"] },
     { "id": "VS-5", "stream": "VS", "state": "done", "title": "Chat and rolls through the room, with chat cards for automatic rule rolls", "cases": ["P06", "P14", "V11"], "criteria": ["P06.4", "P06.5", "P14.5", "V11.4", "V11.5", "V11.6", "V11.7", "V11.8", "V11.9", "V11.10"], "includes": ["A35-S8a", "CP-S6i"], "refs": ["D72", "Check Q14 first"] },
-    { "id": "VS-6", "stream": "VS", "state": "remaining", "title": "Builder budgets on content snapshots, with the Builder follow-ups", "cases": ["P02"], "criteria": ["P02.3"], "includes": ["A36-S10", "A36-F1"], "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"] },
+    { "id": "VS-6", "stream": "VS", "state": "done", "title": "Builder budgets on content snapshots, with the Builder follow-ups", "cases": ["P02"], "criteria": ["P02.3"], "includes": ["A36-S10", "A36-F1"], "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"] },
     { "id": "VS-7", "stream": "VS", "state": "done", "title": "Web on Cloudflare Workers (code): skeleton SSR for signed-in pages, focus refetch off", "cases": ["R05"], "criteria": ["R05.1"], "includes": ["PLT-5"], "refs": ["D75", "D80", "Re-proves R05.1 on the Worker build; edge rules move to VS-10"] },
     { "id": "VS-8", "stream": "VS", "state": "remaining", "title": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run", "cases": ["V15"], "criteria": ["V15.1", "V15.2", "V15.3"], "includes": ["TST-0", "TST-6", "A35-S9", "REL-4", "REL-5"], "refs": ["Re-verifies R07 after the architecture docs rewrite"] },
     { "id": "VS-9", "stream": "VS", "state": "remaining", "title": "Final proof on one source: R08 lifecycle and the R01-R05 audits", "cases": ["R01", "R02", "R03", "R04", "R05", "R08"], "criteria": ["R01.1", "R01.2", "R02.1", "R02.2", "R03.1", "R03.2", "R04.1", "R04.2", "R05.2", "R08.1", "R08.2"], "includes": ["REL-6", "A35-S8b"], "refs": ["yarn validate:pre-staging:local"] },

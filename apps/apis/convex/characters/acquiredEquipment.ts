@@ -16,7 +16,7 @@ export async function retainCharacterEquipmentRules(
   ctx: QueryCtx,
   character: CharacterAuthored,
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
-  reads?: Pick<CharacterReferencedReads, 'roots' | 'publications'>
+  reads?: Pick<CharacterReferencedReads, 'roots' | 'publications' | 'documents'>
 ) {
   const access = await readCharacterSources(ctx, character, character.userId, authorityScope)
   const sourceIds = new Set(access.sources.map((source) => source.id))
@@ -30,7 +30,15 @@ export async function retainCharacterEquipmentRules(
       ? null
       : reads?.publications.has(root.id)
         ? (reads.publications.get(root.id) ?? null)
-        : await readCharacterPublication(ctx, root, character.systemId, character.userId, access)
+        : await readCharacterPublication(
+          ctx,
+          root,
+          character.systemId,
+          character.userId,
+          access,
+          undefined,
+          reads?.documents
+        )
     if (!current) {
       if (!item.retainedRulesJson)
         throw new Error('Acquired Character Equipment has no usable source or retained rules.')
@@ -55,7 +63,8 @@ export async function retainCharacterEquipmentRules(
             candidate.id
           )) !== null,
         spellRoots: () => readCharacterSourceRoots(ctx, character.systemId, access, 'SPELL'),
-        lookupRoot: (id) => readReferencedRoot(ctx, id, reads)
+        lookupRoot: (id) => readReferencedRoot(ctx, id, reads),
+        documents: reads?.documents
       }))
     snapshotsByEquipmentId.set(item.equipmentId, retainedRulesJson)
     inventory.push({ ...item, retainedRulesJson })

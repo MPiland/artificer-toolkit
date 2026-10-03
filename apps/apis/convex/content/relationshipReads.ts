@@ -8,7 +8,11 @@ import {
 } from '@artificer-toolkit/schema/subjects/race'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
-import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
+import {
+  canReadAuthoredRoot,
+  readPublishedRootDocument,
+  type PublishedDocumentReads
+} from './documents'
 
 export async function requireRaceParent(
   ctx: QueryCtx,
@@ -23,7 +27,9 @@ export async function requireRaceParent(
     ctx.db
       .query('authoredRoots')
       .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+      .unique(),
+  /** Stored documents read earlier in this transaction. */
+  documents?: PublishedDocumentReads
 ) {
   const parent = await readRoot(document.parentRaceId)
   if (
@@ -40,11 +46,7 @@ export async function requireRaceParent(
   )
     throw new Error('A readable base Race in the same System is required.')
   const authored = raceAuthoredDtoSchema.parse(
-    await readPublishedDocument(
-      ctx,
-      parent,
-      await readAuthoredVersion(ctx, parent, currentImportJobId)
-    )
+    (await readPublishedRootDocument(ctx, parent, documents, currentImportJobId)).document
   )
   if (authored.category !== 'BASE')
     throw new Error('A readable base Race in the same System is required.')
@@ -65,7 +67,9 @@ export async function requireEquipmentParents(
     ctx.db
       .query('authoredRoots')
       .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+      .unique(),
+  /** Stored documents read earlier in this transaction. */
+  documents?: PublishedDocumentReads
 ) {
   const ancestors = new Map<string, EquipmentAuthoredDto>([[document.id, document]])
   let current = document
@@ -86,11 +90,7 @@ export async function requireEquipmentParents(
     )
       throw new Error('Readable parent Equipment in the same System is required.')
     current = equipmentAuthoredDtoSchema.parse(
-      await readPublishedDocument(
-        ctx,
-        root,
-        await readAuthoredVersion(ctx, root, currentImportJobId)
-      )
+      (await readPublishedRootDocument(ctx, root, documents, currentImportJobId)).document
     )
     if (
       root.parentEquipmentId !== (current.category === 'VARIANT' ? current.parentEquipmentId : null)

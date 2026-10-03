@@ -28,9 +28,14 @@ import type { AuthoredCatalogueSearchBackfillResult } from '@artificer-toolkit/s
 import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subjects/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, components, internal } from '../_generated/api'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  classDerivedArgs,
+  importedSubject,
+  publicationFixture,
+  setVersionCompilation,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
-import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
 import { assertPreparedClassDocument, readPublicationState } from './publicationPersistence'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -71,16 +76,7 @@ const championSubject = importedSubject({
   document: championMartialArchetype
 })
 
-function classDerived(subject: { id: string; checksum: string; document: unknown }) {
-  const parsed = parsePublicationDocument('CLASS', subject.document)
-  return {
-    id: subject.id,
-    checksum: subject.checksum,
-    parentClassId: parsed.document.category === 'SUBCLASS' ? parsed.document.parentClassId : null,
-    compilation: compilePublicationDocument(parsed)
-  }
-}
-
+const classDerived = classDerivedArgs
 const fighterDerived = classDerived(fighterSubject)
 
 async function fixture() {
@@ -194,7 +190,10 @@ describe('native Class publication', () => {
           .withIndex('by_publicId', (q) => q.eq('id', child.subjectId))
           .unique()
         if (!root) throw new Error('Missing child')
-        return { root, version: await ctx.db.get(root.currentVersionId) }
+        return {
+          root,
+          version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+        }
       })
     const before = await readChild()
     const renamed = await first.caller.mutation(api.content.drafts.save, {
@@ -219,13 +218,19 @@ describe('native Class publication', () => {
         subjectId: child.subjectId
       })
     ).toEqual(workingDraft)
-    const listed = await readVisibleCatalogue(t, first.caller, 'CLASS', { source: 'OWNED' })
+    const listed = await readVisibleCatalogue(t, first.caller, 'CLASS', {
+      source: 'OWNED'
+    })
     expect(listed.find((item) => item.id === child.subjectId)).toMatchObject({
       label: 'Independent child name',
       parentClassId: base.subjectId,
       parentClassLabel: 'Aardvark'
     })
-    expect(await readVisibleCatalogue(t, second.caller, 'CLASS', { source: 'OWNED' })).toEqual([])
+    expect(
+      await readVisibleCatalogue(t, second.caller, 'CLASS', {
+        source: 'OWNED'
+      })
+    ).toEqual([])
 
     await t.run((ctx) =>
       ctx.db.patch(after.root._id, {
@@ -338,7 +343,8 @@ describe('native Class publication', () => {
       )
       return Promise.all(
         roots.map(async (root) => {
-          const version = root && (await ctx.db.get(root.currentVersionId))
+          const version =
+            root && (await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId)))
           return {
             root,
             version,
@@ -558,7 +564,11 @@ describe('native Class publication', () => {
     expect(after.classes).toEqual(before.classes)
     // The list row joins Class labels from the visible entries, so the deleted Class is left off.
     expect(await readVisibleCatalogue(t, first.caller, 'SPELL', { source: 'OWNED' })).toEqual([
-      expect.objectContaining({ id: linkedSpell.subjectId, classIds: [], classLabels: [] })
+      expect.objectContaining({
+        id: linkedSpell.subjectId,
+        classIds: [],
+        classLabels: []
+      })
     ])
 
     const backfill = await fixture()
@@ -785,7 +795,10 @@ describe('native Class publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', valid.subjectId))
         .unique()
       if (!root) throw new Error('Missing published subclass.')
-      return { root, version: await ctx.db.get(root.currentVersionId) }
+      return {
+        root,
+        version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+      }
     })
     await first.caller.mutation(deleteActive, {
       subjectKind: 'CLASS',
@@ -797,7 +810,10 @@ describe('native Class publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', valid.subjectId))
         .unique()
       if (!root) throw new Error('Missing retained subclass.')
-      return { root, version: await ctx.db.get(root.currentVersionId) }
+      return {
+        root,
+        version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+      }
     })
     expect(childAfter.version).toEqual(childBefore.version)
     expect(childAfter.root.catalogue?.deletedReferences).toContainEqual({
@@ -912,14 +928,15 @@ describe('native Class publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', fighter.id))
         .unique()
       if (!canonical) throw new Error('Missing canonical Class fixture')
-      const version = await ctx.db.get(canonical.currentVersionId)
+      const version = await versionWithCompilation(
+        ctx,
+        await ctx.db.get(canonical.currentVersionId)
+      )
       if (!version?.compilation) throw new Error('Missing canonical Class compilation')
       await ctx.db.patch(canonical._id, { parentClassId: undefined })
-      await ctx.db.patch(version._id, {
-        compilation: {
-          ...version.compilation,
-          projectionChecksum: '0'.repeat(64)
-        }
+      await setVersionCompilation(ctx, version, {
+        ...version.compilation,
+        projectionChecksum: '0'.repeat(64)
       })
     })
     const corruptedCanonical = await t.run(async (ctx) => {
@@ -927,7 +944,12 @@ describe('native Class publication', () => {
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', fighter.id))
         .unique()
-      return root && { root, version: await ctx.db.get(root.currentVersionId) }
+      return (
+        root && {
+          root,
+          version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+        }
+      )
     })
     await first.caller.mutation(deleteActive, {
       subjectKind: 'CLASS',
@@ -939,7 +961,12 @@ describe('native Class publication', () => {
           .query('authoredRoots')
           .withIndex('by_publicId', (q) => q.eq('id', fighter.id))
           .unique()
-        return root && { root, version: await ctx.db.get(root.currentVersionId) }
+        return (
+          root && {
+            root,
+            version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+          }
+        )
       })
     ).toEqual(corruptedCanonical)
     await expect(
@@ -950,12 +977,17 @@ describe('native Class publication', () => {
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', fighter.id))
         .unique()
-      return root && { root, version: await ctx.db.get(root.currentVersionId) }
+      return (
+        root && {
+          root,
+          version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+        }
+      )
     })
     expect(afterRollback?.root.parentClassId).toBeUndefined()
     await t.run(async (ctx) => {
       if (!afterRollback?.version) throw new Error('Missing conflicted Class fixture')
-      await ctx.db.patch(afterRollback.version._id, { compilation: undefined })
+      await setVersionCompilation(ctx, afterRollback.version, undefined)
     })
     await t.mutation(internal.content.import.syncClassDerived, fighterDerived)
     const restored = await t.run(async (ctx) => {
@@ -963,7 +995,12 @@ describe('native Class publication', () => {
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', fighter.id))
         .unique()
-      return root && { root, version: await ctx.db.get(root.currentVersionId) }
+      return (
+        root && {
+          root,
+          version: await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
+        }
+      )
     })
     expect(restored?.root.parentClassId).toBeNull()
     expect(restored?.version?.compilation).toBeDefined()

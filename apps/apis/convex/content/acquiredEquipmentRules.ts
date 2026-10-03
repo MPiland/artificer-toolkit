@@ -4,7 +4,11 @@ import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
+import {
+  canReadAuthoredRoot,
+  readPublishedRootDocument,
+  type PublishedDocumentReads
+} from './documents'
 import { compileCurrentEquipment } from './equipmentRelationships'
 import { matchesSpellFilter } from '@artificer-toolkit/rules-runtime/character/chosenGrantChoiceResolver'
 import { toCharacterBuilderSpellCatalogRecord } from '@artificer-toolkit/rules-runtime/character/builderCatalog'
@@ -21,6 +25,8 @@ export async function captureAcquiredEquipmentRules(
     spellRoots: () => Promise<readonly Doc<'authoredRoots'>[]>
     /** A transaction-scoped root lookup; commit reuses the roots it has already read. */
     lookupRoot?: (id: string) => Promise<Doc<'authoredRoots'> | null>
+    /** Stored documents the caller's transaction already read; commit reads each once. */
+    documents?: PublishedDocumentReads
   }
 ): Promise<string> {
   async function readRoot(id: string, kind: 'EQUIPMENT' | 'SPELL') {
@@ -41,9 +47,7 @@ export async function captureAcquiredEquipmentRules(
       )
     )
       throw new Error('Acquired Equipment dependency is unavailable.')
-    const version = await readAuthoredVersion(ctx, root)
-    const document = await readPublishedDocument(ctx, root, version)
-    return { root, version, document }
+    return { root, ...(await readPublishedRootDocument(ctx, root, input.documents)) }
   }
   const leaf = await readRoot(input.equipmentId, 'EQUIPMENT')
   const document = equipmentAuthoredDtoSchema.parse(leaf.document)
@@ -54,7 +58,10 @@ export async function captureAcquiredEquipmentRules(
     document,
     input.userId,
     input.sourceIds,
-    input.canReadSharedRoot
+    input.canReadSharedRoot,
+    undefined,
+    input.lookupRoot,
+    input.documents
   )
   const sources: Array<{
     subjectKind: 'EQUIPMENT' | 'SPELL'

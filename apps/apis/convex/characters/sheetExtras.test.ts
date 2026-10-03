@@ -13,7 +13,7 @@ import { rowboat } from '@artificer-toolkit/source-data/srd/vehicles/rowboat.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api, internal } from '../_generated/api'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, versionWithCompilation } from '../../tests/fixtures/publication'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import {
   deleteAuthoredVersion,
@@ -48,12 +48,25 @@ async function fixture() {
     label: 'Charged Cat',
     features: [feature]
   }
-  const vehicle = { ...rowboat, id: crypto.randomUUID(), label: 'Test Rowboat', hitPoints: 20 }
+  const vehicle = {
+    ...rowboat,
+    id: crypto.randomUUID(),
+    label: 'Test Rowboat',
+    hitPoints: 20
+  }
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
-      importedSubject({ subjectKind: 'CREATURE', ...creature, document: creature }),
-      importedSubject({ subjectKind: 'VEHICLE', ...vehicle, document: vehicle })
+      importedSubject({
+        subjectKind: 'CREATURE',
+        ...creature,
+        document: creature
+      }),
+      importedSubject({
+        subjectKind: 'VEHICLE',
+        ...vehicle,
+        document: vehicle
+      })
     ]
   })
   const { draft, character } = await base.createCharacter()
@@ -103,7 +116,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 1, {
         type: 'ADD_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
+        extra: {
+          kind: 'COMPANION',
+          creatureId: creature.id,
+          originKind: 'WORLD'
+        }
       })
     )
     expect(creatureResponse).not.toHaveProperty('sheet')
@@ -138,7 +155,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 3, {
         type: 'ADD_SHEET_EXTRA',
-        extra: { kind: 'OWNED', creatureId: creature.id, originKind: 'SUMMONED' }
+        extra: {
+          kind: 'OWNED',
+          creatureId: creature.id,
+          originKind: 'SUMMONED'
+        }
       })
     )
     expect(ownedResponse).not.toHaveProperty('sheet')
@@ -187,7 +208,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 1, {
         type: 'ADD_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'SUMMONED' }
+        extra: {
+          kind: 'COMPANION',
+          creatureId: creature.id,
+          originKind: 'SUMMONED'
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -250,7 +275,11 @@ describe('native Character Sheet extra commands', () => {
         execute,
         command(character.id, 5, {
           type: 'UPDATE_SHEET_EXTRA',
-          extra: { kind: 'VEHICLE', extraId: vehicleId, equipmentItemIds: [itemId] }
+          extra: {
+            kind: 'VEHICLE',
+            extraId: vehicleId,
+            equipmentItemIds: [itemId]
+          }
         })
       )
     ).rejects.toThrow('already assigned')
@@ -258,14 +287,22 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 5, {
         type: 'UPDATE_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', extraId: companionId, equipmentItemIds: [] }
+        extra: {
+          kind: 'COMPANION',
+          extraId: companionId,
+          equipmentItemIds: []
+        }
       })
     )
     response = await owner.caller.mutation(
       execute,
       command(character.id, 6, {
         type: 'UPDATE_SHEET_EXTRA',
-        extra: { kind: 'VEHICLE', extraId: vehicleId, equipmentItemIds: [itemId] }
+        extra: {
+          kind: 'VEHICLE',
+          extraId: vehicleId,
+          equipmentItemIds: [itemId]
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -281,7 +318,11 @@ describe('native Character Sheet extra commands', () => {
         execute,
         command(character.id, 7, {
           type: 'UPDATE_SHEET_EXTRA',
-          extra: { kind: 'COMPANION', extraId: companionId, equipmentItemIds: [itemId] }
+          extra: {
+            kind: 'COMPANION',
+            extraId: companionId,
+            equipmentItemIds: [itemId]
+          }
         })
       )
     ).rejects.toThrow('already assigned')
@@ -290,7 +331,11 @@ describe('native Character Sheet extra commands', () => {
         execute,
         command(character.id, 7, {
           type: 'UPDATE_SHEET_EXTRA',
-          extra: { kind: 'VEHICLE', extraId: vehicleId, equipmentItemIds: [crypto.randomUUID()] }
+          extra: {
+            kind: 'VEHICLE',
+            extraId: vehicleId,
+            equipmentItemIds: [crypto.randomUUID()]
+          }
         })
       )
     ).rejects.toThrow('not available')
@@ -308,7 +353,12 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 7, {
         type: 'UPDATE_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', extraId: companionId, customName: 'Renamed', notes: 'Updated' }
+        extra: {
+          kind: 'COMPANION',
+          extraId: companionId,
+          customName: 'Renamed',
+          notes: 'Updated'
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -324,7 +374,12 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 8, {
         type: 'UPDATE_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', extraId: companionId, customName: null, notes: null }
+        extra: {
+          kind: 'COMPANION',
+          extraId: companionId,
+          customName: null,
+          notes: null
+        }
       })
     )
     const cleared = (await readState()).authored!.state.creatures!.find(
@@ -352,7 +407,11 @@ describe('native Character Sheet extra commands', () => {
     const { owner, other, character, creature, readState } = await fixture()
     const request = command(character.id, 1, {
       type: 'ADD_SHEET_EXTRA',
-      extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
+      extra: {
+        kind: 'COMPANION',
+        creatureId: creature.id,
+        originKind: 'WORLD'
+      }
     })
     const beforeAdd = await readState()
     const original = projection.projectCharacterSheetBundle
@@ -380,7 +439,11 @@ describe('native Character Sheet extra commands', () => {
         execute,
         command(character.id, 2, {
           type: 'ADD_SHEET_EXTRA',
-          extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
+          extra: {
+            kind: 'COMPANION',
+            creatureId: creature.id,
+            originKind: 'WORLD'
+          }
         })
       )
     ).rejects.toThrow()
@@ -393,7 +456,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 1, {
         type: 'ADD_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
+        extra: {
+          kind: 'COMPANION',
+          creatureId: creature.id,
+          originKind: 'WORLD'
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -405,7 +472,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 2, {
         type: 'ADD_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'SUMMONED' }
+        extra: {
+          kind: 'COMPANION',
+          creatureId: creature.id,
+          originKind: 'SUMMONED'
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -432,7 +503,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 4, {
         type: 'UPDATE_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', extraId: firstId, equipmentItemIds: [itemId] }
+        extra: {
+          kind: 'COMPANION',
+          extraId: firstId,
+          equipmentItemIds: [itemId]
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -444,7 +519,11 @@ describe('native Character Sheet extra commands', () => {
       execute,
       command(character.id, 5, {
         type: 'UPDATE_SHEET_EXTRA',
-        extra: { kind: 'COMPANION', extraId: secondId, equipmentItemIds: [secondItemId] }
+        extra: {
+          kind: 'COMPANION',
+          extraId: secondId,
+          equipmentItemIds: [secondItemId]
+        }
       })
     )
     expect(response).not.toHaveProperty('sheet')
@@ -631,7 +710,7 @@ describe('native Character Sheet extra commands', () => {
         .withIndex('by_publicId', (q) => q.eq('id', inactiveCopy.subjectId))
         .unique()
       if (!root) throw new Error('Missing inactive source root.')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!version) throw new Error('Missing inactive source version.')
       const document = {
         ...creatureAuthoredDtoSchema.parse(await readPublishedDocument(ctx, root, version)),
@@ -650,16 +729,24 @@ describe('native Character Sheet extra commands', () => {
           contentSourceId: version.contentSourceId,
           versionId: version.versionId,
           version: version.version,
-          documentSchemaVersion: version.documentSchemaVersion,
-          compilation: version.compilation
+          documentSchemaVersion: version.documentSchemaVersion
         },
-        canonicalizeRuleDocument(document)
+        canonicalizeRuleDocument(document),
+        version.compilation
       )
       await ctx.db.patch(root._id, { checksum, currentVersionId })
     })
     const cases = [
-      { kind: 'COMPANION' as const, creatureId: crypto.randomUUID(), originKind: 'WORLD' as const },
-      { kind: 'COMPANION' as const, creatureId: vehicle.id, originKind: 'WORLD' as const },
+      {
+        kind: 'COMPANION' as const,
+        creatureId: crypto.randomUUID(),
+        originKind: 'WORLD' as const
+      },
+      {
+        kind: 'COMPANION' as const,
+        creatureId: vehicle.id,
+        originKind: 'WORLD' as const
+      },
       { kind: 'VEHICLE' as const, vehicleId: creature.id },
       {
         kind: 'COMPANION' as const,

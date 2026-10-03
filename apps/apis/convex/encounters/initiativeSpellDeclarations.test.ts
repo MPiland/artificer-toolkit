@@ -31,7 +31,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { api, components, internal } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { importedSubject, versionWithCompilation } from '../../tests/fixtures/publication'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
 import { readCharacterRow } from '../characters/stateDocuments'
@@ -138,7 +138,11 @@ async function setup() {
       { ownerUserId: string; playerUserId: string; campaignId: string },
       null
     >('encounters/developmentCampaign:admitFixturePlayer'),
-    { ownerUserId: owner.userId, playerUserId: player.userId, campaignId: campaign.id }
+    {
+      ownerUserId: owner.userId,
+      playerUserId: player.userId,
+      campaignId: campaign.id
+    }
   )
   await player.caller.mutation(api.campaigns.assignments.assign, {
     campaignId: campaign.id,
@@ -151,7 +155,9 @@ async function setup() {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: initiative.definitions
   })
-  const settings = await owner.caller.query(getSettings, { campaignId: campaign.id })
+  const settings = await owner.caller.query(getSettings, {
+    campaignId: campaign.id
+  })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.caller.mutation(saveSettings, {
     ...fields,
@@ -364,7 +370,7 @@ describe('native initiative Spell declarations', () => {
         .withIndex('by_publicId', (q) => q.eq('id', fireBolt.id))
         .unique()
       if (!root) throw new Error('Expected Fire Bolt root.')
-      const current = await ctx.db.get(root.currentVersionId)
+      const current = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       if (!current) throw new Error('Expected Fire Bolt version.')
       const document = { ...fireBolt, description: 'Republished Fire Bolt.' }
       const checksum = checksumRuleDocument(document)
@@ -380,10 +386,10 @@ describe('native initiative Spell declarations', () => {
           contentSourceId: current.contentSourceId,
           versionId: currentVersionPublicId,
           version: current.version + 1,
-          documentSchemaVersion: current.documentSchemaVersion,
-          compilation: current.compilation
+          documentSchemaVersion: current.documentSchemaVersion
         },
-        canonicalizeRuleDocument(document)
+        canonicalizeRuleDocument(document),
+        current.compilation
       )
       await ctx.db.patch(root._id, {
         currentVersionId: versionId,

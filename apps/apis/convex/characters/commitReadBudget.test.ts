@@ -21,13 +21,14 @@ import {
   createDatabaseIoTotals,
   type DatabaseIoTotals
 } from '../../tests/fixtures/databaseIo'
-import { importedSubject } from '../../tests/fixtures/publication'
+import { classDerivedArgs, importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { prepareCharacterBuilder } from './builderPreparation'
 import { commitCharacter } from './commit'
 
-// ADR 0036 S7: commit reads only referenced content. The budget is 300 KB for a level-5 Character.
-const COMMIT_READ_BUDGET_BYTES = 300 * 1024
+// ADR 0036 S7 and D84: commit reads each referenced document once. Its database I/O (read plus
+// write) budget is 450 KB for one Class and 200 KB more for each further distinct Class.
+const SINGLE_CLASS_COMMIT_BUDGET_BYTES = 450 * 1024
 
 type Test = Awaited<ReturnType<typeof fixture>>['t']
 
@@ -210,10 +211,14 @@ async function importSubjects(t: Test, subjects: SourceImportSubjectDto[]) {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       subjects: subjects.slice(start, start + 10)
     })
+  // The seed attaches each Class's compilation after import; native Class versions carry it.
+  for (const subject of subjects)
+    if (subject.subjectKind === 'CLASS')
+      await t.mutation(internal.content.import.syncClassDerived, classDerivedArgs(subject))
 }
 
 describe('commit read budget', () => {
-  it('reads at most 300 KB for level-5 martial and caster Characters', async () => {
+  it('stays within 450 KB for level-5 single-Class martial and caster Characters', async () => {
     const { t, owner } = await fixture()
     await importSubjects(t, [
       ...srdRaces.map((document) =>
@@ -283,9 +288,10 @@ describe('commit read budget', () => {
         )
       )
       expect(result.character.status).toBe('ACTIVE')
-      measured[name] = { ...totals.reads, kb: Math.round(totals.reads.bytes / 102.4) / 10 }
+      const bytes = totals.reads.bytes + totals.writes.bytes
+      measured[name] = { ...totals.reads, kb: Math.round(bytes / 102.4) / 10 }
       console.info('S7 commit reads', name, JSON.stringify(measured[name]))
-      expect(totals.reads.bytes).toBeLessThanOrEqual(COMMIT_READ_BUDGET_BYTES)
+      expect(bytes).toBeLessThanOrEqual(SINGLE_CLASS_COMMIT_BUDGET_BYTES)
     }
     console.info('S7 commit reads', measured)
   }, 600_000)

@@ -30,7 +30,11 @@ import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subj
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { collectReferenceIds, stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { api, internal } from '../_generated/api'
-import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
+import {
+  importedSubject,
+  publicationFixture,
+  versionWithCompilation
+} from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -182,7 +186,7 @@ describe('native Spell publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
         .unique()
       if (!root) throw new Error('Missing published Spell root')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
         version,
@@ -497,7 +501,7 @@ describe('native Spell publication', () => {
         .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
         .unique()
       if (!root) throw new Error('Missing published Prismatic Wall root')
-      const version = await ctx.db.get(root.currentVersionId)
+      const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
         version,

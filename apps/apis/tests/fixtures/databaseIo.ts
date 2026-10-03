@@ -14,6 +14,17 @@ export function createDatabaseIoTotals(): DatabaseIoTotals {
 
 const WRITE_METHODS = new Set(['insert', 'replace', 'patch', 'delete'])
 
+/** JSON size, with binary fields (stored `v.bytes()` chunks) counted at their byte length. */
+function documentBytes(value: unknown) {
+  let binaryBytes = 0
+  const json = JSON.stringify(value, (_key, field: unknown) => {
+    if (!(field instanceof ArrayBuffer) && !ArrayBuffer.isView(field)) return field
+    binaryBytes += field.byteLength
+    return null
+  })
+  return new TextEncoder().encode(json).byteLength + binaryBytes
+}
+
 /**
  * Counts every document a transaction reads through `db` at its JSON size, per table (a `get` is
  * counted under `get`), and every write at the JSON size of the value written, under the insert's
@@ -46,7 +57,7 @@ export function countDatabaseIo<T extends object>(db: T, totals: DatabaseIoTotal
         add(
           totals.reads,
           table,
-          new TextEncoder().encode(JSON.stringify(document)).byteLength,
+          documentBytes(document),
           String(document._id)
         )
   }
@@ -56,7 +67,7 @@ export function countDatabaseIo<T extends object>(db: T, totals: DatabaseIoTotal
     add(
       totals.writes,
       table,
-      value === null ? 0 : new TextEncoder().encode(JSON.stringify(value)).byteLength,
+      value === null ? 0 : documentBytes(value),
       undefined
     )
   }
