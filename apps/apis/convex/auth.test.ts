@@ -1,6 +1,6 @@
 import { createEmailVerificationToken } from 'better-auth/api'
 import { createFunctionHandle } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAuthOptions } from './authFactory.helper'

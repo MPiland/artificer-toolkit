@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { expect, it } from 'vitest'
 import type { SourceImportAuditPageDto } from '@artificer-toolkit/schema/api/sourceImport'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'

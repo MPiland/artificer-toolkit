@@ -1,6 +1,6 @@
 import { authIdentityDtoSchema } from '@artificer-toolkit/schema/api/authIdentity'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, describe, expect, it } from 'vitest'
 import { api, components, internal } from './_generated/api'

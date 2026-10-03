@@ -1,6 +1,6 @@
 import migrations from '@convex-dev/migrations/test'
 import { defineSchema, makeFunctionReference, type WithoutSystemFields } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { expect, it, vi } from 'vitest'
 import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredPresentationSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'

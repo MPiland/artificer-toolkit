@@ -1,5 +1,5 @@
 import { createFunctionHandle } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import type { CharacterDraftCreateInput } from '@artificer-toolkit/schema/api/characterDrafts'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -16,8 +16,7 @@ import authSchema from '../../convex/betterAuth/schema'
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
 
-/** `sessionLifetimeMs` lets a long budget test outlive the default one-minute sessions. */
-export async function fixture({ sessionLifetimeMs = 60_000 }: { sessionLifetimeMs?: number } = {}) {
+export async function fixture() {
   const t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('../../convex/betterAuth/**/*.*s'))
   registerRateLimiter(t)
@@ -54,7 +53,8 @@ export async function fixture({ sessionLifetimeMs = 60_000 }: { sessionLifetimeM
           data: {
             userId: user._id,
             token: crypto.randomUUID(),
-            expiresAt: Date.now() + sessionLifetimeMs,
+            // Long enough that a slow serial suite run never outlives the session mid-test.
+            expiresAt: Date.now() + 60 * 60_000,
             createdAt: Date.now(),
             updatedAt: Date.now()
           }

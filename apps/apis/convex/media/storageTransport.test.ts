@@ -2,7 +2,7 @@
 import { register } from '@convex-dev/r2/test'
 import type { R2 } from '@convex-dev/r2'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { afterEach, expect, it, vi } from 'vitest'
 import { startLocalR2 } from '../../tests/localR2'
 import schema from '../schema'

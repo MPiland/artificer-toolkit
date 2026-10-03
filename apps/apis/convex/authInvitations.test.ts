@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { hashPassword } from 'better-auth/crypto'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { internal } from './_generated/api'
 import { createAuth } from './authFactory.helper'

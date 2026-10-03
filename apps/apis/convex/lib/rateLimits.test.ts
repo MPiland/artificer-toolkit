@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { zeroAccountUsage } from '@artificer-toolkit/schema/projections/accountUsage'

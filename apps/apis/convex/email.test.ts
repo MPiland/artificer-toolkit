@@ -1,6 +1,6 @@
 import { Resend, type EmailId } from '@convex-dev/resend'
 import { register } from '@convex-dev/resend/test'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { components, internal } from './_generated/api'

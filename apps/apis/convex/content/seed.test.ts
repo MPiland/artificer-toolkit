@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { expect, it } from 'vitest'
 import { brotliDecompressSync } from 'node:zlib'
 import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'

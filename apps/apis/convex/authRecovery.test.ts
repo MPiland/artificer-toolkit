@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
 import { components, internal } from './_generated/api'

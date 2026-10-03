@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import {
   type SystemListPageDto,

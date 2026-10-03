@@ -1,6 +1,6 @@
 import { signJWT, verifyJWT } from 'better-auth/crypto'
 import { createFunctionHandle, type PaginationResult } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import { authEmailDeliveryInputSchema } from '@artificer-toolkit/schema/api/auth'
 

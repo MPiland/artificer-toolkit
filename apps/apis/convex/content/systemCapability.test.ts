@@ -1,5 +1,5 @@
 import { createFunctionHandle } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import { gameSystemRuleCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
 import { installedGameSystemRuleCapabilities } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'

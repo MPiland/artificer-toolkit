@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import sharp from 'sharp'

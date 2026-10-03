@@ -1,5 +1,5 @@
 import { createFunctionHandle } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import type { AccountPasswordUpdateInput } from '@artificer-toolkit/schema/api/account'
 import { api, components, internal } from './_generated/api'

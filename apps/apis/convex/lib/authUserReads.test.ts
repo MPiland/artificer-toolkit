@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { components } from '../_generated/api'
 import authSchema from '../betterAuth/schema'

@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { expect, it } from 'vitest'
 
 import type { MutationCtx } from '../_generated/server'

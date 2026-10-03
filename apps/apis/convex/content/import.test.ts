@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { runToCompletion } from '@convex-dev/migrations'
 import migrations from '@convex-dev/migrations/test'
 import { describe, expect, it } from 'vitest'

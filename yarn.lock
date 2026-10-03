@@ -81,7 +81,7 @@ __metadata:
     better-auth: "patch:better-auth@npm%3A1.6.15#~/.yarn/patches/better-auth-npm-1.6.15-9073440fd1.patch"
     convex: "npm:1.45.0"
     convex-helpers: "npm:^0.1.106"
-    convex-test: "npm:0.0.56"
+    convex-test: "npm:0.0.60"
     jose: "npm:6.2.9"
     react: "npm:^19.2.6"
     sharp: "npm:^0.35.3"
@@ -9051,12 +9051,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"convex-test@npm:0.0.56":
-  version: 0.0.56
-  resolution: "convex-test@npm:0.0.56"
+"convex-test@npm:0.0.60":
+  version: 0.0.60
+  resolution: "convex-test@npm:0.0.60"
   peerDependencies:
     convex: ^1.43.0
-  checksum: 10c0/e94e31af0029429a298452890b7c0abb6998e7cf4e3e11842cea71550fdef287bfde0e8d16a3ed9f2df62fa7d2eddc9bfd867c079b355f1022231b2768a547ef
+  checksum: 10c0/39b3fdbbc344e98214b720a58b6a8dcffc54e825ff5da18adfcacc02572c37c291c9f5cde08115333a7cb541c1d5122e1a4f68ab7468b9c389175f5a5c6dcc4f
   languageName: node
   linkType: hard
 

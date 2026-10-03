@@ -1,5 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { SpatialRuleEffectPlacementDto } from '@artificer-toolkit/schema/shared/spatial'

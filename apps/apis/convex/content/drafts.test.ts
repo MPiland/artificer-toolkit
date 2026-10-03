@@ -1,5 +1,5 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import {

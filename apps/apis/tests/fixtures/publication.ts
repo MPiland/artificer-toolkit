@@ -1,5 +1,5 @@
 import { createFunctionHandle } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { SourceImportSubjectDto } from '@artificer-toolkit/schema/api/sourceImport'
@@ -173,7 +173,8 @@ export async function publicationFixture(
           data: {
             userId: user._id,
             token: crypto.randomUUID(),
-            expiresAt: Date.now() + 60_000,
+            // Long enough that a slow serial suite run never outlives the session mid-test.
+            expiresAt: Date.now() + 60 * 60_000,
             createdAt: Date.now(),
             updatedAt: Date.now()
           }

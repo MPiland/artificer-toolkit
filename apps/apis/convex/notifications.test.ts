@@ -1,6 +1,6 @@
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { createFunctionHandle } from 'convex/server'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { describe, expect, it, vi } from 'vitest'
 import type { NotificationFeedItemDto } from '@artificer-toolkit/schema/api/notifications'
 import { api, components, internal } from './_generated/api'

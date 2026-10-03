@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { createPublicJwks } from '@convex-dev/better-auth/auth-config'
 import { createLocalJWKSet, jwtVerify } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'

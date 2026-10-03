@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import {

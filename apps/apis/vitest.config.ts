@@ -9,6 +9,7 @@ export default defineConfig({
     // Convex functions and the in-process Worker planners must seal with the same secret.
     env: { RULES_CONTINUATION_SECRET: 'test-rules-continuation-secret-with-at-least-32-bytes' },
     include: ['apps/apis/convex/**/*.test.ts'],
+    setupFiles: ['apps/apis/tests/convexTest.ts'],
     server: {
       deps: {
         inline: [

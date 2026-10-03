@@ -1,6 +1,6 @@
 import { createFunctionHandle, type PaginationResult } from 'convex/server'
 import { JWT_COOKIE_NAME } from '@convex-dev/better-auth/plugins'
-import { convexTest } from 'convex-test'
+import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { describe, expect, it } from 'vitest'
 import type { AccountDeleteInput } from '@artificer-toolkit/schema/api/account'

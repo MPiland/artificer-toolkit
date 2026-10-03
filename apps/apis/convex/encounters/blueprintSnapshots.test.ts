@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'

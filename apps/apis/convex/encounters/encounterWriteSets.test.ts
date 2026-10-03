@@ -178,7 +178,7 @@ async function summaryReadCost(base: PlayerControlFixture) {
 
 /** An Assisted START of identical Creatures whose tied initiatives the GM orders. */
 async function tiedStart(actors: number) {
-  const base = await fixture({ sessionLifetimeMs: 20 * 60_000 })
+  const base = await fixture()
   const campaign = await base.owner.caller.mutation(api.campaigns.create.create, {
     name: 'Write sets',
     format: 'ONGOING',

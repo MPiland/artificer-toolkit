@@ -1,6 +1,7 @@
 import { defineSchema, defineTable, makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
-import { convexTest, type TestConvex } from 'convex-test'
+import type { TestConvex } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it, vi } from 'vitest'
 import {
   IMPORT_MAX_ENTRY_BYTES,

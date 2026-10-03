@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { internal } from '../_generated/api'

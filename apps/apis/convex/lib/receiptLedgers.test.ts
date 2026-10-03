@@ -1,4 +1,4 @@
-import { convexTest } from 'convex-test'
+import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it, vi } from 'vitest'
 import {
   liveSessionCheckpointHistoryEntrySchema,
