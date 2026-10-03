@@ -54,7 +54,7 @@
   - The worker suite logs "uncaught exception … RoomCheckpoints.#flush" from fire-and-forget paths when checkpoint failures are injected. Check that production handles those rejections.
   - The Cutover V15 workload (`developmentEncounterCutover.ts`) reads Convex without waiting for a checkpoint.
   - Run the Scene authoring, lifecycle and Drafts movement dev scripts; they are changed but not yet run.
-  - `nativeRoomFogUploads` "per-account cap" fails only in the full worker suite (`vi.mock` leak under `--no-isolate`). It is offered as a separate task.
+  - The per-account fog staging cap (512 KB) is unreachable: 2 uploads of about 60 KB each. Resize it or drop it in favor of the per-upload limits.
   - The final hydration page (fog save chunks; 264 documents in the test) has no row budget.
   - Expired fog staging is swept only on the next begin.
   - Small cleanups:
