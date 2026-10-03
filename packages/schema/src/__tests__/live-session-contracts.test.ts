@@ -524,6 +524,75 @@ describe('live-session contracts', () => {
     ).toBe(false)
   })
 
+  it('reads the turn choices on demand without a caller-supplied version', () => {
+    const requestId = '00000000-0000-4000-8000-0000000000a1'
+    const actorRead = {
+      kind: 'ACTION_CHOICES',
+      input: { encounterId: ids.session, actorId: ids.user }
+    }
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({
+        read: actorRead,
+        requestId,
+        type: 'ENCOUNTER_READ'
+      })
+    ).toEqual({ read: actorRead, requestId, type: 'ENCOUNTER_READ' })
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.parse({
+        read: { kind: 'SCENE_BINDING', input: { encounterId: ids.session, sceneId: ids.scene } },
+        requestId,
+        type: 'ENCOUNTER_READ'
+      }).type
+    ).toBe('ENCOUNTER_READ')
+    for (const read of [
+      { ...actorRead, input: { ...actorRead.input, expectedVersion: 1 } },
+      { kind: 'CHARACTER_SHEET', input: {} },
+      { kind: 'LATEST_EVIDENCE_ROLLS', input: {} }
+    ])
+      expect(
+        liveSessionWebSocketClientMessageDtoSchema.safeParse({
+          read,
+          requestId,
+          type: 'ENCOUNTER_READ'
+        }).success
+      ).toBe(false)
+    expect(
+      liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        read: actorRead,
+        type: 'ENCOUNTER_READ'
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        requestId,
+        result: { kind: 'ACTION_CHOICES', result: null },
+        type: 'ENCOUNTER_READ_RESULT',
+        version: 4
+      })
+    ).toEqual({
+      requestId,
+      result: { kind: 'ACTION_CHOICES', result: null },
+      type: 'ENCOUNTER_READ_RESULT',
+      version: 4
+    })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        requestId,
+        result: { kind: 'ACTION_CHOICES', result: null },
+        type: 'ENCOUNTER_READ_RESULT'
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({
+        code: 'UNAVAILABLE',
+        message: 'The room cannot answer this read.',
+        reason: null,
+        requestId,
+        type: 'ENCOUNTER_READ_REJECTED'
+      }).type
+    ).toBe('ENCOUNTER_READ_REJECTED')
+  })
+
   it('preserves existing authentication and transient server messages', () => {
     expect(
       liveSessionWebSocketServerMessageDtoSchema.parse({ type: 'AUTHENTICATION_REQUIRED' })

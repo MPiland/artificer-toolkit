@@ -59,7 +59,7 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import * as rollRandom from '../lib/rollRandom'
-import { loadMovementTargets } from './movementTargets'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
@@ -1825,7 +1825,7 @@ describe('native encounter actions', () => {
     const frightened = srdSystemRecord.conditionTypes.find((value) => value.code === 'FRIGHTENED')
     if (!frightened) throw new Error('Missing frightened condition fixture.')
     const conditionImmunityIds = await base.owner.caller.run(async (ctx) => {
-      const targets = await loadMovementTargets(ctx, {
+      const targets = await readMovementTargets(ctx, {
         encounterId: base.run.id,
         expectedEncounterVersion: base.run.version,
         targetActorIds: [base.target.id]

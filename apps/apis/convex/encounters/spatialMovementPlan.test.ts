@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { FrozenMovementReactionRemainder } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementRuleService'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { loadMovementTargets } from './movementTargets'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import { planNativeSpatialMovementPrefix } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
 import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
@@ -30,7 +30,7 @@ describe('planNativeSpatialMovementPrefix', () => {
   it('folds multiple spatial applications once and retains unaffected targets', async () => {
     const { base, input, execution } = await completedExecution()
     await base.other.caller.run(async (ctx) => {
-      const targets = await loadMovementTargets(ctx, {
+      const targets = await readMovementTargets(ctx, {
         encounterId: base.run.id,
         expectedEncounterVersion: base.run.version,
         targetActorIds: base.run.actors.map((actor) => actor.id)
@@ -111,7 +111,7 @@ describe('planNativeSpatialMovementPrefix', () => {
     const { execution } = await completedExecution()
     const base = await setupCharacterRun()
     await base.owner.caller.run(async (ctx) => {
-      const targets = await loadMovementTargets(ctx, {
+      const targets = await readMovementTargets(ctx, {
         encounterId: base.run.id,
         expectedEncounterVersion: base.run.version,
         targetActorIds: [base.actor.id],

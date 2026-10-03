@@ -6,7 +6,7 @@ import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/sch
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
-import { loadMovementTargets } from '../encounters/movementTargets'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 
 function reductionDefinition(
@@ -121,7 +121,7 @@ describe('Character Sheet hit point maximum reductions (D62)', () => {
     const encounterMaximum = await fixture.owner.caller.run(
       async (ctx) =>
         (
-          await loadMovementTargets(ctx, {
+          await readMovementTargets(ctx, {
             encounterId: fixture.run.id,
             expectedEncounterVersion: fixture.run.version,
             targetActorIds: [fixture.actor.id]

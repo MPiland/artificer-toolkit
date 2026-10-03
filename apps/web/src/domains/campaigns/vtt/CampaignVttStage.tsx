@@ -40,7 +40,6 @@ import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScen
 import {
   getCampaignEncounterActionChoices,
   getEncounterDecisionSettlement,
-  getEncounterLatestEvidenceRoll,
   loadCampaignEncounterOptionalActionChoices
 } from '#app/data/campaigns/encounterActions'
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
@@ -80,6 +79,8 @@ import { CampaignEncounterDecision } from '../components/CampaignEncounterDecisi
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import * as styles from './CampaignVttStage.css'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
+import { useLatestEvidenceRoll } from './useLatestEvidenceRoll'
+import { readFromRoomOrFallback, useRoomEncounterRead } from './useRoomEncounterRead'
 import {
   createVttSceneRenderer,
   type CampaignVttMode,
@@ -138,6 +139,7 @@ export function CampaignVttStage({
   })
   // The room's session while it holds the Run; Convex's stored session otherwise.
   const room = live.encounterSession
+  const roomVersion = room?.version ?? null
   const storedSessionState = useQuery({
     ...convexQuery(
       convexApi.encounters.activeReads.active,
@@ -174,10 +176,25 @@ export function CampaignVttStage({
           actorId: currentActor.id
         }
       : null
-  const actionChoices = useQuery(getCampaignEncounterActionChoices(actionChoiceScope))
-  const latestEvidenceRoll = useQuery(
-    getEncounterLatestEvidenceRoll(pendingOccurrence && activeEncounter ? activeEncounter.id : null)
+  const roomActionChoices = useRoomEncounterRead({
+    read: actionChoiceScope
+      ? {
+          kind: 'ACTION_CHOICES',
+          input: { encounterId: actionChoiceScope.encounterId, actorId: actionChoiceScope.actorId }
+        }
+      : null,
+    readEncounter: live.readEncounter,
+    room,
+    select: (result) => (result.kind === 'ACTION_CHOICES' ? result.result : undefined)
+  })
+  const actionChoices = useQuery(
+    getCampaignEncounterActionChoices(roomActionChoices.routed ? null : actionChoiceScope)
   )
+  const latestEvidenceRoll = useLatestEvidenceRoll({
+    encounterId: pendingOccurrence && activeEncounter ? activeEncounter.id : null,
+    readEncounter: live.readEncounter,
+    room
+  })
   // A player's last shown decision stays in its drawer to say whether the GM skipped it (D39).
   const [shownDecision, setShownDecision] =
     useState<PendingEncounterRuleOccurrenceSummaryDto | null>(null)
@@ -201,22 +218,37 @@ export function CampaignVttStage({
     if (decisionOutcome === 'ANSWER') setShownDecision(null)
   }, [decisionOutcome])
   const drawerDecision = pendingOccurrence ?? settledDecision
+  const loadedActionChoices = roomActionChoices.routed
+    ? roomActionChoices.value
+    : actionChoices.data
   const currentActionChoices =
     actionChoiceScope &&
-    actionChoices.data?.encounterId === actionChoiceScope.encounterId &&
-    actionChoices.data.encounterVersion === actionChoiceScope.expectedVersion &&
-    actionChoices.data.actorId === actionChoiceScope.actorId
-      ? actionChoices.data
+    loadedActionChoices?.encounterId === actionChoiceScope.encounterId &&
+    loadedActionChoices.encounterVersion === actionChoiceScope.expectedVersion &&
+    loadedActionChoices.actorId === actionChoiceScope.actorId
+      ? loadedActionChoices
       : null
-  const actionChoicesError = actionChoices.isError
-    ? actionChoices.error instanceof Error
-      ? actionChoices.error.message
-      : 'Available actions could not be loaded.'
-    : null
+  const actionChoicesLoading = roomActionChoices.routed
+    ? !currentActionChoices && !roomActionChoices.error
+    : actionChoices.isPending || (actionChoices.isFetching && !currentActionChoices)
+  const actionChoicesError = roomActionChoices.routed
+    ? (roomActionChoices.error?.message ?? null)
+    : actionChoices.isError
+      ? actionChoices.error instanceof Error
+        ? actionChoices.error.message
+        : 'Available actions could not be loaded.'
+      : null
   const loadOptionalActionChoices = useCallback(
-    (input: GetEncounterOptionalActionChoicesInputDto) =>
-      loadCampaignEncounterOptionalActionChoices(convex, input),
-    [convex]
+    ({ expectedVersion, ...roomInput }: GetEncounterOptionalActionChoicesInputDto) =>
+      readFromRoomOrFallback({
+        fallback: () =>
+          loadCampaignEncounterOptionalActionChoices(convex, { expectedVersion, ...roomInput }),
+        read: { kind: 'OPTIONAL_ACTION_CHOICES', input: roomInput },
+        readEncounter: live.readEncounter,
+        roomVersion,
+        select: (result) => (result.kind === 'OPTIONAL_ACTION_CHOICES' ? result.result : undefined)
+      }),
+    [convex, live.readEncounter, roomVersion]
   )
   const storedPendingPrepared = useQuery({
     ...convexQuery(
@@ -246,20 +278,36 @@ export function CampaignVttStage({
     presented.recipientHeader?.id,
     presented.recipientHeader?.version
   ])
+  const sceneBindingInput =
+    activeEncounter && scene ? { encounterId: activeEncounter.id, sceneId: scene.id } : null
+  const roomSceneBinding = useRoomEncounterRead({
+    read: sceneBindingInput ? { kind: 'SCENE_BINDING', input: sceneBindingInput } : null,
+    readEncounter: live.readEncounter,
+    room,
+    select: (result) => (result.kind === 'SCENE_BINDING' ? result.result : undefined)
+  })
   const sceneBinding = useQuery({
     ...convexQuery(
       convexApi.encounters.sceneBindings.get,
-      activeEncounter && scene ? { encounterId: activeEncounter.id, sceneId: scene.id } : 'skip'
+      sceneBindingInput && !roomSceneBinding.routed ? sceneBindingInput : 'skip'
     ),
     select: (binding) => (binding === null ? null : sceneEncounterBindingSchema.parse(binding))
   })
-  const currentSceneBinding =
-    sceneBinding.data &&
-    !sceneBinding.error &&
-    activeEncounter &&
-    sceneBinding.data.encounterId === activeEncounter.id &&
-    sceneBinding.data.sceneId === scene?.id
+  const sceneBindingPending = roomSceneBinding.routed
+    ? roomSceneBinding.value === undefined && !roomSceneBinding.error
+    : sceneBinding.isPending
+  const sceneBindingFailure = roomSceneBinding.routed ? roomSceneBinding.error : sceneBinding.error
+  const loadedSceneBinding = roomSceneBinding.routed
+    ? roomSceneBinding.value
+    : !sceneBinding.error
       ? sceneBinding.data
+      : null
+  const currentSceneBinding =
+    loadedSceneBinding &&
+    activeEncounter &&
+    loadedSceneBinding.encounterId === activeEncounter.id &&
+    loadedSceneBinding.sceneId === scene?.id
+      ? loadedSceneBinding
       : null
   const activeEncounterSceneBinding =
     currentSceneBinding &&
@@ -685,8 +733,8 @@ export function CampaignVttStage({
     if (!current || path.length < 2) return
     if (
       activeEncounter &&
-      (sceneBinding.isPending ||
-        sceneBinding.isError ||
+      (sceneBindingPending ||
+        sceneBindingFailure ||
         bindEncounter.isPending ||
         (currentSceneBinding && !activeEncounterSceneBinding) ||
         (currentSceneBinding && (actorTokenBindings.isPending || actorTokenBindings.isError)))
@@ -837,7 +885,7 @@ export function CampaignVttStage({
     encounterCommand.error ??
     sceneCommand.error ??
     actorTokenBindings.error ??
-    sceneBinding.error ??
+    sceneBindingFailure ??
     presented.presentationError
   const stageError = requestFailure
     ? errorMessage(requestFailure)
@@ -979,8 +1027,8 @@ export function CampaignVttStage({
               disabled={
                 !live.commandReady ||
                 bindEncounter.isPending ||
-                sceneBinding.isPending ||
-                sceneBinding.isError ||
+                sceneBindingPending ||
+                Boolean(sceneBindingFailure) ||
                 Boolean(currentSceneBinding && !activeEncounterSceneBinding)
               }
               size='xs'
@@ -1005,7 +1053,7 @@ export function CampaignVttStage({
               memberships={campaign.memberships}
               pending={
                 encounterCommand.isPending ||
-                sceneBinding.isPending ||
+                sceneBindingPending ||
                 Boolean(activeEncounterSceneBinding && actorTokenBindings.isPending)
               }
               role={campaign.role}
@@ -1027,9 +1075,7 @@ export function CampaignVttStage({
             <CampaignTabletopActionDrawer
               actions={currentActionChoices?.actions ?? []}
               basicActions={currentActionChoices?.basicActions ?? []}
-              actionsLoading={
-                actionChoices.isPending || (actionChoices.isFetching && !currentActionChoices)
-              }
+              actionsLoading={actionChoicesLoading}
               actionChoicesError={actionChoicesError}
               connected={live.status === 'CONNECTED'}
               encounter={activeEncounter}
@@ -1053,7 +1099,7 @@ export function CampaignVttStage({
               canVoid={campaign.role === 'OWNER'}
               connected
               encounter={activeEncounter}
-              latestRoll={latestEvidenceRoll.data ?? null}
+              latestRoll={latestEvidenceRoll}
               pending={drawerDecision}
               skipped={
                 !pendingOccurrence && decisionOutcome === 'GM_SKIP'
@@ -1071,6 +1117,8 @@ export function CampaignVttStage({
               encounter={encounter}
               key={encounter.id}
               pending={pending}
+              readEncounter={live.readEncounter}
+              room={room}
               sendCommand={live.sendEncounterCommand}
             />
           ))}

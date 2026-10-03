@@ -8,10 +8,10 @@ import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { ROOM_SCENE_DEFINITION_ENTITY } from './roomSceneDefinition.js'
 import { readRoomScene } from './roomSceneRead.js'
-import type { RoomTransaction } from './roomEncounterStore.js'
+import type { RoomRecordReader, RoomTransaction } from './roomEncounterStore.js'
 
 /** The room's stored token rows for the shared Scene token checks; a missing token reads null. */
-export function roomSceneTokenReaders(transaction: RoomTransaction) {
+export function roomSceneTokenReaders(transaction: RoomRecordReader) {
   return {
     readLiveToken: async (sceneId: string, tokenId: string) => {
       const record = transaction.record(

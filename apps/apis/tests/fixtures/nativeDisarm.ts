@@ -49,10 +49,14 @@ import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pe
 import { readCharacterRow } from '../../convex/characters/stateDocuments'
 import { readReceiptHeaders } from '../../convex/lib/receiptLedgers'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
-import { prepareNativeActionEconomy } from '../../convex/encounters/actionEconomy'
-import { prepareNativeEncounterActionMechanics } from '../../convex/encounters/actionMechanicsPreparation'
-import { readNativeActionSceneContext } from '../../convex/encounters/actionSceneContext'
-import { loadMovementTargets } from '../../convex/encounters/movementTargets'
+import {
+  prepareActionEconomy,
+  prepareActionMechanics,
+  readActionSceneContext
+} from '@artificer-toolkit/encounter-persistence/actionPreparationReads'
+import { requireCampaignAuthority } from '../../convex/campaigns/authority'
+import { encounterTurnReadTransaction } from '../../convex/encounters/turnReadPorts'
+import { readMovementTargets } from './movementTargets'
 import * as rollRandom from '../../convex/lib/rollRandom'
 import { executeRoomEncounterCommand, insertActiveLiveAuthority } from './liveSessionWorker'
 import { seedActiveInitiative } from './activeInitiative'
@@ -212,7 +216,7 @@ export async function nativeDisarmFixture(
     const targetState = actors.find((value) => value.id === target.id)!
     const actionId = characterSource
       ? await (async () => {
-          const targets = await loadMovementTargets(ctx, {
+          const targets = await readMovementTargets(ctx, {
             encounterId: state.id,
             expectedEncounterVersion: state.version,
             targetActorIds: [actor.id, target.id],
@@ -410,17 +414,23 @@ export async function prepareStoredDisarm(
     ...input,
     command: { ...command, definitionId: intent.definitionId }
   })
-  const prepared = await prepareNativeEncounterActionMechanics(ctx, {
+  const tx = encounterTurnReadTransaction(ctx)
+  const { campaign } = await requireCampaignAuthority(
+    ctx,
+    state.campaignId,
+    input.campaignOwnerUserId
+  )
+  const prepared = await prepareActionMechanics(tx, {
     state,
+    campaign,
     actors: input.actors,
     actor,
     target,
     actionId: command.actionId,
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-    overridable: false,
-    campaignOwnerUserId: input.campaignOwnerUserId
+    overridable: false
   })
-  const sceneContext = await readNativeActionSceneContext(ctx, state, command, 'MEMBER')
+  const sceneContext = await readActionSceneContext(tx, state, command)
   const selection = readEncounterDisarmSelection({
     actor,
     target,
@@ -430,10 +440,10 @@ export async function prepareStoredDisarm(
     sceneContext,
     rejectTarget: () => rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
   })
-  const actionEconomy = await prepareNativeActionEconomy(ctx, {
+  const actionEconomy = await prepareActionEconomy(tx, {
     state,
+    campaign,
     actor,
-    userId: input.campaignOwnerUserId,
     activation: { code: 'ACTION', amount: 1 },
     target: prepared.sourceFacts
   })

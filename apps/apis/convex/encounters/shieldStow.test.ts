@@ -34,7 +34,8 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import { prepareNativeEncounterActionMechanics } from './actionMechanicsPreparation'
+import { prepareActionMechanics } from '@artificer-toolkit/encounter-persistence/actionPreparationReads'
+import { requireCampaignAuthority } from '../campaigns/authority'
 import {
   readRunActor,
   readRunActors,
@@ -42,7 +43,8 @@ import {
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from './encounterPorts'
-import { loadMovementTargets } from './movementTargets'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
+import { encounterTurnReadTransaction } from './turnReadPorts'
 
 /** Unlimited range keeps the fixture free of Scene positions; grips and properties are unchanged. */
 function withUnlimitedRange(weapon: typeof greatsword) {
@@ -135,7 +137,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
       [actor.id, target.id]
     )
     const mechanics = (
-      await loadMovementTargets(ctx, {
+      await readMovementTargets(ctx, {
         encounterId: state.id,
         expectedEncounterVersion: state.version,
         targetActorIds: [actor.id],
@@ -183,7 +185,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
       if (!row) throw new Error('Missing shield stow Run.')
       const state = readRunState(row)
       const source = (
-        await loadMovementTargets(ctx, {
+        await readMovementTargets(ctx, {
           encounterId: state.id,
           expectedEncounterVersion: state.version,
           targetActorIds: [actor.id]
@@ -224,17 +226,23 @@ describe('shield stow on two-handed attacks', () => {
       armorClassDelta: -2
     })
     await base.owner.caller.run(async (ctx) => {
-      const actors = await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, base.state)
+      const tx = encounterTurnReadTransaction(ctx)
+      const { campaign } = await requireCampaignAuthority(
+        ctx,
+        base.state.campaignId,
+        base.owner.userId
+      )
+      const actors = await readRunActors(tx, base.state)
       const prepare = (accepted: ReturnType<typeof accept> | null) =>
-        prepareNativeEncounterActionMechanics(ctx, {
+        prepareActionMechanics(tx, {
           state: base.state,
+          campaign,
           actors,
           actor: actors.find((actor) => actor.id === base.actor.id)!,
           target: actors.find((actor) => actor.id === base.target.id)!,
           actionId: base.actionId,
           wieldConflictAcceptance: { kind: 'PROMPTED', accepted },
-          overridable: true,
-          campaignOwnerUserId: base.owner.userId
+          overridable: true
         })
       await expect(prepare(null)).rejects.toThrow(
         'This attack would stow a shield; confirm it first.'
@@ -245,15 +253,15 @@ describe('shield stow on two-handed attacks', () => {
         shieldItemInstanceId: base.shieldItemId,
         armorClassDelta: -2
       })
-      const unprompted = await prepareNativeEncounterActionMechanics(ctx, {
+      const unprompted = await prepareActionMechanics(tx, {
         state: base.state,
+        campaign,
         actors,
         actor: actors.find((actor) => actor.id === base.actor.id)!,
         target: actors.find((actor) => actor.id === base.target.id)!,
         actionId: base.actionId,
         wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-        overridable: true,
-        campaignOwnerUserId: base.owner.userId
+        overridable: true
       })
       expect(unprompted.acceptedWieldConflict).toBeNull()
     })

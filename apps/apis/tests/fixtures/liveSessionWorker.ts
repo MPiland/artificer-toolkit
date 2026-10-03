@@ -10,7 +10,11 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { characterSheetCommandResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessionCommands'
-import type { EncounterSessionFrameDto } from '@artificer-toolkit/schema/api/liveSessions'
+import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
+import type {
+  EncounterSessionFrameDto,
+  LiveSessionWebSocketServerMessageDto
+} from '@artificer-toolkit/schema/api/liveSessions'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
@@ -66,6 +70,7 @@ import {
   readRoomActorDepartures,
   reconcileRoomActorDepartures
 } from '../../../session-worker/src/roomActorReconcile'
+import { RoomEncounterReads } from '../../../session-worker/src/roomEncounterReads'
 import { RoomEncounterSessionFeed } from '../../../session-worker/src/roomEncounterSessionFeed'
 import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
 import { RoomInputs } from '../../../session-worker/src/roomInputs'
@@ -765,6 +770,48 @@ export function readEncounterSessionInRoom(
       const [frame] = frames
       if (!frame) throw new Error('The room pushed no Encounter session.')
       return frame
+    } finally {
+      room.close()
+    }
+  })
+}
+
+/**
+ * The answer a fresh room gives the caller's `ENCOUNTER_READ` (see `RoomEncounterReads`): hydrated
+ * at the Run's persisted checkpoint with its presented Scene, answered with no Convex read.
+ */
+export function readEncounterInRoom(
+  caller: MemberCaller,
+  encounterId: string,
+  read: EncounterReadDto
+) {
+  return asRoomMember(caller, encounterId, async (actor) => {
+    const room = await openRoom(caller, actor, encounterId.toLowerCase())
+    try {
+      const member = room.authorization.campaign.members.find(
+        (entry) => entry.userId === actor.expectedUserId
+      )
+      if (!member) throw new Error('The caller is not a Campaign member.')
+      const socket: WebSocket = Object.create(WebSocket.prototype)
+      const scope = { authorityEpoch: actor.authorityEpoch, campaignId: actor.campaignId }
+      const replies: LiveSessionWebSocketServerMessageDto[] = []
+      const reads = new RoomEncounterReads({
+        store: room.store,
+        inputs: room.inputs,
+        authorization: () => room.authorization,
+        admission: () => member,
+        scope: () => scope,
+        presentedSceneId: () => room.sceneId,
+        send: (_socket, message) => replies.push(message)
+      })
+      await withoutHttp(async () => {
+        await room.hydrate()
+        await reads.answer(socket, { requestId: crypto.randomUUID(), read })
+      })
+      const [reply] = replies
+      if (reply?.type !== 'ENCOUNTER_READ_RESULT' && reply?.type !== 'ENCOUNTER_READ_REJECTED')
+        throw new Error('The room gave no Encounter read answer.')
+      return reply
     } finally {
       room.close()
     }

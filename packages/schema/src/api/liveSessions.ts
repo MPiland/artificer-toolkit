@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { domainRejectionReasonDtoSchema } from './domainRejections.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import { encounterReadDtoSchema, encounterReadResultDtoSchema } from './encounterRead.js'
 import { characterSheetResponseDtoSchema } from './characterSheetData.js'
 import {
   sceneBarrierDtoSchema,
@@ -207,6 +208,13 @@ export const liveSessionWebSocketClientMessageDtoSchema = lazySchema(() =>
     // One Encounter session subscription per socket; a new one replaces the previous.
     z.strictObject({ timeline: z.boolean(), type: z.literal('SUBSCRIBE_ENCOUNTER_SESSION') }),
     z.strictObject({ type: z.literal('UNSUBSCRIBE_ENCOUNTER_SESSION') }),
+    // One version-keyed turn read answered from the room's own Encounter state, on demand. It
+    // answers with ENCOUNTER_READ_RESULT or ENCOUNTER_READ_REJECTED for the same request ID.
+    z.strictObject({
+      read: encounterReadDtoSchema,
+      requestId: uuidSchema,
+      type: z.literal('ENCOUNTER_READ')
+    }),
     // The GM's fog patch stages in bounded batches under the socket cap; each answers with
     // SCENE_FOG_PROGRESS or COMMAND_REJECTED for the patch's command ID (D79).
     z.strictObject({ input: sceneFogPatchInputSchema, type: z.literal('SCENE_FOG_BEGIN') }),
@@ -246,6 +254,22 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
     z.strictObject({
       session: encounterSessionFrameDtoSchema,
       type: z.literal('ENCOUNTER_SESSION')
+    }),
+    // Unsequenced: the answer to one ENCOUNTER_READ at the Encounter session version it was read at.
+    z.strictObject({
+      requestId: uuidSchema,
+      result: encounterReadResultDtoSchema,
+      type: z.literal('ENCOUNTER_READ_RESULT'),
+      version: versionSchema
+    }),
+    // Unsequenced: an ENCOUNTER_READ the room refused; `UNAVAILABLE` means it cannot answer from
+    // its own state, so the client reads from Convex instead.
+    z.strictObject({
+      code: liveSessionCommandRejectionCodeDtoSchema,
+      message: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
+      reason: z.nullable(domainRejectionReasonDtoSchema),
+      requestId: uuidSchema,
+      type: z.literal('ENCOUNTER_READ_REJECTED')
     }),
     z.strictObject({
       commandId: uuidSchema,

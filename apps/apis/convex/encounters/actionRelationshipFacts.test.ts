@@ -1,7 +1,4 @@
-import {
-  createConvexEncounterStore,
-  createConvexEncounterStoreReader
-} from '../lib/convexEncounterStore'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
@@ -18,7 +15,8 @@ import {
   readRunActors,
   readRunState
 } from '@artificer-toolkit/encounter-persistence/documents'
-import { loadNativeActionRelationshipFacts } from './actionRelationshipFacts'
+import { loadActionRelationshipFacts } from '@artificer-toolkit/encounter-persistence/actionPreparationReads'
+import { encounterTurnReadTransaction } from './turnReadPorts'
 
 function relationshipEffect(input: {
   encounterId: string
@@ -158,9 +156,10 @@ describe('native action relationship facts', () => {
           .unique()
         if (!run) throw new Error('Fixture Encounter is unavailable.')
         const state = readRunState(run)
-        return loadNativeActionRelationshipFacts(ctx, {
+        const tx = encounterTurnReadTransaction(ctx)
+        return loadActionRelationshipFacts(tx, {
           state,
-          actors: await readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state),
+          actors: await readRunActors(tx, state),
           sourceActorId: source.id,
           targetActorId,
           actionEffectId

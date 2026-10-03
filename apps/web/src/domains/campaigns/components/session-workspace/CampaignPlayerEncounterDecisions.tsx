@@ -79,6 +79,8 @@ export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: Campa
                   connected={live.commandReady}
                   encounter={pendingProjection.encounter}
                   pending={pendingProjection.pending}
+                  readEncounter={live.readEncounter}
+                  room={room}
                   sendCommand={live.sendEncounterCommand}
                 />
               ) : null}

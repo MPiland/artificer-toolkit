@@ -53,6 +53,14 @@ export type RoomInputsReader = (
   scope: LiveRoomInputsScope
 ) => Promise<LiveRoomInputsResponse>
 
+/** A read that must stay inside the room needs an input the room does not hold current. */
+export class RoomInputsUnheldError extends Error {
+  constructor() {
+    super('The room does not hold the inputs this read needs.')
+    this.name = 'RoomInputsUnheldError'
+  }
+}
+
 type LoadedContent = {
   manifest: string
   objects: ContentSnapshotObject[]
@@ -561,16 +569,28 @@ export class RoomInputs {
   readonly #store: RoomEncounterStore
   readonly #read: RoomInputsReader
   readonly #loadContent: (manifest: ContentSnapshotManifestDto) => Promise<ContentSnapshotObject[]>
-  readonly #content = new Map<string, LoadedContent>()
+  readonly #content: Map<string, LoadedContent>
 
   constructor(
     store: RoomEncounterStore,
     read: RoomInputsReader,
-    loadContent: (manifest: ContentSnapshotManifestDto) => Promise<ContentSnapshotObject[]>
+    loadContent: (manifest: ContentSnapshotManifestDto) => Promise<ContentSnapshotObject[]>,
+    content = new Map<string, LoadedContent>()
   ) {
     this.#store = store
     this.#read = read
     this.#loadContent = loadContent
+    this.#content = content
+  }
+
+  /**
+   * A view over the same held inputs that never reads Convex: an input the room does not hold, or
+   * holds stale, throws {@link RoomInputsUnheldError} where this instance would load it. Reads that
+   * the room must answer from its own state use it.
+   */
+  heldOnly(): RoomInputs {
+    const unheld = () => Promise.reject(new RoomInputsUnheldError())
+    return new RoomInputs(this.#store, unheld, unheld, this.#content)
   }
 
   /**
@@ -806,8 +826,8 @@ export class RoomInputs {
     return this.#point({ kind: 'SYSTEM', part }, observed, 'SYSTEM', transaction)
   }
 
-  async definition(
-    definitionId: string,
+  /** Reloads the definition inventory unless the held one is current for `observed`. */
+  async #currentDefinitions(
     observed: LiveSessionRulesRevisions | null,
     transaction?: RoomTransaction
   ) {
@@ -829,14 +849,39 @@ export class RoomInputs {
       if (transaction) replace(transaction)
       else await this.#store.transact(async (target) => replace(target))
     }
-    const record = transaction
-      ? transaction.record(DEFINITION_KIND, definitionId)
-      : this.#store.record(DEFINITION_KIND, definitionId)
+    return transaction ?? this.#store
+  }
+
+  async definition(
+    definitionId: string,
+    observed: LiveSessionRulesRevisions | null,
+    transaction?: RoomTransaction
+  ) {
+    const record = (await this.#currentDefinitions(observed, transaction)).record(
+      DEFINITION_KIND,
+      definitionId
+    )
     if (!record) return { definition: null, sourceKind: null }
     const entry = liveRoomDefinitionSchema.parse(JSON.parse(record.json))
     if (entry.id !== definitionId)
       throw new Error('Room definition record has inconsistent identity.')
     return { definition: entry.definition, sourceKind: entry.sourceKind }
+  }
+
+  /** The held platform definitions that have a published version in one Game System family. */
+  async platformDefinitionsOfFamily(
+    family: { gameSystemId: string; definitionFamilyKey: string },
+    observed: LiveSessionRulesRevisions | null
+  ) {
+    const records = (await this.#currentDefinitions(observed)).records(DEFINITION_KIND)
+    return records.flatMap((record) => {
+      const { definition, sourceKind } = liveRoomDefinitionSchema.parse(JSON.parse(record.json))
+      return sourceKind === 'PLATFORM' &&
+        definition?.gameSystemId === family.gameSystemId &&
+        definition.definitionFamilyKey === family.definitionFamilyKey
+        ? [definition]
+        : []
+    })
   }
 
   /** Checks the authorized Builder/content revision without reading or changing play state. */

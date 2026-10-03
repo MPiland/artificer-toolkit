@@ -34,6 +34,7 @@ vi.mock('../vtt/useCampaignLiveSession', () => ({
     commandReady: mocks.commandReady,
     encounterSession: mocks.encounterSession,
     error: null,
+    readEncounter: () => Promise.reject(new Error('Live play is not connected.')),
     sendEncounterCommand: mocks.sendEncounterCommand
   })
 }))

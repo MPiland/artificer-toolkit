@@ -6,7 +6,9 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { loadMovementTargets } from './movementTargets'
+import { loadMovementTargets } from '@artificer-toolkit/encounter-persistence/movementTargetReads'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
+import { encounterTurnReadTransaction } from './turnReadPorts'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
@@ -15,7 +17,7 @@ import { applyCharacterScalarValuesToFacts } from '@artificer-toolkit/rules-runt
 import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 
 describe('native movement target facts', () => {
-  it('reuses exact current target facts only in the same verified transaction and scope', async () => {
+  it('reads targets only for the version and Campaign scope the caller verified', async () => {
     const fixture = await setupCharacterRun()
     const input = {
       encounterId: fixture.run.id,
@@ -23,7 +25,6 @@ describe('native movement target facts', () => {
       targetActorIds: fixture.run.actors.map((actor) => actor.id),
       includeReactionSources: true
     }
-    let retained: NonNullable<Parameters<typeof loadMovementTargets>[2]> | undefined
     await fixture.owner.caller.run(async (ctx) => {
       const { userId } = await requireIdentity(ctx)
       const row = await ctx.db
@@ -33,29 +34,22 @@ describe('native movement target facts', () => {
       if (!row) throw new Error('Fixture Run missing')
       const state = readRunState(row)
       const { campaign } = await requireCampaignAuthority(ctx, state.campaignId, userId)
-      const current = { ctx, state, campaign }
-      const standalone = await loadMovementTargets(ctx, input)
-      const reused = await loadMovementTargets(ctx, input, current)
-      const mechanicalFacts = (targets: typeof standalone) =>
-        [...targets].map(([id, { characterFacts: _characterFacts, ...target }]) => [id, target])
-      expect(mechanicalFacts(reused)).toEqual(mechanicalFacts(standalone))
+      const tx = encounterTurnReadTransaction(ctx)
+      const targetActorIds = input.targetActorIds
+      expect((await loadMovementTargets(tx, { state, campaign, targetActorIds })).size).toBe(
+        targetActorIds.length
+      )
       await expect(
-        loadMovementTargets(ctx, { ...input, expectedEncounterVersion: state.version + 1 }, current)
+        readMovementTargets(ctx, { ...input, expectedEncounterVersion: state.version + 1 })
       ).rejects.toThrow('version is stale')
       await expect(
-        loadMovementTargets(ctx, input, {
-          ...current,
-          campaign: { ...campaign, id: crypto.randomUUID() }
+        loadMovementTargets(tx, {
+          state,
+          campaign: { ...campaign, id: crypto.randomUUID() },
+          targetActorIds
         })
       ).rejects.toThrow('scope differs')
-      retained = current
     })
-    await expect(
-      fixture.owner.caller.run((ctx) => {
-        if (!retained) throw new Error('Current context missing')
-        return loadMovementTargets(ctx, input, retained)
-      })
-    ).rejects.toThrow('another transaction')
   }, 30000)
 
   it('applies scalar reductions after existing bonuses and manual overrides without changing base facts', async () => {
@@ -134,8 +128,8 @@ describe('native movement target facts', () => {
       expectedEncounterVersion: fixture.run.version,
       targetActorIds: [actor.id]
     }
-    const custom = await fixture.owner.caller.run(async (ctx) =>
-      (await loadMovementTargets(ctx, input)).get(actor.id)!
+    const custom = await fixture.owner.caller.run(
+      async (ctx) => (await readMovementTargets(ctx, input)).get(actor.id)!
     )
     expect(custom.defenses).toEqual([])
     expect(custom.baseScalarValues).toEqual({})
@@ -182,8 +176,8 @@ describe('native movement target facts', () => {
       })
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, creature)
     })
-    const creature = await fixture.owner.caller.run(async (ctx) =>
-      (await loadMovementTargets(ctx, input)).get(actor.id)!
+    const creature = await fixture.owner.caller.run(
+      async (ctx) => (await readMovementTargets(ctx, input)).get(actor.id)!
     )
     expect(creature.baseScalarValues).toEqual({ [abilityId]: 12 })
     expect(creature.defenses).toEqual([{ kind: 'RESISTANCE', damageTypeId }])
@@ -203,7 +197,7 @@ describe('native movement target facts', () => {
     })
     await expect(
       fixture.owner.caller.run((ctx) =>
-        loadMovementTargets(ctx, {
+        readMovementTargets(ctx, {
           encounterId: fixture.run.id,
           expectedEncounterVersion: fixture.run.version,
           targetActorIds: [fixture.actor.id]
@@ -222,7 +216,7 @@ describe('native movement target facts', () => {
     const read = () =>
       fixture.owner.caller.run(async (ctx) => {
         const { characterFacts: _characterFacts, ...target } = (
-          await loadMovementTargets(ctx, input)
+          await readMovementTargets(ctx, input)
         ).get(fixture.actor.id)!
         return target
       })
@@ -235,7 +229,7 @@ describe('native movement target facts', () => {
     expect(await read()).toEqual(first)
     await expect(
       fixture.owner.caller.run((ctx) =>
-        loadMovementTargets(ctx, {
+        readMovementTargets(ctx, {
           ...input,
           expectedEncounterVersion: input.expectedEncounterVersion + 1
         })
@@ -243,12 +237,12 @@ describe('native movement target facts', () => {
     ).rejects.toThrow('version is stale')
     await expect(
       fixture.owner.caller.run((ctx) =>
-        loadMovementTargets(ctx, { ...input, targetActorIds: [crypto.randomUUID()] })
+        readMovementTargets(ctx, { ...input, targetActorIds: [crypto.randomUUID()] })
       )
     ).rejects.toThrow('actor was not found')
     await expect(
       fixture.owner.caller.run((ctx) =>
-        loadMovementTargets(ctx, {
+        readMovementTargets(ctx, {
           ...input,
           targetActorIds: [fixture.actor.id, fixture.actor.id.toUpperCase()]
         })
@@ -266,7 +260,7 @@ describe('native movement target facts', () => {
     const read = () =>
       fixture.owner.caller.run(async (ctx) => {
         const { characterFacts: _characterFacts, ...target } = (
-          await loadMovementTargets(ctx, input)
+          await readMovementTargets(ctx, input)
         ).get(fixture.actor.id)!
         return target
       })
@@ -398,7 +392,7 @@ describe('native movement target facts', () => {
     })
     const target = await fixture.owner.caller.run(async (ctx) => {
       const loaded = (
-        await loadMovementTargets(ctx, {
+        await readMovementTargets(ctx, {
           encounterId: fixture.run.id,
           expectedEncounterVersion: fixture.run.version,
           targetActorIds: [fixture.actor.id]

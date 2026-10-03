@@ -1,0 +1,256 @@
+import {
+  evaluateEncounterActionEconomy,
+  prepareEncounterActionEconomy
+} from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  resolveEncounterActionSource,
+  type EncounterActionSourceInput,
+  type NativeEncounterActionSource
+} from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import {
+  readEncounterDisarmSelection,
+  requireEncounterDisarmDefinition
+} from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import {
+  lockedRelationshipActionFacts,
+  type EncounterRelationshipD20Contributor
+} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
+import type { EncounterWieldConflictAcceptance } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
+import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import type { CharacterTurnFacts } from '@artificer-toolkit/rules-runtime/character/turnFacts'
+import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readEncounterActionSceneInputs } from './actionSceneInputs.js'
+import { rejectDomain } from './domainRejections.js'
+import { listActiveRuleEffects } from './effectStore.js'
+import { loadMovementTargets } from './movementTargetReads.js'
+import type { EncounterTurnReadTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
+
+type Campaign = EncounterDocument<'campaigns'>
+
+type ActionEconomyInput<TFacts extends CharacterTurnFacts> = {
+  actor: EncounterRunActorState
+  state: EncounterRunState
+  campaign: Campaign
+  activation: { code: string; amount: number }
+  target?: MovementTarget<TFacts>
+}
+
+/** Re-reads exact action geometry in the same transaction as its mechanics. */
+export async function readActionSceneContext(
+  tx: EncounterTurnReadTransaction,
+  state: EncounterRunState,
+  command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>
+) {
+  const inputs = await readEncounterActionSceneInputs(tx, state, command, tx.ports.sceneReaders)
+  if (!inputs) return null
+  const { sceneGrid, ...context } = inputs
+  return {
+    ...context,
+    grid: encounterSceneGridPolicyRegistry.resolveEffectiveGrid({ encounter: state, sceneGrid })
+  }
+}
+
+function economyInput<TFacts extends CharacterTurnFacts>(
+  tx: EncounterTurnReadTransaction<TFacts>,
+  input: ActionEconomyInput<TFacts>
+) {
+  return {
+    actor: input.actor,
+    state: input.state,
+    activation: input.activation,
+    target: input.target,
+    loadTarget: async () =>
+      (
+        await loadMovementTargets(tx, {
+          state: input.state,
+          campaign: input.campaign,
+          targetActorIds: [input.actor.id]
+        })
+      ).get(input.actor.id),
+    definitions: {
+      requireCurrent: async (definitionId: string) => {
+        const current = await tx.ports.readCurrentDefinition(
+          definitionId,
+          input.campaign.ownerUserId
+        )
+        if (!current) throw new Error('Action-economy capability is unavailable.')
+        return current
+      }
+    }
+  }
+}
+
+/** Refuses an unavailable allowance (movement and Disarm have no override). */
+export async function prepareActionEconomy<TFacts extends CharacterTurnFacts>(
+  tx: EncounterTurnReadTransaction<TFacts>,
+  input: ActionEconomyInput<TFacts>
+) {
+  return prepareEncounterActionEconomy(economyInput(tx, input))
+}
+
+/** Reports an unavailable allowance as overridable for Assisted RESOLVE_ACTION. */
+export async function evaluateActionEconomy<TFacts extends CharacterTurnFacts>(
+  tx: EncounterTurnReadTransaction<TFacts>,
+  input: ActionEconomyInput<TFacts>
+) {
+  return evaluateEncounterActionEconomy(economyInput(tx, input))
+}
+
+/** Resolves an action from current authoritative sources, never caller mechanics. */
+async function loadActionSource(
+  tx: EncounterTurnReadTransaction,
+  input: Omit<EncounterActionSourceInput, 'system'>
+): Promise<NativeEncounterActionSource> {
+  if (input.actor.systemId !== input.gameSystemId)
+    throw new Error('Encounter action source does not match the Encounter Game System.')
+  const system =
+    input.actor.kind === 'CREATURE' ? await tx.ports.requireSystem(input.gameSystemId) : undefined
+  return resolveEncounterActionSource({ ...input, system })
+}
+
+/** Loads every current Run actor's effects before preparing relationship-bound action facts. */
+export async function loadActionRelationshipFacts(
+  tx: EncounterTurnReadTransaction,
+  input: {
+    state: EncounterRunState
+    actors: readonly EncounterRunActorState[]
+    sourceActorId: string
+    targetActorId: string
+    actionEffectId: string
+    activeEffectsByActorId?: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  }
+): Promise<readonly EncounterRelationshipD20Contributor[]> {
+  const expectedActorIds = new Set(input.state.actorIds)
+  if (
+    expectedActorIds.size !== input.state.actorIds.length ||
+    input.actors.length !== expectedActorIds.size ||
+    new Set(input.actors.map((actor) => actor.id)).size !== input.actors.length ||
+    input.actors.some(
+      (actor) => actor.encounterId !== input.state.id || !expectedActorIds.has(actor.id)
+    ) ||
+    !expectedActorIds.has(input.sourceActorId) ||
+    !expectedActorIds.has(input.targetActorId)
+  )
+    throw new Error('Encounter actor state does not match the Run.')
+  if (input.actors.some((actor) => actor.kind === 'CHARACTER' && !actor.sourceId))
+    throw new Error('Encounter Character actor source is unavailable.')
+
+  const activeEffectsByActorId = new Map(
+    await Promise.all(
+      input.actors.map(
+        async (actor) =>
+          [
+            actor.id,
+            input.activeEffectsByActorId?.get(actor.id) ??
+              (await listActiveRuleEffects(
+                tx,
+                actor.kind === 'CHARACTER'
+                  ? { kind: 'CHARACTER', characterId: actor.sourceId! }
+                  : {
+                      kind: 'ENCOUNTER_ACTOR',
+                      encounterId: input.state.id,
+                      targetActorId: actor.id
+                    }
+              ))
+          ] as const
+      )
+    )
+  )
+  return lockedRelationshipActionFacts({
+    actionEffectId: input.actionEffectId,
+    sourceActorId: input.sourceActorId,
+    targetActorId: input.targetActorId,
+    targets: { activeEffectsByActorId }
+  })
+}
+
+/** Loads current source, target, and resource facts without choosing a caller policy or publishing. */
+export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
+  tx: EncounterTurnReadTransaction<TFacts>,
+  input: {
+    state: EncounterRunState
+    campaign: Campaign
+    actor: EncounterRunActorState
+    target: EncounterRunActorState
+    actors: readonly EncounterRunActorState[]
+    actionId: string
+    wieldConflictAcceptance: EncounterWieldConflictAcceptance
+    overridable: boolean
+    movementTargets?: ReadonlyMap<string, MovementTarget<TFacts>>
+  }
+) {
+  const { state, actor, target } = input
+  const movementTargets =
+    input.movementTargets ??
+    (await loadMovementTargets(tx, {
+      state,
+      campaign: input.campaign,
+      targetActorIds: [...new Set([actor.id, target.id])],
+      includeReactionSources: true
+    }))
+  return prepareEncounterActionMechanics({
+    state,
+    actor,
+    target,
+    actors: input.actors,
+    actionId: input.actionId,
+    wieldConflictAcceptance: input.wieldConflictAcceptance,
+    overridable: input.overridable,
+    movementTargets,
+    loadSource: (sourceInput) => loadActionSource(tx, sourceInput),
+    loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
+  })
+}
+
+/** The current Disarm choices for the optional-action drawer, from stored facts. */
+export async function readDisarmSelection<TFacts extends CharacterTurnFacts>(
+  tx: EncounterTurnReadTransaction<TFacts>,
+  input: {
+    state: EncounterRunState
+    campaign: Campaign
+    actors: EncounterRunActorState[]
+    actor: EncounterRunActorState
+    target: EncounterRunActorState
+    command: GetEncounterOptionalActionChoicesInputDto
+  }
+) {
+  const { state, campaign, actor, target, command } = input
+  const definition = requireEncounterDisarmDefinition(input)
+  const prepared = await prepareActionMechanics(tx, {
+    state,
+    campaign,
+    actors: input.actors,
+    actor,
+    target,
+    actionId: command.actionId,
+    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+    overridable: false
+  })
+  const selection = readEncounterDisarmSelection({
+    actor,
+    target,
+    actionId: command.actionId,
+    definition,
+    prepared,
+    sceneContext: await readActionSceneContext(tx, state, command),
+    rejectTarget: () => rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
+  })
+  await prepareActionEconomy(tx, {
+    state,
+    campaign,
+    actor,
+    activation: { code: 'ACTION', amount: 1 },
+    target: prepared.sourceFacts
+  })
+  // The drawer labels held items from the defender's own Character facts.
+  return { ...selection, definition, targetCharacter: prepared.targetFacts.characterFacts }
+}

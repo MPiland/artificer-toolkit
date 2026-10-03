@@ -1,4 +1,5 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type {
   EncounterCommandInputDto,
   EncounterGmProjectionDto,
@@ -7,7 +8,9 @@ import type {
   PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { CampaignTabletopDecisionDrawer } from '../vtt/CampaignTabletopDecisionDrawer'
-import { getEncounterLatestEvidenceRoll } from '#app/data/campaigns/encounterActions'
+import type { LiveSessionEncounterReadReply } from '../vtt/liveSessionClient'
+import type { HeldEncounterSession } from '../vtt/useCampaignLiveSession'
+import { useLatestEvidenceRoll } from '../vtt/useLatestEvidenceRoll'
 
 export function CampaignEncounterDecision({
   canVoid,
@@ -15,6 +18,8 @@ export function CampaignEncounterDecision({
   encounter,
   onResolved,
   pending,
+  readEncounter,
+  room,
   sendCommand
 }: {
   canVoid: boolean
@@ -23,9 +28,16 @@ export function CampaignEncounterDecision({
   onResolved?: (result: EncounterCommandResultDto) => void
   /** The decision pending on `encounter`, read by the caller from the room or Convex. */
   pending: PendingEncounterRuleOccurrenceSummaryDto | null
+  readEncounter: (read: EncounterReadDto) => Promise<LiveSessionEncounterReadReply>
+  /** The room's Encounter session while it holds the Run; the evidence roll is read from it then. */
+  room: HeldEncounterSession | null
   sendCommand: (command: EncounterCommandInputDto) => Promise<EncounterCommandResultDto>
 }) {
-  const latestRoll = useQuery(getEncounterLatestEvidenceRoll(pending ? encounter.id : null))
+  const latestRoll = useLatestEvidenceRoll({
+    encounterId: pending ? encounter.id : null,
+    readEncounter,
+    room
+  })
   const resolve = useMutation({
     mutationFn: sendCommand,
     onSuccess: (result) => onResolved?.(result)
@@ -38,7 +50,7 @@ export function CampaignEncounterDecision({
       canVoid={canVoid}
       connected={connected}
       encounter={encounter}
-      latestRoll={latestRoll.data ?? null}
+      latestRoll={latestRoll}
       pending={pending}
       skipped={null}
       submitting={resolve.isPending}

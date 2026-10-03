@@ -13,6 +13,7 @@ import {
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -47,6 +48,12 @@ export interface LiveSessionConnection {
   subscribeCharacterSheet: (characterId: string | null) => void
   /** Follows the room's Encounter session (resent on every reconnect); null stops following. */
   subscribeEncounterSession: (subscription: { timeline: boolean } | null) => void
+  /**
+   * Asks the room for a turn read at its current version. Rejects with
+   * `LiveSessionReadRejectedError` when the room refuses it, and with a plain error when the
+   * socket is not ready or drops first.
+   */
+  readEncounter: (read: EncounterReadDto) => Promise<LiveSessionEncounterReadReply>
   synchronizeScene: (sceneId: string, version: number, expectedPresentationVersion: number) => void
 }
 
@@ -64,6 +71,24 @@ export type LiveSessionEncounterSessionPush = Extract<
   LiveSessionWebSocketServerMessageDto,
   { type: 'ENCOUNTER_SESSION' }
 >['session']
+
+/** The room's answer to a turn read, with the session version it was read at. */
+export type LiveSessionEncounterReadReply = Pick<
+  Extract<LiveSessionWebSocketServerMessageDto, { type: 'ENCOUNTER_READ_RESULT' }>,
+  'result' | 'version'
+>
+
+/** The room refused a turn read; `UNAVAILABLE` means it cannot answer from its own state. */
+export class LiveSessionReadRejectedError extends Error {
+  constructor(
+    message: string,
+    readonly code: LiveSessionCommandRejectionCodeDto,
+    readonly reason: DomainRejectionReasonDto | null
+  ) {
+    super(message)
+    this.name = 'LiveSessionReadRejectedError'
+  }
+}
 
 export interface LiveSessionDurableState {
   commandReady: boolean
@@ -95,6 +120,7 @@ type LiveSessionClientMessage = Extract<
     type:
       | 'AUTHENTICATE'
       | 'COMMAND'
+      | 'ENCOUNTER_READ'
       | 'RESUME'
       | 'SCENE_FOG_APPEND'
       | 'SCENE_FOG_BEGIN'
@@ -224,6 +250,10 @@ export function createLiveSessionConnection(
     string,
     { reject: (error: Error) => void; resolve: (progress: SceneFogSaveProgress) => void }
   >()
+  const pendingReads = new Map<
+    string,
+    { reject: (error: Error) => void; resolve: (reply: LiveSessionEncounterReadReply) => void }
+  >()
   let requestedScene: SceneSynchronizationMessage | null = null
   let requestedSheetCharacterId: string | null = null
   let requestedEncounterSession: { timeline: boolean } | null = null
@@ -242,6 +272,12 @@ export function createLiveSessionConnection(
   const rejectFogSteps = (error: Error) => {
     for (const step of pendingFogSteps.values()) step.reject(error)
     pendingFogSteps.clear()
+  }
+
+  // A read dies with its socket: the room answers over the socket that asked.
+  const rejectReads = (error: Error) => {
+    for (const read of pendingReads.values()) read.reject(error)
+    pendingReads.clear()
   }
 
   const stageFog = (message: SceneFogStagingMessage) =>
@@ -385,6 +421,7 @@ export function createLiveSessionConnection(
           ready = false
           commandReady = false
           emitDurableState()
+          rejectReads(new Error('Live play must authenticate again.'))
           synchronizedScene = null
           for (const pending of pendingCommands.values()) pending.lastSentSequence = null
           options.onStatus('RECONNECTING')
@@ -399,6 +436,18 @@ export function createLiveSessionConnection(
             options.onCharacterSheet?.(message)
         } else if (message.type === 'ENCOUNTER_SESSION') {
           if (requestedEncounterSession) options.onEncounterSession?.(message.session)
+        } else if (message.type === 'ENCOUNTER_READ_RESULT') {
+          pendingReads
+            .get(message.requestId)
+            ?.resolve({ result: message.result, version: message.version })
+          pendingReads.delete(message.requestId)
+        } else if (message.type === 'ENCOUNTER_READ_REJECTED') {
+          pendingReads
+            .get(message.requestId)
+            ?.reject(
+              new LiveSessionReadRejectedError(message.message, message.code, message.reason)
+            )
+          pendingReads.delete(message.requestId)
         } else if (message.type === 'STATE_SYNC') {
           sequence = message.sequence
           recipientState = message.state
@@ -503,6 +552,7 @@ export function createLiveSessionConnection(
         for (const pending of pendingCommands.values()) pending.lastSentSequence = null
         // Staged batches survive in the room; a retried upload resumes from its begin.
         rejectFogSteps(new Error('Live play disconnected during a fog change.'))
+        rejectReads(new Error('Live play disconnected during a read.'))
         if (stopped) {
           options.onStatus('DISCONNECTED')
           return
@@ -567,6 +617,7 @@ export function createLiveSessionConnection(
       }
       pendingCommands.clear()
       rejectFogSteps(new Error('Live session closed.'))
+      rejectReads(new Error('Live session closed.'))
       options.onStatus('DISCONNECTED')
     },
     sendCommand(command) {
@@ -646,6 +697,16 @@ export function createLiveSessionConnection(
       requestedEncounterSession = subscription
       if (subscription === null) send({ type: 'UNSUBSCRIBE_ENCOUNTER_SESSION' })
       else requestEncounterSession()
+    },
+    readEncounter(read) {
+      return new Promise<LiveSessionEncounterReadReply>((resolve, reject) => {
+        const requestId = crypto.randomUUID()
+        pendingReads.set(requestId, { reject, resolve })
+        if (!ready || !send({ read, requestId, type: 'ENCOUNTER_READ' })) {
+          pendingReads.delete(requestId)
+          reject(new Error('Live play is not connected.'))
+        }
+      })
     },
     synchronizeScene(sceneId, version, expectedPresentationVersion) {
       requestedScene = {

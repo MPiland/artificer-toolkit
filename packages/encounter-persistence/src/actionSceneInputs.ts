@@ -18,25 +18,28 @@ import type { EncounterReadContext } from './store.js'
 import { parseSceneLiveEntity } from './sceneLiveState.js'
 import { normalizeSceneGeometryEntity } from './sceneGeometryValues.js'
 
+/** The Scene rows an action's geometry reads; Convex and the room each read their own storage. */
+export interface EncounterActionSceneReaders {
+  readScene(sceneId: string): Promise<{
+    header: SceneLiveStateHeader
+    live: ReturnType<typeof sceneStoredLiveStateSchema.parse> | null
+  }>
+  readLiveToken(
+    sceneId: string,
+    tokenId: string
+  ): Promise<ReturnType<typeof sceneStoredLiveEntitySchema.parse> | null>
+  readDefinitionToken(
+    saveId: string,
+    tokenId: string
+  ): Promise<ReturnType<typeof sceneStoredDefinitionEntitySchema.parse> | null>
+}
+
 /** Reads exact stored geometry without rules evaluation; the caller owns commit freshness. */
 export async function readEncounterActionSceneInputs(
   ctx: EncounterReadContext,
   state: EncounterRunState,
   command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>,
-  callbacks: {
-    readScene(sceneId: string): Promise<{
-      header: SceneLiveStateHeader
-      live: ReturnType<typeof sceneStoredLiveStateSchema.parse> | null
-    }>
-    readLiveToken(
-      sceneId: string,
-      tokenId: string
-    ): Promise<ReturnType<typeof sceneStoredLiveEntitySchema.parse> | null>
-    readDefinitionToken(
-      saveId: string,
-      tokenId: string
-    ): Promise<ReturnType<typeof sceneStoredDefinitionEntitySchema.parse> | null>
-  }
+  callbacks: EncounterActionSceneReaders
 ) {
   const request = command.sceneContext
   if (!request) return null

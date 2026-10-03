@@ -50,7 +50,7 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
-import * as movementTargets from './movementTargets'
+import * as movementTargets from '../../../session-worker/src/nativeEncounterTargets'
 import {
   executeInRoom as executeRoomCommand,
   replayInRoom
@@ -482,7 +482,7 @@ describe('native Encounter turn Legendary Actions', () => {
   it('skips movement target discovery for an 11-Creature Run without fixed unscaled Feature charges', async () => {
     const base = await setup('AUTO_ROLL', 11, false, 'ENCOUNTER_START', 'ACTOR_ROLL', false)
     const started = await start(base)
-    const loadTargets = vi.spyOn(movementTargets, 'loadMovementTargets')
+    const loadTargets = vi.spyOn(movementTargets, 'prepareNativeLiveMovementTarget')
     try {
       const result = await executeInRoom(base.owner.caller, {
         command: {

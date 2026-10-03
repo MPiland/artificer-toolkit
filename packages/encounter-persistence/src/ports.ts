@@ -14,6 +14,8 @@ import type {
   EncounterBlueprintDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterOptionalCombatSnapshotDto } from '@artificer-toolkit/schema/shared/optionalCombat'
+import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import type { CharacterTurnFacts } from '@artificer-toolkit/rules-runtime/character/turnFacts'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
@@ -22,6 +24,7 @@ import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/c
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { EncounterActionSceneReaders } from './actionSceneInputs.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -109,6 +112,38 @@ export interface EncounterReadPorts {
 }
 
 /**
+ * What a turn's reads (movement targets, action choices) need beyond the Encounter reads: the
+ * Character's current Sheet facts, the reusable definitions and the Scene rows. `TFacts` is the
+ * host's own Character facts, which the readers pass through unchanged.
+ */
+export interface EncounterTurnReadPorts<
+  TFacts extends CharacterTurnFacts = CharacterTurnFacts
+> extends EncounterReadPorts {
+  /**
+   * The Character's current Sheet facts as the Campaign owner reads them, with its active rule
+   * effects; null when the Character is unavailable.
+   */
+  readCharacterTurnFacts(
+    campaign: EncounterDocument<'campaigns'>,
+    characterId: string
+  ): Promise<TFacts | null>
+  /** The definition's current published version as `ownerUserId` reads it; null when it has none. */
+  readCurrentDefinition(
+    definitionId: string,
+    ownerUserId: string
+  ): Promise<ReusableDefinitionCurrentDto | null>
+  /**
+   * The System's published platform basic-action definitions, by label then id. Refuses a
+   * catalogue beyond `MAX_BASIC_ACTION_CHOICES`.
+   */
+  listBasicActionDefinitions(
+    gameSystemId: string,
+    ownerUserId: string
+  ): Promise<ReusableDefinitionCurrentDto[]>
+  readonly sceneReaders: EncounterActionSceneReaders
+}
+
+/**
  * The writes the Encounter code makes outside the Encounter store. `CharacterSources` is the
  * caller's already-loaded Character rule sources, which a Character write may reuse.
  */
@@ -177,6 +212,13 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
 /** A read transaction over the Encounter store and the ports it reads beside it. */
 export interface EncounterReadTransaction extends EncounterReadContext {
   readonly ports: EncounterReadPorts
+}
+
+/** A read transaction that also reads what a turn's choices and movement targets need. */
+export interface EncounterTurnReadTransaction<
+  TFacts extends CharacterTurnFacts = CharacterTurnFacts
+> extends EncounterReadTransaction {
+  readonly ports: EncounterTurnReadPorts<TFacts>
 }
 
 /** Stored projection reads need only the System vocabulary and verified Character play. */

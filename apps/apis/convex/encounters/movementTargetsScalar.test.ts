@@ -4,7 +4,7 @@ import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/sh
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
-import { loadMovementTargets } from './movementTargets'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 
 describe('native movement target scalar facts', () => {
   it('uses effective Character policy facts after a persisted scalar reduction', async () => {
@@ -15,7 +15,7 @@ describe('native movement target scalar facts', () => {
       targetActorIds: [fixture.actor.id]
     }
     const before = await fixture.owner.caller.run(async (ctx) => {
-      const target = (await loadMovementTargets(ctx, input)).get(fixture.actor.id)!
+      const target = (await readMovementTargets(ctx, input)).get(fixture.actor.id)!
       const sheet = await loadCharacterSheetFacts(
         ctx,
         fixture.owner.userId,
@@ -95,7 +95,7 @@ describe('native movement target scalar facts', () => {
       })
     })
     const after = await fixture.owner.caller.run(async (ctx) => {
-      const target = (await loadMovementTargets(ctx, input)).get(fixture.actor.id)!
+      const target = (await readMovementTargets(ctx, input)).get(fixture.actor.id)!
       return {
         baseRulePolicyOutput: target.baseRulePolicyOutput,
         effectiveRulePolicyOutput: target.effectiveRulePolicyOutput,

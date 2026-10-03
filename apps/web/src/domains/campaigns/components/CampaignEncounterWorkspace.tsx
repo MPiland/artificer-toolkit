@@ -316,6 +316,8 @@ export function CampaignEncounterWorkspace({
             onUpdated(encounterGmProjectionDtoSchema.parse(result.projection))
           }
           pending={pendingDecision.data ?? null}
+          readEncounter={live.readEncounter}
+          room={live.encounterSession}
           sendCommand={live.sendEncounterCommand}
         />
       ) : null}

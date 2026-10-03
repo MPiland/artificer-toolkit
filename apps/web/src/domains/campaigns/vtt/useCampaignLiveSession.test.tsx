@@ -148,6 +148,7 @@ describe('useCampaignLiveSession', () => {
       'commandReady',
       'encounterSession',
       'error',
+      'readEncounter',
       'recipientState',
       'rejection',
       'sendCharacterSheetCommand',

@@ -48,18 +48,27 @@ export const ACCOUNT_BUCKETS = {
   }
 } as const
 
-type MessageClass = 'AUTHENTICATE' | 'COMMAND' | 'FOG_UPLOAD' | 'INVALID' | 'SYNC' | 'TRANSIENT'
+type MessageClass =
+  | 'AUTHENTICATE'
+  | 'COMMAND'
+  | 'FOG_UPLOAD'
+  | 'INVALID'
+  | 'READ'
+  | 'SYNC'
+  | 'TRANSIENT'
 
 // Clients send previews only during a gesture, each stream at most 10 Hz, and re-authenticate only
 // on connect or challenge; the TRANSIENT budget is the room's backstop. A ping also takes one PING
 // token when it fans out; faster pings are dropped without closing the socket. FOG_UPLOAD admits one
-// full 256-chunk fog layer (a begin and 32 batches of 8) in a burst.
+// full 256-chunk fog layer (a begin and 32 batches of 8) in a burst. READ admits the turn reads a
+// client makes when the session version changes (up to four per version) without starving SYNC.
 const BUDGETS: Record<MessageClass | 'PING', { capacity: number; refillPerSecond: number }> = {
   AUTHENTICATE: { capacity: 10, refillPerSecond: 0.5 },
   COMMAND: { capacity: 20, refillPerSecond: 5 },
   FOG_UPLOAD: { capacity: 40, refillPerSecond: 20 },
   INVALID: { capacity: 5, refillPerSecond: 0.5 },
   PING: { capacity: 1, refillPerSecond: 1_000 / VTT_SCENE_LIMITS.pingIntervalMs },
+  READ: { capacity: 20, refillPerSecond: 5 },
   SYNC: { capacity: 20, refillPerSecond: 2 },
   TRANSIENT: { capacity: 200, refillPerSecond: 100 }
 }
@@ -76,6 +85,7 @@ export function messageClass(message: LiveSessionWebSocketClientMessageDto | nul
   )
     return 'SYNC'
   if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') return 'FOG_UPLOAD'
+  if (message.type === 'ENCOUNTER_READ') return 'READ'
   return message.type
 }
 

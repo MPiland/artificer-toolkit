@@ -2,6 +2,7 @@ import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterSessionFrameDto,
@@ -181,6 +182,12 @@ export function useCampaignLiveSession({
     },
     [sendCommand]
   )
+  const readEncounter = useCallback((read: EncounterReadDto) => {
+    const current = connection.current
+    return current
+      ? current.readEncounter(read)
+      : Promise.reject(new Error('Live play is not connected.'))
+  }, [])
   const sendTransient = useCallback((envelope: SceneTransientEnvelopeDto) => {
     return connection.current?.sendTransient(envelope) ?? false
   }, [])
@@ -196,6 +203,7 @@ export function useCampaignLiveSession({
     commandReady,
     encounterSession: heldEncounterSession,
     error,
+    readEncounter,
     recipientState,
     rejection,
     sendCharacterSheetCommand,

@@ -16,10 +16,13 @@ import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { prepareNativeActionEconomy } from './actionEconomy'
+import { prepareActionEconomy } from '@artificer-toolkit/encounter-persistence/actionPreparationReads'
 import { consumeNativeActionEconomy } from '@artificer-toolkit/encounter-persistence/actionEconomyPersistence'
 import { readRunActor, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
-import { loadMovementTargets } from './movementTargets'
+import type { QueryCtx } from '../_generated/server'
+import { requireCampaignAuthority } from '../campaigns/authority'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
+import { encounterTurnReadTransaction } from './turnReadPorts'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
@@ -33,6 +36,16 @@ const importDefinitions = makeFunctionReference<
   SourceImportDefinitionsInput,
   SourceImportBatchResultDto
 >('content/import:importDefinitions')
+
+/** Prepares the allowance as the Campaign owner reads it. */
+async function prepareEconomy(
+  ctx: QueryCtx,
+  input: Omit<Parameters<typeof prepareActionEconomy>[1], 'campaign'> & { userId: string }
+) {
+  const { userId, ...economy } = input
+  const { campaign } = await requireCampaignAuthority(ctx, input.state.campaignId, userId)
+  return prepareActionEconomy(encounterTurnReadTransaction(ctx), { ...economy, campaign })
+}
 
 describe('native action economy', () => {
   it('consumes one real allowance, refuses a second use, and rolls back with its enclosing mutation', async () => {
@@ -76,7 +89,7 @@ describe('native action economy', () => {
           base.actor.id
         )
         const target = (
-          await loadMovementTargets(ctx, {
+          await readMovementTargets(ctx, {
             encounterId: state.id,
             expectedEncounterVersion: state.version,
             targetActorIds: [actor.id]
@@ -90,10 +103,10 @@ describe('native action economy', () => {
           activation: { code: 'ACTION', amount: 1 },
           target
         }
-        const prepared = await prepareNativeActionEconomy(ctx, input)
-        expect(await prepareNativeActionEconomy(ctx, { ...input, actor })).toEqual(prepared)
+        const prepared = await prepareEconomy(ctx, input)
+        expect(await prepareEconomy(ctx, { ...input, actor })).toEqual(prepared)
         await expect(
-          prepareNativeActionEconomy(ctx, {
+          prepareEconomy(ctx, {
             ...input,
             actor: { ...actor, label: `${actor.label} (stale)` }
           })
@@ -194,7 +207,7 @@ describe('native action economy', () => {
           state,
           source.id
         )
-        return prepareNativeActionEconomy(ctx, {
+        return prepareEconomy(ctx, {
           actor,
           state,
           userId: base.owner.userId,
@@ -318,7 +331,7 @@ describe('native action economy', () => {
           state,
           source.id
         )
-        return prepareNativeActionEconomy(ctx, {
+        return prepareEconomy(ctx, {
           actor,
           state,
           userId: base.owner.userId,

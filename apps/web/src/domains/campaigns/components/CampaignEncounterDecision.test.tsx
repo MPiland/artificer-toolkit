@@ -9,6 +9,7 @@ import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolki
 import { getFunctionName, type FunctionReference } from 'convex/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { tabletopGmEncounter } from '../vtt/CampaignTabletop.stories.fixtures'
+import type { HeldEncounterSession } from '../vtt/useCampaignLiveSession'
 
 const occurrenceId = '77777777-7777-4777-8777-777777777790'
 const pending = {
@@ -38,7 +39,18 @@ const result: EncounterCommandResultDto = {
   evidenceRoll: null
 }
 
+const heldRoom: HeldEncounterSession = {
+  held: true,
+  version: tabletopGmEncounter.version,
+  state: { encounter: tabletopGmEncounter, pending, waitingOn: null, turnMovement: [] },
+  preparedPending: [],
+  actorSides: null,
+  settlement: null,
+  timeline: null
+}
+
 const mocks = vi.hoisted(() => ({
+  readEncounter: vi.fn(),
   sendCommand: vi.fn(),
   convexQuery: vi.fn(),
   useMutation: vi.fn(),
@@ -83,6 +95,8 @@ describe('CampaignEncounterDecision', () => {
         connected
         encounter={tabletopGmEncounter}
         pending={pending}
+        readEncounter={mocks.readEncounter}
+        room={null}
         sendCommand={mocks.sendCommand}
       />
     )
@@ -115,6 +129,8 @@ describe('CampaignEncounterDecision', () => {
         connected
         encounter={tabletopGmEncounter}
         pending={null}
+        readEncounter={mocks.readEncounter}
+        room={null}
         sendCommand={mocks.sendCommand}
       />
     )
@@ -129,11 +145,43 @@ describe('CampaignEncounterDecision', () => {
         connected={false}
         encounter={tabletopGmEncounter}
         pending={pending}
+        readEncounter={mocks.readEncounter}
+        room={null}
         sendCommand={mocks.sendCommand}
       />
     )
 
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
     expect(screen.getByRole('button', { name: 'Declare actions' })).toBeDisabled()
+  })
+
+  it('reads the latest evidence roll from the held room instead of Convex', async () => {
+    mocks.readEncounter.mockResolvedValue({
+      version: heldRoom.version,
+      result: { kind: 'LATEST_EVIDENCE_ROLLS', result: [] }
+    })
+    renderWithAppProviders(
+      <CampaignEncounterDecision
+        canVoid
+        connected
+        encounter={tabletopGmEncounter}
+        pending={pending}
+        readEncounter={mocks.readEncounter}
+        room={heldRoom}
+        sendCommand={mocks.sendCommand}
+      />
+    )
+
+    await waitFor(() =>
+      expect(mocks.readEncounter).toHaveBeenCalledWith({
+        kind: 'LATEST_EVIDENCE_ROLLS',
+        input: { encounterId: tabletopGmEncounter.id }
+      })
+    )
+    expect(
+      mocks.convexQuery.mock.calls.filter(
+        ([, args]) => args?.encounterId === tabletopGmEncounter.id
+      )
+    ).toHaveLength(0)
   })
 })

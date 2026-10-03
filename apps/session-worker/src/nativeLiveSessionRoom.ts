@@ -111,6 +111,7 @@ import {
 } from './roomRateLimits.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
+import { RoomEncounterReads } from './roomEncounterReads.js'
 import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
 import {
@@ -276,6 +277,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #sheetFeed: RoomCharacterSheetFeed
   /** The held Encounter session pushed to the sockets that subscribed to it. */
   readonly #encounterFeed: RoomEncounterSessionFeed
+  /** The version-keyed turn reads a member asks the room for instead of Convex. */
+  readonly #encounterReads: RoomEncounterReads
   #postCommitQueued = false
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
@@ -381,6 +384,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     this.#sheetFeed = new RoomCharacterSheetFeed(feedDependencies)
     this.#encounterFeed = new RoomEncounterSessionFeed(feedDependencies)
+    this.#encounterReads = new RoomEncounterReads({
+      ...feedDependencies,
+      authorization: (scope) => this.#authorization.currentPlay(scope.authorityEpoch),
+      presentedSceneId: () => this.#cache?.scene?.id ?? null
+    })
     ctx.blockConcurrencyWhile(async () => {
       storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS native_room_identity (
@@ -560,6 +568,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (parsed.data.type === 'SUBSCRIBE_ENCOUNTER_SESSION') {
       this.#encounterFeed.subscribe(socket, parsed.data.timeline)
       this.#queuePostCommit()
+      return
+    }
+    if (parsed.data.type === 'ENCOUNTER_READ') {
+      // Behind the running command, so the read sees one committed version.
+      const message = parsed.data
+      const next = this.#commandChain.then(() => this.#encounterReads.answer(socket, message))
+      this.#commandChain = next
+      await next
       return
     }
     if (parsed.data.type === 'COMMAND') {
@@ -879,7 +895,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#meter.admitted(
         admitted.userId,
         [...this.#admissions].filter(
-          ([open, member]) => member.userId === admitted.userId && open.readyState === WebSocket.OPEN
+          ([open, member]) =>
+            member.userId === admitted.userId && open.readyState === WebSocket.OPEN
         ).length
       )
       const current = this.#liveAdmission(socket)

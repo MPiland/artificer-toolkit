@@ -241,8 +241,41 @@ settlement, timeline }`:
 - A command's `expectedVersion` comes from the pushed `version`; the checkpointed Convex version lags the
   room while the Run is held, so a client must not compare the two.
 
-Out of scope for the frame (still Convex reads): `actionChoices.get`, `actionChoices.optional`,
-`evidenceRolls.latest` and `sceneBindings.get`.
+#### Held turn reads
+
+The four version-keyed turn reads (`actionChoices.get`, `actionChoices.optional`,
+`evidenceRolls.latest`, `sceneBindings.get`) are not in the frame; they are answered on demand.
+`ENCOUNTER_READ { requestId, read }` carries `read`, a union over the four reads with the Convex query's
+arguments less `expectedVersion`
+([encounterRead.ts](../../packages/schema/src/api/encounterRead.ts)). The room answers at its own current
+version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result }`, or
+`ENCOUNTER_READ_REJECTED { requestId, code, reason, message }` (the rejection codes of `COMMAND_REJECTED`).
+
+- [RoomEncounterReads](../../apps/session-worker/src/roomEncounterReads.ts) runs each read on the room's
+  command chain (it sees one committed version, never a half-applied command), re-admits the socket against the
+  current authorization, then applies the same checks as the Convex query (Campaign authority, actor
+  control, visibility). A domain refusal is `DOMAIN_REJECTED` with its reason and message.
+- The readers are shared with the Convex queries
+  ([actionChoiceReads](../../packages/encounter-persistence/src/actionChoiceReads.ts),
+  [evidenceRolls](../../packages/encounter-persistence/src/evidenceRolls.ts),
+  [sceneBindingReads](../../packages/encounter-persistence/src/sceneBindingReads.ts)) over an
+  `EncounterTurnReadTransaction`: the store plus the ports a turn read needs (Character turn facts, the
+  current definition, the Basic Action definitions, the Scene readers). The room implements them over its
+  store in
+  [roomEncounterTurnReadPorts](../../apps/session-worker/src/roomEncounterTurnReadPorts.ts); the Convex
+  queries stay as thin wrappers (identity, authority, budget) for use outside live play.
+- **A read never calls Convex.** The room hands the readers `RoomInputs.heldOnly()`, a view over the same
+  held inputs whose load paths throw `RoomInputsUnheldError`. An input the room does not hold current
+  (stale Character, unknown definition, unloaded Scene) refuses the read as `UNAVAILABLE`, and the client
+  reads the Convex query instead. `version` is the Run's version; the Scene binding is read against the
+  Scene the room presents.
+- Reads count against the `READ` message class (20 then 5/s per socket), apart from `SYNC` so a burst of
+  reads cannot starve Scene synchronization.
+- The web ([useRoomEncounterRead](../../apps/web/src/domains/campaigns/vtt/useRoomEncounterRead.ts))
+  requests the reads while the `ENCOUNTER_SESSION` frame is held, asks again when the frame's `version`
+  changes, drops a reply older than the frame, and reads the Convex query on `UNAVAILABLE`, a lost
+  socket or an unheld frame. A `DOMAIN_REJECTED` or `FORBIDDEN` answer is shown as the answer instead of
+  being retried against Convex, which trails the room.
 
 **Holds.** [liveCharacterHolds](../../packages/schema/src/projections/liveCharacterHold.ts) fence each
 Character and active Run pair by Campaign and epoch. Claim and recovery establish holds, checkpoints
@@ -617,9 +650,10 @@ position and a hibernating room has received no samples.
 ## Transient previews
 
 The WebSocket protocol separates command and transient traffic. Browser messages include `AUTHENTICATE`,
-`COMMAND`, `TRANSIENT`, `RESUME`, `SYNCHRONIZE_SCENE`, the fog upload steps and the Sheet subscriptions;
-server messages include `AUTHENTICATION_REQUIRED`, `TRANSIENT_READY`, `COMMAND_COMMITTED`,
-`COMMAND_REJECTED` and `TRANSIENT` ([liveSessions.ts](../../packages/schema/src/api/liveSessions.ts)).
+`COMMAND`, `TRANSIENT`, `RESUME`, `SYNCHRONIZE_SCENE`, the fog upload steps, the Sheet and Encounter
+session subscriptions and `ENCOUNTER_READ`; server messages include `AUTHENTICATION_REQUIRED`,
+`TRANSIENT_READY`, `COMMAND_COMMITTED`, `COMMAND_REJECTED`, `TRANSIENT`, `ENCOUNTER_READ_RESULT` and
+`ENCOUNTER_READ_REJECTED` ([liveSessions.ts](../../packages/schema/src/api/liveSessions.ts)).
 
 Pings and measurement, fog-area and token-drag previews are ephemeral and never enter the journal or
 checkpoints. Fog of war is opt-in per Scene (ADR 0034): new Scenes start with fog `OFF`, so every point
@@ -711,7 +745,7 @@ unbounded Convex work:
 - **Message size:** a message over 64 KB of UTF-8 closes the socket (1008).
 - **Message budgets:** a token bucket per message class per socket; exceeding one closes the socket (1008).
   `AUTHENTICATE` 10 then 1 per 2 s; `COMMAND` 20 then 5/s; `RESUME`, `SYNCHRONIZE_SCENE` and the Sheet
-  subscriptions together 20 then 2/s; `TRANSIENT` 200 then 100/s; `SCENE_FOG_BEGIN` and `SCENE_FOG_APPEND`
+  subscriptions together 20 then 2/s; `ENCOUNTER_READ` 20 then 5/s; `TRANSIENT` 200 then 100/s; `SCENE_FOG_BEGIN` and `SCENE_FOG_APPEND`
   together 40 then 20/s (one full 256-chunk fog patch in a burst); unparseable messages 5 then 1 per 2 s.
 - **Sockets:** at most 4 per user and 64 per room. An upgrade over either cap is refused (429 or 503)
   before its one-use ticket is consumed, so a user's tabs cannot evict each other in a reconnect loop.

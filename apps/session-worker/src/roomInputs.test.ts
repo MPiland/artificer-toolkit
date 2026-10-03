@@ -20,7 +20,7 @@ import { liveSessionCheckpointSceneKeys } from '@artificer-toolkit/schema/api/li
 import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { RoomEncounterStore } from './roomEncounterStore.js'
-import { RoomInputs } from './roomInputs.js'
+import { RoomInputs, RoomInputsUnheldError } from './roomInputs.js'
 import {
   ROOM_SCENE_DEFINITION_ENTITY,
   ROOM_SCENE_DEFINITION_HEADER
@@ -681,7 +681,6 @@ const count = (
   reads: readonly { scope: LiveRoomInputsScope }[] | readonly LiveRoomInputsScope[],
   kind: LiveRoomInputsScope['kind']
 ) => kinds(reads).filter((read) => read === kind).length
-
 
 describe('room inputs (ADR 0035 S2)', () => {
   describe('raw Scene hydration', () => {
@@ -1393,9 +1392,9 @@ describe('room inputs (ADR 0035 S2)', () => {
           .map((row) => JSON.parse(row.stateJson) as { frozenState: unknown })
           .every((actor) => actor.frozenState === null)
       ).toBe(true)
-      expect(
-        await convex.inputs.deletedCharacterIds([SECOND_CHARACTER, THIRD_CHARACTER])
-      ).toEqual(new Set([THIRD_CHARACTER]))
+      expect(await convex.inputs.deletedCharacterIds([SECOND_CHARACTER, THIRD_CHARACTER])).toEqual(
+        new Set([THIRD_CHARACTER])
+      )
     })
 
     it('refuses a demand read of a Character that left the Campaign', async () => {
@@ -1812,6 +1811,21 @@ describe('room inputs (ADR 0035 S2)', () => {
       await convex.inputs.definition(uuid(0x600), null)
       await convex.inputs.play(null)
       expect(kinds(convex.reads)).toEqual(['DEFINITIONS', 'CAMPAIGN_PLAY'])
+    })
+
+    it('serves what is held through a held-only view and refuses what would read Convex', async () => {
+      const convex = await hydrated()
+      const held = convex.inputs.heldOnly()
+      expect((await held.play(revisions(1))).campaign.id).toBe(CAMPAIGN)
+      expect((await held.character(FIRST_CHARACTER, revisions(1, FIRST_CHARACTER))).inputs).toEqual(
+        characterInputs(FIRST_CHARACTER)
+      )
+
+      convex.state.label = 2
+      await expect(held.play(revisions(2))).rejects.toBeInstanceOf(RoomInputsUnheldError)
+      await expect(held.definition(uuid(0x600), null)).rejects.toBeInstanceOf(RoomInputsUnheldError)
+      expect(convex.reads).toEqual([])
+      expect(convex.loads).toEqual([])
     })
 
     it('refreshes a Character’s record in one room command, once, keeping its room-owned effects', async () => {

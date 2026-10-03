@@ -26,14 +26,14 @@ import {
 } from '@artificer-toolkit/encounter-persistence/sceneFogDocuments'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneFogLayer } from '@artificer-toolkit/shared/vtt'
-import type { RoomTransaction } from './roomEncounterStore.js'
+import type { RoomRecordReader, RoomTransaction } from './roomEncounterStore.js'
 import { readRoomSceneRow } from './roomSceneRecords.js'
 import {
   ROOM_SCENE_DEFINITION_HEADER,
   ROOM_SCENE_DEFINITION_ENTITY
 } from './roomSceneDefinition.js'
 
-export function readRoomScene(transaction: RoomTransaction, sceneId: string) {
+export function readRoomScene(transaction: RoomRecordReader, sceneId: string) {
   const definition = transaction.record(ROOM_SCENE_DEFINITION_HEADER, sceneId)
   const source = transaction.record('SCENE_CHECKPOINT_SOURCE', sceneId)
   if (!definition || !source) throw new Error('Room Scene definition inputs are unavailable.')

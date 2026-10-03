@@ -229,6 +229,66 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('answers each Encounter read by its request id and fails the pending ones when the socket drops', async () => {
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket-1' }),
+      onError: () => undefined,
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    const read = {
+      input: { encounterId: tabletopGmEncounter.id },
+      kind: 'LATEST_EVIDENCE_ROLLS'
+    } as const
+    await expect(connection.readEncounter(read)).rejects.toThrow('Live play is not connected.')
+
+    socket.open()
+    await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
+    socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+    const answered = connection.readEncounter(read)
+    const refused = connection.readEncounter(read)
+    const requests = socket.sent
+      .slice(1)
+      .map((message) => liveSessionWebSocketClientMessageDtoSchema.parse(JSON.parse(message)))
+    const [first, second] = requests
+    if (first?.type !== 'ENCOUNTER_READ' || second?.type !== 'ENCOUNTER_READ')
+      throw new Error('Expected two Encounter reads.')
+    expect(first.read).toEqual(read)
+    expect(first.requestId).not.toBe(second.requestId)
+
+    socket.receive({
+      requestId: first.requestId,
+      result: { kind: 'LATEST_EVIDENCE_ROLLS', result: [] },
+      type: 'ENCOUNTER_READ_RESULT',
+      version: 9
+    })
+    await expect(answered).resolves.toEqual({
+      result: { kind: 'LATEST_EVIDENCE_ROLLS', result: [] },
+      version: 9
+    })
+    socket.receive({
+      code: 'DOMAIN_REJECTED',
+      message: 'Not your turn.',
+      reason: 'NOT_CURRENT_ACTOR',
+      requestId: second.requestId,
+      type: 'ENCOUNTER_READ_REJECTED'
+    })
+    await expect(refused).rejects.toMatchObject({
+      code: 'DOMAIN_REJECTED',
+      message: 'Not your turn.'
+    })
+
+    const dropped = connection.readEncounter(read)
+    socket.close()
+    await expect(dropped).rejects.toThrow()
+    connection.close()
+  })
+
   it('sends each preview stream at most 10 times a second and pings at most twice', async () => {
     let now = 1_000
     vi.spyOn(performance, 'now').mockImplementation(() => now)

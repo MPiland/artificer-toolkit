@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { loadMovementTargets } from './movementTargets'
+import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 
 describe('movement target projection', () => {
@@ -8,7 +8,7 @@ describe('movement target projection', () => {
     const fixture = await setupCharacterRun()
     await fixture.owner.caller.run(async (ctx) => {
       const target = (
-        await loadMovementTargets(ctx, {
+        await readMovementTargets(ctx, {
           encounterId: fixture.run.id,
           expectedEncounterVersion: fixture.run.version,
           targetActorIds: [fixture.actor.id],

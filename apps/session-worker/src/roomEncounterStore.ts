@@ -64,13 +64,17 @@ export interface RoomDocument {
   fields: Record<string, unknown>
 }
 
-/** What a command's work may do beyond the store: restore Convex documents and change records. */
-export interface RoomTransaction {
-  /** Inserts a document with its Convex identity and creation time. */
-  restoreDocument(document: RoomDocument): void
-  /** The record as this command sees it, staged changes included. */
+/** The room's records as a reader sees them: a transaction's staged view, or the committed store. */
+export interface RoomRecordReader {
+  /** The record as this reader sees it, staged changes included. */
   record(kind: string, key: string): RoomRecord | null
   records(kind: string): RoomRecord[]
+}
+
+/** What a command's work may do beyond the store: restore Convex documents and change records. */
+export interface RoomTransaction extends RoomRecordReader {
+  /** Inserts a document with its Convex identity and creation time. */
+  restoreDocument(document: RoomDocument): void
   setRecord(record: RoomRecord): void
   deleteRecord(kind: string, key: string): void
 }
