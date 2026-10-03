@@ -171,7 +171,7 @@ and reset both groups at the next pending expiry and on resume, since clock pass
 invalidate a Convex subscription. The timestamp changes presentation only, never authorization or
 mutation eligibility. Empty pages can retain continuation after eligibility filtering. Existing DTO
 privacy/masking and current symmetric blocks apply in both directions. Native Social browser binding
-is still pending; see [inbox persistence](persistence.md#native-social-admission-inboxes--local-implementation).
+is still pending; see [inbox persistence](persistence.md#social-admission).
 
 The System list is the first TanStack Query/Convex loader tracer. The request-local router owns
 both clients, and `@convex-dev/react-query` supplies query hashing, consistent public SSR reads,
@@ -215,7 +215,7 @@ from field validators. It returns the unchanged `RollRecordDto` and writes only 
 history; public TABLE generation remains a separate Campaign roll endpoint. Personal `rolls:execute`
 does not accept Campaign scope or GM authority. Scoped rest preview/completion continue to use their
 existing shared contracts and actor-owned evidence. Native Campaign browser bindings remain pending.
-See [Campaign roll persistence](persistence.md#native-campaign-rolls--partial-local-implementation).
+See [Campaign roll persistence](persistence.md#campaign-rolls).
 
 ### Native Campaign audit transport
 
@@ -232,7 +232,7 @@ GM supplemental-state writes use the existing shared save/delete inputs and retu
 DTOs or `{ ok: true }`. Current Campaign owner/assignment authority and record versions are checked
 inside the mutation, with state and audit writes in that same transaction. Native subscriptions own
 delivery; no SQL, Broadcast or Durable Object invalidation is added. Browser Campaign binding remains
-pending. [Persistence and visibility](persistence.md#native-gm-character-state-and-audit--partial-local-implementation)
+pending. [Persistence and visibility](persistence.md#gm-character-state-and-audit)
 own the audit read projections and bounded scan details.
 
 ### Native Campaign settings and content transport

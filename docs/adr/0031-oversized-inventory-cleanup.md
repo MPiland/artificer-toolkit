@@ -48,7 +48,7 @@ implemented and accepted with P12, P13, P10, P09 and F12. The Phase 8.2 75-case 
 scenarios, proof tiers and performance thresholds remain unchanged. Final-source replay belongs to
 the R08 lifecycle.
 
-The [persistence guide](../architecture/persistence.md#oversized-inventory-cleanup--approved-2026-09-18)
+The [persistence guide](../architecture/persistence.md#oversized-inventory-cleanup)
 owns lifecycle invariants. The implementation is centered in
 [`vehicleCleanup.ts`](../../apps/apis/convex/campaigns/vehicleCleanup.ts),
 [`inventoryCleanup.ts`](../../apps/apis/convex/campaigns/inventoryCleanup.ts) and

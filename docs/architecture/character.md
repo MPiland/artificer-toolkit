@@ -360,12 +360,12 @@ validates only newly selected Spell documents, without rebuilding the source cat
 rule evaluation remain fresh; the internal context is bound to the Character, owner and System and is
 never persisted or returned by public APIs. Commands requiring sources outside the loaded set load
 sources again.
-See [native GM state and audit](persistence.md#native-gm-character-state-and-audit--partial-local-implementation).
+See [native GM state and audit](persistence.md#gm-character-state-and-audit).
 Private Character roll generation uses the same explicit assignment authority and current Sheet
 source resolver, rejecting archived Campaigns. It writes only the authenticated caller's roll history,
 without borrowing the player's history or widening personal endpoints. Campaign rest hit-die evidence
 must stay GM-visible: the caller's TABLE or To GM roll, or the GM's own Private roll; see the
-[Campaign roll boundary](persistence.md#native-campaign-rolls--partial-local-implementation). The existing rest transaction owns
+[Campaign roll boundary](persistence.md#campaign-rolls). The existing rest transaction owns
 evidence consumption, Character state/version and receipt; exact replay retains its authorization checks.
 Full cleanup/reconciliation, clock recovery and browser Campaign wiring remain unfinished; these endpoints and
 focused local checks do not constitute acceptance.
@@ -441,7 +441,7 @@ revision. Measured (convex-test, 2026-09-28, `draftSaveBudget.test.ts`): a level
 with 18 Spells, 15 inventory items and a long backstory (a 5.7 KB payload) reads 1.0 KB (the
 caller's profile, 0.4 KB, and the draft head, 0.6 KB) and writes 6.8 KB (the payload document and
 the head, replaced in place): 7.8 KB against the 32 KB budget. The same draft in edit mode also
-reads its 6.4 KB active row: 7.5 KB read and 6.9 KB written, 14.4 KB. See [persistence](persistence.md#character-draft-payloads-adr-0036-s8--local-implementation).
+reads its 6.4 KB active row: 7.5 KB read and 6.9 KB written, 14.4 KB. See [persistence](persistence.md#character-draft-payloads-adr-0036-s8).
 
 #### Server Builder context
 
@@ -554,7 +554,7 @@ against it, as commit does with its stored active document.
   evicts the hashes it no longer names, within the parts it manages (`retain(keep, parts)`), so the
   Builder's `index` and `documents` eviction never drops the authored-content lists' `list` objects
   and the reverse. The Builder never reads the `list` part
-  ([persistence](persistence.md#authored-content-list-snapshots-adr-0036-s10--local-implementation)).
+  ([persistence](persistence.md#authored-content-list-snapshots-adr-0036-s11)).
   The content origin is the session Worker's HTTP origin
   (`VITE_LIVE_SESSION_WEBSOCKET_URL`), also allowed in `connect-src`.
 - **States.** Until the first evaluation the Builder shows only its content state; afterwards it
@@ -1102,7 +1102,7 @@ TABLE or, for a player's "To GM" roll, the player-owner DIRECT conversation. Sco
 the caller's history and never settles a Campaign rest; GM private rolls, with or without a
 Character, use `campaigns/rolls:executePrivate` and can be revealed to the TABLE with `reveal` (`FULL` or `NOTICE`). Character-bound history applies the current Character Campaign's
 text presentation for both GM and player snapshots, without granting current Character access.
-The personal endpoint remains owner-only. The [Campaign roll boundary](persistence.md#native-campaign-rolls--partial-local-implementation)
+The personal endpoint remains owner-only. The [Campaign roll boundary](persistence.md#campaign-rolls)
 records visibility, replay and the remaining browser/Encounter integration. Native history never
 bridges old SQL records.
 

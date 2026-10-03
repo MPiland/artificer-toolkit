@@ -84,7 +84,7 @@ Local correctness uses `MEDIA_STORAGE_MODE=local`, loopback `CONVEX_SITE_URL` an
 ### Content snapshot delivery (ADR 0036 S3) — local implementation
 
 Published content snapshots are not media: they are immutable objects in their own private bucket,
-built by Convex ([persistence](persistence.md#content-snapshot-heads-and-objects-adr-0036-s2--local-implementation))
+built by Convex ([persistence](persistence.md#content-snapshot-heads-and-objects-adr-0036-s2))
 and served by the session Worker, the one exception to ADR 0028's "no Worker proxy" rule.
 
 - **Route.** `GET /content/{key}` (`apps/session-worker/src/contentSnapshots.ts`), where `{key}` is a
@@ -119,7 +119,7 @@ The authored-content list pages (ADR 0036 S11) fetch the `list` part of each vis
 this route, with the same matrix: PLATFORM objects without a token, the caller's own Homebrew with
 the content token (`useContentSnapshotToken`). Sign-out drops the token and deletes the snapshot
 Cache Storage (`clearPrivateContentSnapshots`); see
-[persistence](persistence.md#authored-content-list-snapshots-adr-0036-s10--local-implementation).
+[persistence](persistence.md#authored-content-list-snapshots-adr-0036-s11).
 
 ## Historical implementation record
 

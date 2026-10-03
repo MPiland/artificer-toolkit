@@ -44,7 +44,7 @@ thresholds, proof tiers or external promotion authorization. Native dependency r
 removal, retained shared history, rollback and privacy proofs are implemented, and F12 is accepted.
 The final-source release lifecycle remains R08 work.
 
-The [persistence guide](../architecture/persistence.md#owner-deletion-cannot-be-vetoed-by-another-user--approved-2026-09-18)
+The [persistence guide](../architecture/persistence.md#account-deletion)
 owns lifecycle invariants. The implementation is centered in
 [`accountDeletion.ts`](../../apps/apis/convex/accountDeletion.ts),
 [`accountDeparture.helper.ts`](../../apps/apis/convex/campaigns/accountDeparture.helper.ts) and

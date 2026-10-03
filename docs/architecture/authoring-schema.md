@@ -415,7 +415,7 @@ owner catalogue fails with an explicit error until its facets are materialized.
 
 The eight authored-content list pages no longer call Convex for rows, search or summary. They read
 the ADR 0036 `list` snapshot parts and search and filter in the browser
-([persistence](persistence.md#authored-content-list-snapshots-adr-0036-s10--local-implementation)),
+([persistence](persistence.md#authored-content-list-snapshots-adr-0036-s11)),
 so a page view reads 0 Convex documents beyond the catalogue manifest. `content/catalogue:list`,
 `search` and `summary` were deleted; before that, a Class page read about 0.9 MB, a Spell page
 0.48 MB and the Spell summary 1.5 MB (37 MB before the per-query read memo).

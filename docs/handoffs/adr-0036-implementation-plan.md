@@ -64,7 +64,7 @@
 
 ## Heads, build and cleanup (S2, current)
 
-[Persistence](../architecture/persistence.md#content-snapshot-heads-and-objects-adr-0036-s2--local-implementation) describes the protocol. Where S2 differs from the design summary above:
+[Persistence](../architecture/persistence.md#content-snapshot-heads-and-objects-adr-0036-s2) describes the protocol. Where S2 differs from the design summary above:
 
 - **Scopes.** Every content source, the SRD's PLATFORM source included, is a `SOURCE` scope, because Campaign rules catalogues select PLATFORM sources. Authored DTO bodies carry no source id; format 2 pins retain the actual content-source identity, including in Campaign shares. No `SYSTEM` head is built; its future format is outside this completion ([D67](phase-08-2-decisions.md#decisions-to-review)).
 - **No new share index.** Marking finds a root's Campaigns through the existing `campaignContentShares.by_subjectKind_subjectId_campaignId` index; a `by_subjectId` index would duplicate it.
@@ -86,7 +86,7 @@
 
 ## Manifest (S4, current)
 
-[Persistence](../architecture/persistence.md#content-snapshot-manifest-adr-0036-s4--local-implementation) describes it. `contentSnapshots/manifest:manifest({systemId, characterId?})` calls `readCharacterSources`; without a Character it calls `readSystemCharacterSources`, the non-Campaign branch extracted from it. It returns each source's kind and head, and the Campaign's id, `contentMaturity` and head. The contract is in `packages/schema/src/api/contentSnapshots.ts`.
+[Persistence](../architecture/persistence.md#content-snapshot-manifest-adr-0036-s4) describes it. `contentSnapshots/manifest:manifest({systemId, characterId?})` calls `readCharacterSources`; without a Character it calls `readSystemCharacterSources`, the non-Campaign branch extracted from it. It returns each source's kind and head, and the Campaign's id, `contentMaturity` and head. The contract is in `packages/schema/src/api/contentSnapshots.ts`.
 
 ## Snapshot Builder evaluation (S5, current)
 
@@ -145,7 +145,7 @@
 
 ## Autosave (S8, current)
 
-[Character](../architecture/character.md#draft-autosave-adr-0036-s8--local-implementation) describes the flow and [persistence](../architecture/persistence.md#character-draft-payloads-adr-0036-s8--local-implementation) the storage. Where S8 differs from the design summary:
+[Character](../architecture/character.md#draft-autosave-adr-0036-s8--local-implementation) describes the flow and [persistence](../architecture/persistence.md#character-draft-payloads-adr-0036-s8) the storage. Where S8 differs from the design summary:
 
 - **Debounce.** "After 2 s idle, at most every 10 s" is read as both limits: a save waits for 2 s without edits and for 10 s since the previous save began, so a steadily edited draft saves about six times a minute at most. Continuous typing without a 2 s pause saves at the next pause, step change, page hide or "Save Draft". The alternative (a 10 s maximum wait during continuous edits) would save more often.
 - **Retry.** A failed save retries the newest values after 2 s, doubling to 30 s, with no attempt limit. A draft replaced elsewhere (finalized, discarded or reopened) is rejected with the typed `DRAFT_REPLACED` error; the autosave stops, the header says "Opened elsewhere" and a notification asks the user to reload.
@@ -164,13 +164,13 @@
 
 ## Authored-content lists (S11, current)
 
-Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](../architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11--local-implementation); this section records what the slice removed and what it left.
+Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](../architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11); this section records what the slice removed and what it left.
 
 - **Reads per view.** Before: about 0.9 MB for a Class page, 0.48 MB for a Spell page and 1.5 MB for the Spell summary, each repeated on every filter, page and subscription change. After: 0 Convex documents beyond the manifest subscription (`content/catalogueReadBudget.test.ts` bounds the manifest and `counts`, 64 KiB each).
 - **Removed:** `content/catalogue:list`, `search` and `summary`, their schemas' page and total counters, the ranked-search UI, the paging regions and 48-row pagination on the list pages, and the browse and search tests that only exercised them. Publication and development tests read through `readVisibleCatalogue`.
 - **Added:** the `list` part, `contentSnapshots/manifest:catalogue`, `useContentCatalogue`, the `updating` state, and the CLI-only `content/development:listOwnedFixtureSubjects` for the development drivers.
 - **Deviations from the ADR:** the Spell School label is denormalized into the list entry (remove when D67's `SYSTEM` scope lands); search is a local substring match, not the ranked Convex index.
-- **Local data:** heads now require the `list` part. `contentSnapshots/migrations:rebuild` rebuilt the local SRD head on 2026-09-29 (8 kinds, each with `list`); see [persistence.md](../architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11--local-implementation).
+- **Local data:** heads now require the `list` part. `contentSnapshots/migrations:rebuild` rebuilt the local SRD head on 2026-09-29 (8 kinds, each with `list`); see [persistence.md](../architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11).
 - **Removed proof:** the live-backend Playwright four-page Equipment search proof went with paging.
 - **Follow-up:** delete the orphaned projection only the retired endpoints read (`catalogueMetadata.ts`, `catalogueFamilies.ts`, `authoredCatalogueOwnerCounts`, the `by_*_name_id` and `search_catalogue` indexes, `catalogueSearchBackfill.ts`, `spellClasses`). `counts` stays for the development drivers and publication tests until they read the snapshots.
 

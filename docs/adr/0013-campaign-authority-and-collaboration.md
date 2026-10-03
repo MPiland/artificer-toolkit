@@ -40,4 +40,4 @@ implementation now stores validated raw ancestry and Spell dependencies on exist
 and captures the last current version before authority disappears. Reconciliation preserves those
 instances and their contents while removing new-acquisition intent. Incomplete or corrupt retention
 rejects atomically; it does not restore source access. Complete lifecycle proof remains required. The current and target behavior are tracked in
-[the persistence guide](../architecture/persistence.md#native-member-departure--partial-local-implementation).
+[the persistence guide](../architecture/persistence.md#assignment-departure-and-ownership).

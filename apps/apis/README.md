@@ -94,7 +94,7 @@ Native `encounters/commands:execute` is internal; browsers reach it only through
 result DTO. Its current local slice implements GM reminder upsert/removal, with current authority,
 exact Run versions and atomic state/projection/receipt writes. Matching retries return the original
 stored result. Other commands, player reads and browser wiring remain unfinished; see
-[native Run reminders](../../docs/architecture/persistence.md#native-run-commands--partial-local-implementation).
+[native Run reminders](../../docs/architecture/persistence.md#encounter-run-storage).
 
 Shared System document reads live in `convex/content/systemDocuments.ts`; import them there,
 not from the public `systems.ts` query module. This keeps authoring source reads independent
@@ -129,7 +129,7 @@ discovery is complete or fails at the existing 500-definition bound. The web Cam
 table-settings panels use these reactive native reads and writes; existing Encounter snapshots are not
 rewritten. Member mutation, reconciliation, copy/delete, other browser surfaces and complete account
 deletion remain pending under their owning cases; see
-[native Campaign persistence](../../docs/architecture/persistence.md#native-campaign-creation-and-reads--local-implementation).
+[native Campaign persistence](../../docs/architecture/persistence.md#campaign-records).
 
 `campaigns/contentShares:share` records an authenticated active member's currently Active owned
 homebrew root after validating source ownership and published-document integrity. Repeated shares
@@ -155,7 +155,7 @@ repairs personal, assigned and create-only Character state, removes exact Campai
 shared Vehicle instances and advances each affected Campaign once in the same root-deletion transaction.
 Archived Campaign and retained LEFT-author cleanup is lifecycle-only authority; existing public deletion
 guards remain fail-closed. See
-[native content sharing](../../docs/architecture/persistence.md#native-campaign-content-sharing--local-implementation).
+[native content sharing](../../docs/architecture/persistence.md#campaign-content-sharing).
 
 `campaigns/partyInventory:items` and `currencies` provide paginated member reads of native party
 custody. `campaigns/partyInventoryCommands:mutate` applies owner-only item CRUD and System currency
@@ -169,7 +169,7 @@ Campaign-system reference keeps custom and existing System balances distinct eve
 foreign Campaign definitions cannot shadow System currency. Native Character currency options remain
 System-only. Character conversion, Character/Vehicle transfers, placement, remaining lifecycle cleanup, generated client bindings and web
 integration remain pending. Equipment held by party custody cannot be deleted before that cleanup.
-See [native party inventory](../../docs/architecture/persistence.md#native-party-inventory--partial-local-implementation).
+See [native party inventory](../../docs/architecture/persistence.md#party-inventory-and-currency).
 
 `campaigns/vehicles:list/create/update/remove` ports independent Campaign Vehicle metadata: bounded
 member pages, owner-only active writes, current same-System official/shared source checks and expected
@@ -184,7 +184,7 @@ decision; empty removal cleans only its own inventory-owner row. Unshare and own
 provide source-loss evacuation. Vehicle inventory and currency transfers, member source-loss producers
 and web bindings remain pending; no inventory writer
 may be enabled before its full custody lifecycle exists. See
-[native Campaign Vehicle instances](../../docs/architecture/persistence.md#native-campaign-vehicle-instances--partial-local-implementation).
+[native Campaign Vehicle instances](../../docs/architecture/persistence.md#campaign-vehicles).
 
 `campaigns/gmReads:adjustments` and `conditions` read validated Campaign/Character state for the
 current owner or the Character's current assigned player. Owners see all records; players receive
@@ -202,14 +202,14 @@ adjustment changes validate current Sheet evaluation before committing. `campaig
 the existing UUID cursor and visibility projections with bounded indexed reads. Its native payload is
 `payloadJson`; the shared `campaignEventTransport` decoder restores the unchanged domain event DTO.
 Migration, non-GM event producers, scoped rolls and browser binding remain pending; see
-[native GM state](../../docs/architecture/persistence.md#native-gm-character-state-and-audit--partial-local-implementation).
+[native GM state](../../docs/architecture/persistence.md#gm-character-state-and-audit).
 
 `campaigns/announcements:create` commits immutable announcements and safe notification intents in
 one owner-authorized transaction, with command replay and current TABLE/PARTY recipient checks.
 `list` uses permission-scoped pagination; `get` rechecks current destination access. PARTY remains
 player-only, including page metadata. The web uses the native list/get/create seam. Campaign deletion
 cleanup remains with Campaign lifecycle; see
-[native announcements](../../docs/architecture/persistence.md#native-announcements--local-implementation).
+[native announcements](../../docs/architecture/persistence.md#announcements).
 
 `campaigns/conversations:open` establishes TABLE/PARTY/DIRECT room membership in a mutation; `list`
 and `campaigns/chat:list` are reactive reads. `chat:send`, `edit`, `unsend` and `conversations:markRead`
@@ -217,7 +217,7 @@ use current room authority, access epochs, canonical UUIDs and retained message-
 Pages and unread counts read compact entry headers through the room's time index, one page at a
 time; history is kept in full and paged. Text and public rolls share the rolling send policy; edits/unsends
 remain text-only. Admission/deletion lifecycle and native web wiring remain pending;
-see [native conversations](../../docs/architecture/persistence.md#native-conversations-and-text-chat--partial-local-implementation).
+see [native conversations](../../docs/architecture/persistence.md#conversations-and-chat).
 
 `campaigns/rolls:execute` generates authoritative evidence for a player's own assigned Character
 or a GM-scoped assigned Character, using current Sheet sources and current membership before replay.
@@ -247,7 +247,7 @@ evidence must be GM-visible, so it settles from the caller's TABLE or To GM chat
 The shared native evaluator/history/retention helpers replace no privacy boundary; personal `rolls`
 remains owner-only. Campaign browser rollers use these native endpoints; Encounter integration and
 remaining acceptance stay with their owning cases. See
-[native Campaign rolls](../../docs/architecture/persistence.md#native-campaign-rolls--partial-local-implementation).
+[native Campaign rolls](../../docs/architecture/persistence.md#campaign-rolls).
 
 `campaigns/notebooks:list` pages owner-visible notes or the player-only SHARED index range, preserving
 the existing sort-order/UUID ordering with no total note cap. `create`, `update` and `remove` require
@@ -256,7 +256,7 @@ notes retain original text, while shared STANDARD notes are masked for every vie
 DTOs omit internal attribution and storage fields. Notebook removal atomically deletes its Session
 reference pins across all Sessions, preserving the former SQL cascade. Native browser editors and
 pickers use explicit page continuation. Campaign copy/deletion remain unfinished; see
-[native notebooks](../../docs/architecture/persistence.md#native-campaign-notebooks--partial-local-implementation).
+[native notebooks](../../docs/architecture/persistence.md#campaign-notebooks).
 
 `campaigns/sessions:list`, `get`, `create`, and `update` preserve numbered Session scheduling and
 versioned metadata. Creation seeds assigned-Character attendance in the same mutation. Native
@@ -275,7 +275,7 @@ commands initialize/configure/start/pause/advance/reconcile/rewind/reset preserv
 correction reasons and a monotonic recovery watermark. Clock/segment changes, any resource recovery,
 Character history and TABLE audit commit atomically with the Campaign-wide receipt shared with Session
 finish. Complete managed concurrency/control and cleanup acceptance remain pending; see
-[native Sessions](../../docs/architecture/persistence.md#native-session-scheduling-and-attendance--partial-local-implementation).
+[native Sessions](../../docs/architecture/persistence.md#sessions).
 
 Native `social/profiles:getEligibility`, `initialize` and `updatePreference` operate only on the
 authenticated account's private Social profile. Initialization is idempotent; preference changes
@@ -287,7 +287,7 @@ Inboxes use separate PENDING/HISTORY cursor groups; invitation pagination fixes 
 expiry horizon until the client refreshes both groups. Shared reads enforce current symmetric blocks
 and maturity masking. Discovery/search, blocks, audited moderation and the corresponding web bindings
 also have local implementation proof. Full native backend/browser lifecycle acceptance remains pending. See
-[inbox contracts](../../docs/architecture/persistence.md#native-social-admission-inboxes--local-implementation).
+[inbox contracts](../../docs/architecture/persistence.md#social-admission).
 
 Current: `convex/lib/rateLimits.ts` owns every rate limit through the `@convex-dev/rate-limiter`
 component (0.4.0). Each limit is keyed only by the authenticated user ID and is consumed inside the
@@ -301,7 +301,7 @@ authorized mutation before any write, so a rejection rolls back the whole transa
 
 Account deletion (`lib/authTriggers.helper.ts`) resets every user-keyed counter. The component
 exposes no client mutation. See
-[native Social rate limits](../../docs/architecture/persistence.md#native-social-rate-limits--local-implementation).
+[native Social rate limits](../../docs/architecture/persistence.md#social-rate-limits).
 
 Internal `social/retention` exposes bounded preview/apply pages and scheduled report-audit cleanup.
 The root `yarn social:retention:convex` command selects an explicit deployment and fixed cutoff,
@@ -395,7 +395,7 @@ passes its server-derived cookie session token and strict command to private `ac
 That mutation rechecks current session, user, email and password before the installed SDK deletes
 credentials and sessions with app cleanup and deferred scheduling in one native transaction.
 The HTTP handler expires session and Convex JWT cookies after commit. See the
-[native account deletion transaction](../../docs/architecture/persistence.md#native-account-deletion-transaction--accepted-local-implementation).
+[native account deletion transaction](../../docs/architecture/persistence.md#account-deletion).
 D71 private-payload purge has focused local native proof; final integrated native/browser acceptance
 and the complete local lifecycle remain pending.
 Native account password changes use `POST /api/auth/account/password` with the existing strict
@@ -1163,7 +1163,7 @@ This avatar slice does not accept all of `F14`; other profile lifecycles remain 
 ### Historical tRPC transport record
 
 The authored-domain list pages read `list` content snapshot parts in the browser (ADR 0036 S11,
-[persistence.md](../../docs/architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11--local-implementation)),
+[persistence.md](../../docs/architecture/persistence.md#authored-content-list-snapshots-adr-0036-s11)),
 so `content/catalogue:list`, `search` and `summary` no longer exist. Convex serves the
 `contentSnapshots/manifest:catalogue` subscription; `content/catalogue.counts` remains exact-System
 for the development drivers and publication tests. The catalogue projection described below is

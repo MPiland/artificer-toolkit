@@ -345,7 +345,7 @@ component from its atomic mutation. Provider IDs stay private, and account delet
 schedules bounded intent cleanup.
 Native Social/Campaign producers and invitation expiry are connected. Source predicates and delivery
 transactions have focused local coverage; complete delivery acceptance is tracked in P18.
-See [persistence](../architecture/persistence.md#native-notification-delivery--local-implementation).
+See [persistence](../architecture/persistence.md#notification-delivery).
 
 ### Cutover consequences
 
@@ -485,7 +485,7 @@ replay/capture artifacts may retain validated, checksummed JSON.
 
 The structure and play clocks, UUIDs, current-source semantics, authorization, privacy, atomic writes,
 replay and cleanup remain load-bearing contracts. Database-schema evaluation uses focused shared
-validators without importing the full mechanics graph. See the [persistence target](../architecture/persistence.md#character-operational-records--approved-completion-target).
+validators without importing the full mechanics graph. See the [persistence target](../architecture/persistence.md#character-operational-records).
 Typed head, Build, play and owned collection storage is implemented locally. The head retains complete
 structure checksums to detect missing or altered collection rows. The Build record also carries
 checksummed counts for each owned collection, so a selected query detects missing tail or all rows
