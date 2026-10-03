@@ -18,7 +18,7 @@ import {
 } from '../encounterInitiativeStaging.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { DND5E_INITIATIVE_FACT_KEYS } from '../systems/dnd5e/initiativeFactAdapter.js'
-import { ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
+import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 
 /** Canonical ascending actor identities; A < B < C. */
 export const ACTOR_A = '00000000-0000-4000-8000-0000000000a1'

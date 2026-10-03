@@ -5,7 +5,7 @@ import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPrep
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
-import { creatureFeature, srdCreatureActor, testUuid } from './dnd5eSrdEncounter.js'
+import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureEncounter,
   settleCreatureAction,

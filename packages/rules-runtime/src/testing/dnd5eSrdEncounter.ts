@@ -18,7 +18,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   SRD_CONTENT_SOURCE,
-  SRD_REUSABLE_DEFINITIONS
+  SRD_REUSABLE_DEFINITIONS,
+  type SrdReusableDefinitionSeed
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
@@ -80,20 +81,25 @@ function srdLoadoutEquipmentRecords(creature: CreatureAuthored) {
   )
 }
 
+/** A reusable definition served as a current version-1 SRD record. */
+export function currentSrdDefinition(seed: SrdReusableDefinitionSeed) {
+  return reusableDefinitionCurrentDtoSchema.parse({
+    ...seed,
+    gameSystemId: SRD_SYSTEM_ID,
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    contractVersion: 1,
+    version: 1,
+    publishedAt: TIMESTAMP,
+    publishedBy: PUBLISHER_ID
+  })
+}
+
 /** The published SRD reusable definitions, served as current version-1 records. */
 export const srdDefinitions: CurrentReusableDefinitionSource = {
   async requireCurrent(definitionId) {
     const seed = seedsById.get(definitionId)
     if (!seed) throw new Error(`SRD definition "${definitionId}" is missing.`)
-    return reusableDefinitionCurrentDtoSchema.parse({
-      ...seed,
-      gameSystemId: SRD_SYSTEM_ID,
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      contractVersion: 1,
-      version: 1,
-      publishedAt: TIMESTAMP,
-      publishedBy: PUBLISHER_ID
-    })
+    return currentSrdDefinition(seed)
   }
 }
 
@@ -152,6 +158,7 @@ export function srdCreatureActor(input: {
   initiative?: number | null
   manualOrder?: number | null
   sideId?: string
+  disposition?: EncounterRunActorState['disposition']
 }): EncounterRunActorState {
   const creature = {
     ...input.creature,
@@ -173,7 +180,7 @@ export function srdCreatureActor(input: {
     sourceRevision: 1,
     public: true,
     controllerUserIds: [],
-    disposition: 'HOSTILE',
+    disposition: input.disposition ?? 'HOSTILE',
     initiative: input.initiative ?? null,
     manualOrder: input.manualOrder ?? null,
     healthDisplay: null,
@@ -233,6 +240,7 @@ export function creatureActor(input: {
   tempHitPoints?: number
   conditions?: unknown[]
   defeated?: boolean
+  disposition?: EncounterRunActorState['disposition']
 }): EncounterRunActorState {
   return encounterRunActorStateSchema.parse({
     id: input.id,
@@ -243,7 +251,7 @@ export function creatureActor(input: {
     sourceRevision: null,
     public: true,
     controllerUserIds: [],
-    disposition: 'HOSTILE',
+    disposition: input.disposition ?? 'HOSTILE',
     initiative: null,
     manualOrder: null,
     healthDisplay: null,

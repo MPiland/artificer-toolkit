@@ -9,7 +9,7 @@ import {
   srdCreatureActor,
   srdEncounterState,
   testUuid
-} from './dnd5eSrdEncounter.js'
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   GOBLIN,
   turnSaveDamageEffect,

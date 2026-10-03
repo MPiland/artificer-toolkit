@@ -19,7 +19,7 @@ import {
   srdCreatureTarget,
   srdEncounterState,
   testUuid
-} from './dnd5eSrdEncounter.js'
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   GOBLIN,
   GOBLIN_SCALARS,

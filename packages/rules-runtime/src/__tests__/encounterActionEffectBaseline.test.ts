@@ -12,11 +12,11 @@ import {
   TRIGGER
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { normalizeCharacterActionMechanicFacts } from '@artificer-toolkit/rules-runtime/character/characterActionRuleFacts'
-import type { EncounterFeatureActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
-import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/characterActionCapabilityDiscovery'
-import { dnd5eCharacterRuleActionSystemAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
-import { prepareEncounterActionEffectPlans } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
+import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
+import type { EncounterFeatureActionCapabilityDescriptor } from '../encounterFeatureActionCapabilityDiscovery.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 
 const ids = {
   encounter: '00000000-0000-4000-8000-000000000901',

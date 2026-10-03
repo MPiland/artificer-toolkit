@@ -24,7 +24,7 @@ import {
   srdCreatureActor,
   srdCreatureTarget,
   srdOptionalCombat
-} from './dnd5eSrdEncounter.js'
+} from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 
 const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')

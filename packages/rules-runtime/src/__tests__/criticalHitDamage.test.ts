@@ -8,7 +8,7 @@ import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID } from '../systems/dnd5e/reactionEligibilityPolicy.js'
 import { SRD, evaluateSrdCharacter, itemAction, srdByLabel } from './dnd5eSrdCharacter.js'
-import { creatureFeature, srdCreatureActor, testUuid } from './dnd5eSrdEncounter.js'
+import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureActor,
   outcomeDice,

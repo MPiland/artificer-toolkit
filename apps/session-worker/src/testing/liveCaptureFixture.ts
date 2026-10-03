@@ -63,6 +63,7 @@ export function maintainedState(input: {
   ownerActorId: string
   definitionId: string
   encounterId?: string
+  definitionChecksum?: string
 }) {
   return prepareMaintainedEffectStateRecord({
     id: input.id,
@@ -71,7 +72,7 @@ export function maintainedState(input: {
     descriptor: {
       schemaVersion: 2,
       maintenanceDefinitionId: input.definitionId,
-      definitionChecksum: 'c'.repeat(64),
+      definitionChecksum: input.definitionChecksum ?? 'c'.repeat(64),
       sourceActionId: 'maintained-source-action',
       sourceOccurrenceId: testUuid(0x4001),
       sourceActorId: input.ownerActorId,

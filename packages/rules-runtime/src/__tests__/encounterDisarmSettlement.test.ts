@@ -15,7 +15,7 @@ import {
   planEncounterDisarmSuccess
 } from '../encounterDisarmPreparation.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '../systems/dnd5e/optionalCombatContestPendingContext.js'
-import { characterActor, creatureActor, creatureRuleFacts } from './dnd5eSrdEncounter.js'
+import { characterActor, creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
 
 const SOURCE_ACTOR_ID = '00000000-0000-4000-8000-00000000d101'
 const TARGET_ACTOR_ID = '00000000-0000-4000-8000-00000000d102'

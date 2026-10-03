@@ -21,7 +21,7 @@ import {
   srdCreatureActor,
   srdDefinitions,
   srdEncounterState
-} from './dnd5eSrdEncounter.js'
+} from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 
 const hellHound = srdByLabel(SRD.creatures, 'Hell Hound')

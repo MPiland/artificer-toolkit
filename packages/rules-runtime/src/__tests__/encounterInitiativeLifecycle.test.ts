@@ -26,7 +26,7 @@ import {
   preparingRound,
   scriptedDice
 } from './encounterInitiativeFixtures.js'
-import { createSrdRulesRuntime } from './dnd5eSrdEncounter.js'
+import { createSrdRulesRuntime } from '../testing/dnd5eSrdEncounter.js'
 
 const OCCURRENCE_ID = '00000000-0000-4000-8000-00000000f001'
 const ACTORS = [

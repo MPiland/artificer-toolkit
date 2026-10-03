@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   advanceNativeActionGraphs,
   executeNativeActionGraphs
-} from '@artificer-toolkit/rules-runtime/encounterActionExecution'
-import { createPlatformRulesRuntime } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { buildCompiledActionCompilerSource } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
-import { dnd5eCharacterRuleActionSystemAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
-import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/characterActionCapabilityDiscovery'
-import type { CharacterActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscovery'
+} from '../encounterActionExecution.js'
+import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
+import type { CharacterActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import {
   ACTIVATION_CODE,

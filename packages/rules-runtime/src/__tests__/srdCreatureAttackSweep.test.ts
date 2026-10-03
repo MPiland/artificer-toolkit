@@ -26,7 +26,7 @@ import {
   srdEncounterState,
   testUuid,
   TIMESTAMP
-} from './dnd5eSrdEncounter.js'
+} from '../testing/dnd5eSrdEncounter.js'
 import { outcomeDice } from './encounterCreatureAction.js'
 import {
   SRD_CREATURE_ATTACK_UNSUPPORTED,

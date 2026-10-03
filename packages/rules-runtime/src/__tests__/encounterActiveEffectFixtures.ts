@@ -30,7 +30,7 @@ import {
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
-import { ENCOUNTER_ID, SRD_SYSTEM_ID, TIMESTAMP, testUuid } from './dnd5eSrdEncounter.js'
+import { ENCOUNTER_ID, SRD_SYSTEM_ID, TIMESTAMP, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 type StateContribution = Extract<
   ActiveRuleEffectDefinitionDto,

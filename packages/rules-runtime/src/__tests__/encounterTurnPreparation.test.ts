@@ -16,7 +16,7 @@ import {
   settleEncounterInitiativeRound
 } from '../encounterInitiativeStateSettlement.js'
 import { planEncounterTurnAdvance, prepareEncounterTurn } from '../encounterTurnPreparation.js'
-import { srdCreatureActor, srdEncounterState, testUuid, TIMESTAMP } from './dnd5eSrdEncounter.js'
+import { srdCreatureActor, srdEncounterState, testUuid, TIMESTAMP } from '../testing/dnd5eSrdEncounter.js'
 import {
   ACTOR_A,
   ACTOR_B,

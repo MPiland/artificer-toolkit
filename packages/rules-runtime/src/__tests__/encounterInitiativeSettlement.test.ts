@@ -24,7 +24,7 @@ import {
   initiativePolicySnapshot,
   preparingRound
 } from './encounterInitiativeFixtures.js'
-import { ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
+import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 
 const NONE: ReadonlySet<string> = new Set()
 const ACTOR_D = '00000000-0000-4000-8000-0000000000a4'

@@ -18,7 +18,7 @@ import {
   srdCreatureTarget,
   testUuid,
   TIMESTAMP
-} from './dnd5eSrdEncounter.js'
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   FRIGHTENED_CONDITION_ID,
   GOBLIN,

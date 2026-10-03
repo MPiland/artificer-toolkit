@@ -15,7 +15,7 @@ import {
 } from '../encounterScalarReductions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { evaluateSrdCharacter } from './dnd5eSrdCharacter.js'
-import { creatureActor, creatureRuleFacts, ENCOUNTER_ID } from './dnd5eSrdEncounter.js'
+import { creatureActor, creatureRuleFacts, ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect, scalarReduction } from './encounterActiveEffectFixtures.js'
 
 const { STRENGTH, DEXTERITY, CONSTITUTION } = SRD_ABILITY_DEFINITION_IDS

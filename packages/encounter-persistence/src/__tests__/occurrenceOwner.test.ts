@@ -4,7 +4,7 @@ import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encount
 import {
   classifyNativeEncounterOccurrence,
   type NativeEncounterOccurrenceFacts
-} from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
+} from '../occurrenceOwner.js'
 
 function facts(
   context: NativeEncounterOccurrenceFacts['context'],

@@ -3,7 +3,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
+import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWieldConflict.js'
 
 const shieldId = 'shield-instance'
 const armorClassFacts = {
