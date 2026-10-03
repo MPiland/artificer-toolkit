@@ -215,6 +215,14 @@ const roomJournal = new Map<
 >()
 beforeEach(() => roomJournal.clear())
 
+/**
+ * A release ends the room's epoch with its durable journal, so a retry after it replays only from
+ * the Encounter receipts the next room hydrates from Convex.
+ */
+export function discardRoomJournal() {
+  roomJournal.clear()
+}
+
 /** A room refusal whose code and message the room sends as they are. */
 function roomRefusal(code: RoomCommandRefusal['code'], message: string) {
   return new RoomCommandRefusal(new Error(message), { code, message })

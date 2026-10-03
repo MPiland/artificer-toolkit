@@ -2,7 +2,7 @@ import {
   serverRuleExecutionPendingSnapshotDtoSchema,
   type ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { JsonDelta, JsonValue } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { applyJsonDelta, diffJson } from './jsonDelta.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -83,7 +83,8 @@ export async function writePendingSnapshot(
     for (const part of parts) await ctx.db.delete(part._id)
     return null
   }
-  const next = JSON.parse(JSON.stringify(snapshot)) as JsonValue
+  // Stored parts come back with sorted keys; a planner's key order would make every element differ.
+  const next = JSON.parse(canonicalizeJson(snapshot)) as JsonValue
   const checksum = checksumCanonicalJson(snapshot)
   const last = parts.at(-1)
   if (last && parts.length < MAX_PENDING_SNAPSHOT_PARTS) {

@@ -45,7 +45,7 @@ import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persi
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 import { removeEncounterRunChildren } from './campaignDeletion'
-import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
+import { isRoomHeldRun } from '../liveSessions/authorityGuard'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 const projectionValidator: Validator<EncounterGmProjectionDto, 'required', string> = zodToConvex<
   z.core.$ZodType<EncounterGmProjectionDto>
@@ -298,11 +298,9 @@ export const deletePrepared = mutation({
     if (run.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
     if (run.status !== 'PREPARED') throw new Error('Only prepared Encounters can be deleted.')
     readRunState(run)
-    const [binding, commands, receipts, occurrences] = await Promise.all([
-      ctx.db
-        .query('encounterSceneBindings')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
-        .unique(),
+    if (await isRoomHeldRun(ctx, run))
+      throw new Error('This Encounter is currently owned by its Campaign live table.')
+    const [commands, receipts, occurrences] = await Promise.all([
       ctx.db
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
@@ -318,7 +316,6 @@ export const deletePrepared = mutation({
     ])
     if (occurrences.some((occurrence) => occurrence.state === 'PENDING'))
       throw new Error('Resolve the pending Encounter occurrence before deleting it.')
-    if (binding) await assertConvexOwnsSceneLiveState(ctx, campaign.id, binding.sceneId)
     let removed = false
     while (!removed) removed = await removeEncounterRunChildren(ctx, run.id)
     await deleteReceiptHeaders(ctx, [

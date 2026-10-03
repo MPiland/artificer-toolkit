@@ -213,18 +213,21 @@ describe('room checkpoints', () => {
   })
 
   it('trims a journal page to the largest fitting records prefix and publishes the remainder', async () => {
-    const { store, storage } = open(100)
+    const { store, storage } = open()
     const base = store.checkpointSnapshot()
+    // A small inserted row checkpoints as a keyed, checksummed change larger than its journal
+    // write, so a full journal page's records outgrow the checkpoint budget.
     for (let index = 0; index < 100; index++) {
       await store.transact(async () => {
-        const actor = await store.store
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) =>
-            q.eq('encounterId', encounterId).eq('id', uuid(0x100 + index))
-          )
-          .unique()
-        const stateJson = canonicalizeJson({ padding: 'x'.repeat(44_800) })
-        await store.store.patch(actor!._id, { stateJson, stateChecksum: sha256Hex(stateJson) })
+        for (let row = 0; row < 40; row++) {
+          const stateJson = canonicalizeJson({ row, padding: 'x'.repeat(1_000) })
+          await store.store.insert('encounterRunActors', {
+            id: uuid(0x10000 + index * 40 + row),
+            encounterId,
+            stateJson,
+            stateChecksum: sha256Hex(stateJson)
+          })
+        }
       })
     }
     const page = store.committedWriteSets({

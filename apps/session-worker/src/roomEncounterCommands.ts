@@ -149,20 +149,27 @@ export async function executeRoomEncounterCommand(input: {
     if (route === 'MOVEMENT' && (command.type === 'RESOLVE_RULE_OCCURRENCE' || !routed))
       rejectDomain('SCENE_NOT_PRESENTED')
     if (!routed) await refuseUnroutedEncounterDecision(context, beforeRun, userId, command)
-    // A recorded command is a retry: its planner's admission replays or refuses it on its receipt.
-    const prior =
-      command.type === 'RESOLVE_RULE_OCCURRENCE'
-        ? await context.db
-            .query('encounterRunCommands')
-            .withIndex('by_campaignId_commandId', (q) =>
-              q
-                .eq('campaignId', beforeRun.campaignId)
-                .eq('commandId', command.commandId.toLowerCase())
-            )
-            .unique()
-        : null
-    if (command.type === 'RESOLVE_RULE_OCCURRENCE' && prior?.encounterId !== beforeRun.id)
-      await requireEncounterDecisionResponder(context, beforeRun, userId, command)
+    // A recorded command is a retry: its planner's admission replays or refuses it on its receipt,
+    // a Run command or a rule receipt (an action's evidence answer records only the latter).
+    if (command.type === 'RESOLVE_RULE_OCCURRENCE') {
+      const key = { campaignId: beforeRun.campaignId, commandId: command.commandId.toLowerCase() }
+      const recorded = await Promise.all([
+        context.db
+          .query('encounterRunCommands')
+          .withIndex('by_campaignId_commandId', (q) =>
+            q.eq('campaignId', key.campaignId).eq('commandId', key.commandId)
+          )
+          .unique(),
+        context.db
+          .query('encounterRuleReceipts')
+          .withIndex('by_campaignId_commandId', (q) =>
+            q.eq('campaignId', key.campaignId).eq('commandId', key.commandId)
+          )
+          .unique()
+      ])
+      if (!recorded.some((receipt) => receipt?.encounterId === beforeRun.id))
+        await requireEncounterDecisionResponder(context, beforeRun, userId, command)
+    }
   }
   const state = readRunState(beforeRun)
   const characters = new Set(

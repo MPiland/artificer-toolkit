@@ -374,7 +374,10 @@ the old timeline body-row backfill is retired, and new commands seal derived tim
   the command's version, which is the usual retry window, a replay returns the same bytes as the
   original response. After later commands it returns the receipt over the Run's current projection,
   as CREATE and decision replays already did. The Disarm evidence receipt stores its caller's
-  replay receipt the same way.
+  replay receipt the same way. A "Roll dice" replay returns only its evidence roll, with no roll and
+  no occurrence. After a room release the retry has only these receipts. The room accepts a decision
+  answer as a retry when either its Run command receipt or its rule receipt is recorded, because an
+  action's evidence answer records only the rule receipt.
 - **Changed fields only.** Initiative round, participant and side updates and occurrence updates
   patch only the fields that changed (`changedFields` in `documents.ts`), which is the delta a
   checkpoint carries.
@@ -384,7 +387,9 @@ the old timeline body-row backfill is retired, and new commands seal derived tim
   and arrays as kept leading and trailing items around new middle items), so each tied
   initiative-order choice writes only what it changed. `readPendingSnapshot` rebuilds the snapshot,
   checks it against the occurrence's checksum and parses it once per transaction and checksum;
-  `writePendingSnapshot` stores the base or the delta and returns the checksum, and a null snapshot
+  `writePendingSnapshot` canonicalizes the snapshot (stored parts come back with sorted keys, so a
+  planner's own key order would make every array item differ), stores the base or the delta and
+  returns the checksum, and a null snapshot
   deletes the parts when the occurrence settles. A delta at least half the base's size, or a chain of
   128 parts, starts a new base. The checksum is still the whole snapshot's, so every seal, fence and
   replay comparison is unchanged.

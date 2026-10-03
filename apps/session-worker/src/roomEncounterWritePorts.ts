@@ -83,7 +83,7 @@ export async function roomEncounterWriteTransaction(
         }),
       recordConcentrationCheckRoll: (roll) =>
         recordConcentrationCheckRoll(read, roll, async (userId, record, gmCampaignRoll) => {
-          retainRoomPrivateRoll(transaction, { userId, record, gmCampaignRoll })
+          retainRoomPrivateRoll(store, transaction, { userId, record, gmCampaignRoll })
         }),
       writeCharacterRecord: (write) =>
         writeRoomCharacterPlay({

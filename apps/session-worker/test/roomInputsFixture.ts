@@ -23,11 +23,6 @@ import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api
 export const ROOM_INPUTS_PATH = LIVE_SESSION_ROUTE_PATHS.roomInputs
 
 const zero = '00000000-0000-4000-8000-000000000000'
-const revisions = (['SYSTEM', 'CAMPAIGN', 'PLAY'] as const).map((scope) => ({
-  scope,
-  id: zero,
-  revision: null
-}))
 const fixtureTime = '2026-09-29T00:00:00.000Z'
 
 /** Real Character, System and Run reads for a room that plays Character Sheet commands. */
@@ -154,7 +149,11 @@ export function roomInputsResponse(
     case 'CAMPAIGN_PLAY':
       return {
         kind: 'CAMPAIGN_PLAY',
-        revisions,
+        revisions: [
+          { scope: 'SYSTEM', id: systemId, revision: null },
+          { scope: 'CAMPAIGN', id: campaignId, revision: null },
+          { scope: 'PLAY', id: campaignId, revision: null }
+        ],
         contentSnapshots: {
           systemId,
           sources: [],

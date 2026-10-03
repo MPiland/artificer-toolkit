@@ -50,6 +50,7 @@ import { api, internal } from '../_generated/api'
 import { requireEncounterPolicySources } from './sourceDependencies'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import {
+  discardRoomJournal,
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom,
@@ -883,6 +884,8 @@ describe('native Encounter Run commands', () => {
     })
     expect(playerTimeline.entries).toHaveLength(1)
     expect(playerTimeline.entries[0]?.roll).toEqual(tableResult.roll)
+    // After a release the retry replays from the stored receipt: no reroll and no second charge.
+    discardRoomJournal()
     let replayEntropy = 0
     const replayRandom = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
       replayEntropy += 1

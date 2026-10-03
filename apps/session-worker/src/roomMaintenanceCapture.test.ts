@@ -143,7 +143,12 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
       campaignId,
       systemId,
       ownerUserId: gmId,
-      members
+      members,
+      // Only an assigned Character's dependents are the room's to count (D81).
+      assignments: [0, 1].map((index) => ({
+        characterId: uuid(0xd60 + index),
+        userId: uuid(0xd70 + index)
+      }))
     }
   )
   if (authority.kind !== 'AUTHORITY') throw new Error('Missing Campaign authority fixture.')

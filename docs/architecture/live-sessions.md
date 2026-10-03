@@ -902,7 +902,9 @@ while those pins remain current. Each retained root carries its source kind, pre
 platform-only basic-action gate independently of Campaign catalogue membership.
 Concentration logging shares paired TABLE entries and native
 private roll records; checkpoint appends merge immutable evidence into the owner's global twenty-roll
-history and refuse cross-Campaign identity replacement. Ordinary action pending/terminal and evidence
+history and refuse cross-Campaign identity replacement. The room keeps twenty private rolls per user
+but expires only committed ones, so one command's rolls (an area hit on many concentrating
+creatures) all reach the journal and the next command trims back to twenty. Ordinary action pending/terminal and evidence
 responses, Concentration, Cleaving and Disarm now use shared admission, evidence, effect/child and
 response writers in native dispatch. These extractions replace dependencies with typed stores and
 owning callbacks while preserving guards, clocks, privacy, receipts and write order; logical receipt
@@ -998,7 +1000,8 @@ evicting a socket drops it too. The web Sheet takes `expectedVersion` from the p
 
 **Departures reconcile in the room (D74, current source, unverified).** Under live authority the
 room owns every open Run of the Campaign (PREPARED or ACTIVE; `isRoomHeldRun`), whether or not it
-has hydrated that Run this epoch. For such a Run, `removeCampaignCharacterAssignment`,
+has hydrated that Run this epoch. Convex refuses to delete such a Run (`encounters/runs:deletePrepared`
+fails "currently owned by its Campaign live table"). For such a Run, `removeCampaignCharacterAssignment`,
 `removeEncounterActorController` and account deletion write no Run actors. Convex still sends
 `EVICT_USER` and, through the tracked-mutation wrapper, `INVALIDATE_INPUTS` for the changed
 CAMPAIGN rows. The room runs

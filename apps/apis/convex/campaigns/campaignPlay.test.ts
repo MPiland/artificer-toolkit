@@ -145,6 +145,27 @@ it('fences direct Scene binding while room authority is live', async () => {
   ).rejects.toThrow('currently owned by its Campaign live table')
 })
 
+it('fences prepared Run deletion while room authority is live', async () => {
+  const base = await createEncounterSceneFixture()
+  await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
+  await expect(
+    base.other.caller.mutation(deletePrepared, {
+      campaignId: base.campaign.id,
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: base.run.version
+    })
+  ).rejects.toThrow('currently owned by its Campaign live table')
+  expect(
+    await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique()
+    )
+  ).toMatchObject({ status: 'PREPARED', version: base.run.version })
+})
+
 it('deletes only a prepared Run with exact command replay', async () => {
   const base = await createEncounterSceneFixture()
   const input: DeletePreparedEncounterInputDto = {

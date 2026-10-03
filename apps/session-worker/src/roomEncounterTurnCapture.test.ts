@@ -138,6 +138,11 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     { campaignId, systemId, ownerUserId: gmId, members }
   )
   if (authority.kind !== 'AUTHORITY') throw new Error('Missing Campaign authority fixture.')
+  // A command observes the play scope beside the authority the room holds.
+  const observed = [
+    ...authority.revisions,
+    { scope: 'PLAY' as const, id: campaignId, revision: null }
+  ]
   const documents: RoomDocument[] = [
     ...authority.documents,
     {
@@ -223,7 +228,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
         campaignId,
         epoch,
         userId,
-        observed: authority.revisions
+        observed
       })
     const owner = await context(gmId)
     const player = await context(playerId)
@@ -237,7 +242,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
       request: { kind: 'ACTOR', actorId: actor.id }
     }
     const capture = (ctx: typeof owner, value: LiveSessionEncounterRulesInput) =>
-      readRoomEncounterTurnCapture(ctx, inputs, transaction, value, authority.revisions, scene)
+      readRoomEncounterTurnCapture(ctx, inputs, transaction, value, observed, scene)
     const first = await capture(owner, input)
     if (first.kind !== 'ACTOR') throw new Error('Missing actor capture.')
     expect(first.actor).toEqual(actor)
@@ -246,7 +251,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     )
     expect(first.continueAfter).toBe(uuid(0xe33))
     const { revisions, readChecksum, ...response } = first
-    expect(revisions).toEqual(authority.revisions)
+    expect(revisions).toEqual(observed)
     expect(readChecksum).toBe(checksumCanonicalJson({ input, userId: gmId, response }))
     const second = await capture(owner, {
       ...input,
@@ -269,7 +274,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     )
     await expect(
       capture(owner, { ...input, request: { kind: 'CLEAVING_BINDINGS' } })
-    ).rejects.toThrow('request is unavailable')
+    ).resolves.toMatchObject({ kind: 'CLEAVING_BINDINGS', bindings: [] })
     const playerInput: LiveSessionEncounterRulesInput = {
       ...input,
       expectedUserId: playerId,

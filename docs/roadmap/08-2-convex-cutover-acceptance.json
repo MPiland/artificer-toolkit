@@ -3313,21 +3313,29 @@
             {
               "id": "V13.1",
               "text": "Four gameplay journeys retain exact root, terminal and evidence comparisons, with no double spend, reroll or recharge.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
-                "missing: re-proof on the room-authoritative path, including replay across a restart or release (ADR 0035 plan S6)"
+                "apps/apis/convex/liveSessions/encounterJourneys.test.ts › Encounter journeys through the room (V13.1): a GM action with no roll then a turn advance; a player attack whose controller enters the roll; a player action whose enemy save the GM rolls twice and settles; a GM undo then the action again (VS-3: each journey commits in room SQLite, reaches Convex by checkpoint, and every command replayed after a release returns its receipt over the current projection with no second spend, reroll or recharge)",
+                "apps/apis/convex/encounters/commands.test.ts › rolls immutable enemy actions privately or to TABLE with atomic charge use and replay (VS-3: the retry after a release replays from the stored receipt, with no reroll and no second charge)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a warm native initiative roll privately and replays its exact evidence after eviction",
+                "apps/session-worker/src/roomPrivateRolls.test.ts › keeps twenty private rolls while checkpointing every committed append, including after eviction (VS-3 fix: only committed rolls expire, so a command past twenty rolls checkpoints them all)",
+                "rerun: the final-source combined journeys remain under R08 and V15"
               ]
             },
             {
               "id": "V13.2",
               "text": "Retry and refusal, GM undo, and current authority and privacy hold after an actual reconnect and reload.",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
-                "missing: re-proof on the room-authoritative path, including replay across a restart or release (ADR 0035 plan S6)"
+                "apps/apis/convex/liveSessions/encounterJourneys.test.ts › Encounter recovery after a reload (V13.2) › keeps refusals, privacy, authority and GM undo across a release (VS-3: after the room journal is released, a retried decision answer replays from its Run command or rule receipt, refusals hold, players get the redacted projection and GM undo works)",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › cancels the idle release when a member reconnects inside the window",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › retries the exact pending checkpoint after eviction before an idle room releases its authority",
+                "impl (VS-3): apps/session-worker/src/roomEncounterCommands.ts (a decision answer after a release is a retry when its Run command receipt or rule receipt is recorded)",
+                "rerun: a browser reconnect on the final source remains under R08 and V15"
               ]
             },
             {
@@ -3628,7 +3636,7 @@
             {
               "id": "R06.1",
               "text": "The room evaluates rules, prepares facts and commits state, receipts and replay evidence to its SQLite in one transaction before acknowledging; Convex receives idempotent epoch/sequence-fenced checkpoints (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/session-worker/src/nativeRoomEncounterCommand.test.ts › sends only the GM tools Convex records to it and plans or rolls every other command in the room (deleted in A35-S6c3)",
@@ -3661,13 +3669,15 @@
                 "apps/session-worker/test/nativeDurableCommandJournal.test.ts (A35-S6c3): opening a journal drops the retired external-commit table and its chunks",
                 "apps/apis/convex/liveSessions/roomSceneCommands.test.ts (A35-S6c3): the unbound fog-deriving move, door change and controlled-token move commit in room SQLite through the room's geometry command and reach Convex only by checkpoint (commitSceneInRoom)",
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move with no room live and still publishes an unbound move natively (D43) (rechecked in A35-S6c3: still proves its title on the room-only path)",
-                "missing: room-owned rule evaluation re-proved on the final source (R08)"
+                "apps/apis/convex/liveSessions/encounterJourneys.test.ts (VS-3): four Encounter journeys run room-natively with no Convex command route and reach Convex only by fenced checkpoint; replay after a release returns the stored receipts",
+                "apps/session-worker native suite (yarn workspace @artificer-toolkit/session-worker test, 217/217) and src suite (223/223) pass on the VS-3 source",
+                "rerun: room-owned rule evaluation on the final source remains under R08"
               ]
             },
             {
               "id": "R06.2",
               "text": "Encounter-bound movement and its decisions are room commands (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › completes or abandons a record left by a restart when the next member admits (D27) (deleted in A35-S6c3 with the external-commit record)",
@@ -3683,7 +3693,8 @@
                 "apps/apis/convex/encounters/actorTokenBindings.test.ts › refuses Convex binding writes while the live table holds the Run, and binds in the room (A35-S6c2: actor-token binding is a room command on the presented Scene; encounters/actorTokenBindings:execute refuses a held Run; a retry replays)",
                 "impl (A35-S6c2): packages/encounter-persistence/src/actorTokenBindingPersistence.ts, apps/session-worker/src/roomEncounterCommands.ts (binding dispatch, SCENE_NOT_PRESENTED off the presented Scene), apps/apis/convex/encounters/actorTokenBindings.ts (isRoomHeldRun fence), apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx (sendEncounterCommand)",
                 "structure (A35-S6c3): the Convex external-commit stage and resolve, encounterMovement stage and commit, scene-geometry and encounter-binding commits and fast-only undo are deleted; Encounter-bound movement and its decisions have no path except the room's geometry command",
-                "missing: the movement journeys re-proved on the final source (R08, V15)"
+                "VS-2: Encounter-bound movement and Passage are proved through the room (roomSceneCommands and encounterMovement* suites rerun on the VS-3 source)",
+                "rerun: the movement journeys on the final source remain under R08 and V15"
               ]
             },
             {
@@ -3702,7 +3713,7 @@
             {
               "id": "R06.4",
               "text": "While room authority is active, the room is the single writer of the presented Scene and of all Encounter commands, direct Convex writes are fenced for the presented Scene (ADR 0033), for live Runs and for held Characters' play state, and the room owns ACTIVE Runs and their Characters' play state (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "historical: reworded, user-approved 2026-09-27 (ADR 0035); the entries below proved the per-command Convex path and no longer prove this criterion",
                 "apps/apis/convex/campaigns/campaignPlay.test.ts › fences direct writes only to the presented Scene while room authority is live",
@@ -3712,7 +3723,12 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a GM Encounter actor's Sheet command on the held Character with its receipt (D78) (A35-S6c1: UPDATE_ACTOR with a Sheet command runs on the room-held Character; a PREPARED Run refuses with Sheet guidance)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a warm native REORDER before fan-out, redacts players, and replays without another write",
                 "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commands.ts (execute is internal; only the room route reaches it)",
-                "missing: room ownership of ACTIVE Runs and their Characters' play state, with the Convex Run and play-state fences (ADR 0035 plan S6, S7)"
+                "apps/apis/convex/campaigns/campaignPlay.test.ts › fences prepared Run deletion while room authority is live (VS-3: encounters/runs:deletePrepared refuses a room-held Run)",
+                "apps/apis/convex/encounters/actorTokenBindings.test.ts › refuses Convex binding writes while the live table holds the Run, and binds in the room",
+                "apps/apis/convex/liveSessions/characterHolds.test.ts › acquires active Run holds once and retains the other Run through removal and completion",
+                "apps/apis/convex/liveSessions/characterHolds.test.ts › fences play before replay while Builder edits retain the actual play record and stream",
+                "impl: apps/apis/convex/encounters/runs.ts (deletePrepared isRoomHeldRun fence), apps/apis/convex/encounters/actorTokenBindings.ts (isRoomHeldRun fence)",
+                "rerun: the held-Character Sheet push with these fences on the final source remains under R06.3 (REL-4) and R08"
               ]
             }
           ]

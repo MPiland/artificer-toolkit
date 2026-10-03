@@ -3,12 +3,17 @@ import {
   type LiveSessionCheckpointRetainedRoll
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { RoomTransaction } from './roomEncounterStore.js'
+import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 
 export const ROOM_PRIVATE_ROLL = 'PRIVATE_ROLL_CHECKPOINT'
 
-/** The journal retains every append until checkpoint acknowledgement; visible history keeps twenty. */
+/**
+ * The journal retains every append until checkpoint acknowledgement; visible history keeps twenty.
+ * Only committed rolls expire: a roll set and deleted in one command would never reach the journal,
+ * so a command's own appends stay until the next command trims them.
+ */
 export function retainRoomPrivateRoll(
+  store: RoomEncounterStore,
   transaction: RoomTransaction,
   supplied: LiveSessionCheckpointRetainedRoll
 ) {
@@ -33,5 +38,7 @@ export function retainRoomPrivateRoll(
         right.value.record.createdAt.localeCompare(left.value.record.createdAt) ||
         right.value.record.id.localeCompare(left.value.record.id)
     )
-  for (const expired of retained.slice(20)) transaction.deleteRecord(ROOM_PRIVATE_ROLL, expired.key)
+  for (const expired of retained.slice(20))
+    if (store.record(ROOM_PRIVATE_ROLL, expired.key))
+      transaction.deleteRecord(ROOM_PRIVATE_ROLL, expired.key)
 }

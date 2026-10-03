@@ -1752,7 +1752,7 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(part.inputs.owner.label).toBe(characterInputs(FIRST_CHARACTER, 2).owner.label)
       expect(
         convex.store.documents('characterActiveRuleEffects').map((row) => row.createdOrdinal)
-      ).toEqual([3])
+      ).toEqual([1, 2])
       expect(convex.reads).toEqual([])
       expect(convex.store.logRows).toBe(before.logRows + 1)
     })
@@ -1814,7 +1814,7 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(kinds(convex.reads)).toEqual(['DEFINITIONS', 'CAMPAIGN_PLAY'])
     })
 
-    it('replaces a Character’s effects and record in one room command, once', async () => {
+    it('refreshes a Character’s record in one room command, once, keeping its room-owned effects', async () => {
       const convex = await hydrated()
       const rowsBefore = convex.store.logRows
       convex.state.characters.set(FIRST_CHARACTER, [effect(FIRST_CHARACTER, 3)])
@@ -1824,9 +1824,10 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(loaded.inputs).toEqual(characterInputs(FIRST_CHARACTER, 2))
       expect(kinds(convex.reads)).toEqual(['CHARACTERS'])
       expect(convex.loads).toEqual([atRevision(characterManifest, 2)])
+      // Active effects are room-owned while held, like play, so a Builder refresh keeps them.
       expect(
         convex.store.documents('characterActiveRuleEffects').map((row) => row.createdOrdinal)
-      ).toEqual([3])
+      ).toEqual([1, 2])
       expect(convex.store.logRows).toBe(rowsBefore + 1)
 
       // The change is durable: a restarted store holds the same effects and record.
