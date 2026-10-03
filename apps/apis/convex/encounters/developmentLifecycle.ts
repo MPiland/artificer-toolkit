@@ -5,11 +5,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4'
 import { z } from 'zod'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  encounterExecuteInputSchema,
-  type EncounterCommandResultDto,
-  type EncounterExecuteInput
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import {
   bindEncounterToPresentedSceneInputDtoSchema,
   encounterActorTokenBindingCommandInputDtoSchema,
@@ -31,7 +27,6 @@ const fixtureRunSchema = z.object({
   encounterId: z.string()
 })
 const operationSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('COMMAND'), input: encounterExecuteInputSchema }),
   z.object({
     kind: z.literal('SCENE_BINDING'),
     input: bindEncounterToPresentedSceneInputDtoSchema
@@ -45,7 +40,6 @@ const rollbackSchema = z.object({ ...fixtureRunSchema.shape, operation: operatio
 type FixtureRunInput = z.infer<typeof fixtureRunSchema>
 type RollbackInput = FixtureRunInput & {
   operation:
-    | { kind: 'COMMAND'; input: EncounterExecuteInput }
     | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
     | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
 }
@@ -58,11 +52,6 @@ const inspectReference = makeFunctionReference<'query', FixtureRunInput, string>
 const forceRollbackReference = makeFunctionReference<'mutation', RollbackInput, null>(
   'encounters/developmentLifecycle:forceRollback'
 )
-const executeCommand = makeFunctionReference<
-  'mutation',
-  EncounterExecuteInput,
-  EncounterCommandResultDto
->('encounters/commands:execute')
 const bindScene = makeFunctionReference<
   'mutation',
   BindEncounterToPresentedSceneInputDto,
@@ -324,15 +313,9 @@ export const forceRollback = internalMutation({
       encounterId: args.encounterId
     }
     const before = await ctx.runQuery(inspectReference, target)
-    const operationEncounterId =
-      args.operation.kind === 'COMMAND'
-        ? args.operation.input.command.encounterId
-        : args.operation.input.encounterId
-    if (operationEncounterId.toLowerCase() !== args.encounterId.toLowerCase())
+    if (args.operation.input.encounterId.toLowerCase() !== args.encounterId.toLowerCase())
       throw new Error('Fixture lifecycle operation targets another Encounter Run.')
-    if (args.operation.kind === 'COMMAND')
-      await ctx.runMutation(executeCommand, args.operation.input)
-    else if (args.operation.kind === 'SCENE_BINDING')
+    if (args.operation.kind === 'SCENE_BINDING')
       await ctx.runMutation(bindScene, args.operation.input)
     else await ctx.runMutation(bindToken, { input: args.operation.input })
     if (before === (await ctx.runQuery(inspectReference, target)))

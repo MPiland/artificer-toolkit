@@ -1,10 +1,7 @@
 import { readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
-import type {
-  EncounterExecuteInput,
-  ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -26,14 +23,13 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { createCutoverWorkloadCreature } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { executeInRoom, planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 13 : 0) }))
 
 type RollbackTarget = { ownerUserId: string; campaignId: string; encounterId: string }
 type RollbackOperation =
-  | { kind: 'COMMAND'; input: EncounterExecuteInput }
   | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
   | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
 type RollbackInput = RollbackTarget & { operation: RollbackOperation }
@@ -105,33 +101,18 @@ async function verify(base: Awaited<ReturnType<typeof setup>>, operation: Rollba
   return base.other.caller.action(verifyRollback, { ...base.target, operation })
 }
 
-function commandOperation(base: Awaited<ReturnType<typeof setup>>): RollbackOperation {
-  const actor = base.run.actors[0]
-  if (!actor) throw new Error('Missing fixture actor.')
+function sceneBindingOperation(base: Awaited<ReturnType<typeof setup>>) {
   return {
-    kind: 'COMMAND',
+    kind: 'SCENE_BINDING',
     input: {
-      command: {
-        type: 'SET_INITIATIVE',
-        commandId: crypto.randomUUID(),
-        encounterId: base.run.id,
-        expectedVersion: base.run.version,
-        actorId: actor.id,
-        initiative: 20,
-        manualOrder: 0
-      }
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+      commandId: crypto.randomUUID(),
+      encounterId: base.run.id
     }
-  }
+  } satisfies RollbackOperation
 }
 
 describe('development lifecycle rollback proof', () => {
-  it('rolls back a real Encounter command and preserves every inspected row', async () => {
-    const base = await setup()
-    const before = await read(base)
-    await expect(verify(base, commandOperation(base))).resolves.toEqual({ rolledBack: true })
-    expect(await read(base)).toBe(before)
-  }, 30_000)
-
   it('rolls back a real Scene binding and preserves every inspected row', async () => {
     const base = await setup()
     const before = await read(base)
@@ -178,7 +159,7 @@ describe('development lifecycle rollback proof', () => {
 
   it('rejects anonymous, player, and nonfixture callers', async () => {
     const base = await setup()
-    const input: RollbackInput = { ...base.target, operation: commandOperation(base) }
+    const input: RollbackInput = { ...base.target, operation: sceneBindingOperation(base) }
     await expect(base.t.action(verifyRollback, input)).rejects.toThrow('Unauthenticated')
     await expect(base.owner.caller.action(verifyRollback, input)).rejects.toThrow(
       'Fixture owner does not match the caller.'
@@ -197,7 +178,7 @@ describe('development lifecycle rollback proof', () => {
         }
       })
     })
-    await expect(verify(base, commandOperation(base))).rejects.toThrow(
+    await expect(verify(base, sceneBindingOperation(base))).rejects.toThrow(
       'Fixture account is required.'
     )
   }, 30_000)
@@ -208,7 +189,7 @@ describe('development lifecycle rollback proof', () => {
     const originalOrigin = process.env.SITE_URL
     try {
       process.env.SITE_URL = 'https://example.com'
-      await expect(verify(base, commandOperation(base))).rejects.toThrow(
+      await expect(verify(base, sceneBindingOperation(base))).rejects.toThrow(
         'Fixture cleanup requires the development application origin.'
       )
     } finally {
@@ -220,9 +201,8 @@ describe('development lifecycle rollback proof', () => {
 
   it('refuses a replay no-op and an operation targeting another Run without writes', async () => {
     const base = await setup()
-    const operation = commandOperation(base)
-    if (operation.kind !== 'COMMAND') throw new Error('Expected command operation.')
-    await executeInRoom(base.other.caller, operation.input)
+    const operation = sceneBindingOperation(base)
+    await base.other.caller.mutation(bindScene, operation.input)
     const replayBefore = await read(base)
     await expect(verify(base, operation)).rejects.toThrow(
       'Fixture lifecycle operation did not change persisted state.'

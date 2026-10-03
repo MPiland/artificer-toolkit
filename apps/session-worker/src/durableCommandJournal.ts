@@ -325,15 +325,6 @@ export class DurableCommandJournal {
           'ALTER TABLE durable_command_receipts ADD COLUMN checkpoint_before_ack INTEGER NOT NULL DEFAULT 0'
         )
       })
-    // Scene undo now reads native Scene history; the retired fast-only undo copies are dropped.
-    if (receiptColumns.some((column) => column.name === 'undo_json'))
-      storage.transactionSync(() => {
-        storage.sql.exec("DELETE FROM durable_command_json_chunks WHERE document_key LIKE 'undo:%'")
-        storage.sql.exec('ALTER TABLE durable_command_receipts DROP COLUMN undo_json')
-      })
-    // The Convex-first external-commit journal is retired; its table is dropped.
-    storage.sql.exec('DROP TABLE IF EXISTS durable_external_commit')
-    storage.sql.exec("DELETE FROM durable_command_json_chunks WHERE document_key = 'external'")
   }
 
   activate(input: {

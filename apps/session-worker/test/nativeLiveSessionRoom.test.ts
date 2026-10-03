@@ -6391,13 +6391,13 @@ function planDoorChange(input: {
 }
 
 it.each([
-  // Fog is on with a stored layer, so an allowed door change stages exploration through Convex.
-  { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'OPEN' as const, outcome: 'EXTERNAL' },
-  { role: 'PLAYER' as const, from: 'OPEN' as const, to: 'CLOSED' as const, outcome: 'EXTERNAL' },
+  // Fog is on with a stored layer, so an allowed door change stages a geometry save.
+  { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'OPEN' as const, outcome: 'STAGED' },
+  { role: 'PLAYER' as const, from: 'OPEN' as const, to: 'CLOSED' as const, outcome: 'STAGED' },
   { role: 'PLAYER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'FORBIDDEN' },
   { role: 'PLAYER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'FORBIDDEN' },
-  { role: 'OWNER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'EXTERNAL' },
-  { role: 'OWNER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'EXTERNAL' }
+  { role: 'OWNER' as const, from: 'CLOSED' as const, to: 'LOCKED' as const, outcome: 'STAGED' },
+  { role: 'OWNER' as const, from: 'LOCKED' as const, to: 'OPEN' as const, outcome: 'STAGED' }
 ])('lets $role change a visible $from door to $to: $outcome', ({ role, from, to, outcome }) => {
   const { doorId, scene } = exploredDoorScene(true)
   const plan = planDoorChange({
@@ -6464,7 +6464,7 @@ it('plans live token movement with vision and kept fog only while fog is OFF', (
       actor: { role: 'OWNER', userId: crypto.randomUUID() }
     })
   expect(plan('OFF')).toMatchObject({ kind: 'ACCEPTED' })
-  expect(plan('SHARED_PARTY')).toMatchObject({ kind: 'EXTERNAL' })
+  expect(plan('SHARED_PARTY')).toMatchObject({ kind: 'STAGED' })
 })
 
 it('plans bound moves and moves on a bound Scene through room geometry', () => {
@@ -6496,10 +6496,10 @@ it('plans bound moves and moves on a bound Scene through room geometry', () => {
   const encounterId = crypto.randomUUID()
   // A bound token follows its actor's controllers, which room geometry checks, never the token's list.
   expect(plan({ expectedEncounterVersion: 3, encounterId, role: 'PLAYER' })).toEqual({
-    kind: 'EXTERNAL'
+    kind: 'STAGED'
   })
   expect(plan({ expectedEncounterVersion: null, encounterId, role: 'OWNER' })).toEqual({
-    kind: 'EXTERNAL'
+    kind: 'STAGED'
   })
   expect(plan({ expectedEncounterVersion: null, encounterId, role: 'PLAYER' })).toMatchObject({
     code: 'FORBIDDEN'

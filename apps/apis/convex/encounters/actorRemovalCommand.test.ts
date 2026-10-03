@@ -6,8 +6,6 @@ import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
-  EncounterExecuteInput,
-  EncounterCommandResultDto,
   EncounterGmProjectionDto,
   CreateEncounterInputDto,
   CreateEncounterBlueprintInputDto,
@@ -38,7 +36,6 @@ import {
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  insertActiveLiveAuthority,
   replayInRoom,
   RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
@@ -48,9 +45,6 @@ import { readFightingCharacters } from '../liveSessions/characterHolds'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
 )
@@ -167,178 +161,6 @@ async function capture(base: Fixture) {
 }
 
 describe('native actor removal transaction', () => {
-  it.each(['REORDER', 'REMOVE_ACTOR', 'REINFORCE'] as const)(
-    'fences direct %s while room authority is held and allows expired or released authority',
-    async (type) => {
-      const base = await setup()
-      const actor = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!
-      const command: EncounterExecuteInput['command'] =
-        type === 'REORDER'
-          ? {
-              type,
-              encounterId: base.run.id,
-              commandId: crypto.randomUUID(),
-              expectedVersion: base.run.version,
-              actorIds: base.run.actors.map(({ id }) => id).reverse()
-            }
-          : type === 'REMOVE_ACTOR'
-            ? {
-                type,
-                encounterId: base.run.id,
-                commandId: crypto.randomUUID(),
-                expectedVersion: base.run.version,
-                actorId: actor.id
-              }
-            : {
-                type,
-                encounterId: base.run.id,
-                commandId: crypto.randomUUID(),
-                expectedVersion: base.run.version,
-                enemy: {
-                  kind: 'CUSTOM',
-                  label: 'Reinforcement',
-                  maxHitPoints: 3
-                },
-                public: true
-              }
-      const authorityId = await base.t.run((ctx) =>
-        insertActiveLiveAuthority(ctx, {
-          campaignId: base.campaign.id,
-          epoch: crypto.randomUUID(),
-          createdAt: new Date().toISOString()
-        })
-      )
-      const before = await capture(base)
-      for (const phase of ['ACTIVATING', 'DO_ACTIVE', 'DRAINING'] as const) {
-        await base.t.run((ctx) =>
-          ctx.db.patch(authorityId, {
-            phase,
-            activationExpiresAt: Date.now() + 60_000,
-            ...(phase === 'DRAINING'
-              ? { finalSequence: 0, finalStateChecksum: '0'.repeat(64) }
-              : {})
-          })
-        )
-        await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
-          'This Encounter is currently owned by its Campaign live table.'
-        )
-        expect(await capture(base)).toEqual(before)
-      }
-      await base.t.run((ctx) =>
-        ctx.db.patch(authorityId, {
-          phase: 'ACTIVATING',
-          activationExpiresAt: Date.now() - 1
-        })
-      )
-      const expired = await base.owner.caller.mutation(execute, { command })
-      expect(expired.projection.version).toBe(base.run.version + 1)
-      await base.t.run((ctx) => ctx.db.delete(authorityId))
-      const next: EncounterExecuteInput['command'] =
-        type === 'REORDER'
-          ? {
-              type,
-              encounterId: base.run.id,
-              commandId: crypto.randomUUID(),
-              expectedVersion: expired.projection.version,
-              actorIds: expired.projection.actors.map(({ id }) => id).reverse()
-            }
-          : type === 'REMOVE_ACTOR'
-            ? {
-                type,
-                encounterId: base.run.id,
-                commandId: crypto.randomUUID(),
-                expectedVersion: expired.projection.version,
-                actorId: expired.projection.actors.find(
-                  (candidate) => candidate.id !== actor.id && candidate.kind === 'CUSTOM'
-                )!.id
-              }
-            : {
-                type,
-                encounterId: base.run.id,
-                commandId: crypto.randomUUID(),
-                expectedVersion: expired.projection.version,
-                enemy: {
-                  kind: 'CUSTOM',
-                  label: 'Released reinforcement',
-                  maxHitPoints: 3
-                },
-                public: true
-              }
-      const released = await base.owner.caller.mutation(execute, {
-        command: next
-      })
-      expect(released.projection.version).toBe(expired.projection.version + 1)
-    }
-  )
-
-  it.each([
-    'SET_ROUND',
-    'COMPLETE',
-    'UPDATE_ACTOR',
-    'REVERT_LAST_ACTION',
-    'ROLL_ACTOR_INITIATIVE',
-    'ROLL_ENEMY_ACTION'
-  ] as const)(
-    'fences direct %s while room authority is held without changing state or receipts',
-    async (type) => {
-      const base = await setup()
-      const common = {
-        encounterId: base.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: base.run.version
-      }
-      const command: EncounterExecuteInput['command'] =
-        type === 'SET_ROUND'
-          ? { ...common, type, round: 2 }
-          : type === 'UPDATE_ACTOR'
-            ? {
-                ...common,
-                type,
-                actorId: base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!.id,
-                gmNotes: 'Room-owned correction'
-              }
-            : type === 'ROLL_ACTOR_INITIATIVE'
-              ? {
-                  ...common,
-                  type,
-                  actorId: base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!.id
-                }
-              : type === 'ROLL_ENEMY_ACTION'
-                ? {
-                    ...common,
-                    type,
-                    actorId: base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!.id,
-                    featureId: crypto.randomUUID(),
-                    rollDefinitionId: crypto.randomUUID(),
-                    visibility: 'PRIVATE'
-                  }
-                : { ...common, type }
-      const authorityId = await base.t.run((ctx) =>
-        insertActiveLiveAuthority(ctx, {
-          campaignId: base.campaign.id,
-          epoch: crypto.randomUUID(),
-          createdAt: new Date().toISOString()
-        })
-      )
-      const before = await capture(base)
-      for (const phase of ['ACTIVATING', 'DO_ACTIVE', 'DRAINING'] as const) {
-        await base.t.run((ctx) =>
-          ctx.db.patch(authorityId, {
-            phase,
-            activationExpiresAt: Date.now() + 60_000,
-            ...(phase === 'DRAINING'
-              ? { finalSequence: 0, finalStateChecksum: '0'.repeat(64) }
-              : {})
-          })
-        )
-        await expect(base.owner.caller.mutation(execute, { command })).rejects.toThrow(
-          'This Encounter is currently owned by its Campaign live table.'
-        )
-        expect(await capture(base)).toEqual(before)
-      }
-    }
-  )
-
   it('removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority', async () => {
     const base = await setup()
     const actor = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!
@@ -432,20 +254,6 @@ describe('native actor removal transaction', () => {
     const before = await capture(base)
     await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow()
     await expect(executeInRoom(base.t, { command })).rejects.toThrow('Unauthenticated')
-    await expect(
-      base.player.caller.run(async (ctx) => {
-        const membership = await ctx.db
-          .query('campaignMemberships')
-          .withIndex('by_campaignId_userId', (q) =>
-            q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
-          )
-          .unique()
-        if (!membership) throw new Error('Missing player membership fixture.')
-        await ctx.db.delete(membership._id)
-        await expect(ctx.runMutation(execute, { command })).rejects.toThrow('Campaign not found')
-        throw new Error('Restore the authenticated outsider fixture')
-      })
-    ).rejects.toThrow('Restore the authenticated outsider fixture')
     expect(await capture(base)).toEqual(before)
     const result = await executeInRoom(base.owner.caller, { command })
     expect(result.projection.actors.map((candidate) => candidate.id)).not.toContain(actor.id)

@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict'
 import { ConvexClient, type ConvexHttpClient } from 'convex/browser'
 import { makeFunctionReference } from 'convex/server'
-import {
-  encounterGmProjectionDtoSchema,
-  type EncounterExecuteInput
-} from '@artificer-toolkit/schema/api/encounters'
+import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -34,7 +31,6 @@ import {
 } from './fixtures/encounterAction'
 
 type ActionClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
-type RollbackOperation = { kind: 'COMMAND'; input: EncounterExecuteInput }
 const inspectMovementReactionDamage = makeFunctionReference<
   'query',
   { campaignId: string; encounterId: string; rootCommandId: string; terminalCommandId: string },
@@ -934,21 +930,19 @@ async function executeCutoverWorkloadReaction(
 
 /**
  * V15.1 checks on the primary aggregate before measuring: a same-version race with one winner and
- * one stale loser, exact replay, a refused turn and a refused player command that leave no trace, a
- * rolled-back transaction, and a reaction decision only its controller can see.
+ * one stale loser, exact replay, a refused turn and a refused player command that leave no trace,
+ * and a reaction decision only its controller can see.
  */
 async function verifyCutoverWorkloadPreflight({
   peer,
   aggregate,
   players,
-  subscribers,
-  rollback
+  subscribers
 }: {
   peer: DevelopmentHttpClient
   aggregate: CutoverWorkloadAggregate
   players: readonly DevelopmentHttpClient[]
   subscribers: readonly ConvexClient[]
-  rollback: (input: { encounterId: string; operation: RollbackOperation }) => Promise<unknown>
 }) {
   const owner = aggregate.gm
   const actorId = aggregate.actorIds[0]!
@@ -1025,23 +1019,6 @@ async function verifyCutoverWorkloadPreflight({
     players[1]!.mutation(executeEncounterCommand, action(crypto.randomUUID())),
     (error) => assertDomainRejection(error, 'NOT_ACTOR_CONTROLLER')
   )
-  // A transaction that fails after its writes leaves nothing behind.
-  await rollback({
-    encounterId: aggregate.run.id,
-    operation: {
-      kind: 'COMMAND',
-      input: {
-        command: {
-          type: 'SET_INITIATIVE',
-          encounterId: aggregate.run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: aggregate.run.version,
-          actorId: targetActorId,
-          initiative: 30
-        }
-      }
-    }
-  })
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: aggregate.run.id }),
     afterWinner
@@ -1298,13 +1275,7 @@ export async function verifyEncounterCutoverWorkload({
       peer,
       aggregate: primary,
       players: playerClients,
-      subscribers: subscriptions.clients,
-      rollback: (input) =>
-        owner.action(api.encounters.developmentLifecycle.verifyRollback, {
-          ...input,
-          ownerUserId: gm.userId,
-          campaignId
-        })
+      subscribers: subscriptions.clients
     })
     if (browserAccounts) {
       const { openV15WorkloadBrowser } =

@@ -73,9 +73,9 @@ import { createNodeSqliteRoomStorage } from '../../../session-worker/src/testing
 import { readNativeEncounterOccurrenceOwner } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
 import { voidDeclineCommandId } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import type {
-  ExternalSceneContext,
-  ExternalSceneCommand
-} from '../../../session-worker/src/nativeExternalSceneCommit'
+  StagedSceneContext,
+  StagedSceneCommand
+} from '../../../session-worker/src/roomSceneGeometryPlan'
 import { executeRoomSceneGeometry } from '../../../session-worker/src/roomSceneGeometryCommand'
 import { composeRoomSceneVision } from '../../../session-worker/src/roomSceneVision'
 import { readRoomSceneState } from '../../../session-worker/src/roomSceneRead'
@@ -142,7 +142,7 @@ async function roomSceneContext(
   session: { environment: ReturnType<typeof workerEnvironment>; accessToken: string },
   actor: LiveEncounterActor,
   encounterId: string | null
-): Promise<ExternalSceneContext | null> {
+): Promise<StagedSceneContext | null> {
   const capture = await callLiveSessionRoute(session.environment, session.accessToken, 'capture', {
     campaignId: actor.campaignId,
     expectedUserId: actor.expectedUserId,
@@ -329,7 +329,7 @@ async function commitRoomMovement(
     caller: MemberCaller
     actor: LiveEncounterActor
     encounterId: string
-    command: ExternalSceneCommand
+    command: StagedSceneCommand
     random: (maximum: number) => number
   }
 ) {
@@ -358,7 +358,7 @@ async function commitRoomScene(
     caller: MemberCaller
     actor: LiveEncounterActor
     encounterId: string | null
-    command: ExternalSceneCommand
+    command: StagedSceneCommand
     random: (maximum: number) => number
   }
 ) {
@@ -777,7 +777,7 @@ async function sceneEncounterId(caller: Pick<MemberCaller, 'run'>, sceneId: stri
 async function planInRoom(
   caller: MemberCaller,
   encounterId: string,
-  command: ExternalSceneCommand
+  command: StagedSceneCommand
 ) {
   const planned = await queueRoomWork(async () => {
     const member = await enterRoom(caller, { encounterId })
@@ -848,7 +848,7 @@ export async function planMovementInRoom(
 export function commitSceneInRoom(
   caller: MemberCaller,
   campaignId: string,
-  command: ExternalSceneCommand
+  command: StagedSceneCommand
 ): Promise<SceneGeometryCommandResult> {
   return queueRoomWork(async () => {
     const member = await enterRoom(caller, { campaignId })

@@ -14,7 +14,7 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { ExternalSceneCommand } from '../../../session-worker/src/nativeExternalSceneCommit'
+import type { StagedSceneCommand } from '../../../session-worker/src/roomSceneGeometryPlan'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
   commitSceneInRoom,
@@ -358,7 +358,7 @@ async function setupPlayerScene() {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
   await activateRoom(base)
-  const player = (command: ExternalSceneCommand) =>
+  const player = (command: StagedSceneCommand) =>
     commitSceneInRoom(base.other.caller, base.campaign.id, command)
   return { base, sceneId, scout, sentry, closed, locked, version, player }
 }

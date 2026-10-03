@@ -1,9 +1,7 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import { api } from '../_generated/api'
 import type {
-  EncounterCommandResultDto,
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -12,9 +10,6 @@ import { reinforceEncounterActors } from '@artificer-toolkit/encounter-persisten
 import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 async function manualFixture() {
   const base = await setupCharacterRun()
   const {
@@ -98,15 +93,13 @@ describe('native actor reinforcement transaction', () => {
     const stored = await capture(base)
     expect(stored.actors).toHaveLength(before.actors.length + 1)
     expect(stored.commands.some((entry) => entry.commandId === command.commandId)).toBe(true)
-    await base.owner.caller
-      .mutation(execute, {
-        command: {
-          ...command,
-          encounterId: command.encounterId.toUpperCase(),
-          commandId: command.commandId.toUpperCase()
-        }
-      })
-      .then((replay) => expect(replay).toEqual(result))
+    await executeInRoom(base.owner.caller, {
+      command: {
+        ...command,
+        encounterId: command.encounterId.toUpperCase(),
+        commandId: command.commandId.toUpperCase()
+      }
+    }).then((replay) => expect(replay).toEqual(result))
     expect(await capture(base)).toEqual(stored)
   }, 30_000)
 

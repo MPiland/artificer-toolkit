@@ -216,7 +216,14 @@ it('settles a used automatic reaction Concentration check once with its damage r
     d20: { rawFaces: [1, 1], rollMode: 'ADVANTAGE', dc: 10, modifier: 1 },
     cleanup: {
       maintainedStateId: seeded.state.id,
-      removedDependentEffectIds: expect.arrayContaining([seeded.dependent.id])
+      removedDependentEffectIds: expect.arrayContaining([seeded.dependent.id]),
+      characterOwnerTransitions: [
+        {
+          characterId: value.base.character.id,
+          beforeStreamVersion: before.character.play.streamVersion + 1,
+          afterStreamVersion: before.character.play.streamVersion + 2
+        }
+      ]
     }
   })
   expect(concentration.ownerTransitions).toMatchObject([
@@ -230,10 +237,13 @@ it('settles a used automatic reaction Concentration check once with its damage r
   expect(random).toHaveBeenCalledTimes(3)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
-  // The damage and the Concentration cleanup reach Convex in one checkpoint, one stream bump.
-  expect(after.character?.play.streamVersion).toBe(before.character.play.streamVersion + 1)
+  // The damage and the Concentration cleanup reach Convex in one checkpoint as two ordered stream
+  // bumps: the damage settles first, and the check's cleanup then advances the damaged version.
+  expect(after.character?.play.streamVersion).toBe(before.character.play.streamVersion + 2)
   // The Use response continues the paused movement, so its receipt holds the terminal result.
-  const receipt = after.receipts.find((entry) => entry.commandId === responseCommandId)
+  const receipts = after.receipts.filter((entry) => entry.commandId === responseCommandId)
+  expect(receipts).toHaveLength(1)
+  const [receipt] = receipts
   if (!receipt) throw new Error('Movement Concentration receipt is unavailable.')
   expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))).toEqual(
     prepared.outcome.result

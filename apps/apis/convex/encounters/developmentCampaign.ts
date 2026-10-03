@@ -354,7 +354,6 @@ export const removeFixtureCampaign = internalMutation({
       ) ||
       ((conversations.length || notebookSections.length) &&
         (sessions.length ||
-          runs.length ||
           announcements.length ||
           contentShares.length ||
           contentRemovalEvents.length))

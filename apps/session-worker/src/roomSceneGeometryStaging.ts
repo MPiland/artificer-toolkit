@@ -27,7 +27,7 @@ import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schem
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { ExternalSceneCommand, ExternalSceneContext } from './nativeExternalSceneCommit.js'
+import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
@@ -37,8 +37,8 @@ import { readRoomSessionVisionScope } from './roomSceneGeometryRead.js'
 export async function stageRoomSceneGeometry(input: {
   ctx: EncounterPersistenceTransaction
   transaction: RoomTransaction
-  command: ExternalSceneCommand
-  context: ExternalSceneContext
+  command: StagedSceneCommand
+  context: StagedSceneContext
   observed: LiveSessionRulesRevisions
 }): Promise<SceneGeometryBeginResult> {
   const { ctx, transaction, context, observed } = input

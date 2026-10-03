@@ -66,8 +66,8 @@ import {
 } from './nativeLiveSessionState.js'
 import {
   canPreviewSceneTokenDrag,
-  isExternalSceneCommand,
   isInlineSceneCommand,
+  isStagedSceneCommand,
   liveSessionSceneCommandInputSchema,
   planLiveSceneCommand
 } from './nativeRoomSceneCommand.js'
@@ -80,7 +80,7 @@ import {
   encounterCommandRefusal,
   sceneNotPresentedRejection
 } from './nativeRoomEncounterCommand.js'
-import type { ExternalSceneCommand, ExternalSceneContext } from './nativeExternalSceneCommit.js'
+import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
@@ -522,13 +522,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (parsed.data.type === 'COMMAND') {
       const work = { admission, message: parsed.data }
       const commandId = work.message.command.command.commandId
-      // A player may have one Encounter or Convex-first command in flight; the GM's are bounded
+      // A player may have one Encounter or staged Scene command in flight; the GM's are bounded
       // per socket only.
       const playerEncounter =
         admission.role === 'PLAYER' &&
         (work.message.command.scope === 'ENCOUNTER' ||
           work.message.command.scope === 'CHARACTER_SHEET' ||
-          this.#isExternalCommand(work.message.command.command))
+          this.#isStagedCommand(work.message.command.command))
           ? admission.userId
           : null
       if (
@@ -1266,7 +1266,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           publishRoomSceneInline({ ...base, actor: admission, command })
         )
       } catch (error) {
-        this.#rejectExternal(socket, commandId, error, correction())
+        this.#rejectSceneCommand(socket, commandId, error, correction())
       }
       return
     }
@@ -1289,7 +1289,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           () => this.#fogUploads.markPublished(command.saveId.toLowerCase())
         )
       } catch (error) {
-        this.#rejectExternal(socket, commandId, error, correction())
+        this.#rejectSceneCommand(socket, commandId, error, correction())
       }
       return
     }
@@ -1338,7 +1338,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       } catch (error) {
         if (error instanceof NoSceneMoveToUndoError)
           this.#rejectCommand(socket, commandId, 'INVALID_COMMAND', error.message)
-        else this.#rejectExternal(socket, commandId, error, correction())
+        else this.#rejectSceneCommand(socket, commandId, error, correction())
       }
       return
     }
@@ -1346,7 +1346,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       try {
         await this.#commitRoomGeometry(socket, admission, value, command, fingerprint)
       } catch (error) {
-        this.#rejectExternal(socket, commandId, error, correction())
+        this.#rejectSceneCommand(socket, commandId, error, correction())
       }
       return
     }
@@ -1367,11 +1367,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       return
     }
-    if (plan.kind === 'EXTERNAL') {
+    if (plan.kind === 'STAGED') {
       try {
         await this.#commitRoomGeometry(socket, admission, value, command, fingerprint)
       } catch (error) {
-        this.#rejectExternal(socket, commandId, error, correction())
+        this.#rejectSceneCommand(socket, commandId, error, correction())
       }
       return
     }
@@ -1595,7 +1595,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             type: 'COMMAND_COMMITTED'
           })
       } catch (error) {
-        this.#rejectExternal(socket, command.commandId, error, undefined)
+        this.#rejectSceneCommand(socket, command.commandId, error, undefined)
       }
       return
     }
@@ -2445,12 +2445,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     socket: WebSocket,
     admission: Admission,
     value: SocketAttachment,
-    command: ExternalSceneCommand,
+    command: StagedSceneCommand,
     fingerprint: string
   ) {
     if (this.#aggregateNeedsReload) await this.#flushOutbox()
     await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-    const context = this.#externalSceneContext()
+    const context = this.#stagedSceneContext()
     if (!context) throw new LiveSessionRouteError(409)
     const before = context.scene
     const cache = this.#cache!
@@ -2604,7 +2604,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    * The room's synchronized presented Scene that geometry commands plan against; null until the
    * Scene is synchronized.
    */
-  #externalSceneContext(): ExternalSceneContext | null {
+  #stagedSceneContext(): StagedSceneContext | null {
     const synchronized = this.#cache?.synchronized ? this.#cache : null
     if (!synchronized?.scene || !synchronized.presentation) return null
     return {
@@ -2768,12 +2768,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#broadcastStateSync()
       await this.#scheduleAlarm()
     } catch (error) {
-      this.#rejectExternal(socket, commandId, error, undefined)
+      this.#rejectSceneCommand(socket, commandId, error, undefined)
     }
   }
 
   /** Maps a failed Scene command to its user-safe rejection. */
-  #rejectExternal(
+  #rejectSceneCommand(
     socket: WebSocket,
     commandId: string,
     error: unknown,
@@ -2827,13 +2827,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /** Whether a member's command requires geometry planning on the synchronized Scene. */
-  #isExternalCommand(command: unknown): boolean {
+  #isStagedCommand(command: unknown): boolean {
     const parsed = liveSessionSceneCommandInputSchema.safeParse(command)
     const cached = this.#cache?.synchronized ? this.#cache : null
     return (
       parsed.success &&
       !!cached?.scene &&
-      isExternalSceneCommand(parsed.data, cached.scene, cached.encounterId)
+      isStagedSceneCommand(parsed.data, cached.scene, cached.encounterId)
     )
   }
 

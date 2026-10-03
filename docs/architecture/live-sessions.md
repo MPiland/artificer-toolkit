@@ -66,8 +66,9 @@ Lifecycle of one epoch:
 
 Direct Convex mutations that overlap live table state are refused or fenced while authority is
 `ACTIVATING`, `DO_ACTIVE` or `DRAINING` (`apps/apis/convex/liveSessions/authorityGuard.ts`,
-`readLiveCampaignAuthority`). `encounters/commands:execute` is internal and records only GM tools;
-every Encounter command enters through the room.
+`readLiveCampaignAuthority`). No Convex function executes an Encounter command: every one enters
+through the room, which runs `recordEncounterCommand` against its own journal.
+`apps/apis/convex/encounters/commandBoundary.test.ts` asserts that no registered function accepts one.
 
 Scene presentation is a room command: `scenes/presentations:setLive` sends `SET_SCENE_PRESENTATION`
 over the control route, the room finishes pending publication, the protected Convex setter checks

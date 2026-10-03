@@ -26,12 +26,14 @@ export type DevelopmentClient = Pick<ConvexHttpClient, 'query'> & {
 
 // Names an Encounter command a development client sends through the Campaign's Session room,
 // as a browser does: DevelopmentHttpClient (developmentHttpClient.ts) over its socket, and the
-// in-process test client (`inProcessDevelopmentClient`) through the room's dispatcher.
+// in-process test client (`inProcessDevelopmentClient`) through the room's dispatcher. Not a
+// Convex function: no deployed function executes Encounter commands, and both clients intercept
+// this reference before any Convex call.
 export const executeEncounterCommand = makeFunctionReference<
   'mutation',
   EncounterExecuteInput,
   EncounterCommandResultDto
->('encounters/commands:execute')
+>('room:encounterCommand')
 
 /**
  * Asserts an expected Encounter domain rejection by reason. Both clients surface it as

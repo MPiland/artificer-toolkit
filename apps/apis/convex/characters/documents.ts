@@ -1,6 +1,6 @@
 import * as zMini from 'zod/mini'
 import type { CharacterBuilderResolveInput } from '@artificer-toolkit/schema/api/characterBuilderQueries'
-import { readCharacterReceiptHistory as parseCharacterReceiptHistory } from '@artificer-toolkit/encounter-persistence/characterSheetReceipts'
+import { readCharacterReceiptHistory as parseCharacterReceiptHistory } from '@artificer-toolkit/encounter-persistence/characterReceiptHistory'
 import {
   characterBuilderDraftDtoSchema,
   characterBuilderDraftPayloadDtoSchema,

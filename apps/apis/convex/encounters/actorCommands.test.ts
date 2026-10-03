@@ -13,7 +13,6 @@ import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
-  EncounterCommandResultDto,
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -33,7 +32,6 @@ import { readCharacterRecord, readCharacterRow } from '../characters/stateDocume
 import {
   executeInRoom,
   replayInRoom,
-  insertActiveLiveAuthority,
   RoomCommandRefusal
 } from '../../tests/fixtures/liveSessionWorker'
 
@@ -55,11 +53,6 @@ const personalExecute = makeFunctionReference<
   CharacterSheetExecuteInput,
   CharacterSheetCommandResponseDto
 >('characters/sheetCommands:execute')
-const directExecute = makeFunctionReference<
-  'mutation',
-  EncounterExecuteInput,
-  EncounterCommandResultDto
->('encounters/commands:execute')
 
 async function setup() {
   const base = await readySheetFixture()
@@ -138,50 +131,6 @@ async function stored(
 
 describe('native Encounter UPDATE_ACTOR commands', () => {
   afterEach(() => vi.restoreAllMocks())
-  it('fences nested Character updates at the direct Convex endpoint while a live room owns the Run', async () => {
-    const base = await setup()
-    await base.t.run(async (ctx) => {
-      await activateFixtureRun(ctx, base.run.id, {
-        round: 1,
-        currentActorId: base.characterActor.id
-      })
-      await insertActiveLiveAuthority(ctx, {
-        campaignId: base.campaign.id,
-        epoch: crypto.randomUUID(),
-        createdAt: base.campaign.createdAt
-      })
-    })
-    const before = await stored(base.t, base.run.id, base.characterActor.id)
-    const characterBefore = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
-    if (!characterBefore || !before.run) throw new Error('Missing live ownership fixture.')
-    const command = update({
-      type: 'UPDATE_ACTOR',
-      encounterId: base.run.id,
-      commandId: crypto.randomUUID(),
-      expectedVersion: before.run.version,
-      actorId: base.characterActor.id,
-      characterCommand: {
-        type: 'ADJUST_HIT_POINTS',
-        commandId: crypto.randomUUID(),
-        expectedVersion: characterBefore.play.streamVersion,
-        mode: 'DAMAGE',
-        amount: 1
-      }
-    })
-    await expect(base.other.caller.mutation(directExecute, command)).rejects.toThrow(
-      'This Encounter is currently owned by its Campaign live table.'
-    )
-    await expect(base.other.caller.mutation(directExecute, command)).rejects.toThrow(
-      'This Encounter is currently owned by its Campaign live table.'
-    )
-    expect(await stored(base.t, base.run.id, base.characterActor.id)).toEqual(before)
-    expect(await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))).toEqual(
-      characterBefore
-    )
-    expect((await base.readState()).receipts).not.toContainEqual(
-      expect.objectContaining({ commandId: command.command.characterCommand!.commandId })
-    )
-  })
   it('persists direct CUSTOM updates, derives health, and leaves snapshots and cursor intact', async () => {
     const { t, other: gm, run, customActor } = await setup()
     await t.run(async (ctx) => {

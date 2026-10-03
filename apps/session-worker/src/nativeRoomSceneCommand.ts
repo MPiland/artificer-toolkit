@@ -71,7 +71,7 @@ export function isInlineSceneCommand(
  * change that derives fog exploration, and every token or barrier edit. Door changes and moves that
  * do neither commit directly.
  */
-export function isExternalSceneCommand(
+export function isStagedSceneCommand(
   command: LiveSceneCommand,
   scene: CampaignSceneStateDto,
   encounterId: string | null
@@ -98,7 +98,7 @@ export function isExternalSceneCommand(
 
 type SceneCommandPlan =
   | { kind: 'ACCEPTED'; delta: NonNullable<SceneCommandResultDto['delta']> }
-  | { kind: 'EXTERNAL' }
+  | { kind: 'STAGED' }
   | {
       kind: 'REJECTED'
       code: LiveSessionCommandRejectionCodeDto
@@ -126,7 +126,7 @@ export function planLiveSceneCommand(input: {
   actor: { role: 'OWNER' | 'PLAYER'; userId: string }
 }): SceneCommandPlan {
   const { command, scene, actor } = input
-  const external = isExternalSceneCommand(command, scene, input.encounterId)
+  const staged = isStagedSceneCommand(command, scene, input.encounterId)
   if (command.type === 'SET_SCENE_DOOR_STATE') {
     const door = scene.barriers.find(
       (barrier) => barrier.id === command.barrierId && barrier.kind === 'DOOR'
@@ -146,7 +146,7 @@ export function planLiveSceneCommand(input: {
       command.state
     )
     if (failure) return reject('FORBIDDEN', failure, false)
-    if (external) return { kind: 'EXTERNAL' }
+    if (staged) return { kind: 'STAGED' }
     return {
       kind: 'ACCEPTED',
       delta: { barrierId: command.barrierId, kind: 'DOOR_STATE_SET', state: command.state }
@@ -164,6 +164,6 @@ export function planLiveSceneCommand(input: {
   const position = command.path.at(-1)!
   const failure = sceneTokenMovementFailure(scene, command.tokenId, position, command.path)
   if (failure) return reject('INVALID_COMMAND', failure, true)
-  if (external) return { kind: 'EXTERNAL' }
+  if (staged) return { kind: 'STAGED' }
   return { kind: 'ACCEPTED', delta: { kind: 'TOKEN_MOVED', position, tokenId: command.tokenId } }
 }

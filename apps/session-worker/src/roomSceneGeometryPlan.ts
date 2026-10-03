@@ -46,21 +46,21 @@ import type { LiveEncounterActor } from './nativeRoomEncounterCommand.js'
  * A room command that stages a Scene save first: a token move, door change, token or barrier edit,
  * or a movement decision.
  */
-export type ExternalSceneCommand =
+export type StagedSceneCommand =
   | SceneTokenMovementCommandInputDto
   | SceneGeometryCommandInputDto
   | ResolveRuleOccurrenceInputDto
   | VoidRuleOccurrenceInputDto
 
 /** The room's synchronized Scene the command is planned against, never filtered for a member. */
-export interface ExternalSceneContext {
+export interface StagedSceneContext {
   scene: CampaignSceneStateDto
   baseOrdinals: SceneBaseOrdinals
   characterRevisions: SceneSessionVisionComposition['characterRevisions']
   presentation: LiveSessionScenePublicationDto['presentation']
 }
 
-export type PreparedExternalSceneCommit = {
+type PreparedStagedSceneCommit = {
   saveId: string
   expectedScene: LiveSessionExpectedScene
   nextScene: CampaignSceneStateDto
@@ -84,14 +84,14 @@ export type PreparedExternalSceneCommit = {
  */
 export async function prepareStagedSceneCommit(input: {
   actor: LiveEncounterActor
-  command: ExternalSceneCommand
-  context: ExternalSceneContext
+  command: StagedSceneCommand
+  context: StagedSceneContext
   runtime: RulesRuntimeService
   random(maximum: number): number
   captures: LiveCaptureReads
   staged: { begun: Extract<SceneGeometryBeginResult, { kind: 'READY' }>; saveId: string }
   movement: LiveSessionMovementCaptureScope | null
-}): Promise<PreparedExternalSceneCommit> {
+}): Promise<PreparedStagedSceneCommit> {
   const { actor, command, context, captures } = input
   const { scene } = context
   const stage = input.staged

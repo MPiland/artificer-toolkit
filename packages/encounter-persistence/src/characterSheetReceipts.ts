@@ -7,6 +7,7 @@ import {
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
+import { readCharacterReceiptHistory } from './characterReceiptHistory.js'
 
 export type ReceiptScope = {
   characterId: string
@@ -15,23 +16,6 @@ export type ReceiptScope = {
   streamVersion: number
   contentMaturity: Parameters<typeof presentCampaignCharacterHistory>[1]
   viewer: Parameters<typeof presentCampaignCharacterHistory>[2]
-}
-
-export function readCharacterReceiptHistory(
-  receipt: ReturnType<typeof characterStoredCommandReceiptSchema.parse>
-) {
-  const raw: unknown = JSON.parse(receipt.historyJson)
-  if (checksumRuleDocument(raw) !== receipt.historyChecksum)
-    throw new Error('Stored Sheet command receipt history checksum mismatch.')
-  const historyEntry = characterHistoryEntryDtoSchema.parse(raw)
-  if (
-    historyEntry.eventId !== receipt.id ||
-    historyEntry.actorId !== receipt.actorId ||
-    historyEntry.occurredAt !== receipt.occurredAt
-  ) {
-    throw new Error('Stored Sheet command receipt history identity mismatch.')
-  }
-  return historyEntry
 }
 
 const fingerprint = (command: CharacterSheetCommandInputDto) =>

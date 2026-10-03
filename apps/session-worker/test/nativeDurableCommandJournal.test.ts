@@ -102,7 +102,7 @@ it('keeps the oldest unpublished receipt time through partial checkpoints and ev
   })
 })
 
-it('migrates receipt timestamps once, drops retired undo copies, and retains the recovered deadline', async () => {
+it('migrates receipt timestamps once and retains the recovered deadline', async () => {
   const test = fixture()
   const createdAt = 1_800_000_000_000
   await runInDurableObject(test.stub, (_instance, state) => {
@@ -119,30 +119,18 @@ it('migrates receipt timestamps once, drops retired undo copies, and retains the
           fingerprint TEXT NOT NULL,
           sequence INTEGER NOT NULL UNIQUE CHECK (sequence > 0),
           state_checksum TEXT NOT NULL,
-          receipt_json TEXT NOT NULL,
-          undo_json TEXT
+          receipt_json TEXT NOT NULL
         );
         INSERT INTO durable_command_receipts
-          SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json, '{}'
+          SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json
           FROM receipts_before_timestamp;
         DROP TABLE receipts_before_timestamp;
-        INSERT INTO durable_command_json_chunks VALUES ('undo:command-1', 0, 1, '{}');
       `)
     })
     const clock = vi.spyOn(Date, 'now').mockReturnValue(createdAt)
     try {
       const migrated = new DurableCommandJournal(state.storage)
       expect(migrated.oldestUnpublishedCommandTime()).toBe(createdAt)
-      expect(
-        state.storage.sql
-          .exec<{ count: number }>(
-            `SELECT (SELECT COUNT(*) FROM pragma_table_info('durable_command_receipts')
-                       WHERE name = 'undo_json')
-               + (SELECT COUNT(*) FROM durable_command_json_chunks
-                    WHERE document_key LIKE 'undo:%') AS count`
-          )
-          .one().count
-      ).toBe(0)
       expect(
         migrated.lookupCommand({
           actorId: test.actorId,
@@ -925,29 +913,5 @@ it('fails closed on oversized receipts and outbox JSON, JWTs, and unbounded batc
         throughSequence: MAX_DURABLE_OUTBOX_BATCH_COUNT + 1
       })
     ).toThrowError(expectJournalError('INVALID_ACKNOWLEDGEMENT'))
-  })
-})
-
-
-it('drops the retired external-commit table and its staged state', async () => {
-  const test = fixture()
-  await runInDurableObject(test.stub, (_instance, state) => {
-    state.storage.sql.exec('CREATE TABLE durable_external_commit (id INTEGER PRIMARY KEY)')
-    state.storage.sql.exec(
-      "INSERT INTO durable_command_json_chunks VALUES ('external', 0, 1, '{}')"
-    )
-    new DurableCommandJournal(state.storage)
-    expect(
-      state.storage.sql
-        .exec("SELECT name FROM sqlite_master WHERE name = 'durable_external_commit'")
-        .toArray()
-    ).toEqual([])
-    expect(
-      state.storage.sql
-        .exec<{ count: number }>(
-          "SELECT COUNT(*) AS count FROM durable_command_json_chunks WHERE document_key = 'external'"
-        )
-        .one().count
-    ).toBe(0)
   })
 })

@@ -89,12 +89,9 @@ The sections below preserve dated implementation decisions and partial-gate note
 of how the cutover was built, not current deployment instructions or acceptance status. Use the
 machine acceptance ledger and current guides above for present behavior.
 
-Native `encounters/commands:execute` is internal; browsers reach it only through the Session room
-(see [live-sessions](../../docs/architecture/live-sessions.md)). It uses `encounterExecuteInputSchema` and the existing command
-result DTO. Its current local slice implements GM reminder upsert/removal, with current authority,
-exact Run versions and atomic state/projection/receipt writes. Matching retries return the original
-stored result. Other commands, player reads and browser wiring remain unfinished; see
-[native Run reminders](../../docs/architecture/persistence.md#encounter-run-storage).
+No Convex function executes Encounter commands; the Session room does, through
+`recordEncounterCommand` (see [live-sessions](../../docs/architecture/live-sessions.md) and
+[native Run storage](../../docs/architecture/persistence.md#encounter-run-storage)).
 
 Shared System document reads live in `convex/content/systemDocuments.ts`; import them there,
 not from the public `systems.ts` query module. This keeps authoring source reads independent

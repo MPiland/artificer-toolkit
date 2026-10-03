@@ -2849,7 +2849,7 @@
               "proof": [
                 "apps/apis/convex/encounters/commands.test.ts › allows only one active Run per Campaign and preserves START replay",
                 "apps/apis/convex/campaigns/campaignPlay.test.ts › leaves live authority, presentation and an ACTIVE Run untouched when a Session finishes",
-                "impl: apps/apis/convex/encounters/commands.ts"
+                "impl: packages/encounter-persistence/src/commands.ts"
               ]
             },
             {
@@ -2863,7 +2863,7 @@
                 "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads",
                 "packages/schema/src/__tests__/campaign-live-play-contracts.test.ts (AUTOMATIC automationMode rejected)",
                 "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions",
-                "impl: packages/schema/src/api/campaignSettings.ts (automationModeDtoSchema), apps/apis/convex/encounters/commands.ts"
+                "impl: packages/schema/src/api/campaignSettings.ts (automationModeDtoSchema), packages/encounter-persistence/src/commands.ts"
               ]
             },
             {
@@ -2896,7 +2896,7 @@
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterTransactions.ts: forced rollback and concurrent command/binding/presentation/ownership/Session-finish schedules)",
-                "impl: apps/apis/convex/encounters/developmentLifecycle.ts (verifyRollback), apps/apis/convex/encounters/commands.ts"
+                "impl: apps/apis/convex/encounters/developmentLifecycle.ts (verifyRollback), packages/encounter-persistence/src/commands.ts"
               ]
             }
           ]
@@ -2941,7 +2941,7 @@
                 "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterAutomation.ts: actor/side/cadence scenarios and the same-version REINFORCE race with one VERSION_STALE loser)",
                 "apps/apis/convex/encounters/commands.test.ts › runs native SIDE_ROLL start, side transitions, correction, and both cadence wraps",
                 "apps/apis/convex/encounters/actorReinforcementCommand.test.ts › rejects stale versions and pending occurrences without writes",
-                "impl: apps/apis/convex/encounters/actorReinforcementCommand.ts, apps/apis/convex/encounters/commands.ts"
+                "impl: apps/apis/convex/encounters/actorReinforcementCommand.ts, packages/encounter-persistence/src/commands.ts"
               ]
             },
             {
@@ -2963,7 +2963,7 @@
               "proof": [
                 "apps/apis/convex/encounters/playerControl.test.ts › answers GM, assigned player, granted controller, other player and departed member (granting the GM or a non-member is refused through the room with a redacted route error, and the same grant to current players then succeeds)",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › lets the GM grant a player control of an actor and set its disposition",
-                "impl: apps/apis/convex/encounters/actorController.ts, apps/apis/convex/encounters/commands.ts (UPDATE_ACTOR controllerUserIds)"
+                "impl: apps/apis/convex/encounters/actorController.ts, packages/encounter-persistence/src/commands.ts (UPDATE_ACTOR controllerUserIds)"
               ]
             },
             {
@@ -2983,7 +2983,7 @@
               "proof": [
                 "apps/apis/convex/encounters/playerControl.test.ts › defaults dispositions by actor kind and lets only the GM change them",
                 "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts › omits every actor health band and hidden actors while keeping control and disposition",
-                "impl: apps/apis/convex/encounters/commands.ts, packages/schema/src/api/encounterData.ts"
+                "impl: packages/encounter-persistence/src/commands.ts, packages/schema/src/api/encounterData.ts"
               ]
             },
             {
@@ -3308,7 +3308,7 @@
                 "apps/web/src/domains/characters/sheet/core/CharacterSheetPartyVisibility.test.tsx › lets the Character’s player share the Sheet and choose a health display level",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › shows a player only the health its level allows: %j",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx › always shows the GM exact hit points instead of a band",
-                "impl: packages/schema/src/api/healthDisplay.ts, packages/rules-runtime/src/encounterPlayerProjection.ts, apps/apis/convex/encounters/healthViewer.ts, apps/apis/convex/encounters/projectionReads.ts, apps/apis/convex/encounters/resultPresentation.ts, apps/apis/convex/encounters/commands.ts (SET_HEALTH_DISPLAY_DEFAULT, UPDATE_ACTOR healthDisplay), apps/web/src/domains/campaigns/vtt/EncounterActorHealth.tsx"
+                "impl: packages/schema/src/api/healthDisplay.ts, packages/rules-runtime/src/encounterPlayerProjection.ts, apps/apis/convex/encounters/healthViewer.ts, apps/apis/convex/encounters/projectionReads.ts, apps/apis/convex/encounters/resultPresentation.ts, packages/encounter-persistence/src/commands.ts (SET_HEALTH_DISPLAY_DEFAULT, UPDATE_ACTOR healthDisplay), apps/web/src/domains/campaigns/vtt/EncounterActorHealth.tsx"
               ]
             },
             {
@@ -3680,7 +3680,7 @@
                 "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: a no-room bound move is refused SCENE_NOT_PRESENTED with and without a presentation context, leaving the Scene header and Run unchanged) (contention step deleted in A35-S3c1)",
                 "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan (deleted in A35-S6c3)",
                 "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room",
-                "structure: every Encounter command enters through the room (encounters/commands:execute is internal); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); liveSessions/encounterCommand:execute records only CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES (GM tools with no dice) with a throwing random source; S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
+                "structure: every Encounter command enters through the room (VS-8 deleted encounters/commands.ts; commandBoundary.test.ts asserts no Convex function accepts an Encounter command); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
                 "impl: apps/session-worker/src/roomEncounterCommands.ts (SCENE_NOT_PRESENTED unless the room presents the Encounter's Scene), packages/encounter-persistence/src/sceneGeometryDocuments.ts (assertStandaloneMovement refuses an unbound claim for a token bound in an ACTIVE Run), apps/apis/convex/liveSessions/encounterCommand.ts, packages/schema/src/api/liveSessionEncounterCommand.ts (CONVEX_RECORDED_ENCOUNTER_COMMAND_TYPES), apps/session-worker/src/nativeRoomEncounterCommand.ts",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits an unbound token move on an Encounter-bound Scene in SQLite before acknowledgement (D27) (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › rolls back native bound-Scene geometry and journal writes when SQLite receipt insertion fails (A35-S6b)",
@@ -3756,7 +3756,7 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › forwards an unplanned Encounter command in room order and acknowledges only its initiator (deleted in A35-S6c1: the room forwards no Encounter command)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a GM Encounter actor's Sheet command on the held Character with its receipt (D78) (A35-S6c1: UPDATE_ACTOR with a Sheet command runs on the room-held Character; a PREPARED Run refuses with Sheet guidance)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits a warm native REORDER before fan-out, redacts players, and replays without another write",
-                "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commands.ts (execute is internal; only the room route reaches it)",
+                "impl: apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsSceneLiveState), apps/apis/convex/encounters/commandBoundary.test.ts (no Convex function accepts an Encounter command; VS-8 deleted encounters/commands.ts)",
                 "apps/apis/convex/campaigns/campaignPlay.test.ts › fences prepared Run deletion while room authority is live (VS-3: encounters/runs:deletePrepared refuses a room-held Run)",
                 "apps/apis/convex/encounters/actorTokenBindings.test.ts › refuses Convex binding writes while the live table holds the Run, and binds in the room",
                 "apps/apis/convex/liveSessions/characterHolds.test.ts › acquires active Run holds once and retains the other Run through removal and completion",

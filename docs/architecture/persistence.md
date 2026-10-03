@@ -37,8 +37,8 @@ erDiagram
 While a Campaign has a live authority epoch, the room commits every live command in its own SQLite
 journal. Convex receives fenced checkpoints. The per-command Convex Encounter and Scene write path is
 deleted ([ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md)).
-`encounters/commands:execute` remains only as an internal mutation for outside-live commands and refuses a
-Campaign that has live authority.
+No Convex function executes an Encounter command, including outside a live session, so the room is the
+only writer of command receipts (`apps/apis/convex/encounters/commandBoundary.test.ts` guards this).
 
 **Authority.** `campaignLiveAuthorities` holds one row per Campaign: the phase (`ACTIVATING`, `DO_ACTIVE`,
 `DRAINING`), `persistedSequence`, `persistedStateChecksum`, `lastCheckpoint`, `checkpointedAt` and, while

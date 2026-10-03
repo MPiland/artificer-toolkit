@@ -34,9 +34,9 @@ import type { RoomInputs } from './roomInputs.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareStagedSceneCommit,
-  type ExternalSceneCommand,
-  type ExternalSceneContext
-} from './nativeExternalSceneCommit.js'
+  type StagedSceneCommand,
+  type StagedSceneContext
+} from './roomSceneGeometryPlan.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { stageRoomSceneGeometry } from './roomSceneGeometryStaging.js'
 import {
@@ -62,8 +62,8 @@ export async function executeRoomSceneGeometry(input: {
   campaignId: string
   epoch: string
   userId: string
-  command: ExternalSceneCommand
-  context: ExternalSceneContext
+  command: StagedSceneCommand
+  context: StagedSceneContext
   runtime: RulesRuntimeService
   random(maximum: number): number
 }) {

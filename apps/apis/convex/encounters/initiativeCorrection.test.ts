@@ -14,7 +14,6 @@ import type {
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterExecuteInput,
-  EncounterCommandResultDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
@@ -25,6 +24,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { fixture } from '../../tests/fixtures/characters'
 
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
+import { encounterWriteTransaction } from './encounterPorts'
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
@@ -44,9 +45,6 @@ const createRun = makeFunctionReference<
   CreateEncounterInputDto,
   EncounterGmProjectionDto
 >('encounters/runs:create')
-const execute = makeFunctionReference<'mutation', EncounterExecuteInput, EncounterCommandResultDto>(
-  'encounters/commands:execute'
-)
 const getPlaySettings = makeFunctionReference<
   'query',
   { campaignId: string },
@@ -280,8 +278,15 @@ describe('native initiative corrections', () => {
       }
     }
     await expect(
-      base.owner.caller.run(async (ctx) => {
-        await ctx.runMutation(execute, correction)
+      base.t.run(async (ctx) => {
+        await recordEncounterCommand(
+          encounterWriteTransaction(ctx),
+          correction.command,
+          base.owner.userId,
+          () => {
+            throw new Error('Encounter dice are rolled in the Session room.')
+          }
+        )
         throw new Error('Injected correction rollback')
       })
     ).rejects.toThrow('Injected correction rollback')

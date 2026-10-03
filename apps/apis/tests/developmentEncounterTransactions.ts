@@ -44,7 +44,6 @@ export async function verifyEncounterTransactions({
   rollback: (input: {
     encounterId: string
     operation:
-      | { kind: 'COMMAND'; input: EncounterExecuteInput }
       | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
       | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
   }) => Promise<unknown>
@@ -90,25 +89,6 @@ export async function verifyEncounterTransactions({
       expectedVersion: prepared.version
     }
   }
-  // Convex records only GM tools; the room plans START, so the rollback proof uses one (D41).
-  const initiative: EncounterExecuteInput = {
-    command: {
-      type: 'SET_INITIATIVE',
-      encounterId: prepared.id,
-      commandId: crypto.randomUUID(),
-      expectedVersion: prepared.version,
-      actorId: prepared.actors[0]!.id,
-      initiative: 12
-    }
-  }
-  assert.deepEqual(
-    await rollback({ encounterId: prepared.id, operation: { kind: 'COMMAND', input: initiative } }),
-    { rolledBack: true }
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
-    prepared
-  )
   const starts = await Promise.all([
     concurrent('OWNER', executeEncounterCommand, start),
     concurrent('OWNER', executeEncounterCommand, start)
