@@ -147,6 +147,17 @@ it('answers at once, publishing nothing, when everything is already published', 
   })
 })
 
+it('surfaces a failed checkpoint as a 500 with no detail of why', async () => {
+  const stub = await roomWithPendingCommands(2)
+  await runInDurableObject(stub, async (instance) => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('convex-failure-detail'))
+    const response = await barrier(instance)
+    expect(response.status).toBe(500)
+    const body = await response.text()
+    expect(body).toBe('The room barrier checkpoint failed.')
+  })
+})
+
 it('refuses a room that holds no live authority', async () => {
   await runInDurableObject(roomStub(`barrier:${crypto.randomUUID()}`), async (instance) => {
     expect((await barrier(instance)).status).toBe(409)

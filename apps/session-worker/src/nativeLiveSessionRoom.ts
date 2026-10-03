@@ -423,9 +423,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         () => undefined
       )
       try {
-        return Response.json({ publishedSequence: await barrier })
+        const publishedSequence = await barrier
+        return publishedSequence === null
+          ? new Response('The room holds no live authority.', { status: 409 })
+          : Response.json({ publishedSequence })
       } catch {
-        return new Response('The room has nothing it can checkpoint.', { status: 409 })
+        return new Response('The room barrier checkpoint failed.', { status: 500 })
       }
     }
     if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
@@ -938,7 +941,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#closeIfCurrent(socket, generation, 'Live-session membership changed.')
         return
       }
-      this.#challenge(socket, generation)
+      // A challenge makes the client authenticate again at once, so a failure that does not change
+      // between attempts would loop. Closing hands the retry to the client's backoff instead.
+      this.#closeIfCurrent(socket, generation, 'Live-session activation failed.')
     } finally {
       if (this.#authenticating.get(socket)?.generation === generation)
         this.#authenticating.delete(socket)
@@ -3231,10 +3236,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
   }
 
-  /** Publishes every committed command and returns the sequence Convex now holds. */
-  async #publishThroughHead(): Promise<number> {
+  /** Publishes every committed command and returns the sequence Convex now holds, or null with no live head. */
+  async #publishThroughHead(): Promise<number | null> {
     const head = this.#journal.readCurrent()
-    if (!head || head.status === 'RELEASED') throw new Error('The room holds no live authority.')
+    if (!head || head.status === 'RELEASED') return null
     await this.#checkpointThrough(head.authorityEpoch, head.sequence, 'BARRIER')
     return head.sequence
   }

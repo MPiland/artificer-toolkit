@@ -2841,6 +2841,28 @@ it('evicts only the exact departed membership epoch through private room control
   await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Campaign access ended.' })
 })
 
+it('closes instead of challenging when the room cannot load its inputs', async () => {
+  const base = await fixture()
+  await runInDurableObject(base.stub, () => {
+    const originalFetch = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!originalFetch) throw new Error('Missing native request fixture.')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      if (new URL(request.url).pathname === ROOM_INPUTS_PATH)
+        return new Response('Room inputs unavailable.', { status: 500 })
+      return originalFetch(input, init)
+    })
+  })
+  const closed = waitForClose(base.socket)
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await expect(closed).resolves.toMatchObject({
+    code: 1008,
+    reason: 'Live-session activation failed.'
+  })
+  expect(base.messages.some((message) => message.type === 'AUTHENTICATION_REQUIRED')).toBe(false)
+  expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(false)
+})
+
 function invalidateInputs(base: Awaited<ReturnType<typeof fixture>>) {
   return control({
     campaignId: base.capture.campaignId,
