@@ -31,6 +31,8 @@ import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/enc
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
+import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
+import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
@@ -45,6 +47,7 @@ export function CampaignTabletopActionDrawer({
   actorIdByTokenId,
   connected,
   encounter,
+  isGm,
   opened,
   onOpen,
   onClose,
@@ -63,6 +66,8 @@ export function CampaignTabletopActionDrawer({
   optionalRules: EncounterActionChoicesDto['optionalRules']
   actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
+  /** The Campaign owner chooses whether their creatures' rolls are Public or Private (Q14). */
+  isGm: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   opened: boolean
   onOpen: () => void
@@ -90,6 +95,7 @@ export function CampaignTabletopActionDrawer({
     requestIdentity: string
     value: string
   } | null>(null)
+  const { gmRollVisibility } = useGmRollVisibilityPreference()
   const [submitting, setSubmitting] = useState(false)
   const [stowConfirmationIdentity, setStowConfirmationIdentity] = useState<string | null>(null)
   // Warnings the server raised for this exact selection; "Do it anyway" resends acknowledging them.
@@ -293,6 +299,7 @@ export function CampaignTabletopActionDrawer({
         sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
+        ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
           ? {
               definitionId: currentOptionalChoices.definitionId,
@@ -545,6 +552,7 @@ export function CampaignTabletopActionDrawer({
                 </CampaignTabletopActionConfirmation>
               ) : (
                 <Group>
+                  {isGm ? <GmRollVisibilityToggle /> : null}
                   <Button
                     disabled={
                       dependentControlsDisabled ||

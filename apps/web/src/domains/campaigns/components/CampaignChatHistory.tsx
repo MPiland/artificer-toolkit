@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Group, Menu, Text } from '@mantine/core'
 import { MoreHorizontal } from 'lucide-react'
-import type { RefObject } from 'react'
+import type { ComponentProps, RefObject } from 'react'
 import clsx from 'clsx'
 import type { EncounterTimelineDto } from '@artificer-toolkit/schema/api/encounters'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
@@ -8,7 +8,6 @@ import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaig
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import { CharacterSheetRollReveal } from '#app/domains/characters/sheet/dice/CharacterSheetRollReveal'
 import { formatRollEvidence } from '#app/components/dice/dice.utils'
-import { blindRollLabel } from '#app/domains/characters/sheet/dice/dice.utils'
 import * as chatStyles from './CampaignChat.css'
 import { CampaignRuleCheckRoll } from './CampaignRuleCheckRoll'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
@@ -31,7 +30,8 @@ export function CampaignChatHistory({
   rollView,
   room,
   onEntryAction,
-  onLoadOlderMessages
+  onLoadOlderMessages,
+  onRevealRoll
 }: {
   chatLog: RefObject<HTMLDivElement | null>
   conversationLabel: string
@@ -48,11 +48,12 @@ export function CampaignChatHistory({
   isLoadingOlderMessages: boolean
   isPrivateRollsError: boolean
   isPrivateRollsPending: boolean
-  privateRolls: RollHistoryEntryDto[] | undefined
+  privateRolls: readonly RollHistoryEntryDto[] | undefined
   rollView: CampaignRollView
   room: CampaignChatRoom
   onEntryAction: (action: { kind: 'EDIT' | 'UNSEND'; entry: CampaignChatEntryDto }) => void
   onLoadOlderMessages: () => void
+  onRevealRoll: ComponentProps<typeof CharacterSheetRollReveal>['onReveal']
 }) {
   const showRolls = rollView !== null
 
@@ -104,9 +105,7 @@ export function CampaignChatHistory({
                     {formatChatTime(privateRoll.createdAt)}
                   </Text>
                 </div>
-                {privateRoll.evidence === null ? (
-                  <Text>{blindRollLabel}</Text>
-                ) : privateRoll.ruleCheck ? (
+                {privateRoll.ruleCheck ? (
                   <CampaignRuleCheckRoll
                     evidence={privateRoll.evidence}
                     ruleCheck={privateRoll.ruleCheck}
@@ -121,7 +120,7 @@ export function CampaignChatHistory({
                     </Text>
                   </>
                 )}
-                <CharacterSheetRollReveal roll={privateRoll} />
+                <CharacterSheetRollReveal roll={privateRoll} onReveal={onRevealRoll} />
               </article>
             </div>
           ))
@@ -236,6 +235,12 @@ export function CampaignChatHistory({
                 {entry.unsentAt ? (
                   <Text c='dimmed' fs='italic'>
                     Message unsent
+                  </Text>
+                ) : entry.kind === 'ROLL_NOTICE' ? (
+                  <Text c='dimmed' fs='italic'>
+                    {entry.characterLabel
+                      ? `${entry.characterLabel} made a roll`
+                      : 'The GM made a roll'}
                   </Text>
                 ) : entry.kind === 'ROLL' && entry.roll?.ruleCheck ? (
                   <CampaignRuleCheckRoll

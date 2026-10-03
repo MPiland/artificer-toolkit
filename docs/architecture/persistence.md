@@ -1921,11 +1921,11 @@ sequenceDiagram
     Public->>Sheet: Validate assignment and current non-manual source
     Public->>Table: Generate evidence and insert header + payload atomically (GM: player-owner DIRECT room)
     Public-->>Actor: Original stored roll, shared-text presentation
-    Actor->>Private: GM-only manual or Character request + blind flag
+    Actor->>Private: GM-only manual or Character request (PRIVATE; no Blind)
     Private->>History: Generate evidence and insert/trim atomically, bound to the Campaign
-    Private-->>Actor: Private roll (blind: evidence withheld); no conversation write
-    Actor->>Public: reveal(roll id), GM only
-    Public->>Table: Post once with revealedByGm (roll id is the nonce); mark revealedAt
+    Private-->>Actor: Private roll (players see nothing); no conversation write
+    Actor->>Public: reveal(roll id, FULL or NOTICE), GM only
+    Public->>Table: Post each mode once (roll id / rollNoticeNonce); mark revealedAt or noticedAt
     Actor->>CharacterRoll: Campaign + assigned Character + structured private roll
     CharacterRoll->>Sheet: Validate current assignment and roll source
     CharacterRoll->>History: Generate Character-bound private evidence
@@ -1960,7 +1960,7 @@ do not become inaccessible merely because the caller no longer has GM action aut
 Rolls that change Character state stay visible to the GM. Scoped rest preview and completion read
 the caller's exact unconsumed HIT_DIE record for the assigned Character from its one stored place:
 the caller's TABLE or To GM chat payload in this Campaign (looked up by the `roll.id` payload index),
-or the GM's own non-blind retained Campaign roll. A player's retained "Just me" roll is refused for a
+or the GM's own retained Campaign roll. A player's retained "Just me" roll is refused for a
 Campaign rest; a personal Character outside a Campaign still settles from retained history.
 No-Character manual records cannot substitute. Completion atomically updates Character HP/hit
 dice/recoveries, sets `consumedAt` on that stored roll record and stores the actor-bound receipt. Exact replay returns stored rest

@@ -170,27 +170,32 @@ export const rollRecordDtoSchema = lazySchema(() =>
   })
 )
 
-/** Binds a GM-retained roll to its Campaign so it can be revealed to that TABLE once. */
+/**
+ * Who sees a GM roll (Q14, D83): a PRIVATE roll shows players nothing, not even that it happened,
+ * until the GM reveals it. The GM's roll controls and stored preference share this vocabulary.
+ */
+export const rollVisibilityDtoSchema = lazySchema(() => z.enum(['PUBLIC', 'PRIVATE']))
+
+/** The two logged, non-retractable reveals of a private roll. */
+export const rollRevealModeDtoSchema = lazySchema(() => z.enum(['FULL', 'NOTICE']))
+
+/**
+ * Binds a GM-retained roll to its Campaign. `creature` names the Encounter actor that rolled, so a
+ * "Show that I rolled" notice can name it only while players can see it; null for a manual roll.
+ * It records when each reveal posted, so each mode happens once and a FULL reveal may still follow
+ * a NOTICE.
+ */
 export const gmCampaignRollDtoSchema = lazySchema(() =>
   z.strictObject({
     campaignId: z.string(),
-    blind: z.boolean(),
-    revealedAt: z.nullable(z.string())
+    creature: z.nullable(z.strictObject({ encounterId: z.string(), actorId: z.string() })),
+    revealedAt: z.nullable(z.string()),
+    noticedAt: z.nullable(z.string())
   })
 )
 
-/** An unrevealed blind roll withholds its evidence from every reader, including the GM. */
 export const rollHistoryEntryDtoSchema = lazySchema(() =>
-  z.union([
-    z.extend(rollRecordDtoSchema, { gmCampaignRoll: z.nullable(gmCampaignRollDtoSchema) }),
-    z.extend(rollRecordDtoSchema, {
-      evidence: z.null(),
-      gmCampaignRoll: z.extend(gmCampaignRollDtoSchema, {
-        blind: z.literal(true),
-        revealedAt: z.null()
-      })
-    })
-  ])
+  z.extend(rollRecordDtoSchema, { gmCampaignRoll: z.nullable(gmCampaignRollDtoSchema) })
 )
 
 export const rollHistoryResponseDtoSchema = lazySchema(() =>
@@ -215,6 +220,8 @@ export type RollEvidenceDto = z.infer<typeof rollEvidenceDtoSchema>
 export type RollResultDto = z.infer<typeof rollResultDtoSchema>
 export type RollRuleCheckDto = z.infer<typeof rollRuleCheckDtoSchema>
 export type RollRecordDto = z.infer<typeof rollRecordDtoSchema>
+export type RollVisibilityDto = z.infer<typeof rollVisibilityDtoSchema>
+export type RollRevealModeDto = z.infer<typeof rollRevealModeDtoSchema>
 export type GmCampaignRollDto = z.infer<typeof gmCampaignRollDtoSchema>
 export type RollHistoryEntryDto = z.infer<typeof rollHistoryEntryDtoSchema>
 export type RollHistoryResponseDto = z.infer<typeof rollHistoryResponseDtoSchema>

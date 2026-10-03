@@ -29,7 +29,8 @@ import { executeCharacterSheetCommandAcknowledgement } from '../characters/sheet
 import { projectCharacterSheetPanel } from '../characters/panels'
 import { projectCharacterPreparationOptions } from '../characters/preparationOptions'
 import { prepareCharacterRest } from '../characters/rest'
-import { evaluateCharacterRoll, presentRoll, retainUserRoll } from '../rollDocuments'
+import { presentRoll } from '@artificer-toolkit/rules-runtime/character/rollPresentation'
+import { evaluateCharacterRoll, retainUserRoll } from '../rollDocuments'
 import { readCampaignCharacterReader, requireCampaignCharacterAuthority } from './characterState'
 
 export const executeRoll = mutation({

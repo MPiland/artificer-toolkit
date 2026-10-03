@@ -13,6 +13,7 @@ import {
   type LiveSessionWebSocketClientMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
@@ -108,6 +109,7 @@ interface LiveSessionConnectionOptions {
   getTicket: () => Promise<LiveSessionTicketDto>
   onError: (error: Error) => void
   onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
+  onPrivateRoll?: (roll: RollHistoryEntryDto) => void
   onCharacterSheet?: (push: LiveSessionCharacterSheetPush) => void
   onCommandRejected?: (rejection: LiveSessionCommandRejection) => void
   onDurableState?: (state: LiveSessionDurableState) => void
@@ -403,8 +405,10 @@ export function createLiveSessionConnection(
           // Geometry notifications and private-history-free fanout advance the shared sequence,
           // but the command's own result must arrive before its submitting surface settles.
           const settle = () => {
-            if (message.delta?.scope === 'CAMPAIGN_CHAT')
-              options.onCampaignChatEntry?.(message.delta.entry)
+            if (message.delta?.scope === 'CAMPAIGN_CHAT') {
+              if (message.delta.entry) options.onCampaignChatEntry?.(message.delta.entry)
+              if (message.delta.privateRoll) options.onPrivateRoll?.(message.delta.privateRoll)
+            }
             const pending = pendingCommands.get(message.commandId)
             if (
               (pending?.command.scope === 'ENCOUNTER' ||

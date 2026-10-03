@@ -33,7 +33,8 @@ import type { RoomInputs } from './roomInputs.js'
 
 /** The existing action planner, evidence and every dependent write use one native transaction. */
 export async function executeRoomEncounterAction(input: {
-  ctx: Parameters<typeof persistRoomConcentrationChildren>[0]
+  ctx: Parameters<typeof persistEncounterActionCommit>[0] &
+    Parameters<typeof persistRoomConcentrationChildren>[0]
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs

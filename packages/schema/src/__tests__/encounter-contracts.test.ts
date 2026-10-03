@@ -792,6 +792,25 @@ describe('encounter contracts', () => {
         visibility: 'TABLE'
       })
     ).toThrow()
+    const action = {
+      encounterId,
+      commandId,
+      expectedVersion: 2,
+      type: 'RESOLVE_ACTION',
+      actorId: encounterId,
+      actionId: 'attack',
+      targetActorId: commandId
+    }
+    expect(
+      encounterCommandInputDtoSchema.parse({ ...action, visibility: 'PRIVATE' })
+    ).toMatchObject({ visibility: 'PRIVATE' })
+    const refused = encounterCommandInputDtoSchema.safeParse({ ...action, visibility: 'TABLE' })
+    expect(refused.success).toBe(false)
+    expect(
+      refused.error?.issues.some(
+        (issue) => issue.path.join('.') === 'visibility' && issue.code === 'invalid_value'
+      )
+    ).toBe(true)
   })
 
   it('accepts only closed optional combat action intent selections', () => {

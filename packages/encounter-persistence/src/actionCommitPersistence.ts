@@ -24,6 +24,10 @@ import {
   featureChargeUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  actionD20RollRecord,
+  actionDamageRollRecord
+} from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
@@ -45,11 +49,14 @@ import type {
 } from './actionEffectPersistence.js'
 import type { persistEncounterActionChildren } from './actionChildrenPersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
+import { recordRuleRollCard } from './ruleRollCards.js'
 
 /** Validates the admitted completed root and applies its native writes in the owning transaction. */
 export async function persistEncounterActionCommit(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+  },
   input: LiveSessionEncounterActionCommitInput,
   callbacks: {
     readMaintenanceCapture(
@@ -358,6 +365,56 @@ export async function persistEncounterActionCommit(
     }),
     characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
   })
+  // Each d20 the action rolled gets a chat card: an attack is the source's, a save the target's.
+  const system = await ctx.ports.requireSystem(state.gameSystemId)
+  const actionLabel = (await ctx.ports.readContentLabel(input.initialDefinitionId)) ?? 'Action'
+  for (const [checkIndex, d20] of [batch.d20, batch.nestedD20].entries()) {
+    if (!d20) continue
+    const roller = d20.resultPath.startsWith('ON_SAVE_') ? target : source
+    const roll = actionD20RollRecord({
+      occurrenceId: execution.occurrenceId,
+      checkIndex,
+      d20,
+      actionLabel,
+      rollerLabel: roller.label,
+      ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+      createdAt: input.occurredAt
+    })
+    await recordRuleRollCard(ctx, {
+      campaign,
+      encounterId: state.id,
+      roller,
+      initiatorUserId,
+      visibility: command.visibility,
+      clientNonce: roll.id,
+      roll
+    })
+  }
+  // Each damage the action requested gets a total-only card from the source, after its d20s.
+  for (const application of batch.applications) {
+    if (application.kind !== 'DAMAGE') continue
+    const roll = actionDamageRollRecord({
+      occurrenceId: execution.occurrenceId,
+      checkIndex: 2 + application.ordinal,
+      total: application.requestedAmount,
+      actionLabel,
+      damageTypeLabel:
+        system.damageTypes?.find((damageType) => damageType.id === application.damageTypeId)
+          ?.label ?? null,
+      rollerLabel: source.label,
+      ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+      createdAt: input.occurredAt
+    })
+    await recordRuleRollCard(ctx, {
+      campaign,
+      encounterId: state.id,
+      roller: source,
+      initiatorUserId,
+      visibility: command.visibility,
+      clientNonce: roll.id,
+      roll
+    })
+  }
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

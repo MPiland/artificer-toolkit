@@ -50,6 +50,7 @@ describe('CampaignChatHistory', () => {
           room='TABLE'
           onEntryAction={vi.fn()}
           onLoadOlderMessages={vi.fn()}
+          onRevealRoll={vi.fn()}
         />
       </MantineProvider>
     )
@@ -118,6 +119,7 @@ describe('CampaignChatHistory', () => {
           room='TABLE'
           onEntryAction={vi.fn()}
           onLoadOlderMessages={vi.fn()}
+          onRevealRoll={vi.fn()}
         />
       </MantineProvider>
     )
@@ -127,5 +129,49 @@ describe('CampaignChatHistory', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Concentration lost')).toBeInTheDocument()
     expect(screen.getByText(/vs DC 10/)).toBeInTheDocument()
+  })
+
+  it('shows a ROLL_NOTICE as a notice with no result, naming the creature when present', () => {
+    const notice: CampaignChatEntryDto = {
+      ...entry,
+      kind: 'ROLL_NOTICE',
+      mode: null,
+      body: null,
+      authorUsername: 'gm',
+      characterId: null,
+      characterLabel: null
+    }
+    render(
+      <MantineProvider>
+        <CampaignChatHistory
+          chatLog={{ current: null }}
+          conversationLabel='Table'
+          currentUserId='different-user'
+          directUserId={undefined}
+          encounterEntries={undefined}
+          entries={[
+            notice,
+            { ...notice, id: '2df2d096-9408-4792-9b26-5c5d8b5f83f1', characterLabel: 'Goblin' }
+          ]}
+          hasNextPage={false}
+          isEncounterTimelineError={false}
+          isEncounterTimelinePending={false}
+          isHistoryLoading={false}
+          isLoadingOlderMessages={false}
+          isPrivateRollsError={false}
+          isPrivateRollsPending={false}
+          privateRolls={undefined}
+          rollView={null}
+          room='TABLE'
+          onEntryAction={vi.fn()}
+          onLoadOlderMessages={vi.fn()}
+          onRevealRoll={vi.fn()}
+        />
+      </MantineProvider>
+    )
+
+    expect(screen.getByText('The GM made a roll')).toBeInTheDocument()
+    expect(screen.getByText('Goblin made a roll')).toBeInTheDocument()
+    expect(screen.queryByText(/Rolled/)).not.toBeInTheDocument()
   })
 })

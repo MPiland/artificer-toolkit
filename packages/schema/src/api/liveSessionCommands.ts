@@ -5,6 +5,7 @@ import { characterSheetLivePlayCommandSchema } from './characterSheetLiveCommand
 import { characterSheetCommandResponseDtoSchema } from './characterSheetCommands.js'
 import { campaignChatEntryDtoSchema } from './campaignCommunication.js'
 import { campaignChatLiveCommandSchema } from './campaignChatLiveCommands.js'
+import { rollHistoryEntryDtoSchema } from './rolls.js'
 import {
   bindEncounterToPresentedSceneInputDtoSchema,
   bindEncounterToPresentedSceneResultDtoSchema,
@@ -77,8 +78,13 @@ export const liveSessionRecipientDeltaDtoSchema = lazySchema(() =>
       scope: z.literal('ENCOUNTER_BINDING'),
       result: bindEncounterToPresentedSceneResultDtoSchema
     }),
-    // Sent to the conversation's members: the entry as that member reads it.
-    z.strictObject({ scope: z.literal('CAMPAIGN_CHAT'), entry: campaignChatEntryDtoSchema }),
+    // Sent to the conversation's members: the entry as that member reads it. A GM's private roll
+    // posts no entry: its receipt, to the GM alone, carries the retained roll instead (Q14).
+    z.strictObject({
+      scope: z.literal('CAMPAIGN_CHAT'),
+      entry: z.nullable(campaignChatEntryDtoSchema),
+      privateRoll: z.nullable(rollHistoryEntryDtoSchema)
+    }),
     z.strictObject({
       scope: z.literal('SCENE_VERSION'),
       sceneId: uuidSchema,

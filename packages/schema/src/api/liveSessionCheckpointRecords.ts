@@ -6,7 +6,7 @@ import {
   liveSessionCheckpointSceneKeys,
   liveSessionCheckpointSceneSchema
 } from './liveSessionCheckpointScenes.js'
-import { rollRecordDtoSchema } from './rolls.js'
+import { gmCampaignRollDtoSchema, rollRecordDtoSchema } from './rolls.js'
 import {
   encounterStoreSchemas,
   type EncounterStoreDocuments
@@ -197,11 +197,7 @@ export const liveSessionCheckpointRetainedRollSchema = lazySchema(() =>
   z.strictObject({
     userId: postgresUuidSchema,
     record: rollRecordDtoSchema,
-    gmCampaignRoll: z.strictObject({
-      campaignId: postgresUuidSchema,
-      blind: z.boolean(),
-      revealedAt: z.nullable(z.iso.datetime())
-    })
+    gmCampaignRoll: gmCampaignRollDtoSchema
   })
 )
 export type LiveSessionCheckpointRetainedRoll = z.infer<

@@ -66,7 +66,7 @@
       "purpose": "Each slice closes named criteria with a focused proof and finishes the older slices it includes. The V15 load run, final proof and promotion come last (D80)."
     }
   ],
-  "queue": ["VS-5", "VS-6", "VS-8", "VS-9", "VS-10"],
+  "queue": ["VS-6", "VS-8", "VS-9", "VS-10"],
   "slices": [
     { "id": "A35-S0", "stream": "A35", "state": "done", "title": "Decision gate: ADR 0035, amendments, room CPU, Durable Object cost and checkpoint size measured", "cases": [], "refs": [] },
     { "id": "A35-S1", "stream": "A35", "state": "done", "title": "Encounter writers behind a store interface (package with no Convex runtime dependency)", "cases": ["R06"], "refs": [] },
@@ -88,7 +88,7 @@
     { "id": "A35-S6c3", "stream": "A35", "state": "done", "title": "The switch, part 3: delete the per-command Convex path (routes, commit modules, external commit, parity test; the Scene cache hydrate moved to A35-S3c); docs and acceptance", "cases": ["R06", "V08", "V13", "V14"], "refs": ["D78"] },
     { "id": "A35-S7a", "stream": "A35", "state": "done", "title": "Sheet plays through the room while held: room push and departure reconcile", "cases": ["R06", "V14", "P04", "P08", "P15"], "refs": ["D73", "D74"] },
     { "id": "A35-S7b", "stream": "A35", "state": "done", "title": "Account deletion removes held actors", "cases": ["F12"], "refs": ["D74"] },
-    { "id": "A35-S8a", "stream": "A35", "state": "integrating", "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)", "cases": ["P06", "P14", "V11"], "refs": ["D69", "D72", "D76"] },
+    { "id": "A35-S8a", "stream": "A35", "state": "done", "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)", "cases": ["P06", "P14", "V11"], "refs": ["D69", "D72", "D76"] },
     { "id": "A35-S8b", "stream": "A35", "state": "integrating", "title": "Pages outside the room show checkpoint freshness (nullable checkpointedAt)", "cases": ["R01"], "refs": [] },
     { "id": "A35-S8c", "stream": "A35", "state": "superseded", "title": "Evidence rolls planned in the room, with no warm Convex calls (folded into A35-S6c1 by D78)", "cases": [], "refs": ["D41", "D72", "D78", "A35-S6c1"] },
     { "id": "A35-S9", "stream": "A35", "state": "remaining", "title": "Budgets in gates, shadow harness deleted, architecture docs rewritten", "cases": ["V15", "R07"], "refs": [] },
@@ -123,7 +123,7 @@
     { "id": "CP-S6f", "stream": "CP", "state": "done", "title": "Soft enforcement and GM undo", "cases": ["V10"], "refs": [] },
     { "id": "CP-S6g", "stream": "CP", "state": "done", "title": "Combat math follow-ups", "cases": ["V10", "C11"], "refs": ["D5"] },
     { "id": "CP-S6h", "stream": "CP", "state": "done", "title": "Health display levels, \"Party can view\", roster portraits, room idle release", "cases": ["V12", "V05"], "refs": [] },
-    { "id": "CP-S6i", "stream": "CP", "state": "remaining", "title": "Chat cards for every automatic rule roll, with the Public/Private roll toggle", "cases": ["P06", "V11"], "refs": ["Q14"] },
+    { "id": "CP-S6i", "stream": "CP", "state": "done", "title": "Chat cards for every automatic rule roll, with the Public/Private roll toggle", "cases": ["P06", "V11"], "refs": ["Q14"] },
 
     { "id": "RUL-1", "stream": "RUL", "state": "done", "title": "Rules defects from fast tests and critical hits", "cases": ["V10"], "refs": ["D48", "D50", "D58"] },
     { "id": "RUL-2", "stream": "RUL", "state": "done", "title": "Monster attacks: author attack bonuses, fail early, SRD-wide sweep test", "cases": ["C05", "V10"], "refs": ["D53"] },
@@ -171,7 +171,7 @@
     { "id": "VS-2", "stream": "VS", "state": "done", "title": "Movement and passage through the room, with the maintained-effect owner fix", "cases": ["V03", "V07", "V08", "V09", "V13"], "criteria": ["V03.4", "V03.5", "V07.4", "V07.5", "V08.1", "V08.2", "V08.3", "V08.4", "V08.5", "V08.6", "V09.1", "V09.2", "V09.3", "V09.4", "V09.5", "V09.6", "V09.7", "V13.3"], "includes": ["A35-S6a", "A35-S6b", "A35-S6c2", "TST-5"], "refs": ["D78", "D81", "Hot path: checkpoint row and byte counts"] },
     { "id": "VS-3", "stream": "VS", "state": "done", "title": "Encounter decisions and journeys through the room, with the tied-initiative base fix", "cases": ["R06", "V10", "V12", "V13", "V14"], "criteria": ["R06.1", "R06.2", "R06.4", "V10.5", "V10.6", "V10.7", "V10.8", "V10.9", "V10.10", "V10.11", "V12.4", "V12.5", "V12.6", "V12.7", "V12.8", "V13.1", "V13.2", "V14.1", "V14.3", "V14.4"], "includes": ["A35-S6c1", "A35-S6c3"], "refs": ["D78", "Hot path: checkpoint row and byte counts; the 100-actor write budget"] },
     { "id": "VS-4", "stream": "VS", "state": "done", "title": "Held Sheet play, recovery and account deletion through the room", "cases": ["F12", "P15", "R06", "V14"], "criteria": ["F12.1", "F12.2", "F12.3", "F12.4", "F12.5", "P15.1", "P15.2", "P15.3", "P15.4", "R06.3", "V14.5"], "includes": ["A35-S7a", "A35-S3b", "A35-S7b", "TST-4"], "refs": ["Hot path: room hydration of held Characters"] },
-    { "id": "VS-5", "stream": "VS", "state": "remaining", "title": "Chat and rolls through the room, with chat cards for automatic rule rolls", "cases": ["P06", "P14", "V11"], "criteria": ["P06.4", "P06.5", "P14.5", "V11.4", "V11.5", "V11.6", "V11.7", "V11.8", "V11.9", "V11.10"], "includes": ["A35-S8a", "CP-S6i"], "refs": ["D72", "Check Q14 first"] },
+    { "id": "VS-5", "stream": "VS", "state": "done", "title": "Chat and rolls through the room, with chat cards for automatic rule rolls", "cases": ["P06", "P14", "V11"], "criteria": ["P06.4", "P06.5", "P14.5", "V11.4", "V11.5", "V11.6", "V11.7", "V11.8", "V11.9", "V11.10"], "includes": ["A35-S8a", "CP-S6i"], "refs": ["D72", "Check Q14 first"] },
     { "id": "VS-6", "stream": "VS", "state": "remaining", "title": "Builder budgets on content snapshots, with the Builder follow-ups", "cases": ["P02"], "criteria": ["P02.3"], "includes": ["A36-S10", "A36-F1"], "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"] },
     { "id": "VS-7", "stream": "VS", "state": "done", "title": "Web on Cloudflare Workers (code): skeleton SSR for signed-in pages, focus refetch off", "cases": ["R05"], "criteria": ["R05.1"], "includes": ["PLT-5"], "refs": ["D75", "D80", "Re-proves R05.1 on the Worker build; edge rules move to VS-10"] },
     { "id": "VS-8", "stream": "VS", "state": "remaining", "title": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run", "cases": ["V15"], "criteria": ["V15.1", "V15.2", "V15.3"], "includes": ["TST-0", "TST-6", "A35-S9", "REL-4", "REL-5"], "refs": ["Re-verifies R07 after the architecture docs rewrite"] },

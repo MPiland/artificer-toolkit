@@ -1,5 +1,7 @@
 import type { CharacterSheet } from '../core/CharacterSheet.types'
+import type { RollVisibilityDto } from '@artificer-toolkit/schema/api/rolls'
 import type {
+  CharacterSheetRollDestination,
   CharacterSheetRollDestinationOption,
   CharacterSheetRollRequest,
   CharacterSheetRollTarget,
@@ -15,10 +17,15 @@ export const playerRollDestinationOptions: readonly CharacterSheetRollDestinatio
 ]
 
 export const gmRollDestinationOptions: readonly CharacterSheetRollDestinationOption[] = [
-  { label: 'Table', value: 'TABLE' },
-  { label: 'Private', value: 'PRIVATE' },
-  { label: 'Blind', value: 'BLIND' }
+  { label: 'Public', value: 'TABLE' },
+  { label: 'Private', value: 'PRIVATE' }
 ]
+
+/** The GM's remembered Public/Private choice (Q14) as the roller's destination, and back. */
+export const gmRollDestination = (visibility: RollVisibilityDto): CharacterSheetRollDestination =>
+  visibility === 'PUBLIC' ? 'TABLE' : 'PRIVATE'
+export const gmRollVisibility = (destination: CharacterSheetRollDestination): RollVisibilityDto =>
+  destination === 'TABLE' ? 'PUBLIC' : 'PRIVATE'
 
 export const noRollDestinationOptions: readonly CharacterSheetRollDestinationOption[] = []
 
@@ -26,11 +33,7 @@ export const playerStateRollDestinationOptions = playerRollDestinationOptions.fi
   (option) => option.value !== 'PRIVATE'
 )
 
-export const gmStateRollDestinationOptions = gmRollDestinationOptions.filter(
-  (option) => option.value !== 'BLIND'
-)
-
-export const blindRollLabel = 'Blind roll: hidden until revealed'
+export const gmStateRollDestinationOptions = gmRollDestinationOptions
 
 export function withRollModifier(die: string, modifier: number) {
   if (modifier === 0) return die

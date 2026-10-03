@@ -27,7 +27,7 @@ it('keeps twenty private rolls while checkpointing every committed append, inclu
         ...evaluateRollExpression(parseRollExpression('1d20'), { nextInt: () => 4 }),
         createdAt: new Date(Date.UTC(2026, 8, 30, 12, 0, index)).toISOString()
       }),
-      gmCampaignRoll: { campaignId, blind: false, revealedAt: null }
+      gmCampaignRoll: { campaignId, creature: null, revealedAt: null, noticedAt: null }
     }))
     await expect(
       store.transact(async (transaction) => {

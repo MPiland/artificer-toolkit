@@ -23,6 +23,7 @@ import { readRunActor, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
+import { recordRuleRollCard } from './ruleRollCards.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type {
@@ -212,14 +213,15 @@ export async function rollEncounterRuleEvidence(
     createdAt: now
   })
   await ctx.db.insert('encounterEvidenceRolls', roll)
-  // Every attempt goes to the table log unless it would reveal a hidden actor.
+  // Every attempt gets a card: the table's, or the GM's private history for a hidden or private
+  // GM roll (Q14, D62).
   const state = readRunState(run)
   const roller =
     'rollerActorId' in pending && pending.rollerActorId
       ? await readRunActor(ctx, state, pending.rollerActorId)
       : null
   let tableRoll: RollRecordDto | null = null
-  if (evaluated && roller?.public !== false) {
+  if (evaluated) {
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
     const override =
       rollMode && derivedRollMode && rollMode !== derivedRollMode
@@ -242,7 +244,17 @@ export async function rollEncounterRuleEvidence(
       ...evaluated,
       createdAt: now
     })
-    await ctx.ports.insertTableRoll(authority, userId, input.commandId, tableRoll)
+    const card = await recordRuleRollCard(ctx, {
+      campaign,
+      encounterId: run.id,
+      roller,
+      initiatorUserId: userId,
+      visibility: input.visibility,
+      clientNonce: input.commandId,
+      roll: tableRoll
+    })
+    // A private card is the GM's alone; a player's answer never carries it back.
+    if (card.audience === 'PRIVATE' && userId !== campaign.ownerUserId) tableRoll = null
   }
   return presentEncounterResultForMember(ctx, {
     campaign,

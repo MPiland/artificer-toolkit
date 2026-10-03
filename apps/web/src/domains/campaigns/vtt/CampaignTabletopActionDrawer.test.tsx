@@ -16,6 +16,13 @@ import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 
+vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
+  useGmRollVisibilityPreference: () => ({
+    gmRollVisibility: 'PUBLIC',
+    setGmRollVisibility: vi.fn()
+  })
+}))
+
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
     configurable: true,
@@ -53,12 +60,14 @@ function renderDrawer(
     unavailableActions = [],
     basicActions = [],
     onUseBasicAction = vi.fn(),
+    isGm = false,
     waitingOn = null
   }: {
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
     basicActions?: EncounterBasicActionChoiceDto[]
     onUseBasicAction?: (command: UseEncounterBasicActionInputDto) => Promise<unknown>
+    isGm?: boolean
     waitingOn?: 'GM' | 'PLAYER' | null
   } = {}
 ) {
@@ -71,6 +80,7 @@ function renderDrawer(
       actorIdByTokenId={new Map()}
       connected
       encounter={tabletopGmEncounter}
+      isGm={isGm}
       opened
       optionalRules={[]}
       pending={false}
@@ -99,6 +109,23 @@ async function chooseActionAndTarget(user: ReturnType<typeof userEvent.setup>) {
   await user.keyboard('{ArrowDown}{Enter}')
   await user.click(screen.getByRole('button', { name: 'Resolve action' }))
 }
+
+describe('CampaignTabletopActionDrawer roll visibility', () => {
+  it('sends the GM visibility (Public until chosen) and sends none for a player', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const gm = renderDrawer(onResolve, { isGm: true })
+    await chooseActionAndTarget(user)
+    expect(onResolve).toHaveBeenLastCalledWith(expect.objectContaining({ visibility: 'PUBLIC' }))
+    expect(screen.getByRole('radio', { name: 'Public' })).toBeChecked()
+    gm.unmount()
+
+    renderDrawer(onResolve)
+    expect(screen.queryByRole('radiogroup', { name: 'Roll visibility' })).not.toBeInTheDocument()
+    await chooseActionAndTarget(user)
+    expect(onResolve.mock.lastCall?.[0]).not.toHaveProperty('visibility')
+  })
+})
 
 describe('CampaignTabletopActionDrawer rule warnings', () => {
   it('shows the server warnings and resends with them acknowledged on "Do it anyway"', async () => {

@@ -25,6 +25,7 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
+import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
@@ -593,4 +594,320 @@ it("evicts a deleted account's player and removes its Character's actor before a
   ])
   expect(room.owner.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
   expect(room.gm.socket.readyState).toBe(WebSocket.READY_STATE_OPEN)
+})
+
+type SheetRoom = Awaited<ReturnType<typeof sheetRoom>>
+type SheetMember = SheetRoom['gm']
+
+function chatFrame(command: Record<string, unknown>) {
+  return JSON.stringify({
+    type: 'COMMAND',
+    expectedSessionSequence: 0,
+    command: { scope: 'CAMPAIGN_CHAT', command }
+  })
+}
+
+function repliesTo(member: SheetMember, commandId: string) {
+  return member.messages.filter(
+    (message) =>
+      (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+      message.commandId === commandId
+  )
+}
+
+function tableChat(room: SheetRoom, commandId: string, body: string) {
+  return {
+    type: 'SEND_CHAT',
+    commandId,
+    input: { campaignId: room.campaignId, room: 'TABLE', mode: 'OOC', body, clientNonce: commandId }
+  }
+}
+
+function roomChatEvidence(room: SheetRoom) {
+  return runInDurableObject(room.stub, (_instance, state) => ({
+    entries: new RoomEncounterStore(state.storage).documents('campaignConversationEntries').length,
+    tokens: state.storage.sql
+      .exec<{ tokens: number }>(
+        "SELECT tokens FROM room_account_buckets WHERE user_id = ? AND kind = 'TABLE'",
+        room.ownerId
+      )
+      .toArray()
+      .map(({ tokens }) => tokens)
+  }))
+}
+
+it('commits chat and to-GM rolls in the room to their recipients, replays exact nonces free and publishes with the next checkpoint (P14.5, D69)', async () => {
+  const room = await sheetRoom()
+  const chatId = crypto.randomUUID()
+  const rollId = crypto.randomUUID()
+  const fetchSpy = vi.mocked(globalThis.fetch)
+  fetchSpy.mockClear()
+
+  room.owner.socket.send(chatFrame(tableChat(room, chatId, 'Hello table')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, chatId)).toHaveLength(1))
+  const [chat] = repliesTo(room.owner, chatId)
+  if (chat?.type !== 'COMMAND_COMMITTED' || chat.delta?.scope !== 'CAMPAIGN_CHAT')
+    throw new Error(JSON.stringify(chat))
+  expect(chat.delta.entry).toMatchObject({
+    room: 'TABLE',
+    kind: 'CHAT',
+    body: 'Hello table',
+    authorUserId: room.ownerId
+  })
+  // The table sees the same entry at the same sequence.
+  for (const member of [room.gm, room.stranger])
+    await vi.waitFor(() => expect(repliesTo(member, chatId)).toEqual([chat]))
+  expect(await roomChatEvidence(room)).toEqual({
+    entries: 1,
+    tokens: [ACCOUNT_BUCKETS.TABLE.PLAYER.capacity - 1]
+  })
+
+  // An exact retry replays the receipt and spends nothing; the same ID with other input is refused.
+  room.owner.socket.send(chatFrame(tableChat(room, chatId, 'Hello table')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, chatId)).toHaveLength(2))
+  expect(repliesTo(room.owner, chatId)[1]).toEqual(chat)
+  room.owner.socket.send(chatFrame(tableChat(room, chatId, 'Another message')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, chatId)).toHaveLength(3))
+  expect(repliesTo(room.owner, chatId)[2]).toMatchObject({
+    type: 'COMMAND_REJECTED',
+    code: 'INVALID_COMMAND'
+  })
+  expect(await roomChatEvidence(room)).toEqual({
+    entries: 1,
+    tokens: [ACCOUNT_BUCKETS.TABLE.PLAYER.capacity - 1]
+  })
+
+  // A roll to the GM reaches only the roller and the GM; the stranger just advances the sequence.
+  room.owner.socket.send(
+    chatFrame({
+      type: 'EXECUTE_ROLL',
+      commandId: rollId,
+      input: {
+        campaignId: room.campaignId,
+        destination: 'GM',
+        clientNonce: rollId,
+        roll: {
+          characterId: room.characterId,
+          expression: '1d20',
+          source: { kind: 'MANUAL', label: 'Manual roll' }
+        }
+      }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.owner, rollId)).toHaveLength(1))
+  const [roll] = repliesTo(room.owner, rollId)
+  if (roll?.type !== 'COMMAND_COMMITTED' || roll.delta?.scope !== 'CAMPAIGN_CHAT')
+    throw new Error(JSON.stringify(roll))
+  expect(roll.delta.entry).toMatchObject({
+    room: 'DIRECT',
+    kind: 'ROLL',
+    authorUserId: room.ownerId
+  })
+  expect(roll.sequence).toBe(chat.sequence + 1)
+  await vi.waitFor(() => expect(repliesTo(room.gm, rollId)).toEqual([roll]))
+  await vi.waitFor(() =>
+    expect(repliesTo(room.stranger, rollId)).toEqual([
+      { type: 'COMMAND_COMMITTED', commandId: rollId, sequence: roll.sequence, delta: null }
+    ])
+  )
+
+  // Nothing reached Convex while the commands ran; the next checkpoint carries both entries.
+  expect(fetchSpy.mock.calls.map(([input]) => new Request(input).url)).toEqual([])
+  expect(room.checkpoints).toHaveLength(0)
+  await runInDurableObject(room.stub, async (instance) => {
+    const clock = vi
+      .spyOn(Date, 'now')
+      .mockReturnValue(Date.now() + ROOM_LIMITS.checkpointDeadlineMs + 1)
+    try {
+      await instance.alarm()
+    } finally {
+      clock.mockRestore()
+    }
+  })
+  await vi.waitFor(() => expect(room.checkpoints).not.toHaveLength(0))
+  const published = room.checkpoints.flatMap(({ records }) => records.changes)
+  for (const table of ['campaignConversationEntries', 'campaignConversationEntryPayloads'])
+    expect(
+      published.filter((change) => change.table === table && change.delta !== null)
+    ).toHaveLength(2)
+})
+
+it('refuses chat past the per-account TABLE allowance without writing an entry, at the D72 allowances (P14.5)', async () => {
+  expect(ACCOUNT_BUCKETS.TABLE.PLAYER).toEqual({ capacity: 30, refillPerMinute: 30 })
+  expect(ACCOUNT_BUCKETS.TABLE.OWNER).toEqual({ capacity: 60, refillPerMinute: 60 })
+  expect(ACCOUNT_BUCKETS.SCENE.PLAYER).toEqual({ capacity: 80, refillPerMinute: 240 })
+  expect(ACCOUNT_BUCKETS.SCENE.OWNER).toEqual({ capacity: 80, refillPerMinute: 240 })
+
+  const room = await sheetRoom()
+  const firstId = crypto.randomUUID()
+  room.owner.socket.send(chatFrame(tableChat(room, firstId, 'One')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, firstId)).toHaveLength(1))
+  await runInDurableObject(room.stub, (_instance, state) => {
+    state.storage.sql.exec(
+      "UPDATE room_account_buckets SET tokens = 0, updated_at = ? WHERE user_id = ? AND kind = 'TABLE'",
+      Date.now() + 60_000,
+      room.ownerId
+    )
+  })
+  const limitedId = crypto.randomUUID()
+  room.owner.socket.send(chatFrame(tableChat(room, limitedId, 'Two')))
+  await vi.waitFor(() => expect(repliesTo(room.owner, limitedId)).toHaveLength(1))
+  expect(repliesTo(room.owner, limitedId)[0]).toMatchObject({
+    type: 'COMMAND_REJECTED',
+    code: 'RATE_LIMITED'
+  })
+  expect(repliesTo(room.gm, limitedId)).toEqual([])
+  expect((await roomChatEvidence(room)).entries).toBe(1)
+})
+
+function committedChat(member: SheetMember, commandId: string, at = 0) {
+  const reply = repliesTo(member, commandId)[at]
+  if (reply?.type !== 'COMMAND_COMMITTED') throw new Error(JSON.stringify(reply))
+  return reply
+}
+
+it('retains a GM private roll in the room for the GM alone and posts each reveal once to the table, free on exact retry (Q14, D83)', async () => {
+  const room = await sheetRoom()
+  const rollId = crypto.randomUUID()
+  const fullId = crypto.randomUUID()
+  const noticeId = crypto.randomUUID()
+  const spendOf = () =>
+    runInDurableObject(room.stub, (_instance, state) =>
+      state.storage.sql
+        .exec<{ tokens: number }>(
+          "SELECT tokens FROM room_account_buckets WHERE user_id = ? AND kind = 'TABLE'",
+          room.gmId
+        )
+        .toArray()
+        .map(({ tokens }) => tokens)
+    )
+
+  room.gm.socket.send(
+    chatFrame({
+      type: 'EXECUTE_PRIVATE_ROLL',
+      commandId: rollId,
+      input: {
+        campaignId: room.campaignId,
+        clientNonce: rollId,
+        roll: { characterId: null, expression: '1d20', source: { kind: 'MANUAL', label: 'Secret' } }
+      }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.gm, rollId)).toHaveLength(1))
+  const privateReceipt = committedChat(room.gm, rollId)
+  if (privateReceipt.delta?.scope !== 'CAMPAIGN_CHAT') throw new Error('Expected a chat delta.')
+  expect(privateReceipt.delta.entry).toBeNull()
+  expect(privateReceipt.delta.privateRoll).toMatchObject({
+    id: rollId,
+    gmCampaignRoll: { campaignId: room.campaignId, revealedAt: null, noticedAt: null }
+  })
+  // Players learn nothing: they only advance the sequence.
+  for (const member of [room.owner, room.stranger])
+    await vi.waitFor(() =>
+      expect(repliesTo(member, rollId)).toEqual([
+        {
+          type: 'COMMAND_COMMITTED',
+          commandId: rollId,
+          sequence: privateReceipt.sequence,
+          delta: null
+        }
+      ])
+    )
+  const afterRoll = await spendOf()
+
+  // Show that I rolled: the whole table reads a notice with no result, reason or roll.
+  room.gm.socket.send(
+    chatFrame({
+      type: 'REVEAL_ROLL',
+      commandId: noticeId,
+      input: { campaignId: room.campaignId, rollId, mode: 'NOTICE' }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.gm, noticeId)).toHaveLength(1))
+  const notice = committedChat(room.gm, noticeId)
+  if (notice.delta?.scope !== 'CAMPAIGN_CHAT') throw new Error('Expected a chat delta.')
+  expect(notice.delta.entry).toMatchObject({
+    room: 'TABLE',
+    kind: 'ROLL_NOTICE',
+    roll: null,
+    body: null,
+    revealedByGm: false
+  })
+  for (const member of [room.owner, room.stranger])
+    await vi.waitFor(() => expect(repliesTo(member, noticeId)).toEqual([notice]))
+
+  // Show roll: the full card follows, once.
+  room.gm.socket.send(
+    chatFrame({
+      type: 'REVEAL_ROLL',
+      commandId: fullId,
+      input: { campaignId: room.campaignId, rollId, mode: 'FULL' }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.gm, fullId)).toHaveLength(1))
+  const full = committedChat(room.gm, fullId)
+  if (full.delta?.scope !== 'CAMPAIGN_CHAT') throw new Error('Expected a chat delta.')
+  expect(full.delta.entry).toMatchObject({
+    room: 'TABLE',
+    kind: 'ROLL',
+    revealedByGm: true,
+    roll: { id: rollId }
+  })
+  await vi.waitFor(() => expect(repliesTo(room.owner, fullId)).toEqual([full]))
+  const afterReveals = await spendOf()
+  // Each reveal spends one token; the bucket also refills a fraction between charges.
+  expect(afterReveals[0]).toBeCloseTo(afterRoll[0]! - 2, 0)
+
+  // An exact retry replays the receipt and spends nothing; a second reveal of a mode is refused.
+  room.gm.socket.send(
+    chatFrame({
+      type: 'REVEAL_ROLL',
+      commandId: fullId,
+      input: { campaignId: room.campaignId, rollId, mode: 'FULL' }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.gm, fullId)).toHaveLength(2))
+  expect(repliesTo(room.gm, fullId)[1]).toEqual(full)
+  expect(await spendOf()).toEqual(afterReveals)
+  const again = crypto.randomUUID()
+  room.gm.socket.send(
+    chatFrame({
+      type: 'REVEAL_ROLL',
+      commandId: again,
+      input: { campaignId: room.campaignId, rollId, mode: 'FULL' }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.gm, again)).toHaveLength(1))
+  expect(repliesTo(room.gm, again)[0]).toMatchObject({ type: 'COMMAND_REJECTED' })
+
+  // A roll the room never held was made before the live table started: it reveals after the session.
+  const preAuthority = crypto.randomUUID()
+  room.gm.socket.send(
+    chatFrame({
+      type: 'REVEAL_ROLL',
+      commandId: preAuthority,
+      input: { campaignId: room.campaignId, rollId: crypto.randomUUID(), mode: 'FULL' }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.gm, preAuthority)).toHaveLength(1))
+  expect(repliesTo(room.gm, preAuthority)[0]).toMatchObject({
+    type: 'COMMAND_REJECTED',
+    message: 'This roll was made before the live table started; reveal it after the session.'
+  })
+
+  // A player cannot roll privately.
+  const playerRoll = crypto.randomUUID()
+  room.owner.socket.send(
+    chatFrame({
+      type: 'EXECUTE_PRIVATE_ROLL',
+      commandId: playerRoll,
+      input: {
+        campaignId: room.campaignId,
+        clientNonce: playerRoll,
+        roll: { characterId: null, expression: '1d20', source: { kind: 'MANUAL', label: 'No' } }
+      }
+    })
+  )
+  await vi.waitFor(() => expect(repliesTo(room.owner, playerRoll)).toHaveLength(1))
+  expect(repliesTo(room.owner, playerRoll)[0]).toMatchObject({ type: 'COMMAND_REJECTED' })
 })

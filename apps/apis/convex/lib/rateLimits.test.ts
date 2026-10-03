@@ -161,7 +161,8 @@ describe('account deletion', () => {
         bio: null,
         entitlementUsage: zeroAccountUsage,
         entitlementUsageReady: true,
-        autoRollDice: true
+        autoRollDice: true,
+        gmRollVisibility: 'PUBLIC'
       })
       for (const action of ['APPLICATION', 'INVITE', 'REPORT', 'BLOCK'] as const)
         await consumeSocialRateLimit(ctx, userId, action)

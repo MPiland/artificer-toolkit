@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { rollVisibilityDtoSchema } from './rolls.js'
 import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
 import { sizeCodeSchema } from '../shared/enums.js'
@@ -117,6 +118,11 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
       z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
       null
     ),
+    /**
+     * The GM's Public/Private choice for rolls of GM-controlled creatures this action makes (Q14).
+     * Used only when the Campaign owner submits it; otherwise the owner's stored preference applies.
+     */
+    visibility: z.optional(rollVisibilityDtoSchema),
     /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
     acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), []),
     /**
@@ -240,7 +246,9 @@ export const rollRuleEvidenceInputDtoSchema = lazySchema(() =>
     expectedOccurrenceVersion: versionSchema,
     requestId: requestIdSchema,
     /** The chosen mode for a d20 row; null for any other roll. */
-    rollMode: z.nullable(encounterD20RollModeDtoSchema)
+    rollMode: z.nullable(encounterD20RollModeDtoSchema),
+    /** The GM's Public/Private choice (Q14); used only when the Campaign owner rolls. */
+    visibility: z.optional(rollVisibilityDtoSchema)
   })
 )
 /** GM escape hatch for a stuck decision; the outcome depends on the pending decision's kind. */

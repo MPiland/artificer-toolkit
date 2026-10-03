@@ -1745,13 +1745,32 @@
             },
             {
               "id": "P06.5",
-              "text": "The GM rolls Private, Blind or to the Table and can reveal a private roll (ADR 0034).",
+              "text": "The GM rolls Public or Private, manual and automatic rule rolls alike, with one toggle beside the GM's roll controls that remembers the last choice and starts on Public; a Private roll shows players nothing, and its card offers two logged reveals, the full roll or a vague notice that names a creature only for players who can see it; consequences stay visible without the roll (ADR 0034, Q14, D83).",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/web/src/domains/characters/sheet/dice/useCharacterSheetRollController.test.tsx › defaults a GM Campaign roll to private and hides a blind result",
-                "apps/apis/convex/campaigns/rolls.test.ts › hides a GM blind roll value from everyone until the GM reveals it to the TABLE once",
-                "apps/apis/convex/campaigns/rolls.test.ts › reveals only a GM roll retained for the same Campaign",
-                "impl: apps/apis/convex/campaigns/rolls.ts"
+                "apps/apis/convex/auth.test.ts › defaults the GM roll toggle to PUBLIC and persists it only for the caller",
+                "apps/apis/convex/liveSessions/roomAuthorization.test.ts › carries the GM roll toggle to the room and re-inputs preferences when it changes",
+                "apps/web/src/components/dice/GmRollVisibilityToggle.test.tsx › starts on Public before the preference loads",
+                "apps/web/src/components/dice/GmRollVisibilityToggle.test.tsx › shows the stored choice and saves a change on the profile",
+                "apps/web/src/domains/characters/sheet/dice/useCharacterSheetRollController.test.tsx › defaults a GM Campaign roll to public and rolls it to the table",
+                "apps/web/src/domains/characters/sheet/dice/useCharacterSheetRollController.test.tsx › remembers the GM private choice on the profile and rolls privately with a retry nonce",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › sends the GM visibility (Public until chosen) and sends none for a player",
+                "apps/apis/convex/campaigns/rolls.test.ts › keeps a GM private roll invisible to players until the GM shows the roll once",
+                "apps/apis/convex/campaigns/rolls.test.ts › posts a roll notice with no result and allows each reveal mode once",
+                "apps/apis/convex/campaigns/rolls.test.ts › fences the GM private roll and both reveals while the live table owns chat",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › retains a GM private roll in the room for the GM alone and posts each reveal once to the table, free on exact retry (Q14, D83)",
+                "apps/web/src/domains/campaigns/vtt/useCampaignChatRoom.test.tsx › sends a private roll and a reveal through the room while it holds authority",
+                "apps/web/src/domains/characters/sheet/dice/CharacterSheetRollReveal.test.tsx › offers Show roll and Show that I rolled, each once",
+                "apps/web/src/domains/campaigns/components/CampaignChatHistory.test.tsx › shows a ROLL_NOTICE as a notice with no result, naming the creature when present",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › posts a GM creature save to the TABLE when the GM toggle is PUBLIC, whoever triggered it",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › follows the GM's stored PRIVATE toggle for a player-triggered creature save, naming the creature for a later reveal",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › keeps a hidden creature save private even when the GM toggle is PUBLIC",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › posts a player's attack to the TABLE even when the GM toggle is PRIVATE",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › keeps a %s creature hit on a player Character off the table while the player still sees the outcome (D62)",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › posts a total-only damage card to the TABLE, as the dealer rolled it",
+                "apps/apis/convex/encounters/evidenceRolls.test.ts › keeps a %s dealer damage card private, with players seeing only the outcome",
+                "impl: packages/encounter-persistence/src/ruleRollCards.ts (readRuleRollAudience, recordRuleRollCard), packages/encounter-persistence/src/rollReveals.ts, packages/rules-runtime/src/character/rollPresentation.ts, apps/session-worker/src/roomChatCommands.ts (EXECUTE_PRIVATE_ROLL, REVEAL_ROLL), apps/apis/convex/campaigns/rolls.ts, apps/apis/convex/account.ts (rollPreferences, setGmRollVisibility), apps/web/src/components/dice/GmRollVisibilityToggle.tsx, apps/web/src/domains/campaigns/vtt/useCampaignChatRoom.ts",
+                "known limits: damage cards show the total requested before resistance or halving, without dice faces (faces are persisted per die and can be added later); initiative rolled at Encounter start carries no dice and posts no card; a reveal of a roll made before the live table started is refused while the room holds authority"
               ]
             }
           ]
@@ -2137,8 +2156,13 @@
             {
               "id": "P14.5",
               "text": "During live play, chat and TABLE and to-GM rolls go through the room: immediate fan-out to recipients only, exact nonce retries replay uncharged, per-account room limits (D72: players 30/min, the GM 60/min in their own room, Scene writes 240/min) refuse excess, the Convex path is fenced, and entries persist with the next checkpoint (D69, D76).",
-              "status": "IN_PROGRESS",
-              "proof": null
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › commits chat and to-GM rolls in the room to their recipients, replays exact nonces free and publishes with the next checkpoint (P14.5, D69)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › refuses chat past the per-account TABLE allowance without writing an entry, at the D72 allowances (P14.5)",
+                "apps/apis/convex/campaigns/chat.test.ts › native Campaign text chat › fences Convex chat and Campaign rolls while the live table holds authority (P14.5)",
+                "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (#executeCampaignChatCommand), apps/session-worker/src/roomChatCommands.ts, apps/session-worker/src/roomRateLimits.ts, apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsCampaignChat)"
+              ]
             }
           ]
         },
@@ -3138,7 +3162,7 @@
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › raises no save prompt in a Manual Run, where a save-forcing action is refused whole",
                 "apps/apis/convex/encounters/concentration.test.ts › raises no concentration prompt in a Manual Run, where the damaging action is refused whole",
                 "apps/apis/convex/scenes/uninterruptedMovement.test.ts › publishes $mode $movementKind movement and fog without a Run occurrence (replaces the spatialMovement.test.ts Manual test deleted with the Convex movement rules in S4-e: with a spatial effect seeded, the room plans a MANUAL move as UNINTERRUPTED/MANUAL and the Run, actors, occurrences, receipts and effects are unchanged)",
-                "apps/apis/convex/encounters/turnActiveEffects.test.ts › commits the planner’s MANUAL phase with its fixed occurrence version (replaces the deleted turnEffects.test.ts Manual test: the room plans a Manual turn with a pending end-of-turn save effect as MANUAL and commits it without settling the effect)",
+                "packages/rules-runtime/src/__tests__/encounterTurnEffects.test.ts › records a MANUAL review phase over the exact createdOrdinal-ordered selection (replaces the turnActiveEffects.test.ts Manual test deleted with the Convex live-session path in A35-S6c3: a Manual turn with pending effects plans no rules execution and leaves actors unchanged)",
                 "impl: apps/apis/convex/encounters/evidenceRolls.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts and apps/session-worker/src/nativeEncounterRules.ts (Manual refusal)"
               ]
             },

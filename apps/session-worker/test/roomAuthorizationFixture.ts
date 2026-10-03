@@ -37,7 +37,12 @@ export function roomAuthorizationResponse(input: {
         ownerUserId,
       partyVisibility: { sheet: false, health: 'HIDDEN' }
     })),
-    preferences: members.map(({ userId }) => ({ userId, autoRollDice: false, username: 'FixtureMember' })),
+    preferences: members.map(({ userId }) => ({
+      userId,
+      autoRollDice: false,
+      gmRollVisibility: 'PUBLIC',
+      username: 'FixtureMember'
+    })),
     play: input.play ?? { encounter: null }
   }
 }

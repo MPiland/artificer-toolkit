@@ -792,7 +792,12 @@ it('atomically resolves a failed native Concentration save, retains the private 
     )
     expect(roll).toMatchObject({
       userId: gmId,
-      gmCampaignRoll: { campaignId, blind: false },
+      gmCampaignRoll: {
+        campaignId,
+        creature: { encounterId: expect.any(String), actorId: actor.id },
+        revealedAt: null,
+        noticedAt: null
+      },
       record: { characterLabel: actor.label }
     })
     expect(store.records(ROOM_PRIVATE_ROLL)).toHaveLength(1)

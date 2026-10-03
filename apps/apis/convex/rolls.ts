@@ -20,12 +20,10 @@ import { readCharacterRecord } from './characters/documents'
 import { readCharacterRow } from './characters/stateDocuments'
 import { readCharacterCampaign } from './characters/context'
 import {
-  evaluateCharacterRoll,
-  nextRollInt,
   presentRetainedRoll,
-  presentRoll,
-  retainUserRoll
-} from './rollDocuments'
+  presentRoll
+} from '@artificer-toolkit/rules-runtime/character/rollPresentation'
+import { evaluateCharacterRoll, nextRollInt, retainUserRoll } from './rollDocuments'
 
 const ok = v.object({ ok: v.literal(true) })
 

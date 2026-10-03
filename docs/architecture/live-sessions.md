@@ -694,7 +694,7 @@ the answered check and pinned to the commit's version, so replay and continuatio
 `readConcentrationCommitFailed`.
 
 **Rule-check roll log (CURRENT, D23).** Every settled Concentration check, answered or automatic, is
-logged once by `recordConcentrationCheckRoll` (`encounters/ruleCheckRolls.ts`), which
+logged once by `recordConcentrationCheckRoll` ([concentrationRollPersistence](../../packages/encounter-persistence/src/concentrationRollPersistence.ts)), which
 `persistNativeConcentrationResult` calls at every settle point, live and native. The entry is a
 `RollRecordDto` carrying a `ruleCheck` (`kind: 'CONCENTRATION'`: actor, damage amount and type
 label, source label, DC, faces, modifier, total, `KEPT`/`LOST`), authored by the settling member
@@ -974,8 +974,41 @@ Eviction removes the account's rows and room release clears them. Evidence rolls
 rolls commit in the room (D78) and spend the same bucket inside their commit; their table cards
 reach other members' chat history at the next checkpoint. Convex fences `campaigns/chat:send` and
 `campaigns/rolls:execute` while authority exists, and the web routes both through the room
-(`useCampaignChatRoom`), merging pushed entries into Convex history. Edit, unsend and GM reveal
-remain Convex-only.
+(`useCampaignChatRoom`), merging pushed entries into Convex history. Edit and unsend remain
+Convex-only.
+
+**GM roll visibility and reveals (current source, Q14, D83).** The GM's private roll
+(`EXECUTE_PRIVATE_ROLL`, command ID is the roll id) and both reveals (`REVEAL_ROLL`, `FULL` or
+`NOTICE`, each once per roll) are `CAMPAIGN_CHAT` commands charged on the D72 TABLE bucket and
+journaled with exact-retry replay; Convex `executePrivate` and `reveal` are fenced with
+`assertConvexOwnsCampaignChat`. A private roll is a `ROOM_PRIVATE_ROLL` record answered to the GM
+alone (`privateRoll` in the delta, `entry` null) and carried in the checkpoint `retainedRolls`;
+checkpoint application merges reveal marks monotonically. The room's `ROLL_NOTICE` snapshots the
+creature name at reveal time only if the actor is still `public` (a table-wide flag, not fog or
+vision), else null. Every automatic rule roll (Concentration, action d20 saves and attacks from
+`persistEncounterActionCommit`, evidence rolls, enemy actions) gets a card through
+`recordRuleRollCard` (ROLL_ACTOR_INITIATIVE included): `readRuleRollRouting` makes a hidden roller
+PRIVATE, a roller with a non-owner controller the TABLE, else the owner's command `visibility`
+(ROLL_ENEMY_ACTION requires it; RESOLVE_ACTION and ROLL_RULE_EVIDENCE may carry it, honoured only
+when the initiator is the owner) or the stored `gmRollVisibility`, mirrored to the room in the
+authorization preferences. A TABLE card is authored by the roller's primary controller (the owner
+if that controller is no longer an ACTIVE member; the initiator only when there is no roller
+actor), so a player-triggered creature save reads as the GM's roll, and it spends that author's
+conversation rate in Convex. Cards the room writes are fanned out in the commit: the Encounter
+result goes to the commander, then each admitted member (commander included) receives a
+same-sequence `CAMPAIGN_CHAT` `COMMAND_COMMITTED` per posted entry, including rules chat such as the
+occurrence-void notice. A PRIVATE card is retained for the owner and pushed to the owner's sockets
+alone as a `CAMPAIGN_CHAT` delta with `privateRoll` and a null `entry`. Convex and the room present
+rolls through the one `presentRoll`/`presentRetainedRoll` in `@artificer-toolkit/rules-runtime`
+(STANDARD maturity masks the labels). The D72 TABLE bucket is charged for ROLL_ENEMY_ACTION only
+when its `visibility` is `PUBLIC`, and for ROLL_ACTOR_INITIATIVE. Each DAMAGE application of an
+action also gets a total-only card from the source (`actionDamageRollRecord`: the requested amount,
+the action and damage-type label, no terms), routed like the action's d20 cards, and showing the amount requested before resistance or halving,
+not the HP lost; persisted evidence and receipts are unchanged. Initiative at encounter start is an integer total with no dice and has
+no record. A rolled private roll made before the live
+table started exists only in Convex: the room refuses to reveal it ("This roll was made before the
+live table started; reveal it after the session") because no bounded scope hydrates the owner's
+retained Campaign rolls into the room.
 
 [liveCharacterHolds](../../packages/schema/src/projections/liveCharacterHold.ts) fences each
 Character/active Run pair by Campaign/epoch. Claim/recovery establishes holds, changed Run/actor

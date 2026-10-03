@@ -1,3 +1,4 @@
+import { recordConcentrationCheckRoll } from '@artificer-toolkit/encounter-persistence/concentrationRollPersistence'
 import type {
   EncounterReadPorts,
   EncounterReadTransaction,
@@ -24,12 +25,12 @@ import {
   createConvexEncounterStore,
   createConvexEncounterStoreReader
 } from '../lib/convexEncounterStore'
-import { readAutoRollDice } from '../lib/rollPreferences'
+import { readAutoRollDice, readGmRollVisibility } from '../lib/rollPreferences'
 import { requireActiveCampaignLiveAuthority } from '../liveSessions/authorityGuard'
 import { readEncounterSource, snapshotBlueprintEnemies } from './blueprintSnapshots'
 import { readActorInitiativeRoll } from './initiativeSources'
 import { snapshotEncounterOptionalCombatPolicies } from './policySnapshots'
-import { recordConcentrationCheckRoll } from './ruleCheckRolls'
+import { retainUserRoll } from '../rollDocuments'
 
 async function readContentLabel(ctx: QueryCtx, id: string) {
   const authored = await ctx.db
@@ -66,6 +67,7 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
     readAssignedCharacter: (campaign, membership) =>
       readCampaignAssignedCharacter(ctx, campaign, membership),
     readAutoRollDice: (userId) => readAutoRollDice(ctx, userId),
+    readGmRollVisibility: (userId) => readGmRollVisibility(ctx, userId),
     hasAccountProfile: async (userId) =>
       (await ctx.db
         .query('userProfiles')
@@ -106,7 +108,15 @@ export function encounterWriteTransaction(
       ...readPorts(ctx),
       insertTableRoll: (authority, userId, clientNonce, roll) =>
         insertPreEvaluatedCampaignTableRoll(ctx, authority, userId, clientNonce, roll),
-      recordConcentrationCheckRoll: (input) => recordConcentrationCheckRoll(ctx, input),
+      retainGmRoll: async (userId, roll, gmCampaignRoll) => {
+        const retained = await ctx.db
+          .query('userRollHistory')
+          .withIndex('by_userId_id', (q) => q.eq('userId', userId).eq('id', roll.id))
+          .unique()
+        if (!retained) await retainUserRoll(ctx, userId, roll, gmCampaignRoll)
+      },
+      recordConcentrationCheckRoll: (input) =>
+        recordConcentrationCheckRoll(encounterWriteTransaction(ctx), input),
       postRulesChatMessage: (authority, input) =>
         postRulesChatMessage(encounterWriteTransaction(ctx), authority, input),
       writeCharacterRecord: async (input) => {

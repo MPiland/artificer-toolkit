@@ -568,6 +568,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write
     it, so the room would write from a stale base and its checkpoint would be refused.
+- **D83 (2026-10-02): the GM's Blind roll is removed; GM rolls are Public or Private only.
+  Decided by the product owner on 2026-10-02 (VS-5).**
+  - Q14's toggle is confirmed as recorded: one Public/Private toggle beside the GM's roll controls
+    (action drawer and chat), remembering the last choice, starting on Public, for manual and
+    automatic rule rolls.
+  - The Blind option (a GM roll hidden from the GM too until revealed) goes from the contract,
+    Convex, the room and the web. ADR 0034 and P06.5 are amended to match.
 - **D80 (2026-10-02): the open queue becomes ten vertical slices. Re-slicing approved by the
   user on 2026-10-02; the cut by Claude (integration owner).**
   - **Rule:** each slice (stream `VS` in the [work-slice registry](../roadmap/08-2-work-slices.json))

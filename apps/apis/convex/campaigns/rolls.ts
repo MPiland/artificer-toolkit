@@ -10,25 +10,28 @@ import {
 import {
   rollHistoryEntryDtoSchema,
   rollRecordDtoSchema,
-  type RollHistoryEntryDto,
-  type RollRecordDto
+  type RollHistoryEntryDto
 } from '@artificer-toolkit/schema/api/rolls'
 import { buildConversationEntryRecords } from '@artificer-toolkit/encounter-persistence/conversationEntryRecords'
+import {
+  readRollNoticeCreatureLabel,
+  readRollRevealRefusal,
+  rollNoticeNonce,
+  withRollRevealed
+} from '@artificer-toolkit/encounter-persistence/rollReveals'
 import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rollRecord'
+import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile } from '../lib/identity'
-import {
-  evaluateCharacterRoll,
-  nextRollInt,
-  presentRetainedRoll,
-  retainUserRoll
-} from '../rollDocuments'
+import { presentRetainedRoll } from '@artificer-toolkit/rules-runtime/character/rollPresentation'
+import { evaluateCharacterRoll, nextRollInt, retainUserRoll } from '../rollDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
+import { resolveCharacterId } from '../characters/documents'
 import { requireCampaignCharacterAuthority } from './characterState'
 import {
   insertConversationEntry,
@@ -37,6 +40,7 @@ import {
   readEntryPayload,
   readCampaignAccessTime
 } from './conversationDocuments'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { consumeUserRateLimit } from '../lib/rateLimits'
 import { assertConvexOwnsCampaignChat } from '../liveSessions/authorityGuard'
 
@@ -59,8 +63,16 @@ async function evaluateOwnerRoll(
   return createRollRecord({
     characterId: null,
     label: username,
-    system: { id: system.id, rulesetCode: system.rulesetCode, rulesetVersion: system.rulesetVersion },
-    resolved: { expression: roll.expression, rollMode: roll.rollMode ?? 'NORMAL', source: roll.source },
+    system: {
+      id: system.id,
+      rulesetCode: system.rulesetCode,
+      rulesetVersion: system.rulesetVersion
+    },
+    resolved: {
+      expression: roll.expression,
+      rollMode: roll.rollMode ?? 'NORMAL',
+      source: roll.source
+    },
     nextInt: nextRollInt
   })
 }
@@ -83,13 +95,14 @@ async function evaluateCampaignRoll(
 type CampaignAuthority = Awaited<ReturnType<typeof requireCampaignAuthority>>
 type ConversationAccess = Awaited<ReturnType<typeof openConversation>>
 
-/** Returns the caller's existing ROLL entry for this nonce so retries never roll or post twice. */
+/** Returns the caller's existing roll entry for this nonce so retries never roll or post twice. */
 async function readRollReplay(
   ctx: QueryCtx,
   campaignId: string,
   userId: string,
   { conversation, member }: ConversationAccess,
-  clientNonce: string
+  clientNonce: string,
+  kind: 'ROLL' | 'ROLL_NOTICE' = 'ROLL'
 ) {
   const header = await ctx.db
     .query('campaignConversationEntries')
@@ -102,7 +115,7 @@ async function readRollReplay(
     throw new Error('Chat nonce was used in another conversation.')
   if (header.createdAt < member.accessStartedAt) throw new Error('Chat entry not found.')
   const payload = await readEntryPayload(ctx, header.id)
-  if (payload.kind !== 'ROLL') throw new Error('Chat nonce was used for a different entry kind.')
+  if (payload.kind !== kind) throw new Error('Chat nonce was used for a different entry kind.')
   return { header, payload }
 }
 
@@ -114,11 +127,13 @@ async function insertRollEntry(
     userId: string
     username: string
     clientNonce: string
-    roll: RollRecordDto
-    revealedByGm: boolean
+    content: Extract<
+      Parameters<typeof buildConversationEntryRecords>[0]['content'],
+      { kind: 'ROLL' | 'ROLL_NOTICE' }
+    >
   }
 ): Promise<CampaignChatEntryDto> {
-  const { authority, access, roll } = entry
+  const { authority, access } = entry
   const now = await readCampaignAccessTime(ctx, authority.campaign)
   await consumeUserRateLimit(ctx, 'campaignConversation', entry.userId)
   const { identity: header, payload } = buildConversationEntryRecords({
@@ -128,7 +143,7 @@ async function insertRollEntry(
     clientNonce: entry.clientNonce,
     createdAt: new Date(now).toISOString(),
     username: entry.username,
-    content: { kind: 'ROLL', roll, revealedByGm: entry.revealedByGm }
+    content: entry.content
   })
   await insertConversationEntry(ctx, header, payload)
   return presentChatEntry(
@@ -194,12 +209,15 @@ export const execute = mutation({
       userId,
       username: actor.username,
       clientNonce,
-      roll: record,
-      revealedByGm: false
+      content: { kind: 'ROLL', roll: record, revealedByGm: false }
     })
   }
 })
 
+/**
+ * The GM's private roll (Q14): retained in the owner's history, never posted. The client nonce is
+ * the roll's id, so a retry finds the retained roll instead of rolling again.
+ */
 export const executePrivate = mutation({
   args: zodToConvexFields(executeCampaignPrivateRollInputSchema.shape),
   returns: zodToConvex(rollHistoryEntryDtoSchema),
@@ -211,6 +229,30 @@ export const executePrivate = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (membership.role !== 'OWNER') throw new Error('Only the Campaign owner may roll privately.')
+    await assertConvexOwnsCampaignChat(ctx, campaign.id)
+    const rollId = input.clientNonce.toLowerCase()
+    const existing = await ctx.db
+      .query('userRollHistory')
+      .withIndex('by_userId_id', (q) => q.eq('userId', userId).eq('id', rollId))
+      .unique()
+    if (existing) {
+      const { roll } = input
+      // A retry replays only the roll it first made: the Character and source kind always define
+      // it, and a manual roll's expression and mode do too (a Sheet roll's come from the Sheet).
+      const sameRoll =
+        existing.gmCampaignRoll?.campaignId === campaign.id &&
+        existing.characterId ===
+          (roll.characterId === null ? null : await resolveCharacterId(ctx, roll.characterId)) &&
+        existing.source.kind === roll.source.kind &&
+        (roll.source.kind !== 'MANUAL' ||
+          (existing.normalizedExpression ===
+            parseRollExpression(roll.expression).normalizedExpression &&
+            existing.evidence.mode === (roll.rollMode ?? 'NORMAL')))
+      if (!sameRoll) throw new Error('Roll nonce was used for a different roll.')
+      return rollHistoryEntryDtoSchema.parse(
+        presentRetainedRoll(existing, existing.characterId ? campaign.contentMaturity : null)
+      )
+    }
     requireCampaignAuthorUsername(actor.username)
     const { record, maturity } = await evaluateCampaignRoll(
       ctx,
@@ -219,15 +261,25 @@ export const executePrivate = mutation({
       actor.username,
       input.roll
     )
-    const gmCampaignRoll = { campaignId: campaign.id, blind: input.blind, revealedAt: null }
-    await retainUserRoll(ctx, userId, record, gmCampaignRoll)
+    const retained = { ...record, id: rollId }
+    const gmCampaignRoll = {
+      campaignId: campaign.id,
+      creature: null,
+      revealedAt: null,
+      noticedAt: null
+    }
+    await retainUserRoll(ctx, userId, retained, gmCampaignRoll)
     return rollHistoryEntryDtoSchema.parse(
-      presentRetainedRoll({ ...record, gmCampaignRoll }, maturity)
+      presentRetainedRoll({ ...retained, gmCampaignRoll }, maturity)
     )
   }
 })
 
-/** Posts a GM-retained roll to the TABLE once; the roll id is the idempotency nonce. */
+/**
+ * Posts a GM-retained roll to the TABLE: FULL as the roll's card, NOTICE as only the fact that the
+ * GM rolled (D83). Neither can be undone; each posts once per roll, and the roll id (FULL) or its
+ * derived notice nonce is the idempotency nonce.
+ */
 export const reveal = mutation({
   args: zodToConvexFields(revealCampaignRollInputSchema.shape),
   returns: zodToConvex(campaignChatEntryDtoSchema),
@@ -240,16 +292,29 @@ export const reveal = mutation({
     if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (authority.membership.role !== 'OWNER')
       throw new Error('Only the Campaign owner may reveal a roll.')
+    await assertConvexOwnsCampaignChat(ctx, authority.campaign.id)
     const retained = await ctx.db
       .query('userRollHistory')
       .withIndex('by_userId_id', (q) => q.eq('userId', userId).eq('id', input.rollId.toLowerCase()))
       .unique()
-    if (!retained?.gmCampaignRoll || retained.gmCampaignRoll.campaignId !== authority.campaign.id)
+    const gmCampaignRoll = retained?.gmCampaignRoll
+    if (!retained || !gmCampaignRoll || gmCampaignRoll.campaignId !== authority.campaign.id)
       throw new Error('Roll not found.')
     const access = await openConversation(ctx, authority, 'TABLE')
-    const replay = await readRollReplay(ctx, authority.campaign.id, userId, access, retained.id)
+    const nonce = input.mode === 'FULL' ? retained.id : rollNoticeNonce(retained.id)
+    const replay = await readRollReplay(
+      ctx,
+      authority.campaign.id,
+      userId,
+      access,
+      nonce,
+      input.mode === 'FULL' ? 'ROLL' : 'ROLL_NOTICE'
+    )
     if (replay) {
-      if (!replay.payload.revealedByGm || replay.payload.roll?.id !== retained.id)
+      if (
+        input.mode === 'FULL' &&
+        (!replay.payload.revealedByGm || replay.payload.roll?.id !== retained.id)
+      )
         throw new Error('Chat nonce was used with a different roll.')
       return presentChatEntry(
         ctx,
@@ -259,20 +324,28 @@ export const reveal = mutation({
         authority.campaign.contentMaturity
       )
     }
-    if (retained.gmCampaignRoll.revealedAt !== null)
-      throw new Error('This roll was already revealed.')
+    const refusal = readRollRevealRefusal(gmCampaignRoll, input.mode)
+    if (refusal) throw new Error(refusal)
     requireCampaignAuthorUsername(actor.username)
     const entry = await insertRollEntry(ctx, {
       authority,
       access,
       userId,
       username: actor.username,
-      clientNonce: retained.id,
-      roll: rollRecordDtoSchema.parse(retained),
-      revealedByGm: true
+      clientNonce: nonce,
+      content:
+        input.mode === 'FULL'
+          ? { kind: 'ROLL', roll: rollRecordDtoSchema.parse(retained), revealedByGm: true }
+          : {
+              kind: 'ROLL_NOTICE',
+              creatureLabel: await readRollNoticeCreatureLabel(
+                { db: createConvexEncounterStoreReader(ctx) },
+                gmCampaignRoll.creature
+              )
+            }
     })
     await ctx.db.patch(retained._id, {
-      gmCampaignRoll: { ...retained.gmCampaignRoll, revealedAt: entry.createdAt }
+      gmCampaignRoll: withRollRevealed(gmCampaignRoll, input.mode, entry.createdAt)
     })
     return entry
   }

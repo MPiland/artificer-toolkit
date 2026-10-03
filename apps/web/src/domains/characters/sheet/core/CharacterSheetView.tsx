@@ -386,6 +386,7 @@ export function CharacterSheetView({
         }
         rollerName={rollerName}
         onClose={() => setRollHistoryOpened(false)}
+        onRevealRoll={rollController.revealPrivateRoll}
       />
       {inspectorTarget ? (
         <CharacterSheetInspector

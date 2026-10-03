@@ -275,7 +275,7 @@ Notebook editors, the notes drawer and Session/file note pickers use Convex nati
 explicit Load more controls. Shared/private visibility is enforced by the backend query. Native
 mutations preserve the existing optimistic version and local dirty-text behavior. GM and Character
 Sheet TABLE rolls, and a player's "To GM" rolls, call `campaigns/rolls:execute` with a `TABLE | GM`
-destination; private and blind GM rolls use `executePrivate`, and `reveal` posts one to the TABLE.
+destination; private GM rolls use `executePrivate`, and `reveal` posts one to the TABLE in full or as a notice. The GM's remembered Public/Private toggle is the `gmRollVisibility` roll preference.
 A player's "Just me" roll stays on `campaigns/characterSheet:executeRoll`.
 Chat, room unread counts and notebook updates no longer depend on Broadcast invalidation or DIRECT
 Broadcast channels. File pickers/lists and upload, finalize, attachment and signed-delivery operations

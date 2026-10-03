@@ -10,6 +10,13 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 
+vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
+  useGmRollVisibilityPreference: () => ({
+    gmRollVisibility: 'PUBLIC',
+    setGmRollVisibility: vi.fn()
+  })
+}))
+
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
     configurable: true,
@@ -720,6 +727,33 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
         resolution: { kind: 'SYSTEM_ROLL', requestId: 'attack-roll', rollId: appRoll(2, []).rollId }
       })
     )
+  })
+
+  it('sends the GM visibility with "Roll dice" and none for a player', async () => {
+    const user = userEvent.setup()
+    const onResolve = rollingResolver([appRoll(1, [4, 17]), appRoll(2, [12, 9])])
+    for (const canVoid of [true, false]) {
+      const { unmount } = renderWithAppProviders(
+        <CampaignTabletopDecisionDrawer
+          skipped={null}
+          canVoid={canVoid}
+          connected
+          encounter={tabletopGmEncounter}
+          latestRoll={null}
+          pending={advantagePending}
+          submitting={false}
+          onResolve={onResolve}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+      expect(screen.queryByRole('radio', { name: 'Public' }) !== null).toBe(canVoid)
+      await user.click(screen.getByRole('button', { name: 'Roll dice' }))
+      const command = onResolve.mock.lastCall![0]
+      if (canVoid)
+        expect(command).toMatchObject({ type: 'ROLL_RULE_EVIDENCE', visibility: 'PUBLIC' })
+      else expect(command).not.toHaveProperty('visibility')
+      unmount()
+    }
   })
 
   it('switches to entered faces once the roller edits the row or changes its mode', async () => {

@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { parseRollExpression, validateRollMode } from '@artificer-toolkit/shared/rolls'
 
-import { rollRecordDtoSchema, rollSourceDtoSchema } from './rolls.js'
+import { rollRecordDtoSchema, rollRevealModeDtoSchema, rollSourceDtoSchema } from './rolls.js'
 import {
   campaignAuthorLabelSchema,
   timestampSchema,
@@ -79,7 +79,9 @@ export const campaignConversationKindDtoSchema = lazySchema(() =>
   z.enum(['TABLE', 'PARTY', 'DIRECT'])
 )
 export const campaignChatRoomDtoSchema = campaignConversationKindDtoSchema
-export const campaignChatEntryKindDtoSchema = lazySchema(() => z.enum(['CHAT', 'ROLL']))
+export const campaignChatEntryKindDtoSchema = lazySchema(() =>
+  z.enum(['CHAT', 'ROLL', 'ROLL_NOTICE'])
+)
 export const campaignChatModeDtoSchema = lazySchema(() => z.enum(['OOC', 'ROLEPLAY']))
 /**
  * Unread counts are exact below this value; this value means "at least this many". The count is
@@ -274,19 +276,23 @@ export const executeCampaignRollInputSchema = lazySchema(() =>
       })
     )
 )
-/** GM-only retained roll; a blind roll hides its result from the GM too until it is revealed. */
+/**
+ * GM-only roll retained in the GM's private history; players see nothing until a reveal. The nonce
+ * becomes the retained roll's id, so a retry returns the same roll.
+ */
 export const executeCampaignPrivateRollInputSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,
-    blind: z.boolean(),
+    clientNonce: uuidSchema,
     roll: executeCampaignRollDetailsSchema
   })
 )
+/**
+ * FULL posts the roll card to the table. NOTICE posts "the GM made a roll" without its result or
+ * reason, naming the creature only while players can see it. Each mode happens once per roll.
+ */
 export const revealCampaignRollInputSchema = lazySchema(() =>
-  z.strictObject({
-    campaignId: uuidSchema,
-    rollId: uuidSchema
-  })
+  z.strictObject({ campaignId: uuidSchema, rollId: uuidSchema, mode: rollRevealModeDtoSchema })
 )
 export const editCampaignChatEntryInputSchema = lazySchema(() =>
   z.strictObject({

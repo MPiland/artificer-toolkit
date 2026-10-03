@@ -1,12 +1,11 @@
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useMutation } from '@tanstack/react-query'
-import { useMutation as useConvexMutation } from 'convex/react'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useMemo, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDiscardRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
+import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CharacterSheetManualRoll } from '#domains/characters/sheet/dice/CharacterSheetManualRoll'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import type {
@@ -15,8 +14,9 @@ import type {
   CharacterSheetRollRequest
 } from '#domains/characters/sheet/dice/dice.types'
 import {
-  blindRollLabel,
+  gmRollDestination,
   gmRollDestinationOptions,
+  gmRollVisibility,
   noRollDestinationOptions
 } from '#domains/characters/sheet/dice/dice.utils'
 import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollContext'
@@ -24,12 +24,16 @@ import { useCampaignChatRoom } from '../vtt/useCampaignChatRoom'
 import * as liveStyles from './campaignLive.css'
 
 export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
-  const executePrivateRoll = useConvexMutation(convexApi.campaigns.rolls.executePrivate)
-  const { executeRoll: executeTableRoll } = useCampaignChatRoom(campaignId)
+  const {
+    executePrivateRoll,
+    executeRoll: executeTableRoll,
+    revealRoll
+  } = useCampaignChatRoom(campaignId)
   const discard = useDiscardRollMutation()
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
-  const [destination, setDestination] = useState<CharacterSheetRollDestination>('PRIVATE')
+  const { gmRollVisibility: visibility, setGmRollVisibility } = useGmRollVisibilityPreference()
+  const destination = gmRollDestination(visibility)
   const [roll, setRoll] = useState<RollRecordDto>()
   const [rollPrivate, setRollPrivate] = useState(true)
   const mutation = useMutation({
@@ -41,12 +45,8 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       destination: CharacterSheetRollDestination
     }): Promise<RollRecordDto | undefined> => {
       const roll = { characterId: null, ...request }
-      if (target === 'PRIVATE' || target === 'BLIND') {
-        const retained = await executePrivateRoll({ campaignId, blind: target === 'BLIND', roll })
-        if (retained.evidence !== null) return retained
-        notifications.show({ message: blindRollLabel })
-        return undefined
-      }
+      if (target === 'PRIVATE')
+        return executePrivateRoll({ campaignId, clientNonce: crypto.randomUUID(), roll })
       const entry = await executeTableRoll({
         campaignId,
         destination: 'TABLE',
@@ -102,13 +102,24 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       presentationPending: false,
       presentedRoll: roll,
       presentedRollPrivate: rollPrivate,
+      revealPrivateRoll: revealRoll,
       revealRoll: () => undefined,
-      setDestination,
+      setDestination: (next) => setGmRollVisibility(gmRollVisibility(next)),
       // Manual GM rolls never change Character state.
       stateRollDestination: destination,
       stateRollDestinationOptions: noRollDestinationOptions
     }),
-    [destination, discard, mutation, preferences.animate3d, reducedMotion, roll, rollPrivate]
+    [
+      destination,
+      discard,
+      mutation,
+      preferences.animate3d,
+      reducedMotion,
+      revealRoll,
+      roll,
+      rollPrivate,
+      setGmRollVisibility
+    ]
   )
 
   return (

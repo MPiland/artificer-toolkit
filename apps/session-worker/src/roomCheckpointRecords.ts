@@ -150,11 +150,19 @@ export function buildRoomCheckpointRecords({
       throw new Error('Private roll checkpoint identity or canonical payload is invalid.')
     const previous = privateRollState.get(key)
     const pending = retainedRolls.get(key)
-    if ((previous && previous !== record.json) || (pending && canonicalizeJson(pending) !== record.json))
+    // Evidence is immutable; only the binding's reveal marks advance, so the last one wins.
+    const evidence = (roll: LiveSessionCheckpointRetainedRoll) =>
+      canonicalizeJson([roll.userId, roll.record])
+    if (
+      (previous &&
+        evidence(liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(previous))) !==
+          evidence(value)) ||
+      (pending && evidence(pending) !== evidence(value))
+    )
       throw new Error('Private roll checkpoint evidence is immutable.')
     if (baseline && previous) throw new Error('Private roll checkpoint identity is duplicated.')
     privateRollState.set(key, record.json)
-    if (!baseline && !previous) retainedRolls.set(key, value)
+    if (!baseline) retainedRolls.set(key, value)
   }
   const sources = new Map<string, LiveSessionCheckpointSceneSource>()
   const sceneBefore = new Map<string, SceneRecord>()
@@ -279,9 +287,11 @@ export function buildRoomCheckpointRecords({
           if (recordId(restored) !== identity)
             throw new Error('Restored room input cannot change its identity.')
           if (checksumCanonicalJson(held.value) !== checksumCanonicalJson(restored.value)) {
-            if (!isMutable(restored.table) ||
+            if (
+              !isMutable(restored.table) ||
               checksumCanonicalJson(before.get(identity)?.value ?? null) !==
-                checksumCanonicalJson(after.get(identity)?.value ?? null))
+                checksumCanonicalJson(after.get(identity)?.value ?? null)
+            )
               throw new Error('Restored room input cannot replace uncheckpointed state or history.')
             before.set(identity, restored)
             after.set(identity, restored)

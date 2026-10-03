@@ -21,6 +21,7 @@ export function buildConversationEntryRecords(input: {
         character: { id: string; label: string } | null
       }
     | { kind: 'ROLL'; roll: RollRecordDto; revealedByGm: boolean }
+    | { kind: 'ROLL_NOTICE'; creatureLabel: string | null }
 }) {
   const { content } = input
   const identity = campaignStoredEntryIdentitySchema.parse({
@@ -40,13 +41,19 @@ export function buildConversationEntryRecords(input: {
     revealedByGm: content.kind === 'ROLL' && content.revealedByGm,
     authorUsername: input.username,
     characterId:
-      content.kind === 'CHAT' ? (content.character?.id ?? null) : content.roll.characterId,
+      content.kind === 'CHAT'
+        ? (content.character?.id ?? null)
+        : content.kind === 'ROLL'
+          ? content.roll.characterId
+          : null,
     characterLabel:
       content.kind === 'CHAT'
         ? (content.character?.label ?? null)
-        : content.roll.characterId === null
-          ? null
-          : content.roll.characterLabel,
+        : content.kind === 'ROLL_NOTICE'
+          ? content.creatureLabel
+          : content.roll.characterId === null
+            ? null
+            : content.roll.characterLabel,
     editedAt: null,
     unsentAt: null,
     consumedAt: null

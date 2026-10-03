@@ -1062,11 +1062,16 @@ it('merges private checkpoint rolls into global owner history without changing r
   const existing = makeRoll(19)
   const seed = Array.from({ length: 19 }, (_, index) => ({
     record: makeRoll(index),
-    gmCampaignRoll: { campaignId: foreign.id, blind: true, revealedAt: null }
+    gmCampaignRoll: { campaignId: foreign.id, creature: null, revealedAt: null, noticedAt: null }
   })).concat([
     {
       record: existing,
-      gmCampaignRoll: { campaignId: base.campaign.id, blind: true, revealedAt: null }
+      gmCampaignRoll: {
+        campaignId: base.campaign.id,
+        creature: null,
+        revealedAt: null,
+        noticedAt: null
+      }
     }
   ])
   const revealedAt = new Date(startedAt + 100).toISOString()
@@ -1079,7 +1084,7 @@ it('merges private checkpoint rolls into global owner history without changing r
     if (!row) throw new Error('Missing retained-roll fixture.')
     await ctx.db.patch(row._id, {
       consumedAt: revealedAt,
-      gmCampaignRoll: { campaignId: base.campaign.id, blind: true, revealedAt }
+      gmCampaignRoll: { campaignId: base.campaign.id, creature: null, revealedAt, noticedAt: null }
     })
   })
   const retained = () =>
@@ -1102,7 +1107,12 @@ it('merges private checkpoint rolls into global owner history without changing r
   const incoming: LiveSessionCheckpointRetainedRoll[] = [first, second, existing].map((record) => ({
     userId: base.owner.userId,
     record,
-    gmCampaignRoll: { campaignId: base.campaign.id, blind: true, revealedAt: null }
+    gmCampaignRoll: {
+      campaignId: base.campaign.id,
+      creature: null,
+      revealedAt: null,
+      noticedAt: null
+    }
   }))
   const authority = await activate(base)
   const run = await runChange(base)
@@ -1125,7 +1135,7 @@ it('merges private checkpoint rolls into global owner history without changing r
   )
   expect(after.owner.find((row) => row.id === existing.id)).toMatchObject({
     consumedAt: revealedAt,
-    gmCampaignRoll: { campaignId: base.campaign.id, blind: true, revealedAt }
+    gmCampaignRoll: { campaignId: base.campaign.id, creature: null, revealedAt, noticedAt: null }
   })
   expect(after.player).toEqual(before.player)
   expect(after.chat).toEqual(before.chat)
@@ -1187,10 +1197,6 @@ it('merges private checkpoint rolls into global owner history without changing r
       'identity is duplicated'
     ],
     [[staged, altered], 'identity is reused'],
-    [
-      [staged, { ...incoming[0], gmCampaignRoll: { ...incoming[0].gmCampaignRoll, blind: false } }],
-      'identity is reused'
-    ],
     [[staged, { ...incoming[0], record: seed[2].record }], 'identity is reused']
   ]
   const finalRun = await runChange(base)

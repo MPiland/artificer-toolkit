@@ -64,7 +64,7 @@ it('commits native rules chat with its checkpoint records and rolls back an unfi
     expect(store.documents('campaignConversationEntries')).toEqual([])
     expect(store.documents('campaignConversations')).toEqual([])
 
-    await store.transact(() => postRulesChatMessage(context, authority, message))
+    const posted = await store.transact(() => postRulesChatMessage(context, authority, message))
     expect(store.sequence).toBe(1)
     const [header] = store.documents('campaignConversationEntries')
     const [payload] = store.documents('campaignConversationEntryPayloads')
@@ -76,6 +76,13 @@ it('commits native rules chat with its checkpoint records and rolls back an unfi
       rollNonceFingerprint: null
     })
     expect(payload).toMatchObject({ entryId: header!.id, body: message.body, mode: 'OOC' })
+    // The posted entry is returned presented, so the room can fan it out in the same commit.
+    expect(posted).toMatchObject({
+      id: header!.id,
+      room: 'TABLE',
+      kind: 'CHAT',
+      body: message.body
+    })
     expect(header!.createdAt >= membership.accessStartedAt).toBe(true)
     const journal = store.committedWriteSets({
       epoch,

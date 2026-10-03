@@ -1,6 +1,10 @@
 import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/authIdentity'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  GmCampaignRollDto,
+  RollRecordDto,
+  RollVisibilityDto
+} from '@artificer-toolkit/schema/api/rolls'
 import type {
   CharacterEncounterCommandInput,
   CharacterEncounterCommandResult
@@ -74,6 +78,8 @@ export interface EncounterReadPorts {
     membership: EncounterDocument<'campaignMemberships'>
   ): Promise<{ id: string } | null>
   readAutoRollDice(userId: string): Promise<boolean>
+  /** The GM's remembered Public/Private roll toggle: it decides rolls the GM did not start. */
+  readGmRollVisibility(userId: string): Promise<RollVisibilityDto>
   /** Whether the app profile of this user still exists (it goes last in account deletion). */
   hasAccountProfile(userId: string): Promise<boolean>
   /** One actor's initiative roll as made: its expression and the Character's roll mode. */
@@ -105,18 +111,30 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
     clientNonce: string,
     roll: RollRecordDto
   ): Promise<CampaignChatEntryDto>
-  /** Logs a settled Concentration check as a rules roll entry, once per check. */
+  /**
+   * Retains a roll in the Campaign GM's private history (Q14): players see nothing of it until the
+   * GM reveals it. Retaining the same roll again changes nothing.
+   */
+  retainGmRoll(
+    userId: string,
+    roll: RollRecordDto,
+    gmCampaignRoll: GmCampaignRollDto
+  ): Promise<void>
+  /**
+   * Logs a settled Concentration check as a rules roll entry, once per check. Returns the table
+   * entry it posted; a private check posts none.
+   */
   recordConcentrationCheckRoll(input: {
     state: EncounterRunState
     result: StoredRuleExecutionResultDto
     authorUserId: string
     occurredAt: string
-  }): Promise<void>
+  }): Promise<CampaignChatEntryDto | null>
   /** Posts a rules message to the table chat as `authorUserId`, once per client nonce. */
   postRulesChatMessage(
     authority: CampaignAuthority,
     input: { authorUserId: string; clientNonce: string; body: string }
-  ): Promise<void>
+  ): Promise<CampaignChatEntryDto>
   /**
    * The single writer of a Character row: stores the document and Sheet state at the given stream
    * version and refreshes the Character's derived stats in the same transaction.

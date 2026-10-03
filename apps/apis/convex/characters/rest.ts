@@ -30,7 +30,7 @@ import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
 
 /**
  * Reads a hit-die roll's one stored record by id. Campaign rests settle only from rolls the GM can
- * see: the caller's TABLE or To GM chat entry, or the GM's own non-blind retained roll. A personal
+ * see: the caller's TABLE or To GM chat entry, or the GM's own retained roll once revealed. A personal
  * Character outside a Campaign settles from the caller's retained history.
  */
 async function readRestRoll(
@@ -46,12 +46,9 @@ async function readRestRoll(
     .unique()
   if (retained) {
     const gmRoll = retained.gmCampaignRoll
-    if (
-      campaignId !== null &&
-      (gmRoll?.campaignId !== campaignId || (gmRoll.blind && gmRoll.revealedAt === null))
-    )
+    if (campaignId !== null && gmRoll?.campaignId !== campaignId)
       throw new CharacterSheetCommandError(
-        'Campaign rest rolls must be visible to the GM; roll to the Table or to the GM.'
+        'Campaign rest rolls must be retained for this Campaign; roll again within it.'
       )
     return { stored: retained, record: rollRecordDtoSchema.parse(retained) }
   }

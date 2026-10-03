@@ -205,20 +205,55 @@ describe('live room authorization (ADR 0035 Amendment 14)', () => {
     await base.holdRoom()
     const request = { campaignId: base.campaign.id, epoch: base.epoch }
     const first = await base.t.query(read, { ...request, known: null })
-    await base.player.caller.mutation(api.account.updateProfile, { username: 'LivePlayer', bio: null })
+    await base.player.caller.mutation(api.account.updateProfile, {
+      username: 'LivePlayer',
+      bio: null
+    })
     const changed = await base.t.query(read, { ...request, known: first.revisions })
     expect(changed.revisions.preferences).not.toBe(first.revisions.preferences)
-    expect(changed.preferences).toEqual(expect.arrayContaining([
-      { userId: base.player.userId, autoRollDice: expect.any(Boolean), username: 'LivePlayer' }
-    ]))
+    expect(changed.preferences).toEqual(
+      expect.arrayContaining([
+        {
+          userId: base.player.userId,
+          autoRollDice: expect.any(Boolean),
+          gmRollVisibility: 'PUBLIC',
+          username: 'LivePlayer'
+        }
+      ])
+    )
     expect(await base.invalidations()).toEqual([
-      { campaignId: base.campaign.id, operation: { type: 'INVALIDATE_INPUTS', scopes: ['PREFERENCES'] } }
+      {
+        campaignId: base.campaign.id,
+        operation: { type: 'INVALIDATE_INPUTS', scopes: ['PREFERENCES'] }
+      }
     ])
     expect(await base.t.query(read, { ...request, known: changed.revisions })).toEqual({
-      revisions: changed.revisions, characters: []
+      revisions: changed.revisions,
+      characters: []
     })
     await base.player.caller.mutation(api.account.updateProfile, { bio: 'Updated profile' })
     expect(await base.invalidations()).toHaveLength(1)
+  })
+
+  it('carries the GM roll toggle to the room and re-inputs preferences when it changes', async () => {
+    const base = await setup()
+    await base.holdRoom()
+    const request = { campaignId: base.campaign.id, epoch: base.epoch }
+    const first = await base.t.query(read, { ...request, known: null })
+    await base.gm.caller.mutation(api.account.setGmRollVisibility, { gmRollVisibility: 'PRIVATE' })
+    const changed = await base.t.query(read, { ...request, known: first.revisions })
+    expect(changed.revisions.preferences).not.toBe(first.revisions.preferences)
+    expect(changed.preferences).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ userId: base.gm.userId, gmRollVisibility: 'PRIVATE' })
+      ])
+    )
+    expect(await base.invalidations()).toEqual([
+      {
+        campaignId: base.campaign.id,
+        operation: { type: 'INVALIDATE_INPUTS', scopes: ['PREFERENCES'] }
+      }
+    ])
   })
 
   it('notifies the room once per transaction and Campaign, only while it holds DO_ACTIVE authority', async () => {

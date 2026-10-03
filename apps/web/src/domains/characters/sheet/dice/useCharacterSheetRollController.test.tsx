@@ -1,8 +1,10 @@
+import { convexQuery } from '@convex-dev/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { type ReactNode } from 'react'
 import { afterEach, expect, vi } from 'vitest'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type { RollRecordDto, RollVisibilityDto } from '@artificer-toolkit/schema/api/rolls'
 import { getFunctionName } from 'convex/server'
 import { useCharacterSheetRollController } from './useCharacterSheetRollController'
 
@@ -12,7 +14,8 @@ const rollMutationMocks = vi.hoisted(() => ({
   executeCampaignPrivate: vi.fn(),
   executeGmPrivate: vi.fn(),
   executeTable: vi.fn(),
-  notify: vi.fn()
+  notify: vi.fn(),
+  setGmRollVisibility: vi.fn().mockResolvedValue(null)
 }))
 
 vi.mock('@mantine/notifications', () => ({
@@ -38,8 +41,10 @@ vi.mock('convex/react', () => ({
   useMutation: (reference: Parameters<typeof getFunctionName>[0]) =>
     ({
       'campaigns/characterSheet:executeRoll': rollMutationMocks.executeCampaignPrivate,
-      'campaigns/rolls:executePrivate': rollMutationMocks.executeGmPrivate
-    })[getFunctionName(reference)] ?? rollMutationMocks.executeTable
+      'campaigns/rolls:executePrivate': rollMutationMocks.executeGmPrivate,
+      'account:setGmRollVisibility': rollMutationMocks.setGmRollVisibility
+    })[getFunctionName(reference)] ?? rollMutationMocks.executeTable,
+  useConvex: () => ({ action: vi.fn(), query: vi.fn() })
 }))
 
 function createRoll(id: string): RollRecordDto {
@@ -62,9 +67,13 @@ function createRoll(id: string): RollRecordDto {
   }
 }
 
-function createWrapper() {
+function createWrapper(gmRollVisibility: RollVisibilityDto = 'PUBLIC') {
   const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } }
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } }
+  })
+  client.setQueryData(convexQuery(convexApi.account.rollPreferences, {}).queryKey, {
+    autoRollDice: true,
+    gmRollVisibility
   })
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -222,39 +231,51 @@ describe('useCharacterSheetRollController', () => {
     expect(rollMutationMocks.executeCampaignPrivate).not.toHaveBeenCalled()
   })
 
-  it('defaults a GM Campaign roll to private and hides a blind result', async () => {
-    rollMutationMocks.executeGmPrivate
-      .mockResolvedValueOnce(createRoll('gm-private-roll'))
-      .mockResolvedValueOnce({ ...createRoll('gm-blind-roll'), evidence: null })
+  it('defaults a GM Campaign roll to public and rolls it to the table', async () => {
+    rollMutationMocks.executeTable.mockResolvedValueOnce({ roll: createRoll('gm-public-roll') })
     const { result } = renderHook(
       () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
-    expect(result.current.destination).toBe('PRIVATE')
-    expect(optionLabels(result.current.destinationOptions)).toEqual(['Table', 'Private', 'Blind'])
+    expect(result.current.destination).toBe('TABLE')
+    expect(optionLabels(result.current.destinationOptions)).toEqual(['Public', 'Private'])
+
+    act(() => void result.current.executeRoll(request))
+    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-public-roll'))
+    expect(rollMutationMocks.executeTable).toHaveBeenCalledWith(
+      expect.objectContaining({ campaignId, destination: 'TABLE' })
+    )
+    expect(rollMutationMocks.executeGmPrivate).not.toHaveBeenCalled()
+    expect(result.current.presentedRollPrivate).toBe(false)
+  })
+
+  it('remembers the GM private choice on the profile and rolls privately with a retry nonce', async () => {
+    rollMutationMocks.executeGmPrivate.mockResolvedValueOnce(createRoll('gm-private-roll'))
+    const { result } = renderHook(
+      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
+      { wrapper: createWrapper() }
+    )
+    act(() => result.current.setDestination('PRIVATE'))
+    await waitFor(() => expect(result.current.destination).toBe('PRIVATE'))
+    expect(rollMutationMocks.setGmRollVisibility).toHaveBeenCalledWith({
+      gmRollVisibility: 'PRIVATE'
+    })
 
     act(() => void result.current.executeRoll(request))
     await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-private-roll'))
-    act(() => result.current.setDestination('BLIND'))
-    let outcome!: Promise<RollRecordDto | undefined>
-    act(() => {
-      outcome = result.current.executeRoll(manualRequest)
-    })
-    await expect(outcome).resolves.toBeUndefined()
-    expect(result.current.presentedRoll).toBeUndefined()
-    expect(rollMutationMocks.notify).toHaveBeenCalledWith({
-      message: 'Blind roll: hidden until revealed'
-    })
-    for (const [call, blind] of [
-      [1, false],
-      [2, true]
-    ] as const)
-      expect(rollMutationMocks.executeGmPrivate).toHaveBeenNthCalledWith(
-        call,
-        expect.objectContaining({ campaignId, blind })
-      )
+    expect(rollMutationMocks.executeGmPrivate).toHaveBeenCalledWith(
+      expect.objectContaining({ campaignId, clientNonce: expect.any(String) })
+    )
     expect(rollMutationMocks.executeCampaignPrivate).not.toHaveBeenCalled()
     expect(rollMutationMocks.executeTable).not.toHaveBeenCalled()
+  })
+
+  it('starts a GM whose stored choice is private on private', () => {
+    const { result } = renderHook(
+      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
+      { wrapper: createWrapper('PRIVATE') }
+    )
+    expect(result.current.destination).toBe('PRIVATE')
   })
 
   it('keeps player hit-die rolls on Table or To GM, never Just me', async () => {
@@ -276,15 +297,13 @@ describe('useCharacterSheetRollController', () => {
     expect(rollMutationMocks.executeCampaignPrivate).not.toHaveBeenCalled()
   })
 
-  it('keeps GM hit-die rolls on Table or Private, never Blind', async () => {
+  it('keeps GM hit-die rolls on Public or Private', async () => {
     rollMutationMocks.executeTable.mockResolvedValue({ roll: createRoll('gm-hit-die-roll') })
     const { result } = renderHook(
       () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
-    expect(optionLabels(result.current.stateRollDestinationOptions)).toEqual(['Table', 'Private'])
-    expect(result.current.stateRollDestination).toBe('PRIVATE')
-    act(() => result.current.setDestination('BLIND'))
+    expect(optionLabels(result.current.stateRollDestinationOptions)).toEqual(['Public', 'Private'])
     expect(result.current.stateRollDestination).toBe('TABLE')
     act(() => void result.current.executeRoll(request))
     await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-hit-die-roll'))

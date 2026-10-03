@@ -11,6 +11,7 @@ import {
   type CampaignChatPageDto,
   type CampaignConversationDto,
   editCampaignChatEntryInputSchema,
+  type ExecuteCampaignRollInput,
   getCampaignConversationInputSchema,
   listCampaignChatEntriesInputSchema,
   listCampaignConversationsInputSchema,
@@ -24,6 +25,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { api, components } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
 import { fixture as characterFixture } from '../../tests/fixtures/characters'
+import { claimActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { requireCampaignAuthority } from './authority'
 import { postCampaignChatEntry, readCampaignChatPage } from './chat'
@@ -72,6 +74,12 @@ const unsend = makeFunctionReference<
   z.input<typeof unsendCampaignChatEntryInputSchema>,
   CampaignChatEntryDto
 >('campaigns/chat:unsend')
+
+const executeRoll = makeFunctionReference<
+  'mutation',
+  ExecuteCampaignRollInput,
+  CampaignChatEntryDto
+>('campaigns/rolls:execute')
 
 const campaignInput: CreateCampaignInput = {
   name: 'Chat test',
@@ -588,6 +596,30 @@ describe('native Campaign text chat', () => {
     await expect(
       owner.caller.mutation(send, chat(campaign.id, 'DIRECT', 'after reset', other.userId))
     ).resolves.toMatchObject({ conversationId: direct.id })
+  })
+
+  it('fences Convex chat and Campaign rolls while the live table holds authority (P14.5)', async () => {
+    const { owner, other, campaign, t } = await setup()
+    const fenced = 'The live table owns chat and rolls; use the room to send them.'
+    const tableRoll = (clientNonce: string) => ({
+      campaignId: campaign.id,
+      destination: 'TABLE' as const,
+      clientNonce,
+      roll: {
+        characterId: null,
+        expression: '1d20',
+        source: { kind: 'MANUAL' as const, label: 'Manual' }
+      }
+    })
+    await owner.caller.mutation(send, chat(campaign.id, 'TABLE', 'before the table'))
+    await claimActiveLiveAuthority(t, { campaignId: campaign.id, userId: owner.userId })
+    await expect(
+      other.caller.mutation(send, chat(campaign.id, 'TABLE', 'during the table'))
+    ).rejects.toThrow(fenced)
+    await expect(owner.caller.mutation(executeRoll, tableRoll(nonce()))).rejects.toThrow(fenced)
+    expect(
+      await t.run((ctx) => ctx.db.query('campaignConversationEntries').collect())
+    ).toHaveLength(1)
   })
 
   it('keeps every entry and pages 2,000 of them newest first across createdAt ties', async () => {

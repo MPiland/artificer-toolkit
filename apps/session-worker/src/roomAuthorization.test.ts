@@ -71,9 +71,14 @@ function fullResponse(): Response {
       }
     ],
     preferences: [
-      { userId: ownerId, autoRollDice: false, username: 'TableGm' },
-      { userId: playerId, autoRollDice: true, username: 'TablePlayer' },
-      { userId: otherPlayerId, autoRollDice: false, username: 'OtherPlayer' }
+      { userId: ownerId, autoRollDice: false, gmRollVisibility: 'PUBLIC', username: 'TableGm' },
+      { userId: playerId, autoRollDice: true, gmRollVisibility: 'PUBLIC', username: 'TablePlayer' },
+      {
+        userId: otherPlayerId,
+        autoRollDice: false,
+        gmRollVisibility: 'PUBLIC',
+        username: 'OtherPlayer'
+      }
     ],
     play: {
       encounter: {
@@ -600,7 +605,12 @@ describe('room authorization cache', () => {
     await cache.refresh(epoch)
     cache.invalidate()
     const current = await cache.refresh(epoch)
-    expect(current.preferences).toContainEqual({ userId: otherPlayerId, autoRollDice: true, username: 'OtherPlayer' })
+    expect(current.preferences).toContainEqual({
+      userId: otherPlayerId,
+      autoRollDice: true,
+      gmRollVisibility: 'PUBLIC',
+      username: 'OtherPlayer'
+    })
   })
 
   it('fails closed on a read that omits a section it never loaded', async () => {

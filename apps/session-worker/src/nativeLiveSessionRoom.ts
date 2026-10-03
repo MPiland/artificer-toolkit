@@ -1929,7 +1929,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             type: 'COMMAND_COMMITTED',
             commandId,
             sequence: current.sequence + 1,
-            delta: { scope: 'CAMPAIGN_CHAT', entry: posted.entry }
+            delta: { scope: 'CAMPAIGN_CHAT', entry: posted.entry, privateRoll: posted.privateRoll }
           })
           return posted
         },
@@ -1975,7 +1975,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                   type: 'COMMAND_COMMITTED',
                   commandId,
                   sequence: current.sequence + 1,
-                  delta: { scope: 'CAMPAIGN_CHAT', entry: executed.entry }
+                  delta: { scope: 'CAMPAIGN_CHAT', entry: executed.entry, privateRoll: null }
                 }
             : {
                 type: 'COMMAND_COMMITTED',
@@ -2008,7 +2008,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // A roll posted to the table spends the same D72 allowance as chat and Campaign rolls.
     const tableBucket =
       command.type === 'ROLL_RULE_EVIDENCE' ||
-      (command.type === 'ROLL_ENEMY_ACTION' && command.visibility === 'TABLE')
+      command.type === 'ROLL_ACTOR_INITIATIVE' ||
+      (command.type === 'ROLL_ENEMY_ACTION' && command.visibility === 'PUBLIC')
         ? this.#bucket('TABLE', value, admission)
         : null
     try {
@@ -2149,6 +2150,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             sequence: current.sequence + 1,
             delta: { scope: 'ENCOUNTER', result: projection }
           })
+        // Roll cards the command posted to the TABLE reach every member in the commit, after the
+        // result they belong to, on the same room sequence.
+        for (const entry of result.chatEntries)
+          send(recipientSocket, {
+            type: 'COMMAND_COMMITTED',
+            commandId: command.commandId,
+            sequence: current.sequence + 1,
+            delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null }
+          })
+        // A roll retained for the GM reaches that user's sockets alone.
+        for (const { userId, roll } of result.privateRolls)
+          if (userId === member.userId)
+            send(recipientSocket, {
+              type: 'COMMAND_COMMITTED',
+              commandId: command.commandId,
+              sequence: current.sequence + 1,
+              delta: { scope: 'CAMPAIGN_CHAT', entry: null, privateRoll: roll }
+            })
       }
       await this.#scheduleAlarm()
     } catch (error) {

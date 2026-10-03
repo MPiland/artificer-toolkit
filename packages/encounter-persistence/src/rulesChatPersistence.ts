@@ -1,4 +1,7 @@
-import { ruleCheckAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
+import {
+  ruleCheckAuthorLabel,
+  type CampaignChatEntryDto
+} from '@artificer-toolkit/schema/api/campaignCommunication'
 import {
   campaignStoredEntryIdentitySchema,
   campaignStoredEntryPayloadSchema
@@ -7,15 +10,19 @@ import type { CampaignAuthority, EncounterReadPorts, EncounterWritePorts } from 
 import type { EncounterWriteContext } from './store.js'
 import { readActiveCampaignMembers } from './campaignMemberships.js'
 import { insertConversationEntry, openConversation } from './conversationPersistence.js'
+import { presentChatEntries } from './conversationPresentation.js'
 
-/** The enclosing rules occurrence guards replay and commits this message with its mechanics. */
+/**
+ * The enclosing rules occurrence guards replay and commits this message with its mechanics.
+ * Returns the posted entry so the room can fan it out in the commit.
+ */
 export async function postRulesChatMessage(
   ctx: EncounterWriteContext & {
     readonly ports: Pick<EncounterReadPorts, 'requireCampaignAuthority'>
   },
   authority: CampaignAuthority,
   input: Parameters<EncounterWritePorts['postRulesChatMessage']>[1]
-) {
+): Promise<CampaignChatEntryDto> {
   const { campaign } = authority
   const { conversation } = await openConversation(ctx, authority, 'TABLE', (campaignId, userId) =>
     ctx.ports.requireCampaignAuthority(campaignId, userId)
@@ -31,22 +38,26 @@ export async function postRulesChatMessage(
       Math.max(Date.now(), ...members.map((member) => Date.parse(member.accessStartedAt)))
     ).toISOString()
   })
-  await insertConversationEntry(
-    ctx,
-    identity,
-    campaignStoredEntryPayloadSchema.parse({
-      entryId: identity.id,
-      kind: 'CHAT',
-      mode: 'OOC',
-      body: input.body,
-      roll: null,
-      revealedByGm: false,
-      authorUsername: ruleCheckAuthorLabel,
-      characterId: null,
-      characterLabel: null,
-      editedAt: null,
-      unsentAt: null,
-      consumedAt: null
-    })
+  const payload = campaignStoredEntryPayloadSchema.parse({
+    entryId: identity.id,
+    kind: 'CHAT',
+    mode: 'OOC',
+    body: input.body,
+    roll: null,
+    revealedByGm: false,
+    authorUsername: ruleCheckAuthorLabel,
+    characterId: null,
+    characterLabel: null,
+    editedAt: null,
+    unsentAt: null,
+    consumedAt: null
+  })
+  await insertConversationEntry(ctx, identity, payload)
+  const [entry] = presentChatEntries(
+    [{ header: identity, payload }],
+    conversation,
+    campaign.contentMaturity,
+    [ruleCheckAuthorLabel]
   )
+  return entry!
 }

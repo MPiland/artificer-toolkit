@@ -225,10 +225,19 @@ Destination `TABLE` posts to the TABLE conversation; `GM` posts to the caller's 
 with the Campaign owner, which only those two participants can read (the owner is refused and rolls
 privately instead). Same-room/same-kind nonce retries return the original entry. Chat rolls never
 enter private history. `executePrivate` accepts GM-only manual or assigned-Character rolls, retains
-only that GM's latest twenty records, and binds each to its Campaign with a `blind` flag. An
-unrevealed blind roll withholds its evidence from every reader, the GM included.
-`campaigns/rolls:reveal` (owner only, `campaignConversation` rate limit) posts a retained roll to the
-TABLE once with `revealedByGm`, keyed by the roll id, and records `revealedAt`. Fresh no-Character GM
+only that GM's latest twenty records, and binds each to its Campaign (and, for an Encounter creature,
+to that creature) so players see nothing of it (Q14, D83); there is no Blind roll.
+`campaigns/rolls:reveal` (owner only, `campaignConversation` rate limit) offers two logged,
+non-retractable modes, each once per roll: `FULL` posts the roll to the TABLE with `revealedByGm`
+(keyed by the roll id, records `revealedAt`), and `NOTICE` posts a `ROLL_NOTICE` entry with no result
+(keyed by `rollNoticeNonce`, records `noticedAt`) that names the creature only while it is public
+(D62 is the table-wide `public` flag, not fog or vision), else reads "The GM made a roll". While
+live authority exists both `executePrivate` and `reveal` are fenced (`assertConvexOwnsCampaignChat`)
+and run in the room. Automatic rule rolls (Concentration, action d20s, enemy actions) follow one
+audience rule in `readRuleRollRouting`: a hidden roller is PRIVATE, a roller with a non-owner
+controller is the TABLE (authored by that controller), else the owner command's `visibility` or the
+stored `gmRollVisibility`. `executePrivate` replays only an identical retry; the same nonce with a
+different roll is refused. Fresh no-Character GM
 rolls require an existing valid assigned player Character.
 `campaigns/characterSheet:executeRoll` handles assigned-Character private rolls for the current player
 or explicitly scoped GM. It shares the evaluator and caller-only history and never opens a room.
@@ -597,7 +606,9 @@ cryptography is introduced.
 Better Auth record or tokens. Authoring preference updates target only the authenticated profile.
 The required `userProfiles.autoRollDice` preference ("Roll my dice automatically", default `true`)
 is read and written only for the caller through `account.rollPreferences` and
-`account.setAutoRollDice`; roll commands read it server-side to roll instead of prompting.
+`account.setAutoRollDice`; roll commands read it server-side to roll instead of prompting. The
+required `userProfiles.gmRollVisibility` (`PUBLIC` default, `PRIVATE`) mirrors it through
+`account.rollPreferences` and `account.setGmRollVisibility` and is the GM's remembered roll toggle.
 Older local profile rows default to completed registration and guided authoring; new rows write
 these values explicitly. Web recovery keeps its verified email/code only in component memory;
 refresh requires code entry again. The router now carries only this shared session projection;

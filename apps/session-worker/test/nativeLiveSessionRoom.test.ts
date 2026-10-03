@@ -919,11 +919,7 @@ it.each([false, true])(
         if (pathname === '/live-sessions/present') {
           const body = liveSessionPresentationCommitInputSchema.parse(await request.json())
           const journal = state.storage.sql
-            .exec<{
-              published_sequence: number
-              sequence: number
-              state_checksum: string
-            }>(
+            .exec<{ published_sequence: number; sequence: number; state_checksum: string }>(
               'SELECT published_sequence, sequence, state_checksum FROM durable_session_authority WHERE id = 1'
             )
             .one()
@@ -4156,7 +4152,11 @@ it('commits a warm native initiative roll privately and replays its exact eviden
     let checkedBeforeAck = false
     const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
       const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
-      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+      if (
+        message.type === 'COMMAND_COMMITTED' &&
+        message.commandId === commandId &&
+        message.delta?.scope !== 'CAMPAIGN_CHAT'
+      ) {
         if (message.delta?.scope !== 'ENCOUNTER' || !message.delta.result.roll)
           throw new Error('Missing initiating native initiative roll.')
         const roll = message.delta.result.roll
@@ -4334,7 +4334,7 @@ it('commits a private native enemy roll and its charge once before acknowledgeme
   })
   const { base, player, state, actors } = await localEncounterFixture([feature])
   const commandId = crypto.randomUUID()
-  const actorId = actors[0]!.id
+  const actorId = actors[1]!.id
   const frame = JSON.stringify({
     type: 'COMMAND',
     expectedSessionSequence: 0,
@@ -4365,7 +4365,11 @@ it('commits a private native enemy roll and its charge once before acknowledgeme
     let checkedBeforeAck = false
     const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
       const message = liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
-      if (message.type === 'COMMAND_COMMITTED' && message.commandId === commandId) {
+      if (
+        message.type === 'COMMAND_COMMITTED' &&
+        message.commandId === commandId &&
+        message.delta?.scope !== 'CAMPAIGN_CHAT'
+      ) {
         if (message.delta?.scope !== 'ENCOUNTER' || !message.delta.result.roll)
           throw new Error('Missing initiating private enemy roll.')
         const roll = message.delta.result.roll
@@ -4473,6 +4477,27 @@ it('commits a private native enemy roll and its charge once before acknowledgeme
     throw new Error('Missing private enemy roll fan-out.')
   expect(own.delta.result.roll).not.toBeNull()
   expect(recipient.delta.result.roll).toBeNull()
+  // The private card is retained for the GM and pushed to the GM's sockets alone (Q14, D83).
+  const chatFor = (messages: typeof base.messages) =>
+    messages.filter(
+      (message) =>
+        message.type === 'COMMAND_COMMITTED' &&
+        message.commandId === commandId &&
+        message.delta?.scope === 'CAMPAIGN_CHAT'
+    )
+  expect(chatFor(base.messages)).toEqual([
+    expect.objectContaining({
+      delta: {
+        scope: 'CAMPAIGN_CHAT',
+        entry: null,
+        privateRoll: expect.objectContaining({
+          id: own.delta.result.roll!.id,
+          gmCampaignRoll: expect.objectContaining({ revealedAt: null, noticedAt: null })
+        })
+      }
+    })
+  ])
+  expect(chatFor(player.messages)).toEqual([])
   expect(recipient.delta.result.projection.actors.map(({ id }) => id)).not.toContain(actors[2]!.id)
   for (const actor of recipient.delta.result.projection.actors) {
     expect(actor).not.toHaveProperty('gmNotes')
@@ -5618,17 +5643,22 @@ it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in 
     actorId: actors[0]!.id,
     featureId: feature.id,
     rollDefinitionId: 'gust',
-    visibility: 'TABLE'
+    visibility: 'PUBLIC'
   })
   const [commandId, limitedId] = [crypto.randomUUID(), crypto.randomUUID()]
   await runInDurableObject(base.stub, async (instance, context) => {
     const socket = memberSocket(context, base.userId)
     vi.mocked(globalThis.fetch).mockClear()
     const sent = vi.spyOn(socket, 'send')
+    const playerSent = vi.spyOn(memberSocket(context, base.playerId), 'send')
     try {
       await instance.webSocketMessage(socket, encounterFrame(roll(commandId, 1)))
       await instance.webSocketMessage(socket, encounterFrame(roll(commandId, 1)))
-      const [committed, replayed] = sentMessages(sent)
+      // The card also fans out to the table in the commit, as a same-sequence chat delta.
+      const encounterMessages = sentMessages(sent).filter(
+        (message) => message.type !== 'COMMAND_COMMITTED' || message.delta?.scope === 'ENCOUNTER'
+      )
+      const [committed, replayed] = encounterMessages
       if (
         committed?.type !== 'COMMAND_COMMITTED' ||
         committed.delta?.scope !== 'ENCOUNTER' ||
@@ -5637,10 +5667,29 @@ it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in 
         throw new Error('Missing committed TABLE enemy roll.')
       expect(replayed).toEqual(committed)
       const tableRoll = committed.delta.result.roll
+      const playerChat = sentMessages(playerSent).filter(
+        (message) =>
+          message.type === 'COMMAND_COMMITTED' && message.delta?.scope === 'CAMPAIGN_CHAT'
+      )
+      expect(playerChat).toEqual([
+        expect.objectContaining({
+          commandId,
+          sequence: committed.sequence,
+          delta: {
+            scope: 'CAMPAIGN_CHAT',
+            entry: expect.objectContaining({
+              room: 'TABLE',
+              kind: 'ROLL',
+              roll: expect.objectContaining({ id: tableRoll.id })
+            }),
+            privateRoll: null
+          }
+        })
+      ])
       expect(tableRoll).toMatchObject({ normalizedExpression: '2d6', characterId: null })
       const room = new RoomEncounterStore(context.storage)
       expect(room.documents('campaignConversationEntries')).toEqual([
-        expect.objectContaining({ authorUserId: base.userId, clientNonce: commandId })
+        expect.objectContaining({ authorUserId: base.playerId, clientNonce: commandId })
       ])
       expect(room.documents('campaignConversationEntryPayloads')).toEqual([
         expect.objectContaining({
@@ -5674,6 +5723,7 @@ it('commits a TABLE enemy roll with its table card and one D72 TABLE charge, in 
       expect(globalThis.fetch).not.toHaveBeenCalled()
     } finally {
       sent.mockRestore()
+      playerSent.mockRestore()
     }
   })
 })

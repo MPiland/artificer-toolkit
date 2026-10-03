@@ -192,7 +192,8 @@ it('moves crops onto references and rewrites every asset as an owner-scoped asse
       mediaBytes: 100,
       entitlementUsage: {},
       entitlementUsageReady: true,
-      autoRollDice: true
+      autoRollDice: true,
+      gmRollVisibility: 'PUBLIC'
     })
     const character = await insertLegacy(ctx, 'characters', {
       id: crypto.randomUUID(),

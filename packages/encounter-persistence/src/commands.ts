@@ -44,6 +44,7 @@ import { rejectDomain } from './domainRejections.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { rollEncounterRuleEvidence } from './evidenceRolls.js'
+import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterPersistenceTransaction, EncounterWriteTransaction } from './ports.js'
 
 type EncounterToolCommand = Extract<
@@ -251,6 +252,7 @@ async function recordEncounterToolCommand(
     typeof encounterCreatureEquipmentReplacementSchema
   > | null = null
   let roll: RollRecordDto | null = null
+  let rollIsPrivate = false
 
   let initiativeCorrection: { stateJson: string; stateChecksum: string } | null = null
   let optionalCombatSnapshot = state.optionalCombatSnapshot
@@ -402,6 +404,15 @@ async function recordEncounterToolCommand(
         ),
         createdAt: updatedAt
       })
+      await recordRuleRollCard(ctx, {
+        campaign,
+        encounterId: state.id,
+        roller: actor,
+        initiatorUserId: userId,
+        visibility: undefined,
+        clientNonce: input.commandId,
+        roll
+      })
     }
     actor = encounterRunActorStateSchema.parse(
       input.type === 'SET_INITIATIVE' || input.type === 'ROLL_ACTOR_INITIATIVE'
@@ -543,8 +554,16 @@ async function recordEncounterToolCommand(
       ...evaluateRollExpression(parseRollExpression(expression), { nextInt }, definition.rollMode),
       createdAt: updatedAt
     })
-    if (input.visibility === 'TABLE')
-      await ctx.ports.insertTableRoll({ campaign, membership }, userId, input.commandId, roll)
+    const card = await recordRuleRollCard(ctx, {
+      campaign,
+      encounterId: state.id,
+      roller: actor,
+      initiatorUserId: userId,
+      visibility: input.visibility,
+      clientNonce: input.commandId,
+      roll
+    })
+    rollIsPrivate = card.audience === 'PRIVATE'
   } else if (input.type === 'COMPLETE') {
     if (state.status !== 'ACTIVE' || state.currentActorId === null)
       rejectDomain(
@@ -645,6 +664,8 @@ async function recordEncounterToolCommand(
       encounterId: row.id,
       commandId: input.commandId,
       commandType: input.type,
+      // A private enemy roll stays off the table's timeline, whatever the command asked (D62).
+      ...(rollIsPrivate ? { visibility: 'PRIVATE' as const } : {}),
       ...(input.type === 'UPDATE_ACTOR' ? { characterReceiptId } : {}),
       ...(input.type === 'REPLACE_CREATURE_EQUIPMENT' ? { creatureEquipmentReplacement } : {}),
       ...(initiativeCorrection === null

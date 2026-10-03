@@ -8,6 +8,7 @@ import {
 
 import { characterSheetCommandInputDtoSchema } from './characterSheetCommandInputs.js'
 import { healthDisplayLevelDtoSchema } from './healthDisplay.js'
+import { rollVisibilityDtoSchema } from './rolls.js'
 import {
   commandBaseDtoSchema,
   resolveEncounterActionInputDtoSchema,
@@ -256,7 +257,7 @@ export const rollEncounterEnemyActionInputDtoSchema = lazySchema(() =>
     actorId: uuidSchema,
     featureId: z.string().check(z.trim()).check(z.minLength(1)),
     rollDefinitionId: z.string().check(z.trim()).check(z.minLength(1)),
-    visibility: z.enum(['PRIVATE', 'TABLE'])
+    visibility: rollVisibilityDtoSchema
   })
 )
 /** GM-only: what players see of enemies' and NPCs' health unless an actor overrides it. */

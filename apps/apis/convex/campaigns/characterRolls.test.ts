@@ -174,7 +174,7 @@ async function rollGmPrivate(
 ): Promise<RollRecordDto> {
   const retained = await gm.caller.mutation(executePrivate, {
     campaignId,
-    blind: false,
+    clientNonce: crypto.randomUUID(),
     roll: { characterId, expression, source }
   })
   if (retained.evidence === null) throw new Error('A private GM roll keeps its evidence.')
@@ -401,7 +401,7 @@ describe('native Campaign Character-private rolls and GM SHORT rests', () => {
     const input = rest(gmRoll, modifier, 2)
     const manual = await gm.caller.mutation(executePrivate, {
       campaignId: scope.campaignId,
-      blind: false,
+      clientNonce: crypto.randomUUID(),
       roll: {
         characterId: null,
         expression: request.expression,
@@ -829,7 +829,7 @@ describe('GM-visible Campaign rest rolls', () => {
     const before = await readState()
     await expect(
       player.caller.query(preview, { ...scope, input: rest(own, modifier, 2) })
-    ).rejects.toThrow('visible to the GM')
+    ).rejects.toThrow('retained for this Campaign')
     expect(await readState()).toEqual(before)
   })
 })

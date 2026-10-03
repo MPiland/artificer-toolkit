@@ -32,6 +32,9 @@ import { editCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components } from '../_generated/api'
+const claim = makeFunctionReference<'mutation', { campaignId: string }, { epoch: string }>(
+  'liveSessions/authority:claim'
+)
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -127,7 +130,7 @@ async function setup() {
   }
   const privateRequest: ExecuteCampaignPrivateRollInput = {
     campaignId: campaign.id,
-    blind: false,
+    clientNonce: crypto.randomUUID(),
     roll: {
       characterId: null,
       expression: '1d20',
@@ -677,12 +680,18 @@ describe('native Campaign authoritative rolls', () => {
     const beforeFailure = await readEntries()
     await expect(
       gm.caller.run(async (ctx) => {
-        await ctx.runMutation(executePrivate, privateRequest)
+        await ctx.runMutation(executePrivate, {
+          ...privateRequest,
+          clientNonce: crypto.randomUUID()
+        })
         throw new Error('Injected private failure')
       })
     ).rejects.toThrow('Injected private failure')
     expect(await readEntries()).toEqual(beforeFailure)
-    const newest = await gm.caller.mutation(executePrivate, privateRequest)
+    const newest = await gm.caller.mutation(executePrivate, {
+      ...privateRequest,
+      clientNonce: crypto.randomUUID()
+    })
     const records = await gm.caller.query(history, {})
     expect(records).toHaveLength(20)
     expect(records).toContainEqual(newest)
@@ -697,12 +706,28 @@ describe('native Campaign authoritative rolls', () => {
     await expect(
       gm.caller.mutation(executePrivate, {
         ...privateRequest,
-        roll: {
-          ...privateRequest.roll,
-          source: { kind: 'ABILITY_CHECK', label: 'Strength check' }
-        }
+        clientNonce: crypto.randomUUID(),
+        roll: { ...privateRequest.roll, source: { kind: 'ABILITY_CHECK', label: 'Strength check' } }
       })
     ).rejects.toThrow()
+  })
+
+  it('replays an identical private retry but refuses the same nonce with a different roll', async () => {
+    const { gm, privateRequest } = await setup()
+    const first = await gm.caller.mutation(executePrivate, privateRequest)
+    expect(await gm.caller.mutation(executePrivate, privateRequest)).toEqual(first)
+    await expect(
+      gm.caller.mutation(executePrivate, {
+        ...privateRequest,
+        roll: { ...privateRequest.roll, rollMode: 'ADVANTAGE' }
+      })
+    ).rejects.toThrow('Roll nonce was used for a different roll.')
+    await expect(
+      gm.caller.mutation(executePrivate, {
+        ...privateRequest,
+        roll: { ...privateRequest.roll, expression: '2d4+1' }
+      })
+    ).rejects.toThrow('Roll nonce was used for a different roll.')
   })
 
   it('denies outsiders and other active players access to an assigned Character', async () => {
@@ -855,19 +880,18 @@ describe('Campaign roll visibility', () => {
     expect((await readEntries()).headers).toEqual([])
   })
 
-  it('hides a GM blind roll value from everyone until the GM reveals it to the TABLE once', async () => {
+  it('keeps a GM private roll invisible to players until the GM shows the roll once', async () => {
     const { t, gm, player, campaign, privateRequest, readEntries } = await setup()
-    const blind = await gm.caller.mutation(executePrivate, { ...privateRequest, blind: true })
-    expect(blind).toMatchObject({
-      evidence: null,
-      gmCampaignRoll: { campaignId: campaign.id, blind: true, revealedAt: null }
+    const retained = await gm.caller.mutation(executePrivate, privateRequest)
+    expect(retained).toMatchObject({
+      id: privateRequest.clientNonce,
+      gmCampaignRoll: { campaignId: campaign.id, revealedAt: null, noticedAt: null }
     })
-    expect(await gm.caller.query(history, {})).toEqual([blind])
+    expect(await gm.caller.mutation(executePrivate, privateRequest)).toEqual(retained)
+    expect(await gm.caller.query(history, {})).toEqual([retained])
     expect(await player.caller.query(history, {})).toEqual([])
-    const stored = (await readEntries()).history[0]!
-    expect(stored.evidence.total).toEqual(expect.any(Number))
     expect((await readEntries()).headers).toEqual([])
-    const input = { campaignId: campaign.id, rollId: blind.id }
+    const input = { campaignId: campaign.id, rollId: retained.id, mode: 'FULL' as const }
     await expect(player.caller.mutation(reveal, input)).rejects.toThrow('Only the Campaign owner')
     await expect(t.mutation(reveal, input)).rejects.toThrow()
     const revealed = await gm.caller.mutation(reveal, input)
@@ -875,7 +899,7 @@ describe('Campaign roll visibility', () => {
       room: 'TABLE',
       kind: 'ROLL',
       revealedByGm: true,
-      roll: { id: blind.id, evidence: stored.evidence }
+      roll: { id: retained.id, evidence: retained.evidence }
     })
     expect(await gm.caller.mutation(reveal, input)).toEqual(revealed)
     expect((await readEntries()).headers).toHaveLength(1)
@@ -888,11 +912,59 @@ describe('Campaign roll visibility', () => {
     ).toEqual([revealed])
     expect(await gm.caller.query(history, {})).toEqual([
       {
-        ...blind,
-        evidence: stored.evidence,
-        gmCampaignRoll: { campaignId: campaign.id, blind: true, revealedAt: revealed.createdAt }
+        ...retained,
+        gmCampaignRoll: { ...retained.gmCampaignRoll, revealedAt: revealed.createdAt }
       }
     ])
+  })
+
+  it('posts a roll notice with no result and allows each reveal mode once', async () => {
+    const { gm, player, campaign, privateRequest, readEntries } = await setup()
+    const retained = await gm.caller.mutation(executePrivate, privateRequest)
+    const notice = await gm.caller.mutation(reveal, {
+      campaignId: campaign.id,
+      rollId: retained.id,
+      mode: 'NOTICE'
+    })
+    expect(notice).toMatchObject({
+      room: 'TABLE',
+      kind: 'ROLL_NOTICE',
+      roll: null,
+      body: null,
+      revealedByGm: false,
+      characterLabel: null
+    })
+    expect(JSON.stringify(notice)).not.toContain(retained.id)
+    await expect(
+      gm.caller.mutation(reveal, { campaignId: campaign.id, rollId: retained.id, mode: 'NOTICE' })
+    ).resolves.toEqual(notice)
+    const full = await gm.caller.mutation(reveal, {
+      campaignId: campaign.id,
+      rollId: retained.id,
+      mode: 'FULL'
+    })
+    expect(full).toMatchObject({ kind: 'ROLL', revealedByGm: true })
+    expect((await readEntries()).headers).toHaveLength(2)
+    await player.caller.mutation(api.campaigns.conversations.open, {
+      campaignId: campaign.id,
+      kind: 'TABLE'
+    })
+    expect(
+      (await player.caller.query(list, { campaignId: campaign.id, room: 'TABLE' })).entries
+    ).toHaveLength(2)
+  })
+
+  it('fences the GM private roll and both reveals while the live table owns chat', async () => {
+    const { gm, campaign, privateRequest } = await setup()
+    const retained = await gm.caller.mutation(executePrivate, privateRequest)
+    await gm.caller.mutation(claim, { campaignId: campaign.id })
+    await expect(
+      gm.caller.mutation(executePrivate, { ...privateRequest, clientNonce: crypto.randomUUID() })
+    ).rejects.toThrow('live table owns chat')
+    for (const mode of ['FULL', 'NOTICE'] as const)
+      await expect(
+        gm.caller.mutation(reveal, { campaignId: campaign.id, rollId: retained.id, mode })
+      ).rejects.toThrow('live table owns chat')
   })
 
   it('reveals only a GM roll retained for the same Campaign', async () => {
@@ -910,13 +982,17 @@ describe('Campaign roll visibility', () => {
       source: { kind: 'MANUAL', label: 'Unbound' }
     })
     for (const rollId of [own.id, personal.id])
-      await expect(gm.caller.mutation(reveal, { campaignId: campaign.id, rollId })).rejects.toThrow(
-        'Roll not found'
-      )
+      await expect(
+        gm.caller.mutation(reveal, { campaignId: campaign.id, rollId, mode: 'FULL' })
+      ).rejects.toThrow('Roll not found')
     const retained = await gm.caller.mutation(executePrivate, privateRequest)
     expect(retained.evidence).not.toBeNull()
     await expect(
-      gm.caller.mutation(reveal, { campaignId: crypto.randomUUID(), rollId: retained.id })
+      gm.caller.mutation(reveal, {
+        campaignId: crypto.randomUUID(),
+        rollId: retained.id,
+        mode: 'FULL'
+      })
     ).rejects.toThrow()
   })
 })

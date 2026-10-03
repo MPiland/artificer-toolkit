@@ -182,20 +182,51 @@ describe('Convex identity foundation', () => {
     })
 
     await expect(callerA.query(api.account.rollPreferences, {})).resolves.toEqual({
-      autoRollDice: true
+      autoRollDice: true,
+      gmRollVisibility: 'PUBLIC'
     })
     await expect(
       callerA.mutation(api.account.setAutoRollDice, { autoRollDice: false })
     ).resolves.toBeNull()
     await expect(callerA.query(api.account.rollPreferences, {})).resolves.toEqual({
-      autoRollDice: false
+      autoRollDice: false,
+      gmRollVisibility: 'PUBLIC'
     })
     await expect(callerB.query(api.account.rollPreferences, {})).resolves.toEqual({
-      autoRollDice: true
+      autoRollDice: true,
+      gmRollVisibility: 'PUBLIC'
     })
     await callerA.mutation(api.account.setAutoRollDice, { autoRollDice: true })
     await expect(callerA.query(api.account.rollPreferences, {})).resolves.toEqual({
-      autoRollDice: true
+      autoRollDice: true,
+      gmRollVisibility: 'PUBLIC'
+    })
+  })
+
+  it('defaults the GM roll toggle to PUBLIC and persists it only for the caller', async () => {
+    await expect(
+      t.mutation(api.account.setGmRollVisibility, { gmRollVisibility: 'PRIVATE' })
+    ).rejects.toThrow('Unauthenticated')
+    const userA = await createAuthUser(true)
+    const userB = await createAuthUser(true)
+    const callerA = t.withIdentity({
+      subject: userA._id,
+      sessionId: (await createSession(userA._id))._id
+    })
+    const callerB = t.withIdentity({
+      subject: userB._id,
+      sessionId: (await createSession(userB._id))._id
+    })
+    await expect(callerA.query(api.account.rollPreferences, {})).resolves.toMatchObject({
+      gmRollVisibility: 'PUBLIC'
+    })
+    await callerA.mutation(api.account.setGmRollVisibility, { gmRollVisibility: 'PRIVATE' })
+    await expect(callerA.query(api.account.rollPreferences, {})).resolves.toMatchObject({
+      autoRollDice: true,
+      gmRollVisibility: 'PRIVATE'
+    })
+    await expect(callerB.query(api.account.rollPreferences, {})).resolves.toMatchObject({
+      gmRollVisibility: 'PUBLIC'
     })
   })
 

@@ -226,7 +226,7 @@ describe('native Encounter timeline reads', () => {
           actorId: actor.id,
           featureId: 'fixture-feature'.padEnd(600000, 'x'),
           rollDefinitionId: 'fixture-roll',
-          visibility
+          visibility: visibility === 'TABLE' ? 'PUBLIC' : 'PRIVATE'
         })
         const receipt = encounterStoredReplayReceiptSchema.parse({ roll: null, occurrence: null })
 

@@ -4,6 +4,7 @@ import {
   passwordInputSchema,
   usernameInputSchema
 } from './auth.js'
+import { rollVisibilityDtoSchema } from './rolls.js'
 
 export const accountEmailConfirmationSearchSchema = lazySchema(() =>
   z.object({
@@ -38,7 +39,9 @@ export type AccountProfileUpdateInput = z.input<typeof accountProfileUpdateInput
 
 export const accountRollPreferencesDtoSchema = lazySchema(() =>
   z.strictObject({
-    autoRollDice: z.boolean()
+    autoRollDice: z.boolean(),
+    /** The GM's remembered Public/Private roll toggle (Q14); players never read it. */
+    gmRollVisibility: rollVisibilityDtoSchema
   })
 )
 
@@ -51,6 +54,12 @@ export const setAutoRollDiceInputSchema = lazySchema(() =>
 )
 
 export type SetAutoRollDiceInput = z.infer<typeof setAutoRollDiceInputSchema>
+
+export const setGmRollVisibilityInputSchema = lazySchema(() =>
+  z.strictObject({ gmRollVisibility: rollVisibilityDtoSchema })
+)
+
+export type SetGmRollVisibilityInput = z.infer<typeof setGmRollVisibilityInputSchema>
 
 export const accountUsernameStatusInputSchema = lazySchema(() =>
   z.strictObject({

@@ -74,8 +74,9 @@ Foundry is the baseline. The goal is a smoother experience, with no module syste
      is a follow-up).
 5. **Table policy.**
    - Players may open and close unlocked doors; locking stays GM-only.
-   - Player rolls default to the table, with a "To GM" option. The GM keeps private and blind rolls and
-     can reveal a private roll.
+   - Player rolls default to the table, with a "To GM" option. The GM rolls Public or Private, manual
+     and automatic rule rolls alike, and can reveal a private roll in full or as a vague notice
+     (amended 2026-10-02 by Q14 and D83, which removed the GM's Blind roll).
    - Rolls that change Character state (short-rest hit dice; death saves in Phase 8.3) are always
      visible to the GM: Table or To GM, never "Just me".
    - Visibility follows Foundry's default privacy:

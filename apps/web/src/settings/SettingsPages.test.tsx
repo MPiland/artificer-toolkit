@@ -31,7 +31,10 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => {
     convexQuery: (reference: Parameters<typeof actual.convexQuery>[0], args: unknown) => {
       const options = actual.convexQuery(reference, args)
       if (getFunctionName(reference) === 'account:rollPreferences')
-        return { ...options, queryFn: async () => ({ autoRollDice: true }) }
+        return {
+          ...options,
+          queryFn: async () => ({ autoRollDice: true, gmRollVisibility: 'PUBLIC' as const })
+        }
       if (getFunctionName(reference) !== 'social/profiles:getEligibility') return options
       return {
         ...options,

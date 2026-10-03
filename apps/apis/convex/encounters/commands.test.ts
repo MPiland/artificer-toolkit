@@ -802,7 +802,7 @@ describe('native Encounter Run commands', () => {
         actorId: actor.id,
         featureId,
         rollDefinitionId: 'whirlwind-table',
-        visibility: 'TABLE'
+        visibility: 'PUBLIC'
       }
     }
     const tableSamples = [3, 4]

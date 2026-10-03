@@ -37,7 +37,7 @@ export declare const api: {
       "query",
       "public",
       {},
-      { autoRollDice: boolean }
+      { autoRollDice: boolean; gmRollVisibility: "PUBLIC" | "PRIVATE" }
     >;
     session: FunctionReference<
       "query",
@@ -69,6 +69,12 @@ export declare const api: {
       "mutation",
       "public",
       { autoRollDice: boolean },
+      null
+    >;
+    setGmRollVisibility: FunctionReference<
+      "mutation",
+      "public",
+      { gmRollVisibility: "PUBLIC" | "PRIVATE" },
       null
     >;
     updateProfile: FunctionReference<
@@ -6980,7 +6986,7 @@ export declare const api: {
           createdAt: string;
           editedAt: string | null;
           id: string;
-          kind: "CHAT" | "ROLL";
+          kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
@@ -7063,7 +7069,7 @@ export declare const api: {
             createdAt: string;
             editedAt: string | null;
             id: string;
-            kind: "CHAT" | "ROLL";
+            kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
             mode: "OOC" | "ROLEPLAY" | null;
             revealedByGm: boolean;
             roll: {
@@ -7151,7 +7157,7 @@ export declare const api: {
           createdAt: string;
           editedAt: string | null;
           id: string;
-          kind: "CHAT" | "ROLL";
+          kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
@@ -7227,7 +7233,7 @@ export declare const api: {
           createdAt: string;
           editedAt: string | null;
           id: string;
-          kind: "CHAT" | "ROLL";
+          kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
@@ -9345,7 +9351,7 @@ export declare const api: {
           createdAt: string;
           editedAt: string | null;
           id: string;
-          kind: "CHAT" | "ROLL";
+          kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
@@ -9410,8 +9416,8 @@ export declare const api: {
         "mutation",
         "public",
         {
-          blind: boolean;
           campaignId: string;
+          clientNonce: string;
           roll: {
             characterId: string | null;
             expression: string;
@@ -9431,109 +9437,71 @@ export declare const api: {
             };
           };
         },
-        | {
-            characterId: string | null;
-            characterLabel: string;
-            createdAt: string;
-            evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              modifier: number;
+        {
+          characterId: string | null;
+          characterLabel: string;
+          createdAt: string;
+          evidence: {
+            mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            modifier: number;
+            subtotal: number;
+            terms: Array<{
+              count: number;
+              die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+              keptRollIndex?: number;
+              keptRollIndexes?: Array<number>;
+              modifier?: number;
+              rollSequences?: Array<Array<number>>;
+              rolls: Array<number>;
               subtotal: number;
-              terms: Array<{
-                count: number;
-                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                keptRollIndex?: number;
-                keptRollIndexes?: Array<number>;
-                modifier?: number;
-                rollSequences?: Array<Array<number>>;
-                rolls: Array<number>;
-                subtotal: number;
-              }>;
-              total: number;
-              transform:
-                | { kind: "NONE" }
-                | { kind: "HALF" }
-                | { kind: "DOUBLE" }
-                | { kind: "MULTIPLY"; value: number };
-            };
-            gmCampaignRoll: {
-              blind: boolean;
-              campaignId: string;
-              revealedAt: string | null;
-            } | null;
-            id: string;
-            normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
-            ruleset: { code: string; systemId: string; version: string };
-            source: {
-              kind:
-                | "MANUAL"
-                | "ABILITY_CHECK"
-                | "SAVING_THROW"
-                | "SKILL_CHECK"
-                | "INITIATIVE"
-                | "ATTACK"
-                | "DAMAGE"
-                | "HEALING"
-                | "HIT_DIE";
-              label: string;
-            };
-          }
-        | {
-            characterId: string | null;
-            characterLabel: string;
-            createdAt: string;
-            evidence: null;
-            gmCampaignRoll: {
-              blind: true;
-              campaignId: string;
-              revealedAt: null;
-            };
-            id: string;
-            normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
-            ruleset: { code: string; systemId: string; version: string };
-            source: {
-              kind:
-                | "MANUAL"
-                | "ABILITY_CHECK"
-                | "SAVING_THROW"
-                | "SKILL_CHECK"
-                | "INITIATIVE"
-                | "ATTACK"
-                | "DAMAGE"
-                | "HEALING"
-                | "HIT_DIE";
-              label: string;
-            };
-          }
+            }>;
+            total: number;
+            transform:
+              | { kind: "NONE" }
+              | { kind: "HALF" }
+              | { kind: "DOUBLE" }
+              | { kind: "MULTIPLY"; value: number };
+          };
+          gmCampaignRoll: {
+            campaignId: string;
+            creature: { actorId: string; encounterId: string } | null;
+            noticedAt: string | null;
+            revealedAt: string | null;
+          } | null;
+          id: string;
+          normalizedExpression: string;
+          ruleCheck?: {
+            actorId: string;
+            actorLabel: string;
+            damage: { amount: number; typeLabel: string | null };
+            dc: number;
+            faces: Array<number>;
+            kind: "CONCENTRATION";
+            modifier: number;
+            outcome: "KEPT" | "LOST";
+            sourceLabel: string | null;
+            total: number;
+          };
+          ruleset: { code: string; systemId: string; version: string };
+          source: {
+            kind:
+              | "MANUAL"
+              | "ABILITY_CHECK"
+              | "SAVING_THROW"
+              | "SKILL_CHECK"
+              | "INITIATIVE"
+              | "ATTACK"
+              | "DAMAGE"
+              | "HEALING"
+              | "HIT_DIE";
+            label: string;
+          };
+        }
       >;
       reveal: FunctionReference<
         "mutation",
         "public",
-        { campaignId: string; rollId: string },
+        { campaignId: string; mode: "FULL" | "NOTICE"; rollId: string },
         {
           authorUserId: string;
           authorUsername: string;
@@ -9545,7 +9513,7 @@ export declare const api: {
           createdAt: string;
           editedAt: string | null;
           id: string;
-          kind: "CHAT" | "ROLL";
+          kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
@@ -40202,7 +40170,7 @@ export declare const api: {
                         featureId: string;
                         rollDefinitionId: string;
                         type: "ROLL_ENEMY_ACTION";
-                        visibility: "PRIVATE" | "TABLE";
+                        visibility: "PUBLIC" | "PRIVATE";
                       }
                     | {
                         commandId: string;
@@ -40258,6 +40226,7 @@ export declare const api: {
                         } | null;
                         targetActorId: string;
                         type: "RESOLVE_ACTION";
+                        visibility?: "PUBLIC" | "PRIVATE";
                       }
                     | {
                         acknowledgedWarnings?: Array<
@@ -40406,6 +40375,7 @@ export declare const api: {
                         rollMode:
                           "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                         type: "ROLL_RULE_EVIDENCE";
+                        visibility?: "PUBLIC" | "PRIVATE";
                       };
                 };
                 kind: "COMMAND";
@@ -40478,7 +40448,7 @@ export declare const api: {
           createdAt: string;
           editedAt: string | null;
           id: string;
-          kind: "CHAT" | "ROLL";
+          kind: "CHAT" | "ROLL" | "ROLL_NOTICE";
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
@@ -42970,106 +42940,66 @@ export declare const api: {
       "query",
       "public",
       {},
-      Array<
-        | {
-            characterId: string | null;
-            characterLabel: string;
-            createdAt: string;
-            evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-              modifier: number;
-              subtotal: number;
-              terms: Array<{
-                count: number;
-                die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                keptRollIndex?: number;
-                keptRollIndexes?: Array<number>;
-                modifier?: number;
-                rollSequences?: Array<Array<number>>;
-                rolls: Array<number>;
-                subtotal: number;
-              }>;
-              total: number;
-              transform:
-                | { kind: "NONE" }
-                | { kind: "HALF" }
-                | { kind: "DOUBLE" }
-                | { kind: "MULTIPLY"; value: number };
-            };
-            gmCampaignRoll: {
-              blind: boolean;
-              campaignId: string;
-              revealedAt: string | null;
-            } | null;
-            id: string;
-            normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
-            ruleset: { code: string; systemId: string; version: string };
-            source: {
-              kind:
-                | "MANUAL"
-                | "ABILITY_CHECK"
-                | "SAVING_THROW"
-                | "SKILL_CHECK"
-                | "INITIATIVE"
-                | "ATTACK"
-                | "DAMAGE"
-                | "HEALING"
-                | "HIT_DIE";
-              label: string;
-            };
-          }
-        | {
-            characterId: string | null;
-            characterLabel: string;
-            createdAt: string;
-            evidence: null;
-            gmCampaignRoll: {
-              blind: true;
-              campaignId: string;
-              revealedAt: null;
-            };
-            id: string;
-            normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
-            ruleset: { code: string; systemId: string; version: string };
-            source: {
-              kind:
-                | "MANUAL"
-                | "ABILITY_CHECK"
-                | "SAVING_THROW"
-                | "SKILL_CHECK"
-                | "INITIATIVE"
-                | "ATTACK"
-                | "DAMAGE"
-                | "HEALING"
-                | "HIT_DIE";
-              label: string;
-            };
-          }
-      >
+      Array<{
+        characterId: string | null;
+        characterLabel: string;
+        createdAt: string;
+        evidence: {
+          mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+          modifier: number;
+          subtotal: number;
+          terms: Array<{
+            count: number;
+            die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+            keptRollIndex?: number;
+            keptRollIndexes?: Array<number>;
+            modifier?: number;
+            rollSequences?: Array<Array<number>>;
+            rolls: Array<number>;
+            subtotal: number;
+          }>;
+          total: number;
+          transform:
+            | { kind: "NONE" }
+            | { kind: "HALF" }
+            | { kind: "DOUBLE" }
+            | { kind: "MULTIPLY"; value: number };
+        };
+        gmCampaignRoll: {
+          campaignId: string;
+          creature: { actorId: string; encounterId: string } | null;
+          noticedAt: string | null;
+          revealedAt: string | null;
+        } | null;
+        id: string;
+        normalizedExpression: string;
+        ruleCheck?: {
+          actorId: string;
+          actorLabel: string;
+          damage: { amount: number; typeLabel: string | null };
+          dc: number;
+          faces: Array<number>;
+          kind: "CONCENTRATION";
+          modifier: number;
+          outcome: "KEPT" | "LOST";
+          sourceLabel: string | null;
+          total: number;
+        };
+        ruleset: { code: string; systemId: string; version: string };
+        source: {
+          kind:
+            | "MANUAL"
+            | "ABILITY_CHECK"
+            | "SAVING_THROW"
+            | "SKILL_CHECK"
+            | "INITIATIVE"
+            | "ATTACK"
+            | "DAMAGE"
+            | "HEALING"
+            | "HIT_DIE";
+          label: string;
+        };
+      }>
     >;
   };
   scenes: {
@@ -54744,7 +54674,7 @@ export declare const internal: {
                 featureId: string;
                 rollDefinitionId: string;
                 type: "ROLL_ENEMY_ACTION";
-                visibility: "PRIVATE" | "TABLE";
+                visibility: "PUBLIC" | "PRIVATE";
               }
             | {
                 commandId: string;
@@ -54800,6 +54730,7 @@ export declare const internal: {
                 } | null;
                 targetActorId: string;
                 type: "RESOLVE_ACTION";
+                visibility?: "PUBLIC" | "PRIVATE";
               }
             | {
                 acknowledgedWarnings?: Array<
@@ -54939,6 +54870,7 @@ export declare const internal: {
                 requestId: string;
                 rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                 type: "ROLL_RULE_EVIDENCE";
+                visibility?: "PUBLIC" | "PRIVATE";
               };
         },
         {
@@ -56765,7 +56697,7 @@ export declare const internal: {
                         featureId: string;
                         rollDefinitionId: string;
                         type: "ROLL_ENEMY_ACTION";
-                        visibility: "PRIVATE" | "TABLE";
+                        visibility: "PUBLIC" | "PRIVATE";
                       }
                     | {
                         commandId: string;
@@ -56821,6 +56753,7 @@ export declare const internal: {
                         } | null;
                         targetActorId: string;
                         type: "RESOLVE_ACTION";
+                        visibility?: "PUBLIC" | "PRIVATE";
                       }
                     | {
                         acknowledgedWarnings?: Array<
@@ -56969,6 +56902,7 @@ export declare const internal: {
                         rollMode:
                           "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
                         type: "ROLL_RULE_EVIDENCE";
+                        visibility?: "PUBLIC" | "PRIVATE";
                       };
                 };
                 kind: "COMMAND";
@@ -58053,6 +57987,7 @@ export declare const internal: {
             };
             preferences?: Array<{
               autoRollDice: boolean;
+              gmRollVisibility: "PUBLIC" | "PRIVATE";
               userId: string;
               username: string | null;
             }>;
@@ -58148,6 +58083,7 @@ export declare const internal: {
             };
             preferences?: Array<{
               autoRollDice: boolean;
+              gmRollVisibility: "PUBLIC" | "PRIVATE";
               userId: string;
               username: string | null;
             }>;
@@ -58348,6 +58284,7 @@ export declare const internal: {
           };
           preferences?: Array<{
             autoRollDice: boolean;
+            gmRollVisibility: "PUBLIC" | "PRIVATE";
             userId: string;
             username: string | null;
           }>;

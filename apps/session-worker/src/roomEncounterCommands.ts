@@ -91,7 +91,11 @@ export async function executeRoomEncounterCommand(input: {
       ...written.ports,
       // A GM's Sheet command on an Encounter Character commits on the Run's held play (R06.3); a
       // Run that is not ACTIVE holds no play, so that edit belongs to the Sheet itself.
-      executeCharacterCommand: async (caller, { characterId, command: sheetCommand }, encounterId) => {
+      executeCharacterCommand: async (
+        caller,
+        { characterId, command: sheetCommand },
+        encounterId
+      ) => {
         const run = await written.db
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', encounterId.toLowerCase()))
@@ -269,7 +273,13 @@ export async function executeRoomEncounterCommand(input: {
     )
   }
   const play = await readRoomEncounterPlayAuthorization(context, campaignId, authorization.play)
-  return { recipients, play, checkpointBeforeAcknowledgement }
+  return {
+    recipients,
+    play,
+    checkpointBeforeAcknowledgement,
+    chatEntries: written.postedChatEntries,
+    privateRolls: written.retainedPrivateRolls
+  }
 
   async function executeTokenBinding(command: EncounterActorTokenBindingCommandInputDto) {
     const readers = roomSceneTokenReaders(transaction)

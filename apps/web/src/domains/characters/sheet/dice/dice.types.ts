@@ -1,4 +1,8 @@
-import type { CampaignRollDestinationDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type {
+  CampaignChatEntryDto,
+  CampaignRollDestinationDto,
+  RevealCampaignRollInput
+} from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { ExecuteRollInputDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 
 export type CharacterSheetRollRequest = Omit<ExecuteRollInputDto, 'characterId'>
@@ -7,8 +11,8 @@ export type CharacterSheetRollTarget = CharacterSheetRollRequest & {
   text: string
 }
 
-/** Chat destinations plus the roller's retained history: PRIVATE, or BLIND for the GM. */
-export type CharacterSheetRollDestination = CampaignRollDestinationDto | 'PRIVATE' | 'BLIND'
+/** Chat destinations plus the roller's retained history: PRIVATE. */
+export type CharacterSheetRollDestination = CampaignRollDestinationDto | 'PRIVATE'
 
 export type CharacterSheetRollDestinationOption = {
   label: string
@@ -28,6 +32,8 @@ export type CharacterSheetRollController = {
   presentedRoll?: RollRecordDto
   presentedRollPrivate: boolean
   revealRoll: (rollId: string) => void
+  /** Posts a GM-retained private roll to the table: its card (FULL) or only that the GM rolled. */
+  revealPrivateRoll: (input: RevealCampaignRollInput) => Promise<CampaignChatEntryDto>
   setDestination: (destination: CharacterSheetRollDestination) => void
   /** Rolls that change Character state (hit dice) always stay visible to the GM. */
   stateRollDestination: CharacterSheetRollDestination

@@ -17,7 +17,7 @@ import { CampaignChatHistory } from './CampaignChatHistory'
 import { CampaignChatNavigation } from './CampaignChatNavigation'
 import * as chatStyles from './CampaignChat.css'
 import type { CampaignChatRoom, CampaignRollView } from './campaignChat.types'
-import { mergeRoomChatEntries } from './campaignChat.utils'
+import { mergeRoomChatEntries, mergeRoomPrivateRolls } from './campaignChat.utils'
 
 export function CampaignChat({
   campaign,
@@ -26,7 +26,9 @@ export function CampaignChat({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
-  const { pushedEntries, sendChat } = useCampaignChatRoom(campaign.id)
+  const { pushedEntries, pushedPrivateRolls, revealRoll, sendChat } = useCampaignChatRoom(
+    campaign.id
+  )
   const editEntry = useConvexMutation(convexApi.campaigns.chat.edit)
   const unsendEntry = useConvexMutation(convexApi.campaigns.chat.unsend)
   const markConversationRead = useConvexMutation(convexApi.campaigns.conversations.markRead)
@@ -72,7 +74,8 @@ export function CampaignChat({
   const conversationId = conversations.data?.find(
     (conversation) =>
       conversation.kind === room &&
-      (room !== 'DIRECT' || (directUserId && conversation.participantUserIds.includes(directUserId)))
+      (room !== 'DIRECT' ||
+        (directUserId && conversation.participantUserIds.includes(directUserId)))
   )?.id
   const entries = mergeRoomChatEntries(history.entries, pushedEntries, conversationId)
   const directMembers = campaign.memberships
@@ -236,11 +239,12 @@ export function CampaignChat({
         isLoadingOlderMessages={history.isFetchingNextPage}
         isPrivateRollsError={privateRolls.isError}
         isPrivateRollsPending={privateRolls.isPending}
-        privateRolls={privateRolls.data}
+        privateRolls={mergeRoomPrivateRolls(privateRolls.data, pushedPrivateRolls)}
         rollView={rollView}
         room={room}
         onEntryAction={entryAction.mutate}
         onLoadOlderMessages={() => void history.fetchNextPage()}
+        onRevealRoll={revealRoll}
       />
 
       {!showRolls && (room !== 'DIRECT' || directUserId) && campaign.status === 'ACTIVE' ? (

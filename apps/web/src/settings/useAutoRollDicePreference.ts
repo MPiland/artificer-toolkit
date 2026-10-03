@@ -12,7 +12,9 @@ export function useAutoRollDicePreference() {
   const update = useMutation({
     mutationFn: (autoRollDice: boolean) => setAutoRollDice({ autoRollDice }),
     onSuccess: (_result, autoRollDice) =>
-      queryClient.setQueryData(preferenceQuery.queryKey, { autoRollDice })
+      queryClient.setQueryData(preferenceQuery.queryKey, (current) =>
+        current ? { ...current, autoRollDice } : current
+      )
   })
 
   return {

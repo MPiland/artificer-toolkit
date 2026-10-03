@@ -8,7 +8,11 @@ import {
   accountUsageResourceSchema,
   accountUsageSchema
 } from '@artificer-toolkit/schema/projections/accountUsage'
-import { gmCampaignRollDtoSchema, rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import {
+  gmCampaignRollDtoSchema,
+  rollRecordDtoSchema,
+  rollVisibilityDtoSchema
+} from '@artificer-toolkit/schema/api/rolls'
 import {
   notificationFeedItemDtoSchema,
   notificationPreferencesDtoSchema
@@ -47,7 +51,8 @@ export default defineSchema({
     entitlementUsage: zodToConvex(accountUsageSchema),
     entitlementUsageReady: v.boolean(),
     authoringExperience: v.optional(v.union(v.literal('guided'), v.literal('advanced'))),
-    autoRollDice: v.boolean()
+    autoRollDice: v.boolean(),
+    gmRollVisibility: zodToConvex(rollVisibilityDtoSchema)
   })
     .index('by_authUserId', ['authUserId'])
     .index('by_userId', ['userId']),

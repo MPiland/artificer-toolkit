@@ -99,11 +99,17 @@ export const campaignStoredEntryPayloadSchema = lazySchema(() =>
               entry.consumedAt === null &&
               entry.mode !== null &&
               (entry.unsentAt === null) === (entry.body !== null)
-            : entry.roll !== null &&
-              entry.mode === null &&
+            : entry.mode === null &&
               entry.body === null &&
               entry.editedAt === null &&
-              entry.unsentAt === null
+              entry.unsentAt === null &&
+              (entry.kind === 'ROLL'
+                ? entry.roll !== null
+                : // A "roll notice" carries no result, only the creature's name when visible.
+                  entry.roll === null &&
+                  entry.characterId === null &&
+                  !entry.revealedByGm &&
+                  entry.consumedAt === null)
         if (!valid)
           context.addIssue({ code: 'custom', message: 'Invalid Campaign chat entry payload.' })
       })

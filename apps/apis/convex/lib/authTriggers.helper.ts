@@ -50,6 +50,7 @@ export async function onAuthUserCreate(ctx: MutationCtx, user: AuthUser): Promis
       registrationCompleted: true,
       authoringExperience: 'guided',
       autoRollDice: true,
+      gmRollVisibility: 'PUBLIC',
       entitlementUsage: zeroAccountUsage,
       entitlementUsageReady: true
     })

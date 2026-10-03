@@ -1,3 +1,4 @@
+import type { RollVisibilityDto } from '@artificer-toolkit/schema/api/rolls'
 import type { TestConvex } from 'convex-test'
 import type schema from '../../convex/schema'
 
@@ -20,5 +21,21 @@ export async function setAutoRollDice(
       .unique()
     if (!profile) throw new Error('Fixture profile is unavailable.')
     await ctx.db.patch(profile._id, { autoRollDice })
+  })
+}
+
+/** Sets a GM's remembered Public/Private roll toggle; new profiles start on PUBLIC. */
+export async function setGmRollVisibility(
+  t: TestConvex<typeof schema>,
+  userId: string,
+  gmRollVisibility: RollVisibilityDto
+) {
+  await t.run(async (ctx) => {
+    const profile = await ctx.db
+      .query('userProfiles')
+      .withIndex('by_userId', (query) => query.eq('userId', userId))
+      .unique()
+    if (!profile) throw new Error('Fixture profile is unavailable.')
+    await ctx.db.patch(profile._id, { gmRollVisibility })
   })
 }

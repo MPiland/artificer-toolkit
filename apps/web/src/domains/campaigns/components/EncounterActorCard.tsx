@@ -7,7 +7,6 @@ import {
   Loader,
   Modal,
   NumberInput,
-  SegmentedControl,
   Stack,
   Switch,
   Text,
@@ -24,7 +23,9 @@ import {
 import { useEffect, useState } from 'react'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { getCharacterSheetSlice } from '#app/data/characters/queries'
+import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { AppSelect } from '#app/ui/primitives/Select'
 import { AuthoredDetailProse } from '#components/AuthoredDetail'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
@@ -59,7 +60,7 @@ export function EncounterActorCard({
   const [tempHitPoints, setTempHitPoints] = useState(actor.tempHitPoints)
   const [isPublic, setIsPublic] = useState(actor.public)
   const [notes, setNotes] = useState(actor.gmNotes ?? '')
-  const [rollVisibility, setRollVisibility] = useState<'PRIVATE' | 'TABLE'>('PRIVATE')
+  const { gmRollVisibility } = useGmRollVisibilityPreference()
   const [sheetOpened, setSheetOpened] = useState(false)
   const shareHealthMutation = useConvexMutation(convexApi.encounters.healthDisplay.share)
   const shareHealth = useMutation({
@@ -252,16 +253,7 @@ export function EncounterActorCard({
                 <Text fw={700} size='sm'>
                   Actions & traits
                 </Text>
-                <SegmentedControl
-                  aria-label='Enemy roll destination'
-                  data={[
-                    { label: 'Private', value: 'PRIVATE' },
-                    { label: 'Table', value: 'TABLE' }
-                  ]}
-                  size='xs'
-                  value={rollVisibility}
-                  onChange={(value) => setRollVisibility(value as typeof rollVisibility)}
-                />
+                <GmRollVisibilityToggle />
               </Group>
               <Accordion multiple variant='contained'>
                 {actor.features.map((feature) => (
@@ -329,7 +321,7 @@ export function EncounterActorCard({
                                       actorId: actor.id,
                                       featureId: feature.id,
                                       rollDefinitionId: definition.id,
-                                      visibility: rollVisibility
+                                      visibility: gmRollVisibility
                                     })
                                   }
                                 >

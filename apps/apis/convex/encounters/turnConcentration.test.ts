@@ -724,8 +724,9 @@ describe('turn damage concentration ordering', () => {
       expect(logged.gm.map((roll) => roll.ruleCheck?.actorId)).toEqual([prepared.b.id])
       expect(logged.gm[0]?.gmCampaignRoll).toEqual({
         campaignId: base.campaign.id,
-        blind: false,
-        revealedAt: null
+        creature: { encounterId: expect.any(String), actorId: prepared.b.id },
+        revealedAt: null,
+        noticedAt: null
       })
     } finally {
       random.mockRestore()

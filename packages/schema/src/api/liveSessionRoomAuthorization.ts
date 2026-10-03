@@ -3,6 +3,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { encounterGmActorDtoSchema } from './encounterData.js'
 import { characterPartyVisibilityDtoSchema, healthDisplayLevelDtoSchema } from './healthDisplay.js'
+import { rollVisibilityDtoSchema } from './rolls.js'
 import { liveSessionTransientMemberSchema } from './liveSessionTransient.js'
 import { sceneSessionVisionCharacterRevisionsSchema } from './sceneSessionVision.js'
 
@@ -49,6 +50,7 @@ export const liveSessionRoomPreferenceSchema = lazySchema(() =>
   z.strictObject({
     userId: uuidSchema,
     autoRollDice: z.boolean(),
+    gmRollVisibility: rollVisibilityDtoSchema,
     username: z.nullable(z.string())
   })
 )

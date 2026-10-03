@@ -1,17 +1,12 @@
 import {
   type ExecuteRollInputDto,
   type GmCampaignRollDto,
-  type RollHistoryEntryDto,
   type RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
 import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rollRecord'
 import { nextRollInt } from './lib/rollRandom'
 import { resolveCharacterSheetRoll } from '@artificer-toolkit/rules-runtime/character/sheetRoll'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
-import {
-  presentCampaignPlainText,
-  type CampaignContentMaturity
-} from '@artificer-toolkit/shared/campaign/textPolicy'
 import type { MutationCtx, QueryCtx } from './_generated/server'
 import { readCharacterRecord, resolveCharacterId } from './characters/documents'
 import { readCharacterRow } from './characters/stateDocuments'
@@ -19,21 +14,6 @@ import { loadCharacterSheet } from './characters/sheetPreparation'
 import { readCharacterCampaign } from './characters/context'
 import { requireCampaignCharacterAuthority } from './campaigns/characterState'
 import { requireSystem } from './content/systemDocuments'
-
-export function presentRoll(
-  record: RollRecordDto,
-  maturity: CampaignContentMaturity | null
-): RollRecordDto {
-  if (maturity !== 'STANDARD') return record
-  return {
-    ...record,
-    characterLabel: presentCampaignPlainText(record.characterLabel, maturity),
-    source: {
-      ...record.source,
-      label: presentCampaignPlainText(record.source.label, maturity).slice(0, 80)
-    }
-  }
-}
 
 export { nextRollInt } from './lib/rollRandom'
 
@@ -74,26 +54,15 @@ export async function evaluateCharacterRoll(
   const record = createRollRecord({
     characterId: character.id,
     label: character.label,
-    system: { id: system.id, rulesetCode: system.rulesetCode, rulesetVersion: system.rulesetVersion },
+    system: {
+      id: system.id,
+      rulesetCode: system.rulesetCode,
+      rulesetVersion: system.rulesetVersion
+    },
     resolved,
     nextInt: nextRollInt
   })
   return { record, maturity }
-}
-
-export function presentRetainedRoll(
-  { gmCampaignRoll, ...record }: RollRecordDto & { gmCampaignRoll: GmCampaignRollDto | null },
-  maturity: CampaignContentMaturity | null
-): RollHistoryEntryDto {
-  const presented = presentRoll(record, maturity)
-  if (!gmCampaignRoll) return { ...presented, gmCampaignRoll: null }
-  return gmCampaignRoll.blind && gmCampaignRoll.revealedAt === null
-    ? {
-        ...presented,
-        evidence: null,
-        gmCampaignRoll: { ...gmCampaignRoll, blind: true, revealedAt: null }
-      }
-    : { ...presented, gmCampaignRoll }
 }
 
 export async function retainUserRoll(

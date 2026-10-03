@@ -1093,8 +1093,8 @@ briefly disappear optimistically before the authoritative no-op restores it. Nat
 rolls now use the same evaluator with explicit Campaign/assignment authority and persist only in
 TABLE or, for a player's "To GM" roll, the player-owner DIRECT conversation. Scoped
 `campaigns/characterSheet:executeRoll` persists a player's "Just me" Character-bound rolls only in
-the caller's history and never settles a Campaign rest; GM private and blind rolls, with or without a
-Character, use `campaigns/rolls:executePrivate` and can be revealed to the TABLE with `reveal`. Character-bound history applies the current Character Campaign's
+the caller's history and never settles a Campaign rest; GM private rolls, with or without a
+Character, use `campaigns/rolls:executePrivate` and can be revealed to the TABLE with `reveal` (`FULL` or `NOTICE`). Character-bound history applies the current Character Campaign's
 text presentation for both GM and player snapshots, without granting current Character access.
 The personal endpoint remains owner-only. The [Campaign roll boundary](persistence.md#native-campaign-rolls--partial-local-implementation)
 records visibility, replay and the remaining browser/Encounter integration. Native history never

@@ -1,5 +1,6 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
@@ -30,6 +31,7 @@ export function useCampaignLiveSession({
   characterSheetId = null,
   enabled,
   onCampaignChatEntry,
+  onPrivateRoll,
   onTransient
 }: {
   campaignId: string
@@ -38,11 +40,14 @@ export function useCampaignLiveSession({
   enabled: boolean
   /** An entry the room pushed to this member's conversations; deduplicate by entry id. */
   onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
+  /** The GM's retained roll as the room now holds it; deduplicate by roll id. */
+  onPrivateRoll?: (roll: RollHistoryEntryDto) => void
   onTransient?: (message: { envelope: SceneTransientEnvelopeDto; userId: string }) => void
 }) {
   const connection = useRef<LiveSessionConnection | null>(null)
   const onTransientRef = useRef(onTransient)
   const onCampaignChatEntryRef = useRef(onCampaignChatEntry)
+  const onPrivateRollRef = useRef(onPrivateRoll)
   const convex = useConvex()
   const [characterSheet, setCharacterSheet] = useState<LiveSessionCharacterSheetPush | null>(null)
   const [commandReady, setCommandReady] = useState(false)
@@ -53,6 +58,7 @@ export function useCampaignLiveSession({
   const [status, setStatus] = useState<LiveSessionConnectionStatus>('DISCONNECTED')
   onTransientRef.current = onTransient
   onCampaignChatEntryRef.current = onCampaignChatEntry
+  onPrivateRollRef.current = onPrivateRoll
 
   useEffect(() => {
     if (!enabled) {
@@ -83,6 +89,7 @@ export function useCampaignLiveSession({
       getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId }),
       onError: (nextError) => setError(errorMessage(nextError)),
       onCampaignChatEntry: (entry) => onCampaignChatEntryRef.current?.(entry),
+      onPrivateRoll: (roll) => onPrivateRollRef.current?.(roll),
       onCharacterSheet: setCharacterSheet,
       onCommandRejected: setRejection,
       onDurableState: (state) => {

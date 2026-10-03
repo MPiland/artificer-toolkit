@@ -56,10 +56,17 @@ export async function applyCheckpointPrivateRolls(
     } = current
     if (
       checksumCanonicalJson(existing) !== checksumCanonicalJson(record) ||
-      binding?.campaignId !== gmCampaignRoll.campaignId ||
-      binding?.blind !== gmCampaignRoll.blind
+      binding?.campaignId !== gmCampaignRoll.campaignId
     )
       throw new Error('Checkpoint private roll identity is reused.')
+    // A reveal is never undone: the room's binding adds marks, it cannot clear a recorded one.
+    await ctx.db.patch(_id, {
+      gmCampaignRoll: {
+        ...gmCampaignRoll,
+        revealedAt: binding.revealedAt ?? gmCampaignRoll.revealedAt,
+        noticedAt: binding.noticedAt ?? gmCampaignRoll.noticedAt
+      }
+    })
   }
   await retainUserRolls(ctx, campaign.ownerUserId, pending)
 }

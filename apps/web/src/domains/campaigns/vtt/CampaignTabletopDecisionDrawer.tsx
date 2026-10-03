@@ -34,6 +34,8 @@ import {
   rollPromptText,
   type InitiativeDeclarationAdjudicationValues
 } from './CampaignTabletopDecisionDrawer.model'
+import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
+import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopEvidenceRollRow } from './CampaignTabletopEvidenceRollRow'
 
 export function CampaignTabletopDecisionDrawer({
@@ -46,7 +48,7 @@ export function CampaignTabletopDecisionDrawer({
   submitting,
   onResolve
 }: {
-  /** The GM may void a stuck decision. */
+  /** The GM may void a stuck decision and chooses whether their rolls are Public or Private. */
   canVoid: boolean
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
@@ -71,6 +73,7 @@ export function CampaignTabletopDecisionDrawer({
     useState<InitiativeDeclarationAdjudicationValues>({})
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { gmRollVisibility } = useGmRollVisibilityPreference()
   const disabled = !connected || submitting || localPending
   // The GM skips a pending movement choice for its player; the movement continues (D26).
   const movementChoice =
@@ -108,7 +111,8 @@ export function CampaignTabletopDecisionDrawer({
         type: 'ROLL_RULE_EVIDENCE',
         ...commandTarget(),
         requestId,
-        rollMode
+        rollMode,
+        ...(canVoid ? { visibility: gmRollVisibility } : {})
       })
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : 'The dice could not be rolled.')
@@ -207,6 +211,7 @@ export function CampaignTabletopDecisionDrawer({
                   )}
                 </Text>
               ) : null}
+              {canVoid ? <GmRollVisibilityToggle /> : null}
               <CampaignTabletopEvidenceRollRow
                 disabled={disabled}
                 key={`${pending.occurrenceId}:${pending.occurrenceVersion}:${pending.request.requestId}`}

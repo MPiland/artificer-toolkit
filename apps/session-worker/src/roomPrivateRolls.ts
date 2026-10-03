@@ -42,3 +42,30 @@ export function retainRoomPrivateRoll(
     if (store.record(ROOM_PRIVATE_ROLL, expired.key))
       transaction.deleteRecord(ROOM_PRIVATE_ROLL, expired.key)
 }
+
+/** One owner's retained roll as the room holds it, or null when the room never retained it. */
+export function readRoomPrivateRoll(
+  transaction: RoomTransaction,
+  userId: string,
+  rollId: string
+): LiveSessionCheckpointRetainedRoll | null {
+  const record = transaction.record(ROOM_PRIVATE_ROLL, canonicalizeJson([userId, rollId]))
+  return record ? liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(record.json)) : null
+}
+
+/**
+ * Records a reveal on a retained roll. Evidence never changes; only the binding's reveal marks do,
+ * and the checkpoint carries the revised binding to the owner's history.
+ */
+export function reviseRoomPrivateRollBinding(
+  transaction: RoomTransaction,
+  revised: LiveSessionCheckpointRetainedRoll
+) {
+  const value = liveSessionCheckpointRetainedRollSchema.parse(revised)
+  transaction.setRecord({
+    kind: ROOM_PRIVATE_ROLL,
+    key: canonicalizeJson([value.userId, value.record.id]),
+    revision: null,
+    json: canonicalizeJson(value)
+  })
+}

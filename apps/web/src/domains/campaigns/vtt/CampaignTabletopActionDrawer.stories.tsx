@@ -171,6 +171,7 @@ async function sendBasicActionCommand(
 const meta = {
   component: CampaignTabletopActionDrawer,
   args: {
+    isGm: false,
     opened: false,
     waitingOn: null,
     basicActions: [],

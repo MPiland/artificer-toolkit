@@ -1,4 +1,6 @@
 import { v } from 'convex/values'
+import { zodToConvex } from 'convex-helpers/server/zod4'
+import { rollVisibilityDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import {
   authSessionSnapshotDtoSchema,
   setAuthoringExperienceInputSchema,
@@ -8,6 +10,7 @@ import {
   accountProfileDtoSchema,
   accountRollPreferencesDtoSchema,
   setAutoRollDiceInputSchema,
+  setGmRollVisibilityInputSchema,
   type AccountProfileDto,
   type AccountRollPreferencesDto
 } from '@artificer-toolkit/schema/api/account'
@@ -128,12 +131,16 @@ export const setAuthoringExperience = mutation({
 
 export const rollPreferences = query({
   args: {},
-  returns: v.object({ autoRollDice: v.boolean() }),
+  returns: v.object({
+    autoRollDice: v.boolean(),
+    gmRollVisibility: zodToConvex(rollVisibilityDtoSchema)
+  }),
   handler: async (ctx): Promise<AccountRollPreferencesDto> => {
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
     return accountRollPreferencesDtoSchema.parse({
-      autoRollDice: authenticated.profile.autoRollDice
+      autoRollDice: authenticated.profile.autoRollDice,
+      gmRollVisibility: authenticated.profile.gmRollVisibility
     })
   }
 })
@@ -146,6 +153,18 @@ export const setAutoRollDice = mutation({
     const authenticated = await getAuthenticatedProfile(ctx)
     if (!authenticated) throw new Error('Unauthenticated')
     await ctx.db.patch(authenticated.profile._id, { autoRollDice: input.autoRollDice })
+    return null
+  }
+})
+
+export const setGmRollVisibility = mutation({
+  args: { gmRollVisibility: zodToConvex(rollVisibilityDtoSchema) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const input = setGmRollVisibilityInputSchema.parse(args)
+    const authenticated = await getAuthenticatedProfile(ctx)
+    if (!authenticated) throw new Error('Unauthenticated')
+    await ctx.db.patch(authenticated.profile._id, { gmRollVisibility: input.gmRollVisibility })
     return null
   }
 })

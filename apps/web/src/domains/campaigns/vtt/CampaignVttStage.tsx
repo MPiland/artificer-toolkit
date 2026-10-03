@@ -1023,6 +1023,7 @@ export function CampaignVttStage({
               actionChoicesError={actionChoicesError}
               connected={live.status === 'CONNECTED'}
               encounter={activeEncounter}
+              isGm={campaign.role === 'OWNER'}
               opened={actionsOpened}
               onOpen={() => setActionsOpened(true)}
               onClose={() => setActionsOpened(false)}

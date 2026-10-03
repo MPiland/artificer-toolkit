@@ -47,8 +47,11 @@ function commandTimelineMetadata(command: StoredCommand) {
     throw new Error('Stored Encounter command receipt mismatch.')
   const id = command.commandType === 'CREATE' ? command.commandId : command.id
   const version = command.commandType === 'CREATE' ? 0 : command.version
+  // A stored PRIVATE narrows a PUBLIC enemy roll that came from a hidden actor (D62).
   const visibility =
-    input?.type === 'ROLL_ENEMY_ACTION' && input.visibility === 'TABLE'
+    input?.type === 'ROLL_ENEMY_ACTION' &&
+    input.visibility === 'PUBLIC' &&
+    command.visibility !== 'PRIVATE'
       ? ('TABLE' as const)
       : ('PRIVATE' as const)
   if (

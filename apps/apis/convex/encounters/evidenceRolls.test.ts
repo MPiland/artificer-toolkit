@@ -1,3 +1,4 @@
+import { api } from '../_generated/api'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
@@ -18,6 +19,7 @@ import {
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
+import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
 type Caller = Pick<PlayerControlFixture['owner'], 'caller'>
@@ -282,5 +284,197 @@ describe('Encounter roll prompts', () => {
     expect(await storedD20Evidence(base)).toEqual([
       expect.objectContaining({ rollMode: 'NORMAL', derivedRollMode: 'NORMAL' })
     ])
+  })
+})
+
+describe('Action roll cards (Q14, D83)', () => {
+  /**
+   * The d20 cards by default, or the damage cards: whether a random d20 hits (and so deals damage)
+   * is not under test, so each test reads only the cards it asserts on.
+   */
+  async function rollCards(base: PlayerControlFixture, kind: 'CHECKS' | 'DAMAGE' = 'CHECKS') {
+    const wanted = (roll: { source: { kind: string } }) =>
+      (roll.source.kind === 'DAMAGE') === (kind === 'DAMAGE')
+    return base.t.run(async (ctx) => ({
+      table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap(
+        (payload) => (payload.roll && wanted(payload.roll) ? [payload.roll] : [])
+      ),
+      gm: (
+        await ctx.db
+          .query('userRollHistory')
+          .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', base.owner.userId))
+          .collect()
+      ).filter(wanted)
+    }))
+  }
+
+  /** The player's companion saves-bites the GM's enemy, so the GM-controlled enemy rolls the save. */
+  async function playerBitesEnemy(base: PlayerControlFixture) {
+    await setActorControllers(base, base.companion.id, [base.other.userId])
+    await executeInRoom(base.other.caller, {
+      command: await base.bite(base.companion.id, base.enemy.id)
+    })
+    return rollCards(base)
+  }
+
+  it('posts a GM creature save to the TABLE when the GM toggle is PUBLIC, whoever triggered it', async () => {
+    const base = await playerControlFixture({ bite: 'SAVE' })
+    const cards = await playerBitesEnemy(base)
+    expect(cards.table).toEqual([
+      expect.objectContaining({ source: expect.objectContaining({ kind: 'SAVING_THROW' }) })
+    ])
+    expect(cards.gm).toEqual([])
+    // The card is the roller's, not the player's who triggered it: the enemy's controller is the GM.
+    const saveAuthors = await base.t.run(async (ctx) => {
+      const payloads = await ctx.db.query('campaignConversationEntryPayloads').collect()
+      const saveIds = payloads
+        .filter((payload) => payload.roll?.source.kind === 'SAVING_THROW')
+        .map((payload) => payload.entryId)
+      const headers = await ctx.db.query('campaignConversationEntries').collect()
+      return headers.filter((header) => saveIds.includes(header.id)).map((h) => h.authorUserId)
+    })
+    expect(saveAuthors).toEqual([base.owner.userId])
+  })
+
+  it("follows the GM's stored PRIVATE toggle for a player-triggered creature save, naming the creature for a later reveal", async () => {
+    const base = await playerControlFixture({ bite: 'SAVE' })
+    await setGmRollVisibility(base.t, base.owner.userId, 'PRIVATE')
+    const cards = await playerBitesEnemy(base)
+    expect(cards.table).toEqual([])
+    expect(cards.gm).toEqual([
+      expect.objectContaining({
+        source: expect.objectContaining({ kind: 'SAVING_THROW' }),
+        gmCampaignRoll: expect.objectContaining({
+          creature: { encounterId: base.run.id, actorId: base.enemy.id },
+          revealedAt: null,
+          noticedAt: null
+        })
+      })
+    ])
+  })
+
+  it('keeps a hidden creature save private even when the GM toggle is PUBLIC', async () => {
+    const base = await playerControlFixture({ bite: 'SAVE' })
+    await base.gm({
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await base.version(),
+      actorId: base.enemy.id,
+      public: false
+    })
+    await executeInRoom(base.owner.caller, {
+      command: await base.bite(base.companion.id, base.enemy.id)
+    })
+    const cards = await rollCards(base)
+    expect(cards.table).toEqual([])
+    expect(cards.gm).toHaveLength(1)
+  })
+
+  it.each(['hidden', 'PRIVATE toggle'] as const)(
+    'keeps a %s creature hit on a player Character off the table while the player still sees the outcome (D62)',
+    async (concealment) => {
+      const base = await playerControlFixture({ bite: 'ATTACK' })
+      if (concealment === 'PRIVATE toggle')
+        await setGmRollVisibility(base.t, base.owner.userId, 'PRIVATE')
+      else
+        await base.gm({
+          type: 'UPDATE_ACTOR',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: await base.version(),
+          actorId: base.companion.id,
+          public: false
+        })
+      const hit = await executeInRoom(base.owner.caller, {
+        command: await base.bite(base.companion.id, base.character.id)
+      })
+      const cards = await rollCards(base)
+      expect(cards.table).toEqual([])
+      expect(cards.gm).toHaveLength(1)
+      const playerView = await base.player.caller.query(api.encounters.projectionReads.get, {
+        encounterId: base.run.id
+      })
+      const hitPointsOf = (projection: { actors: { id: string; currentHitPoints?: number }[] }) =>
+        projection.actors.find((actor) => actor.id === base.character.id)?.currentHitPoints
+      // The player sees the same damage outcome the GM does, and no roll, total or creature label.
+      const viewed = playerView.actors.find((actor) => actor.id === base.character.id)
+      const seen = viewed && 'health' in viewed ? viewed.health : null
+      if (seen?.level !== 'EXACT') throw new Error('Expected the Character health to be shown.')
+      expect(seen.current).toBe(hitPointsOf(hit.projection))
+      if (concealment === 'hidden')
+        expect(playerView.actors.map((actor) => actor.id)).not.toContain(base.companion.id)
+      await expect(
+        base.player.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
+      ).resolves.toBeNull()
+    }
+  )
+
+  it('posts a total-only damage card to the TABLE, as the dealer rolled it', async () => {
+    const base = await playerControlFixture({ bite: 'ACTIVATED' })
+    await executeInRoom(base.owner.caller, {
+      command: await base.bite(base.companion.id, base.enemy.id)
+    })
+    const cards = await rollCards(base, 'DAMAGE')
+    expect(cards.gm).toEqual([])
+    expect(cards.table).toEqual([
+      expect.objectContaining({
+        normalizedExpression: '1',
+        characterLabel: base.companion.label,
+        source: expect.objectContaining({
+          kind: 'DAMAGE',
+          label: expect.stringContaining('damage')
+        }),
+        evidence: expect.objectContaining({ terms: [], total: 1 })
+      })
+    ])
+  })
+
+  it.each(['hidden', 'PRIVATE toggle'] as const)(
+    'keeps a %s dealer damage card private, with players seeing only the outcome',
+    async (concealment) => {
+      const base = await playerControlFixture({ bite: 'ACTIVATED' })
+      if (concealment === 'PRIVATE toggle')
+        await setGmRollVisibility(base.t, base.owner.userId, 'PRIVATE')
+      else
+        await base.gm({
+          type: 'UPDATE_ACTOR',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: await base.version(),
+          actorId: base.companion.id,
+          public: false
+        })
+      await executeInRoom(base.owner.caller, {
+        command: await base.bite(base.companion.id, base.character.id)
+      })
+      const cards = await rollCards(base, 'DAMAGE')
+      expect(cards.table).toEqual([])
+      expect(cards.gm).toEqual([
+        expect.objectContaining({
+          source: expect.objectContaining({ kind: 'DAMAGE' }),
+          gmCampaignRoll: expect.objectContaining({
+            creature: { encounterId: base.run.id, actorId: base.companion.id }
+          })
+        })
+      ])
+      const playerView = await base.player.caller.query(api.encounters.projectionReads.get, {
+        encounterId: base.run.id
+      })
+      const viewed = playerView.actors.find((actor) => actor.id === base.character.id)
+      const seen = viewed && 'health' in viewed ? viewed.health : null
+      if (seen?.level !== 'EXACT') throw new Error('Expected the Character health to be shown.')
+      expect(seen.current).toBe(seen.maximum - 1)
+    }
+  )
+
+  it("posts a player's attack to the TABLE even when the GM toggle is PRIVATE", async () => {
+    const base = await playerControlFixture({ bite: 'ATTACK' })
+    await setGmRollVisibility(base.t, base.owner.userId, 'PRIVATE')
+    const cards = await playerBitesEnemy(base)
+    expect(cards.table).toEqual([
+      expect.objectContaining({ source: expect.objectContaining({ kind: 'ATTACK' }) })
+    ])
+    expect(cards.gm).toEqual([])
   })
 })

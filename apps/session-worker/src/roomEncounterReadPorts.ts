@@ -191,11 +191,8 @@ export async function roomEncounterReadTransaction(input: {
     readCharacterSheetState,
     readCharacterPlay,
     readAssignedCharacter,
-    readAutoRollDice: async (id) => {
-      const preference = authorization.preferences.find((entry) => entry.userId === id)
-      if (!preference) throw new Error('Room roll preference is unavailable.')
-      return preference.autoRollDice
-    },
+    readAutoRollDice: async (id) => readRoomPreference(authorization, id).autoRollDice,
+    readGmRollVisibility: async (id) => readRoomPreference(authorization, id).gmRollVisibility,
     hasAccountProfile: async (id) => inputs.hasAccountProfile(id, transaction),
     readActorInitiativeRoll: async (state, campaign, actorId) => {
       if (campaign.id !== campaignId || state.campaignId !== campaignId)
@@ -290,4 +287,10 @@ export async function roomEncounterReadTransaction(input: {
     }
   }
   return { db, ports }
+}
+
+function readRoomPreference(authorization: LiveSessionRoomAuthorization, userId: string) {
+  const preference = authorization.preferences.find((entry) => entry.userId === userId)
+  if (!preference) throw new Error('Room roll preference is unavailable.')
+  return preference
 }

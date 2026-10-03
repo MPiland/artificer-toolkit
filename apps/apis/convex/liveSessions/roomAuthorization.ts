@@ -139,8 +139,12 @@ export async function readRoomAuthorization(
     )
   ])
   const authUsers = new Map(
-    (await readAuthUsers(ctx, profiles.map((profile) => profile.authUserId)))
-      .map((user) => [String(user._id), user])
+    (
+      await readAuthUsers(
+        ctx,
+        profiles.map((profile) => profile.authUserId)
+      )
+    ).map((user) => [String(user._id), user])
   )
   const preferences = profiles.map((profile) => {
     const user = authUsers.get(profile.authUserId)
@@ -148,6 +152,7 @@ export async function readRoomAuthorization(
     return {
       userId: profile.userId,
       autoRollDice: profile.autoRollDice,
+      gmRollVisibility: profile.gmRollVisibility,
       username: user.displayUsername ?? user.username ?? null
     }
   })

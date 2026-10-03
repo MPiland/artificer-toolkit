@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDiscardRollMutation, useExecuteRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
+import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { useCampaignChatRoom } from '#domains/campaigns/vtt/useCampaignChatRoom'
 import type {
   CharacterSheetRollController,
@@ -14,8 +15,9 @@ import type {
   CharacterSheetRollRequest
 } from './dice.types'
 import {
-  blindRollLabel,
+  gmRollDestination,
   gmRollDestinationOptions,
+  gmRollVisibility,
   gmStateRollDestinationOptions,
   noRollDestinationOptions,
   playerRollDestinationOptions,
@@ -28,8 +30,12 @@ export function useCharacterSheetRollController(
 ): CharacterSheetRollController {
   const campaignId = campaign?.id
   const isGm = campaign?.isGm ?? false
-  const { executeRoll: executeCampaignRoll } = useCampaignChatRoom(campaignId)
-  const executeGmPrivateRoll = useConvexMutation(convexApi.campaigns.rolls.executePrivate)
+  const {
+    executePrivateRoll: executeGmPrivateRoll,
+    executeRoll: executeCampaignRoll,
+    revealRoll: revealPrivateRoll
+  } = useCampaignChatRoom(campaignId)
+  const { gmRollVisibility: gmChoice, setGmRollVisibility } = useGmRollVisibilityPreference()
   const executeCampaignPrivateRoll = useConvexMutation(
     convexApi.campaigns.characterSheet.executeRoll
   )
@@ -55,14 +61,7 @@ export function useCharacterSheetRollController(
         return entry.roll
       }
       if (!isGm) return executeCampaignPrivateRoll({ campaignId, ...roll })
-      const retained = await executeGmPrivateRoll({
-        campaignId,
-        blind: target === 'BLIND',
-        roll
-      })
-      if (retained.evidence !== null) return retained
-      notifications.show({ message: blindRollLabel })
-      return undefined
+      return executeGmPrivateRoll({ campaignId, clientNonce: crypto.randomUUID(), roll })
     }
   })
   const discardMutation = useDiscardRollMutation()
@@ -70,16 +69,16 @@ export function useCharacterSheetRollController(
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
   const [manualRoll, setManualRoll] = useState<RollRecordDto>()
   const [transientRoll, setTransientRoll] = useState<RollRecordDto>()
-  const [destination, setDestination] = useState<CharacterSheetRollDestination>(
-    isGm ? 'PRIVATE' : 'TABLE'
-  )
+  const [playerDestination, setPlayerDestination] = useState<CharacterSheetRollDestination>('TABLE')
+  // The GM's choice is their remembered Public/Private preference, not local state.
+  const destination = isGm ? gmRollDestination(gmChoice) : playerDestination
   const [presentedRollPrivate, setPresentedRollPrivate] = useState(true)
   const stateRollDestinationOptions = !campaignId
     ? noRollDestinationOptions
     : isGm
       ? gmStateRollDestinationOptions
       : playerStateRollDestinationOptions
-  // A destination the state-changing subset lacks (Just me, Blind) falls back to Table.
+  // A destination the state-changing subset lacks (Just me) falls back to Table.
   const stateRollDestination = !campaignId
     ? 'PRIVATE'
     : stateRollDestinationOptions.some((option) => option.value === destination)
@@ -213,7 +212,12 @@ export function useCharacterSheetRollController(
         const pending = pendingPresentation.current
         if (pending?.roll?.id === rollId) settlePendingPresentation(pending.roll)
       },
-      setDestination: (nextDestination) => setDestination(campaignId ? nextDestination : 'PRIVATE'),
+      revealPrivateRoll,
+      setDestination: (nextDestination) => {
+        if (!campaignId) return
+        if (isGm) setGmRollVisibility(gmRollVisibility(nextDestination))
+        else setPlayerDestination(nextDestination)
+      },
       stateRollDestination,
       stateRollDestinationOptions
     }),
@@ -230,6 +234,8 @@ export function useCharacterSheetRollController(
       presentationPending,
       presentedRollPrivate,
       reducedMotion,
+      revealPrivateRoll,
+      setGmRollVisibility,
       stateRollDestination,
       stateRollDestinationOptions,
       transientRoll

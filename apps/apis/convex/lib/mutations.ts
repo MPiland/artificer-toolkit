@@ -344,7 +344,11 @@ triggers.register('campaignPlaySettings', async (ctx, change) => {
     if (settings) recordLiveRoomInput(ctx.innerDb, settings.campaignId, 'PLAY')
 })
 triggers.register('userProfiles', async (ctx, change) => {
-  if (change.operation !== 'update' || change.oldDoc.autoRollDice === change.newDoc.autoRollDice)
+  if (
+    change.operation !== 'update' ||
+    (change.oldDoc.autoRollDice === change.newDoc.autoRollDice &&
+      change.oldDoc.gmRollVisibility === change.newDoc.gmRollVisibility)
+  )
     return
   for await (const membership of ctx.innerDb
     .query('campaignMemberships')
