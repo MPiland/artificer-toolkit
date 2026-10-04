@@ -480,8 +480,7 @@ it("commits a GM Encounter actor's Sheet command on the held Character with its 
   expect(evidence.commands).toEqual([
     expect.objectContaining({
       commandId,
-      commandType: 'UPDATE_ACTOR',
-      characterReceiptId: evidence.receipts[0]!.id
+      commandType: 'UPDATE_ACTOR'
     })
   ])
 })

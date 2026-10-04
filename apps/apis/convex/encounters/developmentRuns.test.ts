@@ -1,5 +1,5 @@
-import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
-import { writeReceiptRecord, readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
+import { persistHeldHistoryToConvex, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import { writeReceiptRecord, readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { CreateEncounterInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -21,7 +21,6 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api, components } from '../_generated/api'
 import { createEncounterSceneFixture, createRun } from '../../tests/fixtures/encounterScene'
@@ -333,20 +332,18 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) => q.eq('encounterId', runId))
           .collect(),
-        commands: await ctx.db
+        commands: await (await readEncounterHistory(ctx))
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', runId))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+          .collect(),
         occurrences: await ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', runId))
           .collect(),
-        receipts: await ctx.db
+        receipts: await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', runId))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+          .collect(),
         rounds: await ctx.db
           .query('encounterInitiativeRounds')
           .withIndex('by_encounterId_round', (q) => q.eq('encounterId', runId))
@@ -411,6 +408,24 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
   })
 }
 
+/** A stored Character Sheet receipt by `actorId`, for the fixture Character. */
+function characterReceipt(
+  value: Awaited<ReturnType<typeof setupAutomaticCharacterMovement>>,
+  id: string,
+  actorId: string
+) {
+  return characterStoredCommandReceiptSchema.parse({
+    id,
+    characterId: value.base.character.id,
+    commandId: crypto.randomUUID(),
+    actorId,
+    commandFingerprint: '0'.repeat(64),
+    occurredAt: new Date().toISOString(),
+    historyJson: '{}',
+    historyChecksum: checksumCanonicalJson({})
+  })
+}
+
 async function settleNativeMovementFixture() {
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
   // Assisted mode turns the authored automatic reaction into the GM's Use choice.
@@ -420,12 +435,11 @@ async function settleNativeMovementFixture() {
   await publish()
   // The Use response settles the movement, so its receipt, not the paused root's, is terminal.
   const terminal = (
-    await value.base.t.run((ctx) =>
-      ctx.db
+    await value.base.t.run(async (ctx) =>
+      (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
     )
   )
     .map((receipt) => ({
@@ -438,42 +452,12 @@ async function settleNativeMovementFixture() {
         (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
     )
   if (terminal.length !== 1) throw new Error('Missing native movement receipt.')
-  const { receipt, result } = terminal[0]!
-  if (
-    (result.status !== 'MOVEMENT_COMPLETE' &&
-      (result.status !== 'BATCH_COMPLETE' || result.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')) ||
-    !result.reactionExecutions[0]
-  )
-    throw new Error('Expected native movement reaction terminal.')
-  const reaction = result.reactionExecutions[0]
-  if (
-    reaction.targetCharacterId !== value.base.character.id ||
-    reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH'
-  )
-    throw new Error('Expected native Character reaction outcome.')
-  const commandId = deriveEncounterCharacterMechanicsEventCommandId({
-    occurrenceId: result.occurrenceId,
-    sourceCommandId: reaction.sourceCommandId,
-    phase: 'MOVEMENT_REACTION_OUTCOME',
-    ordinal: reaction.ordinal,
-    targetCharacterId: value.base.character.id
-  })
-  const characterReceipt = await value.base.t.run((ctx) =>
-    ctx.db
-      .query('characterCommandReceipts')
-      .withIndex('by_characterId_commandId', (q) =>
-        q.eq('characterId', value.base.character.id).eq('commandId', commandId)
-      )
-      .unique()
-      .then((header) =>
-        header ? readReceiptHeader(ctx, 'characterCommandReceipts', header) : null
-      )
-  )
-  if (!characterReceipt) throw new Error('Missing native Character reaction receipt.')
+  const { receipt } = terminal[0]!
+  // The cleanup removes what Convex's own store holds, so the room's history is written there.
+  await persistHeldHistoryToConvex(value.owner.caller, value.base.campaign.id, value.base.run.id)
   return {
     value,
     receipt,
-    characterReceipt,
     cleanup: {
       ownerUserId: value.owner.userId,
       playerUserId: value.player.userId,
@@ -493,15 +477,9 @@ async function nativeMovementCleanupState(
       .query('encounterRuns')
       .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', value.base.campaign.id))
       .collect(),
-    commands: await ctx.db
-      .query('encounterRunCommands')
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+    commands: await ctx.db.query('encounterRunCommands').collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+    receipts: await ctx.db.query('encounterRuleReceipts').collect(),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', value.base.character.id))
@@ -696,20 +674,14 @@ describe('development Encounter Run cleanup', () => {
     expect(await fixtureState(base, [base.run.id])).toEqual(before)
   }, 30_000)
 
-  it('removes the GM-authored native movement reaction receipt and preserves unrelated player history', async () => {
+  it('removes the native movement history and preserves unrelated Character history', async () => {
     const fixture = await settleNativeMovementFixture()
-    const { _id: _receiptId, _creationTime: _receiptTime, ...stored } = fixture.characterReceipt
     const playerReceiptId = crypto.randomUUID()
     await fixture.value.base.t.run((ctx) =>
       writeReceiptRecord(
         ctx,
         'characterCommandReceipts',
-        characterStoredCommandReceiptSchema.parse({
-          ...stored,
-          id: playerReceiptId,
-          commandId: crypto.randomUUID(),
-          actorId: fixture.value.player.userId
-        })
+        characterReceipt(fixture.value, playerReceiptId, fixture.value.player.userId)
       )
     )
     await fixture.value.base.t.mutation(removeFixtureState, fixture.cleanup)
@@ -723,47 +695,13 @@ describe('development Encounter Run cleanup', () => {
     expect(after.receiptLedgerParts).toEqual([])
   }, 30_000)
 
-  it.each(['checksum', 'identity'] as const)(
-    'rejects a terminal movement receipt with corrupt %s atomically',
-    async (corruption) => {
-      const fixture = await settleNativeMovementFixture()
-      await fixture.value.base.t.run(async (ctx) => {
-        if (corruption === 'checksum') {
-          await replaceReceiptRecord(ctx, 'encounterRuleReceipts', fixture.receipt._id, {
-            resultChecksum: '0'.repeat(64)
-          })
-          return
-        }
-        const result = storedRuleExecutionResultDtoSchema.parse(
-          JSON.parse(fixture.receipt.resultJson)
-        )
-        const altered = { ...result, occurrenceId: crypto.randomUUID() }
-        await replaceReceiptRecord(ctx, 'encounterRuleReceipts', fixture.receipt._id, {
-          resultJson: JSON.stringify(altered),
-          resultChecksum: checksumCanonicalJson(altered)
-        })
-      })
-      const before = await nativeMovementCleanupState(fixture.value)
-      await expect(
-        fixture.value.base.t.mutation(removeFixtureState, fixture.cleanup)
-      ).rejects.toThrow('Fixture Encounter dependency or ownership mismatch.')
-      expect(await nativeMovementCleanupState(fixture.value)).toEqual(before)
-    },
-    30_000
-  )
-
   it('rejects unlinked foreign Character history before deleting native movement parents', async () => {
     const fixture = await settleNativeMovementFixture()
-    const { _id: _receiptId, _creationTime: _receiptTime, ...stored } = fixture.characterReceipt
     await fixture.value.base.t.run((ctx) =>
       writeReceiptRecord(
         ctx,
         'characterCommandReceipts',
-        characterStoredCommandReceiptSchema.parse({
-          ...stored,
-          id: crypto.randomUUID(),
-          commandId: crypto.randomUUID()
-        })
+        characterReceipt(fixture.value, crypto.randomUUID(), crypto.randomUUID())
       )
     )
     const before = await nativeMovementCleanupState(fixture.value)

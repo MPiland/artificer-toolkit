@@ -17,7 +17,7 @@ import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
-/** The newest timeline page the room pushes, as `timelineReads` serves it by default. */
+/** The newest timeline page the room pushes. */
 const TIMELINE_LIMIT = 50
 
 interface Subscription {
@@ -36,7 +36,7 @@ type BuiltFrame = { held: false } | Omit<HeldFrame, 'settlement'>
  * The Encounter session the room holds, pushed to the sockets that subscribed to it. One
  * subscription per socket; every push re-admits the socket against the current authorization and
  * reads only Runs the room already holds, so a push never loads a Run. Frames are built with the
- * same readers as Convex's `activeReads`, `projectionReads` and `timelineReads`.
+ * same readers as Convex's `activeReads` and `projectionReads`.
  */
 export class RoomEncounterSessionFeed {
   readonly #subscriptions = new Map<WebSocket, Subscription>()

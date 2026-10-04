@@ -3199,7 +3199,7 @@
                 "apps/apis/convex/encounters/concentration.test.ts › raises no concentration prompt in a Manual Run, where the damaging action is refused whole",
                 "apps/apis/convex/scenes/uninterruptedMovement.test.ts › publishes $mode $movementKind movement and fog without a Run occurrence (replaces the spatialMovement.test.ts Manual test deleted with the Convex movement rules in S4-e: with a spatial effect seeded, the room plans a MANUAL move as UNINTERRUPTED/MANUAL and the Run, actors, occurrences, receipts and effects are unchanged)",
                 "packages/rules-runtime/src/__tests__/encounterTurnEffects.test.ts › records a MANUAL review phase over the exact createdOrdinal-ordered selection (replaces the turnActiveEffects.test.ts Manual test deleted with the Convex live-session path in A35-S6c3: a Manual turn with pending effects plans no rules execution and leaves actors unchanged)",
-                "impl: apps/apis/convex/encounters/evidenceRolls.ts, apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts and apps/session-worker/src/nativeEncounterRules.ts (Manual refusal)"
+                "impl: apps/session-worker/src/roomEncounterCommands.ts and apps/session-worker/src/roomInputs.ts (room-held evidence rolls, D88), apps/apis/convex/encounters/actorController.ts (readEncounterAutoRollByActorId), apps/apis/convex/encounters/actionAdmission.ts and apps/session-worker/src/nativeEncounterRules.ts (Manual refusal)"
               ]
             },
             {
@@ -3208,7 +3208,7 @@
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › routes a creature save against a player action to the GM, who rolls twice and settles the latest roll",
-                "impl: apps/apis/convex/encounters/evidenceRolls.ts"
+                "impl: apps/session-worker/src/roomEncounterCommands.ts and apps/session-worker/src/roomInputs.ts (room-held evidence rolls, D88)"
               ]
             },
             {
@@ -3229,7 +3229,7 @@
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › settles an overridden advantage app roll with both faces and labels the change",
                 "apps/apis/convex/encounters/evidenceRolls.test.ts › lets the controlling player enter their own attack roll and rejects a forged face count",
                 "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx › recommends the derived mode, rolls without settling and settles by the latest roll id",
-                "impl: apps/apis/convex/encounters/evidenceRolls.ts"
+                "impl: apps/session-worker/src/roomEncounterCommands.ts and apps/session-worker/src/roomInputs.ts (room-held evidence rolls, D88)"
               ]
             },
             {
@@ -3772,6 +3772,8 @@
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move with no room live and still publishes an unbound move natively (D43) (rechecked in A35-S6c3: still proves its title on the room-only path)",
                 "apps/apis/convex/liveSessions/encounterJourneys.test.ts (VS-3): four Encounter journeys run room-natively with no Convex command route and reach Convex only by fenced checkpoint; replay after a release returns the stored receipts",
                 "apps/session-worker native suite (yarn workspace @artificer-toolkit/session-worker test, 217/217) and src suite (223/223) pass on the VS-3 source",
+                "apps/apis/convex/liveSessions/encounterJourneys.test.ts › Encounter history stays in the room (D85) (A35-S10d, D88): receipts, timeline and roll evidence stay in room SQLite across reloads and are never checkpointed; replay after a new epoch returns the stored receipt, and after storage recovery the compact Convex replay index answers \"applied at V\"; COMPLETE deletes the history and index in both stores",
+                "apps/session-worker/src/roomInputs.test.ts and apps/session-worker/src/roomCheckpointRecords.test.ts (A35-S10d): hydrate carries the room's Run history over Convex inputs, and checkpoints carry no Encounter history",
                 "rerun: room-owned rule evaluation on the final source remains under R08"
               ]
             },

@@ -3,8 +3,8 @@ import {
   projectReceiptHeader
 } from '@artificer-toolkit/encounter-persistence/receiptLedger'
 import {
-  liveSessionCheckpointHistoryEntrySchema,
-  liveSessionCheckpointHistoryKeyFields
+  receiptLedgerEntrySchema,
+  receiptLedgerEntryKeyFields
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import type { liveSessionCheckpointSceneSchemas } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import {
@@ -49,9 +49,9 @@ export async function replaceReceiptRecord<Table extends ReceiptHeaderTable>(
         })
     )
   )
-  const entry = liveSessionCheckpointHistoryEntrySchema.parse({
+  const entry = receiptLedgerEntrySchema.parse({
     table,
-    key: liveSessionCheckpointHistoryKeyFields[table].map((field) => value[field]),
+    key: receiptLedgerEntryKeyFields[table].map((field) => value[field]),
     value,
     checksum: checksumCanonicalJson(value)
   })

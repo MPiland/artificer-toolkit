@@ -34,7 +34,7 @@ import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import * as rollRandom from '../lib/rollRandom'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -379,16 +379,13 @@ describe('Encounter reads of live Character state', () => {
             conditions: [expect.objectContaining({ conditionTypeId: deafened.id })]
           })
           // The outcome was planned against the Character's current Sheet condition.
-          const receipt = await fixture.t.run((ctx) =>
-            ctx.db
+          const receipt = await fixture.t.run(async (ctx) =>
+            (await readEncounterHistory(ctx))
               .query('encounterRuleReceipts')
               .withIndex('by_campaignId_commandId', (q) =>
                 q.eq('campaignId', fixture.campaign.id).eq('commandId', commandId)
               )
               .unique()
-              .then((header) =>
-                header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
-              )
           )
           const outputs = receipt
             ? storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

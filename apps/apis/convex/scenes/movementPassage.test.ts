@@ -33,7 +33,8 @@ import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
 import { readReceiptHeader } from '../lib/receiptLedgers'
@@ -584,7 +585,7 @@ describe('native Scene movement passage', () => {
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect()
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
       }))
     const usedAllowances = (records: Awaited<ReturnType<typeof rows>>) =>
       records.actors.reduce(
@@ -630,7 +631,7 @@ describe('native Scene movement passage', () => {
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect()
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
       }))
     const usedAllowances = (actors: Awaited<ReturnType<typeof actorRows>>) =>
       actors.reduce(
@@ -961,13 +962,12 @@ describe('native Scene movement passage', () => {
       position: { x: 450, y: 50 }
     })
     const receipt = await value.base.t.run(async (ctx) => {
-      const header = await ctx.db
+      return await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) =>
           q.eq('encounterId', value.base.run.id).eq('commandId', response.command.commandId)
         )
         .unique()
-      return header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
     })
     if (!receipt) throw new Error('Passage terminal receipt is unavailable.')
     const [resolution] = JSON.parse(receipt.commandMetadataJson).resolutionCommands

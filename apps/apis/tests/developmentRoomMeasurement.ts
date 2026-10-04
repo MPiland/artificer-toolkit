@@ -31,41 +31,38 @@ export class RoomWatch {
   readonly commits = new Map<string, number>()
   readonly previews: PreviewReceipt[] = []
   #session: HeldEncounterSession | null = null
-  #scene: { id: string; version: number }
+  #scene: { id: string; version: number } | null = null
   readonly #waiters = new Set<() => void>()
 
   private constructor(
     readonly client: DevelopmentHttpClient,
     readonly campaignId: string,
-    readonly userId: string,
-    scene: { id: string; version: number }
-  ) {
-    this.#scene = scene
-  }
+    readonly userId: string
+  ) {}
 
   /**
    * Looks up the Campaign, joins its room and subscribes to its Encounter session, keeping every
-   * frame from the join on. `sceneVersion` is the Scene's version when the room is joined; the room
-   * sends the Scene only once a member has synchronized it, so later versions come from its deltas.
-   * Resolves once the room has sent the held session.
+   * frame from the join on. The room checks Scene versions exactly and sends the Scene only once a
+   * member has synchronized it, so the Scene version comes from the room's own frames, never from
+   * Convex. Resolves once the room has sent the held session and the synchronized Scene.
    */
   static async join(
     client: DevelopmentHttpClient,
     userId: string,
-    input: { encounterId: string; sceneId: string; sceneVersion: number }
+    input: { encounterId: string; sceneId: string }
   ): Promise<RoomWatch> {
     const early: RoomFrame[] = []
     const stopBuffering = client.onRoomFrame((frame) => early.push(frame))
     const campaignId = await client.warmRoom(input)
     stopBuffering()
-    const watch = new RoomWatch(client, campaignId, userId, {
-      id: input.sceneId,
-      version: input.sceneVersion
-    })
+    const watch = new RoomWatch(client, campaignId, userId)
+    // A socket that synchronized the Scene before this watch joined saw its STATE_SYNC earlier.
+    watch.#scene = client.roomScene(campaignId)
     for (const frame of early) watch.#accept(frame)
     client.onRoomFrame((frame) => watch.#accept(frame))
     client.subscribeEncounterSession(campaignId, false)
     await watch.until(() => watch.#session, 'its held Encounter session')
+    await watch.until(() => watch.#scene, 'the synchronized Scene')
     return watch
   }
 
@@ -116,7 +113,15 @@ export class RoomWatch {
     return this.until(() => {
       const pending = this.#session?.state.pending
       return pending && match(pending) ? pending : null
-    }, what)
+    }, what).catch((error: unknown) => {
+      const held = this.#session
+      const shown = held?.state.pending
+      const seen = shown ? `${shown.kind} at Run version ${shown.encounterVersion}` : 'none'
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)} Held session version ${held?.version ?? 'none'}, pending ${seen}.`,
+        { cause: error }
+      )
+    })
   }
 
   /** When this member first received a held session at `version` or later, or null. */
@@ -129,6 +134,7 @@ export class RoomWatch {
   }
 
   get scene(): { id: string; version: number } {
+    if (!this.#scene) throw new Error(`V15 member ${this.userId} holds no synchronized Scene.`)
     return this.#scene
   }
 
@@ -144,12 +150,12 @@ export class RoomWatch {
     } else if (message.type === 'COMMAND_COMMITTED') {
       if (!this.commits.has(message.commandId)) this.commits.set(message.commandId, receivedAt)
       const { delta } = message
-      if (delta?.scope === 'SCENE' && this.#scene.id === delta.result.sceneId)
+      if (delta?.scope === 'SCENE' && this.#scene?.id === delta.result.sceneId)
         this.#scene = {
           id: this.#scene.id,
           version: Math.max(this.#scene.version, delta.result.version)
         }
-      else if (delta?.scope === 'SCENE_VERSION' && this.#scene.id === delta.sceneId)
+      else if (delta?.scope === 'SCENE_VERSION' && this.#scene?.id === delta.sceneId)
         this.#scene = { id: this.#scene.id, version: Math.max(this.#scene.version, delta.version) }
     } else if (
       message.type === 'TRANSIENT' &&

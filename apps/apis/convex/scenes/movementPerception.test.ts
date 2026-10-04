@@ -19,7 +19,8 @@ import { api, internal } from '../_generated/api'
 import { setupCreatureReactionRun, reactionRecords } from '../../tests/fixtures/movementReaction'
 import {
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
@@ -298,12 +299,8 @@ describe('room Scene movement perception staging', () => {
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
-        receipts: await readReceiptHeaders(
-          ctx,
-          'encounterRuleReceipts',
-          await ctx.db.query('encounterRuleReceipts').collect()
-        ),
+        receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
         commands: await ctx.db.query('sceneLiveCommands').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         states: await ctx.db.query('sceneLiveStates').collect()

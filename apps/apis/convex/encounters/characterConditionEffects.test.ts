@@ -25,7 +25,8 @@ import { readCharacterRecord, readCharacterRow } from '../characters/stateDocume
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom
+  replayInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const creatureId = '00000000-0000-4000-8000-0000000008d0'
@@ -310,16 +311,14 @@ async function stored(base: Awaited<ReturnType<typeof setup>>) {
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', base.character.id))
       .take(3),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(10)
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+      .take(10),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
       .take(10)
-      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
   }))
 }
 

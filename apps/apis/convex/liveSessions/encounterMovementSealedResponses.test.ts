@@ -7,7 +7,8 @@ import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticScene
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
@@ -42,16 +43,14 @@ it('settles sealed movement responses through the room without replaying the cro
           q.eq('encounterId', value.base.run.id).eq('sceneId', value.sceneId)
         )
         .collect(),
-      receipts: await ctx.db
+      receipts: await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-      commands: await ctx.db
+        .collect(),
+      commands: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', value.base.campaign.id))
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }))
   const initialPreparation = await planMovementInRoom(value.owner.caller, value.rootInput)
   expect(initialPreparation.outcome.kind).toBe('PENDING')

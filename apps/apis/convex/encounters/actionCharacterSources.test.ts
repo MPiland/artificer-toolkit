@@ -43,7 +43,8 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -298,11 +299,10 @@ async function records(fixture: Awaited<ReturnType<typeof setup>>) {
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
         .unique(),
-      ctx.db
+      (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     ])
   )
 }
@@ -330,16 +330,14 @@ async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', fixture.run.id))
       .take(16),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', fixture.run.id))
-      .take(32)
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-    commands: await ctx.db
+      .take(32),
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
-      .take(32)
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+      .take(32),
     pendingOccurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -500,14 +498,13 @@ describe('native Character action sources', () => {
       sourceRevision: null,
       currentHitPoints: readCharacterRecord(afterCharacter).state.hitpoints.current
     })
-    const receipt = await fixture.t.run((ctx) =>
-      ctx.db
+    const receipt = await fixture.t.run(async (ctx) =>
+      (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) =>
           q.eq('encounterId', fixture.run.id).eq('commandId', command.commandId)
         )
         .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     )
     if (!receipt) throw new Error('Missing native action receipt.')
     const storedExecution = JSON.parse(receipt.resultJson)

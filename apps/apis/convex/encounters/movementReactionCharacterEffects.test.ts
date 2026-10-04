@@ -8,7 +8,8 @@ import { readCharacterRecord, readCharacterRow } from '../characters/stateDocume
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({
@@ -52,26 +53,23 @@ async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCh
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', value.base.character.id))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
+      .collect(),
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
       .unique(),
-    commands: await ctx.db
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .withIndex('by_encounterId_version', (q) => q.eq('encounterId', value.base.run.id))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+      .collect(),
     occurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 
@@ -131,9 +129,7 @@ it('creates one Character reaction effect after the public choice and preserves 
   expect(afterSettlement.character.play.streamVersion).toBe(
     beforeSettlement.character.play.streamVersion + 1
   )
-  expect(afterSettlement.characterReceipts).toHaveLength(
-    beforeSettlement.characterReceipts.length + 1
-  )
+  expect(afterSettlement.characterReceipts).toHaveLength(beforeSettlement.characterReceipts.length)
   expect(afterSettlement.run.version).toBe(beforeSettlement.run.version + 1)
   expect(conditionSources(afterSettlement)).toEqual(conditionSources(beforeSettlement))
 
@@ -176,7 +172,7 @@ it('projects the first used automatic Character reaction into the second reactio
   expect(afterFirstReaction.character.play.streamVersion).toBe(
     beforeRoot.character.play.streamVersion + 1
   )
-  expect(afterFirstReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length + 1)
+  expect(afterFirstReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length)
   expect(afterFirstReaction.run.version).toBe(beforeRoot.run.version + 1)
   expect(conditionSources(afterFirstReaction)).toEqual(conditionSources(beforeRoot))
   const retriedFirst = await executeInRoom(value.owner.caller, { command: first })
@@ -205,9 +201,7 @@ it('projects the first used automatic Character reaction into the second reactio
   expect(afterSecondReaction.character.play.streamVersion).toBe(
     beforeRoot.character.play.streamVersion + 2
   )
-  expect(afterSecondReaction.characterReceipts).toHaveLength(
-    beforeRoot.characterReceipts.length + 2
-  )
+  expect(afterSecondReaction.characterReceipts).toHaveLength(beforeRoot.characterReceipts.length)
   expect(afterSecondReaction.run.version).toBe(afterFirstReaction.run.version + 1)
   // The second hit drops the Character to 0, so it falls unconscious (D63).
   const beforeSources = conditionSources(beforeRoot)

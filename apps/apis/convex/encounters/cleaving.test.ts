@@ -69,7 +69,8 @@ import {
   executeRoomEncounterCommand,
   insertActiveLiveAuthority,
   executeInRoom,
-  replayInRoom
+  replayInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -613,16 +614,14 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-    commands: await ctx.db
+      .collect(),
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 

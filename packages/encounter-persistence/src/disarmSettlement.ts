@@ -1,5 +1,3 @@
-import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
-import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -12,7 +10,6 @@ import {
   planEncounterDisarmSuccess
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { writeRunActor } from './documents.js'
@@ -64,45 +61,11 @@ export async function settleDisarm(
     })
     stateTransition = planned.stateTransition
     if (planned.kind === 'CHARACTER' && active) {
-      const priorReceipt = await ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) =>
-          q.eq('characterId', active.id).eq('commandId', input.commandId.toLowerCase())
-        )
-        .unique()
-      if (priorReceipt) throw new Error('Disarm Character command already exists.')
       await ctx.ports.writeCharacterRecord({
         current: active,
         fields: { streamVersion: active.play.streamVersion + 1, updatedAt: input.occurredAt },
         document: JSON.parse(JSON.stringify(characterAuthoredDtoSchema.parse(planned.character)))
       })
-      const receiptId = crypto.randomUUID()
-      const history = characterHistoryEntryDtoSchema.parse({
-        eventId: receiptId,
-        occurredAt: input.occurredAt,
-        actorId: input.userId,
-        eventType: 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED',
-        summary: 'Rule equipment state applied'
-      })
-      await ctx.db.insert(
-        'characterCommandReceipts',
-        characterStoredCommandReceiptSchema.parse({
-          id: receiptId,
-          characterId: active.id,
-          commandId: input.commandId,
-          actorId: input.userId,
-          commandFingerprint: checksumRuleDocument({
-            encounterId: input.state.id,
-            occurrenceId: input.occurrenceId,
-            sourceCommandId: input.sourceCommandId,
-            targetActorId: target.id,
-            stateTransition
-          }),
-          occurredAt: input.occurredAt,
-          historyJson: canonicalizeRuleDocument(history),
-          historyChecksum: checksumRuleDocument(history)
-        })
-      )
     } else if (planned.kind === 'CREATURE') {
       target = planned.actor
       await writeRunActor(ctx, targetRow._id, target)

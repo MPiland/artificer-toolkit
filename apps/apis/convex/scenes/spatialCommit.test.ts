@@ -1,19 +1,13 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { readEncounterHistory, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { makeFunctionReference } from 'convex/server'
-import type { EncounterTimelineDto } from '@artificer-toolkit/schema/api/encounters'
 import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
-const timeline = makeFunctionReference<
-  'query',
-  { encounterId: string; limit: number },
-  EncounterTimelineDto
->('encounters/timelineReads:timeline')
 
 beforeEach(() => vi.stubEnv('BETTER_AUTH_SECRET', 'spatial-commit-test-secret-at-least-32-bytes'))
 afterEach(() => vi.unstubAllEnvs())
@@ -48,12 +42,8 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
         .query('encounterRuleOccurrences')
         .withIndex('by_encounterId_state', (q) => q.eq('encounterId', state.id))
         .collect(),
-      receipts: await readReceiptHeaders(
-        ctx,
-        'encounterRuleReceipts',
-        await ctx.db.query('encounterRuleReceipts').collect()
-      ),
-      commands: await ctx.db
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      commands: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
         .collect(),
@@ -119,18 +109,12 @@ it('publishes a terminal movement once with its Scene move, Run receipt and time
   expect(
     after.commands.filter((command) => command.commandType === 'MOVE_SCENE_TOKEN')
   ).toHaveLength(1)
-  const history = await value.base.other.caller.query(timeline, {
-    encounterId: value.base.run.id,
-    limit: 20
-  })
+  const history = await readTimelineInRoom(value.base.other.caller, value.base.run.id)
   expect(history.entries.filter((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')).toHaveLength(
     1
   )
 
-  const playerHistory = await value.base.owner.caller.query(timeline, {
-    encounterId: value.base.run.id,
-    limit: 20
-  })
+  const playerHistory = await readTimelineInRoom(value.base.owner.caller, value.base.run.id)
   expect(playerHistory.entries.filter((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')).toEqual(
     []
   )

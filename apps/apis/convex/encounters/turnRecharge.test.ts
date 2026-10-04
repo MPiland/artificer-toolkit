@@ -49,7 +49,8 @@ import { api, components, internal } from '../_generated/api'
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom
+  replayInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const secondRechargeFeatureId = '00000000-0000-4000-8000-0000000008a4'
@@ -128,16 +129,14 @@ async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterI
       (row) => row.encounterId === encounterId
     ),
     receipts: (
-      await ctx.db
+      await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
     ).filter((row) => row.encounterId === encounterId),
     commands: (
-      await ctx.db
+      await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     ).filter((row) => row.encounterId === encounterId)
   }))
 }

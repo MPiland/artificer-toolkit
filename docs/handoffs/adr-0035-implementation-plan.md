@@ -228,6 +228,24 @@ rulings:
 
 **Acceptance affected:** V11.5 and R06 replay re-proof; persistence docs.
 
+**Status: done (2026-10-04).** History is live rules state (pending decisions, void, undo and replay read
+it), so the room carries it through every hydrate for the whole Run instead of dropping it from its own
+store (D88; [Encounter Run storage](../architecture/persistence.md#encounter-run-storage)).
+
+- Room: `roomInputs.ts` carries the store's history for the Run; `roomEncounterReplayIndex.ts` records one
+  index row per command, answers retries the history lost, and removes the Run's history and index at COMPLETE.
+- Convex: the checkpoint `history` section is Sheet receipts only; `encounterReplayIndex` rides `changes`;
+  a completing checkpoint deletes the Run's index and Convex-held history. `timelineReads`,
+  `evidenceRolls:latest`, `characters/history` and the Encounter-written Character receipts are removed.
+- Proofs: `encounterJourneys.test.ts` ("Encounter history stays in the room (D85)": eager reload keeps a
+  pending decision, storage recovery replays from the index, roll cards stable across flushes, nothing
+  left after COMPLETE; plus replay after a new epoch and after recovery), `commands.test.ts`,
+  `roomInputs.test.ts` (carry-over), `roomCheckpointRecords.test.ts` (no Encounter history).
+- Known limits: movement decisions and `MOVE_SCENE_TOKEN` write no index row, so their retry after storage
+  recovery is refused as stale; an indexed replay returns no roll (the card is in chat).
+- REL-5: the `encounters/developmentLifecycle:movementReactionDamage` dev query reads Convex history, which
+  no longer exists live; the REL-5 driver rewrite must read it from room frames and delete the query.
+
 ### REL-5 (resumes): re-measure V15 and set N
 
 **Goal:**

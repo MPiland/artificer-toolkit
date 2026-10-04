@@ -8,7 +8,7 @@ import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
-import { planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
 
@@ -32,18 +32,16 @@ async function records(value: Fixture) {
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-    runCommands: await ctx.db
+      .collect(),
+    runCommands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
         q.eq('campaignId', value.base.campaign.id).eq('commandId', value.rootInput.commandId)
       )
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 it('publishes an Assisted spatial evidence pause without settling retained no-input contact', async () => {

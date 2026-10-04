@@ -41,7 +41,8 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const creatureId = '00000000-0000-4000-8000-0000000008e0'
@@ -359,16 +360,14 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', base.run.id))
       .take(16),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(32)
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-    commands: await ctx.db
+      .take(32),
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .take(32)
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+      .take(32),
     pendingOccurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -385,8 +384,7 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
-      .take(32)
-      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
+      .take(32),
     campaignCharacterState: await ctx.db
       .query('campaignCharacterStates')
       .withIndex('by_campaignId_characterId', (q) =>

@@ -314,17 +314,6 @@ export async function verifyEncounterTransactions({
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection
   )
-  const timeline = await owner.query(api.encounters.timelineReads.timeline, {
-    encounterId: prepared.id,
-    limit: 100
-  })
-  assert.equal(timeline.nextCursor, null)
-  assert.equal(timeline.entries.length, projection.version + 1)
-  assert.deepEqual(
-    timeline.entries.map((entry) => entry.version).sort((left, right) => left - right),
-    Array.from({ length: projection.version + 1 }, (_, version) => version)
-  )
-  assert.ok(timeline.entries.every((entry) => entry.actorUserId === ownerUserId))
   assert.deepEqual(await sceneState(), originalScenes)
   console.log(
     'V08 forced rollback and concurrent command/binding/presentation/ownership/Session-finish schedules passed.'

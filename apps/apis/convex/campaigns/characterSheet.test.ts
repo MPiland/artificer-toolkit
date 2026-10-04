@@ -21,10 +21,6 @@ import type {
   CharacterSheetCommandResponseDto,
   CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type {
-  CharacterHistoryInput,
-  CharacterHistoryPage
-} from '@artificer-toolkit/schema/api/characterHistory'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -84,9 +80,6 @@ const personalExecute = makeFunctionReference<
   CharacterSheetExecuteInput,
   CharacterSheetCommandResponseDto
 >('characters/sheetCommands:execute')
-const history = makeFunctionReference<'query', CharacterHistoryInput, CharacterHistoryPage>(
-  'characters/history:list'
-)
 
 async function setup(
   fixture?: Omit<Awaited<ReturnType<typeof readySheetFixture>>, 'readReceiptStorage'>
@@ -793,21 +786,7 @@ describe('native Campaign Character Sheet boundary', () => {
     expect(final.character?.play.streamVersion).toBe(5)
     expect(final.receipts).toHaveLength(4)
     expect(final.receipts.filter((receipt) => receipt.actorId === gm.userId)).toHaveLength(2)
-    const ownerHistory = await player.caller.query(history, {
-      id: character.id,
-      paginationOpts: { cursor: null, numItems: 48 }
-    })
-    expect(ownerHistory.page).toHaveLength(1)
-    expect(ownerHistory.isDone).toBe(false)
-    const nextOwnerHistory = await player.caller.query(history, {
-      id: character.id,
-      paginationOpts: { cursor: ownerHistory.continueCursor, numItems: 48 }
-    })
-    expect(nextOwnerHistory.page).toHaveLength(1)
-    expect(nextOwnerHistory.isDone).toBe(true)
-    const ownerEntries = [...ownerHistory.page, ...nextOwnerHistory.page]
-    expect(ownerEntries.every((entry) => entry.actorId === player.userId)).toBe(true)
-    expect(ownerEntries.some((entry) => entry.eventId === first.historyEntry?.eventId)).toBe(false)
+    expect(final.receipts.filter((receipt) => receipt.actorId === player.userId)).toHaveLength(2)
     expect(await readState()).toEqual(final)
   })
 

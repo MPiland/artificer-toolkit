@@ -37,7 +37,8 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { definition, descriptor, lifecycle } from '../../tests/fixtures/maintainedEffects'
@@ -137,15 +138,13 @@ async function capture(base: Fixture) {
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect(),
-    commands: await ctx.db
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+      .collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+      .collect(),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
     sceneBindings: await ctx.db.query('encounterSceneBindings').collect(),
     characters: await ctx.db.query('characters').collect(),

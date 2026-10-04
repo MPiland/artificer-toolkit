@@ -365,10 +365,6 @@ export async function verifyEncounterEffects({
     assert.equal(beforePlayerSource.public, true)
     assert.equal(beforePlayerTarget.public, true)
     assert.deepEqual(conditionIds(beforePlayerTarget.conditions), [])
-    const beforeTimeline = await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: run.id,
-      limit: 100
-    })
     const verify = async (controls?: EncounterEffectsBrowserControls) => {
       const browserRoot = await controls?.resolveAction()
       if (browserRoot) {
@@ -382,14 +378,6 @@ export async function verifyEncounterEffects({
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
         beforeRun,
         'Issuing a save cannot advance the Run before evidence completes.'
-      )
-      assert.deepEqual(
-        await owner.query(api.encounters.timelineReads.timeline, {
-          encounterId: run.id,
-          limit: 100
-        }),
-        beforeTimeline,
-        'Issuing a save cannot append a terminal receipt.'
       )
       const pending = await owner.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: run.id
@@ -435,10 +423,6 @@ export async function verifyEncounterEffects({
       const finalRun = encounterGmProjectionDtoSchema.parse(
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
       )
-      const finalTimeline = await owner.query(api.encounters.timelineReads.timeline, {
-        encounterId: run.id,
-        limit: 100
-      })
       const finalPlayerRun = encounterPlayerProjectionDtoSchema.parse(
         await player.query(api.encounters.projectionReads.get, { encounterId: run.id })
       )
@@ -450,12 +434,6 @@ export async function verifyEncounterEffects({
       if (!finalTarget) throw new Error('Action-effect target is absent after settlement.')
       assert.deepEqual(conditionIds(finalTarget.conditions), expectedConditions)
       assert.equal(finalRun.version, run.version + 1)
-      assert.equal(finalTimeline.entries.length, beforeTimeline.entries.length + 1)
-      assert.equal(
-        finalTimeline.entries.filter((entry) => entry.commandType === 'RESOLVE_ACTION').length,
-        beforeTimeline.entries.filter((entry) => entry.commandType === 'RESOLVE_ACTION').length + 1,
-        'The terminal save must settle the original action receipt once.'
-      )
       await controls?.assertTerminal()
       // The room journal replays each command's own receipt, shown over the current Run.
       assert.deepEqual(
@@ -471,13 +449,6 @@ export async function verifyEncounterEffects({
       assert.deepEqual(
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
         finalRun
-      )
-      assert.deepEqual(
-        await owner.query(api.encounters.timelineReads.timeline, {
-          encounterId: run.id,
-          limit: 100
-        }),
-        finalTimeline
       )
     }
     if (browser) {

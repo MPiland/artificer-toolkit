@@ -16,6 +16,7 @@ import {
   type LiveSessionCheckpointSceneTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
+import { receiptLedgerEntryKeyFields } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import type { LiveSessionCheckpointAcknowledgement } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import {
   liveSessionRulesRevisionsSchema,
@@ -135,6 +136,9 @@ function expectAssigned(part: LiveRoomCharacterPart) {
     throw new Error('Character is no longer assigned to the Campaign.')
   return part
 }
+
+/** The Encounter history tables the room keeps for the whole Run (ADR 0035 Amendment 22). */
+const HISTORY_TABLES = ['encounterRunCommands', 'encounterRuleReceipts', 'encounterEvidenceRolls'] as const
 
 function toRoomDocuments(pages: readonly { documents: readonly RoomDocument[] }[]) {
   return pages.flatMap((page) => page.documents)
@@ -633,6 +637,7 @@ export class RoomInputs {
     ])
     assertDefinitionScope(definitions, play.campaign)
     const chat = chatMetadataDocuments(chatPages, authority)
+    const carried = encounterId ? this.#carriedHistory(encounterId, run) : []
     const content = await Promise.all([
       this.#readContent(play.contentSnapshots),
       ...characters.map(({ part }) => this.#readContent(this.#characterManifest(part)))
@@ -644,6 +649,7 @@ export class RoomInputs {
         ...authority.documents,
         ...chat,
         ...run,
+        ...carried,
         ...characters.flatMap(({ part, documents }) => {
           if (!part.inputs) throw new Error('Character inputs are missing.')
           const { owner } = part.inputs
@@ -678,6 +684,35 @@ export class RoomInputs {
         cacheKey({ kind: 'CHARACTER', characterId: part.characterId }),
         content[index + 1]!
       )
+    )
+  }
+
+  /**
+   * The Run's history rows the room already holds, which a reload keeps instead of re-reading them
+   * from Convex (which holds only the rows its own writers recorded). A row Convex also returned
+   * is not carried twice. A recovered or corrupt store holds none.
+   */
+  #carriedHistory(encounterId: string, read: readonly RoomDocument[]): RoomDocument[] {
+    const identity = (table: (typeof HISTORY_TABLES)[number], fields: Record<string, unknown>) =>
+      canonicalizeJson([table, ...receiptLedgerEntryKeyFields[table].map((field) => fields[field])])
+    const seen = new Set(
+      read.flatMap(({ table, fields }) =>
+        HISTORY_TABLES.some((history) => history === table)
+          ? [identity(table as (typeof HISTORY_TABLES)[number], fields)]
+          : []
+      )
+    )
+    return HISTORY_TABLES.flatMap((table) =>
+      this.#store
+        .documents(table)
+        .filter((document) => document.encounterId === encounterId)
+        .map(({ _id, _creationTime, ...fields }) => ({
+          table,
+          id: _id,
+          creationTime: _creationTime,
+          fields
+        }))
+        .filter(({ fields }) => !seen.has(identity(table, fields)))
     )
   }
 

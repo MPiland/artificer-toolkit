@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
 import { prepareRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { recordTurnMovement } from '@artificer-toolkit/encounter-persistence/turnMovement'
+import { persistHeldHistoryToConvex } from './liveSessionWorker'
 import { playerControlFixture, type PlayerControlFixture } from './playerControl'
 
 export type EncounterStoreOperation = (transaction: EncounterWriteTransaction) => Promise<unknown>
@@ -153,6 +154,8 @@ export const encounterConformanceCorpus: readonly EncounterConformanceScenario[]
     setup: async () => {
       const base = await playerControlFixture()
       await base.gm(await base.bite(base.companion.id, base.enemy.id))
+      // The undo reads the action's receipts, which the room holds; Convex runs the operation here.
+      await persistHeldHistoryToConvex(base.owner.caller, base.campaign.id, base.run.id)
       const state = await runState(base)
       return {
         base,

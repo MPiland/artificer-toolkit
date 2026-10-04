@@ -53,7 +53,8 @@ import { api, components, internal } from '../_generated/api'
 import * as movementTargets from '../../../session-worker/src/nativeEncounterTargets'
 import {
   executeInRoom as executeRoomCommand,
-  replayInRoom
+  replayInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const rechargeFeatureId = '00000000-0000-4000-8000-000000000a21'
@@ -104,16 +105,14 @@ async function stored(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: 
       (row) => row.encounterId === encounterId
     ),
     receipts: (
-      await ctx.db
+      await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
     ).filter((row) => row.encounterId === encounterId),
     commands: (
-      await ctx.db
+      await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     ).filter((row) => row.encounterId === encounterId)
   }))
 }

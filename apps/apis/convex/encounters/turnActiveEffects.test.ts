@@ -39,7 +39,8 @@ import {
 import {
   executeInRoom,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
@@ -81,7 +82,6 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
             .query('characterCommandReceipts')
             .withIndex('by_characterId_commandId', (q) => q.eq('characterId', id))
             .collect()
-            .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
         )
       )
     ).flat(),
@@ -111,16 +111,14 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-    commands: await ctx.db
+      .collect(),
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 
@@ -331,7 +329,7 @@ describe('native public turn active-effect journeys', () => {
       characterAuthoredDtoSchema.parse(readCharacterRecord(characterAfter)).state.hitpoints.current
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
-    expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
+    expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length)
     await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
       ...pendingOutgoing,
       projection: completed.projection
@@ -433,7 +431,7 @@ describe('native public turn active-effect journeys', () => {
       encounterGmProjectionDtoSchema.parse(settled.projection).actors[0]!.currentHitPoints
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
-    expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
+    expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length)
     const terminalReplay = await replayInRoom(base.player.caller, declarationCommand)
     expect(terminalReplay.occurrence?.pending).toBeNull()
     expect(encounterPlayerProjectionDtoSchema.safeParse(terminalReplay.projection).success).toBe(

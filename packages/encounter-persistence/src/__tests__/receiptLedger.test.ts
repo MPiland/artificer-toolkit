@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  liveSessionCheckpointHistoryEntrySchema,
-  liveSessionCheckpointHistoryKeyFields,
+  receiptLedgerEntryKeyFields,
   receiptLedgerEntrySchema,
-  type LiveSessionCheckpointHistoryEntry,
-  type LiveSessionCheckpointHistoryTable,
-  type ReceiptLedgerEntry
+  type ReceiptLedgerEntry,
+  type ReceiptLedgerEntryTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
   RECEIPT_LEDGER_MAX_BYTES,
@@ -41,12 +39,12 @@ const characterId = uuid(2)
 const checksum = sha256Hex('fixture')
 
 function historyEntry(
-  table: LiveSessionCheckpointHistoryTable,
+  table: ReceiptLedgerEntryTable,
   value: Record<string, JsonValue>
-): LiveSessionCheckpointHistoryEntry {
-  return liveSessionCheckpointHistoryEntrySchema.parse({
+): ReceiptLedgerEntry {
+  return receiptLedgerEntrySchema.parse({
     table,
-    key: liveSessionCheckpointHistoryKeyFields[table].map((field) => value[field]),
+    key: receiptLedgerEntryKeyFields[table].map((field) => value[field]),
     value,
     checksum: checksumCanonicalJson(value)
   })
@@ -55,7 +53,7 @@ function historyEntry(
 function characterReceipt(
   ordinal = 1,
   history: JsonValue = { ordinal }
-): LiveSessionCheckpointHistoryEntry {
+): ReceiptLedgerEntry {
   return historyEntry('characterCommandReceipts', {
     id: uuid(100 + ordinal),
     characterId,
@@ -108,7 +106,7 @@ function sceneCommandEntry(ordinal = 1, scene = sceneId): ReceiptLedgerEntry {
   })
 }
 
-function encounterEntries(): LiveSessionCheckpointHistoryEntry[] {
+function encounterEntries(): ReceiptLedgerEntry[] {
   const command = { type: 'UPSERT_REMINDER', label: 'Ready' }
   const replay = { roll: null, occurrence: null }
   const result = { settled: true }

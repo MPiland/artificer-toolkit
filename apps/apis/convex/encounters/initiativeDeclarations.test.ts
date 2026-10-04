@@ -2,7 +2,6 @@ import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
 } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -54,7 +53,9 @@ import {
 import {
   executeInRoom,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readTimelineInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
@@ -185,15 +186,13 @@ async function storedInitiative<T extends { t: Awaited<ReturnType<typeof fixture
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await ctx.db
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+      .collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 
@@ -622,12 +621,10 @@ describe('native initiative declarations', () => {
         await expect(
           base.player.caller.query(api.encounters.projectionReads.get, { encounterId: run.id })
         ).rejects.toThrow('Encounter is unavailable.')
-        await expect(
-          base.player.caller.query(api.encounters.timelineReads.timeline, {
-            encounterId: run.id,
-            limit: 20
-          })
-        ).rejects.toThrow('Encounter is unavailable.')
+        expect(await readTimelineInRoom(base.player.caller, run.id)).toEqual({
+          entries: [],
+          nextCursor: null
+        })
         expect(
           await base.player.caller.query(api.encounters.projectionReads.pendingPrepared, {
             campaignId: base.campaign.id
@@ -1200,10 +1197,9 @@ describe('native initiative declarations', () => {
         )
         .unique(),
       receipts: (
-        await ctx.db
+        await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
       ).filter((value) => value.encounterId === run.id),
       run: await ctx.db
         .query('encounterRuns')
@@ -1230,10 +1226,9 @@ describe('native initiative declarations', () => {
           )
           .unique(),
         receipts: (
-          await ctx.db
+          await (await readEncounterHistory(ctx))
             .query('encounterRuleReceipts')
             .collect()
-            .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
         ).filter((value) => value.encounterId === run.id),
         run: await ctx.db
           .query('encounterRuns')

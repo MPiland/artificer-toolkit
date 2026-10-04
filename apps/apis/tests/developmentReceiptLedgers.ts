@@ -10,10 +10,7 @@ import {
   type DevelopmentReceiptLedgerScope,
   type DevelopmentReceiptLedgerSeedResult
 } from '@artificer-toolkit/schema/api/developmentReceiptLedger'
-import {
-  characterHistoryPageSchema,
-  type CharacterHistoryEntryDto
-} from '@artificer-toolkit/schema/api/characterHistory'
+import type { CharacterHistoryEntryDto } from '@artificer-toolkit/schema/api/characterHistory'
 import {
   liveSessionCheckpointHistoryEntrySchema,
   liveSessionCheckpointHistoryKeyFields
@@ -125,7 +122,7 @@ export async function verifyDevelopmentReceiptLedgers({
       )
     }
 
-    async function readAll(mode: 'native' | 'keyset') {
+    async function readAll() {
       const events: string[] = []
       const cursors = new Set<string>()
       let cursor: string | null = null
@@ -133,17 +130,14 @@ export async function verifyDevelopmentReceiptLedgers({
       let secondWindow: { cursor: string; eventId: string } | null = null
       for (let pages = 1; pages <= 8; pages++) {
         const raw = await cli(
-          `characters/developmentReceiptLedgers:${mode === 'native' ? 'page' : 'keysetPage'}`,
+          'characters/developmentReceiptLedgers:page',
           { ...scope, paginationOpts: { numItems: 48, cursor } },
           false
         )
-        const result =
-          mode === 'native'
-            ? developmentReceiptLedgerNativePageSchema.parse(raw)
-            : characterHistoryPageSchema.parse(raw)
+        const result = developmentReceiptLedgerNativePageSchema.parse(raw)
         assert.equal(result.characterId, scope.characterId)
         assert.ok(result.page.length <= 1, 'Native receipt paging exceeded one hydrated row.')
-        if (mode === 'native' && 'pageStatus' in result)
+        if ('pageStatus' in result)
           assert.notEqual(
             result.pageStatus,
             'SplitRequired',
@@ -174,8 +168,8 @@ export async function verifyDevelopmentReceiptLedgers({
       throw new Error('Native receipt pagination did not complete within eight pages.')
     }
 
-    const initial = await readAll('native')
-    const replay = await readAll('native')
+    const initial = await readAll()
+    const replay = await readAll()
     assert.deepEqual(
       replay.events,
       initial.events,
@@ -212,29 +206,6 @@ export async function verifyDevelopmentReceiptLedgers({
     )
     await assert.rejects(cli('characters/developmentReceiptLedgers:page', windowInput, false))
 
-    const keyset = await readAll('keyset')
-    const keysetReplay = await readAll('keyset')
-    assert.deepEqual(keyset.events, [...initial.events].sort(), 'Timestamp ties lost index order.')
-    assert.deepEqual(
-      keysetReplay.events,
-      keyset.events,
-      'Repeated application cursor reads changed order.'
-    )
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const exhausted = characterHistoryPageSchema.parse(
-        await cli(
-          'characters/developmentReceiptLedgers:keysetPage',
-          {
-            ...scope,
-            paginationOpts: { numItems: 48, cursor: keyset.cursor }
-          },
-          false
-        )
-      )
-      assert.deepEqual(exhausted.page, [])
-      assert.equal(exhausted.isDone, true)
-      assert.equal(exhausted.continueCursor, keyset.cursor)
-    }
     for (let ordinal = 0; ordinal < 3; ordinal++)
       assert.deepEqual(await inspect(ordinal), before[ordinal])
     assert.deepEqual(await inspect(3), { headerExists: false, ledgerExists: false, partCount: 0 })
@@ -274,8 +245,6 @@ export async function verifyDevelopmentReceiptLedgers({
       bytesPerLedger: RECEIPT_LEDGER_MAX_BYTES,
       pages: initial.pages,
       replayPages: replay.pages,
-      keysetPages: keyset.pages,
-      keysetReplayPages: keysetReplay.pages,
       nativeWindow: {
         rows: rawWindow.headerIds.length,
         isDone: rawWindow.isDone,

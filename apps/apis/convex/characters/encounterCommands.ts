@@ -20,10 +20,7 @@ export async function executeEncounterCharacterCommand(
     { id: input.characterId, command: input.command },
     input.campaignId
   )
-  if (character.historyEntry === undefined)
-    throw new Error('Character Sheet command receipt is unavailable.')
   return characterEncounterCommandResultSchema.parse({
-    historyEventId: character.historyEntry.eventId,
     streamVersion: character.streamVersion,
     currentHitPoints: character.sheet.overview.currentHitPoints,
     maxHitPoints: character.sheet.overview.maxHitPoints,

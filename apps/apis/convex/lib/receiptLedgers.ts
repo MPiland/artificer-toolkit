@@ -1,6 +1,6 @@
 import {
-  liveSessionCheckpointHistoryEntrySchema,
-  liveSessionCheckpointHistoryKeyFields,
+  receiptLedgerEntrySchema,
+  receiptLedgerEntryKeyFields,
   type ReceiptLedgerEntry
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
@@ -177,7 +177,7 @@ function hydrateHeader<Table extends ReceiptHeaderTable>(
   ledger: DecodedReceiptLedger
 ): HydratedReceiptHeader<Table> {
   const parsed = parseHeader(table, header)
-  const key = liveSessionCheckpointHistoryKeyFields[table].map((field) => {
+  const key = receiptLedgerEntryKeyFields[table].map((field) => {
     const value: unknown = Reflect.get(parsed, field)
     if (typeof value !== 'string' && typeof value !== 'number')
       throw new Error('Receipt header identity is incomplete.')
@@ -397,9 +397,9 @@ export async function writeReceiptRecord<Table extends ReceiptHeaderTable>(
         })
     )
   )
-  const entry = liveSessionCheckpointHistoryEntrySchema.parse({
+  const entry = receiptLedgerEntrySchema.parse({
     table,
-    key: liveSessionCheckpointHistoryKeyFields[table].map((field) => value[field]),
+    key: receiptLedgerEntryKeyFields[table].map((field) => value[field]),
     value,
     checksum: checksumCanonicalJson(value)
   })

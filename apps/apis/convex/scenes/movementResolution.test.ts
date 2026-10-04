@@ -24,7 +24,9 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readTimelineInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 // Keep handler compilation outside the per-operation test timer.
 import '../content/import'
@@ -240,6 +242,7 @@ describe('room movement response publication', () => {
       actors: await ctx.db.query('encounterRunActors').collect(),
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+      // Preparing a decision stages in the room only: Convex holds no new receipt.
       receipts: await ctx.db.query('encounterRuleReceipts').collect(),
       commands: await ctx.db.query('encounterRunCommands').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
@@ -321,8 +324,8 @@ describe('room movement response publication', () => {
       actors: await ctx.db.query('encounterRunActors').collect(),
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect(),
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
       fog: await ctx.db.query('sceneFogLayers').collect()
     }))
@@ -358,8 +361,8 @@ describe('room movement response publication', () => {
         actors: await ctx.db.query('encounterRunActors').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect()
       }))
@@ -377,8 +380,8 @@ describe('room movement response publication', () => {
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
       }))
     const reactionStart = await stored()
@@ -469,10 +472,7 @@ describe('room movement response publication', () => {
     expect(committed).toBeGreaterThan(0)
     expect(final.commands.length - reactionStart.commands.length).toBe(committed)
     // The timeline re-parses every stored receipt against its checksum.
-    const timeline = await owner.caller.query(api.encounters.timelineReads.timeline, {
-      encounterId: run.id,
-      limit: 100
-    })
+    const timeline = await readTimelineInRoom(owner.caller, run.id)
     expect(timeline.entries.map((entry) => entry.version)).toContain(final.runs[0]!.version)
     await expect(
       (await planMovementInRoom(owner.caller, value.rootInput)).publish()
@@ -541,8 +541,8 @@ describe('room movement response publication', () => {
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-      runCommands: await ctx.db.query('encounterRunCommands').collect(),
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
       sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
       fogRows: await ctx.db.query('sceneFogLayers').collect()
     }))
@@ -559,8 +559,8 @@ describe('room movement response publication', () => {
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        runCommands: await ctx.db.query('encounterRunCommands').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         fogRows: await ctx.db.query('sceneFogLayers').collect()
       }))

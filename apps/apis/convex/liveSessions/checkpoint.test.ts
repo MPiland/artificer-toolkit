@@ -5,9 +5,10 @@ import type {
   LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import {
-  liveSessionCheckpointHistoryKeyFields,
-  type LiveSessionCheckpointHistoryEntry,
-  type LiveSessionCheckpointHistoryTable,
+  liveSessionCheckpointHistoryEntrySchema,
+  liveSessionCheckpointRecordsSchema,
+  receiptLedgerEntryKeyFields,
+  type ReceiptLedgerEntry,
   type LiveSessionCheckpointRecordChange,
   type LiveSessionCheckpointRecords,
   type LiveSessionCheckpointRetainedRoll,
@@ -97,13 +98,13 @@ function recordChange(
 }
 
 function historyEntry(
-  table: LiveSessionCheckpointHistoryTable,
+  table: 'characterCommandReceipts' | 'encounterRunCommands',
   fields: Record<string, unknown>
-): LiveSessionCheckpointHistoryEntry {
+): ReceiptLedgerEntry {
   const value = decodeCheckpointRecord(table, fields)
   return {
     table,
-    key: liveSessionCheckpointHistoryKeyFields[table].map((field) => {
+    key: receiptLedgerEntryKeyFields[table].map((field) => {
       const identity = value[field]
       if (typeof identity !== 'string' && typeof identity !== 'number')
         throw new Error('Missing fixture history identity.')
@@ -206,60 +207,40 @@ async function playChange(base: Fixture) {
   })
 }
 
-function sharedHistory(base: Fixture, version: number) {
-  const createdAt = base.campaign.createdAt
+/** An Encounter command receipt: Encounter history stays in the room, so a checkpoint must refuse it. */
+function encounterHistory(base: Fixture, version: number) {
   const replay = { roll: null, occurrence: null }
-  const result = { settled: true }
-  return [
-    historyEntry('encounterRunCommands', {
-      id: crypto.randomUUID(),
-      campaignId: base.campaign.id,
-      encounterId: base.run.id,
-      commandId: crypto.randomUUID(),
-      commandFingerprint: 'c'.repeat(64),
-      actorUserId: base.owner.userId,
-      createdAt,
-      visibility: 'TABLE',
-      commandType: 'UPSERT_REMINDER',
-      version,
-      commandJson: canonicalizeJson({
-        type: 'UPSERT_REMINDER',
-        label: 'Checkpoint reminder'
-      }),
-      replayReceiptJson: canonicalizeJson(replay),
-      replayReceiptChecksum: checksumCanonicalJson(replay)
-    }),
-    historyEntry('encounterRuleReceipts', {
-      id: crypto.randomUUID(),
-      campaignId: base.campaign.id,
-      encounterId: base.run.id,
-      occurrenceId: crypto.randomUUID(),
-      commandId: crypto.randomUUID(),
-      commandType: 'RESOLVE_RULE_OCCURRENCE',
-      commandFingerprint: 'd'.repeat(64),
-      encounterVersion: version,
-      commandMetadataJson: canonicalizeJson({ label: 'Checkpoint effect' }),
-      resultJson: canonicalizeJson(result),
-      resultChecksum: checksumCanonicalJson(result),
-      actorUserId: base.owner.userId,
-      correlationId: null,
-      createdAt
-    })
-  ]
+  return historyEntry('encounterRunCommands', {
+    id: crypto.randomUUID(),
+    campaignId: base.campaign.id,
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    commandFingerprint: 'c'.repeat(64),
+    actorUserId: base.owner.userId,
+    createdAt: base.campaign.createdAt,
+    visibility: 'TABLE',
+    commandType: 'UPSERT_REMINDER',
+    version,
+    commandJson: canonicalizeJson({ type: 'UPSERT_REMINDER', label: 'Checkpoint reminder' }),
+    replayReceiptJson: canonicalizeJson(replay),
+    replayReceiptChecksum: checksumCanonicalJson(replay)
+  })
 }
 
 function characterHistory(base: Fixture) {
   const history = { label: 'Checkpoint play update' }
-  return historyEntry('characterCommandReceipts', {
-    id: crypto.randomUUID(),
-    characterId: base.character.id,
-    commandId: crypto.randomUUID(),
-    actorId: base.player.userId,
-    commandFingerprint: 'e'.repeat(64),
-    occurredAt: base.campaign.createdAt,
-    historyJson: canonicalizeJson(history),
-    historyChecksum: checksumCanonicalJson(history)
-  })
+  return liveSessionCheckpointHistoryEntrySchema.parse(
+    historyEntry('characterCommandReceipts', {
+      id: crypto.randomUUID(),
+      characterId: base.character.id,
+      commandId: crypto.randomUUID(),
+      actorId: base.player.userId,
+      commandFingerprint: 'e'.repeat(64),
+      occurredAt: base.campaign.createdAt,
+      historyJson: canonicalizeJson(history),
+      historyChecksum: checksumCanonicalJson(history)
+    })
+  )
 }
 
 async function snapshot(base: Fixture) {
@@ -293,16 +274,15 @@ async function snapshot(base: Fixture) {
   })
 }
 
-it('publishes Run and Character play deltas with grouped history, then replays without state or ledger writes', async () => {
+it('publishes Run and Character play deltas with Character history, then replays without state or ledger writes', async () => {
   const base = await setupCharacterRun()
   const authority = await activate(base)
   const run = await runChange(base)
   const play = await playChange(base)
-  const shared = sharedHistory(base, run.nextStored.version)
   const privateHistory = characterHistory(base)
   const input = frame(authority, {
     changes: [run.change, play.change],
-    history: [shared[0]!, privateHistory, shared[1]!]
+    history: [privateHistory]
   })
   const before = await snapshot(base)
   const beforeCharacterRevision = before.revisions.find(
@@ -337,46 +317,28 @@ it('publishes Run and Character play deltas with grouped history, then replays w
   const checkpointLedgers = after.ledgers.filter(
     (ledger) => ledger.checkpointId === input.checkpointId
   )
-  expect(checkpointLedgers).toHaveLength(2)
   expect(checkpointLedgers.map(({ scope, scopeId }) => [scope, scopeId])).toEqual([
-    ['CAMPAIGN', base.campaign.id],
     ['CHARACTER', base.character.id]
   ])
   await base.t.run(async (ctx) => {
     for (const ledger of checkpointLedgers) {
       const decoded = await readReceiptLedger(ctx, ledger.id)
       expect(decoded.metadata.epoch).toBe(input.epoch)
-      expect(decoded.entries).toEqual(ledger.scope === 'CAMPAIGN' ? shared : [privateHistory])
+      expect(decoded.entries).toEqual([privateHistory])
     }
-    const runHeader = after.runHeaders.find(
-      (header) => header.commandId === shared[0]!.value.commandId
-    )
-    const ruleHeader = after.ruleHeaders.find(
-      (header) => header.commandId === shared[1]!.value.commandId
-    )
     const characterHeader = after.characterHeaders.find(
       (header) => header.commandId === privateHistory.value.commandId
     )
-    if (!runHeader || !ruleHeader || !characterHeader)
-      throw new Error('Missing checkpoint headers.')
-    expect(runHeader.ledgerId).toBe(ruleHeader.ledgerId)
-    expect(characterHeader.ledgerId).not.toBe(runHeader.ledgerId)
-    const [logicalRun] = await readReceiptHeaders(ctx, 'encounterRunCommands', [runHeader])
-    const [logicalRule] = await readReceiptHeaders(ctx, 'encounterRuleReceipts', [ruleHeader])
+    if (!characterHeader) throw new Error('Missing checkpoint header.')
     const [logicalCharacter] = await readReceiptHeaders(ctx, 'characterCommandReceipts', [
       characterHeader
     ])
-    if (!logicalRun || !logicalRule || !logicalCharacter)
-      throw new Error('Missing logical receipts.')
-    const { _id: _runId, _creationTime: _runTime, ...runFields } = logicalRun
-    const { _id: _ruleId, _creationTime: _ruleTime, ...ruleFields } = logicalRule
+    if (!logicalCharacter) throw new Error('Missing logical receipt.')
     const {
       _id: _characterId,
       _creationTime: _characterTime,
       ...characterFields
     } = logicalCharacter
-    expect(decodeCheckpointRecord('encounterRunCommands', runFields)).toEqual(shared[0]!.value)
-    expect(decodeCheckpointRecord('encounterRuleReceipts', ruleFields)).toEqual(shared[1]!.value)
     expect(decodeCheckpointRecord('characterCommandReceipts', characterFields)).toEqual(
       privateHistory.value
     )
@@ -1124,30 +1086,32 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
   }
 })
 
-it('rolls back state, partial packed history and authority when a later receipt collides', async () => {
+it('rolls back state, partial packed history and authority when a receipt collides', async () => {
   const base = await setupCharacterRun()
   const authority = await activate(base)
+  const existing = characterHistory(base)
+  const first = await base.t.mutation(publish, frame(authority, { changes: [], history: [existing] }))
   const run = await runChange(base)
-  const existing = await base.t.run(async (ctx) => {
-    const header = await ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', base.campaign.id))
-      .first()
-    if (!header) throw new Error('Missing fixture creation receipt.')
-    const [logical] = await readReceiptHeaders(ctx, 'encounterRunCommands', [header])
-    if (!logical) throw new Error('Missing logical creation receipt.')
-    const { _id, _creationTime, ...fields } = logical
-    return historyEntry('encounterRunCommands', fields)
-  })
-  const input = frame(authority, {
+  const input = frame(first.authority, {
     changes: [run.change],
-    history: [sharedHistory(base, run.nextStored.version)[0]!, existing]
+    history: [existing]
   })
   const before = await snapshot(base)
   await expect(base.t.mutation(publish, input)).rejects.toThrow(
     'Receipt header identity already exists'
   )
   expect(await snapshot(base)).toEqual(before)
+})
+
+it('rejects Encounter history entries by contract', async () => {
+  const base = await setupCharacterRun()
+  const authority = await activate(base)
+  const run = await runChange(base)
+  const input = frame(authority, { changes: [run.change], history: [] })
+  const entry = encounterHistory(base, run.nextStored.version)
+  expect(
+    liveSessionCheckpointRecordsSchema.safeParse({ ...input.records, history: [entry] }).success
+  ).toBe(false)
 })
 
 it('rolls back the entire checkpoint when deleting a required part of a surviving pending snapshot', async () => {
@@ -1194,7 +1158,7 @@ it('rolls back the entire checkpoint when deleting a required part of a survivin
   const play = await playChange(base)
   const input = frame(pending.authority, {
     changes: [run.change, play.change, pending.deletion],
-    history: [...sharedHistory(base, run.nextStored.version), characterHistory(base)]
+    history: [characterHistory(base)]
   })
   const before = await snapshot(base)
   expect(before.occurrences.find((row) => row.id === occurrenceId)?.state).toBe('PENDING')
@@ -1227,7 +1191,6 @@ it('rejects foreign Campaign records and history and Character play not held by 
   const before = await snapshot(base)
   const cases: [FixtureRecords, string][] = [
     [{ changes: [run.change], history: [] }, 'another Campaign'],
-    [{ changes: [], history: sharedHistory(base, run.nextStored.version) }, 'another Campaign'],
     [{ changes: [play.change], history: [] }, 'Character is not held by this Campaign'],
     [{ changes: [], history: [characterHistory(base)] }, 'Character is not held by this Campaign']
   ]
@@ -1278,7 +1241,7 @@ it('rejects stale record and delta checksums, altered payloads, malformed input 
             })
           )
         ],
-        history: sharedHistory(base, run.nextStored.version)
+        history: []
       }),
       'Stored Encounter policy snapshot mismatch'
     ]

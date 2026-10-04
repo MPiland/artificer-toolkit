@@ -64,10 +64,6 @@ async function memberViews(base: PlayerControlFixture) {
   const encounterId = base.run.id
   const view = async (member: PlayerControlFixture['owner']) => ({
     projection: await member.caller.query(api.encounters.projectionReads.get, { encounterId }),
-    timeline: await member.caller.query(api.encounters.timelineReads.timeline, {
-      encounterId,
-      limit: 100
-    }),
     pending: await member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
       encounterId
     })

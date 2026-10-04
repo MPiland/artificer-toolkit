@@ -34,6 +34,7 @@ import type { LiveSessionRoomAuthorizationRevisions } from '@artificer-toolkit/s
 import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createReceiptLedger } from '../lib/receiptLedgers'
+import { removeEncounterRunTimeline } from '../encounters/campaignDeletion'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readSceneVisionRevision } from '../scenes/visionFreshness'
 import type { CheckpointIoMeter } from './checkpointIo'
@@ -147,6 +148,8 @@ export async function applyCheckpointRecords(
       liveSessionCheckpointKeyFields[change.table].some((field, i) => next[field] !== change.key[i])
     )
       throw new Error('Checkpoint record identity cannot change.')
+    if (change.table === 'encounterReplayIndex' && current && next)
+      throw new Error('Checkpoint replay-index rows are insert-only.')
     if (current && next) {
       for (const field of ['campaignId', 'encounterId', 'characterId', 'userId'])
         if (current[field] !== next[field])
@@ -419,10 +422,7 @@ export async function applyCheckpointRecords(
   const ledgers = new Map<string, LiveSessionCheckpointRecords['history']>()
   for (const entry of records.history) {
     await requireScope(entry.table, entry.value)
-    const scope =
-      entry.table === 'characterCommandReceipts'
-        ? `CHARACTER:${String(entry.value.characterId)}`
-        : `CAMPAIGN:${frame.campaignId}`
+    const scope = String(entry.value.characterId)
     const entries = ledgers.get(scope) ?? []
     entries.push(entry)
     ledgers.set(scope, entries)
@@ -461,6 +461,7 @@ export async function applyCheckpointRecords(
   }
   await io.mark('records')
   const pendingOccurrences = new Set<string>()
+  const completedRuns: string[] = []
   for (const [identity, change] of changes) {
     const previous = currentRows.get(identity)
     if (change.table === 'encounterPendingSnapshotParts' && previous)
@@ -486,6 +487,12 @@ export async function applyCheckpointRecords(
           ).length > 1
         )
           throw new Error('Checkpoint starts a second active Encounter in the Campaign.')
+        // A completed Run keeps no timeline anywhere (ADR 0035 Amendment 22).
+        if (
+          run.status === 'COMPLETED' &&
+          (previous as Doc<'encounterRuns'> | null | undefined)?.status !== 'COMPLETED'
+        )
+          completedRuns.push(run.id)
         break
       }
       case 'encounterRunActors': {
@@ -563,16 +570,16 @@ export async function applyCheckpointRecords(
     await readPendingSnapshot(store, occurrence)
   }
   await io.mark('records')
+  for (const encounterId of completedRuns) await removeEncounterRunTimeline(ctx, encounterId)
   await applyCheckpointScenes(ctx, frame, records.scenes)
   await io.mark('scenes')
-  for (const [scope, entries] of ledgers) {
-    const separator = scope.indexOf(':')
+  for (const [characterId, entries] of ledgers) {
     await createReceiptLedger(
       ctx,
       {
         id: crypto.randomUUID(),
-        scope: scope.startsWith('CHARACTER:') ? 'CHARACTER' : 'CAMPAIGN',
-        scopeId: scope.slice(separator + 1),
+        scope: 'CHARACTER',
+        scopeId: characterId,
         epoch: frame.epoch,
         checkpointId: frame.checkpointId,
         createdAt: new Date().toISOString()

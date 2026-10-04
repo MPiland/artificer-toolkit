@@ -1,3 +1,4 @@
+import { readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { expect, it, vi } from 'vitest'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
@@ -29,12 +30,12 @@ it.each([false, true])(
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        runCommands: await ctx.db.query('encounterRunCommands').collect(),
+        runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         liveStates: await ctx.db.query('sceneLiveStates').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         commands: await ctx.db.query('sceneLiveCommands').collect()
       }))
@@ -80,9 +81,7 @@ it.each([false, true])(
     expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     const after = await snapshot()
     const characterCommands = 1
-    expect(after.characterReceipts).toHaveLength(
-      before.characterReceipts.length + characterCommands
-    )
+    expect(after.characterReceipts).toHaveLength(before.characterReceipts.length)
     expect(
       after.characters.find((row) => row.id === value.base.character.id)?.play.streamVersion
     ).toBe(beforeCharacter.play.streamVersion + characterCommands)

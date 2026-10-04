@@ -114,6 +114,7 @@ import {
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
 import { RoomEncounterReads } from './roomEncounterReads.js'
+import { lookupRoomEncounterReplay } from './roomEncounterReplayIndex.js'
 import { RoomCampaignSummaryFeed } from './roomCampaignSummaryFeed.js'
 import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
@@ -1801,7 +1802,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             inputs: this.#roomInputs,
             authorization,
             userId: admission.userId,
-            result: replay.delta.result
+            replayed: { kind: 'RECORDED', result: replay.delta.result }
           })
           send(socket, {
             ...replay,
@@ -1826,6 +1827,52 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           'STALE_STATE',
           'This decision was already settled.'
         )
+      return
+    }
+    // A command the room's history no longer holds is still recognized from the Run's replay index.
+    try {
+      if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
+      await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
+      const indexed = await lookupRoomEncounterReplay(this.#roomStore, {
+        campaignId: value.campaignId,
+        commandId: command.commandId,
+        encounterId: command.encounterId,
+        userId: admission.userId,
+        fingerprint
+      })
+      if (indexed.kind === 'MISMATCH') {
+        this.#rejectCommand(
+          socket,
+          command.commandId,
+          'INVALID_COMMAND',
+          'The command ID was already used for different input.'
+        )
+        return
+      }
+      if (indexed.kind === 'INDEXED') {
+        const authorization = await this.#authorizationBoundary(value)
+        if (
+          this.#liveAdmission(socket)?.generation !== admission.generation ||
+          !admitsRoomMember(authorization, admission)
+        )
+          return
+        const result = await replayRoomEncounterCommand({
+          store: this.#roomStore,
+          inputs: this.#roomInputs,
+          authorization,
+          userId: admission.userId,
+          replayed: indexed
+        })
+        send(socket, {
+          commandId: command.commandId,
+          delta: { scope: 'ENCOUNTER', result },
+          sequence: this.#journal.readCurrent()?.sequence ?? 0,
+          type: 'COMMAND_COMMITTED'
+        })
+        return
+      }
+    } catch {
+      this.#rejectCommand(socket, command.commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
       return
     }
     if (

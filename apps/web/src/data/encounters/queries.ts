@@ -14,13 +14,6 @@ export function getCampaignEncounters(campaignId: string) {
   return convexQuery(convexApi.encounters.projectionReads.list, { campaignId })
 }
 
-export function getEncounterTimeline(encounterId: string | null) {
-  return convexQuery(
-    convexApi.encounters.timelineReads.timeline,
-    encounterId ? { encounterId, limit: 50 } : 'skip'
-  )
-}
-
 /** Every saved Blueprint for the System, read as a subscription so a created one appears at once. */
 export function useEncounterBlueprints(gameSystemId: string, enabled: boolean) {
   const blueprints = usePaginatedQuery(

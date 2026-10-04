@@ -27,7 +27,8 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom
+  replayInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { getNativeActionChoices } from '../../tests/fixtures/nativeDisarm'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -449,16 +450,13 @@ describe('drawn weapons', () => {
         command
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
-      const receipt = await base.t.run((ctx) =>
-        ctx.db
+      const receipt = await base.t.run(async (ctx) =>
+        (await readEncounterHistory(ctx, base.campaign.id))
           .query('encounterRuleReceipts')
           .withIndex('by_campaignId_commandId', (q) =>
             q.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
           )
           .unique()
-          .then((header) =>
-            header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
-          )
       )
       const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt!.resultJson))
       if (

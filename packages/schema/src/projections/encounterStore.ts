@@ -4,6 +4,7 @@ import {
   encounterSceneBindingSchema,
   encounterStoredDecisionSkipSchema,
   encounterStoredEvidenceRollSchema,
+  encounterStoredReplayIndexSchema,
   encounterStoredPendingSnapshotPartSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema,
@@ -62,6 +63,7 @@ export const encounterStoreSchemas = {
   encounterPendingSnapshotParts: encounterStoredPendingSnapshotPartSchema,
   encounterRuleReceipts: encounterStoredRuleReceiptSchema,
   encounterEvidenceRolls: encounterStoredEvidenceRollSchema,
+  encounterReplayIndex: encounterStoredReplayIndexSchema,
   encounterTurnMovements: encounterStoredTurnMovementSchema,
   encounterDecisionSkips: encounterStoredDecisionSkipSchema,
   characterActiveRuleEffects: characterActiveRuleEffectStoredSchema,
@@ -142,6 +144,10 @@ export const encounterStoreIndexes = {
       'userId',
       'attempt'
     ]
+  },
+  encounterReplayIndex: {
+    by_campaignId_commandId: ['campaignId', 'commandId'],
+    by_encounterId: ['encounterId']
   },
   encounterTurnMovements: {
     by_encounterId_round_turnActorId_actorId: ['encounterId', 'round', 'turnActorId', 'actorId']

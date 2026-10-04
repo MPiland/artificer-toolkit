@@ -1,7 +1,4 @@
-import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
-import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   ReceiptApplications,
   TargetState
@@ -27,7 +24,6 @@ export type EncounterMechanicsBatchResult = {
   }
   characterStreamVersion: number | null
   itemUseStateTransition: EncounterMechanicsBatchPlan['itemUseStateTransition']
-  characterReceiptId: string | null
 }
 
 function validateInput(input: EncounterMechanicsBatchInput): EncounterMechanicsBatchInput {
@@ -108,7 +104,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
 ): Promise<EncounterMechanicsBatchResult> {
   if (target.ctx !== ctx)
     throw new Error('Encounter mechanics target belongs to another transaction.')
-  const { input, userId, actor, actorRow, campaign } = target
+  const { input, actor, actorRow, campaign } = target
   const { plan, character } = prepared
   const [currentRun, currentActor] = await Promise.all([
     ctx.db.get(target.runRow._id),
@@ -146,8 +142,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       receiptApplications: plan.receiptApplications,
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
-      itemUseStateTransition: null,
-      characterReceiptId: null
+      itemUseStateTransition: null
     }
   }
   if (
@@ -185,15 +180,6 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
         plan.characterUpdate.character.userId !== character.userId))
   )
     throw new Error('Encounter Character plan is invalid.')
-  const priorReceipt = await ctx.db
-    .query('characterCommandReceipts')
-    .withIndex('by_characterId_commandId', (query) =>
-      query.eq('characterId', character.id).eq('commandId', input.commandId.toLowerCase())
-    )
-    .unique()
-  if (priorReceipt) throw new Error('Encounter Character outcome command already exists.')
-
-  let characterReceiptId: string | null = null
   if (plan.characterUpdate) {
     const characterStreamVersion = plan.characterStreamVersion
     if (characterStreamVersion === null) throw new Error('Encounter Character plan is invalid.')
@@ -205,50 +191,6 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       sourceContext: prepared.sourceContext
     })
   }
-  const stow = plan.itemUseStateTransition
-  if (plan.stateChanged || stow) {
-    characterReceiptId = crypto.randomUUID()
-    const outcomeCount = plan.receiptApplications.filter(
-      (application) =>
-        application.kind !== 'HIT_POINT_MAXIMUM_REDUCTION' &&
-        application.kind !== 'SCALAR_REDUCTION'
-    ).length
-    const history = characterHistoryEntryDtoSchema.parse({
-      eventId: characterReceiptId,
-      occurredAt: input.occurredAt,
-      actorId: userId,
-      ...(plan.stateChanged
-        ? {
-            eventType: 'CHARACTER_RULE_OUTCOME_APPLIED',
-            summary: `Rule outcomes applied: ${outcomeCount} result${outcomeCount === 1 ? '' : 's'}`
-          }
-        : {
-            eventType: 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED',
-            summary: 'Rule equipment state applied'
-          })
-    })
-    const fingerprint = checksumRuleDocument({
-      encounterId: input.encounterId,
-      occurrenceId: input.occurrenceId,
-      sourceCommandId: input.sourceCommandId,
-      targetActorId: input.targetActorId,
-      applications: plan.receiptApplications,
-      ...(stow ? { itemUseStateTransition: stow } : {})
-    })
-    await ctx.db.insert(
-      'characterCommandReceipts',
-      characterStoredCommandReceiptSchema.parse({
-        id: characterReceiptId,
-        characterId: character.id,
-        commandId: input.commandId,
-        actorId: userId,
-        commandFingerprint: fingerprint,
-        occurredAt: input.occurredAt,
-        historyJson: canonicalizeRuleDocument(history),
-        historyChecksum: checksumRuleDocument(history)
-      })
-    )
-  }
   if (checksumCanonicalJson(plan.updatedActor) !== actorRow.stateChecksum)
     await writeRunActor(ctx, actorRow._id, plan.updatedActor)
   return {
@@ -256,7 +198,6 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     receiptApplications: plan.receiptApplications,
     targetTransition: plan.targetTransition,
     characterStreamVersion: plan.characterStreamVersion,
-    itemUseStateTransition: stow,
-    characterReceiptId
+    itemUseStateTransition: plan.itemUseStateTransition
   }
 }

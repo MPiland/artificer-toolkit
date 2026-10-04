@@ -4,8 +4,6 @@ import {
   type EncounterCommandResultDto,
   type RevertLastEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
-import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import type { z } from 'zod'
 import {
   encounterRunActorStateSchema,
@@ -34,7 +32,7 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
@@ -406,9 +404,6 @@ export async function revertLastEncounterAction(
       inverse,
       userId,
       updatedAt,
-      encounterId: state.id,
-      commandId: input.commandId,
-      revertedCommandId: root.commandId,
       gameSystemId: state.gameSystemId
     })
 
@@ -542,9 +537,6 @@ async function restoreCharacter(
     inverse: CharacterInverse
     userId: string
     updatedAt: string
-    encounterId: string
-    commandId: string
-    revertedCommandId: string
     gameSystemId: string
   }
 ) {
@@ -604,29 +596,4 @@ async function restoreCharacter(
     document: JSON.parse(JSON.stringify({ ...character, state })),
     ...(nextSheetState ? { sheetState: nextSheetState } : {})
   })
-  const eventId = crypto.randomUUID()
-  const history = characterHistoryEntryDtoSchema.parse({
-    eventId,
-    occurredAt: input.updatedAt,
-    actorId: input.userId,
-    eventType: 'CHARACTER_RULE_OUTCOME_REVERTED',
-    summary: 'Encounter action undone by the GM'
-  })
-  await ctx.db.insert(
-    'characterCommandReceipts',
-    characterStoredCommandReceiptSchema.parse({
-      id: eventId,
-      characterId: row.id,
-      commandId: input.commandId,
-      actorId: input.userId,
-      commandFingerprint: checksumRuleDocument({
-        encounterId: input.encounterId,
-        revertedCommandId: input.revertedCommandId,
-        characterId: row.id
-      }),
-      occurredAt: input.updatedAt,
-      historyJson: canonicalizeRuleDocument(history),
-      historyChecksum: checksumRuleDocument(history)
-    })
-  )
 }

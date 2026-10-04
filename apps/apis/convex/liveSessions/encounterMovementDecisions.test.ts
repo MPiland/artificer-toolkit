@@ -22,7 +22,8 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
@@ -149,18 +150,16 @@ it.each([
             q.eq('encounterId', value.base.run.id).eq('sceneId', value.sceneId)
           )
           .collect(),
-        receipts: await ctx.db
+        receipts: await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+          .collect(),
         characterReceipts: await ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) =>
             q.eq('characterId', value.base.character.id)
           )
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers)),
+          .collect(),
         occurrences: await ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
@@ -250,14 +249,7 @@ it.each([
         concentration.ownerTransitions.length +
         spatial.length
     )
-    const priorCharacterReceiptIds = new Set(before.characterReceipts.map((entry) => entry.id))
-    const movementCharacterReceipts = committed.characterReceipts.filter(
-      (entry) => !priorCharacterReceiptIds.has(entry.id)
-    )
-    expect(movementCharacterReceipts.length).toBeGreaterThan(0)
-    expect(movementCharacterReceipts.every((entry) => entry.actorId === initiator.userId)).toBe(
-      true
-    )
+    expect(committed.characterReceipts).toEqual(before.characterReceipts)
     if (!committed.character) throw new Error('Settled Character is unavailable.')
     const character = readCharacterRecord(committed.character)
     expect(character.state.hitpoints.current).toBe(

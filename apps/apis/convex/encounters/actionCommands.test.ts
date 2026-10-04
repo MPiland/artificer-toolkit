@@ -1,5 +1,4 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
@@ -64,7 +63,9 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readTimelineInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -828,7 +829,11 @@ function creatureActorState(stateJson: string) {
   return actor
 }
 
-async function records(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
+async function records(
+  t: Awaited<ReturnType<typeof fixture>>['t'],
+  encounterId: string,
+  campaignId: string
+) {
   return t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -844,16 +849,14 @@ async function records(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId:
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', encounterId))
       .collect(),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx, campaignId))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
-    commands: await ctx.db
+      .collect(),
+    commands: await (await readEncounterHistory(ctx, campaignId))
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+      .collect(),
     activeEffects: await ctx.db
       .query('encounterActiveRuleEffects')
       .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
@@ -888,7 +891,7 @@ describe('native encounter actions', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const issued = await executeInRoom(base.owner.caller, {
       command: input
     })
@@ -911,7 +914,7 @@ describe('native encounter actions', () => {
         (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
       )
         throw new Error('Expected bounded Assisted action evidence.')
-      const staged = await records(base.t, base.run.id)
+      const staged = await records(base.t, base.run.id, base.campaign.id)
       expect(staged.run).toEqual(before.run)
       expect(staged.actors).toEqual(before.actors)
       expect(staged.commands).toEqual(before.commands)
@@ -963,12 +966,12 @@ describe('native encounter actions', () => {
           }
         })
       ).rejects.toThrow()
-      expect(await records(base.t, base.run.id)).toEqual(staged)
-      expect(await records(base.t, base.run.id)).toEqual(staged)
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(staged)
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(staged)
       result = await executeInRoom(base.owner.caller, {
         command: response
       })
-      const settledResponse = await records(base.t, base.run.id)
+      const settledResponse = await records(base.t, base.run.id, base.campaign.id)
       // Once the action settles, a reused command ID with other input is refused and a fresh one is stale.
       const settledAction = result.occurrence?.status !== 'PENDING'
       const retry = (change: { correlationId: string } | { commandId: string }) =>
@@ -995,13 +998,13 @@ describe('native encounter actions', () => {
           command: response
         })
       ).resolves.toEqual(result)
-      expect(await records(base.t, base.run.id)).toEqual(settledResponse)
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settledResponse)
       responses.push({ command: response, result })
     }
     expect(responses.length).toBeGreaterThanOrEqual(2)
     expect(result.projection.version).toBe(1)
     expect(result.occurrence?.status).toBe('COMPLETE')
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     const source = settled.actors.find((actor) => actor.id === base.actor.id)
     const target = settled.actors.find((actor) => actor.id === base.target.id)
     if (!source || !target) throw new Error('Missing settled action actors.')
@@ -1029,7 +1032,7 @@ describe('native encounter actions', () => {
           command: answered.command
         })
       ).resolves.toEqual({ ...answered.result, projection: result.projection })
-    expect(await records(base.t, base.run.id)).toEqual(settled)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
     await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, {
         command: { ...input, expectedVersion: 1, commandId: responses[0]!.command.commandId }
@@ -1037,14 +1040,14 @@ describe('native encounter actions', () => {
       'The command ID was already used for different input.',
       'INVALID_COMMAND'
     )
-    expect(await records(base.t, base.run.id)).toEqual(settled)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
     const secondRun = await base.owner.caller.mutation(createRun, {
       campaignId: base.campaign.id,
       blueprintId: base.blueprint.id,
       commandId: crypto.randomUUID()
     })
     for (const run of [result.projection, secondRun]) {
-      const beforeCollision = await records(base.t, run.id)
+      const beforeCollision = await records(base.t, run.id, base.campaign.id)
       await expectRedactedRoomRefusal(
         executeInRoom(base.owner.caller, {
           command: {
@@ -1066,7 +1069,7 @@ describe('native encounter actions', () => {
         'The command ID was already used for different input.',
         'INVALID_COMMAND'
       )
-      expect(await records(base.t, run.id)).toEqual(beforeCollision)
+      expect(await records(base.t, run.id, base.campaign.id)).toEqual(beforeCollision)
     }
   }, 30000)
 
@@ -1083,7 +1086,7 @@ describe('native encounter actions', () => {
         leftAt: null
       })
     )
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const uncontrolled = command({
       encounterId: base.run.id,
       actorId: base.actor.id,
@@ -1093,7 +1096,7 @@ describe('native encounter actions', () => {
     expect(
       await rejection(executeInRoom(base.other.caller, { command: uncontrolled }))
     ).toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
-    expect(await records(base.t, base.run.id)).toEqual(before)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
     const granted = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPDATE_ACTOR',
@@ -1114,12 +1117,12 @@ describe('native encounter actions', () => {
     const result = await executeInRoom(base.other.caller, { command: input })
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect(result.projection.version).toBe(granted.projection.version + 1)
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     await expect(replayInRoom(base.other.caller, { command: input })).resolves.toEqual(result)
     await expect(executeInRoom(base.owner.caller, { command: input })).rejects.toThrow(
       'The command ID was already used for different input.'
     )
-    expect(await records(base.t, base.run.id)).toEqual(settled)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
   }, 30000)
 
   it('settles an allowed Creature action once, replays it exactly, and rejects stale or unauthorized commands', async () => {
@@ -1130,7 +1133,7 @@ describe('native encounter actions', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     expect(
       await rejection(
         executeInRoom(base.owner.caller, {
@@ -1142,7 +1145,7 @@ describe('native encounter actions', () => {
       command: input
     })
     expect(result.projection.version).toBe(1)
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     expect(settled.run?.version).toBe(1)
     const target = settled.actors.find((actor) => actor.id === base.target.id)
     if (!target) throw new Error('Missing settled target.')
@@ -1155,7 +1158,7 @@ describe('native encounter actions', () => {
         command: input
       })
     ).resolves.toEqual(result)
-    expect(await records(base.t, base.run.id)).toEqual(settled)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
     await expect(
       executeInRoom(base.owner.caller, {
         command: command({ ...input, commandId: crypto.randomUUID() })
@@ -1185,13 +1188,13 @@ describe('native encounter actions', () => {
           targetTokenId: base.tokens[1]!.id
         }
       })
-      const before = await records(base.t, base.run.id)
+      const before = await records(base.t, base.run.id, base.campaign.id)
       const random = vi
         .spyOn(rollRandom, 'nextRollInt')
         .mockImplementation((maximum) => (maximum === 20 ? 14 : maximum - 1))
       let result: EncounterCommandResultDto
       try {
-        expect(await records(base.t, base.run.id)).toEqual(before)
+        expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
         result = encounterCommandResultDtoSchema.parse(
           await executeInRoom(base.owner.caller, { command: input })
         )
@@ -1199,7 +1202,7 @@ describe('native encounter actions', () => {
       } finally {
         random.mockRestore()
       }
-      const settled = await records(base.t, base.run.id)
+      const settled = await records(base.t, base.run.id, base.campaign.id)
       expect(settled.run?.version).toBe(base.run.version + 1)
       expect(settled.commands).toHaveLength(before.commands.length + 1)
       const target = creatureActorState(
@@ -1216,7 +1219,7 @@ describe('native encounter actions', () => {
       ])
       await replaceTargetToken(base, { x: 450, y: 450 })
       await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
-      expect(await records(base.t, base.run.id)).toEqual(settled)
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
     },
     30000
   )
@@ -1226,7 +1229,7 @@ describe('native encounter actions', () => {
     async (change) => {
       const base = await distanceSetup()
       await replaceTargetToken(base, change === 'moved' ? { x: 450, y: 450 } : null)
-      const before = await records(base.t, base.run.id)
+      const before = await records(base.t, base.run.id, base.campaign.id)
       const attempt = () =>
         executeInRoom(base.owner.caller, {
           command: command({
@@ -1250,7 +1253,7 @@ describe('native encounter actions', () => {
           warnings: [{ code: 'TARGET_OUT_OF_RANGE' }]
         })
       else await expect(attempt()).rejects.toThrow(RoomCommandRefusal)
-      expect(await records(base.t, base.run.id)).toEqual(before)
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
     },
     30000
   )
@@ -1270,9 +1273,9 @@ describe('native encounter actions', () => {
         targetTokenId: missing.tokens[1]!.id
       }
     })
-    const beforeMissing = await records(missing.t, missing.run.id)
+    const beforeMissing = await records(missing.t, missing.run.id, missing.campaign.id)
     await expect(executeInRoom(missing.owner.caller, { command: missingInput })).rejects.toThrow()
-    expect(await records(missing.t, missing.run.id)).toEqual(beforeMissing)
+    expect(await records(missing.t, missing.run.id, missing.campaign.id)).toEqual(beforeMissing)
 
     const wrongBinding = await distanceSetup()
     const wrongBindingInput = command({
@@ -1288,13 +1291,13 @@ describe('native encounter actions', () => {
         targetTokenId: wrongBinding.tokens[0]!.id
       }
     })
-    const beforeWrongBinding = await records(wrongBinding.t, wrongBinding.run.id)
+    const beforeWrongBinding = await records(wrongBinding.t, wrongBinding.run.id, wrongBinding.campaign.id)
     await expect(
       executeInRoom(wrongBinding.owner.caller, {
         command: wrongBindingInput
       })
     ).rejects.toThrow()
-    expect(await records(wrongBinding.t, wrongBinding.run.id)).toEqual(beforeWrongBinding)
+    expect(await records(wrongBinding.t, wrongBinding.run.id, wrongBinding.campaign.id)).toEqual(beforeWrongBinding)
 
     const outOfRange = await distanceSetup()
     await outOfRange.t.run(async (ctx) => {
@@ -1323,13 +1326,13 @@ describe('native encounter actions', () => {
         targetTokenId: outOfRange.tokens[1]!.id
       }
     })
-    const beforeOutOfRange = await records(outOfRange.t, outOfRange.run.id)
+    const beforeOutOfRange = await records(outOfRange.t, outOfRange.run.id, outOfRange.campaign.id)
     await expect(
       executeInRoom(outOfRange.owner.caller, {
         command: outOfRangeInput
       })
     ).rejects.toThrow()
-    expect(await records(outOfRange.t, outOfRange.run.id)).toEqual(beforeOutOfRange)
+    expect(await records(outOfRange.t, outOfRange.run.id, outOfRange.campaign.id)).toEqual(beforeOutOfRange)
 
     const stale = await distanceSetup()
     const staleInput = command({
@@ -1346,9 +1349,9 @@ describe('native encounter actions', () => {
       }
     })
     await advanceSceneVersion(stale.t, stale.sceneId)
-    const beforeStale = await records(stale.t, stale.run.id)
+    const beforeStale = await records(stale.t, stale.run.id, stale.campaign.id)
     await expect(executeInRoom(stale.owner.caller, { command: staleInput })).rejects.toThrow()
-    expect(await records(stale.t, stale.run.id)).toEqual(beforeStale)
+    expect(await records(stale.t, stale.run.id, stale.campaign.id)).toEqual(beforeStale)
   }, 30000)
 
   it('pauses an Assisted distance action without mechanics and rejects changed Scene geometry', async () => {
@@ -1370,12 +1373,12 @@ describe('native encounter actions', () => {
         targetTokenId: base.tokens[1]!.id
       }
     })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const result = await executeInRoom(base.owner.caller, {
       command: input
     })
     expect(result.occurrence?.status).toBe('PENDING')
-    const paused = await records(base.t, base.run.id)
+    const paused = await records(base.t, base.run.id, base.campaign.id)
     expect(paused.run).toEqual(before.run)
     expect(paused.actors).toEqual(before.actors)
     expect(paused.commands).toEqual(before.commands)
@@ -1410,7 +1413,7 @@ describe('native encounter actions', () => {
         }
       })
     ).rejects.toThrow()
-    const afterRejected = await records(base.t, base.run.id)
+    const afterRejected = await records(base.t, base.run.id, base.campaign.id)
     expect(afterRejected.run).toEqual(before.run)
     expect(afterRejected.actors).toEqual(before.actors)
     expect(afterRejected.commands).toEqual(before.commands)
@@ -1432,7 +1435,7 @@ describe('native encounter actions', () => {
         targetTokenId: base.tokens[1]!.id
       }
     })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const issued = await executeInRoom(base.owner.caller, {
       command: input
     })
@@ -1446,7 +1449,7 @@ describe('native encounter actions', () => {
         (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
       )
         throw new Error('Unexpected Assisted distance decision.')
-      const retained = await records(base.t, base.run.id)
+      const retained = await records(base.t, base.run.id, base.campaign.id)
       expect(retained.run).toEqual(before.run)
       expect(retained.actors).toEqual(before.actors)
       expect(retained.commands).toEqual(before.commands)
@@ -1473,17 +1476,17 @@ describe('native encounter actions', () => {
               }
       }
       if (pending.kind === 'ACTION_OUTCOME_EVIDENCE') {
-        expect(await records(base.t, base.run.id)).toEqual(retained)
+        expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(retained)
       }
       result = await executeInRoom(base.owner.caller, {
         command: response
       })
-      const after = await records(base.t, base.run.id)
+      const after = await records(base.t, base.run.id, base.campaign.id)
       await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
-      expect(await records(base.t, base.run.id)).toEqual(after)
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(after)
     }
     expect(result.occurrence?.status).toBe('COMPLETE')
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     expect(settled.run?.version).toBe(base.run.version + 1)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
     // The root replays its own pending result over the settled projection.
@@ -1491,7 +1494,7 @@ describe('native encounter actions', () => {
       ...issued,
       projection: result.projection
     })
-    expect(await records(base.t, base.run.id)).toEqual(settled)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
   }, 30000)
 
   it('refuses a completed phased action with an authorized nested forced movement before writes', async () => {
@@ -1500,7 +1503,7 @@ describe('native encounter actions', () => {
       nestedForced: true,
       targetCreature: true
     })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const input = command({
       encounterId: base.run.id,
       actorId: base.actor.id,
@@ -1523,7 +1526,7 @@ describe('native encounter actions', () => {
     } finally {
       random.mockRestore()
     }
-    expect(await records(base.t, base.run.id)).toEqual(before)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
   }, 30000)
 
   it('commits phased TEST and OUTCOME receipts once, then replays the exact settled action', async () => {
@@ -1554,7 +1557,7 @@ describe('native encounter actions', () => {
     }
 
     expect(result.projection.version).toBe(1)
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     const source = settled.actors.find((actor) => actor.id === base.actor.id)
     const target = settled.actors.find((actor) => actor.id === base.target.id)
     const receipt = settled.receipts.find((entry) => entry.commandId === input.commandId)
@@ -1589,14 +1592,14 @@ describe('native encounter actions', () => {
         command: input
       })
     ).resolves.toEqual(result)
-    const replayed = await records(base.t, base.run.id)
+    const replayed = await records(base.t, base.run.id, base.campaign.id)
     expect(replayed).toEqual(settled)
     expect(replayed.run?.version).toBe(1)
   }, 30000)
 
   it('settles a self action on the source actor once', async () => {
     const base = await setup({ self: true, charged: true })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const sourceBefore = before.actors.find((actor) => actor.id === base.actor.id)
     if (!sourceBefore) throw new Error('Missing self-action source actor.')
     const initial = creatureActorState(sourceBefore.stateJson)
@@ -1609,7 +1612,7 @@ describe('native encounter actions', () => {
     await executeInRoom(base.owner.caller, {
       command: input
     })
-    const after = await records(base.t, base.run.id)
+    const after = await records(base.t, base.run.id, base.campaign.id)
     const sourceAfter = after.actors.find((actor) => actor.id === base.actor.id)
     if (!sourceAfter) throw new Error('Missing settled self-action source actor.')
     const settled = creatureActorState(sourceAfter.stateJson)
@@ -1724,15 +1727,12 @@ describe('native encounter actions', () => {
             q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
           )
           .unique()
-        const receipt = await ctx.db
+        const receipt = await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) =>
             q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
           )
           .unique()
-          .then((header) =>
-            header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
-          )
         return { effect, receipt }
       })
       expect(stored.effect).toBeTruthy()
@@ -1785,7 +1785,7 @@ describe('native encounter actions', () => {
         command: input
       })
       expect(pending.occurrence?.status).toBe('PENDING')
-      expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(0)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(0)
       const request = pending.occurrence?.pending
       if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
         throw new Error('Expected initial save evidence.')
@@ -1808,9 +1808,9 @@ describe('native encounter actions', () => {
         command: response
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
-      expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(effects)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(effects)
       await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
-      expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(effects)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(effects)
     },
     30000
   )
@@ -1862,7 +1862,7 @@ describe('native encounter actions', () => {
         }
       }
     })
-    expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(0)
+    expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(0)
   }, 30000)
 })
 
@@ -1930,7 +1930,7 @@ describe('Assisted soft enforcement', () => {
           acknowledgedWarnings
         }
       })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     expect(await rejection(again([]))).toEqual({
       code: 'DOMAIN_REJECTED',
       reason: 'RULE_WARNINGS',
@@ -1945,7 +1945,7 @@ describe('Assisted soft enforcement', () => {
       reason: 'RULE_WARNINGS',
       warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }, { code: 'RESOURCE_UNAVAILABLE' }]
     })
-    expect(await records(base.t, base.run.id)).toEqual(before)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
 
     const result = await again(['ACTION_ECONOMY_UNAVAILABLE', 'RESOURCE_UNAVAILABLE'])
     expect(result.projection.version).toBe(2)
@@ -1954,20 +1954,18 @@ describe('Assisted soft enforcement', () => {
     expect(featureChargeUsed(source, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(2)
     const stored = await base.t.run(async (ctx) => ({
-      runCommand: await ctx.db
+      runCommand: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .withIndex('by_encounterId_version', (q) =>
           q.eq('encounterId', base.run.id).eq('version', 2)
         )
-        .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null)),
-      receipt: await ctx.db
+        .unique(),
+      receipt: await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_encounterVersion', (q) =>
           q.eq('encounterId', base.run.id).eq('encounterVersion', 2)
         )
         .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     }))
     if (stored.runCommand?.commandType !== 'RESOLVE_ACTION' || !stored.receipt)
       throw new Error('Missing overridden action records.')
@@ -1989,10 +1987,7 @@ describe('Assisted soft enforcement', () => {
       beforeUsed: 1,
       afterUsed: 2
     })
-    const timeline = await base.owner.caller.query(api.encounters.timelineReads.timeline, {
-      encounterId: base.run.id,
-      limit: 5
-    })
+    const timeline = await readTimelineInRoom(base.owner.caller, base.run.id)
     expect(timeline.entries.find((entry) => entry.version === 2)?.ruleOverrides).toEqual(
       stored.runCommand.ruleOverrides
     )
@@ -2119,7 +2114,7 @@ describe('Assisted soft enforcement', () => {
         'TARGET_RANGE_UNCHECKED'
       ] satisfies EncounterRuleWarningCodeDto[]
     }
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const refuse = async (changed: typeof input) =>
       (await rejection(executeInRoom(base.owner.caller, { command: changed }))).reason
     expect(await refuse({ ...input, actorId: base.target.id, targetActorId: base.actor.id })).toBe(
@@ -2134,7 +2129,7 @@ describe('Assisted soft enforcement', () => {
         command: { ...input, targetActorId: crypto.randomUUID() }
       })
     ).rejects.toThrow()
-    expect(await records(base.t, base.run.id)).toEqual(before)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
   }, 30000)
 })
 
@@ -2142,7 +2137,7 @@ describe('GM undo of the last action', () => {
   it('restores Creature hit points, charges and the action allowance exactly, once', async () => {
     const base = await setup({ charged: true, targetCreature: true })
     const featureId = nativeCreature(true).features!.find((feature) => feature.label === 'Bite')!.id
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     const action = command({
       encounterId: base.run.id,
       actorId: base.actor.id,
@@ -2150,7 +2145,7 @@ describe('GM undo of the last action', () => {
       actionId: base.actionId
     })
     await executeInRoom(base.owner.caller, { command: action })
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     const targetState = (value: Awaited<ReturnType<typeof records>>) =>
       creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!.stateJson)
     expect(targetState(settled).currentHitPoints).toBeLessThan(targetState(before).currentHitPoints)
@@ -2158,7 +2153,7 @@ describe('GM undo of the last action', () => {
     await expect(revert(base, 1, base.other.caller)).rejects.toThrow(RoomCommandRefusal)
     const undone = await revert(base, 1)
     expect(undone.projection.version).toBe(2)
-    const after = await records(base.t, base.run.id)
+    const after = await records(base.t, base.run.id, base.campaign.id)
     // Counters return to their values; an unused counter may be stored as 0 rather than absent.
     expect(actorsWithoutCounters(after)).toEqual(actorsWithoutCounters(before))
     const source = await sourceActorState(base)
@@ -2168,10 +2163,7 @@ describe('GM undo of the last action', () => {
       commandType: 'REVERT_LAST_ACTION',
       revertedCommandId: action.commandId
     })
-    const timeline = await base.owner.caller.query(api.encounters.timelineReads.timeline, {
-      encounterId: base.run.id,
-      limit: 5
-    })
+    const timeline = await readTimelineInRoom(base.owner.caller, base.run.id)
     expect(timeline.entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION', version: 2 })
     expect(await rejection(revert(base, 2))).toMatchObject({
       reason: 'REVERT_UNAVAILABLE',
@@ -2181,7 +2173,7 @@ describe('GM undo of the last action', () => {
 
   it('deletes the effect an action created and restores its conditions', async () => {
     const base = await setup({ self: true, recurring: true, condition: true })
-    const before = await records(base.t, base.run.id)
+    const before = await records(base.t, base.run.id, base.campaign.id)
     await executeInRoom(base.owner.caller, {
       command: command({
         encounterId: base.run.id,
@@ -2190,9 +2182,9 @@ describe('GM undo of the last action', () => {
         actionId: base.actionId
       })
     })
-    expect((await records(base.t, base.run.id)).activeEffects).toHaveLength(1)
+    expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(1)
     await revert(base, 1)
-    const after = await records(base.t, base.run.id)
+    const after = await records(base.t, base.run.id, base.campaign.id)
     expect(after.activeEffects).toEqual([])
     expect(actorsWithoutCounters(after)).toEqual(actorsWithoutCounters(before))
     expect(
@@ -2219,8 +2211,8 @@ describe('GM undo of the last action', () => {
         round: 2
       }
     })
-    const settled = await records(base.t, base.run.id)
+    const settled = await records(base.t, base.run.id, base.campaign.id)
     expect(await rejection(revert(base, 2))).toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
-    expect(await records(base.t, base.run.id)).toEqual(settled)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
   }, 30000)
 })

@@ -26,6 +26,7 @@ import type { EncounterReadContext } from '@artificer-toolkit/encounter-persiste
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { executeRoomEncounterTurn } from './roomEncounterTurns.js'
+import { recordRoomEncounterReplay, removeRoomEncounterTimeline } from './roomEncounterReplayIndex.js'
 import {
   readRoomEncounterResponseRoute,
   refuseUnroutedEncounterDecision,
@@ -116,8 +117,7 @@ export async function executeRoomEncounterCommand(input: {
           userId: caller,
           command: { scope: 'CHARACTER_SHEET', characterId, encounterId, command: sheetCommand }
         })
-        const { historyEntry, streamVersion } = executed.acknowledgement
-        if (!historyEntry) throw new Error('Character Sheet command receipt is unavailable.')
+        const { streamVersion } = executed.acknowledgement
         const { overview } = projectRoomCharacterSheet(
           executed.facts,
           await listActiveRuleEffects(
@@ -127,7 +127,6 @@ export async function executeRoomEncounterCommand(input: {
           )
         )
         return {
-          historyEventId: historyEntry.eventId,
           streamVersion,
           currentHitPoints: overview.currentHitPoints,
           maxHitPoints: overview.maxHitPoints,
@@ -248,6 +247,21 @@ export async function executeRoomEncounterCommand(input: {
     ? parsedGm.data
     : await readEncounterGmProjection(context, readRunState(currentRun))
   const result = { ...rawResult, projection }
+  if (beforeRun.status !== 'COMPLETED' && currentRun.status === 'COMPLETED')
+    await removeRoomEncounterTimeline(context.db, currentRun.id)
+  else
+    await recordRoomEncounterReplay(context.db, {
+      campaignId,
+      encounterId: currentRun.id,
+      commandId: command.commandId.toLowerCase(),
+      actorUserId: userId.toLowerCase(),
+      commandFingerprint: roomEncounterCommandFingerprint(command),
+      version: projection.version,
+      rollCardId:
+        written.postedChatEntries.find(
+          (entry) => entry.roll !== null && entry.roll.id === rawResult.roll?.id
+        )?.id ?? null
+    })
   // Only commands that change Convex-owned holds wait for Convex (ADR 0035 Amendment 17): START and
   // COMPLETE, and removing a Character actor. Bindings and rounds ride the next flush.
   const checkpointBeforeAcknowledgement =
@@ -485,28 +499,46 @@ export async function readRoomEncounterPlayAuthorization(
     }
   })
 }
-/** A retry keeps its original result at that version, and shows the current Run after later work. */
+/**
+ * A retry keeps its original result at that version, and shows the current Run after later work.
+ * A command only the replay index remembers (its history did not survive) answers "applied at that
+ * version" with the current Run, and its roll from the persisted roll card.
+ */
 export async function replayRoomEncounterCommand(input: {
   store: RoomEncounterStore
   inputs: RoomInputs
   authorization: LiveSessionRoomAuthorization
   userId: string
-  result: EncounterCommandResultDto
+  replayed:
+    | { kind: 'RECORDED'; result: EncounterCommandResultDto }
+    | {
+        kind: 'INDEXED'
+        encounterId: string
+        version: number
+        roll: EncounterCommandResultDto['roll']
+      }
 }) {
-  const { store, inputs, authorization, userId, result } = input
-  const recorded = result.projection
+  const { store, inputs, authorization, userId, replayed } = input
+  const recorded = replayed.kind === 'RECORDED' ? replayed.result : null
+  const encounterId = replayed.kind === 'RECORDED' ? replayed.result.projection.id : replayed.encounterId
+  const recordedVersion =
+    replayed.kind === 'RECORDED' ? replayed.result.projection.version : replayed.version
   const epoch = store.epoch
   if (!epoch) throw new Error('Room Encounter epoch is unavailable.')
   const row = await store.store
     .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', recorded.id))
+    .withIndex('by_publicId', (q) => q.eq('id', encounterId))
     .unique()
-  if (!row || row.campaignId !== recorded.campaignId || row.version < recorded.version)
+  if (
+    !row ||
+    (recorded && row.campaignId !== recorded.projection.campaignId) ||
+    row.version < recordedVersion
+  )
     throw new Error('Stored local Encounter receipt does not match its Run.')
   const system = inputs.systemSnapshot()
-  const savedGm = encounterGmProjectionDtoSchema.safeParse(recorded)
+  const savedGm = recorded ? encounterGmProjectionDtoSchema.safeParse(recorded.projection) : null
   const projection =
-    row.version === recorded.version && savedGm.success
+    savedGm?.success && row.version === recordedVersion
       ? savedGm.data
       : await readEncounterGmProjection(
           {
@@ -525,18 +557,21 @@ export async function replayRoomEncounterCommand(input: {
     store,
     inputs,
     authorization,
-    campaignId: recorded.campaignId,
+    campaignId: row.campaignId,
     epoch,
     userId,
-    observed: inputs.revisions(recorded.campaignId, authorization.revisions)
+    observed: inputs.revisions(row.campaignId, authorization.revisions)
   })
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
-    recorded.campaignId,
+    row.campaignId,
     userId
   )
   return presentEncounterResultForMember(ctx, {
     campaign,
     membership,
-    result: { ...result, projection }
+    result:
+      replayed.kind === 'RECORDED'
+        ? { ...replayed.result, projection }
+        : { projection, roll: replayed.roll, occurrence: null, evidenceRoll: null }
   })
 }

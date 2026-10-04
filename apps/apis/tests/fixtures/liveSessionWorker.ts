@@ -23,6 +23,9 @@ import {
   type SceneTokenMovementCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import type { EncounterDocument } from '@artificer-toolkit/encounter-persistence/store'
+import { receiptLedgerEntryKeyFields } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import type { z } from 'zod'
 import type { TestConvex } from 'convex-test'
 import { ConvexError } from 'convex/values'
@@ -35,7 +38,8 @@ import {
 import { executeEncounterCommand, type DevelopmentClient } from '../developmentClient'
 import { api, internal } from '../../convex/_generated/api'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
-import type { MutationCtx } from '../../convex/_generated/server'
+import { encounterWriteTransaction } from '../../convex/encounters/encounterPorts'
+import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import * as rollRandom from '../../convex/lib/rollRandom'
 import type schema from '../../convex/schema'
 import {
@@ -73,6 +77,7 @@ import {
 import { RoomEncounterReads } from '../../../session-worker/src/roomEncounterReads'
 import { RoomEncounterSessionFeed } from '../../../session-worker/src/roomEncounterSessionFeed'
 import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
+import { lookupRoomEncounterReplay } from '../../../session-worker/src/roomEncounterReplayIndex'
 import { RoomInputs } from '../../../session-worker/src/roomInputs'
 import { RoomCheckpoints } from '../../../session-worker/src/roomCheckpoints'
 import { loadRoomContentSnapshots } from '../../../session-worker/src/roomContentSnapshots'
@@ -228,14 +233,133 @@ const roomJournal = new Map<
   string,
   { userId: string; fingerprint: string; resultJson: string | null }
 >()
-beforeEach(() => roomJournal.clear())
+beforeEach(() => {
+  roomJournal.clear()
+  closeRoomStores()
+})
 
 /**
- * A release ends the room's epoch with its durable journal, so a retry after it replays only from
- * the Encounter receipts the next room hydrates from Convex.
+ * A Campaign's room store outlives its epochs (the fixture re-claims authority per call), as the
+ * Session room's does: each command hydrates it again from Convex and carries the Encounter
+ * history over (D85), so a Run's timeline builds up.
+ */
+const roomStores = new Map<
+  string,
+  ReturnType<typeof createNodeSqliteRoomStorage> & { store: RoomEncounterStore }
+>()
+
+function createRoomStore() {
+  const sqlite = createNodeSqliteRoomStorage()
+  return { ...sqlite, store: new RoomEncounterStore(sqlite.storage) }
+}
+
+function closeRoomStores() {
+  for (const { database } of roomStores.values()) database.close()
+  roomStores.clear()
+  unpublishedPlans.clear()
+}
+
+const historyTables = ['encounterRunCommands', 'encounterRuleReceipts', 'encounterEvidenceRolls'] as const
+
+/**
+ * Per Campaign, the history rows the room held before a planned movement committed, until its
+ * `publish` checkpoints it: `readEncounterHistory` leaves the plan's rows out, as Convex has not
+ * seen the commit, so a test can inspect the state in between.
+ */
+const unpublishedPlans = new Map<string, Set<string>>()
+
+/**
+ * A release ends the room's epoch with its durable journal and its store (storage recovery), so a
+ * retry after it replays only from the Run's replay index the next room hydrates from Convex.
  */
 export function discardRoomJournal() {
   roomJournal.clear()
+  closeRoomStores()
+}
+
+/**
+ * A new epoch for the same Run: the journal ends but the room's store stays, so the next hydrate
+ * carries its Encounter history over (D85) and a retry replays its original result.
+ */
+export function endRoomEpoch() {
+  roomJournal.clear()
+}
+
+/**
+ * The Run's Encounter history as the room serves it: the rows the room holds with those Convex's
+ * own writers recorded, deduplicated, in an in-memory store a test queries as it would `ctx.db`.
+ * The history lives in the room, not in Convex (D85).
+ */
+export async function readEncounterHistory(ctx: QueryCtx, campaignId?: string) {
+  const stores = campaignId ? [roomStores.get(campaignId)] : [...roomStores.values()]
+  if (stores.length > 1) throw new Error('More than one room is held: pass the Campaign.')
+  const held = stores[0]?.store
+  const published = campaignId ? unpublishedPlans.get(campaignId) : [...unpublishedPlans.values()][0]
+  const heldRows = <Table extends (typeof historyTables)[number]>(table: Table) =>
+    (held?.documents(table) ?? []).filter((row) => !published || published.has(row._id))
+  const convex = createConvexEncounterStoreReader(ctx)
+  const memory = createMemoryEncounterStore()
+  const load = <Table extends 'encounterRunCommands' | 'encounterRuleReceipts' | 'encounterEvidenceRolls'>(
+    table: Table,
+    rows: EncounterDocument<Table>[]
+  ) => {
+    const byIdentity = new Map<string, EncounterDocument<Table>>()
+    for (const row of rows)
+      byIdentity.set(
+        JSON.stringify(receiptLedgerEntryKeyFields[table].map((field) => row[field])),
+        row
+      )
+    memory.load(table, [...byIdentity.values()])
+  }
+  load('encounterRunCommands', [
+    ...(await convex.query('encounterRunCommands').collect()),
+    ...heldRows('encounterRunCommands')
+  ])
+  load('encounterRuleReceipts', [
+    ...(await convex.query('encounterRuleReceipts').collect()),
+    ...heldRows('encounterRuleReceipts')
+  ])
+  load('encounterEvidenceRolls', [
+    ...(await convex.query('encounterEvidenceRolls').collect()),
+    ...heldRows('encounterEvidenceRolls')
+  ])
+  return memory.store
+}
+
+/** The replay index rows the room holds for a Campaign's Runs (D85). */
+export function readHeldReplayIndex(campaignId: string) {
+  return roomStores.get(campaignId)?.store.documents('encounterReplayIndex') ?? []
+}
+
+/**
+ * Writes the Run's history the room holds into Convex's store, for suites that run Encounter
+ * persistence operations straight against Convex, where only the room's own checkpoints would
+ * otherwise have left it (D85: a checkpoint carries none).
+ */
+export async function persistHeldHistoryToConvex(
+  caller: MemberCaller,
+  campaignId: string,
+  encounterId: string
+) {
+  const held = roomStores.get(campaignId)
+  if (!held) return
+  await caller.run(async (ctx) => {
+    const { db } = encounterWriteTransaction(ctx)
+    for (const { _id, _creationTime, ...fields } of held.store.documents('encounterRunCommands')) {
+      if (fields.encounterId !== encounterId) continue
+      const stored = await db
+        .query('encounterRunCommands')
+        .withIndex('by_campaignId_commandId', (q) =>
+          q.eq('campaignId', fields.campaignId).eq('commandId', fields.commandId)
+        )
+        .first()
+      if (!stored) await db.insert('encounterRunCommands', fields)
+    }
+    for (const { _id, _creationTime, ...fields } of held.store.documents('encounterRuleReceipts'))
+      if (fields.encounterId === encounterId) await db.insert('encounterRuleReceipts', fields)
+    for (const { _id, _creationTime, ...fields } of held.store.documents('encounterEvidenceRolls'))
+      if (fields.encounterId === encounterId) await db.insert('encounterEvidenceRolls', fields)
+  })
 }
 
 /** A room refusal whose code and message the room sends as they are. */
@@ -285,8 +409,9 @@ async function openRoom(
     throw new RoomCommandRefusal(new LiveSessionRouteError(403))
   const contentSnapshots = await installContentSnapshots(caller, campaignId)
   const runtime = await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
-  const { storage, database } = createNodeSqliteRoomStorage()
-  const store = new RoomEncounterStore(storage)
+  const held = roomStores.get(campaignId) ?? createRoomStore()
+  roomStores.set(campaignId, held)
+  const { storage, store } = held
   const inputs = new RoomInputs(
     store,
     (inputEpoch, scope) =>
@@ -305,7 +430,7 @@ async function openRoom(
       new RoomCheckpoints(store, storage, (checkpoint, reason) =>
         caller.mutation(internal.liveSessions.checkpoint.publish, { ...checkpoint, reason })
       ).flush({ campaignId, epoch, knownAuthorization: null }, 'DEADLINE'),
-    close: () => database.close()
+    close: () => undefined
   }
 }
 
@@ -453,10 +578,34 @@ export async function executeRoomEncounterCommand(input: {
             inputs,
             authorization,
             userId,
-            result: encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
+            replayed: {
+              kind: 'RECORDED',
+              result: encounterCommandResultDtoSchema.parse(JSON.parse(prior.resultJson))
+            }
           })
         }
       }
+      // As the room does, a command whose history rows are gone is recognized from the replay index.
+      const indexed = await lookupRoomEncounterReplay(store, {
+        campaignId,
+        commandId: command.commandId,
+        encounterId,
+        userId,
+        fingerprint
+      })
+      if (indexed.kind === 'MISMATCH')
+        throw roomRefusal('INVALID_COMMAND', 'The command ID was already used for different input.')
+      if (indexed.kind === 'INDEXED')
+        return {
+          kind: 'REPLAY' as const,
+          result: await replayRoomEncounterCommand({
+            store,
+            inputs,
+            authorization,
+            userId,
+            replayed: indexed
+          })
+        }
       if (movement) {
         const { encounter } = await commitRoomMovement(room, {
           caller,
@@ -777,6 +926,15 @@ export function readEncounterSessionInRoom(
 }
 
 /**
+ * The Run's timeline as the room pushes it to the caller (newest page, a player's only the table's
+ * entries), from the history the room carries; empty while the room holds no open Run.
+ */
+export async function readTimelineInRoom(caller: MemberCaller, encounterId: string) {
+  const frame = await readEncounterSessionInRoom(caller, encounterId, { timeline: true })
+  return (frame.held ? frame.timeline : null) ?? { entries: [], nextCursor: null }
+}
+
+/**
  * The answer a fresh room gives the caller's `ENCOUNTER_READ` (see `RoomEncounterReads`): hydrated
  * at the Run's persisted checkpoint with its presented Scene, answered with no Convex read.
  */
@@ -874,8 +1032,13 @@ async function planInRoom(caller: MemberCaller, encounterId: string, command: St
     try {
       const room = await openRoom(caller, member.actor, encounterId)
       try {
+        let before = new Set<string>()
         const committed = await withoutHttp(async () => {
           await room.hydrate()
+          const held = roomStores.get(member.actor.campaignId)
+          before = new Set(
+            historyTables.flatMap((table) => held?.store.documents(table).map((row) => row._id) ?? [])
+          )
           return commitRoomMovement(room, {
             caller,
             actor: member.actor,
@@ -884,6 +1047,8 @@ async function planInRoom(caller: MemberCaller, encounterId: string, command: St
             random: (maximum) => rollRandom.nextRollInt(maximum)
           })
         })
+        if (!unpublishedPlans.has(member.actor.campaignId))
+          unpublishedPlans.set(member.actor.campaignId, before)
         return { member, room, committed }
       } catch (error) {
         room.close()
@@ -902,6 +1067,7 @@ async function planInRoom(caller: MemberCaller, encounterId: string, command: St
       queueRoomWork(async () => {
         try {
           await withoutHttp(room.flush)
+          unpublishedPlans.delete(member.actor.campaignId)
           return committed.scene
         } finally {
           room.close()

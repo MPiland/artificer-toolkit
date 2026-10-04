@@ -1,19 +1,13 @@
 import { replaceReceiptRecord } from '../../tests/fixtures/receiptRecords'
-import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
-import type { z } from 'zod'
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  EncounterTimelineDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   BindEncounterToPresentedSceneInputDto,
   BindEncounterToPresentedSceneResultDto,
   RemoveEncounterSceneActorTokenBindingInputDto,
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { sceneTokenMovementCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -25,7 +19,8 @@ import {
 import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 import {
   bindActorTokenInRoom,
-  insertActiveLiveAuthority
+  insertActiveLiveAuthority,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { execute as registeredExecute } from './actorTokenBindings'
 
@@ -89,11 +84,6 @@ it('removes a bound actor token atomically, versions the Run, and replays its re
   )
 }, 60000)
 
-const timeline = makeFunctionReference<
-  'query',
-  { encounterId: string; limit: number },
-  EncounterTimelineDto
->('encounters/timelineReads:timeline')
 
 async function boundFixture() {
   const base = await setup()
@@ -112,40 +102,6 @@ async function boundFixture() {
     expectedEncounterVersion: base.run.version
   }
   return { ...base, input }
-}
-
-async function replaceBindingReceiptWithMovement(base: Awaited<ReturnType<typeof boundFixture>>) {
-  const result = await base.other.caller.mutation(execute, { input: base.input })
-  const input: z.infer<typeof sceneTokenMovementCommandInputDtoSchema> = {
-    type: 'MOVE_SCENE_TOKEN',
-    commandId: base.input.commandId,
-    sceneId: base.sceneId,
-    expectedSceneVersion: 0,
-    expectedEncounterVersion: base.run.version,
-    correlationId: null,
-    movementKind: 'VOLUNTARY',
-    tokenId: base.tokens[0]!.id,
-    path: [base.tokens[0]!.position, { x: base.tokens[0]!.position.x + 1, y: 0 }]
-  }
-  await base.t.run(async (ctx) => {
-    const command = await ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_campaignId_commandId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
-      )
-      .unique()
-      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
-    if (!command) throw new Error('Missing binding receipt')
-    await replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
-      commandType: input.type,
-      commandJson: JSON.stringify(input),
-      commandFingerprint: checksumCanonicalJson(input),
-      ruleOccurrenceId: crypto.randomUUID(),
-      ruleResultChecksum: '0'.repeat(64),
-      optionalCombatSnapshotChecksum: '0'.repeat(64)
-    })
-  })
-  return result
 }
 
 async function publishFixtureSceneSource(base: Awaited<ReturnType<typeof boundFixture>>) {
@@ -202,10 +158,9 @@ async function snapshot(base: Awaited<ReturnType<typeof boundFixture>>) {
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
     liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
-    commands: await ctx.db
+    commands: await (await readEncounterHistory(ctx))
       .query('encounterRunCommands')
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
   }))
 }
 
@@ -312,7 +267,7 @@ it('follows live Scene token removal and restoration for Encounter binding', asy
   ).toMatchObject([{ actorId: base.input.actorId, tokenId: tokenId.toLowerCase() }])
 }, 60000)
 
-it('sets and replaces tokens, replays the first receipt and exposes binding receipts in timeline', async () => {
+it('sets and replaces tokens and replays the first receipt', async () => {
   const base = await boundFixture()
   const before = await snapshot(base)
   const first = await base.other.caller.mutation(execute, { input: base.input })
@@ -345,9 +300,8 @@ it('sets and replaces tokens, replays the first receipt and exposes binding rece
   expect(after.scenes).toEqual(before.scenes)
   expect(after.tokens).toEqual(before.tokens)
   expect(after.commands).toHaveLength(before.commands.length + 2)
-  const history = await base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
   expect(
-    history.entries.filter((entry) => entry.commandType.includes('TOKEN_BINDING'))
+    after.commands.filter((command) => command.commandType.includes('TOKEN_BINDING'))
   ).toHaveLength(2)
   const removed = await base.other.caller.mutation(execute, {
     input: {
@@ -361,61 +315,6 @@ it('sets and replaces tokens, replays the first receipt and exposes binding rece
   })
   expect(removed.projection.version).toBe(replaced.projection.version + 1)
   expect((await snapshot(base)).bindings).toEqual([])
-})
-
-it('reads a terminal Scene movement receipt from the Encounter timeline', async () => {
-  const base = await boundFixture()
-  const result = await replaceBindingReceiptWithMovement(base)
-
-  const history = await base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
-
-  expect(history.entries).toContainEqual(
-    expect.objectContaining({
-      commandType: 'MOVE_SCENE_TOKEN',
-      version: result.projection.version,
-      visibility: 'PRIVATE'
-    })
-  )
-})
-
-it('rejects a Scene movement receipt with a bad fingerprint or expected Encounter version', async () => {
-  const base = await boundFixture()
-  await replaceBindingReceiptWithMovement(base)
-  const command = await base.t.run((ctx) =>
-    ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_campaignId_commandId', (q) =>
-        q.eq('campaignId', base.campaign.id).eq('commandId', base.input.commandId)
-      )
-      .unique()
-      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRunCommands', header) : null))
-  )
-  if (!command || command.commandType !== 'MOVE_SCENE_TOKEN')
-    throw new Error('Missing movement receipt')
-  await base.t.run((ctx) =>
-    replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
-      commandFingerprint: '0'.repeat(64)
-    })
-  )
-  await expect(
-    base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
-  ).rejects.toThrow('Stored Encounter command receipt mismatch.')
-
-  const input = sceneTokenMovementCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
-  if (input.expectedEncounterVersion === null) throw new Error('Expected bound movement receipt')
-  const mismatchedVersion = {
-    ...input,
-    expectedEncounterVersion: input.expectedEncounterVersion + 1
-  }
-  await base.t.run((ctx) =>
-    replaceReceiptRecord(ctx, 'encounterRunCommands', command._id, {
-      commandFingerprint: checksumCanonicalJson(mismatchedVersion),
-      commandJson: JSON.stringify(mismatchedVersion)
-    })
-  )
-  await expect(
-    base.other.caller.query(timeline, { encounterId: base.run.id, limit: 20 })
-  ).rejects.toThrow('Stored Encounter command receipt mismatch.')
 })
 
 it('enforces token uniqueness within a Run and allows stable token identity across Runs', async () => {

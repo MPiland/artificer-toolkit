@@ -17,7 +17,7 @@ import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-dat
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { domainRejection } from '../../tests/fixtures/playerControl'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -127,14 +127,13 @@ function respond(
 
 /** The terminal turn receipt's executed Legendary Action. */
 async function executedLegendaryAction(base: Fixture, commandId: string) {
-  const receipt = await base.t.run((ctx) =>
-    ctx.db
+  const receipt = await base.t.run(async (ctx) =>
+    (await readEncounterHistory(ctx, base.campaign.id))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', base.run.id).eq('commandId', commandId)
       )
       .unique()
-      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
   )
   if (!receipt) throw new Error('The terminal turn receipt is missing.')
   const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

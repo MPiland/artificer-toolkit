@@ -1219,6 +1219,57 @@ describe('room inputs (ADR 0035 S2)', () => {
       ])
     })
 
+    it('carries the held Encounter history through a same-epoch reload and a new-epoch activation', async () => {
+      const convex = open([FIRST_CHARACTER])
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      const base = (commandId: string, encounterId: string) => ({
+        campaignId: CAMPAIGN,
+        encounterId,
+        commandId,
+        commandFingerprint: '0'.repeat(64),
+        actorUserId: uuid(0xb01),
+        createdAt: '2026-05-05T12:00:00.000Z'
+      })
+      const command = (commandId: string, encounterId: string) =>
+        ({ ...base(commandId, encounterId), commandType: 'CREATE' }) as const
+      const receipt = (commandId: string, encounterId: string) => ({
+        ...base(commandId, encounterId),
+        id: uuid(0xc01),
+        occurrenceId: uuid(0xc02),
+        commandType: 'ADVANCE_TURN',
+        encounterVersion: 1,
+        commandMetadataJson: '{}',
+        resultJson: '{}',
+        resultChecksum: '0'.repeat(64),
+        correlationId: null
+      })
+      await convex.store.transact(async () => {
+        await convex.store.store.insert('encounterRunCommands', command(uuid(0xa01), ENCOUNTER))
+        await convex.store.store.insert('encounterRuleReceipts', receipt(uuid(0xa02), ENCOUNTER))
+        await convex.store.store.insert('encounterRunCommands', command(uuid(0xa03), uuid(0xfff)))
+      })
+      const held = () =>
+        [
+          ...convex.store
+            .documents('encounterRunCommands')
+            .map((document) => `encounterRunCommands:${document.commandId}`),
+          ...convex.store
+            .documents('encounterRuleReceipts')
+            .map((document) => `encounterRuleReceipts:${document.commandId}`)
+        ].sort()
+      const carried = [
+        `encounterRuleReceipts:${uuid(0xa02)}`,
+        `encounterRunCommands:${uuid(0xa01)}`
+      ]
+
+      await convex.inputs.hydrate({ epoch: EPOCH, encounterId: ENCOUNTER })
+      expect(held()).toEqual(carried)
+
+      await convex.inputs.hydrate({ epoch: uuid(0x902), encounterId: ENCOUNTER })
+      expect(convex.store.epoch).toBe(uuid(0x902))
+      expect(held()).toEqual(carried)
+    })
+
     it('loads Campaign content and System inputs before an Encounter is bound', async () => {
       const convex = open([FIRST_CHARACTER])
       await convex.inputs.hydrate({ epoch: EPOCH, encounterId: null })

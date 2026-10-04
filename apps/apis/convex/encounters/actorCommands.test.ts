@@ -32,7 +32,8 @@ import { readCharacterRecord, readCharacterRow } from '../characters/stateDocume
 import {
   executeInRoom,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -121,10 +122,9 @@ async function stored(
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run,
       actor,
-      receipts: await ctx.db
+      receipts: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }
   })
 }
@@ -182,9 +182,6 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     expect(encounterRunStateSchema.parse(JSON.parse(after.run!.stateJson)).currentActorId).toBe(
       encounterRunStateSchema.parse(JSON.parse(before.run!.stateJson)).currentActorId
     )
-    expect(
-      after.receipts.find((receipt) => receipt.commandType === 'UPDATE_ACTOR')?.characterReceiptId
-    ).toBeNull()
   }, 30000)
 
   it('bridges a Character Sheet command, retains max override, and replays its original Encounter result', async () => {
@@ -260,10 +257,6 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     expect(readCharacterRecord(storedCharacter!).state.conditions).toHaveLength(1)
     const receipt = after.receipts.find((candidate) => candidate.commandId === commandId)!
     if (receipt.commandType !== 'UPDATE_ACTOR') throw new Error('Missing UPDATE_ACTOR receipt.')
-    const nestedReceipt = (await readState()).receipts.find(
-      (candidate) => candidate.commandId === nestedCommandId
-    )
-    expect(receipt.characterReceiptId).toBe(nestedReceipt?.id)
     expect((await readState()).receipts).toHaveLength(3)
     const later = await executeInRoom(
       gm.caller,

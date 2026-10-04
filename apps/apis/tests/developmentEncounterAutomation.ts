@@ -427,10 +427,6 @@ export async function verifyEncounterAutomation({
     assert.equal(projection.round, beforeReinforcementCleanupRound + 1)
     await execute({ ...commandBase(), type: 'COMPLETE' })
     assert.equal(projection.status, 'COMPLETED')
-    const finalTimeline = await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: prepared.id,
-      limit: 100
-    })
     // The room journal replays each command's own receipt, shown over the current Run.
     for (const { input, result } of issuedCommands) {
       assert.deepEqual(await owner.mutation(executeEncounterCommand, input), {
@@ -438,13 +434,6 @@ export async function verifyEncounterAutomation({
         projection
       })
     }
-    assert.deepEqual(
-      await owner.query(api.encounters.timelineReads.timeline, {
-        encounterId: prepared.id,
-        limit: 100
-      }),
-      finalTimeline
-    )
     assert.deepEqual(await owner.mutation(api.encounters.runs.create, creation), projection)
     assert.deepEqual(await player.query(api.characters.sheet.get, { id: characterId }), sheet)
     assert.deepEqual(await owner.mutation(bindScene, sceneBindingInput), {

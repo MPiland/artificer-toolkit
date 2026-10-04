@@ -39,8 +39,6 @@ describe('CampaignChatHistory', () => {
           encounterEntries={undefined}
           entries={[entry]}
           hasNextPage={false}
-          isEncounterTimelineError={false}
-          isEncounterTimelinePending={false}
           isHistoryLoading={false}
           isLoadingOlderMessages={false}
           isPrivateRollsError={false}
@@ -108,8 +106,6 @@ describe('CampaignChatHistory', () => {
           encounterEntries={undefined}
           entries={[roll]}
           hasNextPage={false}
-          isEncounterTimelineError={false}
-          isEncounterTimelinePending={false}
           isHistoryLoading={false}
           isLoadingOlderMessages={false}
           isPrivateRollsError={false}
@@ -154,8 +150,6 @@ describe('CampaignChatHistory', () => {
             { ...notice, id: '2df2d096-9408-4792-9b26-5c5d8b5f83f1', characterLabel: 'Goblin' }
           ]}
           hasNextPage={false}
-          isEncounterTimelineError={false}
-          isEncounterTimelinePending={false}
           isHistoryLoading={false}
           isLoadingOlderMessages={false}
           isPrivateRollsError={false}

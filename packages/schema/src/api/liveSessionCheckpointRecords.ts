@@ -24,6 +24,7 @@ export const liveSessionCheckpointKeyFields = {
   encounterInitiativeParticipants: ['encounterId', 'round', 'actorId'],
   encounterInitiativeSides: ['encounterId', 'round', 'sideId'],
   encounterRuleOccurrences: ['id'],
+  encounterReplayIndex: ['campaignId', 'commandId'],
   encounterPendingSnapshotParts: ['occurrenceId', 'sequence'],
   encounterTurnMovements: ['encounterId', 'round', 'turnActorId', 'actorId'],
   encounterDecisionSkips: ['encounterId', 'occurrenceId', 'occurrenceVersion'],
@@ -41,19 +42,25 @@ export const liveSessionCheckpointKeyFields = {
     string)[]
 }>
 
-/** Append-only evidence is packed separately from mutable record deltas. */
+/**
+ * Append-only evidence is packed separately from mutable record deltas. Encounter history stays in
+ * the room (ADR 0035 Amendment 22); only Sheet command receipts reach Convex.
+ */
 export const liveSessionCheckpointHistoryKeyFields = {
-  encounterRunCommands: ['campaignId', 'commandId'],
-  encounterRuleReceipts: ['campaignId', 'commandId'],
-  encounterEvidenceRolls: ['id'],
   characterCommandReceipts: ['characterId', 'commandId']
 } as const satisfies Partial<{
   [Table in keyof EncounterStoreDocuments]: readonly (keyof EncounterStoreDocuments[Table] &
     string)[]
 }>
 
-/** Receipt ledgers also pack Scene command receipts, which reach Convex as Scene deltas. */
+/**
+ * Receipt ledgers also pack Scene command receipts, which reach Convex as Scene deltas, and the
+ * Encounter history Convex-side writers record.
+ */
 export const receiptLedgerEntryKeyFields = {
+  encounterRunCommands: ['campaignId', 'commandId'],
+  encounterRuleReceipts: ['campaignId', 'commandId'],
+  encounterEvidenceRolls: ['id'],
   ...liveSessionCheckpointHistoryKeyFields,
   sceneLiveCommands: liveSessionCheckpointSceneKeys.sceneLiveCommands
 } as const

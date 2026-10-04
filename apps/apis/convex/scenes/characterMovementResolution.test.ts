@@ -54,7 +54,8 @@ import { reactionBinding } from '../../tests/fixtures/reactionBinding'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import {
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { withSceneVisionTracking } from '../lib/mutations'
 
@@ -525,11 +526,11 @@ async function gameplayRows(value: Awaited<ReturnType<typeof setup>>) {
     ),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    runCommands: await ctx.db.query('encounterRunCommands').collect(),
+    runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receipts: await ctx.db.query('encounterRuleReceipts').collect(),
+    receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
     characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
     scenes: await ctx.db.query('campaignScenes').collect(),
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
@@ -551,8 +552,8 @@ async function reactionMechanics(value: Awaited<ReturnType<typeof setup>>) {
     actors: await ctx.db.query('encounterRunActors').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
+    receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
     sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     fog: await ctx.db.query('sceneFogLayers').collect()
   }))

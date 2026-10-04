@@ -247,7 +247,6 @@ async function recordEncounterToolCommand(
   let status = state.status
   let round = state.round
   let currentActorId = state.currentActorId
-  let characterReceiptId: string | null = null
   let creatureEquipmentReplacement: z.infer<
     typeof encounterCreatureEquipmentReplacementSchema
   > | null = null
@@ -373,7 +372,7 @@ async function recordEncounterToolCommand(
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
       if (actor.kind !== 'CHARACTER')
         throw new Error('Sheet command does not target this Character actor.')
-      const character = await ctx.ports.executeCharacterCommand(
+      await ctx.ports.executeCharacterCommand(
         userId,
         {
           characterId: actor.sourceId,
@@ -382,7 +381,6 @@ async function recordEncounterToolCommand(
         },
         state.id
       )
-      characterReceiptId = character.historyEventId
     }
     if (input.type === 'ROLL_ACTOR_INITIATIVE') {
       const initiative = await ctx.ports.readActorInitiativeRoll(state, campaign, actor.id)
@@ -666,7 +664,6 @@ async function recordEncounterToolCommand(
       commandType: input.type,
       // A private enemy roll stays off the table's timeline, whatever the command asked (D62).
       ...(rollIsPrivate ? { visibility: 'PRIVATE' as const } : {}),
-      ...(input.type === 'UPDATE_ACTOR' ? { characterReceiptId } : {}),
       ...(input.type === 'REPLACE_CREATURE_EQUIPMENT' ? { creatureEquipmentReplacement } : {}),
       ...(initiativeCorrection === null
         ? {}

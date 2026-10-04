@@ -396,12 +396,11 @@ export async function verifyEncounterDisarm({
   )
 
   async function snapshot() {
-    const [ownerRun, playerRun, sheet, character, timeline] = await Promise.all([
+    const [ownerRun, playerRun, sheet, character] = await Promise.all([
       owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
       player.query(api.encounters.projectionReads.get, { encounterId: run.id }),
       player.query(api.characters.sheet.get, { id: characterId }),
-      player.query(api.characters.builder.activeCharacter, { id: characterId }),
-      owner.query(api.encounters.timelineReads.timeline, { encounterId: run.id, limit: 100 })
+      player.query(api.characters.builder.activeCharacter, { id: characterId })
     ])
     assert.ok(sheet && character)
     const projection = encounterPlayerProjectionDtoSchema.parse(playerRun)
@@ -418,8 +417,7 @@ export async function verifyEncounterDisarm({
       run: encounterGmProjectionDtoSchema.parse(ownerRun),
       playerRun,
       sheet,
-      character,
-      timeline
+      character
     }
   }
   const before = await snapshot()
@@ -591,15 +589,8 @@ export async function verifyEncounterDisarm({
         }),
         null
       )
-    assert.equal(
-      after.timeline.entries.filter((entry) => entry.commandType === 'RESOLVE_ACTION').length,
-      1
-    )
 
     if (staleSecond) {
-      assert.equal(before.timeline.nextCursor, null)
-      assert.equal(after.timeline.nextCursor, null)
-      assert.equal(after.timeline.entries.length, before.timeline.entries.length + 1)
       // A persisted response receipt would replay before the stale-version check.
       await assert.rejects(
         player.mutation(executeEncounterCommand, { command: staleSecond }),

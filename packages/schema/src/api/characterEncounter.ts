@@ -14,7 +14,6 @@ export const characterEncounterCommandInputSchema = lazySchema(() =>
 
 export const characterEncounterCommandResultSchema = lazySchema(() =>
   z.strictObject({
-    historyEventId: postgresUuidSchema,
     streamVersion: z.number().check(z.int()).check(z.nonnegative()),
     currentHitPoints: z.number().check(z.int()),
     maxHitPoints: z.number().check(z.int()),

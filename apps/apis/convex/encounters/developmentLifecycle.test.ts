@@ -23,7 +23,11 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { createCutoverWorkloadCreature } from '../../tests/fixtures/encounterAction'
 import { importedSubject } from '../../tests/fixtures/publication'
-import { planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  persistHeldHistoryToConvex,
+  planMovementInRoom,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 13 : 0) }))
@@ -342,20 +346,18 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
   expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
 
   const rows = await base.t.run(async (ctx) => ({
-    root: await ctx.db
+    root: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', base.run.id).eq('commandId', scene.rootInput.commandId)
       )
-      .unique()
-      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null)),
-    terminal: await ctx.db
+      .unique(),
+    terminal: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', base.run.id).eq('commandId', command.commandId)
       )
-      .unique()
-      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null)),
+      .unique(),
     occurrence: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
@@ -408,6 +410,8 @@ it('reads one completed movement reaction from authenticated, matching Scene rec
     phaseReceiptsPresent: true,
     resultPath: 'ON_HIT'
   })
+  // The query reads Convex's store, where the room's history has not been checkpointed (D85).
+  await persistHeldHistoryToConvex(scene.owner.caller, base.campaign.id, base.run.id)
   const evidence = await scene.owner.caller.query(movementReactionDamage, {
     campaignId: base.campaign.id,
     encounterId: base.run.id,

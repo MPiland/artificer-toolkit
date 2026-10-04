@@ -17,10 +17,6 @@ import {
   type EncounterDecisionSettlementDto,
   type GetEncounterDecisionSettlementInputDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import {
-  encounterEvidenceRollDtoSchema,
-  type EncounterEvidenceRollDto
-} from '@artificer-toolkit/schema/api/encounters'
 
 const getEncounterActionChoices = makeFunctionReference<
   'query',
@@ -32,11 +28,6 @@ const getEncounterOptionalActionChoices = makeFunctionReference<
   GetEncounterOptionalActionChoicesInputDto,
   EncounterOptionalActionChoicesDto
 >('encounters/actionChoices:optional')
-const getLatestEvidenceRolls = makeFunctionReference<
-  'query',
-  { encounterId: string },
-  EncounterEvidenceRollDto[]
->('encounters/evidenceRolls:latest')
 const getDecisionSettlement = makeFunctionReference<
   'query',
   GetEncounterDecisionSettlementInputDto,
@@ -63,15 +54,6 @@ export function getEncounterDecisionSettlement(
       input ? getEncounterDecisionSettlementInputDtoSchema.parse(input) : 'skip'
     ),
     select: encounterDecisionSettlementDtoSchema.parse
-  }
-}
-
-/** The viewer's latest "Roll dice" attempt for their current pending request, if any. */
-export function getEncounterLatestEvidenceRoll(encounterId: string | null) {
-  return {
-    ...convexQuery(getLatestEvidenceRolls, encounterId ? { encounterId } : 'skip'),
-    select: ([latest]: EncounterEvidenceRollDto[]) =>
-      latest ? encounterEvidenceRollDtoSchema.parse(latest) : null
   }
 }
 

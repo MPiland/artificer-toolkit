@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { api, internal } from '../_generated/api'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom,
+  readTimelineInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 
 const page = { cursor: null, numItems: 16 }
 
@@ -42,10 +44,7 @@ describe('deleted member Campaign history', () => {
     })
     expect(note).toMatchObject({ authorLabel: 'Mira' })
     const readHistory = async () => ({
-      timeline: await gm.caller.query(api.encounters.timelineReads.timeline, {
-        encounterId: run.id,
-        limit: 100
-      }),
+      timeline: await readTimelineInRoom(gm.caller, run.id),
       notes: await gm.caller.query(api.campaigns.sessionNotes.list, {
         campaignId: campaign.id,
         sessionId: session.id,

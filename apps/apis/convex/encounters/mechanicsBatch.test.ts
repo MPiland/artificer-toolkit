@@ -111,7 +111,6 @@ describe('applyEncounterMechanicsBatch', () => {
     )
     if (result.updatedActor.kind === 'CHARACTER') throw new Error('Expected a non-Character actor.')
     expect(result.updatedActor.currentHitPoints).toBe(1)
-    expect(result.characterReceiptId).toBeNull()
     const stored = await base.readActor()
     expect(stored?.stateChecksum).toBe(checksumCanonicalJson(result.updatedActor))
     expect(JSON.parse(stored!.stateJson)).toEqual({

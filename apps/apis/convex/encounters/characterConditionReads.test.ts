@@ -1,4 +1,5 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { describe, expect, it } from 'vitest'
 import type {
   CampaignConditionDto,
@@ -13,7 +14,6 @@ import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
   EncounterSummaryDto,
-  EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -37,11 +37,6 @@ const active = makeFunctionReference<'query', { campaignId: string }, EncounterS
 const list = makeFunctionReference<'query', { campaignId: string }, EncounterSummaryDto[]>(
   'encounters/projectionReads:list'
 )
-const timeline = makeFunctionReference<
-  'query',
-  { encounterId: string; limit: number },
-  EncounterTimelineDto
->('encounters/timelineReads:timeline')
 const execute = makeFunctionReference<
   'mutation',
   CharacterSheetExecuteInput,
@@ -381,7 +376,7 @@ describe('native Encounter current Character conditions', () => {
       'Encounter is unavailable.'
     )
     await expect(
-      owner.caller.query(timeline, { encounterId: run.id, limit: 50 })
+      readTimelineInRoom(owner.caller, run.id)
     ).resolves.toMatchObject({ entries: expect.any(Array), nextCursor: null })
 
     await expect(t.query(get, { encounterId: run.id })).rejects.toThrow('Unauthenticated')

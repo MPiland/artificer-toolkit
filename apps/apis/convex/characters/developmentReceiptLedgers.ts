@@ -4,7 +4,6 @@ import { ConvexError } from 'convex/values'
 import {
   developmentReceiptLedgerEntryInputSchema,
   developmentReceiptLedgerInspectionSchema,
-  developmentReceiptLedgerKeysetInputSchema,
   developmentReceiptLedgerNativePageSchema,
   developmentReceiptLedgerNativeWindowSchema,
   developmentReceiptLedgerPageInputSchema,
@@ -15,10 +14,7 @@ import {
   type DevelopmentReceiptLedgerSeedInput,
   type DevelopmentReceiptLedgerSeedResult
 } from '@artificer-toolkit/schema/api/developmentReceiptLedger'
-import {
-  characterHistoryEntryDtoSchema,
-  characterHistoryPageSchema
-} from '@artificer-toolkit/schema/api/characterHistory'
+import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
 import {
   liveSessionCheckpointHistoryEntrySchema,
   liveSessionCheckpointHistoryKeyFields
@@ -35,7 +31,7 @@ import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
 import { internalAction } from '../_generated/server'
 import { createReceiptLedger, deleteReceiptHeaders } from '../lib/receiptLedgers'
-import { paginateReceiptHeaders, readCharacterHistoryHeaders } from '../lib/receiptPagination'
+import { paginateReceiptHeaders } from '../lib/receiptPagination'
 import { readCharacterReceiptHistory } from './documents'
 
 const SEED_ROLLBACK_MARKER = 'RECEIPT_LEDGER_PROOF_ROLLBACK_AFTER_CREATE'
@@ -206,26 +202,6 @@ export const nativeWindow = internalQuery({
     return developmentReceiptLedgerNativeWindowSchema.parse({
       ...metadata,
       headerIds: headers.map((header) => header.id)
-    })
-  }
-})
-
-export const keysetPage = internalQuery({
-  args: zodToConvexFields(developmentReceiptLedgerKeysetInputSchema.shape),
-  returns: zodToConvex(characterHistoryPageSchema),
-  handler: async (ctx, args) => {
-    const input = developmentReceiptLedgerKeysetInputSchema.parse(args)
-    await requireFixtureCharacter(ctx, input)
-    const result = await readCharacterHistoryHeaders(
-      ctx,
-      input.characterId,
-      input.userId,
-      input.paginationOpts
-    )
-    return characterHistoryPageSchema.parse({
-      ...result,
-      characterId: input.characterId,
-      page: result.page.map(readCharacterReceiptHistory)
     })
   }
 })

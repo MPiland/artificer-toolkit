@@ -1,4 +1,4 @@
-import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it, vi } from 'vitest'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -62,7 +62,7 @@ async function storedCharacterState(fixture: Awaited<ReturnType<typeof setupChar
 }
 
 describe('applyEncounterMechanicsBatch Character persistence', () => {
-  it('persists a Character outcome and compact receipt from current Character state', async () => {
+  it('persists a Character outcome from current Character state', async () => {
     const fixture = await setupCharacterRun()
     const input = command(fixture.run, fixture.actor, fixture.characterStreamVersion)
     const result = await fixture.owner.caller.run((ctx) =>
@@ -82,16 +82,15 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       fixture.actor.currentHitPoints - 1
     )
     expect(result.characterStreamVersion).toBeGreaterThan(fixture.characterStreamVersion)
-    expect(result.characterReceiptId).not.toBeNull()
+    // The Encounter keeps its own history: the batch leaves no Sheet receipt.
     await expect(
-      fixture.owner.caller.run((ctx) =>
-        applyEncounterMechanicsBatch(ctx, {
-          ...input,
-          expectedCharacterStreamVersion: result.characterStreamVersion,
-          applications: []
-        })
+      fixture.t.run((ctx) =>
+        ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', fixture.character.id))
+          .collect()
       )
-    ).rejects.toThrow(/already exists/)
+    ).resolves.toEqual([])
   })
 
   it('reuses authored sources while rereading same-mutation Character state', async () => {
@@ -237,7 +236,6 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       })
     )
     expect(forced.characterStreamVersion).toBe(fixture.characterStreamVersion + 1)
-    expect(forced.characterReceiptId).toBeNull()
     await fixture.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRunActors')
@@ -345,7 +343,6 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
       })
     )
     expect(result.characterStreamVersion).toBe(fixture.characterStreamVersion + 1)
-    expect(result.characterReceiptId).toBeNull()
     const after = await read()
     if (!before.character || !after.character) throw new Error('Missing Character.')
     const original = readCharacterRecord(before.character)
@@ -429,7 +426,6 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
         })
       )
       expect(result.characterStreamVersion).toBe(fixture.characterStreamVersion + 1)
-      expect(result.characterReceiptId).not.toBeNull()
       const expectedIds = [...(retained ? [oldCondition.id] : []), nextCondition.id]
       const stored = await fixture.t.run(async (ctx) => {
         const row = await readCharacterRow(ctx, fixture.character.id)
@@ -443,7 +439,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     }
   )
 
-  it('retains modifier applications for the parent while preserving compact history semantics', async () => {
+  it('retains modifier applications for the parent without a Sheet receipt', async () => {
     const fixture = await setupCharacterRun()
     const actorBefore = await fixture.t.run(async (ctx) => {
       const row = await ctx.db
@@ -485,18 +481,16 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
     ])
     // The Character actor carries no maximum; the reduction persists as the parent's rule effect.
     expect(result.updatedActor).toEqual(actorBefore)
-    const receipt = await fixture.t.run((ctx) =>
-      ctx.db
-        .query('characterCommandReceipts')
-        .withIndex('by_characterId_commandId', (q) =>
-          q.eq('characterId', fixture.character.id).eq('commandId', input.commandId)
-        )
-        .unique()
-        .then((header) =>
-          header ? readReceiptHeader(ctx, 'characterCommandReceipts', header) : null
-        )
-    )
-    expect(JSON.parse(receipt!.historyJson).summary).toBe('Rule outcomes applied: 0 results')
+    await expect(
+      fixture.t.run((ctx) =>
+        ctx.db
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) =>
+            q.eq('characterId', fixture.character.id).eq('commandId', input.commandId)
+          )
+          .unique()
+      )
+    ).resolves.toBeNull()
   })
 
   it('reads a Character maximum change made after Run creation live instead of refusing it', async () => {

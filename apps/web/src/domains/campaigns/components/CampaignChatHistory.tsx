@@ -20,8 +20,6 @@ export function CampaignChatHistory({
   encounterEntries,
   entries,
   hasNextPage,
-  isEncounterTimelineError,
-  isEncounterTimelinePending,
   isHistoryLoading,
   isLoadingOlderMessages,
   isPrivateRollsError,
@@ -42,8 +40,6 @@ export function CampaignChatHistory({
     | undefined
   entries: readonly CampaignChatEntryDto[]
   hasNextPage: boolean
-  isEncounterTimelineError: boolean
-  isEncounterTimelinePending: boolean
   isHistoryLoading: boolean
   isLoadingOlderMessages: boolean
   isPrivateRollsError: boolean
@@ -125,15 +121,7 @@ export function CampaignChatHistory({
             </div>
           ))
         : null}
-      {rollView === 'ENCOUNTER' && isEncounterTimelinePending ? (
-        <Text c='dimmed'>Loading enemy rolls…</Text>
-      ) : null}
-      {rollView === 'ENCOUNTER' && isEncounterTimelineError ? (
-        <Text c='red'>Encounter roll history could not be loaded.</Text>
-      ) : null}
-      {rollView === 'ENCOUNTER' &&
-      !isEncounterTimelinePending &&
-      !encounterEntries?.some((entry) => entry.roll) ? (
+      {rollView === 'ENCOUNTER' && !encounterEntries?.some((entry) => entry.roll) ? (
         <Text c='dimmed'>No enemy rolls yet.</Text>
       ) : null}
       {rollView === 'ENCOUNTER'

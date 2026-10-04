@@ -2,9 +2,9 @@ import { convexTest } from '../../tests/convexTest'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import {
-  liveSessionCheckpointHistoryEntrySchema,
-  liveSessionCheckpointHistoryKeyFields,
-  type LiveSessionCheckpointHistoryTable
+  receiptLedgerEntrySchema,
+  receiptLedgerEntryKeyFields,
+  type ReceiptLedgerEntryTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import type { CharacterReceiptPurgeInput } from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
 import type { JsonValue } from '@artificer-toolkit/schema/shared/jsonDelta'
@@ -28,10 +28,10 @@ function fixture() {
   return convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
 }
 
-function entry(table: LiveSessionCheckpointHistoryTable, value: Record<string, JsonValue>) {
-  return liveSessionCheckpointHistoryEntrySchema.parse({
+function entry(table: ReceiptLedgerEntryTable, value: Record<string, JsonValue>) {
+  return receiptLedgerEntrySchema.parse({
     table,
-    key: liveSessionCheckpointHistoryKeyFields[table].map((field) => value[field]),
+    key: receiptLedgerEntryKeyFields[table].map((field) => value[field]),
     value,
     checksum: checksumCanonicalJson(value)
   })

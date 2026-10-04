@@ -473,11 +473,6 @@ describe('assigned native Character Campaign source access', () => {
     const replay = await owner.caller.mutation(executeSheet, { id: character.id, command })
     expect(replay.historyEntry).toEqual(created.historyEntry)
     expect(await readState()).toEqual(before)
-    const history = await owner.caller.query(api.characters.history.list, {
-      id: character.id,
-      paginationOpts: { cursor: null, numItems: 10 }
-    })
-    expect(history.page[0].summary).toContain(command.title)
     expect(await other.caller.query(api.characters.sheet.get, { id: character.id })).toBeNull()
   })
 

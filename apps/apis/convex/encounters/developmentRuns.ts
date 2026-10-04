@@ -1,11 +1,8 @@
 import { v } from 'convex/values'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { type MutationCtx } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
-import { deleteReceiptHeaders, readReceiptHeaders } from '../lib/receiptLedgers'
+import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 type FixtureRunArgs = {
@@ -197,67 +194,6 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
     .query('characterCommandReceipts')
     .withIndex('by_characterId_commandId', (q) => q.eq('characterId', args.characterId))
     .take(101)
-  const linked = new Set(
-    (
-      await readReceiptHeaders(
-        ctx,
-        'encounterRunCommands',
-        children.flatMap((child) =>
-          child.commands.filter((command) => command.commandType === 'UPDATE_ACTOR')
-        )
-      )
-    ).flatMap((command) =>
-      command.commandType === 'UPDATE_ACTOR' && command.characterReceiptId
-        ? [command.characterReceiptId] : [])
-  )
-  for (const child of children) {
-    const receipts = await readReceiptHeaders(ctx, 'encounterRuleReceipts', child.receipts)
-    for (const receipt of receipts) {
-      let rawResult: unknown
-      try {
-        rawResult = JSON.parse(receipt.resultJson)
-      } catch {
-        throw new Error('Fixture Encounter dependency or ownership mismatch.')
-      }
-      const status =
-        typeof rawResult === 'object' && rawResult !== null && 'status' in rawResult
-          ? rawResult.status
-          : undefined
-      if (status !== 'MOVEMENT_COMPLETE' && status !== 'BATCH_COMPLETE') continue
-      const result = storedRuleExecutionResultDtoSchema.safeParse(rawResult)
-      if (!result.success) throw new Error('Fixture Encounter dependency or ownership mismatch.')
-      if (
-        result.data.status !== 'MOVEMENT_COMPLETE' &&
-        (result.data.status !== 'BATCH_COMPLETE' ||
-          result.data.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
-      )
-        continue
-      if (
-        result.data.encounterId !== child.run.id ||
-        result.data.occurrenceId !== receipt.occurrenceId ||
-        checksumCanonicalJson(result.data) !== receipt.resultChecksum
-      )
-        throw new Error('Fixture Encounter dependency or ownership mismatch.')
-      for (const reaction of result.data.reactionExecutions ?? []) {
-        if (
-          reaction.targetCharacterId !== args.characterId ||
-          reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH'
-        )
-          continue
-        const commandId = deriveEncounterCharacterMechanicsEventCommandId({
-          occurrenceId: result.data.occurrenceId,
-          sourceCommandId: reaction.sourceCommandId,
-          phase: 'MOVEMENT_REACTION_OUTCOME',
-          ordinal: reaction.ordinal,
-          targetCharacterId: args.characterId
-        })
-        const characterReceipt = characterReceipts.find(
-          (candidate) => candidate.commandId === commandId
-        )
-        if (characterReceipt) linked.add(characterReceipt.id)
-      }
-    }
-  }
   if (
     characterReceipts.length > 100 ||
     children.some(
@@ -303,24 +239,15 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
             new Set(actorBindings.map((row) => row.actorId)).size !== actorBindings.length ||
             new Set(actorBindings.map((row) => row.tokenId)).size !== actorBindings.length))
     ) ||
-    [...linked].some((receiptId) => {
-      const receipt = characterReceipts.find((candidate) => candidate.id === receiptId)
-      return (
-        !receipt ||
-        receipt.characterId !== args.characterId ||
-        !participantUserIds.has(receipt.actorId)
-      )
-    }) ||
-    characterReceipts.some(
-      (receipt) => !linked.has(receipt.id) && receipt.actorId !== args.playerUserId
-    )
+    characterReceipts.some((receipt) => !participantUserIds.has(receipt.actorId))
   )
     throw new Error('Fixture Encounter dependency or ownership mismatch.')
   await deleteReceiptHeaders(
     ctx,
     [
+    // The GM's Character commands on the fixture Character leave with the Runs they were issued in.
     ...characterReceipts
-      .filter((receipt) => linked.has(receipt.id))
+      .filter((receipt) => receipt.actorId === args.ownerUserId)
       .map((header) => ({ table: 'characterCommandReceipts' as const, header })),
     ...children.flatMap((child) => [
       ...child.receipts.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),

@@ -366,7 +366,6 @@ describe('native Character action resource persistence', () => {
       ])
     )
     expect(state.resourceUsage).toHaveLength(2)
-    expect(result.characterReceiptId).toBeNull()
     expect(after.character.play.streamVersion).toBe(fixture.characterStreamVersion + 1)
   })
 

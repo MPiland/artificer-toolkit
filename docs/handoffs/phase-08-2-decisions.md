@@ -440,6 +440,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     3. **Cost models include heavy chat.** The V15 workload and the beta telemetry include heavy chat, and every cost figure states the chat volume it assumes.
   - **Decision 1 implemented 2026-09-28, with one change.** The unread count is derived, not stored: `min(50, visible entries after lastReadAt)` read from the room's time index, and the badge shows `50+` at the cap. A stored counter would make every send and unsend write every member row, contending with each reader's mark-read, and would still need a bounded recount on mark-read and on a new access epoch. The web subscribes to the newest page only and reads older pages once. With 2,000 messages, a new message costs each reader's newest page about 40 KB (was 224 KB at the old 500 cap) and `send` about 3 KB (was 187 KB). See [persistence.md](../architecture/persistence.md#conversations-and-chat).
 
+* **D88** (2026-10-04) Encounter history is live rules state for the whole Run, so the room carries it (A35-S10d, ADR 0035 Amendment 22).
+  - **Finding:** the Run's command rows, rule receipts and evidence rolls are not timeline-only. Pending decisions (Concentration chains, Cleaving, movement reactions, turn responses), the GM's void and undo, and replay read them.
+  - **Decision:** the room keeps them in its own storage for the whole Run and carries them through every reload and re-activation instead of re-reading Convex. Checkpoints stop sending them; Convex keeps only the compact replay index. At COMPLETE both are deleted.
+  - **Convex-side Encounter writes stay** (Run creation, departure and account reconciles while no room holds the Run). They are rare and small; the room merges them in at hydrate.
+  - **Cost of the rare storage loss** (D85 accepts it): the timeline restarts, undo of earlier actions is refused, and a retry of an earlier command returns "applied" plus the current state.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

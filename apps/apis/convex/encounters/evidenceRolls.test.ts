@@ -2,10 +2,7 @@ import { api } from '../_generated/api'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  EncounterEvidenceRollDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   ResolveRuleOccurrenceInputDto,
   RollRuleEvidenceInputDto
@@ -18,17 +15,11 @@ import {
   storeRunAutomationMode,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, RoomCommandRefusal, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
 type Caller = Pick<PlayerControlFixture['owner'], 'caller'>
-
-const latestRolls = makeFunctionReference<
-  'query',
-  { encounterId: string },
-  EncounterEvidenceRollDto[]
->('encounters/evidenceRolls:latest')
 
 /** Typed from the shared contract: the generated API predates `rollerActorId`. */
 const pendingRuleOccurrence = makeFunctionReference<
@@ -94,12 +85,11 @@ function evidenceRoll(result: EncounterCommandResultDto) {
 
 /** Every stored d20 evidence record (it carries both roll modes) in the Run's rule receipts. */
 async function storedD20Evidence(base: PlayerControlFixture) {
-  const receipts = await base.t.run((ctx) =>
-    ctx.db
+  const receipts = await base.t.run(async (ctx) =>
+    (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   )
   // Phase receipts repeat earlier evidence, so each request is reported once.
   const found = new Map<unknown, Record<string, unknown>>()
@@ -138,9 +128,13 @@ describe('Encounter roll prompts', () => {
     expect([evidenceRoll(first).attempt, evidenceRoll(second).attempt]).toEqual([1, 2])
     expect(first.roll?.source.label).toBe('Rolled by the app, attempt 1')
     expect(second.roll?.source.label).toBe('Rolled by the app, attempt 2')
-    await expect(
-      base.owner.caller.query(latestRolls, { encounterId: base.run.id })
-    ).resolves.toEqual([evidenceRoll(second)])
+    const heldRolls = await base.t.run(async (ctx) =>
+      (await readEncounterHistory(ctx))
+        .query('encounterEvidenceRolls')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
+        .collect()
+    )
+    expect(heldRolls.map((row) => row.attempt)).toEqual([1, 2])
     await expect(d20Pending(base, base.owner)).resolves.toEqual(pending)
 
     // Only the latest roll of this request by this responder settles it.
@@ -253,11 +247,10 @@ describe('Encounter roll prompts', () => {
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
           .collect(),
-        receipts: await ctx.db
+        receipts: await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
           .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
       }))
     const before = await stored()
     // Manual mode runs no rules: neither the controlling player nor the GM can start the action.

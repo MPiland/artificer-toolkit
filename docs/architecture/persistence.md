@@ -80,9 +80,12 @@ pass `finalSequence`. It applies the records and patches the authority row in th
   reconciles holds only when a Run status or a Character actor's frozen state changes. A new ACTIVE Run
   is checked for a second one. The response's `adopted` returns the PLAY and delta-Character revisions
   the write bumped when the room held them before it, and no authorization is read.
-- Append-only `history` entries (`encounterRunCommands`, `encounterRuleReceipts`, `encounterEvidenceRolls`,
-  `characterCommandReceipts`) are packed into one `receiptLedgers` row per scope per checkpoint
-  (`CHARACTER:<id>` for Character receipts, otherwise `CAMPAIGN:<campaignId>`).
+- Append-only `history` entries are only Sheet `characterCommandReceipts`, packed into one `CHARACTER`
+  `receiptLedgers` row per Character per checkpoint. Encounter history never reaches Convex by checkpoint
+  (ADR 0035 Amendment 22, D88; see [Encounter Run storage](#encounter-run-storage)); the contract rejects it.
+- `encounterReplayIndex` rows are insert-only `changes`, one per room Encounter command. A checkpoint that
+  completes a Run deletes that Run's index rows and any Convex-held Encounter history
+  (`encounters/campaignDeletion.ts` `removeEncounterRunTimeline`).
 - Scene rows (`sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogLayers`, `sceneFogSaves`,
   `sceneFogChunks`, `sceneGeometrySaves`) are written only by the checkpoint, plus Scene definition,
   presentation, deletion and retention flows. Scene receipts pack into scope `SCENE` ledgers (D77).
@@ -117,7 +120,7 @@ receives as hydrated input. `encounters/runs` exposes `create` and `deletePrepar
 `encounters/encounterStoreConformance.test.ts` runs one corpus against Convex and the in-memory store.
 The session read model (`sessionReads.ts`: the presented Run, session state, prepared pending decisions,
 GM actor sides and decision settlement; `timelinePages.ts`: one timeline page) lives here too. Convex's
-`activeReads`, `projectionReads` and `timelineReads` and the room's pushed `ENCOUNTER_SESSION` frame
+`activeReads` and `projectionReads` and the room's pushed `ENCOUNTER_SESSION` frame
 ([Held Encounter session](live-sessions.md#held-encounter-session)) call the same readers, so they cannot
 drift; Convex keeps authorization, receipt-ledger loading and read budgets.
 
@@ -150,8 +153,32 @@ drift; Convex keeps authorization, receipt-ledger loading and read budgets.
 `encounterRuns`, `encounterRunActors` (one document per actor with its validated snapshot and `kind`-discriminated
 state), `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterInitiativeRounds`,
 `encounterInitiativeParticipants`, `encounterInitiativeSides`, `encounterRuleOccurrences`,
-`encounterTurnMovements`, `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts` and
-`encounterEvidenceRolls` carry Run state and history. A Run retains its exact Blueprint version and checksum,
+`encounterTurnMovements`, `encounterDecisionSkips`, `encounterRunCommands`, `encounterRuleReceipts`,
+`encounterEvidenceRolls` and `encounterReplayIndex` carry Run state and history.
+
+**Encounter history lives in the room for the Run (ADR 0035 Amendment 22, D85, D88).**
+
+- **Why the room keeps it whole:** command rows, rule receipts and evidence rolls are live rules state, not
+  only a timeline. Pending decisions (Concentration chains, Cleaving, movement reactions, turn responses),
+  the GM's void, undo and replay read them.
+- **Carry-over:** the room keeps them in its SQLite store for the whole Run. Every hydrate, a same-epoch
+  reload or a new epoch after release, carries the store's rows for that Run and unions them with the
+  rows Convex holds, deduplicated by ledger key (`apps/session-worker/src/roomInputs.ts`).
+- **What Convex holds:**
+  - only the history its own writers record while no room holds the Run: Run creation, and the
+    departure, release and account reconciles;
+  - `encounterReplayIndex`: one row per room command (Campaign, Run, command ID, actor, fingerprint,
+    resulting version, roll card ID).
+- **Storage recovery** carries nothing. A retry the index knows answers "applied at version V" with the
+  current projection and no roll (the roll card stays in chat); a reused ID with other input is refused.
+  Undo of earlier actions is refused, and the timeline restarts. Open decisions stay resolvable or voidable,
+  and COMPLETE still needs them settled.
+- **Run end:** COMPLETE deletes the Run's history and index rows in the room, and its checkpoint deletes
+  them in Convex. Run deletion and Campaign deletion delete index rows too.
+- **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter
+  commands write no Character receipts, and the Character history API is removed.
+
+A Run retains its exact Blueprint version and checksum,
 Campaign policy snapshots and ordered sides. Catalogue removal checks the initiative and optional-combat source
 pins held by PREPARED and ACTIVE Runs and rejects with the Run UUID. `encounterBlueprints` and
 `encounterBlueprintUpdates` store owned Blueprints (setup plus a receipt per update); creation checks the owned

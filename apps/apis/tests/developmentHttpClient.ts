@@ -27,15 +27,19 @@ import {
   type SceneFogPublishCommandInput,
   type SceneFogSaveProgress
 } from '@artificer-toolkit/schema/api/sceneFog'
-import type {
-  SceneCommandInputDto,
-  SceneCommandResultDto,
-  SceneTransientEnvelopeDto
+import {
+  encounterActorTokenBindingCommandInputDtoSchema,
+  type EncounterActorTokenBindingCommandInputDto,
+  type SceneCommandInputDto,
+  type SceneCommandResultDto,
+  type SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api } from '../convex/_generated/api.js'
 import { executeEncounterCommand } from './developmentClient'
+import { bindToken } from './developmentEncounterLifecycle'
 
+type RoomCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
 type RoomSocket = Pick<WebSocket, 'addEventListener' | 'close' | 'send'>
 type RoomSocketInit = { headers: { origin: string }; protocols: string[] }
 type SceneFogStagingMessage = Extract<
@@ -46,6 +50,11 @@ type SceneFogPatchCommand = Extract<SceneCommandInputDto, { type: 'PATCH_SCENE_F
 export type OpenRoomSocket = (url: string, init: RoomSocketInit) => RoomSocket
 /** The presented Scene a Scene command needs the room to hold, as the tabletop synchronizes it. */
 export type RoomScenePresentation = { expectedPresentationVersion: number }
+/** The Scene the room must hold, synchronized, before it accepts a command that reads it. */
+type RoomSceneSynchronization = RoomScenePresentation & {
+  sceneId: string
+  expectedSceneVersion: number
+}
 /**
  * A committed Scene command and the session sequence it carried, which an exact retry repeats. The
  * result is null when this member cannot see the change and the room sends only the version bump.
@@ -56,7 +65,10 @@ export type RoomSceneCommit = {
   expectedSessionSequence: number
 }
 export type CommandRoom = {
-  executeEncounter: (command: EncounterCommandInputDto) => Promise<EncounterCommandResultDto>
+  executeEncounter: (
+    command: RoomCommand,
+    synchronization?: RoomSceneSynchronization
+  ) => Promise<EncounterCommandResultDto>
   executeScene: (
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
     presentation: RoomScenePresentation,
@@ -69,6 +81,8 @@ export type CommandRoom = {
   ) => Promise<RoomSceneCommit>
   /** Resolves once the room has admitted this member and sent its first STATE_SYNC. */
   whenReady: () => Promise<void>
+  /** The Scene as the room last reported it to this socket, or null before it is synchronized. */
+  scene: () => { id: string; version: number } | null
   /** Holds the Encounter session subscription, re-sent after the room asks to authenticate again. */
   subscribeEncounterSession: (timeline: boolean) => void
   /** Sends one transient (a token drag preview), as the tabletop does during a drag. */
@@ -100,7 +114,8 @@ type PendingCommand = {
 } & (
   | {
       scope: 'ENCOUNTER'
-      command: EncounterCommandInputDto
+      command: RoomCommand
+      synchronization: RoomSceneSynchronization | null
       resolve: (result: EncounterCommandResultDto) => void
     }
   | {
@@ -166,6 +181,8 @@ export function openCommandRoom(options: {
   holdOpen?: boolean
   openSocket?: OpenRoomSocket
   onMessage?: (message: LiveSessionWebSocketServerMessageDto, receivedAt: number) => void
+  /** Each time the room asks this socket to authenticate again, and the failure that ends it. */
+  onEvent?: (event: string) => void
 }): CommandRoom {
   const pending = new Map<string, PendingCommand>()
   let socket: RoomSocket | null = null
@@ -188,6 +205,7 @@ export function openCommandRoom(options: {
   const fail = (error: Error) => {
     if (failure) return
     failure = error
+    options.onEvent?.(`ended: ${error.message}`)
     if (idleTimer) clearTimeout(idleTimer)
     for (const entry of pending.values()) {
       clearTimeout(entry.timer)
@@ -222,6 +240,30 @@ export function openCommandRoom(options: {
     if (!admitted || sequence === null) return
     for (const entry of pending.values()) {
       if (entry.sent) continue
+      const required =
+        entry.scope === 'ENCOUNTER'
+          ? entry.synchronization
+          : {
+              sceneId: entry.command.sceneId,
+              expectedSceneVersion: entry.command.expectedSceneVersion,
+              expectedPresentationVersion: entry.presentation.expectedPresentationVersion
+            }
+      if (
+        required &&
+        (roomScene?.id !== required.sceneId || roomScene.version < required.expectedSceneVersion)
+      ) {
+        const synchronization = `${required.sceneId}:${required.expectedSceneVersion}:${required.expectedPresentationVersion}`
+        if (requestedSynchronization !== synchronization) {
+          requestedSynchronization = synchronization
+          send({
+            type: 'SYNCHRONIZE_SCENE',
+            sceneId: required.sceneId,
+            version: required.expectedSceneVersion,
+            expectedPresentationVersion: required.expectedPresentationVersion
+          })
+        }
+        continue
+      }
       if (entry.scope === 'ENCOUNTER') {
         send({
           command: { command: entry.command, scope: 'ENCOUNTER' },
@@ -229,20 +271,6 @@ export function openCommandRoom(options: {
           type: 'COMMAND'
         })
         entry.sent = true
-        continue
-      }
-      const { sceneId, expectedSceneVersion } = entry.command
-      if (roomScene?.id !== sceneId || roomScene.version < expectedSceneVersion) {
-        const synchronization = `${sceneId}:${expectedSceneVersion}:${entry.presentation.expectedPresentationVersion}`
-        if (requestedSynchronization !== synchronization) {
-          requestedSynchronization = synchronization
-          send({
-            type: 'SYNCHRONIZE_SCENE',
-            sceneId,
-            version: expectedSceneVersion,
-            expectedPresentationVersion: entry.presentation.expectedPresentationVersion
-          })
-        }
         continue
       }
       if (entry.scope === 'FOG') {
@@ -279,6 +307,7 @@ export function openCommandRoom(options: {
     const message = parsed.data
     options.onMessage?.(message, receivedAt)
     if (message.type === 'AUTHENTICATION_REQUIRED') {
+      options.onEvent?.('challenged')
       // A command in flight when admission changes is dropped by the room; resend it after the next
       // STATE_SYNC. Its command ID makes a repeat an exact replay.
       admitted = false
@@ -444,6 +473,7 @@ export function openCommandRoom(options: {
 
   return {
     close,
+    scene: () => roomScene,
     whenReady: () =>
       failure
         ? Promise.reject(failure)
@@ -456,13 +486,14 @@ export function openCommandRoom(options: {
       if (synchronized) applyEncounterSubscription()
     },
     sendTransient: (envelope) => send({ envelope, type: 'TRANSIENT' }),
-    executeEncounter(command) {
+    executeEncounter(command, synchronization) {
       const refused = refusal(command.commandId)
       if (refused) return Promise.reject(refused)
       return new Promise((resolve, reject) =>
         track({
           scope: 'ENCOUNTER',
           command,
+          synchronization: synchronization ?? null,
           sent: false,
           resolve,
           reject,
@@ -537,6 +568,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   readonly #encounterCampaigns = new Map<string, string>()
   readonly #sceneCampaigns = new Map<string, string>()
   readonly #frameListeners = new Set<(frame: RoomFrame) => void>()
+  readonly #roomEvents = new Map<string, string[]>()
 
   // No `auth` option: the base constructor would call setAuth before this class's fields exist.
   // `holdRooms` keeps idle rooms connected, as a browser tab does, until `closeRooms`.
@@ -559,8 +591,13 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     mutation: Mutation,
     ...args: ArgsAndOptions<Mutation, HttpMutationOptions>
   ): Promise<FunctionReturnType<Mutation>> {
-    if (getFunctionName(mutation) !== getFunctionName(executeEncounterCommand))
-      return super.mutation(mutation, ...args)
+    const name = getFunctionName(mutation)
+    // A room-held Encounter refuses Convex-direct commands, including the GM's token bindings.
+    if (name === getFunctionName(bindToken))
+      return this.#executeTokenBinding(args[0] as { input: unknown }) as Promise<
+        FunctionReturnType<Mutation>
+      >
+    if (name !== getFunctionName(executeEncounterCommand)) return super.mutation(mutation, ...args)
     return this.#executeEncounterCommand(args[0]) as Promise<FunctionReturnType<Mutation>>
   }
 
@@ -625,6 +662,16 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     return () => this.#frameListeners.delete(listener)
   }
 
+  /** The Scene this client's room socket last held, from the room's own frames. */
+  roomScene(campaignId: string): { id: string; version: number } | null {
+    return this.#room(campaignId).scene()
+  }
+
+  /** What this client's room sockets for the Campaign were challenged with or ended by, in order. */
+  roomEvents(campaignId: string): readonly string[] {
+    return this.#roomEvents.get(campaignId) ?? []
+  }
+
   subscribeEncounterSession(campaignId: string, timeline: boolean) {
     this.#room(campaignId).subscribeEncounterSession(timeline)
   }
@@ -647,6 +694,22 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     return this.#room(await this.#encounterCampaign(command.encounterId)).executeEncounter(command)
   }
 
+  async #executeTokenBinding(args: { input: unknown }): Promise<EncounterCommandResultDto> {
+    const input = encounterActorTokenBindingCommandInputDtoSchema.parse(args.input)
+    const campaignId = await this.#encounterCampaign(input.encounterId)
+    // The room reads the binding's Scene from its synchronized presented Scene, as the GM's tabletop holds it.
+    const [header, presentation] = await Promise.all([
+      this.query(api.scenes.liveReads.header, { sceneId: input.sceneId }),
+      this.query(api.scenes.presentations.get, { campaignId })
+    ])
+    if (!presentation) throw new Error('The Campaign has no presented Scene to bind tokens on.')
+    return this.#room(campaignId).executeEncounter(input, {
+      sceneId: input.sceneId,
+      expectedSceneVersion: header.version,
+      expectedPresentationVersion: presentation.version
+    })
+  }
+
   #room(campaignId: string): CommandRoom {
     const existing = this.#rooms.get(campaignId)
     if (existing) return existing
@@ -661,6 +724,11 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
       holdOpen: this.#holdRooms,
       onMessage: (message, receivedAt) => {
         for (const listener of this.#frameListeners) listener({ campaignId, message, receivedAt })
+      },
+      onEvent: (event) => {
+        const events = this.#roomEvents.get(campaignId) ?? []
+        events.push(`${event} at ${Math.round(performance.now())} ms`)
+        this.#roomEvents.set(campaignId, events)
       },
       onClosed: () => {
         if (this.#rooms.get(campaignId) === room) this.#rooms.delete(campaignId)

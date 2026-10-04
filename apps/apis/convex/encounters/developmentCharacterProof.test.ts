@@ -68,7 +68,7 @@ it('runs the actual-backend Character/Encounter assertions against local transac
     characterId: character.id
   })
   expect(
-    await t.run((ctx) =>
+    await t.run(async (ctx) =>
       Promise.all([
         ctx.db.query('campaigns').collect(),
         ctx.db.query('campaignMemberships').collect(),
@@ -78,10 +78,7 @@ it('runs the actual-backend Character/Encounter assertions against local transac
         ctx.db.query('campaignSessionAttendance').collect(),
         ctx.db.query('encounterRuns').collect(),
         ctx.db.query('encounterRunActors').collect(),
-        ctx.db
-          .query('encounterRunCommands')
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+        ctx.db.query('encounterRunCommands').collect(),
         ctx.db
           .query('characterCommandReceipts')
           .collect()

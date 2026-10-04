@@ -889,7 +889,17 @@ async function executeCutoverWorkloadReaction(
         ? candidate.occurrenceId === issuedOccurrenceId
         : candidate.encounterVersion >= priorRunVersion),
     'the movement reaction decision'
-  )
+  ).catch((error: unknown) => {
+    const gmPending = gm.held?.state.pending
+    const members = [gm, ...aggregate.watches.players].map(
+      (watch) =>
+        `${watch.userId.slice(0, 8)} held version ${watch.held?.version ?? 'none'}, last frame at ${Math.round(watch.sessionMarks.at(-1)?.receivedAt ?? 0)} ms, room events [${watch.client.roomEvents(watch.campaignId).join('; ')}]`
+    )
+    throw new Error(
+      `${error instanceof Error ? error.message : String(error)} Mover result ${issued ? `${issued.occurrence?.status ?? 'no occurrence'} at version ${issued.version}` : 'withheld'}; GM sees ${gmPending ? `${gmPending.kind} at Run version ${gmPending.encounterVersion}` : 'no pending'} at session version ${gm.held?.version ?? 'none'}; Run version before the move ${priorRunVersion}. Members: ${members.join(' | ')}.`,
+      { cause: error }
+    )
+  })
   if (pending.kind !== 'MOVEMENT_REACTION')
     throw new Error('V15 workload movement did not create one reaction occurrence.')
   assert.equal(pending.choice.reactorActorId, reactorActorId)
@@ -1151,8 +1161,7 @@ async function watchCutoverAggregate(
   const join = (client: DevelopmentHttpClient, userId: string) =>
     RoomWatch.join(client, userId, {
       encounterId: aggregate.run.id,
-      sceneId: aggregate.sceneId,
-      sceneVersion: aggregate.sceneVersion
+      sceneId: aggregate.sceneId
     })
   const [gm, ...members] = await Promise.all([
     join(aggregate.gm, gmUserId),
@@ -1480,6 +1489,7 @@ export async function verifyEncounterCutoverWorkload({
     const outOfCombat = await measureOutOfCombat({
       control,
       aggregate: primary,
+      refreshAuth,
       browserAccounts,
       evidenceDirectory
     })
@@ -1522,22 +1532,26 @@ export async function verifyEncounterCutoverWorkload({
 async function measureOutOfCombat({
   control,
   aggregate,
+  refreshAuth,
   browserAccounts,
   evidenceDirectory
 }: {
   control: RoomControl
   aggregate: MeasuredAggregate
+  /** Re-issues every member's token, so the window outlasts the room's authorization lease. */
+  refreshAuth: () => Promise<void>
   browserAccounts?: Parameters<typeof verifyEncounterCutoverWorkload>[0]['browserAccounts']
   evidenceDirectory?: string
 }) {
   const { gm, players } = aggregate.watches
-  // Completing the Run unbinds its Scene, so token moves commit directly instead of staging.
+  // The Run has moved on since the last command this driver tracked, so complete it at the version
+  // the room holds. Its Scene bindings persist, but a completed Run no longer stages token moves.
   await gm.client.mutation(executeEncounterCommand, {
     command: {
       type: 'COMPLETE',
       encounterId: aggregate.run.id,
       commandId: crypto.randomUUID(),
-      expectedVersion: aggregate.run.version
+      expectedVersion: (await gm.run(0)).version
     }
   })
   await control.barrier(gm.campaignId)
@@ -1565,10 +1579,12 @@ async function measureOutOfCombat({
       })
     }
     const commandMs: number[] = []
+    await refreshAuth()
     const metersBefore = await readMeters(control, [aggregate])
     await gm.client.mutation(openMeasurementWindow, {})
     const startedAt = performance.now()
     for (let step = 0; step < steps; step++) {
+      if (step === Math.floor(steps / 2)) await refreshAuth()
       const stepStartedAt = performance.now()
       const mover = members[step % members.length]!
       const outbound = step % 2 === 0
@@ -1712,10 +1728,6 @@ export async function verifyEncounterReactionContention({
     )
     const stored = async () => ({
       run: await owner.query(api.encounters.projectionReads.get, { encounterId: aggregate.run.id }),
-      timeline: await owner.query(api.encounters.timelineReads.timeline, {
-        encounterId: aggregate.run.id,
-        limit: 100
-      }),
       pending: await owner.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: aggregate.run.id
       }),

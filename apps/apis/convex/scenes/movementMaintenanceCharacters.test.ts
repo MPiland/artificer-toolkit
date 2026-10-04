@@ -35,7 +35,7 @@ import {
   setupReactionMovementScene,
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementDecisionInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
@@ -291,15 +291,11 @@ async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
     characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
-    receipts: await readReceiptHeaders(
-      ctx,
-      'encounterRuleReceipts',
-      await ctx.db
+    receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+    receipts: await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.run.id))
-        .collect()
-    ),
+        .collect(),
     commands: await ctx.db.query('sceneLiveCommands').collect(),
     scenes: await ctx.db.query('sceneLiveStates').collect()
   }))
@@ -489,7 +485,7 @@ it('settles present and detached Character maintenance once per used automatic c
   expect(actorState).not.toHaveProperty('conditions')
   const receipt = after.receipts.find((row) => row.commandId === lastUse.commandId)
   expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
-  expect(after.characterReceipts.length - origin.characterReceipts.length).toBe(2)
+  expect(after.characterReceipts.length).toBe(origin.characterReceipts.length)
   const retry = await planMovementDecisionInRoom(value.owner.caller, lastUse)
   expect(await retry.publish()).toEqual({
     ...published,

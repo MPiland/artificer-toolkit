@@ -97,11 +97,7 @@ export async function readNativeEncounterCommandReplay(
         (receipt.occurrence.status !== 'COMPLETE' ||
           receipt.occurrence.pending !== null ||
           receipt.occurrence.outcome !== null)) ||
-      (prior.commandType === 'UPDATE_ACTOR' &&
-        (input.type !== 'UPDATE_ACTOR' ||
-          (input.characterCommand === undefined
-            ? prior.characterReceiptId !== null
-            : prior.characterReceiptId === null)))
+      (prior.commandType === 'UPDATE_ACTOR' && input.type !== 'UPDATE_ACTOR')
     )
       throw new Error('Stored Encounter command receipt mismatch.')
     if (prior.commandType === 'REPLACE_CREATURE_EQUIPMENT') {

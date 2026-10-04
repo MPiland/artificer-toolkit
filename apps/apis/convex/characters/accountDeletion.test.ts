@@ -184,12 +184,6 @@ describe('trusted private Character account cleanup', () => {
         )
       ).not.toBeNull()
       await expect(
-        base.player.caller.query(api.characters.history.list, {
-          id: base.character.id,
-          paginationOpts: { numItems: 10, cursor: null }
-        })
-      ).rejects.toThrow('Character history is unavailable for the current user.')
-      await expect(
         base.player.caller.mutation(api.characters.drafts.create, {
           id: base.character.id,
           systemId: base.character.systemId

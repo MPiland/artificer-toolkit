@@ -940,18 +940,9 @@ rules use the same transaction as described above. Active-effect rest expiry, cl
 transaction proofs remain pending. Native browser
 command routing is described below; it is not Campaign or complete P04 acceptance.
 
-`characters/history:list` reads the native receipt history in chronological `(occurredAt, id)` order.
-The shared `schema/api/characterHistory` contract accepts a requested count of 1..48 and returns
-at most one complete entry per page. A strict application cursor binds the authorized Character,
-actor and chronological index key; two bounded header lookaheads determine exhaustion while one
-ledger body is loaded. It excludes native `endCursor`/`id` and `usePaginatedQuery` rebalancing, whose
-reactive windows can exceed native scan limits. Restart from a null cursor to include insertions
-before a consumed key. The query
-authorizes the current owner and validates the stored Character, then shares receipt checksum and
-event/actor/time binding validation with command replay. History does not require current source
-availability or a ready Sheet, and completed-rest results remain unchanged. It exposes existing native
-receipts only: no synthetic Builder events, new event table or legacy-event import is implied. The
-transitional all-events endpoint and future Campaign/Encounter history integration remain separate.
+Sheet command receipts serve command replay only. The D70 Character history API (`characters/history:list`)
+was removed in A35-S10d because nothing in the browser read it, and Encounter commands no longer write
+Character receipts (ADR 0035 Amendment 22).
 
 The locally integrated [D71 cleanup](../adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30),
 recommended by Codex and approved by the user on 2026-09-30,

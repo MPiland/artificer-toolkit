@@ -1270,13 +1270,6 @@ try {
         if (index >= 0) characterFixtures.splice(index, 1)
       }
     }
-    await assert.rejects(
-      author.client.query(api.characters.history.list, {
-        id: characterId,
-        paginationOpts: { numItems: 1, cursor: null }
-      }),
-      /Authenticated user profile is missing/
-    )
     console.log(JSON.stringify({ receiptLedgers: proof }))
   } else if (process.argv.includes('--character-concurrency')) {
     const owner = await createAuthor()
@@ -3156,9 +3149,7 @@ try {
         owner.client.setAuth(await owner.fetchToken())
         player.client.setAuth(await player.fetchToken())
         let reactionAllowanceBefore: number | undefined
-        let reactionTimelineEntryCount: number | undefined
         let reactionRunVersion: number | undefined
-        let passageTimelineEntryCount: number | undefined
         let passageRunVersion: number | undefined
         const readFog = async (client: typeof owner.client) => {
           const header = await client.query(api.scenes.recipientReads.header, {
@@ -3209,7 +3200,7 @@ try {
           return { header, fogLayers }
         }
         const readMovementState = async () => {
-          const [ownerToken, playerToken, ownerFog, playerFog, run, timeline, character] =
+          const [ownerToken, playerToken, ownerFog, playerFog, run, character] =
             await Promise.all([
               readAuthoritativeSceneToken(owner.client, {
                 sceneId: fixture.scene.liveSceneId,
@@ -3224,10 +3215,6 @@ try {
               owner.client.query(api.encounters.projectionReads.get, {
                 encounterId: fixture.run.id
               }),
-              owner.client.query(api.encounters.timelineReads.timeline, {
-                encounterId: fixture.run.id,
-                limit: 50
-              }),
               player.client.query(api.characters.sheet.get, { id: characterId })
             ])
           return {
@@ -3236,7 +3223,6 @@ try {
             ownerFog,
             playerFog,
             run,
-            timeline,
             character
           }
         }
@@ -3358,7 +3344,7 @@ try {
             )
             if (stage === 'departed') {
               if (!completedMovement) throw new Error('Post-undo movement snapshot is unavailable.')
-              const [ownerToken, ownerFog, run, timeline] = await Promise.all([
+              const [ownerToken, ownerFog, run] = await Promise.all([
                 readAuthoritativeSceneToken(owner.client, {
                   sceneId: fixture.scene.liveSceneId,
                   tokenId: fixture.mover.tokenId
@@ -3367,15 +3353,10 @@ try {
                 owner.client.query(api.encounters.projectionReads.get, {
                   encounterId: fixture.run.id
                 }),
-                owner.client.query(api.encounters.timelineReads.timeline, {
-                  encounterId: fixture.run.id,
-                  limit: 50
-                })
               ])
               assert.deepEqual(ownerToken.token, completedMovement.ownerToken.token)
               assert.deepEqual(ownerFog.fogLayers, completedMovement.ownerFog.fogLayers)
               assert.deepEqual(run, completedMovement.run)
-              assert.deepEqual(timeline, completedMovement.timeline)
               await assert.rejects(() =>
                 player.client.query(api.scenes.recipientReads.header, {
                   sceneId: fixture.scene.liveSceneId
@@ -3456,45 +3437,19 @@ try {
                   'MOVEMENT_PASSAGE_CHOICE'
                 )
                 passageRunVersion = run.version
-                passageTimelineEntryCount = (
-                  await owner.client.query(api.encounters.timelineReads.timeline, {
-                    encounterId: fixture.run.id,
-                    limit: 50
-                  })
-                ).entries.length
               }
               if (stage === 'passage-initiator-resolved') {
                 assert.equal(occurrence?.kind, 'D20_EVIDENCE')
                 assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 0)
                 assert.equal(run.version, passageRunVersion)
-                assert.equal(
-                  (
-                    await owner.client.query(api.encounters.timelineReads.timeline, {
-                      encounterId: fixture.run.id,
-                      limit: 50
-                    })
-                  ).entries.length,
-                  passageTimelineEntryCount
-                )
               }
               if (stage === 'passage-resolved') {
                 assert.notEqual(passageRunVersion, undefined)
-                assert.notEqual(passageTimelineEntryCount, undefined)
                 assert.equal(occurrence?.kind, 'MOVEMENT_REACTION')
                 assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 1)
                 assert.equal(run.version, passageRunVersion! + 1)
-                assert.equal(
-                  (
-                    await owner.client.query(api.encounters.timelineReads.timeline, {
-                      encounterId: fixture.run.id,
-                      limit: 50
-                    })
-                  ).entries.length,
-                  passageTimelineEntryCount! + 1
-                )
                 reactionAllowanceBefore = reactionAllowanceUsed(run, fixture.reactor.actorId)
                 reactionRunVersion = run.version
-                reactionTimelineEntryCount = passageTimelineEntryCount! + 1
               }
               if (stage === 'reaction-issued') {
                 if (!occurrence || occurrence.kind !== 'MOVEMENT_REACTION')
@@ -3523,20 +3478,10 @@ try {
               ) {
                 assert.equal(reactionAllowanceBefore, 0)
                 assert.notEqual(reactionRunVersion, undefined)
-                assert.notEqual(reactionTimelineEntryCount, undefined)
                 assert.equal(occurrence, null)
                 assert.equal(actionAllowanceUsed(run, fixture.mover.actorId), 1)
                 assert.equal(reactionAllowanceUsed(run, fixture.reactor.actorId), 1)
                 assert.equal(run.version, reactionRunVersion! + 1)
-                assert.equal(
-                  (
-                    await owner.client.query(api.encounters.timelineReads.timeline, {
-                      encounterId: fixture.run.id,
-                      limit: 50
-                    })
-                  ).entries.length,
-                  reactionTimelineEntryCount! + 1
-                )
               }
               if (stage === 'reaction-issued') reactionIssuedMovement = await readMovementState()
               if (stage === 'reaction-resolved') completedMovement = await readMovementState()
@@ -3597,12 +3542,6 @@ try {
               if (stage === 'reaction-issued') {
                 reactionAllowanceBefore = reactionAllowanceUsed(run, fixture.reactor.actorId)
                 reactionRunVersion = run.version
-                reactionTimelineEntryCount = (
-                  await owner.client.query(api.encounters.timelineReads.timeline, {
-                    encounterId: fixture.run.id,
-                    limit: 50
-                  })
-                ).entries.length
               }
             }
             if (stage === 'reaction-resolved') {
@@ -3610,19 +3549,9 @@ try {
               assert.notDeepEqual(run, fixture.run, 'The selected reaction must advance the Run.')
               assert.equal(reactionAllowanceBefore, 0)
               assert.equal(reactionAllowanceUsed(run, fixture.reactor.actorId), 1)
-              if (reactionTimelineEntryCount === undefined)
-                throw new Error('Reaction timeline baseline is unavailable.')
               if (reactionRunVersion === undefined)
                 throw new Error('Reaction Run baseline is unavailable.')
               assert.equal(run.version, reactionRunVersion + 1)
-              const timeline = await owner.client.query(api.encounters.timelineReads.timeline, {
-                encounterId: fixture.run.id,
-                limit: 50
-              })
-              assert.equal(timeline.entries.length, reactionTimelineEntryCount + 1)
-              const terminal = timeline.entries.find((entry) => entry.version === run.version)
-              assert.ok(terminal)
-              assert.equal(terminal.commandType, 'RESOLVE_RULE_OCCURRENCE')
             }
             if (stage === 'reaction-issued') reactionIssuedMovement = await readMovementState()
             if (stage === 'reaction-resolved') completedMovement = await readMovementState()
@@ -3675,7 +3604,6 @@ try {
               )
             )
             assert.deepEqual(after.run, completedMovement.run)
-            assert.deepEqual(after.timeline, completedMovement.timeline)
             assert.deepEqual(after.character, completedMovement.character)
             completedMovement = after
           }
@@ -4960,7 +4888,6 @@ try {
     let historicalChat: unknown
     let historicalSession: unknown
     let historicalRun: unknown
-    let historicalTimeline: unknown
     let subjectRemovedFromCleanup = false
     const removeDeletedSubjectFromCleanup = () => {
       if (subjectRemovedFromCleanup) return
@@ -5044,10 +4971,6 @@ try {
             historicalRun = await fixture.auditor.client.query(api.encounters.projectionReads.get, {
               encounterId: fixture.ids.runId
             })
-            historicalTimeline = await fixture.auditor.client.query(
-              api.encounters.timelineReads.timeline,
-              { encounterId: fixture.ids.runId, limit: 100 }
-            )
             return
           }
           assert.ok(baseline)
@@ -5089,13 +5012,6 @@ try {
                 encounterId: fixture.ids.runId
               }),
               historicalRun
-            )
-            assert.deepEqual(
-              await fixture.auditor.client.query(api.encounters.timelineReads.timeline, {
-                encounterId: fixture.ids.runId,
-                limit: 100
-              }),
-              historicalTimeline
             )
             await assert.rejects(
               fixture.subject.client.query(api.account.identity, {}),

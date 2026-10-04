@@ -73,10 +73,7 @@ describe('native canonical Character repair state', () => {
       (await owner.caller.query(api.characters.drafts.get, { id: committed.publicId }))?.payload
         .character.label
     ).toBe('Repair in progress')
-    expect(
-      (await owner.caller.query(api.characters.history.list, { id: character.id, paginationOpts }))
-        .page
-    ).toHaveLength(1)
+    expect((await readState()).receipts).toHaveLength(1)
     expect(
       await other.caller.query(api.characters.builder.activeCharacter, { id: character.id })
     ).toBeNull()

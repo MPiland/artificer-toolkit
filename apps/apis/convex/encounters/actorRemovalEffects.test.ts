@@ -17,7 +17,8 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import {
   executeInRoom,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 import { readCharacterRow } from '../characters/stateDocuments'
@@ -105,15 +106,12 @@ describe('native actor maintained-effect cleanup', () => {
         currentHitPoints: fixture.actor.currentHitPoints
       })
       const result = await fixture.t.run(async (ctx) => {
-        const receipt = await ctx.db
+        const receipt = await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) =>
             q.eq('encounterId', state.id).eq('commandId', command.commandId)
           )
           .unique()
-          .then((header) =>
-            header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
-          )
         if (!receipt) throw new Error('Missing maintenance receipt')
         return maintenanceCompleteRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
       })

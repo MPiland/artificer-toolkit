@@ -82,21 +82,16 @@ async function checkpointFixture(label = 'Checkpoint reminder') {
   })
   const before = decodeCheckpointRecord('encounterRuns', run.stored)
   const after = decodeCheckpointRecord('encounterRuns', run.nextStored)
-  const replay = { roll: null, occurrence: null }
-  const receipt = decodeCheckpointRecord('encounterRunCommands', {
+  const history = { label }
+  const receipt = decodeCheckpointRecord('characterCommandReceipts', {
     id: crypto.randomUUID(),
-    campaignId: base.campaign.id,
-    encounterId: base.run.id,
+    characterId: base.character.id,
     commandId: crypto.randomUUID(),
+    actorId: base.player.userId,
     commandFingerprint: 'c'.repeat(64),
-    actorUserId: base.owner.userId,
-    createdAt: base.campaign.createdAt,
-    visibility: 'TABLE',
-    commandType: 'UPSERT_REMINDER',
-    version: run.nextStored.version,
-    commandJson: canonicalizeJson({ type: 'UPSERT_REMINDER', label }),
-    replayReceiptJson: canonicalizeJson(replay),
-    replayReceiptChecksum: checksumCanonicalJson(replay)
+    occurredAt: base.campaign.createdAt,
+    historyJson: canonicalizeJson(history),
+    historyChecksum: checksumCanonicalJson(history)
   })
   const records: LiveSessionCheckpointRecords = {
     scenes: [],
@@ -111,8 +106,8 @@ async function checkpointFixture(label = 'Checkpoint reminder') {
     ],
     history: [
       {
-        table: 'encounterRunCommands',
-        key: [base.campaign.id, String(receipt.commandId)],
+        table: 'characterCommandReceipts',
+        key: [base.character.id, String(receipt.commandId)],
         value: receipt,
         checksum: checksumCanonicalJson(receipt)
       }
@@ -185,7 +180,7 @@ function snapshot(base: Fixture) {
     authorities: await ctx.db.query('campaignLiveAuthorities').take(10),
     ledgers: await ctx.db.query('receiptLedgers').take(100),
     ledgerParts: await ctx.db.query('receiptLedgerParts').take(100),
-    headers: await ctx.db.query('encounterRunCommands').take(100),
+    headers: await ctx.db.query('characterCommandReceipts').take(100),
     uploads: await ctx.db.query('liveSessionCheckpointUploads').take(100),
     parts: await ctx.db.query('liveSessionCheckpointUploadParts').take(100),
     revisions: await ctx.db.query('sceneVisionRevisions').take(100),
@@ -407,10 +402,10 @@ it('rolls back publication, history, fence and staging deletions when the enclos
       ).toEqual([])
       expect(
         await ctx.db
-          .query('encounterRunCommands')
-          .withIndex('by_campaignId_commandId', (q) =>
+          .query('characterCommandReceipts')
+          .withIndex('by_characterId_commandId', (q) =>
             q
-              .eq('campaignId', base.campaign.id)
+              .eq('characterId', base.character.id)
               .eq('commandId', String(base.records.history[0]!.value.commandId))
           )
           .unique()

@@ -147,6 +147,23 @@ export const encounterActorTokenBindingSchema = lazySchema(() =>
   })
 )
 
+/**
+ * One row per Encounter command the room committed in a Run. It outlives the room's own history
+ * (ADR 0035 Amendment 22) so a retry after storage recovery is recognized: the command was applied
+ * at `version`, and its roll card (if any) is the persisted chat entry.
+ */
+export const encounterStoredReplayIndexSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: postgresUuidSchema,
+    encounterId: postgresUuidSchema,
+    commandId: postgresUuidSchema,
+    actorUserId: postgresUuidSchema,
+    commandFingerprint: projectionChecksumSchema,
+    version: z.number().check(z.int()).check(z.nonnegative()),
+    rollCardId: z.nullable(postgresUuidSchema)
+  })
+)
+
 const encounterStoredRunCommandBaseSchema = lazySchema(() =>
   z.strictObject({
     campaignId: postgresUuidSchema,
@@ -182,6 +199,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       commandType: z.enum([
         'UPSERT_REMINDER',
         'REMOVE_REMINDER',
+        'UPDATE_ACTOR',
         'SET_INITIATIVE',
         'ROLL_ACTOR_INITIATIVE',
         'ROLL_ENEMY_ACTION',
@@ -237,10 +255,6 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       /** The undone RESOLVE_ACTION or USE_BASIC_ACTION command, and the action's occurrence if any. */
       revertedCommandId: postgresUuidSchema,
       ruleOccurrenceId: z.nullable(postgresUuidSchema)
-    }),
-    z.extend(encounterStoredRunCommandResultSchema, {
-      commandType: z.literal('UPDATE_ACTOR'),
-      characterReceiptId: z.nullable(postgresUuidSchema)
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('REMOVE_ACTOR'),

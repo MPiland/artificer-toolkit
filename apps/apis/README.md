@@ -345,12 +345,7 @@ owner-only `characters/extraOptions:list` query while its drawer has a selected 
 existing 25-result search. The retired web HTTP Character facade is removed. Complete Builder journey
 proof, Campaign authority and managed proofs remain pending. See
 [native Sheet commands](../../docs/architecture/character.md#native-personal-sheet-commands--partial-local-implementation).
-`characters/history:list` exposes owner-only receipt history through bounded chronological
-application cursor pages. Each page hydrates one complete entry, using at most two indexed header
-lookaheads; native `endCursor` and `id` are excluded. Restarting from null includes insertions before
-a consumed key. It shares replay's stored-history validation and remains readable when current rules
-sources cannot render a Sheet; legacy/Campaign event integration remains pending. There is no existing
-Character receipt-history UI consumer; these backend pages do not establish browser journey evidence.
+Sheet command receipts serve replay only; the Character history API was removed (ADR 0035 Amendment 22).
 The approved ledger target packs each Character's private command receipts separately from shared
 Encounter receipts. Under [D71](../../docs/adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30),
 account/Character state and private receipt headers are deleted atomically with durable purge intent;

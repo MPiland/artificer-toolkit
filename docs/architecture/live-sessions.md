@@ -818,8 +818,8 @@ individual tokens or door states; Pixi retains unchanged graphics.
 While the room holds an Encounter the web reads it from the room, not Convex (see
 [Held Encounter session](#held-encounter-session)). The tabletop, the Encounter workspace, chat and the
 player decision prompt fall back to the Convex reads (`encounters/activeReads:active`,
-`projectionReads:pendingPrepared`, `timelineReads:timeline`, `activeReads:decisionSettlement`) only while
-the frame says `held: false`. Convex reads are reactive subscriptions; no Encounter read polls.
+`projectionReads:pendingPrepared`, `activeReads:decisionSettlement`) only while the frame says
+`held: false`. The timeline and latest evidence roll come only from the room (ADR 0035 Amendment 22). Convex reads are reactive subscriptions; no Encounter read polls.
 
 ## Security and limits
 

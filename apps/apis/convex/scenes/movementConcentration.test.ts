@@ -28,7 +28,8 @@ import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persi
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import {
@@ -176,15 +177,11 @@ async function records(value: MovementFixture) {
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
-    receipts: await readReceiptHeaders(
-      ctx,
-      'encounterRuleReceipts',
-      await ctx.db
+    receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+    receipts: await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-    ),
+        .collect(),
     sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))

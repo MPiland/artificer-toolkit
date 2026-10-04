@@ -50,7 +50,8 @@ export function CampaignChat({
   const currentMember = campaign.memberships.find((member) => member.userId === currentUserId)
   const assignedCharacter = currentMember?.assignedCharacter ?? null
   const conversations = useQuery(getCampaignConversations(campaign.id))
-  // The room's Run and timeline while it holds the Run; Convex's stored ones otherwise.
+  // The room's Run while it holds the Run; Convex's stored one otherwise. The timeline is the
+  // room's alone: with no room there is none to show.
   const storedSession = useQuery(
     convexQuery(
       convexApi.encounters.activeReads.active,
@@ -58,18 +59,6 @@ export function CampaignChat({
     )
   )
   const activeEncounter = (roomSession ? roomSession.state : storedSession.data)?.encounter
-  const roomTimeline = roomSession?.timeline ?? null
-  const storedTimeline = useQuery(
-    convexQuery(
-      convexApi.encounters.timelineReads.timeline,
-      rollView === 'ENCOUNTER' && activeEncounter && !roomTimeline
-        ? { encounterId: activeEncounter.id, limit: 50 }
-        : 'skip'
-    )
-  )
-  const encounterTimeline = roomTimeline
-    ? { data: roomTimeline, isError: false, isPending: false }
-    : storedTimeline
   const privateRolls = useQuery(getRollHistory(rollView === 'MINE'))
   const showRolls = rollView !== null
   const history = useCampaignChatHistory(
@@ -242,11 +231,9 @@ export function CampaignChat({
         conversationLabel={conversationLabel}
         currentUserId={currentUserId}
         directUserId={directUserId}
-        encounterEntries={encounterTimeline.data?.entries}
+        encounterEntries={roomSession?.timeline?.entries}
         entries={entries}
         hasNextPage={history.hasNextPage}
-        isEncounterTimelineError={encounterTimeline.isError}
-        isEncounterTimelinePending={encounterTimeline.isPending}
         isHistoryLoading={history.isLoading}
         isLoadingOlderMessages={history.isFetchingNextPage}
         isPrivateRollsError={privateRolls.isError}

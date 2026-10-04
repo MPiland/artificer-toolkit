@@ -327,10 +327,6 @@ export async function verifyEncounterLifecycle({
     projection
   )
   assert.deepEqual(await owner.mutation(api.encounters.runs.create, sameCreate), projection)
-  const timeline = await owner.query(api.encounters.timelineReads.timeline, {
-    encounterId: prepared.id,
-    limit: 100
-  })
   for (const receipt of receipts) {
     assert.deepEqual(await owner.mutation(executeEncounterCommand, { command: receipt.command }), {
       ...receipt.result,
@@ -352,13 +348,6 @@ export async function verifyEncounterLifecycle({
       command: { ...commandBase(), type: 'ADVANCE_TURN' }
     }),
     /Completed/
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: prepared.id,
-      limit: 100
-    }),
-    timeline
   )
   assert.deepEqual(await captureScenes(), originalScenes)
   assert.deepEqual(await owner.query(api.scenes.presentations.get, { campaignId }), presentation)

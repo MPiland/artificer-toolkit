@@ -161,32 +161,6 @@ export const prepare = untrackedInternalMutation({
       streamVersion: play.streamVersion + 1,
       updatedAt: now
     })
-    const entries = reminders.map((reminder, i) => {
-      const commandId = crypto.randomUUID()
-      const command = {
-        type: 'UPSERT_REMINDER',
-        encounterId: run.id,
-        expectedVersion: run.version + i,
-        commandId,
-        reminder
-      }
-      const replay = { roll: null, occurrence: null }
-      return history('encounterRunCommands', {
-        id: crypto.randomUUID(),
-        campaignId: scope.campaignId,
-        encounterId: run.id,
-        commandId,
-        commandFingerprint: checksumCanonicalJson(command),
-        actorUserId: scope.ownerUserId,
-        createdAt: now,
-        visibility: 'PRIVATE',
-        commandType: 'UPSERT_REMINDER',
-        version: run.version + i + 1,
-        commandJson: canonicalizeJson(command),
-        replayReceiptJson: canonicalizeJson(replay),
-        replayReceiptChecksum: checksumCanonicalJson(replay)
-      })
-    })
     const event = characterHistoryEntryDtoSchema.parse({
       eventId: crypto.randomUUID(),
       occurredAt: now,
@@ -194,7 +168,7 @@ export const prepare = untrackedInternalMutation({
       eventType: 'CHECKPOINT_PROOF',
       summary: 'Native checkpoint inspiration change'
     })
-    entries.push(
+    const entries = [
       history('characterCommandReceipts', {
         id: event.eventId,
         characterId: scope.characterId,
@@ -205,7 +179,7 @@ export const prepare = untrackedInternalMutation({
         historyJson: canonicalizeJson(event),
         historyChecksum: checksumCanonicalJson(event)
       })
-    )
+    ]
     const records = {
       changes: [
         {

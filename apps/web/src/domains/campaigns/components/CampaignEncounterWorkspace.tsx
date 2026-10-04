@@ -26,7 +26,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { healthDisplayLevelDtoSchema } from '@artificer-toolkit/schema/api/healthDisplay'
-import { getEncounterTimeline } from '#app/data/encounters/queries'
 import { useSystemList } from '#app/data/systems/useSystemList'
 import { AppSelect } from '#app/ui/primitives/Select'
 import * as sharedStyles from '../campaigns.css'
@@ -72,14 +71,10 @@ export function CampaignEncounterWorkspace({
   const [removeActorId, setRemoveActorId] = useState<string | null>(null)
   const [rulesetSystemId, setRulesetSystemId] = useState<string | null>(null)
   const [round, setRound] = useState(encounter.round)
-  const roomTimeline =
+  const timeline =
     live.encounterSession?.state.encounter?.id === encounter.id
       ? live.encounterSession.timeline
       : null
-  const storedTimeline = useQuery(getEncounterTimeline(roomTimeline ? null : encounter.id))
-  const timeline = roomTimeline
-    ? { data: roomTimeline, error: null, isPending: false }
-    : storedTimeline
   const needsExplicitSystem =
     encounter.status === 'PREPARED' && encounter.actors.every((actor) => actor.systemId === null)
   const systems = useSystemList(needsExplicitSystem && canManage)
@@ -504,11 +499,9 @@ export function CampaignEncounterWorkspace({
         <Accordion.Item value='history'>
           <Accordion.Control>Encounter history</Accordion.Control>
           <Accordion.Panel>
-            {timeline.isPending ? <Text c='dimmed'>Loading history…</Text> : null}
-            {timeline.error ? <Alert color='red'>History couldn’t be loaded.</Alert> : null}
-            {timeline.data?.entries.some((entry) => entry.roll === null) ? (
+            {timeline?.entries.some((entry) => entry.roll === null) ? (
               <Stack gap='xs'>
-                {timeline.data.entries
+                {timeline.entries
                   .filter((entry) => entry.roll === null)
                   .slice(0, 12)
                   .map((entry) => (
@@ -536,9 +529,9 @@ export function CampaignEncounterWorkspace({
                     </Group>
                   ))}
               </Stack>
-            ) : !timeline.isPending && !timeline.error ? (
+            ) : (
               <Text c='dimmed'>No Encounter changes recorded yet.</Text>
-            ) : null}
+            )}
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>

@@ -7,7 +7,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
@@ -36,16 +37,12 @@ it.each(['ROOT', 'RESPONSE'] as const)(
         characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
-        receipts: await readReceiptHeaders(
-          ctx,
-          'encounterRuleReceipts',
-          await ctx.db.query('encounterRuleReceipts').collect()
-        ),
+        receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
         scenes: await ctx.db.query('campaignScenes').collect(),
         liveStates: await ctx.db.query('sceneLiveStates').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
@@ -89,7 +86,7 @@ it.each(['ROOT', 'RESPONSE'] as const)(
     expect(
       after.characters.find((row) => row.id === value.base.character.id)?.play.streamVersion
     ).toBe(beforeCharacter.play.streamVersion + 1)
-    expect(after.characterReceipts.length).toBe(before.characterReceipts.length + 1)
+    expect(after.characterReceipts.length).toBe(before.characterReceipts.length)
     expect(after.runs.find((row) => row.id === value.base.run.id)?.version).toBe(
       beforeRun.version + 1
     )
@@ -116,13 +113,13 @@ it('replays player movement with the original private projection before and afte
   const initial = await move.publish()
   expect(initial.occurrence).toMatchObject({ status: 'PENDING', pending: null })
   const receipt = await value.owner.caller.run(async (ctx) => {
-    const header = await ctx.db
+    const header = await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', value.base.run.id).eq('commandId', rootInput.commandId)
       )
       .unique()
-    return header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null
+    return header
   })
   if (!receipt) throw new Error('Expected retained owner movement receipt.')
   const retained = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
@@ -153,16 +150,12 @@ it('replays player movement with the original private projection before and afte
       characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
       runs: await ctx.db.query('encounterRuns').collect(),
       actors: await ctx.db.query('encounterRunActors').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
-      receipts: await readReceiptHeaders(
-        ctx,
-        'encounterRuleReceipts',
-        await ctx.db.query('encounterRuleReceipts').collect()
-      ),
+      receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
       scenes: await ctx.db.query('campaignScenes').collect(),
       liveStates: await ctx.db.query('sceneLiveStates').collect(),
       entities: await ctx.db.query('sceneLiveEntities').collect(),

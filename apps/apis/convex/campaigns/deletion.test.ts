@@ -147,6 +147,7 @@ describe('native Campaign deletion', () => {
       'encounterRunActors',
       'encounterRunCommands',
       'encounterRuleReceipts',
+      'encounterReplayIndex',
       'encounterRuleOccurrences',
       'encounterInitiativeParticipants',
       'encounterInitiativeSides',

@@ -14285,63 +14285,6 @@ export declare const api: {
         }
       >;
     };
-    history: {
-      list: FunctionReference<
-        "query",
-        "public",
-        {
-          id: string;
-          paginationOpts: { cursor: string | null; numItems: number };
-        },
-        {
-          characterId: string;
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            actorId: string;
-            eventId: string;
-            eventType: string;
-            occurredAt: string;
-            result?: {
-              rest: {
-                companionRecoveries: Array<{
-                  companionInstanceId: string;
-                  recoveredHitDice: Array<{ count: number; die: number }>;
-                  recoveredResourceIds: Array<string>;
-                }>;
-                exhaustion: { after: number; before: number };
-                hitPoints: {
-                  currentAfter: number;
-                  currentBefore: number;
-                  healingApplied: number;
-                  temporaryAfter: number;
-                  temporaryBefore: number;
-                };
-                previewFingerprint: string;
-                recoveredHitDice: Array<{ count: number; die: number }>;
-                recoveredResourceIds: Array<string>;
-                recoveredSpellSlotKeys: Array<string>;
-                resetMaximumHitPointModifier: boolean;
-                restKind: "SHORT" | "LONG";
-                rollEvidence?: {
-                  expression: string;
-                  terms: Array<{
-                    count: number;
-                    die: number;
-                    modifierPerDie: number;
-                    rolls: Array<number>;
-                  }>;
-                  total: number;
-                };
-                spentHitDice: Array<{ count: number; die: number }>;
-              };
-              type: "COMPLETE_REST";
-            };
-            summary: string;
-          }>;
-        }
-      >;
-    };
     list: {
       list: FunctionReference<
         "query",
@@ -38848,24 +38791,6 @@ export declare const api: {
         { rolledBack: true }
       >;
     };
-    evidenceRolls: {
-      latest: FunctionReference<
-        "query",
-        "public",
-        { encounterId: string },
-        Array<{
-          attempt: number;
-          derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
-          faces: Array<number>;
-          occurrenceId: string;
-          occurrenceVersion: number;
-          requestId: string;
-          rollId: string;
-          rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
-          value: number;
-        }>
-      >;
-    };
     healthDisplay: {
       share: FunctionReference<
         "mutation",
@@ -40012,90 +39937,6 @@ export declare const api: {
           encounterVersion: number;
           sceneId: string;
         } | null
-      >;
-    };
-    timelineReads: {
-      timeline: FunctionReference<
-        "query",
-        "public",
-        { cursor?: string; encounterId: string; limit?: number },
-        {
-          entries: Array<{
-            actorUserId: string;
-            commandType: string;
-            createdAt: string;
-            id: string;
-            label: string | null;
-            roll: {
-              characterId: string | null;
-              characterLabel: string;
-              createdAt: string;
-              evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
-                modifier: number;
-                subtotal: number;
-                terms: Array<{
-                  count: number;
-                  die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
-                  keptRollIndex?: number;
-                  keptRollIndexes?: Array<number>;
-                  modifier?: number;
-                  rollSequences?: Array<Array<number>>;
-                  rolls: Array<number>;
-                  subtotal: number;
-                }>;
-                total: number;
-                transform:
-                  | { kind: "NONE" }
-                  | { kind: "HALF" }
-                  | { kind: "DOUBLE" }
-                  | { kind: "MULTIPLY"; value: number };
-              };
-              id: string;
-              normalizedExpression: string;
-              ruleCheck?: {
-                actorId: string;
-                actorLabel: string;
-                damage: { amount: number; typeLabel: string | null };
-                dc: number;
-                faces: Array<number>;
-                kind: "CONCENTRATION";
-                modifier: number;
-                outcome: "KEPT" | "LOST";
-                sourceLabel: string | null;
-                total: number;
-              };
-              ruleset: { code: string; systemId: string; version: string };
-              source: {
-                kind:
-                  | "MANUAL"
-                  | "ABILITY_CHECK"
-                  | "SAVING_THROW"
-                  | "SKILL_CHECK"
-                  | "INITIATIVE"
-                  | "ATTACK"
-                  | "DAMAGE"
-                  | "HEALING"
-                  | "HIT_DIE";
-                label: string;
-              };
-            } | null;
-            ruleOverrides: Array<{
-              code:
-                | "ACTION_ECONOMY_UNAVAILABLE"
-                | "RESOURCE_UNAVAILABLE"
-                | "SOURCE_NOT_EQUIPPED"
-                | "TARGET_DEFEATED"
-                | "TARGET_DISPOSITION"
-                | "TARGET_OUT_OF_RANGE"
-                | "TARGET_RANGE_UNCHECKED";
-              message: string;
-            }>;
-            version: number;
-            visibility: "PRIVATE" | "TABLE";
-          }>;
-          nextCursor: string | null;
-        }
       >;
     };
   };
@@ -46246,62 +46087,6 @@ export declare const internal: {
         "internal",
         { characterId: string; ordinal: number; userId: string },
         { headerExists: boolean; ledgerExists: boolean; partCount: number }
-      >;
-      keysetPage: FunctionReference<
-        "query",
-        "internal",
-        {
-          characterId: string;
-          paginationOpts: { cursor: string | null; numItems: number };
-          userId: string;
-        },
-        {
-          characterId: string;
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            actorId: string;
-            eventId: string;
-            eventType: string;
-            occurredAt: string;
-            result?: {
-              rest: {
-                companionRecoveries: Array<{
-                  companionInstanceId: string;
-                  recoveredHitDice: Array<{ count: number; die: number }>;
-                  recoveredResourceIds: Array<string>;
-                }>;
-                exhaustion: { after: number; before: number };
-                hitPoints: {
-                  currentAfter: number;
-                  currentBefore: number;
-                  healingApplied: number;
-                  temporaryAfter: number;
-                  temporaryBefore: number;
-                };
-                previewFingerprint: string;
-                recoveredHitDice: Array<{ count: number; die: number }>;
-                recoveredResourceIds: Array<string>;
-                recoveredSpellSlotKeys: Array<string>;
-                resetMaximumHitPointModifier: boolean;
-                restKind: "SHORT" | "LONG";
-                rollEvidence?: {
-                  expression: string;
-                  terms: Array<{
-                    count: number;
-                    die: number;
-                    modifierPerDie: number;
-                    rolls: Array<number>;
-                  }>;
-                  total: number;
-                };
-                spentHitDice: Array<{ count: number; die: number }>;
-              };
-              type: "COMPLETE_REST";
-            };
-            summary: string;
-          }>;
-        }
       >;
       nativeWindow: FunctionReference<
         "query",

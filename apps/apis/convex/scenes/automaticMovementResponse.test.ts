@@ -8,7 +8,8 @@ import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
   executeInRoom,
   planMovementDecisionInRoom,
-  planMovementInRoom
+  planMovementInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
@@ -31,8 +32,8 @@ it.each(['DECLINE', 'OPTION'] as const)(
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect(),
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         scenes: await ctx.db.query('campaignScenes').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
         sceneCommands: await ctx.db.query('sceneLiveCommands').collect()

@@ -10,7 +10,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
@@ -109,14 +109,13 @@ describe('a Character weapon critical hit in the room', () => {
     })
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect(faces).toEqual([])
-    const receipt = await base.t.run((ctx) =>
-      ctx.db
+    const receipt = await base.t.run(async (ctx) =>
+      (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) =>
           q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
         )
         .unique()
-        .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
     )
     if (!receipt) throw new Error('The Longsword receipt is missing.')
     const settled = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

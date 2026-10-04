@@ -29,7 +29,9 @@ import {
   setActorControllers,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom,
+  readTimelineInRoom
+} from '../../tests/fixtures/liveSessionWorker'
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 
@@ -43,9 +45,6 @@ const sessionState = makeFunctionReference<
   { campaignId: string },
   EncounterSessionStateDto
 >('encounters/activeReads:active')
-const timeline = makeFunctionReference<'query', { encounterId: string }, EncounterTimelineDto>(
-  'encounters/timelineReads:timeline'
-)
 const pendingRuleOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -203,7 +202,7 @@ describe('basic combat actions in the room (Q11)', () => {
     const companion = await actorState(base, base.companion.id)
     expect(encounterBasicActionEffects(companion)).toEqual([])
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
-    const { entries } = await base.owner.caller.query(timeline, { encounterId: base.run.id })
+    const { entries } = await readTimelineInRoom(base.owner.caller, base.run.id)
     expect(entries[0]).toMatchObject({ commandType: 'USE_BASIC_ACTION', label: 'Hide' })
   })
 
@@ -241,7 +240,7 @@ describe('basic combat actions in the room (Q11)', () => {
       })
     )
     expect(await budget()).toBe(walking! * 3)
-    const { entries } = await base.owner.caller.query(timeline, { encounterId: base.run.id })
+    const { entries } = await readTimelineInRoom(base.owner.caller, base.run.id)
     expect(entries[0]).toMatchObject({
       label: 'Dash',
       ruleOverrides: [expect.objectContaining({ code: 'ACTION_ECONOMY_UNAVAILABLE' })]
@@ -391,7 +390,7 @@ describe('basic combat actions in the room (Q11)', () => {
     const companion = await actorState(base, base.companion.id)
     expect(encounterBasicActionEffects(companion)).toEqual([])
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
-    const { entries } = await base.owner.caller.query(timeline, { encounterId: base.run.id })
+    const { entries } = await readTimelineInRoom(base.owner.caller, base.run.id)
     expect(entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION' })
     await expect(domainRejection(revertLastAction(base))).resolves.toMatchObject({
       reason: 'REVERT_UNAVAILABLE',

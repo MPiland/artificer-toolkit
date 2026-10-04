@@ -4371,7 +4371,7 @@ it('checkpoints the complete native Encounter prefix before acknowledging COMPLE
         version: 3,
         currentActorId: null
       })
-      expect(evidence.commands).toHaveLength(2)
+      expect(evidence.commands).toHaveLength(0)
       expect(evidence.writes).toHaveLength(2)
       expect(evidence.receipts).toHaveLength(2)
       expect(evidence.authority).toMatchObject({ sequence: 2, published_sequence: 0 })

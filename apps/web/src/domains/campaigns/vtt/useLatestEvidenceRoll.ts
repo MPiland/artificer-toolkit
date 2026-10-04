@@ -1,14 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
 import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type { EncounterEvidenceRollDto } from '@artificer-toolkit/schema/api/encounters'
-import { getEncounterLatestEvidenceRoll } from '#app/data/campaigns/encounterActions'
 import type { LiveSessionEncounterReadReply } from './liveSessionClient'
 import type { HeldEncounterSession } from './useCampaignLiveSession'
 import { useRoomEncounterRead } from './useRoomEncounterRead'
 
 /**
- * The viewer's latest "Roll dice" attempt for their pending request: the room's answer while it
- * holds the session, else Convex's.
+ * The viewer's latest "Roll dice" attempt for their pending request, from the room that holds the
+ * session; none without a room (the room keeps the Run's history, ADR 0035 Amendment 22).
  */
 export function useLatestEvidenceRoll({
   encounterId,
@@ -26,6 +24,5 @@ export function useLatestEvidenceRoll({
     select: (result) =>
       result.kind === 'LATEST_EVIDENCE_ROLLS' ? (result.result[0] ?? null) : undefined
   })
-  const stored = useQuery(getEncounterLatestEvidenceRoll(fromRoom.routed ? null : encounterId))
-  return (fromRoom.routed ? fromRoom.value : stored.data) ?? null
+  return fromRoom.routed ? (fromRoom.value ?? null) : null
 }

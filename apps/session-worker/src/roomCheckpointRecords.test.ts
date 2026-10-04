@@ -564,6 +564,50 @@ describe('room checkpoint records', () => {
     )
   })
 
+  it('emits no Encounter history: only the replay index and Character receipts leave the room', () => {
+    const base = {
+      campaignId: uuid(2),
+      encounterId,
+      commandFingerprint: sha256Hex('command'),
+      actorUserId: uuid(4)
+    }
+    const command: RoomDocument = {
+      table: 'encounterRunCommands',
+      id: 'room:command',
+      creationTime: 1,
+      fields: { ...base, commandId: uuid(0x400), createdAt: timestamp, commandType: 'CREATE' }
+    }
+    const ruleReceipt: RoomDocument = {
+      table: 'encounterRuleReceipts',
+      id: 'room:receipt',
+      creationTime: 2,
+      fields: {
+        ...base,
+        id: uuid(0x401),
+        commandId: uuid(0x402),
+        occurrenceId: uuid(0x403),
+        commandType: 'ADVANCE_TURN',
+        encounterVersion: 1,
+        commandMetadataJson: '{}',
+        resultJson: '{}',
+        resultChecksum: sha256Hex('result'),
+        correlationId: null,
+        createdAt: timestamp
+      }
+    }
+    const index: RoomDocument = {
+      table: 'encounterReplayIndex',
+      id: 'room:index',
+      creationTime: 3,
+      fields: { ...base, commandId: uuid(0x402), version: 1, rollCardId: null }
+    }
+    const result = build([], [[insert(command), insert(ruleReceipt), insert(index), insert(receipt(1))]])
+    expect(result.history.map(({ table }) => table)).toEqual(['characterCommandReceipts'])
+    expect(result.changes.map(({ table, key }) => [table, key])).toEqual([
+      ['encounterReplayIndex', [uuid(2), uuid(0x402)]]
+    ])
+  })
+
   it('folds repeated writes into a small decoded JSON delta with original public identities', () => {
     const document = actor()
     const original = structuredClone(document)

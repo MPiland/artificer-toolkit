@@ -23,7 +23,7 @@ import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/enco
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, replayInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 
 const recurringCreatureId = '00000000-0000-4000-8000-0000000008c0'
 const recurringFeatureId = '00000000-0000-4000-8000-0000000008c1'
@@ -265,11 +265,10 @@ async function stored(base: Awaited<ReturnType<typeof recurringFixture>>) {
         q.eq('encounterId', base.run.id)
       )
       .take(3),
-    receipts: await ctx.db
+    receipts: await (await readEncounterHistory(ctx))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(10)
-      .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
   }))
 }
 

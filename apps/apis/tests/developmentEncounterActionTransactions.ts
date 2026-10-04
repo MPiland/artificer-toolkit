@@ -193,26 +193,10 @@ export async function verifyEncounterActionTransactions({
   assert.equal(duplicateTarget.currentHitPoints, duplicateFixture.target.currentHitPoints - 1)
   assert.equal(duplicateFeature.resource.used, duplicateFixture.resource.used + 1)
   assert.equal(duplicateFeature.resource.remaining, duplicateFixture.resource.remaining - 1)
-  const duplicateTimeline = await owner.query(api.encounters.timelineReads.timeline, {
-    encounterId: duplicateFixture.run.id,
-    limit: 100
-  })
-  assert.equal(
-    duplicateTimeline.entries.filter((entry) => entry.commandType === 'RESOLVE_ACTION').length,
-    1,
-    'Concurrent duplicates may create only one action receipt.'
-  )
   assert.deepEqual(await owner.mutation(executeEncounterCommand, duplicateInput), duplicate[0])
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: duplicateFixture.run.id }),
     duplicateRun
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: duplicateFixture.run.id,
-      limit: 100
-    }),
-    duplicateTimeline
   )
   assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1)
   const winnerIndex = results.findIndex((result) => result.status === 'fulfilled')
@@ -235,15 +219,6 @@ export async function verifyEncounterActionTransactions({
   assert.equal(target.currentHitPoints, contentionFixture.target.currentHitPoints - 1)
   assert.equal(feature.resource.used, contentionFixture.resource.used + 1)
   assert.equal(feature.resource.remaining, contentionFixture.resource.remaining - 1)
-  const timeline = await owner.query(api.encounters.timelineReads.timeline, {
-    encounterId: contentionFixture.run.id,
-    limit: 100
-  })
-  assert.equal(
-    timeline.entries.filter((entry) => entry.commandType === 'RESOLVE_ACTION').length,
-    1,
-    'Only the winning action may create a receipt.'
-  )
   assert.deepEqual(
     await owner.mutation(executeEncounterCommand, contenders[winnerIndex]),
     winner.value
@@ -253,13 +228,6 @@ export async function verifyEncounterActionTransactions({
       encounterId: contentionFixture.run.id
     }),
     afterWinner
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: contentionFixture.run.id,
-      limit: 100
-    }),
-    timeline
   )
   const winnerCommand = contenders[winnerIndex]?.command
   if (!winnerCommand) throw new Error('V14 action contention winner input is unavailable.')
@@ -286,22 +254,8 @@ export async function verifyEncounterActionTransactions({
     afterWinner
   )
   assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: contentionFixture.run.id,
-      limit: 100
-    }),
-    timeline
-  )
-  assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: duplicateFixture.run.id }),
     duplicateRun
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.timelineReads.timeline, {
-      encounterId: duplicateFixture.run.id,
-      limit: 100
-    }),
-    duplicateTimeline
   )
   console.log('V14 native RESOLVE_ACTION contention, duplicate replay, and receipt checks passed.')
 }

@@ -1,4 +1,3 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
 import type { VoidRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -16,7 +15,9 @@ import { classifyRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persist
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  planMovementInRoom
+  planMovementInRoom,
+  readTimelineInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 0) }))
@@ -116,10 +117,7 @@ describe('GM void command', () => {
       ...before.commands.map((command) => command.commandType),
       'VOID_RULE_OCCURRENCE'
     ])
-    const timeline = await base.owner.caller.query(api.encounters.timelineReads.timeline, {
-      encounterId: base.run.id,
-      limit: 1
-    })
+    const timeline = await readTimelineInRoom(base.owner.caller, base.run.id)
     expect(timeline.entries[0]).toMatchObject({ commandType: 'VOID_RULE_OCCURRENCE' })
     // The void's retry replays its journaled result; a fresh void of the settled occurrence is stale.
     expect(await executeInRoom(base.owner.caller, input)).toEqual(voided)
@@ -148,10 +146,9 @@ describe('GM void command', () => {
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        commands: await ctx.db
+        commands: await (await readEncounterHistory(ctx))
           .query('encounterRunCommands')
           .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
       }))
     const before = await records()
 
@@ -198,12 +195,11 @@ describe('GM void command', () => {
       throw new Error('Expected an issued movement choice.')
 
     const commands = () =>
-      value.base.t.run((ctx) =>
-        ctx.db
+      value.base.t.run(async (ctx) =>
+        (await readEncounterHistory(ctx))
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (query) => query.eq('encounterId', value.base.run.id))
           .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
       )
     const before = await commands()
 
@@ -238,11 +234,10 @@ describe('GM void command', () => {
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (query) => query.eq('id', choice.occurrenceId))
         .unique(),
-      commands: await ctx.db
+      commands: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (query) => query.eq('encounterId', value.base.run.id))
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }))
     expect(stored.occurrence?.state).toBe('COMPLETED')
     expect(stored.commands.map((command) => command.commandType).slice(-1)).toEqual([

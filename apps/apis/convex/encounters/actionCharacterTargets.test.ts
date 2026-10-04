@@ -30,7 +30,7 @@ import { removeAccountPrivateCharacters } from '../characters/accountDeletion'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import * as rollRandom from '../lib/rollRandom'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { executeInRoom, replayInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, replayInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -305,20 +305,18 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
           .unique(),
-        ctx.db
+        (await readEncounterHistory(ctx))
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+          .collect(),
         ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
           .collect(),
-        ctx.db
+        (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers)),
+          .collect(),
         ctx.db
           .query('characterCommandReceipts')
           .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
@@ -420,7 +418,7 @@ describe('native Creature actions against Character targets', () => {
       )
     ).toBe(1)
     expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
-    expect(after.characterReceipts).toHaveLength(1)
+    expect(after.characterReceipts).toEqual([])
     const receipt = after.receipts.find((value) => value.commandId === input.commandId)
     if (!receipt) throw new Error('Missing Creature action receipt.')
     expect(JSON.parse(receipt.resultJson).applicationOutputs).toMatchObject({
@@ -436,7 +434,6 @@ describe('native Creature actions against Character targets', () => {
     })
     await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
     expect(await records(base)).toEqual(after)
-    expect(after.characterReceipts[0]).toMatchObject({ actorId: base.owner.userId })
     expect(base.owner.userId).not.toBe(base.player.userId)
     const tables = Object.keys(schema.tables) as TableNames[]
     const snapshot = () =>

@@ -34,7 +34,8 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   replayInRoom,
-  RoomCommandRefusal
+  RoomCommandRefusal,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -186,10 +187,9 @@ async function stored(t: Awaited<ReturnType<typeof setup>>['t'], encounterId: st
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run,
       actors,
-      receipts: await ctx.db
+      receipts: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
         .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }
   })
 }

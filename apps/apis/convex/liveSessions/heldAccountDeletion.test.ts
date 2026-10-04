@@ -4,7 +4,8 @@ import { playerControlFixture, setActorControllers } from '../../tests/fixtures/
 import {
   claimActiveLiveAuthority,
   executeInRoom,
-  reconcileDeparturesInRoom
+  reconcileDeparturesInRoom,
+  readTimelineInRoom
 } from '../../tests/fixtures/liveSessionWorker'
 import { api, internal } from '../_generated/api'
 
@@ -59,7 +60,7 @@ describe('account deletion with a Character held by a live room', () => {
         })
       ).entries.filter((entry) => entry.authorUserId === player.userId)
     const readTimeline = () =>
-      gm.caller.query(api.encounters.timelineReads.timeline, { encounterId: run.id, limit: 100 })
+      readTimelineInRoom(gm.caller, run.id)
     const chatBefore = await readChat()
     expect(chatBefore.some((entry) => entry.roll !== null)).toBe(true)
     expect(chatBefore.some((entry) => entry.body === 'Held table chat')).toBe(true)
@@ -124,15 +125,13 @@ describe('account deletion with a Character held by a live room', () => {
       held.actors.map((actor) => actor.id).filter((id) => id !== base.character.id)
     )
     expect(reconciled.holds).toEqual([])
-    // History is kept: the room only appends its own REMOVE_ACTOR command.
-    expect(reconciled.commands).toEqual(expect.arrayContaining(held.commands))
-    expect(reconciled.commands).toHaveLength(held.commands.length + 1)
-    expect(reconciled.commands).toContainEqual(
-      expect.objectContaining({ commandType: 'REMOVE_ACTOR', encounterId: run.id })
-    )
-    expect((await readTimeline()).entries).toContainEqual(
+    // History is kept in the room, which appends its own REMOVE_ACTOR command; Convex gains none.
+    expect(reconciled.commands).toEqual(held.commands)
+    const { entries } = await readTimeline()
+    expect(entries).toContainEqual(
       expect.objectContaining({ commandType: 'RESOLVE_ACTION', actorUserId: player.userId })
     )
+    expect(entries).toContainEqual(expect.objectContaining({ commandType: 'REMOVE_ACTOR' }))
     const chatAfter = await readChat()
     expect(chatAfter).toHaveLength(chatBefore.length)
     for (const entry of chatAfter)

@@ -1,6 +1,40 @@
 import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 import type { MutationCtx } from '../_generated/server'
 
+/**
+ * Deletes every Convex-held Encounter history header and replay-index row of one Run. After COMPLETE
+ * nothing of a Run's timeline remains (ADR 0035 Amendment 22).
+ */
+export async function removeEncounterRunTimeline(ctx: MutationCtx, encounterId: string) {
+  for (;;) {
+    const [commands, rules, evidence, index] = await Promise.all([
+      ctx.db
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+        .take(64),
+      ctx.db
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
+        .take(64),
+      ctx.db
+        .query('encounterEvidenceRolls')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+        .take(64),
+      ctx.db
+        .query('encounterReplayIndex')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+        .take(64)
+    ])
+    if (![commands, rules, evidence, index].some((rows) => rows.length)) return
+    await deleteReceiptHeaders(ctx, [
+      ...commands.map((header) => ({ table: 'encounterRunCommands' as const, header })),
+      ...rules.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),
+      ...evidence.map((header) => ({ table: 'encounterEvidenceRolls' as const, header }))
+    ])
+    for (const row of index) await ctx.db.delete(row._id)
+  }
+}
+
 /** Deletes one bounded page of a Run's child rows and reports whether none remained. */
 export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: string) {
   const groups = await Promise.all([
@@ -48,6 +82,10 @@ export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: 
       .query('encounterTurnMovements')
       .withIndex('by_encounterId_round_turnActorId_actorId', (q) => q.eq('encounterId', encounterId)
       )
+      .take(8),
+    ctx.db
+      .query('encounterReplayIndex')
+      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
       .take(8),
     ctx.db
       .query('encounterDecisionSkips')

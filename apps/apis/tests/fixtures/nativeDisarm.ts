@@ -65,7 +65,7 @@ import { importedSubject } from './publication'
 
 import { createDisarmCreature, createDisarmWeapon, disarmHeldEntryId } from './disarmCreature'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
-import { executeInRoom } from './liveSessionWorker'
+import { executeInRoom, readEncounterHistory } from './liveSessionWorker'
 export { disarmHeldEntryId, disarmOtherEntryId } from './disarmCreature'
 export const getNativeActionChoices = makeFunctionReference<
   'query',
@@ -346,6 +346,7 @@ export function disarmInRoom(
 
 export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
   return base.t.run(async (ctx) => {
+    const history = await readEncounterHistory(ctx, base.campaign.id)
     const occurrences = await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
@@ -365,22 +366,14 @@ export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarm
           readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
         )
       ),
-      receipts: await readReceiptHeaders(
-        ctx,
-        'encounterRuleReceipts',
-        await ctx.db
-          .query('encounterRuleReceipts')
-          .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-          .collect()
-      ),
-      commands: await readReceiptHeaders(
-        ctx,
-        'encounterRunCommands',
-        await ctx.db
-          .query('encounterRunCommands')
-          .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-          .collect()
-      ),
+      receipts: await history
+        .query('encounterRuleReceipts')
+        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+        .collect(),
+      commands: await history
+        .query('encounterRunCommands')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
+        .collect(),
       character: await readCharacterRow(ctx, base.character.id),
       characterReceipts: await readReceiptHeaders(
         ctx,

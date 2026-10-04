@@ -19,7 +19,7 @@ import {
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
@@ -152,14 +152,13 @@ type Fixture = Awaited<ReturnType<typeof setup>>
 
 /** The settled action's Character mechanics receipt. */
 async function settledBatch(base: Fixture) {
-  const receipt = await base.t.run((ctx) =>
-    ctx.db
+  const receipt = await base.t.run(async (ctx) =>
+    (await readEncounterHistory(ctx, base.campaign.id))
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
       )
       .unique()
-      .then((header) => (header ? readReceiptHeader(ctx, 'encounterRuleReceipts', header) : null))
   )
   if (!receipt) throw new Error('The SRD attack receipt is missing.')
   const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))

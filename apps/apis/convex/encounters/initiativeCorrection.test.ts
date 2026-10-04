@@ -29,7 +29,8 @@ import { encounterWriteTransaction } from './encounterPorts'
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom
+  replayInRoom,
+  readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -257,15 +258,13 @@ describe('native initiative corrections', () => {
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await ctx.db
+        commands: await (await readEncounterHistory(ctx))
           .query('encounterRunCommands')
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+          .collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        ruleReceipts: await ctx.db
+        ruleReceipts: await (await readEncounterHistory(ctx))
           .query('encounterRuleReceipts')
           .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'encounterRuleReceipts', headers))
       }))
     const beforeCorrection = await capture()
     const correction: EncounterExecuteInput = {
@@ -441,6 +440,9 @@ describe('native initiative corrections', () => {
       'already used for different input',
       'INVALID_COMMAND'
     )
+    const heldCommands = await base.t.run(async (ctx) =>
+      (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
+    )
     result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'COMPLETE',
@@ -464,13 +466,14 @@ describe('native initiative corrections', () => {
     const stored = await base.t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      commands: await ctx.db
+      commands: await (await readEncounterHistory(ctx))
         .query('encounterRunCommands')
-        .collect()
-        .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
+        .collect(),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect()
     }))
-    const corrections = stored.commands.filter((command) =>
+    // COMPLETE drops the Run's room-held history.
+    expect(stored.commands).toEqual([])
+    const corrections = heldCommands.filter((command) =>
       ['PREVIOUS_TURN', 'SET_CURRENT_ACTOR', 'SET_ROUND'].includes(command.commandType)
     )
     expect(corrections).toHaveLength(6)

@@ -36,14 +36,8 @@ const createRun = makeFunctionReference<
 const get = makeFunctionReference<'query', { encounterId: string }, unknown>(
   'encounters/projectionReads:get'
 )
-const timeline = makeFunctionReference<'query', { encounterId: string; limit: number }, unknown>(
-  'encounters/timelineReads:timeline'
-)
 const pending = makeFunctionReference<'query', { encounterId: string }, unknown>(
   'encounters/pendingReads:pendingRuleOccurrence'
-)
-const evidenceLatest = makeFunctionReference<'query', { encounterId: string }, unknown>(
-  'encounters/evidenceRolls:latest'
 )
 const decisionSettlement = makeFunctionReference<
   'query',
@@ -101,9 +95,6 @@ it('V12 current native reads redact hidden actors and deny outsider or departed 
   expect(owner.actors).toHaveLength(2)
   expect(JSON.stringify(player)).not.toContain('V12 secret')
   expect(JSON.stringify(player)).not.toContain(run.actors[1]!.id)
-  await expect(
-    base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
-  ).resolves.toEqual({ entries: [], nextCursor: null })
   await expect(base.other.caller.query(pending, { encounterId: run.id })).resolves.toBeNull()
   await expect(base.t.query(get, { encounterId: run.id })).rejects.toThrow('Unauthenticated')
   await base.t.run(async (ctx) => {
@@ -119,9 +110,6 @@ it('V12 current native reads redact hidden actors and deny outsider or departed 
   await expect(base.other.caller.query(get, { encounterId: run.id })).rejects.toThrow(
     'Campaign not found'
   )
-  await expect(
-    base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
-  ).rejects.toThrow('Campaign not found')
 }, 30000)
 
 it('D87 a player reads only the active Encounter; prepared, completed and foreign Runs are unavailable', async () => {
@@ -168,21 +156,16 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
   const readAll = (caller: typeof base.owner.caller, encounterId: string) =>
     Promise.all([
       caller.query(get, { encounterId }),
-      caller.query(timeline, { encounterId, limit: 20 }),
-      caller.query(pending, { encounterId }),
-      caller.query(evidenceLatest, { encounterId })
+      caller.query(pending, { encounterId })
     ])
   const unavailable = 'Encounter is unavailable.'
 
   // PREPARED: the GM reads it; a player cannot, through any read.
-  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(4)
-  for (const read of [get, pending, evidenceLatest])
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(2)
+  for (const read of [get, pending])
     await expect(base.other.caller.query(read, { encounterId: run.id })).rejects.toThrow(
       unavailable
     )
-  await expect(
-    base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
-  ).rejects.toThrow(unavailable)
   await expect(
     base.other.caller.query(decisionSettlement, {
       encounterId: run.id,
@@ -193,8 +176,8 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
 
   // ACTIVE: both read it, with the existing player redaction.
   await base.t.run((ctx) => activateFixtureRun(ctx, run.id))
-  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(4)
-  await expect(readAll(base.other.caller, run.id)).resolves.toHaveLength(4)
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(2)
+  await expect(readAll(base.other.caller, run.id)).resolves.toHaveLength(2)
 
   // COMPLETED: only the GM reads it.
   await base.t.run(async (ctx) => {
@@ -210,11 +193,8 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
       stateChecksum: checksumCanonicalJson(state)
     })
   })
-  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(4)
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(2)
   await expect(base.other.caller.query(get, { encounterId: run.id })).rejects.toThrow(unavailable)
-  await expect(
-    base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
-  ).rejects.toThrow(unavailable)
 
   // Another Campaign's Run is not readable by a GM who is not its member.
   await expect(base.owner.caller.query(get, { encounterId: foreign.id })).rejects.toThrow(

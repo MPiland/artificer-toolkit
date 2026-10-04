@@ -220,6 +220,13 @@ export const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTa
       )
   },
   {
+    table: 'encounterReplayIndex',
+    query: (ctx, encounterId) =>
+      ctx.db
+        .query('encounterReplayIndex')
+        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+  },
+  {
     table: 'encounterTurnMovements',
     query: (ctx, encounterId) =>
       ctx.db

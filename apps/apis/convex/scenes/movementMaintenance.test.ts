@@ -21,7 +21,7 @@ import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persis
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
-import { planMovementDecisionInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { planMovementDecisionInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { api } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
@@ -61,15 +61,11 @@ async function gameplay(base: MaintainedBase) {
       .collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await ctx.db.query('encounterRuleReceipts').collect(),
-    receipts: await readReceiptHeaders(
-      ctx,
-      'encounterRuleReceipts',
-      await ctx.db
+    receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+    receipts: await (await readEncounterHistory(ctx))
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-        .collect()
-    ),
+        .collect(),
     sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))
@@ -242,6 +238,7 @@ async function passageRecords(base: MaintainedBase, characterId: string) {
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', characterId))
       .collect()
+      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
   }))
 }
 

@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { authoredDraftListInputSchema, authoredDraftListPageSchema } from './authoredDrafts.js'
-import { characterHistoryEntryDtoSchema, characterHistoryInputSchema } from './characterHistory.js'
+import { characterHistoryEntryDtoSchema } from './characterHistory.js'
 
 export const developmentReceiptLedgerScopeSchema = lazySchema(() =>
   z.strictObject({
@@ -23,12 +23,6 @@ export const developmentReceiptLedgerSeedInputSchema = lazySchema(() =>
 export const developmentReceiptLedgerPageInputSchema = lazySchema(() =>
   z.extend(developmentReceiptLedgerScopeSchema, {
     paginationOpts: authoredDraftListInputSchema.shape.paginationOpts
-  })
-)
-
-export const developmentReceiptLedgerKeysetInputSchema = lazySchema(() =>
-  z.extend(developmentReceiptLedgerScopeSchema, {
-    paginationOpts: characterHistoryInputSchema.shape.paginationOpts
   })
 )
 

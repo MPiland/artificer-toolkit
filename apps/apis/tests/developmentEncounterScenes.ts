@@ -163,8 +163,9 @@ async function createMap({
   campaignId: string
   dimensions?: { height: number; width: number }
 }): Promise<string> {
+  // An account's identical upload is deduplicated to its first asset, so each map's content is unique.
   const map = await sharp({
-    create: { ...dimensions, channels: 3, background: '#3a6b44' }
+    create: { ...dimensions, channels: 3, background: `#${crypto.randomUUID().slice(0, 6)}` }
   })
     .png()
     .toBuffer()

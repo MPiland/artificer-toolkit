@@ -390,7 +390,7 @@ it('settles Character and Creature mechanics from native play with private recei
           before: { currentHitPoints: 8 },
           after: { currentHitPoints: 7 }
         })
-        expect(store.documents('characterCommandReceipts')).toHaveLength(1)
+        expect(store.documents('characterCommandReceipts')).toHaveLength(0)
         expect(creature.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
         expect(store.documents('characters')).toEqual(before.head)
         throw new Error('Caller command failed.')
@@ -406,10 +406,8 @@ it('settles Character and Creature mechanics from native play with private recei
       creature: await apply(transaction, creatureBatch)
     }))
     expect(committed.character.characterStreamVersion).toBe(nativePlay.streamVersion + 1)
-    expect(committed.character.characterReceiptId).not.toBeNull()
     expect(committed.character.updatedActor).toEqual(characterActor)
     expect(committed.creature.characterStreamVersion).toBeNull()
-    expect(committed.creature.characterReceiptId).toBeNull()
     expect(committed.creature.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
     expect(store.documents('characterPlayStates')[0]).toMatchObject({
       streamVersion: nativePlay.streamVersion + 1,
@@ -418,14 +416,8 @@ it('settles Character and Creature mechanics from native play with private recei
       updatedAt: characterBatch.occurredAt,
       state: { hitpoints: { current: 7 } }
     })
-    expect(store.documents('characterCommandReceipts')).toEqual([
-      expect.objectContaining({
-        id: committed.character.characterReceiptId,
-        characterId: owner.id,
-        commandId: characterBatch.commandId,
-        actorId: gmId
-      })
-    ])
+    // The Encounter keeps its own history: a Character stream advance leaves no Sheet receipt.
+    expect(store.documents('characterCommandReceipts')).toEqual([])
     expect(store.documents('characters')).toEqual(before.head)
     expect(store.records('ROOM_INPUT')).toEqual(before.records)
     expect(store.sequence).toBe(before.sequence + 1)

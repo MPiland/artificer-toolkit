@@ -1,10 +1,10 @@
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  liveSessionCheckpointHistoryEntrySchema,
-  liveSessionCheckpointHistoryKeyFields,
-  type LiveSessionCheckpointHistoryEntry,
-  type LiveSessionCheckpointHistoryTable
+  receiptLedgerEntrySchema,
+  receiptLedgerEntryKeyFields,
+  type ReceiptLedgerEntry,
+  type ReceiptLedgerEntryTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
   RECEIPT_LEDGER_MAX_BYTES,
@@ -58,12 +58,12 @@ function campaignIdentity(
 }
 
 function historyEntry(
-  table: LiveSessionCheckpointHistoryTable,
+  table: ReceiptLedgerEntryTable,
   value: Record<string, JsonValue>
-): LiveSessionCheckpointHistoryEntry {
-  return liveSessionCheckpointHistoryEntrySchema.parse({
+): ReceiptLedgerEntry {
+  return receiptLedgerEntrySchema.parse({
     table,
-    key: liveSessionCheckpointHistoryKeyFields[table].map((field) => value[field]),
+    key: receiptLedgerEntryKeyFields[table].map((field) => value[field]),
     value,
     checksum: checksumCanonicalJson(value)
   })
