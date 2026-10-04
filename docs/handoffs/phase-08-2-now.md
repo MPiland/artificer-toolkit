@@ -2,7 +2,7 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-03 (VS-8 in progress, mid-slice checkpoint).
+> Updated: 2026-10-03 (VS-8 in progress; D86 and D87 recorded; next is A35-S10a, with PLT-6 in parallel).
 
 ## Where we are
 
@@ -32,33 +32,42 @@
 
 ## Active slice: VS-8 (budgets in gates, full suites, V15)
 
-**Done this session**
-- `62cb9916d`: deleted the Convex Encounter command endpoint (a boundary test guards it) and fixed the baseline apis failures.
-- `e3dfcc9c5`, A35-S6d: the room pushes `ENCOUNTER_SESSION` (Run, pending, waiting-on, turn movement, opt-in timeline). The 5 s web polling is gone.
-- `e3dfcc9c5`, A35-S9 instrumentation:
-  - checkpoints carry a `reason` and return Convex transaction I/O;
-  - a room meter at `GET /internal/live-sessions/meter/<campaignId>` (dev, loopback only);
-  - `scripts/v15Budgets.mjs` (tested only on synthetic data so far).
-- A35-S6e (committed with this handoff): the room answers `ENCOUNTER_READ` for action choices, optional actions, evidence rolls and Scene binding. The Convex queries are thin wrappers over the same encounter-persistence readers.
-- **D85 (decided by the product owner):**
-  - Measure before changing any checkpoint cadence, payload or record shape. Remove only proven waste.
-  - Encounter history follows Foundry: chat and roll cards persist; the turn timeline need not outlive the Run.
-  - Losing up to one round on a rare DO storage loss is acceptable.
-- **TST-0 and TST-6 are done.** REL-5 is paused: V15 runs a9–a11 failed (a reactor player never got MOVEMENT_REACTION). The developmentHttpClient event recorder is uncommitted and not yet run.
-- **D86 (product owner):** write-behind flush; live views read the room. [ADR 0035 D86](../adr/0035-room-authoritative-live-encounters.md#d86-write-behind-state-flush-live-views-read-the-room--2026-10-03) and the [slice plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86).
-  - Order: A35-S10a → S10b → S10c → S10d, then REL-5 resumes and sets N.
-  - This supersedes item 6 below.
-- **D87 (product owner):** Campaign content is hidden from players until the GM reveals it. The audit is done; the fixes are VS-11 (queued after VS-8): PLT-6 read gates and Campaign Files removed, PLT-7 private and shared notes for everyone, PLT-8 Show to players. VS-11 touches no checkpoint code, so it may run alongside the D86 slices.
+**Done:**
+- the Convex command endpoint is deleted;
+- A35-S6d (room pushes `ENCOUNTER_SESSION`), A35-S6e (room answers `ENCOUNTER_READ`) and A35-S9 (checkpoint `reason` and I/O, the dev room meter at `GET /internal/live-sessions/meter/<campaignId>`, `scripts/v15Budgets.mjs`);
+- TST-0 and TST-6.
+
+REL-5 is paused: V15 runs a9–a11 failed (a reactor player never got MOVEMENT_REACTION).
+
+**Decided (product owner, [decisions log](phase-08-2-decisions.md)):**
+- **D85:** measure before reshaping checkpoints; the turn timeline need not outlive the Run; losing up to one round on a rare DO storage loss is acceptable.
+- **D86:** write-behind flush, and live views read the room ([ADR 0035 D86](../adr/0035-room-authoritative-live-encounters.md#d86-write-behind-state-flush-live-views-read-the-room--2026-10-03), [slice plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86)). Order: A35-S10a → S10d, then REL-5 sets N. This supersedes item 6 below.
+- **D87:** Campaign content is hidden from players until the GM reveals it. VS-11 is queued after VS-8:
+  - PLT-6: read gates, and Campaign Files removed;
+  - PLT-7: private and shared notes;
+  - PLT-8: Show to players.
+
+  VS-11 may run alongside the D86 slices.
 - **V15 session model (product owner):** 5-hour sessions, 4 fights of 8 rounds, 5 players and a GM, weekly play; assume 6 enemies and about 3 hours of combat. REL-5 measures one group and extrapolates; group counts are checked in testing.
 
-**Remaining, in order** (items 1–2 done; D86 slices come before item 3)
-1. **TST-0.** The baseline full suite passed all 2161 tests but exited 1: 2 teardown errors from leaked scheduled `contentSnapshots/actions:build` (scheduled by `contentSnapshots/marking.ts`, needs `MEDIA_STORAGE_MODE`). Fix that. Then:
-   - upgrade convex-test 0.0.56 → 0.0.60 and compare unshuffled plus seeds 101 and 202;
-   - extend the 60 s session fixtures (`tests/fixtures/characters.ts`, `publication.ts`);
-   - trial 2–3 workers.
+**Next session starts here**
+- **A35-S10a (delta-sized flushes):**
+  1. First, find what makes up today's ~250 KB per-checkpoint read floor (the meter and the checkpoint `reason` I/O from A35-S9).
+  2. Then brief Sonnet.
+  3. Escalate only if a part of the floor turns out to be needed for correctness.
+- **PLT-6 (in parallel):** a second Sonnet agent; its files don't overlap S10a's. Known leaks:
+  - `encounters/projectionReads.ts:44` (Campaign authority only, so any Encounter state);
+  - `encounters/runs.ts:133,166` (`public: true`);
+  - `campaigns/attachments.ts` `list` (membership only).
 
-   Baseline: `local-validation/vs8/apis-056-base2.json`.
-2. **TST-6.** Move the 4 package-owned pure tests (actionExecution, actionEffectBaseline, wieldConflict, occurrenceOwner) to `src/__tests__`. Add planner tests for movement Concentration, passage contests and reaction order.
+  Campaign Files removal touches `campaignAttachments` in `attachments.ts`, `attachmentDocuments.ts`, `notebooks.ts:161-168`, `deletionState.ts`, `developmentLifecycle.ts`, `developmentAccountDeletion.ts`, `lib/mutations.ts`, `media/{fileActions,assets,accountRetention.helper}.ts`, `encounters/developmentCampaign.ts`, `campaigns/schema.ts`, the media profiles `CAMPAIGN_FILE` and `CAMPAIGN_HANDOUT_MAP`, and the web `domains/campaigns/components/CampaignFiles/*`. Add VS-11 acceptance criteria to the ledger when briefing.
+- **Uncommitted, kept for REL-5:**
+  - the event recorder and driver changes in `apps/apis/tests/development{HttpClient,EncounterScenes,RoomMeasurement,EncounterCutover}.ts`;
+  - the second-owner test in `apps/session-worker/test/nativeLiveSessionRoom.test.ts`.
+
+  Commit them once run.
+
+**Remaining, in order** (TST-0 and TST-6 done; then S10a → S10d)
 3. **REL-5 (V15).** Rewrite `apps/apis/tests/developmentEncounterCutover.ts` for the room:
    - read room frames, not Convex;
    - put a checkpoint barrier before Convex checks;
