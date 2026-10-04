@@ -12,6 +12,7 @@ import { RoomEncounterStore } from './roomEncounterStore.js'
 import { buildRoomCheckpointRecords } from './roomCheckpointRecords.js'
 import { aggregate, command, encounterId, uuid } from './testing/roomAggregateFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { NO_CHECKPOINT_IO } from '../test/checkpointIoFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 
 const EPOCH = uuid(0x900)
@@ -43,8 +44,8 @@ function response(input: LiveSessionCheckpointInput): LiveSessionCheckpointRespo
       createdAt: '2026-09-30T00:00:00.000Z',
       updatedAt: '2026-09-30T00:00:00.000Z'
     },
-    authorization: roomAuthorizationResponse({ members: [] }),
-    io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
+    adopted: { characters: [] },
+    io: NO_CHECKPOINT_IO
   }
 }
 

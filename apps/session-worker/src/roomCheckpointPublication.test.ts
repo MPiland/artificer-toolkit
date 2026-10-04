@@ -17,6 +17,7 @@ import {
   decodeUtf8PayloadChunks,
   JSON_PAYLOAD_CHUNK_MAX_BYTES
 } from '@artificer-toolkit/shared/jsonPayloadChunks'
+import { NO_CHECKPOINT_IO } from '../test/checkpointIoFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
 
@@ -68,8 +69,14 @@ function response(input: LiveSessionCheckpointInput): LiveSessionCheckpointRespo
       createdAt: '2026-09-30T00:00:00.000Z',
       updatedAt: '2026-09-30T00:00:00.000Z'
     },
-    authorization: roomAuthorizationResponse({ members: [] }),
-    io: { bytesRead: 100, bytesWritten: 50, documentsRead: 4, documentsWritten: 2 }
+    adopted: { characters: [] },
+    io: {
+      ...NO_CHECKPOINT_IO,
+      bytesRead: 100,
+      bytesWritten: 50,
+      documentsRead: 4,
+      documentsWritten: 2
+    }
   }
 }
 
@@ -105,7 +112,7 @@ function mockRoutes(
 afterEach(() => vi.unstubAllGlobals())
 
 describe('room checkpoint publication', () => {
-  it('publishes a small checkpoint inline and returns current authorization', async () => {
+  it('publishes a small checkpoint inline and returns its response', async () => {
     const input = checkpoint()
     const { calls, expectedResponse } = mockRoutes(input)
     const result = await publishRoomCheckpoint(environment, input, 'RELOAD')
@@ -122,7 +129,7 @@ describe('room checkpoint publication', () => {
     })
   })
 
-  it('stages canonical UTF-8 records in order, then commits the same fence and authorization', async () => {
+  it('stages canonical UTF-8 records in order, then commits the same fence', async () => {
     const input = checkpoint('🎲'.repeat(JSON_PAYLOAD_CHUNK_MAX_BYTES / 2))
     const head = {
       sceneId: id(5),
@@ -169,7 +176,7 @@ describe('room checkpoint publication', () => {
       ]
     })
     input.payloadChecksum = checksumCanonicalJson(input.records)
-    input.knownAuthorization = response(input).authorization.revisions
+    input.knownAuthorization = roomAuthorizationResponse({ members: [] }).revisions
     const { calls } = mockRoutes(input)
     const published = await publishRoomCheckpoint(environment, input, 'ADMISSION')
 
@@ -239,11 +246,7 @@ describe('room checkpoint publication', () => {
       publishRoomCheckpoint(environment, { ...input, sequence: -1 }, 'DEADLINE')
     ).rejects.toThrow()
     await expect(
-      publishRoomCheckpoint(
-        environment,
-        { ...input, payloadChecksum: 'f'.repeat(64) },
-        'DEADLINE'
-      )
+      publishRoomCheckpoint(environment, { ...input, payloadChecksum: 'f'.repeat(64) }, 'DEADLINE')
     ).rejects.toThrow('checksum')
     await expect(
       publishRoomCheckpoint(

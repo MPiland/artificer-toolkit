@@ -1674,71 +1674,6 @@ export declare const api: {
         { ok: true }
       >;
     };
-    attachments: {
-      create: FunctionReference<
-        "mutation",
-        "public",
-        {
-          assetId: string;
-          campaignId: string;
-          description?: string | null;
-          displayName: string;
-          noteSectionId?: string | null;
-          sessionId?: string | null;
-        },
-        {
-          assetId: string;
-          campaignId: string;
-          createdAt: string;
-          description: string | null;
-          displayName: string;
-          id: string;
-          noteSectionId: string | null;
-          profile: "CAMPAIGN_FILE" | "CAMPAIGN_HANDOUT_MAP";
-          sessionId: string | null;
-          uploaderLabel: string;
-          uploaderUserId: string;
-        }
-      >;
-      list: FunctionReference<
-        "query",
-        "public",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            assetId: string;
-            campaignId: string;
-            createdAt: string;
-            description: string | null;
-            displayName: string;
-            id: string;
-            noteSectionId: string | null;
-            profile: "CAMPAIGN_FILE" | "CAMPAIGN_HANDOUT_MAP";
-            sessionId: string | null;
-            uploaderLabel: string;
-            uploaderUserId: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
-      remove: FunctionReference<
-        "mutation",
-        "public",
-        { attachmentId: string; campaignId: string },
-        { ok: true }
-      >;
-    };
     characterSheet: {
       basics: FunctionReference<
         "query",
@@ -41003,66 +40938,6 @@ export declare const api: {
         { assetId: string | null; revision: number }
       >;
     };
-    fileActions: {
-      finalize: FunctionReference<
-        "action",
-        "public",
-        { assetId: string },
-        {
-          assetId: string;
-          preview: {
-            altText: string | null;
-            assetId: string;
-            crop: {
-              height: number;
-              width: number;
-              x: number;
-              y: number;
-            } | null;
-            expiresAt: string;
-            height: number;
-            isDecorative: boolean;
-            mimeType: "image/jpeg" | "image/png" | "image/webp";
-            url: string;
-            variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            width: number;
-          } | null;
-          status:
-            "PENDING_UPLOAD" | "PROCESSING" | "READY" | "REJECTED" | "DELETED";
-        }
-      >;
-      getDelivery: FunctionReference<
-        "action",
-        "public",
-        { attachmentId: string; campaignId: string },
-        {
-          assetId: string;
-          byteSize: number;
-          expiresAt: string;
-          fileName: string;
-          mimeType: "image/jpeg" | "image/png" | "image/webp" | "text/plain";
-          url: string;
-        }
-      >;
-    };
-    fileAssets: {
-      createUpload: FunctionReference<
-        "mutation",
-        "public",
-        {
-          declaredBytes: number;
-          declaredMimeType:
-            "image/jpeg" | "image/png" | "image/webp" | "text/plain";
-          idempotencyKey: string;
-          originalFileName: string;
-          profile: "CAMPAIGN_FILE" | "CAMPAIGN_HANDOUT_MAP";
-          target:
-            | { campaignId: string; type: "CAMPAIGN_FILE" }
-            | { campaignId: string; type: "CAMPAIGN_HANDOUT_MAP" };
-        },
-        { assetId: string; expiresAt: string; method: "PUT"; url: string }
-      >;
-    };
     library: {
       attachImage: FunctionReference<
         "mutation",
@@ -41099,7 +40974,7 @@ export declare const api: {
             id?: number;
             numItems: number;
           };
-          profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP" | "VTT_MAP";
+          profileClass: "CONTENT_ART" | "VTT_MAP";
         },
         {
           continueCursor: string;
@@ -41109,8 +40984,7 @@ export declare const api: {
             createdAt: string;
             height: number | null;
             originalFileName: string;
-            profileClass:
-              "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP" | "VTT_MAP";
+            profileClass: "CONTENT_ART" | "VTT_MAP";
             width: number | null;
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
@@ -45419,20 +45293,6 @@ export declare const internal: {
     >;
   };
   campaigns: {
-    attachments: {
-      readDelivery: FunctionReference<
-        "query",
-        "internal",
-        { attachmentId: string; campaignId: string },
-        {
-          assetId: string;
-          byteSize: number;
-          fileName: string;
-          mimeType: "image/jpeg" | "image/png" | "image/webp" | "text/plain";
-          objectKey: string;
-        }
-      >;
-    };
     clockRecovery: {
       recover: FunctionReference<
         "mutation",
@@ -52921,6 +52781,10 @@ export declare const internal: {
         "internal",
         any,
         {
+          adopted: {
+            characters: Array<{ characterId: string; revision: string | null }>;
+            play?: string;
+          };
           authority: {
             activationExpiresAt?: number;
             activationFingerprint: string;
@@ -52943,63 +52807,61 @@ export declare const internal: {
             phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
             updatedAt: string;
           };
-          authorization: {
-            campaign?: {
-              assignments: Array<{ characterId: string; userId: string }>;
-              members: Array<{
-                membershipEpoch: string;
-                role: "OWNER" | "PLAYER";
-                userId: string;
-              }>;
-              ownerUserId: string;
-            };
-            characters: Array<{
-              characterId: string;
-              ownerUserId: string;
-              partyVisibility: {
-                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-                sheet: boolean;
-              };
-            }>;
-            play?: {
-              encounter: {
-                actors: Array<{
-                  controllerUserIds: Array<string>;
-                  healthDisplay:
-                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
-                  id: string;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  sourceId: string | null;
-                }>;
-                encounterId: string;
-                healthDisplayDefault:
-                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-                sceneId: string;
-                tokens: Array<{ actorId: string; tokenId: string }>;
-              } | null;
-            };
-            preferences?: Array<{
-              autoRollDice: boolean;
-              gmRollVisibility: "PUBLIC" | "PRIVATE";
-              userId: string;
-              username: string | null;
-            }>;
-            revisions: {
-              campaign: string | null;
-              characters: Array<{
-                characterId: string;
-                revision: string | null;
-              }>;
-              play: string | null;
-              preferences: string;
-              system: string | null;
-            };
-          };
           io: {
             bytesRead: number;
             bytesWritten: number;
             documentsRead: number;
             documentsWritten: number;
+            sections: {
+              fence: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              history: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              holds: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              privateRolls: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              records: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              remainder: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              scenes: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              scopes: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+            };
           };
           status: "COMMITTED" | "REPLAYED";
         }
@@ -53023,6 +52885,10 @@ export declare const internal: {
         "internal",
         any,
         {
+          adopted: {
+            characters: Array<{ characterId: string; revision: string | null }>;
+            play?: string;
+          };
           authority: {
             activationExpiresAt?: number;
             activationFingerprint: string;
@@ -53045,63 +52911,61 @@ export declare const internal: {
             phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
             updatedAt: string;
           };
-          authorization: {
-            campaign?: {
-              assignments: Array<{ characterId: string; userId: string }>;
-              members: Array<{
-                membershipEpoch: string;
-                role: "OWNER" | "PLAYER";
-                userId: string;
-              }>;
-              ownerUserId: string;
-            };
-            characters: Array<{
-              characterId: string;
-              ownerUserId: string;
-              partyVisibility: {
-                health: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-                sheet: boolean;
-              };
-            }>;
-            play?: {
-              encounter: {
-                actors: Array<{
-                  controllerUserIds: Array<string>;
-                  healthDisplay:
-                    "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
-                  id: string;
-                  kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                  sourceId: string | null;
-                }>;
-                encounterId: string;
-                healthDisplayDefault:
-                  "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
-                sceneId: string;
-                tokens: Array<{ actorId: string; tokenId: string }>;
-              } | null;
-            };
-            preferences?: Array<{
-              autoRollDice: boolean;
-              gmRollVisibility: "PUBLIC" | "PRIVATE";
-              userId: string;
-              username: string | null;
-            }>;
-            revisions: {
-              campaign: string | null;
-              characters: Array<{
-                characterId: string;
-                revision: string | null;
-              }>;
-              play: string | null;
-              preferences: string;
-              system: string | null;
-            };
-          };
           io: {
             bytesRead: number;
             bytesWritten: number;
             documentsRead: number;
             documentsWritten: number;
+            sections: {
+              fence: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              history: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              holds: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              privateRolls: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              records: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              remainder: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              scenes: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+              scopes: {
+                bytesRead: number;
+                bytesWritten: number;
+                documentsRead: number;
+                documentsWritten: number;
+              };
+            };
           };
           status: "COMMITTED" | "REPLAYED";
         }
@@ -53593,7 +53457,7 @@ export declare const internal: {
                 }>;
               } | null;
               ownerUserId: string;
-              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+              profileClass: "CONTENT_ART";
               rawObjectKey: string | null;
               status:
                 | "PENDING_UPLOAD"
@@ -53604,30 +53468,19 @@ export declare const internal: {
               storageAssetId: string;
               upload: {
                 declaredBytes: number;
-                declaredMimeType:
-                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+                declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
                 idempotencyKey: string;
                 originalFileName: string;
               };
               uploadExpiresAt: number;
-              variants: Array<
-                | {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  }
-                | {
-                    byteSize: number;
-                    height: null;
-                    kind: "SOURCE";
-                    mimeType: "text/plain";
-                    objectKey: string;
-                    width: null;
-                  }
-              >;
+              variants: Array<{
+                byteSize: number;
+                height: number;
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              }>;
             };
             kind: "PROCESS";
             operation: {
@@ -53795,7 +53648,7 @@ export declare const internal: {
               }>;
             } | null;
             ownerUserId: string;
-            profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+            profileClass: "CONTENT_ART";
             rawObjectKey: string | null;
             status:
               | "PENDING_UPLOAD"
@@ -53806,30 +53659,19 @@ export declare const internal: {
             storageAssetId: string;
             upload: {
               declaredBytes: number;
-              declaredMimeType:
-                "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+              declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
               idempotencyKey: string;
               originalFileName: string;
             };
             uploadExpiresAt: number;
-            variants: Array<
-              | {
-                  byteSize: number;
-                  height: number;
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  mimeType: "image/webp";
-                  objectKey: string;
-                  width: number;
-                }
-              | {
-                  byteSize: number;
-                  height: null;
-                  kind: "SOURCE";
-                  mimeType: "text/plain";
-                  objectKey: string;
-                  width: null;
-                }
-            >;
+            variants: Array<{
+              byteSize: number;
+              height: number;
+              kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+              mimeType: "image/webp";
+              objectKey: string;
+              width: number;
+            }>;
           };
           crop: { height: number; width: number; x: number; y: number } | null;
         }
@@ -53931,7 +53773,7 @@ export declare const internal: {
                 }>;
               } | null;
               ownerUserId: string;
-              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+              profileClass: "CONTENT_ART";
               rawObjectKey: string | null;
               status:
                 | "PENDING_UPLOAD"
@@ -53942,30 +53784,19 @@ export declare const internal: {
               storageAssetId: string;
               upload: {
                 declaredBytes: number;
-                declaredMimeType:
-                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+                declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
                 idempotencyKey: string;
                 originalFileName: string;
               };
               uploadExpiresAt: number;
-              variants: Array<
-                | {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  }
-                | {
-                    byteSize: number;
-                    height: null;
-                    kind: "SOURCE";
-                    mimeType: "text/plain";
-                    objectKey: string;
-                    width: null;
-                  }
-              >;
+              variants: Array<{
+                byteSize: number;
+                height: number;
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              }>;
             };
             kind: "PROCESS";
             operation: {
@@ -54110,7 +53941,7 @@ export declare const internal: {
               }>;
             } | null;
             ownerUserId: string;
-            profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+            profileClass: "CONTENT_ART";
             rawObjectKey: string | null;
             status:
               | "PENDING_UPLOAD"
@@ -54121,30 +53952,19 @@ export declare const internal: {
             storageAssetId: string;
             upload: {
               declaredBytes: number;
-              declaredMimeType:
-                "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+              declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
               idempotencyKey: string;
               originalFileName: string;
             };
             uploadExpiresAt: number;
-            variants: Array<
-              | {
-                  byteSize: number;
-                  height: number;
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  mimeType: "image/webp";
-                  objectKey: string;
-                  width: number;
-                }
-              | {
-                  byteSize: number;
-                  height: null;
-                  kind: "SOURCE";
-                  mimeType: "text/plain";
-                  objectKey: string;
-                  width: null;
-                }
-            >;
+            variants: Array<{
+              byteSize: number;
+              height: number;
+              kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+              mimeType: "image/webp";
+              objectKey: string;
+              width: number;
+            }>;
           };
           crop: { height: number; width: number; x: number; y: number } | null;
         } | null
@@ -54242,7 +54062,7 @@ export declare const internal: {
                 }>;
               } | null;
               ownerUserId: string;
-              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+              profileClass: "CONTENT_ART";
               rawObjectKey: string | null;
               status:
                 | "PENDING_UPLOAD"
@@ -54253,30 +54073,19 @@ export declare const internal: {
               storageAssetId: string;
               upload: {
                 declaredBytes: number;
-                declaredMimeType:
-                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+                declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
                 idempotencyKey: string;
                 originalFileName: string;
               };
               uploadExpiresAt: number;
-              variants: Array<
-                | {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  }
-                | {
-                    byteSize: number;
-                    height: null;
-                    kind: "SOURCE";
-                    mimeType: "text/plain";
-                    objectKey: string;
-                    width: null;
-                  }
-              >;
+              variants: Array<{
+                byteSize: number;
+                height: number;
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              }>;
             };
             kind: "PROCESS";
             operation: {
@@ -54412,7 +54221,7 @@ export declare const internal: {
               }>;
             } | null;
             ownerUserId: string;
-            profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
+            profileClass: "CONTENT_ART";
             rawObjectKey: string | null;
             status:
               | "PENDING_UPLOAD"
@@ -54423,30 +54232,19 @@ export declare const internal: {
             storageAssetId: string;
             upload: {
               declaredBytes: number;
-              declaredMimeType:
-                "image/jpeg" | "image/png" | "image/webp" | "text/plain";
+              declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
               idempotencyKey: string;
               originalFileName: string;
             };
             uploadExpiresAt: number;
-            variants: Array<
-              | {
-                  byteSize: number;
-                  height: number;
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  mimeType: "image/webp";
-                  objectKey: string;
-                  width: number;
-                }
-              | {
-                  byteSize: number;
-                  height: null;
-                  kind: "SOURCE";
-                  mimeType: "text/plain";
-                  objectKey: string;
-                  width: null;
-                }
-            >;
+            variants: Array<{
+              byteSize: number;
+              height: number;
+              kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+              mimeType: "image/webp";
+              objectKey: string;
+              width: number;
+            }>;
           };
           crop: { height: number; width: number; x: number; y: number } | null;
         } | null
@@ -54501,233 +54299,6 @@ export declare const internal: {
         "mutation",
         "internal",
         { assetId: string; objectKey: string },
-        null
-      >;
-    };
-    fileAssets: {
-      beginFinalize: FunctionReference<
-        "mutation",
-        "internal",
-        { assetId: string },
-        | {
-            kind: "CURRENT";
-            result: { assetId: string; preview: null; status: "READY" };
-          }
-        | {
-            asset: {
-              chargedBytes: number;
-              cleanupAt: number | null;
-              contentHash: string | null;
-              cropThumbnails: Array<{
-                crop: { height: number; width: number; x: number; y: number };
-                cropHash: string;
-                variant: {
-                  byteSize: number;
-                  height: number;
-                  kind: "THUMBNAIL";
-                  mimeType: "image/webp";
-                  objectKey: string;
-                  width: number;
-                };
-              }>;
-              id: string;
-              operation: {
-                binding:
-                  | {
-                      crop: {
-                        height: number;
-                        width: number;
-                        x: number;
-                        y: number;
-                      };
-                      expectedRevision: number;
-                      type: "ACCOUNT_AVATAR";
-                    }
-                  | {
-                      characterId: string;
-                      crop: {
-                        height: number;
-                        width: number;
-                        x: number;
-                        y: number;
-                      };
-                      expectedRevision: number;
-                      type: "CHARACTER_PORTRAIT";
-                    }
-                  | {
-                      crop: {
-                        height: number;
-                        width: number;
-                        x: number;
-                        y: number;
-                      };
-                      draftId: string;
-                      expectedRevision: number;
-                      subjectId: string;
-                      subjectKind:
-                        | "BACKGROUND"
-                        | "CLASS"
-                        | "CREATURE"
-                        | "EQUIPMENT"
-                        | "FEAT"
-                        | "RACE"
-                        | "SPELL"
-                        | "VEHICLE";
-                      type: "AUTHORED_IMAGE";
-                    }
-                  | null;
-                expiresAt: number;
-                id: string;
-                outputs: Array<{
-                  kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                  objectKey: string;
-                }>;
-              } | null;
-              ownerUserId: string;
-              profileClass: "CONTENT_ART" | "TEXT_FILE" | "HANDOUT_MAP";
-              rawObjectKey: string | null;
-              status:
-                | "PENDING_UPLOAD"
-                | "PROCESSING"
-                | "READY"
-                | "REJECTED"
-                | "DELETED";
-              storageAssetId: string;
-              upload: {
-                declaredBytes: number;
-                declaredMimeType:
-                  "image/jpeg" | "image/png" | "image/webp" | "text/plain";
-                idempotencyKey: string;
-                originalFileName: string;
-              };
-              uploadExpiresAt: number;
-              variants: Array<
-                | {
-                    byteSize: number;
-                    height: number;
-                    kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                    mimeType: "image/webp";
-                    objectKey: string;
-                    width: number;
-                  }
-                | {
-                    byteSize: number;
-                    height: null;
-                    kind: "SOURCE";
-                    mimeType: "text/plain";
-                    objectKey: string;
-                    width: null;
-                  }
-              >;
-            };
-            kind: "PROCESS";
-            operation: {
-              binding:
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedRevision: number;
-                    type: "ACCOUNT_AVATAR";
-                  }
-                | {
-                    characterId: string;
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    expectedRevision: number;
-                    type: "CHARACTER_PORTRAIT";
-                  }
-                | {
-                    crop: {
-                      height: number;
-                      width: number;
-                      x: number;
-                      y: number;
-                    };
-                    draftId: string;
-                    expectedRevision: number;
-                    subjectId: string;
-                    subjectKind:
-                      | "BACKGROUND"
-                      | "CLASS"
-                      | "CREATURE"
-                      | "EQUIPMENT"
-                      | "FEAT"
-                      | "RACE"
-                      | "SPELL"
-                      | "VEHICLE";
-                    type: "AUTHORED_IMAGE";
-                  }
-                | null;
-              expiresAt: number;
-              id: string;
-              outputs: Array<{
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                objectKey: string;
-              }>;
-            };
-          }
-      >;
-      finishFinalize: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          assetId: string;
-          contentHash: string;
-          operationId: string;
-          variants: Array<
-            | {
-                byteSize: number;
-                height: number;
-                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-                mimeType: "image/webp";
-                objectKey: string;
-                width: number;
-              }
-            | {
-                byteSize: number;
-                height: null;
-                kind: "SOURCE";
-                mimeType: "text/plain";
-                objectKey: string;
-                width: null;
-              }
-          >;
-        },
-        {
-          assetId: string;
-          preview: {
-            altText: string | null;
-            assetId: string;
-            crop: {
-              height: number;
-              width: number;
-              x: number;
-              y: number;
-            } | null;
-            expiresAt: string;
-            height: number;
-            isDecorative: boolean;
-            mimeType: "image/jpeg" | "image/png" | "image/webp";
-            url: string;
-            variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
-            width: number;
-          } | null;
-          status:
-            "PENDING_UPLOAD" | "PROCESSING" | "READY" | "REJECTED" | "DELETED";
-        }
-      >;
-      rejectFinalize: FunctionReference<
-        "mutation",
-        "internal",
-        { assetId: string; operationId: string },
         null
       >;
     };

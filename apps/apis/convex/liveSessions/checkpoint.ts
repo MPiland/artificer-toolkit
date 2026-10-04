@@ -3,6 +3,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4'
 import {
   liveSessionCheckpointRequestSchema,
   liveSessionCheckpointResponseSchema,
+  type LiveSessionCheckpointAdoption,
   type LiveSessionCheckpointRequest,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
@@ -11,12 +12,11 @@ import {
   LIVE_SESSION_CHECKPOINT_MAX_BYTES,
   type LiveSessionCheckpointFenceInput
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
-import type { LiveSessionRoomAuthorizationRevisions } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { MutationCtx } from '../_generated/server'
 import { untrackedInternalMutation, withSceneVisionTracking } from '../lib/mutations'
 import { commitCampaignLiveCheckpoint, presentCampaignLiveAuthority } from './authority'
+import { createCheckpointIoMeter, type CheckpointIoMeter } from './checkpointIo'
 import { applyCheckpointRecords } from './checkpointRecords'
-import { readRoomAuthorization } from './roomAuthorization'
 
 /** Mutable deltas, packed history, and the replay fence share the caller's native transaction. */
 export async function publishCheckpoint(
@@ -36,39 +36,35 @@ export async function publishCheckpoint(
     throw new Error('Live Session checkpoint payload exceeds its journal page bound.')
   if (checksumCanonicalJson(records) !== frame.payloadChecksum)
     throw new Error('Live Session checkpoint payload checksum does not match.')
-  return publishCheckpointFrame(rawCtx, frame, knownAuthorization, (ctx) =>
-    applyCheckpointRecords(ctx, frame, records)
+  return publishCheckpointFrame(rawCtx, frame, (ctx, io) =>
+    applyCheckpointRecords(ctx, frame, records, knownAuthorization, io)
   )
 }
 
-/** Inline and staged payloads share exactly the same publication and authorization transaction. */
+/**
+ * Inline and staged payloads share exactly the same publication transaction. The response carries
+ * no authorization: the room renews its lease with its own read (ADR 0035 Amendment 18).
+ */
 export async function publishCheckpointFrame(
   rawCtx: MutationCtx,
   frame: LiveSessionCheckpointFenceInput,
-  knownAuthorization: LiveSessionRoomAuthorizationRevisions | null,
-  apply: (ctx: MutationCtx) => Promise<void>
+  apply: (ctx: MutationCtx, io: CheckpointIoMeter) => Promise<LiveSessionCheckpointAdoption>
 ): Promise<LiveSessionCheckpointResponse> {
   // Refresh outside-view revisions without invalidating the room's own committed inputs.
   const ctx = withSceneVisionTracking(rawCtx)
-  const result = await commitCampaignLiveCheckpoint(ctx, frame, () => apply(ctx))
-  const authorization = await readRoomAuthorization(ctx, {
-    campaignId: frame.campaignId,
-    epoch: frame.epoch,
-    known: knownAuthorization
+  const io = createCheckpointIoMeter(rawCtx)
+  const result = await commitCampaignLiveCheckpoint(ctx, frame, async () => {
+    await io.mark('fence')
+    return apply(ctx, io)
   })
-  // Read last so the room meter sees the whole transaction (D85); the response itself is not metered.
-  const { bytesRead, bytesWritten, documentsRead, documentsWritten } =
-    await rawCtx.meta.getTransactionMetrics()
+  // The authority patch, or the whole replay check, belongs to the fence too.
+  await io.mark('fence')
+  // Measured last so the room meter sees the whole transaction (D85); the response is not metered.
   return liveSessionCheckpointResponseSchema.parse({
     status: result.status,
     authority: presentCampaignLiveAuthority(result.authority),
-    authorization,
-    io: {
-      bytesRead: bytesRead.used,
-      bytesWritten: bytesWritten.used,
-      documentsRead: documentsRead.used,
-      documentsWritten: documentsWritten.used
-    }
+    adopted: result.status === 'COMMITTED' ? result.applied : { characters: [] },
+    io: await io.finish()
   })
 }
 

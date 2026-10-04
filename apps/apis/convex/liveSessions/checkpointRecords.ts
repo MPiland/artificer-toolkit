@@ -29,10 +29,14 @@ import { readSpatialEffect } from '@artificer-toolkit/encounter-persistence/spat
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { applyJsonDelta } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { LiveSessionCheckpointAdoption } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import type { LiveSessionRoomAuthorizationRevisions } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createReceiptLedger } from '../lib/receiptLedgers'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import { readSceneVisionRevision } from '../scenes/visionFreshness'
+import type { CheckpointIoMeter } from './checkpointIo'
 import { applyCheckpointScenes } from './checkpointScenes'
 import { applyCheckpointPrivateRolls } from './checkpointPrivateRolls'
 import { reconcileCharacterHolds } from './characterHolds'
@@ -73,12 +77,53 @@ async function readCheckpointRecord<Table extends LiveSessionCheckpointTable>(
     .unique()
 }
 
-/** Scope and delta checks precede writes; final domain checks share their rollback boundary. */
+/**
+ * What a record contributes to Character holds (D74, D81): a Run's status, and whether a Character
+ * actor is still unfrozen for its Character. Holds reconcile only when a change alters this.
+ */
+function holdInput(
+  table: LiveSessionCheckpointTable,
+  record: Record<string, JsonValue> | null
+): string | null {
+  if (!record) return null
+  if (table === 'encounterRuns') return String(record.status)
+  if (table !== 'encounterRunActors') return null
+  const state = encounterRunActorStateSchema.parse(record.stateJson)
+  return state.kind === 'CHARACTER'
+    ? `${state.sourceId}:${state.frozenState ? 'frozen' : 'live'}`
+    : null
+}
+
+/** The scopes a checkpoint's own writes can bump and a room holds: PLAY and the delta Characters. */
+async function readOwnRevisions(
+  ctx: MutationCtx,
+  campaignId: string,
+  characterIds: ReadonlySet<string>
+) {
+  return {
+    play: await readSceneVisionRevision(ctx, 'PLAY', campaignId),
+    characters: await Promise.all(
+      [...characterIds].map(async (characterId) => ({
+        characterId,
+        revision: await readSceneVisionRevision(ctx, 'CHARACTER', characterId)
+      }))
+    )
+  }
+}
+
+/**
+ * Scope and delta checks precede writes; final domain checks share their rollback boundary. Every
+ * read is keyed by the delta, never by the Campaign's size (ADR 0035 Amendment 18). Returns the
+ * revisions the room may adopt as its own (see `liveSessionCheckpointAdoptionSchema`).
+ */
 export async function applyCheckpointRecords(
   ctx: MutationCtx,
   frame: { campaignId: string; epoch: string; checkpointId: string },
-  records: LiveSessionCheckpointRecords
-) {
+  records: LiveSessionCheckpointRecords,
+  known: LiveSessionRoomAuthorizationRevisions | null,
+  io: CheckpointIoMeter
+): Promise<LiveSessionCheckpointAdoption> {
+  const heldRuns = new Set<string>()
   const changes = new Map<string, LiveSessionCheckpointRecordChange>()
   const currentRows = new Map<string, Doc<LiveSessionCheckpointTable> | null>()
   const nextRows = new Map<string, Record<string, JsonValue> | null>()
@@ -119,32 +164,61 @@ export async function applyCheckpointRecords(
     // Encoding validates the complete stored shape, even though the eventual write is a patch.
     if (next) encodeCheckpointRecord(change.table, next)
     nextRows.set(identity, next)
+    if (holdInput(change.table, current) !== holdInput(change.table, next))
+      heldRuns.add(String(change.key[0]))
   }
+  await io.mark('records')
+  const knownCharacterIds = new Set(known?.characters.map(({ characterId }) => characterId))
+  const deltaCharacterIds = new Set<string>()
+  for (const [identity, change] of changes) {
+    if (change.table !== 'characterPlayStates' && change.table !== 'characterActiveRuleEffects')
+      continue
+    const scoped = nextRows.get(identity) ?? currentRows.get(identity)
+    const characterId = scoped && 'characterId' in scoped ? scoped.characterId : undefined
+    if (typeof characterId === 'string' && knownCharacterIds.has(characterId))
+      deltaCharacterIds.add(characterId)
+  }
+  // Read before any write: a scope the room already held at this revision may adopt our own bump.
+  const before = known ? await readOwnRevisions(ctx, frame.campaignId, deltaCharacterIds) : null
+  await io.mark('remainder')
 
-  const campaign = await ctx.db
-    .query('campaigns')
-    .withIndex('by_publicId', (q) => q.eq('id', frame.campaignId))
-    .unique()
-  if (!campaign) throw new Error('Campaign not found.')
-  const assignments = await ctx.db
-    .query('campaignCharacterAssignments')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', frame.campaignId))
-    .collect()
-  const assigned = new Map(assignments.map((row) => [row.characterId, row]))
-  const activeMembers = new Set(
-    (
-      await ctx.db
+  let campaign: Doc<'campaigns'> | null = null
+  const readCampaign = async () => {
+    campaign ??= await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', frame.campaignId))
+      .unique()
+    if (!campaign) throw new Error('Campaign not found.')
+    return campaign
+  }
+  const assignments = new Map<string, Doc<'campaignCharacterAssignments'> | null>()
+  const readAssignment = async (characterId: string) => {
+    if (!assignments.has(characterId)) {
+      const assignment = await ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+        .unique()
+      assignments.set(characterId, assignment?.campaignId === frame.campaignId ? assignment : null)
+    }
+    return assignments.get(characterId) ?? null
+  }
+  const activeMembers = new Map<string, boolean>()
+  const isActiveMember = async (userId: string) => {
+    if (!activeMembers.has(userId)) {
+      const membership = await ctx.db
         .query('campaignMemberships')
-        .withIndex('by_campaignId_status', (q) =>
-          q.eq('campaignId', frame.campaignId).eq('status', 'ACTIVE')
+        .withIndex('by_campaignId_userId', (q) =>
+          q.eq('campaignId', frame.campaignId).eq('userId', userId)
         )
-        .collect()
-    ).map((row) => row.userId)
-  )
-  const checkedEncounters = new Set<string>()
-  const checkedCharacters = new Map<string, string>()
+        .unique()
+      activeMembers.set(userId, membership?.status === 'ACTIVE')
+    }
+    return activeMembers.get(userId) === true
+  }
+  const checkedEncounters = new Map<string, { status: JsonValue }>()
   const requireEncounter = async (id: string) => {
-    if (checkedEncounters.has(id)) return
+    const checked = checkedEncounters.get(id)
+    if (checked) return checked
     const next = nextRows.get(`encounterRuns:${canonicalizeJson([id])}`)
     const run =
       next ??
@@ -152,35 +226,34 @@ export async function applyCheckpointRecords(
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', id))
         .unique())
-    if (!run || run.campaignId !== campaign.id || run.gameSystemId !== campaign.gameSystemId)
+    if (
+      !run ||
+      run.campaignId !== frame.campaignId ||
+      run.gameSystemId !== (await readCampaign()).gameSystemId
+    )
       throw new Error('Checkpoint Encounter belongs to another Campaign or System.')
-    checkedEncounters.add(id)
+    const encounter = { status: run.status }
+    checkedEncounters.set(id, encounter)
+    return encounter
   }
+  // Assignment fixes a Character's owner and System, and neither changes afterwards, so no
+  // Character document is read. A held Character's rows keep the owner they were created with.
+  const heldCharacters = new Set<string>()
   const requireCharacter = async (id: string, owner?: string) => {
-    let userId = checkedCharacters.get(id)
-    if (!userId) {
-      const assignment = assigned.get(id)
-      const character = await ctx.db
-        .query('characters')
-        .withIndex('by_publicId', (q) => q.eq('id', id))
-        .unique()
-      // A departed Character the room still holds keeps its play until the hold drops (D81).
-      const held =
-        !assignment &&
-        (await ctx.db
+    const assignment = await readAssignment(id)
+    // A departed Character the room still holds keeps its play until the hold drops (D81).
+    if (!assignment && !heldCharacters.has(id)) {
+      const held = (
+        await ctx.db
           .query('liveCharacterHolds')
           .withIndex('by_characterId', (q) => q.eq('characterId', id))
-          .collect()).some((hold) => hold.campaignId === campaign.id && hold.epoch === frame.epoch)
-      if (
-        !character ||
-        (assignment ? character.userId !== assignment.userId : !held) ||
-        character.systemId !== campaign.gameSystemId
-      )
-        throw new Error('Checkpoint Character is not held by this Campaign.')
-      userId = character.userId
-      checkedCharacters.set(id, userId)
+          .collect()
+      ).some((hold) => hold.campaignId === frame.campaignId && hold.epoch === frame.epoch)
+      if (!held) throw new Error('Checkpoint Character is not held by this Campaign.')
+      heldCharacters.add(id)
     }
-    if (owner && owner !== userId) throw new Error('Checkpoint Character owner does not match.')
+    if (owner && assignment && owner !== assignment.userId)
+      throw new Error('Checkpoint Character owner does not match.')
   }
   const readConversationRecord = async (
     table:
@@ -262,8 +335,11 @@ export async function applyCheckpointRecords(
   for (const [identity, change] of changes) {
     const row = currentRows.get(identity)
     const next = nextRows.get(identity)
-    if (row) await requireScope(change.table, row)
-    if (next) await requireScope(change.table, next)
+    if (row && 'campaignId' in row && row.campaignId !== frame.campaignId)
+      throw new Error('Checkpoint record belongs to another Campaign.')
+    // Ownership is immutable, so the changed row's relations are its current row's.
+    const scoped = next ?? row
+    if (scoped) await requireScope(change.table, scoped)
     if (!row && next && change.table === 'campaignConversations') {
       const conversation = campaignStoredConversationSchema.parse(next)
       const key = canonicalizeJson([
@@ -351,6 +427,9 @@ export async function applyCheckpointRecords(
     entries.push(entry)
     ledgers.set(scope, entries)
   }
+  await io.mark('scopes')
+  // The stored documents as written, validated below without rereading them.
+  const written = new Map<string, Doc<LiveSessionCheckpointTable>>()
   for (const [identity, change] of changes) {
     const row = currentRows.get(identity)
     const next = nextRows.get(identity)
@@ -369,14 +448,24 @@ export async function applyCheckpointRecords(
           .map((field) => [field, undefined])
       )
       await ctx.db.patch(_id, { ...changedFields(before, stored), ...removed })
-    } else await ctx.db.insert(change.table, stored)
+      written.set(identity, { ...stored, _id, _creationTime } as typeof row)
+    } else {
+      const _id = await ctx.db.insert(change.table, stored)
+      // Validators ignore system fields; the insert's creation time is not read back.
+      written.set(identity, {
+        ...stored,
+        _id,
+        _creationTime: Date.now()
+      } as Doc<typeof change.table>)
+    }
   }
+  await io.mark('records')
   const pendingOccurrences = new Set<string>()
-  for (const change of records.changes) {
-    const previous = currentRows.get(`${change.table}:${canonicalizeJson(change.key)}`)
+  for (const [identity, change] of changes) {
+    const previous = currentRows.get(identity)
     if (change.table === 'encounterPendingSnapshotParts' && previous)
       pendingOccurrences.add((previous as Doc<'encounterPendingSnapshotParts'>).occurrenceId)
-    const row = await readCheckpointRecord(ctx, change.table, change.key)
+    const row = written.get(identity)
     if (!row) continue
     // The table-selected native query and stored schema preserve these document correlations.
     switch (change.table) {
@@ -386,6 +475,7 @@ export async function applyCheckpointRecords(
         // A Campaign has one active Encounter, wherever it started.
         if (
           run.status === 'ACTIVE' &&
+          (previous as Doc<'encounterRuns'> | null | undefined)?.status !== 'ACTIVE' &&
           (
             await ctx.db
               .query('encounterRuns')
@@ -407,19 +497,17 @@ export async function applyCheckpointRecords(
           checksumCanonicalJson(state) !== actor.stateChecksum
         )
           throw new Error('Checkpoint actor state checksum or identity does not match.')
-        const run = await ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', state.encounterId))
-          .unique()
         // The room reconciles departures itself (D74); an open Run never names a departed
         // controller or an unfrozen Character the Campaign no longer assigns.
-        if (
-          run &&
-          run.status !== 'COMPLETED' &&
-          ((state.kind === 'CHARACTER' && !state.frozenState && !assigned.has(state.sourceId)) ||
-            state.controllerUserIds.some((id) => !activeMembers.has(id)))
-        )
-          throw new Error('Checkpoint actor names a departed controller or unassigned Character.')
+        if ((await requireEncounter(state.encounterId)).status !== 'COMPLETED') {
+          let departed =
+            state.kind === 'CHARACTER' &&
+            !state.frozenState &&
+            !(await readAssignment(state.sourceId))
+          for (const id of state.controllerUserIds) departed ||= !(await isActiveMember(id))
+          if (departed)
+            throw new Error('Checkpoint actor names a departed controller or unassigned Character.')
+        }
         break
       }
       case 'encounterActorProjectionFacts': {
@@ -474,7 +562,9 @@ export async function applyCheckpointRecords(
     }
     await readPendingSnapshot(store, occurrence)
   }
+  await io.mark('records')
   await applyCheckpointScenes(ctx, frame, records.scenes)
+  await io.mark('scenes')
   for (const [scope, entries] of ledgers) {
     const separator = scope.indexOf(':')
     await createReceiptLedger(
@@ -490,10 +580,28 @@ export async function applyCheckpointRecords(
       entries
     )
   }
+  await io.mark('history')
   await applyCheckpointPrivateRolls(ctx, frame, records.retainedRolls)
-  const heldRuns = new Set<string>()
-  for (const change of records.changes)
-    if (change.table === 'encounterRuns' || change.table === 'encounterRunActors')
-      heldRuns.add(String(change.key[0]))
+  await io.mark('privateRolls')
   if (heldRuns.size) await reconcileCharacterHolds(ctx, frame.campaignId, frame.epoch, heldRuns)
+  await io.mark('holds')
+  if (!known || !before) return { characters: [] }
+  const after = await readOwnRevisions(ctx, frame.campaignId, deltaCharacterIds)
+  await io.mark('remainder')
+  const knownCharacters = new Map(
+    known.characters.map((entry) => [entry.characterId, entry.revision])
+  )
+  const beforeCharacters = new Map(
+    before.characters.map((entry) => [entry.characterId, entry.revision])
+  )
+  return {
+    ...(after.play !== null && before.play === known.play && after.play !== before.play
+      ? { play: after.play }
+      : {}),
+    characters: after.characters.filter(
+      ({ characterId, revision }) =>
+        revision !== beforeCharacters.get(characterId) &&
+        knownCharacters.get(characterId) === beforeCharacters.get(characterId)
+    )
+  }
 }

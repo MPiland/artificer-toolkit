@@ -40,6 +40,7 @@ import {
 } from '../src/nativeLiveSessionState.js'
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 import {
   liveRoomInputsInputSchema,
   type LiveRoomInputsResponse
@@ -86,10 +87,7 @@ import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
 
-function checkpointResponse(
-  body: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>,
-  members: Parameters<typeof roomAuthorizationResponse>[0]['members']
-) {
+function checkpointResponse(body: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>) {
   const now = new Date().toISOString()
   return {
     status: 'COMMITTED',
@@ -103,8 +101,8 @@ function checkpointResponse(
       phase: 'DO_ACTIVE',
       updatedAt: now
     },
-    authorization: roomAuthorizationResponse({ members }),
-    io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
+    adopted: { characters: [] },
+    io: NO_CHECKPOINT_IO
   }
 }
 
@@ -401,7 +399,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       if (pathname === '/live-sessions/checkpoint') {
         const body = liveSessionCheckpointRequestSchema.parse(await request.json())
         persisted = { sequence: body.sequence, checksum: body.checksum }
-        return Response.json(checkpointResponse(body, authorization.members))
+        return Response.json(checkpointResponse(body))
       }
       if (pathname === ROOM_AUTHORIZATION_PATH) {
         expect(request.headers.get('authorization')).toBeNull()
@@ -545,6 +543,30 @@ async function connectPlayer(base: Awaited<ReturnType<typeof fixture>>) {
   await vi.waitFor(() =>
     expect(messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
   )
+  return { messages, socket }
+}
+
+/** A second socket for the Campaign owner, opened but not yet authenticated. */
+async function connectOwnerPeer(base: Awaited<ReturnType<typeof fixture>>) {
+  const response = await base.stub.fetch(
+    base.request(
+      await signTicket({
+        authorityEpoch: base.authorityEpoch,
+        campaignId: base.capture.campaignId,
+        issuedAt: base.issuedAt,
+        role: 'OWNER',
+        subject: base.userId
+      })
+    )
+  )
+  const socket = response.webSocket
+  if (!socket) throw new Error('Missing peer native test WebSocket.')
+  sockets.push(socket)
+  const messages: LiveSessionWebSocketServerMessageDto[] = []
+  socket.addEventListener('message', (event) => {
+    messages.push(liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(event.data))))
+  })
+  socket.accept()
   return { messages, socket }
 }
 
@@ -723,7 +745,7 @@ it.each([0, 600])(
         publishStarted = true
         await new Promise((resolve) => setTimeout(resolve, 250))
         publishFinished = true
-        return Response.json(checkpointResponse(body, base.authorization.members))
+        return Response.json(checkpointResponse(body))
       })
     })
 
@@ -915,7 +937,7 @@ it.each([false, true])(
           }
           storedScenes.set(result.sceneId, next)
           if (base.capture.presentation?.sceneId === result.sceneId) setCapturedScene(next)
-          return Response.json(checkpointResponse(body, base.authorization.members))
+          return Response.json(checkpointResponse(body))
         }
         if (pathname === '/live-sessions/present') {
           const body = liveSessionPresentationCommitInputSchema.parse(await request.json())
@@ -1223,7 +1245,7 @@ it('keeps the new presentation fence when an older authentication capture finish
         publications.push(body)
         expect(base.capture.presentation?.version).toBe(2)
         expect(body.records.scenes[0]?.presentationVersion).toBe(2)
-        return Response.json(checkpointResponse(body, base.authorization.members))
+        return Response.json(checkpointResponse(body))
       }
       return originalFetch(input, init)
     })
@@ -1350,7 +1372,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
       })
       await new Promise((resolve) => setTimeout(resolve, 250))
       publishFinished += 1
-      return Response.json(checkpointResponse(body, base.authorization.members))
+      return Response.json(checkpointResponse(body))
     })
   })
 
@@ -1616,7 +1638,7 @@ it('commits and replays writes to two Campaign rooms concurrently', async () => 
       publications.push(body)
       const owner = bases.find((base) => base.capture.campaignId === body.campaignId)
       if (!owner) throw new Error('Unexpected checkpoint Campaign.')
-      return Response.json(checkpointResponse(body, owner.authorization.members))
+      return Response.json(checkpointResponse(body))
     })
   })
 
@@ -2136,7 +2158,7 @@ it('recovers a native Scene commit whose acknowledgement was lost and retries wi
       base.rawScene.current = moved
       if (!base.capture.sceneHeader) throw new Error('Missing published recovery Scene header.')
       base.capture.sceneHeader = { ...base.capture.sceneHeader, version: moved.version }
-      return Response.json(checkpointResponse(checkpoint, base.authorization.members))
+      return Response.json(checkpointResponse(checkpoint))
     }
     if (pathname === '/live-sessions/bootstrap')
       return Response.json({
@@ -3246,31 +3268,7 @@ it('extends drag paths around walls and keeps the sequence of a rejected sample'
 
 it('admits concurrent authentication independently for each native socket', async () => {
   const base = await fixture()
-  const ticket = await new SignJWT({
-    authorityEpoch: base.authorityEpoch,
-    campaignId: base.capture.campaignId,
-    role: 'OWNER',
-    v: LIVE_SESSION_TICKET_VERSION
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuer(LIVE_SESSION_TICKET_ISSUER)
-    .setAudience(LIVE_SESSION_TICKET_AUDIENCE)
-    .setSubject(base.userId)
-    .setJti(crypto.randomUUID())
-    .setIssuedAt(base.issuedAt)
-    .setExpirationTime(base.issuedAt + 60)
-    .sign(new TextEncoder().encode(secret))
-  const response = await base.stub.fetch(base.request(ticket))
-  const peer = response.webSocket
-  if (!peer) throw new Error('Missing peer native test WebSocket.')
-  sockets.push(peer)
-  const peerMessages: LiveSessionWebSocketServerMessageDto[] = []
-  peer.addEventListener('message', (event) => {
-    peerMessages.push(
-      liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(event.data)))
-    )
-  })
-  peer.accept()
+  const { messages: peerMessages, socket: peer } = await connectOwnerPeer(base)
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
   peer.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
   await vi.waitFor(() => {
@@ -3860,7 +3858,7 @@ it('commits warm native reminders, round, initiative, health display, and actor 
     if (pathname !== '/live-sessions/checkpoint') return undefined
     const checkpoint = liveSessionCheckpointRequestSchema.parse(await request.json())
     checkpoints.push(checkpoint)
-    return Response.json(checkpointResponse(checkpoint, base.authorization.members))
+    return Response.json(checkpointResponse(checkpoint))
   })
   const commands = [
     {
@@ -4043,6 +4041,32 @@ it('commits warm native reminders, round, initiative, health display, and actor 
   }
 })
 
+it('keeps pushing the Encounter session to a player after a second owner socket is admitted', async () => {
+  const { base, player, state } = await localEncounterFixture()
+  const sessionVersions = () =>
+    player.messages.flatMap((message) =>
+      message.type === 'ENCOUNTER_SESSION' && message.session.held ? [message.session.version] : []
+    )
+  player.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
+  await vi.waitFor(() => expect(sessionVersions()).toContain(state.version))
+  // The owner's second tab joins mid-Run, as the V15 contention peer does.
+  const peer = await connectOwnerPeer(base)
+  peer.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(peer.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  peer.socket.send(
+    encounterFrame({
+      type: 'SET_ROUND',
+      round: 2,
+      encounterId: state.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: state.version
+    })
+  )
+  await vi.waitFor(() => expect(sessionVersions()).toContain(state.version + 1))
+})
+
 it('checkpoints the complete native Encounter prefix before acknowledging COMPLETE', async () => {
   const { base, state, actors } = await localEncounterFixture()
   const currentId = crypto.randomUUID()
@@ -4105,7 +4129,7 @@ it('checkpoints the complete native Encounter prefix before acknowledging COMPLE
       expect(evidence.authority).toMatchObject({ sequence: 2, published_sequence: 0 })
       expect(acknowledged).toBe(false)
       checkpointed = true
-      return Response.json(checkpointResponse(checkpoint, base.authorization.members))
+      return Response.json(checkpointResponse(checkpoint))
     })
     const originalSend = socket.send.bind(socket)
     const sent = vi.spyOn(socket, 'send').mockImplementation((data) => {
@@ -6157,7 +6181,7 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
       const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       checkpoints.push(body)
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
-      return Response.json(checkpointResponse(body, base.authorization.members))
+      return Response.json(checkpointResponse(body))
     })
   })
   const commandId = crypto.randomUUID()
@@ -6220,7 +6244,7 @@ it('keeps the authority draining when its final checkpoint fails and releases on
       const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       checkpoints.push(body)
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
-      return Response.json(checkpointResponse(body, base.authorization.members))
+      return Response.json(checkpointResponse(body))
     })
   })
   const commandId = crypto.randomUUID()
@@ -6239,7 +6263,10 @@ it('keeps the authority draining when its final checkpoint fails and releases on
   try {
     // A failed checkpoint is a transient 503 for Convex's retry, not an unhandled handler rejection.
     expect((await close()).status).toBe(503)
-    expect(logged).toHaveBeenCalledWith('Live Session room close failed; retrying.', expect.anything())
+    expect(logged).toHaveBeenCalledWith(
+      'Live Session room close failed; retrying.',
+      expect.anything()
+    )
   } finally {
     logged.mockRestore()
   }
@@ -6278,7 +6305,7 @@ it('keeps an alarm scheduled when the idle release checkpoint fails and releases
         return original(input, init)
       const body = liveSessionCheckpointRequestSchema.parse(await request.json())
       if (!publishAvailable) return new Response('Unavailable.', { status: 503 })
-      return Response.json(checkpointResponse(body, base.authorization.members))
+      return Response.json(checkpointResponse(body))
     })
   })
   const commandId = crypto.randomUUID()

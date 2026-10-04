@@ -259,7 +259,10 @@ Phase 8.2 acceptance or establish a Q16 budget pass.
 
 - every checkpoint reads a floor of about 250 KB, growing by about one document and 251 B per
   checkpoint: the Campaign, every assignment and active membership, the room authorization rebuilt
-  to renew the lease, and receipt-ledger collision and orphan checks;
+  to renew the lease, and receipt-ledger collision and orphan checks (A35-S10a removed this floor:
+  a one-actor HP flush now reads about 8.9 KB in 11 documents, the same for a 4- and a 40-member
+  Campaign, and does not grow with checkpoint count; see
+  [the measurement](../validation/phase-08-2/a35-s10a-flush-io-2026-10-03.md));
 - token binding, removal and every socket admission force a synchronous checkpoint, so ordinary
   table actions wait on Convex;
 - pages outside the table that show room-owned state read Convex, which lags by up to 120 s;

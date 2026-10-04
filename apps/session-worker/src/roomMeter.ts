@@ -1,6 +1,7 @@
-import type {
-  LiveSessionCheckpointIo,
-  LiveSessionCheckpointReason
+import {
+  LIVE_SESSION_CHECKPOINT_IO_SECTIONS,
+  type LiveSessionCheckpointIo,
+  type LiveSessionCheckpointReason
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 
 /** How Cloudflare bills an incoming request; WebSocket messages count 20:1 (ADR 0035 Decision 9). */
@@ -13,7 +14,10 @@ export interface CheckpointTotals {
   /** Canonical records JSON bytes sent, summed. */
   payloadBytes: number
   wallMs: number
-  /** Convex's own transaction metrics from the checkpoint mutation (the commit for staged ones). */
+  /**
+   * Convex's own transaction metrics from the checkpoint mutation (the commit for staged ones),
+   * with the same totals split by the section of the checkpoint that did the work.
+   */
   convex: LiveSessionCheckpointIo
 }
 
@@ -44,6 +48,36 @@ export interface CheckpointSample {
 }
 
 const MAX_RELEASED_TOTALS = 16
+
+type IoCounters = Omit<LiveSessionCheckpointIo, 'sections'>
+
+const emptyCounters = (): IoCounters => ({
+  bytesRead: 0,
+  bytesWritten: 0,
+  documentsRead: 0,
+  documentsWritten: 0
+})
+
+const emptyIo = (): LiveSessionCheckpointIo => ({
+  ...emptyCounters(),
+  sections: {
+    fence: emptyCounters(),
+    records: emptyCounters(),
+    scopes: emptyCounters(),
+    holds: emptyCounters(),
+    scenes: emptyCounters(),
+    history: emptyCounters(),
+    privateRolls: emptyCounters(),
+    remainder: emptyCounters()
+  }
+})
+
+function addCounters(total: IoCounters, added: IoCounters): void {
+  total.bytesRead += added.bytesRead
+  total.bytesWritten += added.bytesWritten
+  total.documentsRead += added.documentsRead
+  total.documentsWritten += added.documentsWritten
+}
 
 function emptyTotals(now: number): RoomMeterTotals {
   return {
@@ -125,16 +159,15 @@ export class RoomMeter {
       requests: 0,
       payloadBytes: 0,
       wallMs: 0,
-      convex: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
+      convex: emptyIo()
     })
     totals.count += 1
     totals.requests += sample.requests
     totals.payloadBytes += sample.payloadBytes
     totals.wallMs += sample.wallMs
-    totals.convex.bytesRead += sample.io.bytesRead
-    totals.convex.bytesWritten += sample.io.bytesWritten
-    totals.convex.documentsRead += sample.io.documentsRead
-    totals.convex.documentsWritten += sample.io.documentsWritten
+    addCounters(totals.convex, sample.io)
+    for (const section of LIVE_SESSION_CHECKPOINT_IO_SECTIONS)
+      addCounters(totals.convex.sections[section], sample.io.sections[section])
     console.log(
       `[room-meter] ${JSON.stringify({ event: 'checkpoint', epoch: this.#totals.epoch, ...sample })}`
     )

@@ -11,7 +11,7 @@ import { DurableCommandJournal } from '../src/durableCommandJournal.js'
 import worker from '../src/index.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { aggregate, encounterId, uuid } from '../src/testing/roomAggregateFixture.js'
-import { roomAuthorizationResponse } from './roomAuthorizationFixture.js'
+import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 
 const EPOCH = uuid(0xb01)
 const CAMPAIGN_ID = uuid(2)
@@ -108,8 +108,8 @@ function acknowledgeCheckpoints() {
         phase: 'DO_ACTIVE',
         updatedAt: now
       },
-      authorization: roomAuthorizationResponse({ members: [] }),
-      io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
+      adopted: { characters: [] },
+      io: NO_CHECKPOINT_IO
     })
   })
   return requests

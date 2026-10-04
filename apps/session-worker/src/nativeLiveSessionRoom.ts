@@ -565,6 +565,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#challenge(socket)
       return
     }
+    this.#renewAuthorizationIfDue()
     if (parsed.data.type === 'RESUME') {
       this.#sendStateSync(socket, admission)
       return
@@ -718,6 +719,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#closeSocket(socket, 'Live-session authentication timed out.')
     }
     this.#fogUploads.expire(now)
+    this.#renewAuthorizationIfDue()
     try {
       const checkpointAt = this.#checkpointAt()
       if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox('DEADLINE')
@@ -3264,22 +3266,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       sequence: current.sequence,
       checksum: current.stateChecksum
     })
+    const sent = this.#authorization.current(current.authorityEpoch)?.revisions ?? null
     const response = await this.#checkpoints.flush(
-      {
-        campaignId,
-        epoch: current.authorityEpoch,
-        knownAuthorization: this.#authorization.current(current.authorityEpoch)?.revisions ?? null
-      },
+      { campaignId, epoch: current.authorityEpoch, knownAuthorization: sent },
       reason
     )
     if (response) {
       const head = this.#journal.readCurrent()
       if (head && head.sequence === head.publishedSequence)
         this.#authorization.acknowledgePlay(current.authorityEpoch)
-      if (!this.#authorization.acceptCheckpoint(current.authorityEpoch, response.authorization))
-        await this.#authorization.refresh(current.authorityEpoch)
-      const authorization = this.#authorization.current(current.authorityEpoch)
-      if (authorization) await this.#restoreLocalPlayAuthorization(authorization)
+      this.#authorization.adopt(current.authorityEpoch, sent, response.adopted)
     }
     await this.#scheduleAlarm()
   }
@@ -3393,6 +3389,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (!roomVisionCurrent(authorization, this.#cache?.characterRevisions ?? []))
         await this.#refreshSceneCache(value, admission, candidates, true)
     })
+  }
+
+  /**
+   * The lease renews here, never in a checkpoint: one background read per half-lease, started by a
+   * message or an alarm that is already running, and only while a socket is connected. An idle room
+   * with no sockets lets the lease lapse, and the next admission reads anyway (ADR 0035 Amendment 18).
+   */
+  #renewAuthorizationIfDue(): void {
+    if (this.#authorization.renewalDue() && this.#openSockets().length > 0)
+      this.#refreshAuthorizationInBackground()
   }
 
   /**

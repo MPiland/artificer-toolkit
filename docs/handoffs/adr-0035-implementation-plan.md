@@ -111,6 +111,8 @@ Runs inside VS-8 before REL-5 resumes.
 
 ### A35-S10a: delta-sized flushes (Amendment 18)
 
+**Status:** done 2026-10-03 ([measurement](../validation/phase-08-2/a35-s10a-flush-io-2026-10-03.md)).
+
 **Goal:**
 
 - Instrument each checkpoint's Convex bytes read and written per section: authority fence, Campaign and roster, per-record checksums, authorization renewal, and receipt-ledger checks.

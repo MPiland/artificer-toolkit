@@ -26,6 +26,7 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
+import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
@@ -163,14 +164,8 @@ async function sheetRoom() {
             phase: 'DO_ACTIVE',
             updatedAt: now
           },
-          authorization: roomAuthorizationResponse({
-            members,
-            assignments,
-            characterRevisions: characterDeleted
-              ? []
-              : [{ characterId, revision: inputs.characterRevision }]
-          }),
-          io: { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
+          adopted: { characters: [] },
+          io: NO_CHECKPOINT_IO
         })
       }
       if (pathname === '/live-sessions/capture') {

@@ -76,7 +76,7 @@ export const read = internalQuery({
   }
 })
 
-/** Caller fences the epoch; checkpoints may renew authorization while draining or deleting. */
+/** Caller fences the epoch. A checkpoint does not call it; the room's lease renewal does (ADR 0035 Amendment 18). */
 export async function readRoomAuthorization(
   ctx: QueryCtx,
   input: LiveSessionRoomAuthorizationInput

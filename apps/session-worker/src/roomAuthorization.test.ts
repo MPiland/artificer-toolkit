@@ -185,67 +185,22 @@ describe('room authorization cache', () => {
     expect(load).toHaveBeenCalledOnce()
   })
 
-  it('renews its lease from matching checkpoint revisions and invalidates on any other', async () => {
+  it('asks for a renewal read once half the lease has passed, and a read restarts the count', async () => {
     const first = fullResponse()
-    const { cache } = cacheWith(first)
+    const { cache } = cacheWith(first, unchanged(first))
+    const start = Date.now()
+    expect(cache.renewalDue(start)).toBe(false)
     await cache.refresh(epoch)
-    const later = Date.now() + ROOM_LIMITS.authorizationLeaseMs - 1
+    const half = ROOM_LIMITS.authorizationLeaseMs / 2
 
-    cache.renew(epoch, first.revisions, later)
-    expect(cache.current(epoch, later + 1)).not.toBeNull()
-    cache.renew(epoch, { ...first.revisions, campaign: id(101) })
-    expect(cache.current(epoch)).toBeNull()
+    expect(cache.renewalDue(start + half - 1_000)).toBe(false)
+    expect(cache.renewalDue(Date.now() + half)).toBe(true)
+    await cache.refresh(epoch)
+    expect(cache.renewalDue()).toBe(false)
   })
 
-  it('requires a full authorization read for an incomplete checkpoint on an empty epoch cache', () => {
+  it('adopts the revisions its own checkpoint bumped without renewing the lease or replacing local PLAY', async () => {
     const first = fullResponse()
-    const { cache, load } = cacheWith(first)
-    expect(cache.acceptCheckpoint(epoch, unchanged(first))).toBe(false)
-    for (const section of ['campaign', 'preferences', 'play'] as const)
-      expect(cache.acceptCheckpoint(epoch, { ...first, [section]: undefined })).toBe(false)
-    expect(cache.acceptCheckpoint(epoch, { ...first, characters: first.characters.slice(1) })).toBe(
-      false
-    )
-    expect(cache.current(epoch)).toBeNull()
-    expect(cache.acceptCheckpoint(epoch, first)).toBe(true)
-    expect(cache.currentPlay(epoch)).toEqual(first)
-    expect(cache.acceptCheckpoint(id(99), unchanged(first))).toBe(false)
-    expect(() =>
-      cache.acceptCheckpoint(epoch, {
-        ...unchanged(first),
-        revisions: {
-          ...first.revisions,
-          characters: [...first.revisions.characters, { characterId: id(99), revision: id(399) }]
-        }
-      })
-    ).toThrow('incomplete')
-    expect(load).not.toHaveBeenCalled()
-  })
-
-  it('merges checkpoint sections and renews the lease without reading or replacing pending local PLAY', async () => {
-    const first = fullResponse()
-    const checkpoint: Response = {
-      revisions: {
-        ...first.revisions,
-        play: id(201),
-        characters: [
-          { characterId, revision: id(310) },
-          { characterId: otherCharacterId, revision: id(301) }
-        ],
-        preferences: preferencesDigest(2)
-      },
-      characters: [
-        {
-          characterId,
-          ownerUserId: playerId,
-          partyVisibility: { sheet: false, health: 'HIDDEN' }
-        }
-      ],
-      preferences: first.preferences!.map((preference) =>
-        preference.userId === playerId ? { ...preference, autoRollDice: false } : preference
-      ),
-      play: first.play
-    }
     const { cache, load } = cacheWith(first)
     await cache.refresh(epoch)
     const localPlay = {
@@ -257,35 +212,55 @@ describe('room authorization cache', () => {
       }
     }
     cache.applyPlay(epoch, localPlay)
-    const acceptedAt = Date.now() + ROOM_LIMITS.authorizationLeaseMs
-    expect(cache.acceptCheckpoint(epoch, checkpoint, acceptedAt)).toBe(true)
-    const current = cache.currentPlay(epoch, acceptedAt)!
-    expect(current.revisions).toEqual(checkpoint.revisions)
-    expect(current.characters[0]).toEqual(checkpoint.characters[0])
-    expect(current.preferences).toEqual(checkpoint.preferences)
-    expect(current.campaign).toEqual(first.campaign)
-    expect(current.play).toEqual(localPlay)
-    expect(roomBoundTokenControl(current, playerId, { sceneId, encounterId })?.[1]).toEqual({
-      tokenId: otherTokenId,
-      controlled: true
+    const sent = cache.current(epoch)!.revisions
+
+    cache.adopt(epoch, sent, { play: id(201), characters: [{ characterId, revision: id(310) }] })
+
+    const current = cache.currentPlay(epoch)!
+    expect(current.revisions).toEqual({
+      ...first.revisions,
+      play: id(201),
+      characters: [
+        { characterId, revision: id(310) },
+        { characterId: otherCharacterId, revision: id(301) }
+      ]
     })
-    expect(cache.current(epoch, acceptedAt + ROOM_LIMITS.authorizationLeaseMs - 1)).not.toBeNull()
-    expect(cache.current(epoch, acceptedAt + ROOM_LIMITS.authorizationLeaseMs)).toBeNull()
-    cache.acknowledgePlay(epoch)
-    expect(
-      cache.acceptCheckpoint(
-        epoch,
-        { ...unchanged(checkpoint), play: checkpoint.play },
-        acceptedAt + 1
-      )
-    ).toBe(true)
-    expect(cache.currentPlay(epoch, acceptedAt + 1)?.play).toEqual(checkpoint.play)
+    expect(current.play).toEqual(localPlay)
+    expect(current.campaign).toEqual(first.campaign)
+    expect(cache.current(epoch, Date.now() + ROOM_LIMITS.authorizationLeaseMs)).toBeNull()
+    expect(cache.renewalDue(Date.now() + ROOM_LIMITS.authorizationLeaseMs / 2)).toBe(true)
     expect(load).toHaveBeenCalledOnce()
   })
 
-  it('keeps invalidated admissions closed through a checkpoint and an older in-flight read', async () => {
+  it('adopts nothing when the cache is not the one the checkpoint was sent with', async () => {
     const first = fullResponse()
-    const checkpoint: Response = {
+    const { cache } = cacheWith(first, { revisions: { ...first.revisions }, characters: [] })
+    await cache.refresh(epoch)
+    const adopted = { play: id(201), characters: [{ characterId, revision: id(310) }] }
+
+    cache.adopt(epoch, null, adopted)
+    cache.adopt(id(99), cache.current(epoch)!.revisions, adopted)
+    const stale = cache.current(epoch)!.revisions
+    await cache.refresh(epoch)
+    cache.adopt(epoch, stale, adopted)
+
+    expect(cache.current(epoch)!.revisions).toEqual(first.revisions)
+  })
+
+  it('keeps a revision the checkpoint did not adopt, so the next read fetches that section', async () => {
+    const first = fullResponse()
+    const { cache, known } = cacheWith(first, unchanged(first))
+    await cache.refresh(epoch)
+
+    cache.adopt(epoch, cache.current(epoch)!.revisions, { characters: [] })
+    await cache.refresh(epoch)
+
+    expect(known[1]).toEqual(first.revisions)
+  })
+
+  it('keeps admissions closed when an adoption lands during an older in-flight read', async () => {
+    const first = fullResponse()
+    const removed: Response = {
       revisions: {
         ...first.revisions,
         campaign: id(101),
@@ -298,20 +273,14 @@ describe('room authorization cache', () => {
       },
       characters: []
     }
-    const { cache, load } = cacheWith(first, checkpoint)
+    const { cache, load } = cacheWith(first, removed)
     await cache.refresh(epoch)
-    cache.invalidate()
-    cache.invalidatePlay()
-    cache.acceptCheckpoint(epoch, checkpoint)
-    expect(cache.current(epoch)).toBeNull()
-    expect(cache.currentPlay(epoch)).toBeNull()
-    expect(load).toHaveBeenCalledOnce()
+    const sent = cache.current(epoch)!.revisions
     let release: (value: Response) => void = () => undefined
     load.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
     const racing = cache.refresh(epoch)
     await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2))
-    cache.acceptCheckpoint(epoch, checkpoint)
-    expect(cache.current(epoch)).toBeNull()
+    cache.adopt(epoch, sent, { play: id(202), characters: [] })
     release(first)
     await racing
     expect(cache.current(epoch)).toBeNull()
@@ -555,7 +524,7 @@ describe('room authorization cache', () => {
       }
     })
     cache.acknowledgePlay(epoch)
-    cache.renew(epoch, persisted.revisions)
+    cache.invalidate()
     expect(cache.currentPlay(epoch)).toBeNull()
     const current = await cache.refresh(epoch)
     expect(known[1]?.play).toBe(first.revisions.play)

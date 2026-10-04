@@ -26,6 +26,10 @@ import {
 } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { decodeCheckpointRecord } from '@artificer-toolkit/encounter-persistence/checkpointRecords'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -177,8 +181,14 @@ async function playChange(base: Fixture) {
     expect(row.checksum).toBe(checksumCanonicalJson(row.state))
     const nextState = {
       ...row.state,
-      hitpoints: { ...row.state.hitpoints, current: row.state.hitpoints.current - 1 },
-      partyVisibility: { ...row.state.partyVisibility, sheet: !row.state.partyVisibility.sheet }
+      hitpoints: {
+        ...row.state.hitpoints,
+        current: row.state.hitpoints.current - 1
+      },
+      partyVisibility: {
+        ...row.state.partyVisibility,
+        sheet: !row.state.partyVisibility.sheet
+      }
     }
     const before = decodeCheckpointRecord('characterPlayStates', stored)
     const next = canonicalJsonRecordSchema.parse({
@@ -213,7 +223,10 @@ function sharedHistory(base: Fixture, version: number) {
       visibility: 'TABLE',
       commandType: 'UPSERT_REMINDER',
       version,
-      commandJson: canonicalizeJson({ type: 'UPSERT_REMINDER', label: 'Checkpoint reminder' }),
+      commandJson: canonicalizeJson({
+        type: 'UPSERT_REMINDER',
+        label: 'Checkpoint reminder'
+      }),
       replayReceiptJson: canonicalizeJson(replay),
       replayReceiptChecksum: checksumCanonicalJson(replay)
     }),
@@ -307,27 +320,18 @@ it('publishes Run and Character play deltas with grouped history, then replays w
   expect(committed.authority).toMatchObject({
     persistedSequence: 3,
     persistedStateChecksum: input.checksum,
-    lastCheckpoint: { checkpointId: input.checkpointId, payloadChecksum: input.payloadChecksum }
+    lastCheckpoint: {
+      checkpointId: input.checkpointId,
+      payloadChecksum: input.payloadChecksum
+    }
   })
-  expect(committed.authorization.campaign?.assignments).toContainEqual({
-    characterId: base.character.id,
-    userId: base.player.userId
-  })
-  expect(committed.authorization.characters).toContainEqual({
-    characterId: base.character.id,
-    ownerUserId: base.player.userId,
-    partyVisibility: play.nextState.partyVisibility
-  })
+  expect(committed).not.toHaveProperty('authorization')
   const after = await snapshot(base)
   const afterCharacterRevision = after.revisions.find(
     (row) => row.scope === 'CHARACTER' && row.id === base.character.id
   )
   if (!afterCharacterRevision) throw new Error('Missing published Character revision.')
   expect(afterCharacterRevision.revision).not.toBe(beforeCharacterRevision.revision)
-  expect(committed.authorization.revisions.characters).toContainEqual({
-    characterId: base.character.id,
-    revision: afterCharacterRevision.revision
-  })
   expect(after.invalidations).toEqual(before.invalidations)
   expect(after.run).toEqual({ ...run.row, ...run.nextStored })
   expect(after.play).toEqual({ ...play.row, ...play.next })
@@ -379,32 +383,318 @@ it('publishes Run and Character play deltas with grouped history, then replays w
     )
   })
 
-  await base.t.run(async (rawCtx) => {
-    const ctx = withSceneVisionTracking(rawCtx)
-    const profile = await ctx.db
-      .query('userProfiles')
-      .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
-      .unique()
-    if (!profile) throw new Error('Missing fixture profile.')
-    await ctx.db.patch(profile._id, { autoRollDice: !profile.autoRollDice })
-  })
   const beforeReplay = await snapshot(base)
   vi.useFakeTimers()
   vi.setSystemTime(Date.now() + 1_000)
-  const replayed = await base.t.mutation(publish, {
-    ...input,
-    knownAuthorization: committed.authorization.revisions
-  })
+  const replayed = await base.t.mutation(publish, input)
   expect(replayed.status).toBe('REPLAYED')
   expect(replayed.authority).toEqual(committed.authority)
-  expect(replayed.authorization.revisions.preferences).not.toBe(
-    committed.authorization.revisions.preferences
-  )
-  expect(replayed.authorization.preferences).toBeDefined()
-  expect(replayed.authorization.campaign).toBeUndefined()
-  expect(replayed.authorization.play).toBeUndefined()
-  expect(replayed.authorization.characters).toEqual([])
+  expect(replayed.adopted).toEqual({ characters: [] })
   expect(await snapshot(base)).toEqual(beforeReplay)
+})
+
+/** A Creature or Custom actor's hit point change: the smallest flush a combat command produces. */
+async function enemyHitPointChange(base: Fixture) {
+  const enemy = base.run.actors.find((actor) => actor.kind !== 'CHARACTER')
+  if (!enemy) throw new Error('Missing fixture enemy actor.')
+  return base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id).eq('id', enemy.id))
+      .unique()
+    if (!row) throw new Error('Missing fixture enemy actor row.')
+    const { _id, _creationTime, ...stored } = row
+    const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    if (state.kind === 'CHARACTER') throw new Error('Fixture enemy actor is a Character.')
+    const nextState = {
+      ...state,
+      currentHitPoints: state.currentHitPoints - 1
+    }
+    const before = decodeCheckpointRecord('encounterRunActors', stored)
+    const next = decodeCheckpointRecord('encounterRunActors', {
+      ...stored,
+      stateJson: canonicalizeJson(nextState),
+      stateChecksum: checksumCanonicalJson(nextState)
+    })
+    return recordChange('encounterRunActors', [row.encounterId, row.id], before, next)
+  })
+}
+
+/** The Character actor, optionally with its Character frozen as the room does on departure (D74). */
+async function characterActorChange(base: Fixture) {
+  const actor = base.run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+  if (!actor) throw new Error('Missing fixture Character actor.')
+  return base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id).eq('id', actor.id))
+      .unique()
+    if (!row) throw new Error('Missing fixture Character actor row.')
+    const { _id, _creationTime, ...stored } = row
+    const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    if (state.kind !== 'CHARACTER') throw new Error('Fixture actor is not a Character.')
+    const before = decodeCheckpointRecord('encounterRunActors', stored)
+    const key = [row.encounterId, row.id]
+    const nextState = {
+      ...state,
+      frozenState: {
+        currentHitPoints: 1,
+        maxHitPoints: 1,
+        tempHitPoints: 0,
+        conditions: []
+      }
+    }
+    const frozen = decodeCheckpointRecord('encounterRunActors', {
+      ...stored,
+      stateJson: canonicalizeJson(nextState),
+      stateChecksum: checksumCanonicalJson(nextState)
+    })
+    return {
+      freeze: recordChange('encounterRunActors', key, before, frozen),
+      remove: recordChange('encounterRunActors', key, before, null)
+    }
+  })
+}
+
+async function runStatusChange(
+  base: Fixture,
+  status: 'ACTIVE' | 'COMPLETED',
+  removedActorId?: string
+) {
+  return base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+      .unique()
+    if (!row) throw new Error('Missing fixture Run.')
+    const { _id, _creationTime, ...stored } = row
+    const state = readRunState(row)
+    const nextState = encounterRunStateSchema.parse({
+      ...state,
+      status,
+      version: state.version + 1,
+      actorIds: state.actorIds.filter((id) => id !== removedActorId),
+      currentActorId: status === 'COMPLETED' ? null : state.currentActorId,
+      updatedAt: new Date(Date.parse(state.updatedAt) + 1).toISOString()
+    })
+    const before = decodeCheckpointRecord('encounterRuns', stored)
+    const next = decodeCheckpointRecord('encounterRuns', {
+      ...stored,
+      status,
+      version: nextState.version,
+      stateJson: canonicalizeJson(nextState),
+      stateChecksum: checksumCanonicalJson(nextState),
+      updatedAt: nextState.updatedAt
+    })
+    return recordChange('encounterRuns', [row.id], before, next)
+  })
+}
+
+const readHolds = (base: Fixture) =>
+  base.t.run((ctx) =>
+    ctx.db
+      .query('liveCharacterHolds')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
+      .collect()
+  )
+
+/** Publishes one flush of `changes` on top of `authority`. */
+async function publishNext(
+  base: Fixture,
+  authority: LiveSessionAuthorityDto,
+  changes: LiveSessionCheckpointRecordChange[]
+) {
+  const committed = await base.t.mutation(publish, frame(authority, { changes, history: [] }))
+  expect(committed.status).toBe('COMMITTED')
+  return committed
+}
+
+const IO_COUNTERS = ['bytesRead', 'bytesWritten', 'documentsRead', 'documentsWritten'] as const
+
+async function measureEnemyFlush(base: Fixture) {
+  const authority = await activate(base)
+  const committed = await publishNext(base, authority, [await enemyHitPointChange(base)])
+  for (const counter of IO_COUNTERS)
+    expect(
+      Object.values(committed.io.sections).reduce((sum, section) => sum + section[counter], 0)
+    ).toBe(committed.io[counter])
+  expect(committed).not.toHaveProperty('authorization')
+  return committed.io
+}
+
+it('reads the same bytes for a one-actor flush however many members and actors the Campaign has', async () => {
+  const small = await measureEnemyFlush(await setupCharacterRun())
+  const crowded = await setupCharacterRun()
+  await crowded.t.run(async (ctx) => {
+    for (let index = 0; index < 36; index++) {
+      const userId = crypto.randomUUID()
+      await ctx.db.insert('campaignMemberships', {
+        campaignId: crowded.campaign.id,
+        userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: crowded.campaign.createdAt,
+        joinedAt: crowded.campaign.createdAt,
+        leftAt: null
+      })
+      await ctx.db.insert('campaignCharacterAssignments', {
+        campaignId: crowded.campaign.id,
+        userId,
+        characterId: crypto.randomUUID(),
+        assignedAt: crowded.campaign.createdAt
+      })
+    }
+  })
+  expect(await measureEnemyFlush(crowded)).toEqual(small)
+
+  const populated = await setupCharacterRun()
+  const extraActors = 36
+  await populated.t.run(async (ctx) => {
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', populated.run.id))
+      .unique()
+    const enemy = populated.run.actors.find((actor) => actor.kind !== 'CHARACTER')
+    const template = enemy
+      ? await ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) =>
+            q.eq('encounterId', populated.run.id).eq('id', enemy.id)
+          )
+          .unique()
+      : null
+    if (!run || !template) throw new Error('Missing fixture Run.')
+    const state = readRunState(run)
+    const clones = Array.from({ length: extraActors }, () => crypto.randomUUID())
+    for (const id of clones) {
+      const { _id, _creationTime, ...fields } = template
+      const cloneState = { ...JSON.parse(template.stateJson), id }
+      await ctx.db.insert('encounterRunActors', {
+        ...fields,
+        id,
+        stateJson: canonicalizeJson(cloneState),
+        stateChecksum: checksumCanonicalJson(cloneState)
+      })
+    }
+    const nextState = encounterRunStateSchema.parse({
+      ...state,
+      actorIds: [...state.actorIds, ...clones]
+    })
+    await ctx.db.patch(run._id, {
+      stateJson: JSON.stringify(nextState),
+      stateChecksum: checksumCanonicalJson(nextState)
+    })
+  })
+  const withActors = await measureEnemyFlush(populated)
+  // The Run row lists its actor ids; no actor document beyond the delta is read.
+  expect(withActors.documentsRead).toBe(small.documentsRead)
+  expect(withActors.bytesRead - small.bytesRead).toBeLessThan(extraActors * 100)
+})
+
+it('reconciles Character holds only when a hold input changes', async () => {
+  const base = await setupCharacterRun()
+  let authority = await activate(base)
+  const flush = async (changes: LiveSessionCheckpointRecordChange[]) => {
+    const committed = await publishNext(base, authority, changes)
+    authority = committed.authority
+    return committed.io.sections.holds
+  }
+  const actor = await characterActorChange(base)
+  // A health change leaves every hold input alone and reads no actor.
+  expect(await flush([await enemyHitPointChange(base)])).toMatchObject({
+    documentsRead: 0,
+    documentsWritten: 0
+  })
+  expect(await readHolds(base)).toEqual([])
+  // START: the Run turns ACTIVE with an unfrozen Character actor.
+  expect((await flush([await runStatusChange(base, 'ACTIVE')])).documentsRead).toBeGreaterThan(0)
+  expect(await readHolds(base)).toMatchObject([
+    {
+      characterId: base.character.id,
+      encounterId: base.run.id,
+      epoch: authority.epoch
+    }
+  ])
+  const held = await readHolds(base)
+  expect(await flush([await enemyHitPointChange(base)])).toMatchObject({
+    documentsRead: 0
+  })
+  expect(await readHolds(base)).toEqual(held)
+  // Freezing the Character actor drops its hold.
+  expect((await flush([actor.freeze])).documentsRead).toBeGreaterThan(0)
+  expect(await readHolds(base)).toEqual([])
+})
+
+it('drops holds when the Run completes or the Character actor is removed', async () => {
+  const completed = await setupCharacterRun()
+  let authority = await activate(completed)
+  authority = (
+    await publishNext(completed, authority, [await runStatusChange(completed, 'ACTIVE')])
+  ).authority
+  expect(await readHolds(completed)).toHaveLength(1)
+  await publishNext(completed, authority, [await runStatusChange(completed, 'COMPLETED')])
+  expect(await readHolds(completed)).toEqual([])
+
+  const removed = await setupCharacterRun()
+  authority = await activate(removed)
+  authority = (await publishNext(removed, authority, [await runStatusChange(removed, 'ACTIVE')]))
+    .authority
+  expect(await readHolds(removed)).toHaveLength(1)
+  await publishNext(removed, authority, [
+    await runStatusChange(removed, 'ACTIVE', removed.actor.id),
+    (await characterActorChange(removed)).remove
+  ])
+  expect(await readHolds(removed)).toEqual([])
+})
+
+it('adopts the room-known PLAY and delta Character revisions only when they matched before the write', async () => {
+  const base = await setupCharacterRun()
+  const authority = await activate(base)
+  const known = async () => {
+    const revisions = await base.t.run((ctx) => ctx.db.query('sceneVisionRevisions').take(100))
+    const read = (scope: string, id: string) =>
+      revisions.find((row) => row.scope === scope && row.id === id)?.revision ?? null
+    return {
+      system: read('SYSTEM', base.campaign.gameSystemId),
+      campaign: read('CAMPAIGN', base.campaign.id),
+      play: read('PLAY', base.campaign.id),
+      characters: [
+        {
+          characterId: base.character.id,
+          revision: read('CHARACTER', base.character.id)
+        }
+      ],
+      preferences: '0'.repeat(64)
+    }
+  }
+  const run = await runChange(base)
+  const play = await playChange(base)
+  const matching = await known()
+  const committed = await base.t.mutation(publish, {
+    ...frame(authority, { changes: [run.change, play.change], history: [] }),
+    knownAuthorization: matching
+  })
+  const after = await known()
+  expect(committed.adopted).toEqual({
+    play: after.play,
+    characters: after.characters
+  })
+  expect(after.play).not.toBe(matching.play)
+  expect(after.characters[0]!.revision).not.toBe(matching.characters[0]!.revision)
+
+  // A revision the room did not hold before the write is left for its renewal read.
+  const stale = await base.t.mutation(publish, {
+    ...frame(committed.authority, {
+      changes: [await enemyHitPointChange(base)],
+      history: []
+    }),
+    knownAuthorization: { ...after, play: crypto.randomUUID(), characters: [] }
+  })
+  expect(stale.adopted).toEqual({ characters: [] })
+
+  // Without a held cache there is nothing to adopt.
+  const unknown = await publishNext(base, stale.authority, [await enemyHitPointChange(base)])
+  expect(unknown.adopted).toEqual({ characters: [] })
 })
 
 it('refuses a checkpoint that starts a second active Run in the Campaign', async () => {
@@ -598,8 +888,16 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
     await ctx.db.delete(assignment._id)
   })
   const editedAt = new Date(Date.parse(now) + 1_000).toISOString()
-  const editedChat = { ...chatPayload, body: 'Edited after Character departure', editedAt }
-  const revealedRoll = { ...rollPayload, revealedByGm: true, consumedAt: editedAt }
+  const editedChat = {
+    ...chatPayload,
+    body: 'Edited after Character departure',
+    editedAt
+  }
+  const revealedRoll = {
+    ...rollPayload,
+    revealedByGm: true,
+    consumedAt: editedAt
+  }
   const edited = await base.t.mutation(
     publish,
     frame(committed.authority, {
@@ -766,7 +1064,10 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
           'campaignConversations',
           [conversation.id],
           decodeCheckpointRecord('campaignConversations', conversation),
-          decodeCheckpointRecord('campaignConversations', { ...conversation, createdAt: editedAt })
+          decodeCheckpointRecord('campaignConversations', {
+            ...conversation,
+            createdAt: editedAt
+          })
         )
       ],
       'immutable'
@@ -913,7 +1214,9 @@ it('rejects foreign Campaign records and history and Character play not held by 
     gameSystemId: base.campaign.gameSystemId,
     primaryRulesCatalogueId: base.campaign.primaryRulesCatalogueId
   })
-  const foreignClaim = await base.player.caller.mutation(claim, { campaignId: foreignCampaign.id })
+  const foreignClaim = await base.player.caller.mutation(claim, {
+    campaignId: foreignCampaign.id
+  })
   const foreignAuthority = await base.t.mutation(commitActivation, {
     campaignId: foreignCampaign.id,
     epoch: foreignClaim.epoch,
@@ -1035,7 +1338,10 @@ it('refuses Character play insertion, deletion, a stale clock and mismatched pla
 it('merges private checkpoint rolls into global owner history without changing replayed evidence or leaking invalid frames', async () => {
   const base = await setupCharacterRun()
   await base.t.run((ctx) =>
-    ctx.db.insert('accountEntitlements', { userId: base.owner.userId, tier: 'PRO_GM' })
+    ctx.db.insert('accountEntitlements', {
+      userId: base.owner.userId,
+      tier: 'PRO_GM'
+    })
   )
   const foreign = await base.owner.caller.mutation(createCampaign, {
     name: 'Other retained-roll Campaign',
@@ -1054,7 +1360,11 @@ it('merges private checkpoint rolls into global owner history without changing r
       characterId: null,
       characterLabel: '',
       source: { kind: 'MANUAL', label: 'Retained private checkpoint roll' },
-      ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+      ruleset: {
+        systemId: system.id,
+        code: system.rulesetCode,
+        version: system.rulesetVersion
+      },
       createdAt: new Date(startedAt + ordinal).toISOString(),
       evidence: {
         terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
@@ -1068,7 +1378,12 @@ it('merges private checkpoint rolls into global owner history without changing r
   const existing = makeRoll(19)
   const seed = Array.from({ length: 19 }, (_, index) => ({
     record: makeRoll(index),
-    gmCampaignRoll: { campaignId: foreign.id, creature: null, revealedAt: null, noticedAt: null }
+    gmCampaignRoll: {
+      campaignId: foreign.id,
+      creature: null,
+      revealedAt: null,
+      noticedAt: null
+    }
   })).concat([
     {
       record: existing,
@@ -1090,7 +1405,12 @@ it('merges private checkpoint rolls into global owner history without changing r
     if (!row) throw new Error('Missing retained-roll fixture.')
     await ctx.db.patch(row._id, {
       consumedAt: revealedAt,
-      gmCampaignRoll: { campaignId: base.campaign.id, creature: null, revealedAt, noticedAt: null }
+      gmCampaignRoll: {
+        campaignId: base.campaign.id,
+        creature: null,
+        revealedAt,
+        noticedAt: null
+      }
     })
   })
   const retained = () =>
@@ -1122,7 +1442,11 @@ it('merges private checkpoint rolls into global owner history without changing r
   }))
   const authority = await activate(base)
   const run = await runChange(base)
-  const input = frame(authority, { changes: [run.change], history: [], retainedRolls: incoming })
+  const input = frame(authority, {
+    changes: [run.change],
+    history: [],
+    retainedRolls: incoming
+  })
   const committed = await base.t.mutation(publish, input)
   const after = await retained()
   expect(committed.status).toBe('COMMITTED')
@@ -1141,7 +1465,12 @@ it('merges private checkpoint rolls into global owner history without changing r
   )
   expect(after.owner.find((row) => row.id === existing.id)).toMatchObject({
     consumedAt: revealedAt,
-    gmCampaignRoll: { campaignId: base.campaign.id, creature: null, revealedAt, noticedAt: null }
+    gmCampaignRoll: {
+      campaignId: base.campaign.id,
+      creature: null,
+      revealedAt,
+      noticedAt: null
+    }
   })
   expect(after.player).toEqual(before.player)
   expect(after.chat).toEqual(before.chat)
@@ -1174,7 +1503,10 @@ it('merges private checkpoint rolls into global owner history without changing r
         staged,
         {
           ...incoming[0],
-          record: { ...first, ruleset: { ...first.ruleset, systemId: crypto.randomUUID() } }
+          record: {
+            ...first,
+            ruleset: { ...first.ruleset, systemId: crypto.randomUUID() }
+          }
         }
       ],
       'another owner, Campaign or System'
@@ -1184,7 +1516,10 @@ it('merges private checkpoint rolls into global owner history without changing r
         staged,
         {
           ...incoming[0],
-          gmCampaignRoll: { ...incoming[0].gmCampaignRoll, campaignId: foreign.id }
+          gmCampaignRoll: {
+            ...incoming[0].gmCampaignRoll,
+            campaignId: foreign.id
+          }
         }
       ],
       'another owner, Campaign or System'

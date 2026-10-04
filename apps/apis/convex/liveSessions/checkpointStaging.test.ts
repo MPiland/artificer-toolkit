@@ -54,7 +54,9 @@ const cleanup = makeFunctionReference<'mutation', { checkpointId: string }, null
 
 async function checkpointFixture(label = 'Checkpoint reminder') {
   const base = await setupCharacterRun()
-  const claimed = await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
+  const claimed = await base.owner.caller.mutation(claim, {
+    campaignId: base.campaign.id
+  })
   const active = await base.t.mutation(commitActivation, {
     campaignId: base.campaign.id,
     epoch: claimed.epoch,
@@ -223,13 +225,13 @@ it('publishes a multi-part UTF-8 checkpoint and replays begin and commit after d
   vi.useFakeTimers()
   vi.setSystemTime(Date.now() + 1_000)
   // Staging metadata is immutable until commit; completed retries use the retained frame and digest.
-  await expect(base.t.mutation(begin, plan.stage)).resolves.toEqual({ status: 'REPLAYED' })
-  await expect(
-    base.t.mutation(commit, {
-      ...plan.commit,
-      knownAuthorization: committed.authorization.revisions
-    })
-  ).resolves.toMatchObject({ status: 'REPLAYED', authority: committed.authority })
+  await expect(base.t.mutation(begin, plan.stage)).resolves.toEqual({
+    status: 'REPLAYED'
+  })
+  await expect(base.t.mutation(commit, plan.commit)).resolves.toMatchObject({
+    status: 'REPLAYED',
+    authority: committed.authority
+  })
   expect(await snapshot(base)).toEqual(published)
   await expect(
     base.t.mutation(begin, { ...plan.stage, payloadChecksum: 'f'.repeat(64) })
@@ -245,8 +247,12 @@ it('makes begin and indexed part retries idempotent and rejects altered metadata
   const plan = recordsPlan(base)
   await upload(base, plan)
   const before = await snapshot(base)
-  await expect(base.t.mutation(begin, plan.stage)).resolves.toEqual({ status: 'STAGED' })
-  await expect(base.t.mutation(part, plan.parts[0]!)).resolves.toEqual({ status: 'STAGED' })
+  await expect(base.t.mutation(begin, plan.stage)).resolves.toEqual({
+    status: 'STAGED'
+  })
+  await expect(base.t.mutation(part, plan.parts[0]!)).resolves.toEqual({
+    status: 'STAGED'
+  })
   expect(await snapshot(base)).toEqual(before)
   expect(before.uploads).toHaveLength(1)
   expect(before.parts).toHaveLength(1)
@@ -352,7 +358,11 @@ it('leaves staging, state, history and the fence unchanged for incomplete or inv
     },
     {
       plan: uploadPlan(
-        { ...base.frame, checkpointId: crypto.randomUUID(), payloadChecksum: 'f'.repeat(64) },
+        {
+          ...base.frame,
+          checkpointId: crypto.randomUUID(),
+          payloadChecksum: 'f'.repeat(64)
+        },
         bytes
       ),
       error: 'payload checksum does not match'
@@ -361,7 +371,10 @@ it('leaves staging, state, history and the fence unchanged for incomplete or inv
       plan: uploadPlan({ ...base.frame, checkpointId: crypto.randomUUID() }, corrupted),
       error: 'payload checksum does not match'
     },
-    { plan: recordsPlan(base, staleRecords), error: 'record changed before publication' }
+    {
+      plan: recordsPlan(base, staleRecords),
+      error: 'record changed before publication'
+    }
   ]
   for (const { plan, error } of invalidPlans) {
     await upload(base, plan)
@@ -406,7 +419,9 @@ it('rolls back publication, history, fence and staging deletions when the enclos
     })
   ).rejects.toThrow('Injected post-checkpoint rollback')
   expect(await snapshot(base)).toEqual(before)
-  await expect(base.t.mutation(commit, plan.commit)).resolves.toMatchObject({ status: 'COMMITTED' })
+  await expect(base.t.mutation(commit, plan.commit)).resolves.toMatchObject({
+    status: 'COMMITTED'
+  })
 })
 
 it('expires uploads, deletes at most four parts per pass and completes scheduled cleanup idempotently', async () => {

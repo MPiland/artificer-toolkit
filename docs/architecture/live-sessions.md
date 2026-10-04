@@ -410,11 +410,20 @@ The room sends the revisions it holds (`known`); Convex reads the revisions and 
 whose revision differs.
 
 **Lease.** The cache is trusted for `ROOM_LIMITS.authorizationLeaseMs` (240 s) from the start of the read
-that loaded it. Each socket's authentication, including its renewal at token expiry, renews it.
-`RoomAuthorization.acceptCheckpoint` applies the checkpoint response's changed sections and renews the
-same lease without an extra read. After memory eviction, an incomplete checkpoint response requires a
-full authorization read before admission. When SQLite retains an unpublished suffix, the room rebuilds
-actor controls, health display and token bindings from committed native records after a reload.
+that loaded it. Each socket's authentication, including its renewal at token expiry, renews it. A
+checkpoint never renews it and Convex reads no authorization for it (Amendment 18). Instead
+`#renewAuthorizationIfDue` starts one background `/room-authorization` read once half the lease has passed
+(`RoomAuthorization.renewalDue`), riding a message or an alarm that is already running and only while a
+socket is connected. An idle room with no sockets sets no alarm for it; the lease lapses and the next
+admission reads. A lost invalidation is therefore corrected within the lease. When SQLite retains an
+unpublished suffix, the room rebuilds actor controls, health display and token bindings from committed
+native records after a reload.
+
+**Own writes.** The checkpoint bumps PLAY and its delta Characters' revisions itself. Convex reads those
+revisions before applying, and the response's `adopted` carries each post-write revision only where the
+pre-write one equalled what the room sent. `RoomAuthorization.adopt` applies it while the cache still holds
+the revisions the checkpoint was sent with. Anything not adopted keeps its old revision, so the next read
+fetches that section. The held PLAY stays the room's own, which `applyPlay` keeps current.
 
 **Invalidation.** `INVALIDATE_INPUTS { scopes }` marks the cache stale; nothing is trusted until the next
 read. The tracked mutation builders in `apps/apis/convex/lib/mutations.ts` collect, per transaction:
@@ -575,8 +584,8 @@ Campaign history and separately packed private Character history) and the Scene/
   is excluded. Scene rows are written only by the room checkpoint
   (`liveSessions/checkpointScenes.ts`); Scene command history is packed per Scene into SCENE receipt
   ledgers, with `sceneLiveCommands` as a header table.
-- **Acknowledge.** The response carries changed authorization sections (renewing the lease). The room
-  compacts the snapshot and calls `acknowledgeCheckpointInTransaction` in one SQLite transaction.
+- **Acknowledge.** The response carries the adopted revisions (see "Own writes"), not authorization
+  sections, and does not renew the lease. The room compacts the snapshot and calls `acknowledgeCheckpointInTransaction` in one SQLite transaction.
   Commands committed while publication is in flight remain as a suffix.
 - **Timing.** The earliest unpublished receipt's timestamp fixes the checkpoint deadline
   (`checkpointDeadlineMs`, 120 s); later commands do not extend it. Admission, Scene presentation, drain
@@ -603,7 +612,8 @@ found after a hibernation wake, so outgoing frames are counted by `send()`. It r
 (WebSocket message, HTTP, alarm), messages and outgoing frames by `type` (new types need no edit),
 admissions and the peak concurrent sockets per member (the case for merging a client's sockets),
 command wall time, and checkpoints by reason with payload bytes, Worker-to-Convex request count, wall
-time and the Convex-reported `io`. Staged checkpoints report the commit mutation's `io` only. Each
+time and the Convex-reported `io`, in total and per section (fence, records, scopes, holds, scenes,
+history, privateRolls, remainder). Staged checkpoints report the commit mutation's `io` only. Each
 checkpoint logs one `[room-meter]` JSON line and release logs the epoch summary. The totals are
 readable only in development, through `GET /internal/live-sessions/meter/<campaignId>` on the Worker. The
 meter and barrier routes require the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker, a loopback host and the

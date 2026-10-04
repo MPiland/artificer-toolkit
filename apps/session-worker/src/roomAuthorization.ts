@@ -4,11 +4,11 @@ import type {
   LiveSessionRoomAuthorizationResponse,
   LiveSessionRoomAuthorizationRevisions
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import type { LiveSessionCheckpointAdoption } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type {
   LiveSessionTransientCapture,
   LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import { equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { ROOM_LIMITS } from './roomLimits.js'
 
@@ -110,6 +110,7 @@ export function roomVisionCurrent(
  * assignments, actor control, auto-roll preferences and party visibility. It is trusted for a
  * lease, and not at all once `INVALIDATE_INPUTS` marks it stale. A stale or expired cache is
  * reloaded by one read before the next command or broadcast; that read returns only changed sections.
+ * A checkpoint never renews it; the room does, by one read per half-lease while members are connected.
  */
 export class RoomAuthorization {
   readonly #load: Load
@@ -175,42 +176,39 @@ export class RoomAuthorization {
     if (this.#localPlay?.epoch === epoch) this.#localPlay = null
   }
 
-  /** Returns false when an evicted cache needs a full read to fill sections omitted by a retry. */
-  acceptCheckpoint(
+  /**
+   * Takes the PLAY and Character revisions a checkpoint's own writes bumped, so those writes do not
+   * look like someone else's change. Applies only while the cache still holds the revisions the
+   * checkpoint was sent with; the lease is untouched. A revision not adopted stays old, and the
+   * next read fetches that section.
+   */
+  adopt(
     epoch: string,
-    response: LiveSessionRoomAuthorizationResponse,
-    now = Date.now()
-  ): boolean {
-    const held = this.#held?.epoch === epoch ? this.#held.value : null
-    if (held === null) {
-      if (
-        response.campaign === undefined ||
-        response.preferences === undefined ||
-        response.play === undefined
-      )
-        return false
-      const characterIds = new Set(response.characters.map(({ characterId }) => characterId))
-      if (response.revisions.characters.some(({ characterId }) => !characterIds.has(characterId)))
-        return false
+    sent: LiveSessionRoomAuthorizationRevisions | null,
+    adopted: LiveSessionCheckpointAdoption
+  ): void {
+    if (!sent || this.#held?.epoch !== epoch || this.#held.value.revisions !== sent) return
+    const characters = new Map(
+      adopted.characters.map(({ characterId, revision }) => [characterId, revision])
+    )
+    this.#held.value = {
+      ...this.#held.value,
+      revisions: {
+        ...sent,
+        play: adopted.play ?? sent.play,
+        characters: sent.characters.map(({ characterId, revision }) => ({
+          characterId,
+          revision: characters.get(characterId) ?? revision
+        }))
+      }
     }
-    const value = mergeRoomAuthorization(held, response)
-    if (this.#localPlay?.epoch === epoch) value.play = this.#localPlay.value
-    this.#held = { epoch, value }
-    this.#leaseExpiresAt = now + ROOM_LIMITS.authorizationLeaseMs
-    // A request already reading older revisions must not erase this newer observation's lease fence.
+    // A read that started before the checkpoint may return pre-checkpoint revisions.
     if (this.#reading) this.invalidate()
-    return true
   }
 
-  /**
-   * Renewal hook for checkpoint responses (S3): matching revisions renew the lease; different ones
-   * mark the cache stale. Until checkpoints exist, each socket's re-authentication renews it by
-   * `refresh`.
-   */
-  renew(epoch: string, revisions: LiveSessionRoomAuthorizationRevisions, now = Date.now()): void {
-    if (this.#held?.epoch === epoch && equalCanonicalJson(this.#held.value.revisions, revisions))
-      this.#leaseExpiresAt = now + ROOM_LIMITS.authorizationLeaseMs
-    else this.invalidate()
+  /** Whether half the lease has passed since the last read, so a renewal read should start. */
+  renewalDue(now = Date.now()): boolean {
+    return this.#held !== null && now >= this.#leaseExpiresAt - ROOM_LIMITS.authorizationLeaseMs / 2
   }
 
   /** Reads the current revisions and any changed sections; concurrent callers share one read. */

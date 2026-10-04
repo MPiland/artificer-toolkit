@@ -20,6 +20,7 @@ import {
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
+import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 
@@ -369,4 +370,66 @@ it('keeps room authority after the activating member leaves and admits another c
     authorityEpoch: base.authorityEpoch,
     status: 'ACTIVE'
   })
+})
+
+const halfLease = ROOM_LIMITS.authorizationLeaseMs / 2
+const resume = JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 })
+
+it('renews the authorization lease with one read per half-lease while a member is connected, and not before', async () => {
+  const base = await room()
+  const player = await base.connect('PLAYER')
+  await admitted(player)
+  const syncs = () => player.messages.filter(({ type }) => type === 'STATE_SYNC').length
+  // Admission sends the first STATE_SYNC.
+  await vi.waitFor(() => expect(syncs()).toBe(1))
+  const reads = base.count(ROOM_AUTHORIZATION_PATH)
+  player.socket.send(resume)
+  player.socket.send(resume)
+  await vi.waitFor(() => expect(syncs()).toBe(3))
+  expect(base.count(ROOM_AUTHORIZATION_PATH)).toBe(reads)
+
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + halfLease + 1_000)
+  player.socket.send(resume)
+  await vi.waitFor(() => expect(base.count(ROOM_AUTHORIZATION_PATH)).toBe(reads + 1))
+  player.socket.send(resume)
+  player.socket.send(resume)
+  await vi.waitFor(() => expect(syncs()).toBe(6))
+  expect(base.count(ROOM_AUTHORIZATION_PATH)).toBe(reads + 1)
+  clock.mockRestore()
+})
+
+it('does not renew the lease from an alarm while no socket is connected', async () => {
+  const base = await room()
+  const player = await base.connect('PLAYER')
+  await admitted(player)
+  player.socket.close(1000, 'Done.')
+  await vi.waitFor(async () =>
+    expect(
+      await runInDurableObject(
+        base.stub,
+        (_instance, state) =>
+          state.getWebSockets().filter((socket) => socket.readyState === WebSocket.OPEN).length
+      )
+    ).toBe(0)
+  )
+  const reads = base.count(ROOM_AUTHORIZATION_PATH)
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + halfLease + 1_000)
+  await runInDurableObject(base.stub, (instance) => instance.alarm())
+  clock.mockRestore()
+  expect(base.count(ROOM_AUTHORIZATION_PATH)).toBe(reads)
+})
+
+it('closes a socket whose eviction notice was lost once the half-lease renewal reads', async () => {
+  const base = await room()
+  const owner = await base.connect('OWNER')
+  const player = await base.connect('PLAYER')
+  await admitted(owner)
+  await admitted(player)
+  base.members.delete(player.userId)
+  const closed = waitForClose(player.socket)
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + halfLease + 1_000)
+  owner.socket.send(resume)
+  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Campaign access ended.' })
+  clock.mockRestore()
+  expect(owner.socket.readyState).toBe(WebSocket.OPEN)
 })

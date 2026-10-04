@@ -1,7 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { meterFrame, meterStorage, RoomMeter } from './roomMeter.js'
 
-const io = { bytesRead: 10, bytesWritten: 4, documentsRead: 2, documentsWritten: 1 }
+const counters = { bytesRead: 10, bytesWritten: 4, documentsRead: 2, documentsWritten: 1 }
+const none = { bytesRead: 0, bytesWritten: 0, documentsRead: 0, documentsWritten: 0 }
+const io = {
+  ...counters,
+  sections: {
+    fence: none,
+    records: counters,
+    scopes: none,
+    holds: none,
+    scenes: none,
+    history: none,
+    privateRolls: none,
+    remainder: none
+  }
+}
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -73,7 +87,16 @@ describe('room meter', () => {
       requests: 5,
       payloadBytes: 150,
       wallMs: 12,
-      convex: { bytesRead: 20, bytesWritten: 8, documentsRead: 4, documentsWritten: 2 }
+      convex: {
+        bytesRead: 20,
+        bytesWritten: 8,
+        documentsRead: 4,
+        documentsWritten: 2,
+        sections: {
+          ...io.sections,
+          records: { bytesRead: 20, bytesWritten: 8, documentsRead: 4, documentsWritten: 2 }
+        }
+      }
     })
     expect(checkpoints.DRAIN?.count).toBe(1)
     expect(checkpoints.ADMISSION).toBeUndefined()

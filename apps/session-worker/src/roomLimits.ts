@@ -15,7 +15,8 @@ export const ROOM_LIMITS = {
   maxInFlightEncounterCommandsPerPlayer: 1,
   /**
    * The room trusts its authorization cache for this long (2N, ADR 0035 Amendment 14). Each
-   * socket's re-authentication, and later each checkpoint response, renews it.
+   * socket's re-authentication renews it, and a connected room renews it with one read once half
+   * has passed (ADR 0035 Amendment 18).
    */
   authorizationLeaseMs: 240_000,
   checkpointDeadlineMs: 120_000,

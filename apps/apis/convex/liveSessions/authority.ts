@@ -195,7 +195,10 @@ export async function inspectCampaignLiveCheckpoint(
   const { campaignId, epoch, ...checkpoint } = liveSessionCheckpointFenceInputSchema.parse(rawInput)
   if (checkpoint.sequence <= checkpoint.fromSequence)
     throw new Error('Live Session checkpoint range is empty or reversed.')
-  const authority = await requireCampaignLiveAuthority(ctx, { campaignId, epoch })
+  const authority = await requireCampaignLiveAuthority(ctx, {
+    campaignId,
+    epoch
+  })
   if (authority.phase === 'ACTIVATING') throw new Error('Live Session authority is not active.')
   if (checkpoint.sequence === authority.persistedSequence) {
     if (
@@ -223,10 +226,10 @@ export async function inspectCampaignLiveCheckpoint(
 }
 
 /** Publishes a contiguous batch and its replay fence in the caller's single mutation. */
-export async function commitCampaignLiveCheckpoint(
+export async function commitCampaignLiveCheckpoint<Applied>(
   ctx: MutationCtx,
   rawInput: LiveSessionCheckpointFenceInput,
-  apply: () => Promise<void>
+  apply: () => Promise<Applied>
 ) {
   const inspected = await inspectCampaignLiveCheckpoint(ctx, rawInput)
   if (inspected.status === 'REPLAYED') return inspected
@@ -236,7 +239,7 @@ export async function commitCampaignLiveCheckpoint(
     epoch: _epoch,
     ...checkpoint
   } = liveSessionCheckpointFenceInputSchema.parse(rawInput)
-  await apply()
+  const applied = await apply()
   const updatedAt = new Date().toISOString()
   await ctx.db.patch(authority._id, {
     persistedSequence: checkpoint.sequence,
@@ -247,6 +250,8 @@ export async function commitCampaignLiveCheckpoint(
   })
   return {
     status: 'COMMITTED' as const,
+    /** What `apply` returned; a replay applies nothing. */
+    applied,
     authority: {
       ...authority,
       persistedSequence: checkpoint.sequence,

@@ -157,6 +157,8 @@ function auditWindow({ name, executions }, strict, failures) {
   }
 }
 
+const ioBytes = (counters) => (counters?.bytesRead ?? 0) + (counters?.bytesWritten ?? 0)
+
 /** One room's totals between two meter reads, as the Worker's cumulative counters differ. */
 function diffTotals(before, after) {
   const checkpoints = {}
@@ -167,10 +169,14 @@ function diffTotals(before, after) {
       requests: row.requests - (prior?.requests ?? 0),
       payloadBytes: row.payloadBytes - (prior?.payloadBytes ?? 0),
       wallMs: row.wallMs - (prior?.wallMs ?? 0),
-      convexIoBytes:
-        row.convex.bytesRead +
-        row.convex.bytesWritten -
-        ((prior?.convex.bytesRead ?? 0) + (prior?.convex.bytesWritten ?? 0))
+      convexIoBytes: ioBytes(row.convex) - ioBytes(prior?.convex),
+      // Read plus written bytes by checkpoint section (A35-S10a).
+      sectionIoBytes: Object.fromEntries(
+        Object.entries(row.convex.sections).map(([section, counters]) => [
+          section,
+          ioBytes(counters) - ioBytes(prior?.convex.sections[section])
+        ])
+      )
     }
   }
   return {
@@ -204,9 +210,13 @@ function windowMeter(meters, label, failures) {
         requests: 0,
         payloadBytes: 0,
         wallMs: 0,
-        convexIoBytes: 0
+        convexIoBytes: 0,
+        sectionIoBytes: {}
       })
-      for (const key of Object.keys(total)) total[key] += row[key]
+      for (const key of ['count', 'requests', 'payloadBytes', 'wallMs', 'convexIoBytes'])
+        total[key] += row[key]
+      for (const [section, bytes] of Object.entries(row.sectionIoBytes))
+        total.sectionIoBytes[section] = (total.sectionIoBytes[section] ?? 0) + bytes
     }
   const requests = { HTTP: 0, ALARM: 0, WEBSOCKET_MESSAGE: 0 }
   for (const delta of deltas)
@@ -445,7 +455,17 @@ export async function verifyV15Budgets(proofName) {
                     payloadBytesEach:
                       count === 0 ? 0 : sum(rows, (row) => row.payloadBytes) / count,
                     convexIoBytesEach:
-                      count === 0 ? 0 : sum(rows, (row) => row.convexIoBytes) / count
+                      count === 0 ? 0 : sum(rows, (row) => row.convexIoBytes) / count,
+                    sectionIoBytesEach: Object.fromEntries(
+                      [...new Set(rows.flatMap((row) => Object.keys(row.sectionIoBytes)))].map(
+                        (section) => [
+                          section,
+                          count === 0
+                            ? 0
+                            : sum(rows, (row) => row.sectionIoBytes[section] ?? 0) / count
+                        ]
+                      )
+                    )
                   }
                 ]
               }

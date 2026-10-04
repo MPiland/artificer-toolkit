@@ -59,8 +59,13 @@ export async function stageCheckpoint(ctx: MutationCtx, rawInput: LiveSessionChe
       throw new Error('Live Session checkpoint upload identity was already used.')
   } else {
     const expiresAt = Date.now() + UPLOAD_WINDOW_MS
-    await ctx.db.insert('liveSessionCheckpointUploads', { ...input, expiresAt })
-    await ctx.scheduler.runAt(expiresAt, cleanupReference, { checkpointId: input.checkpointId })
+    await ctx.db.insert('liveSessionCheckpointUploads', {
+      ...input,
+      expiresAt
+    })
+    await ctx.scheduler.runAt(expiresAt, cleanupReference, {
+      checkpointId: input.checkpointId
+    })
   }
   return { status: 'STAGED' as const }
 }
@@ -114,7 +119,7 @@ export async function commitStagedCheckpoint(
     ...frame
   } = liveSessionCheckpointCommitInputSchema.parse(rawInput)
   // An exact retry needs no uploaded bytes: the first transaction retained its validated fence.
-  return publishCheckpointFrame(ctx, frame, knownAuthorization, async (writeCtx) => {
+  return publishCheckpointFrame(ctx, frame, async (writeCtx, io) => {
     const { row, upload } = await readUpload(writeCtx, frame.checkpointId)
     const { byteLength, partCount, expiresAt: _expiresAt, ...storedFrame } = upload
     if (canonicalizeJson(storedFrame) !== canonicalizeJson(frame))
@@ -133,9 +138,13 @@ export async function commitStagedCheckpoint(
     const records = liveSessionCheckpointRecordsSchema.parse(JSON.parse(json))
     if (checksumCanonicalJson(records) !== frame.payloadChecksum)
       throw new Error('Live Session checkpoint payload checksum does not match.')
-    await applyCheckpointRecords(writeCtx, frame, records)
+    // Reading and deleting the staged payload is charged to the remainder, not to the records.
+    await io.mark('remainder')
+    const adopted = await applyCheckpointRecords(writeCtx, frame, records, knownAuthorization, io)
     for (const part of parts) await writeCtx.db.delete(part._id)
     await writeCtx.db.delete(row._id)
+    await io.mark('remainder')
+    return adopted
   })
 }
 
@@ -166,7 +175,9 @@ export const cleanup = untrackedInternalMutation({
       .unique()
     if (!row) return null
     if (row.expiresAt > Date.now()) {
-      await ctx.scheduler.runAt(row.expiresAt, cleanupReference, { checkpointId })
+      await ctx.scheduler.runAt(row.expiresAt, cleanupReference, {
+        checkpointId
+      })
       return null
     }
     const parts = await ctx.db
