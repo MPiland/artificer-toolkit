@@ -2,12 +2,12 @@
 
 > The resume point for a fresh session. Read this first, then only the sections it links. Keep it under about 60 lines; rewrite it at every slice boundary.
 >
-> Updated: 2026-10-03 (A35-S10a and PLT-6 done; next is A35-S10b, with PLT-7 in parallel).
+> Updated: 2026-10-04 (A35-S10b and PLT-7 done; next is A35-S10c, with PLT-8 in parallel).
 
 ## Where we are
 
 - **Branch:** `codex/phase-08-2-convex-cutover`. The user's `.agents/` deletions are intentional; leave them unstaged.
-- **Acceptance:** 50/75 cases and 189/277 criteria (P14.3 retired with Campaign Files) (`node scripts/acceptanceProgress.mjs`).
+- **Acceptance:** 50/75 cases and 189/279 criteria, 75 READY (`node scripts/acceptanceProgress.mjs`).
 - **Dashboard:** https://claude.ai/artifact/Qcho6LKSBVJtVg2PKv36jv.
   - It renders `node scripts/acceptanceProgress.mjs --json` (the ledger, the registry [08-2-work-slices.json](../roadmap/08-2-work-slices.json) and git history).
   - To update it: change registry states, write the `--json` output to `data.json` in the session scratchpad, list the Artifact's files (`scope: files`), and publish with `files: {"data.json": <scratchpad>/data.json}`.
@@ -21,7 +21,7 @@
     - stop every background shell and agent;
     - give the `/clear` line: "Continue Phase 8.2 from docs/handoffs/phase-08-2-now.md."
 - **Rhythm:**
-  - Code first, then the compile gate: `local-validation/codex-batch/gate.ps1 -Name <gateN>`. gate123 was the last used. The gate takes the validation lock itself.
+  - Code first, then the compile gate: `local-validation/codex-batch/gate.ps1 -Name <gateN>`. gate126-s10b and gate-plt7-3 were the last used. The gate takes the validation lock itself.
   - Then focused proofs:
     - Convex: `vt.ps1`;
     - worker `src`: root `yarn vitest run --config vitest.config.ts <file>`;
@@ -36,7 +36,9 @@
 - the Convex command endpoint is deleted;
 - A35-S6d (room pushes `ENCOUNTER_SESSION`), A35-S6e (room answers `ENCOUNTER_READ`) and A35-S9 (checkpoint `reason` and I/O, the dev room meter at `GET /internal/live-sessions/meter/<campaignId>`, `scripts/v15Budgets.mjs`);
 - TST-0 and TST-6;
-- A35-S10a: a one-actor HP flush reads 8.9 KB in 11 documents (was ~250 KB), flat across roster size and checkpoint count ([measurement](../validation/phase-08-2/a35-s10a-flush-io-2026-10-03.md)); lease renewal is a room background read per half-lease while sockets are connected.
+- A35-S10a: a one-actor HP flush reads 8.9 KB in 11 documents (was ~250 KB), flat across roster size and checkpoint count ([measurement](../validation/phase-08-2/a35-s10a-flush-io-2026-10-03.md)); lease renewal is a room background read per half-lease while sockets are connected;
+- A35-S10b: only START, COMPLETE, Character actor add/remove and departure force a checkpoint; warm re-admission proves the token locally (ticket v3 carries the Better Auth `authSubject`, JWKS at `${CONVEX_SITE_URL}/api/auth/convex/jwks`) and admits from the lease; sockets are challenged 60 s before sign-in expiry and closed if silent; actor token bindings are a room read;
+- PLT-7 (VS-11): private and shared notebook entries and Session notes (P14.6, P15.5), purge of a departed account's private notes.
 
 REL-5 is paused: V15 runs a9–a11 failed (a reactor player never got MOVEMENT_REACTION).
 
@@ -45,19 +47,20 @@ REL-5 is paused: V15 runs a9–a11 failed (a reactor player never got MOVEMENT_R
 - **D86:** write-behind flush, and live views read the room ([ADR 0035 D86](../adr/0035-room-authoritative-live-encounters.md#d86-write-behind-state-flush-live-views-read-the-room--2026-10-03), [slice plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86)). Order: A35-S10a → S10d, then REL-5 sets N. This supersedes item 6 below.
 - **D87:** Campaign content is hidden from players until the GM reveals it. VS-11 is queued after VS-8:
   - PLT-6 (done): read gates, and Campaign Files removed;
-  - PLT-7: private and shared notes;
+  - PLT-7 (done): private and shared notes;
   - PLT-8: Show to players.
 
   VS-11 may run alongside the D86 slices.
 - **V15 session model (product owner):** 5-hour sessions, 4 fights of 8 rounds, 5 players and a GM, weekly play; assume 6 enemies and about 3 hours of combat. REL-5 measures one group and extrapolates; group counts are checked in testing.
 
 **Next session starts here**
-- **A35-S10b** ([plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86)): no forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires. Brief one Sonnet agent; key tests first.
-- **PLT-7 (in parallel, VS-11):** private and shared notes (notebook and Session notes), private by default, the GM reads all (D87). A second Sonnet agent; add its ledger criteria when briefing. PLT-6 is done: `readMemberEncounter` (encounters/readAccess.ts) and `isSceneRevealedToPlayers` (scenes/liveDocuments.ts) are the gates PLT-8 extends.
+- **A35-S10c** ([plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86)): dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately. Brief one Sonnet agent; key tests first.
+- **PLT-8 (in parallel, VS-11):** Show to players, a Scene's map as a view-only image with its fog, without changing the played Scene (D87). A second Sonnet agent; add its ledger criteria to VS-11 (P14/P15 or a new case) when briefing. It extends `readMemberEncounter` (encounters/readAccess.ts) and `isSceneRevealedToPlayers` (scenes/liveDocuments.ts).
+- **Carried from S10b/PLT-7:** merge the `manageNotes` and `contributeSessionNotes` capabilities; a challenge drops Sheet and Encounter subscriptions until re-auth (check the client re-subscribes); pins per notebook section are uncapped in the purge; the purge runs after the departure cascade commits (the GM can briefly read the private notes); confirm `CONVEX_SITE_URL` in the worker matches the JWT issuer exactly, or warm admission silently falls back to cold.
 - **Uncommitted, kept for REL-5:** the event recorder and driver changes in `apps/apis/tests/development{HttpClient,EncounterScenes,RoomMeasurement,EncounterCutover}.ts`. Commit them once run.
 - **REL-5 check from PLT-6:** confirm the room's own Encounter reads expose only the ACTIVE Run to players.
 
-**Remaining, in order** (TST-0, TST-6 and S10a done; then S10b → S10d)
+**Remaining, in order** (TST-0, TST-6, S10a and S10b done; then S10c → S10d)
 3. **REL-5 (V15).** Rewrite `apps/apis/tests/developmentEncounterCutover.ts` for the room:
    - read room frames, not Convex;
    - put a checkpoint barrier before Convex checks;
