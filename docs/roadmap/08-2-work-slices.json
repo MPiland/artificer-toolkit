@@ -95,7 +95,7 @@
     { "id": "A35-S8c", "stream": "A35", "state": "superseded", "title": "Evidence rolls planned in the room, with no warm Convex calls (folded into A35-S6c1 by D78)", "cases": [], "refs": ["D41", "D72", "D78", "A35-S6c1"] },
     { "id": "A35-S9", "stream": "A35", "state": "integrating", "title": "Budgets in gates, shadow harness deleted, architecture docs rewritten", "cases": ["V15", "R07"], "refs": [] },
     { "id": "A35-S10a", "stream": "A35", "state": "done", "title": "Delta-sized flushes: per-section checkpoint I/O measured, then no Campaign-wide reads; lease renewal leaves the checkpoint", "cases": ["V15"], "refs": ["D86"] },
-    { "id": "A35-S10b", "stream": "A35", "state": "active", "title": "No forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires", "cases": ["V15"], "refs": ["D86"] },
+    { "id": "A35-S10b", "stream": "A35", "state": "done", "title": "No forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires", "cases": ["V15"], "refs": ["D86"] },
     { "id": "A35-S10c", "stream": "A35", "state": "remaining", "title": "Dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately", "cases": ["V15", "R06", "V14", "P04", "P08"], "refs": ["D86", "D87"] },
     { "id": "A35-S10d", "stream": "A35", "state": "remaining", "title": "Encounter history stays in the room and is discarded at Run end; Run-scoped replay index; chat and rolls ride the flush", "cases": ["V11", "R06"], "refs": ["D85", "D86"] },
 

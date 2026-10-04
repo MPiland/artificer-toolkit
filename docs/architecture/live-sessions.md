@@ -167,9 +167,13 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
 - One ACTIVE Run per Campaign: the RUN input carries the Campaign's `activeEncounterId`, `START`
   refuses `ACTIVE_ENCOUNTER_EXISTS`, and checkpoint ingestion refuses a checkpoint that would leave
   two ACTIVE Runs.
-- `REVERT_LAST_ACTION`, Character actor removal, `COMPLETE` and any Run round change set
-  `checkpointBeforeAcknowledgement`: the room flushes a checkpoint before acknowledging, including
-  when a retry recovers that receipt after a restart.
+- Only commands that change a Convex-owned hold set `checkpointBeforeAcknowledgement` (ADR 0035
+  Amendment 17): `START`, `COMPLETE` and removing a Character actor. The room flushes a checkpoint
+  before acknowledging them, including when a retry recovers that receipt after a restart. The rest of
+  the synchronous list is not room commands: Encounter delete and adding a Character actor (assignment
+  or `START`) happen in Convex, and the departure reconcile (D81) flushes in the room's own departure
+  path. Token bind and unbind and round changes ride the next flush. `REVERT_LAST_ACTION` is not a
+  command.
 - `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused (`LEGENDARY_WINDOW_ONLY`).
 - Steps play cannot continue without (initiative, saves, Recharge, Legendary dice, dice during a move)
   refuse a GM void with `DECISION_REQUIRES_ANSWER`. Other voids cancel the occurrence
@@ -244,9 +248,9 @@ settlement, timeline }`:
 #### Held turn reads
 
 The four version-keyed turn reads (`actionChoices.get`, `actionChoices.optional`,
-`evidenceRolls.latest`, `sceneBindings.get`) are not in the frame; they are answered on demand.
-`ENCOUNTER_READ { requestId, read }` carries `read`, a union over the four reads with the Convex query's
-arguments less `expectedVersion`
+`evidenceRolls.latest`, `sceneBindings.get`) and the Scene's actor token bindings are not in the frame;
+they are answered on demand. `ENCOUNTER_READ { requestId, read }` carries `read`, a union over the five
+reads with the Convex query's arguments less `expectedVersion`
 ([encounterRead.ts](../../packages/schema/src/api/encounterRead.ts)). The room answers at its own current
 version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result }`, or
 `ENCOUNTER_READ_REJECTED { requestId, code, reason, message }` (the rejection codes of `COMMAND_REJECTED`).
@@ -255,6 +259,13 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   command chain (it sees one committed version, never a half-applied command), re-admits the socket against the
   current authorization, then applies the same checks as the Convex query (Campaign authority, actor
   control, visibility). A domain refusal is `DOMAIN_REJECTED` with its reason and message.
+- `ACTOR_TOKEN_BINDINGS { encounterId, sceneId }` returns the held `encounterActorTokenBindings` rows for
+  that Scene, only for tokens the reader sees in the room's synchronized Scene
+  (`projectNativeLiveSessionState`), so a player never learns which actor stands behind a hidden token.
+  Binding and unbinding no longer checkpoint, so Convex's `scenes/recipientActions:encounterBindings` trails
+  the room; the web view (`CampaignVttStage`) reads this while routed and re-asks when the viewer's token
+  set changes. It keeps the Convex action for an unrouted read. A Scene the room has not synchronized is
+  `UNAVAILABLE`.
 - The readers are shared with the Convex queries
   ([actionChoiceReads](../../packages/encounter-persistence/src/actionChoiceReads.ts),
   [evidenceRolls](../../packages/encounter-persistence/src/evidenceRolls.ts),
@@ -370,10 +381,33 @@ sequenceDiagram
 
 The browser authenticates once after the socket opens. There is no periodic heartbeat; the admitted
 socket stays valid until its JWT expires (about 15 minutes), an invalidation arrives, the room's
-authorization cache no longer admits it, or the socket closes. At expiry or after
-`AUTHENTICATION_REQUIRED`, the browser obtains current authentication and Convex recaptures product
-authority. Every admission, first or renewed, also renews the room's authorization cache and is refused
-when that cache does not admit the captured member. `LIVE_SESSION_WORKER_SECRET` authenticates the
+authorization cache no longer admits it, or the socket closes. After `AUTHENTICATION_REQUIRED`, the
+browser obtains current authentication and the room re-admits it warm or, failing that, Convex
+recaptures product authority (see "Warm admission"). Every cold admission also renews the room's
+authorization cache and is refused when that cache does not admit the captured member.
+
+**Proactive re-challenge (ADR 0035 Amendment 23, current).** The room does not wait for a request to
+find an expired token. Through its single coalesced alarm it sends `AUTHENTICATION_REQUIRED` to each
+admitted socket at `Admission.deadline` minus `reauthenticationLeadMs` (60 s). The browser's
+`liveSessionClient` answers every challenge with a freshly fetched token, so a passive socket re-admits
+before expiry. A socket that has not been re-admitted at its deadline is closed with the reason
+"Live-session sign-in expired." (1008). A revoked session cannot obtain a token, so an unanswered
+challenge ends the socket at expiry rather than by notice. The challenge drops the socket's feed
+subscriptions as any `AUTHENTICATION_REQUIRED` does, and the re-admission resends the state sync.
+
+**Warm admission (ADR 0035 Amendment 18, current).** The ticket (version 3) carries `authSubject`,
+the Better Auth user ID (`identity.subject`, never an argument), beside `sub`, the app user ID. When an
+AUTHENTICATE arrives for a socket that was already admitted as a member, the room verifies the access
+token locally (`accessTokenSubject.ts`): RS256 against the Convex site JWKS
+(`/api/auth/convex/jwks`, one cached `createRemoteJWKSet` per site URL), issuer the Convex site URL,
+audience `convex`, `exp` checked. A proven `sub` equal to the ticket's `authSubject`, with the cached
+authorization lease current and admitting the member (`admitsRoomMember`), re-admits the socket with no
+Convex call: no flush, capture, authority check, authorization refresh or background publish, and the
+lease is not renewed. A proven `sub` that differs closes the socket ("Live-session identity changed.").
+Any token the room cannot prove (a JWKS fetch failure, an unknown key, a bad signature, an expired
+token), a lapsed lease or a first admission goes the cold path, where Convex decides: it flushes,
+captures, ensures authority and refreshes the lease. An idle socket therefore re-admits warm only
+while the 240 s authorization lease is current. `LIVE_SESSION_WORKER_SECRET` authenticates the
 Worker's HTTP calls to Convex and Convex's control calls to the Worker.
 
 **Control route.** Convex reaches a room through `POST /internal/live-sessions/control`
@@ -589,7 +623,8 @@ Campaign history and separately packed private Character history) and the Scene/
   Commands committed while publication is in flight remain as a suffix.
 - **Timing.** The earliest unpublished receipt's timestamp fixes the checkpoint deadline
   (`checkpointDeadlineMs`, 120 s); later commands do not extend it. Admission, Scene presentation, drain
-  and `checkpointBeforeAcknowledgement` commands flush a checkpoint before their boundary.
+  and `checkpointBeforeAcknowledgement` commands flush a checkpoint before their boundary (a cold
+  admission flushes; a warm one does not).
 
 ### Checkpoint triggers and the room meter (D85)
 

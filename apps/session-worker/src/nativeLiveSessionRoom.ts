@@ -140,12 +140,14 @@ import {
   ROOM_LIMITS,
   SocketMessageBudget
 } from './roomLimits.js'
+import { verifiedAccessTokenSubject } from './accessTokenSubject.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
 
 const socketAttachmentSchema = z.strictObject({
   acceptedAt: z.number().int().positive(),
+  authSubject: z.string().min(1),
   authorityEpoch: z.string().uuid(),
   campaignId: z.string().uuid(),
   membershipEpoch: z.nullable(z.iso.datetime({ offset: true })),
@@ -290,6 +292,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     { accessToken: string; deadline: number; generation: number }
   >()
   readonly #generations = new Map<WebSocket, number>()
+  /**
+   * Sockets challenged ahead of their admission's expiry, with that expiry: a socket still not
+   * re-admitted then is closed with a reason instead of lingering unadmitted (Amendment 23).
+   */
+  readonly #expiring = new Map<WebSocket, number>()
   readonly #movementIndexes = new Map<
     string,
     { barriers: CampaignSceneStateDto['barriers']; index: SceneBarrierIndex }
@@ -389,7 +396,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#encounterReads = new RoomEncounterReads({
       ...feedDependencies,
       authorization: (scope) => this.#authorization.currentPlay(scope.authorityEpoch),
-      presentedSceneId: () => this.#cache?.scene?.id ?? null
+      presentedSceneId: () => this.#cache?.scene?.id ?? null,
+      visibleTokenIds: (socket, sceneId) => {
+        const admission = this.#liveAdmission(socket)
+        const scene = this.#cache?.synchronized ? this.#cache.scene : null
+        return admission && scene?.id === sceneId
+          ? new Set(
+              projectNativeLiveSessionState({ scene }, admission).scene?.tokens.map(({ id }) => id)
+            )
+          : null
+      }
     })
     ctx.blockConcurrencyWhile(async () => {
       storage.sql.exec(`
@@ -515,6 +531,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const acceptedAt = Date.now()
     server.serializeAttachment({
       acceptedAt,
+      authSubject: claims.authSubject,
       authorityEpoch: claims.authorityEpoch,
       campaignId: claims.campaignId,
       membershipEpoch: null,
@@ -707,6 +724,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    */
   async alarm(): Promise<void> {
     this.#meter.request('ALARM')
+    this.#reauthenticateExpiringAdmissions()
     if (await this.#recoverStorageIfNeeded()) {
       await this.#scheduleAlarm()
       return
@@ -739,6 +757,30 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   /**
+   * Challenges each admitted socket at its admission's expiry minus `reauthenticationLeadMs`, so the
+   * client answers with a refreshed token. A socket not re-admitted by that expiry is closed with a
+   * reason: a revoked session cannot obtain a token, so silence ends the socket here.
+   */
+  #reauthenticateExpiringAdmissions(): void {
+    const now = Date.now()
+    for (const socket of this.#openSockets()) {
+      const expiresAt = this.#expiring.get(socket)
+      if (expiresAt !== undefined) {
+        if (expiresAt <= now && !this.#admissions.has(socket))
+          this.#closeSocket(socket, 'Live-session sign-in expired.')
+        continue
+      }
+      const admission = this.#admissions.get(socket)
+      if (!admission) continue
+      if (admission.deadline <= now) this.#closeSocket(socket, 'Live-session sign-in expired.')
+      else if (admission.deadline - ROOM_LIMITS.reauthenticationLeadMs <= now) {
+        this.#challenge(socket, admission.generation)
+        this.#expiring.set(socket, admission.deadline)
+      }
+    }
+  }
+
+  /**
    * Starts the idle-release window when the last admitted socket leaves an active room; an admitted
    * socket cancels it. `leaving` is a socket the runtime may still list while it closes.
    */
@@ -758,7 +800,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const open = this.#openSockets(leaving)
     const deadlines = open.flatMap((socket) => {
       const value = attachment(socket)
-      return value && value.membershipEpoch === null && !this.#admissions.has(socket)
+      const admission = this.#admissions.get(socket)
+      const expiresAt = this.#expiring.get(socket)
+      if (expiresAt !== undefined) return admission ? [] : [expiresAt]
+      if (admission) return [admission.deadline - ROOM_LIMITS.reauthenticationLeadMs]
+      return value && value.membershipEpoch === null
         ? [value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs]
         : []
     })
@@ -823,6 +869,44 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const deadline = expiration * 1_000
     this.#authenticating.set(socket, { accessToken, deadline, generation })
     try {
+      // Warm admission (Amendment 18): an already-admitted socket's fresh token is proven locally
+      // against the Convex site keys and its membership comes from the room's current lease, so it
+      // costs no flush, capture or authorization read. Anything unproven takes the cold path below.
+      if (value.membershipEpoch !== null) {
+        const subject = await verifiedAccessTokenSubject(
+          accessToken,
+          this.env.CONVEX_SITE_URL,
+          new Date(Date.now())
+        )
+        if (generation !== this.#generations.get(socket)) return
+        if (subject !== null && subject !== value.authSubject) {
+          this.#closeIfCurrent(socket, generation, 'Live-session identity changed.')
+          return
+        }
+        const authorization =
+          subject === null ? null : this.#authorization.current(value.authorityEpoch)
+        if (
+          authorization &&
+          admitsRoomMember(authorization, {
+            membershipEpoch: value.membershipEpoch,
+            role: value.role,
+            userId: value.userId
+          })
+        ) {
+          if (this.#presentationChanging || cacheGeneration !== this.#cacheGeneration)
+            this.#challenge(socket, generation)
+          else
+            await this.#admit(socket, value, {
+              accessToken,
+              deadline,
+              generation,
+              membershipEpoch: value.membershipEpoch,
+              role: value.role,
+              userId: value.userId
+            })
+          return
+        }
+      }
       if (await this.#recoverStorageIfNeeded(value.authorityEpoch)) return
       this.#meter.epoch(value.authorityEpoch)
       // Reconnect reads the acknowledged product state after the room's pending prefix is saved.
@@ -879,62 +963,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             presentation: { expectedPresentationVersion: capture.presentation.version }
           }
       }
-      const admitted: Admission = {
-        accessToken,
-        deadline,
-        generation,
-        membershipEpoch: capture.origin.membershipEpoch,
-        role: capture.origin.role,
-        userId: capture.origin.userId
-      }
       if (
-        Date.now() >= admitted.deadline ||
-        generation !== this.#generations.get(socket) ||
-        (value.membershipEpoch === null && Date.now() >= value.ticketExpiresAt * 1_000)
-      ) {
-        if (value.membershipEpoch === null && Date.now() >= value.ticketExpiresAt * 1_000) {
-          this.#closeIfCurrent(socket, generation, 'Live-session ticket expired.')
-          return
-        }
-        this.#challenge(socket, generation)
-        return
-      }
-      const latest = attachment(socket)
-      if (
-        !latest ||
-        (latest.membershipEpoch !== null && latest.membershipEpoch !== admitted.membershipEpoch)
-      ) {
-        this.#challenge(socket, generation)
-        return
-      }
-      if (latest.membershipEpoch === null)
-        socket.serializeAttachment({ ...latest, membershipEpoch: admitted.membershipEpoch })
-      if (socket.readyState !== WebSocket.OPEN || this.#generations.get(socket) !== generation)
-        return
-      this.#admissions.set(socket, admitted)
-      this.#meter.admitted(
-        admitted.userId,
-        [...this.#admissions].filter(
-          ([open, member]) =>
-            member.userId === admitted.userId && open.readyState === WebSocket.OPEN
-        ).length
-      )
-      const current = this.#liveAdmission(socket)
-      if (
-        current?.generation === admitted.generation &&
-        current.role === admitted.role &&
-        current.membershipEpoch === admitted.membershipEpoch
-      ) {
-        send(socket, {
-          campaignId: value.campaignId,
-          type: 'TRANSIENT_READY'
+        await this.#admit(socket, value, {
+          accessToken,
+          deadline,
+          generation,
+          membershipEpoch: capture.origin.membershipEpoch,
+          role: capture.origin.role,
+          userId: capture.origin.userId
         })
-        this.#sendStateSync(socket, current)
-        this.#queuePostCommit()
+      )
         this.#publishInBackground()
-        // A reconnect inside the idle window cancels the pending release.
-        await this.#refreshIdleRelease()
-      }
     } catch (error) {
       if (
         error instanceof LiveSessionRouteError &&
@@ -950,6 +989,54 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (this.#authenticating.get(socket)?.generation === generation)
         this.#authenticating.delete(socket)
     }
+  }
+
+  /** Admits the socket unless its token, ticket, generation or membership went stale; true once announced. */
+  async #admit(socket: WebSocket, value: SocketAttachment, admitted: Admission): Promise<boolean> {
+    const { generation } = admitted
+    if (
+      Date.now() >= admitted.deadline ||
+      generation !== this.#generations.get(socket) ||
+      (value.membershipEpoch === null && Date.now() >= value.ticketExpiresAt * 1_000)
+    ) {
+      if (value.membershipEpoch === null && Date.now() >= value.ticketExpiresAt * 1_000)
+        this.#closeIfCurrent(socket, generation, 'Live-session ticket expired.')
+      else this.#challenge(socket, generation)
+      return false
+    }
+    const latest = attachment(socket)
+    if (
+      !latest ||
+      (latest.membershipEpoch !== null && latest.membershipEpoch !== admitted.membershipEpoch)
+    ) {
+      this.#challenge(socket, generation)
+      return false
+    }
+    if (latest.membershipEpoch === null)
+      socket.serializeAttachment({ ...latest, membershipEpoch: admitted.membershipEpoch })
+    if (socket.readyState !== WebSocket.OPEN || this.#generations.get(socket) !== generation)
+      return false
+    this.#admissions.set(socket, admitted)
+    this.#expiring.delete(socket)
+    this.#meter.admitted(
+      admitted.userId,
+      [...this.#admissions].filter(
+        ([open, member]) => member.userId === admitted.userId && open.readyState === WebSocket.OPEN
+      ).length
+    )
+    const current = this.#liveAdmission(socket)
+    if (
+      current?.generation !== admitted.generation ||
+      current.role !== admitted.role ||
+      current.membershipEpoch !== admitted.membershipEpoch
+    )
+      return false
+    send(socket, { campaignId: value.campaignId, type: 'TRANSIENT_READY' })
+    this.#sendStateSync(socket, current)
+    this.#queuePostCommit()
+    // A reconnect inside the idle window cancels the pending release.
+    await this.#refreshIdleRelease()
+    return true
   }
 
   async #ensureAuthority(
@@ -3875,6 +3962,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   #forgetSocket(socket: WebSocket): void {
     this.#invalidate(socket)
+    this.#expiring.delete(socket)
     this.#budgets.delete(socket)
     this.#previewStreams.delete(socket)
   }

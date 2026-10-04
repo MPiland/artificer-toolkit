@@ -802,6 +802,7 @@ export function readEncounterInRoom(
         admission: () => member,
         scope: () => scope,
         presentedSceneId: () => room.sceneId,
+        visibleTokenIds: () => null,
         send: (_socket, message) => replies.push(message)
       })
       await withoutHttp(async () => {

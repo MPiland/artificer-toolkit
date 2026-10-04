@@ -98,8 +98,23 @@ describe('live-session contracts', () => {
       sub: ids.user
     })
     expect(
+      liveSessionTicketClaimsDtoSchema.safeParse({
+        aud: LIVE_SESSION_TICKET_AUDIENCE,
+        authorityEpoch: ids.authorityEpoch,
+        campaignId: ids.campaign,
+        exp: 2,
+        iat: 1,
+        iss: LIVE_SESSION_TICKET_ISSUER,
+        jti: ids.token,
+        role: 'PLAYER',
+        sub: ids.user,
+        v: LIVE_SESSION_TICKET_VERSION
+      }).success
+    ).toBe(false)
+    expect(
       liveSessionTicketClaimsDtoSchema.parse({
         aud: LIVE_SESSION_TICKET_AUDIENCE,
+        authSubject: 'better-auth-user',
         authorityEpoch: ids.authorityEpoch,
         campaignId: ids.campaign,
         exp: 2,
@@ -111,6 +126,7 @@ describe('live-session contracts', () => {
         v: LIVE_SESSION_TICKET_VERSION
       })
     ).toMatchObject({
+      authSubject: 'better-auth-user',
       authorityEpoch: ids.authorityEpoch,
       campaignId: ids.campaign,
       role: 'PLAYER',

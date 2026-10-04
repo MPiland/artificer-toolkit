@@ -65,6 +65,23 @@ describe('useRoomEncounterRead', () => {
     expect(result.current).toEqual({ routed: true, value: undefined, error: null })
   })
 
+  it('asks again when the refresh key changes at the same session version', async () => {
+    const readEncounter = vi.fn().mockResolvedValue({ result: answer, version: 3 })
+    const { result, rerender } = renderHook(
+      ({ refreshKey }) =>
+        useRoomEncounterRead({ read, readEncounter, refreshKey, room: heldAt(3), select }),
+      { initialProps: { refreshKey: 'a' } }
+    )
+
+    await waitFor(() => expect(result.current).toEqual({ routed: true, value: 0, error: null }))
+    rerender({ refreshKey: 'a' })
+    expect(readEncounter).toHaveBeenCalledTimes(1)
+
+    rerender({ refreshKey: 'a,b' })
+    expect(result.current).toEqual({ routed: true, value: undefined, error: null })
+    await waitFor(() => expect(readEncounter).toHaveBeenCalledTimes(2))
+  })
+
   it('reads Convex when the room cannot answer, and shows a refusal the room gave', async () => {
     const readEncounter = vi
       .fn()

@@ -17,6 +17,7 @@ const otherCampaignId = '00000000-0000-4000-8000-000000000202'
 async function ticketFor(ticketCampaignId: string) {
   const now = Math.floor(Date.now() / 1_000)
   return new SignJWT({
+    authSubject: 'auth-00000000-0000-4000-8000-000000000204',
     authorityEpoch: '00000000-0000-4000-8000-000000000203',
     campaignId: ticketCampaignId,
     role: 'PLAYER',

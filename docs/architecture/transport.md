@@ -317,7 +317,8 @@ the prepared-Encounter read uses an internal pending registration sharing the pu
 The web adapters read Encounters through Convex subscriptions (no polling interval remains) and, while
 the room holds the Run, from the room's pushed session frame
 ([Held Encounter session](live-sessions.md#held-encounter-session)). The four version-keyed turn reads
-(`actionChoices.get` and `.optional`, `evidenceRolls.latest`, `sceneBindings.get`) go over the socket
+(`actionChoices.get` and `.optional`, `evidenceRolls.latest`, `sceneBindings.get`) and the viewer's
+Scene actor token bindings go over the socket
 as `ENCOUNTER_READ` while the frame is held and fall back to those Convex queries otherwise
 ([Held turn reads](live-sessions.md#held-turn-reads)). They retain command IDs and
 expected versions. Blueprint and live Scene selectors exhaust

@@ -262,6 +262,7 @@ function installFetch(
 async function ticket(userId: string, role: 'OWNER' | 'PLAYER') {
   const now = Math.floor(Date.now() / 1_000)
   return new SignJWT({
+    authSubject: `auth-${userId}`,
     authorityEpoch,
     campaignId,
     role,

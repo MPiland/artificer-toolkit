@@ -32,11 +32,16 @@ it('issues HS256 60-second tickets for active owner and player admissions', asyn
     base.owner.caller.action(issue, input)
   ])
   const authorityEpochs: string[] = []
-  for (const [ticket, userId, role] of [
-    [owner, base.other.userId, 'OWNER'],
-    [player, base.owner.userId, 'PLAYER']
+  for (const [ticket, userId, role, caller] of [
+    [owner, base.other.userId, 'OWNER', base.other.caller],
+    [player, base.owner.userId, 'PLAYER', base.owner.caller]
   ] as const) {
     const claims = await verifyLiveSessionTicket(ticket.ticket, secret)
+    // The Better Auth subject is read from the authenticated identity, and is not the app user id.
+    const subject = await caller.run(async (ctx) => (await ctx.auth.getUserIdentity())?.subject)
+    expect(subject).toBeTruthy()
+    expect(claims.authSubject).toBe(subject)
+    expect(claims.authSubject).not.toBe(userId)
     expect(claims).toMatchObject({
       authorityEpoch: expect.stringMatching(/^[0-9a-f-]{36}$/),
       campaignId: input.campaignId,

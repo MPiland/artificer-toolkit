@@ -335,6 +335,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     expectedVersion: 1
   }
   const advanced = await execute(advance, playerId)
+  expect(advanced.checkpointBeforeAcknowledgement).toBe(false)
   const advancedOwner = advanced.recipients.get(gmId)
   const advancedPlayer = advanced.recipients.get(playerId)
   if (!advancedOwner || !advancedPlayer) throw new Error('Missing ADVANCE turn recipient results.')

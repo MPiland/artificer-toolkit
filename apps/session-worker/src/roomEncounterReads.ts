@@ -51,6 +51,8 @@ async function readEncounter(
     read: EncounterReadDto
     store: RoomEncounterStore
     presentedSceneId: string | null
+    /** The reader's visible token ids on `sceneId`, or null when the room does not hold that Scene. */
+    visibleTokenIds: (sceneId: string) => ReadonlySet<string> | null
   }
 ): Promise<EncounterReadResultDto> {
   const { run, authority, read } = input
@@ -86,6 +88,25 @@ async function readEncounter(
       )
       return { kind: read.kind, result: presentSceneEncounterBinding(run, binding) }
     }
+    case 'ACTOR_TOKEN_BINDINGS': {
+      const visible = input.visibleTokenIds(read.input.sceneId)
+      if (!visible) throw new RoomInputsUnheldError()
+      const rows = await tx.db
+        .query('encounterActorTokenBindings')
+        .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', run.id))
+        .collect()
+      return {
+        kind: read.kind,
+        result: rows
+          .filter((row) => row.sceneId === read.input.sceneId && visible.has(row.tokenId))
+          .map(({ actorId, encounterId, sceneId, tokenId }) => ({
+            actorId,
+            encounterId,
+            sceneId,
+            tokenId
+          }))
+      }
+    }
   }
 }
 
@@ -105,6 +126,8 @@ export class RoomEncounterReads {
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
       presentedSceneId: () => string | null
+      /** The Scene tokens `socket`'s member can see on the synchronized Scene `sceneId`, else null. */
+      visibleTokenIds: (socket: WebSocket, sceneId: string) => ReadonlySet<string> | null
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
     }
   ) {}
@@ -149,7 +172,8 @@ export class RoomEncounterReads {
           authority,
           read,
           store,
-          presentedSceneId: this.dependencies.presentedSceneId()
+          presentedSceneId: this.dependencies.presentedSceneId(),
+          visibleTokenIds: (sceneId) => this.dependencies.visibleTokenIds(socket, sceneId)
         }),
         type: 'ENCOUNTER_READ_RESULT',
         version: run.version

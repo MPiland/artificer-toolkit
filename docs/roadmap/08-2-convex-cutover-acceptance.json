@@ -3500,6 +3500,7 @@
                 ".codex/validation/phase82-goal-20260923/v15-05-analysis/outcome.md (failed attempt V15-20260924-05, superseded)",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (browserless runs on the room architecture completed the full frozen schedule, then exited 1 on the command p95 assertion, before and after D52)",
                 "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (schedule shape and workload accounting only; commands are simulated)",
+                "partial: A35-S10b (D86 Amendments 17 and 23): binding, admission and round change no longer force a checkpoint; warm re-admission proves the token locally and calls no Convex route (nativeLiveSessionRoom.test.ts › re-admits an admitted socket on a locally proven token with no Convex route call); actor token bindings are read from the room (› answers actor token bindings only for the tokens the reader can see, with no Convex call)",
                 "missing: a local workload run that exits 0 with the full driver assertions",
                 "missing: a Convex call count of zero per command in the workload"
               ]
@@ -3511,6 +3512,7 @@
               "proof": [
                 "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (after D52: gameplay command p95 1,089-1,090 ms, budget 1,000, missed; warm durable convergence p95 251-252 ms, budget 250, missed; p99 met; ephemeral preview not measured)",
+                "partial: A35-S10b removes the forced flushes on binding, admission and round change and the Convex capture on warm re-admission, cutting synchronous Convex writes per session; not yet measured",
                 "missing: command p95 at or under 1 s, durable convergence p95 at or under 250 ms, and a measured ephemeral preview p95",
                 "missing: measured Convex reads and writes per session against the Q16 budgets"
               ]

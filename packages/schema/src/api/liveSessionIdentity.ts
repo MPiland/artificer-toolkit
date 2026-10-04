@@ -7,7 +7,7 @@ export const LIVE_SESSION_TICKET_AUDIENCE = 'artificer-live-session'
 export const LIVE_SESSION_TICKET_ISSUER = 'artificer-convex'
 export const LIVE_SESSION_TICKET_PROTOCOL_PREFIX = 'artificer.ticket.'
 export const LIVE_SESSION_TICKET_TTL_SECONDS = 60
-export const LIVE_SESSION_TICKET_VERSION = 2
+export const LIVE_SESSION_TICKET_VERSION = 3
 export const LIVE_SESSION_WEBSOCKET_PROTOCOL = 'artificer.live-session.v1'
 
 export const liveSessionJoinOptionsDtoSchema = lazySchema(() =>
@@ -26,6 +26,8 @@ export const liveSessionActiveMembershipDtoSchema = lazySchema(() =>
 export const liveSessionTicketClaimsDtoSchema = lazySchema(() =>
   z.strictObject({
     aud: z.literal(LIVE_SESSION_TICKET_AUDIENCE),
+    /** The Better Auth subject (`sub` of the user's Convex access token), which the room matches locally. */
+    authSubject: z.string().check(z.minLength(1)).check(z.maxLength(128)),
     authorityEpoch: uuidSchema,
     campaignId: uuidSchema,
     exp: z.number().check(z.int()).check(z.positive()),

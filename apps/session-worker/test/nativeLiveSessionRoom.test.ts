@@ -1,6 +1,6 @@
 import { evictDurableObject, runInDurableObject, SELF } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
-import { SignJWT } from 'jose'
+import { exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
   LIVE_SESSION_CONTROL_PATH,
@@ -86,6 +86,32 @@ import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
 const sockets: WebSocket[] = []
+const JWKS_PATH = '/api/auth/convex/jwks'
+const ACCESS_KEY_ID = 'native-access-key'
+const accessKeys = await generateKeyPair('RS256')
+const accessJwks = {
+  keys: [
+    { ...(await exportJWK(accessKeys.publicKey)), alg: 'RS256', kid: ACCESS_KEY_ID, use: 'sig' }
+  ]
+}
+/** The Better Auth subject Convex puts in a user's ticket and access token, distinct from the app user id. */
+const authSubjectOf = (userId: string) => `auth-${userId}`
+
+/** A Convex-issued access token (RS256, the site as issuer, audience `convex`) the room verifies locally. */
+function signVerifiedAccessToken(input: {
+  expirationTime: number
+  key?: CryptoKey
+  kid?: string
+  subject: string
+}) {
+  return new SignJWT({})
+    .setProtectedHeader({ alg: 'RS256', kid: input.kid ?? ACCESS_KEY_ID })
+    .setIssuer('https://native.test')
+    .setAudience('convex')
+    .setSubject(input.subject)
+    .setExpirationTime(input.expirationTime)
+    .sign(input.key ?? accessKeys.privateKey)
+}
 
 function checkpointResponse(body: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>) {
   const now = new Date().toISOString()
@@ -257,6 +283,22 @@ function waitForClose(socket: WebSocket): Promise<CloseEvent> {
   })
 }
 
+/** Cold-admits the fixture owner on its fixture access token. */
+async function admitOwner(base: Awaited<ReturnType<typeof fixture>>) {
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+}
+
+/** Paths the room has asked Convex for since the last `mockClear`, apart from key-set reads. */
+function convexRouteCalls() {
+  return vi
+    .mocked(globalThis.fetch)
+    .mock.calls.map(([input, init]) => new URL(new Request(input, init).url).pathname)
+    .filter((pathname) => pathname !== JWKS_PATH)
+}
+
 function signTicket(input: {
   authorityEpoch: string
   campaignId: string
@@ -265,6 +307,7 @@ function signTicket(input: {
   subject: string
 }) {
   return new SignJWT({
+    authSubject: authSubjectOf(input.subject),
     authorityEpoch: input.authorityEpoch,
     campaignId: input.campaignId,
     role: input.role,
@@ -280,7 +323,7 @@ function signTicket(input: {
     .sign(new TextEncoder().encode(secret))
 }
 
-async function fixture(scene: CampaignSceneStateDto | null = null) {
+async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSeconds = 3_600) {
   const campaignId = scene?.campaignId ?? crypto.randomUUID()
   const authorityEpoch = crypto.randomUUID()
   const activationFingerprint = 'a'.repeat(64)
@@ -301,7 +344,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
       .setExpirationTime(expirationTime)
       .sign(new TextEncoder().encode(secret))
   const issueAccessToken = (expirationTime: number) => issueAccessTokenFor(userId, expirationTime)
-  const accessToken = await issueAccessToken(issuedAt + 3_600)
+  const accessToken = await issueAccessToken(issuedAt + accessTokenSeconds)
   const playerAccessToken = await issueAccessTokenFor(playerId, issuedAt + 3_600)
   const capture: LiveSessionTransientCapture = {
     campaignId,
@@ -368,6 +411,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null) {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
+      if (pathname === JWKS_PATH) return Response.json(accessJwks)
       expect(request.headers.get('x-artificer-live-session-secret')).toBe(secret)
       if (pathname === ROOM_INPUTS_PATH) {
         expect(request.headers.get('authorization')).toBeNull()
@@ -3346,6 +3390,218 @@ it.each([false, true])(
   }
 )
 
+it('challenges an admitted socket a minute before its token expires and closes it if unanswered (A35-S10b)', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const deadline = (base.issuedAt + 3_600) * 1_000
+  const alarmAt = (now: number) =>
+    runInDurableObject(base.stub, async (instance, state) => {
+      const socket = state.getWebSockets()[0]
+      if (!socket) throw new Error('Missing native server socket.')
+      const sent = vi.spyOn(socket, 'send')
+      vi.spyOn(Date, 'now').mockReturnValue(now)
+      await instance.alarm()
+      return sent.mock.calls.map(([frame]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
+      )
+    })
+  expect(await alarmAt(deadline - ROOM_LIMITS.reauthenticationLeadMs - 1)).toEqual([])
+  expect(await alarmAt(deadline - ROOM_LIMITS.reauthenticationLeadMs)).toEqual([
+    { type: 'AUTHENTICATION_REQUIRED' }
+  ])
+  const closed = waitForClose(base.socket)
+  await alarmAt(deadline)
+  const event = await closed
+  expect(event.code).toBe(1008)
+  expect(event.reason).toBe('Live-session sign-in expired.')
+})
+
+it('re-admits a challenged socket on a fresh token without closing it at the old expiry (A35-S10b)', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const deadline = (base.issuedAt + 3_600) * 1_000
+  const refreshed = await base.issueAccessToken(base.issuedAt + 7_200)
+  const frames = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) =>
+      Response.json(
+        new URL(new Request(input, init).url).pathname === ROOM_AUTHORIZATION_PATH
+          ? roomAuthorizationResponse({ members: base.authorization.members })
+          : base.capture
+      )
+    )
+    vi.spyOn(Date, 'now').mockReturnValue(deadline - ROOM_LIMITS.reauthenticationLeadMs)
+    await instance.alarm()
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: refreshed })
+    )
+    vi.spyOn(Date, 'now').mockReturnValue(deadline + 1)
+    await instance.alarm()
+    return {
+      closed: socket.readyState !== WebSocket.OPEN,
+      frames: sent.mock.calls.map(([frame]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
+      )
+    }
+  })
+  expect(frames.closed).toBe(false)
+  expect(frames.frames.map((frame) => frame.type)).toEqual(
+    expect.arrayContaining(['AUTHENTICATION_REQUIRED', 'TRANSIENT_READY'])
+  )
+})
+
+function serverFrames(sent: { mock: { calls: unknown[][] } }) {
+  return sent.mock.calls.map(([frame]) =>
+    liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
+  )
+}
+
+it('re-admits an admitted socket on a locally proven token with no Convex route call (A35-S10b)', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  const refreshed = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 7_200,
+    subject: authSubjectOf(base.userId)
+  })
+  const evidence = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    vi.mocked(globalThis.fetch).mockClear()
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: refreshed })
+    )
+    return { frames: serverFrames(sent), routes: convexRouteCalls() }
+  })
+  expect(evidence.routes).toEqual([])
+  expect(evidence.frames.map((frame) => frame.type)).toEqual(['TRANSIENT_READY', 'STATE_SYNC'])
+})
+
+it('keeps a passive socket across a challenge-driven warm re-authentication with no Convex route call (A35-S10b)', async () => {
+  const base = await fixture(null, 120)
+  await admitOwner(base)
+  const deadline = (base.issuedAt + 120) * 1_000
+  const refreshed = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 3_600,
+    subject: authSubjectOf(base.userId)
+  })
+  const evidence = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    vi.mocked(globalThis.fetch).mockClear()
+    vi.spyOn(Date, 'now').mockReturnValue(deadline - ROOM_LIMITS.reauthenticationLeadMs)
+    await instance.alarm()
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: refreshed })
+    )
+    const routes = convexRouteCalls()
+    vi.spyOn(Date, 'now').mockReturnValue(deadline + 1)
+    await instance.alarm()
+    return {
+      closed: socket.readyState !== WebSocket.OPEN,
+      frames: serverFrames(sent),
+      routes
+    }
+  })
+  expect(evidence.routes).toEqual([])
+  expect(evidence.closed).toBe(false)
+  expect(evidence.frames.map((frame) => frame.type)).toEqual(
+    expect.arrayContaining(['AUTHENTICATION_REQUIRED', 'TRANSIENT_READY'])
+  )
+})
+
+it('closes an admitted socket whose fresh token proves a different subject (A35-S10b)', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  const foreign = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 7_200,
+    subject: authSubjectOf(base.playerId)
+  })
+  await runInDurableObject(base.stub, () => vi.mocked(globalThis.fetch).mockClear())
+  const closed = waitForClose(base.socket)
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: foreign }))
+  const event = await closed
+  expect(event.code).toBe(1008)
+  expect(event.reason).toBe('Live-session identity changed.')
+  expect(await runInDurableObject(base.stub, () => convexRouteCalls())).toEqual([])
+})
+
+it('challenges instead of admitting a proven token that has expired (A35-S10b)', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  const expired = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 10,
+    subject: authSubjectOf(base.userId)
+  })
+  const evidence = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    vi.mocked(globalThis.fetch).mockClear()
+    vi.spyOn(Date, 'now').mockReturnValue((base.issuedAt + 20) * 1_000)
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: expired })
+    )
+    return { frames: serverFrames(sent), routes: convexRouteCalls() }
+  })
+  expect(evidence.routes).toEqual([])
+  expect(evidence.frames).toEqual([{ type: 'AUTHENTICATION_REQUIRED' }])
+})
+
+it.each([
+  { name: 'a forged signature', forged: true },
+  { name: 'unavailable signing keys', forged: false }
+])('asks Convex instead of admitting warm on $name (A35-S10b)', async ({ forged }) => {
+  const base = await fixture()
+  await admitOwner(base)
+  const stranger = await generateKeyPair('RS256')
+  const token = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 7_200,
+    subject: authSubjectOf(base.userId),
+    ...(forged ? { key: stranger.privateKey } : { kid: 'rotated-key' })
+  })
+  const evidence = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    vi.mocked(globalThis.fetch).mockClear()
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      const pathname = new URL(new Request(input, init).url).pathname
+      if (pathname === JWKS_PATH)
+        return forged ? Response.json(accessJwks) : new Response(null, { status: 500 })
+      if (pathname === ROOM_AUTHORIZATION_PATH)
+        return Response.json(roomAuthorizationResponse({ members: base.authorization.members }))
+      // Convex is the authority: it refuses a token it did not sign.
+      return forged ? new Response(null, { status: 401 }) : Response.json(base.capture)
+    })
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: token })
+    )
+    return {
+      closed: socket.readyState !== WebSocket.OPEN,
+      frames: serverFrames(sent),
+      routes: convexRouteCalls()
+    }
+  })
+  expect(evidence.routes).toContain('/live-sessions/capture')
+  expect(evidence.closed).toBe(forged)
+  expect(evidence.frames.some((frame) => frame.type === 'TRANSIENT_READY')).toBe(!forged)
+})
+
 it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
   'preserves the new admission across %s',
   async (race) => {
@@ -3553,9 +3809,17 @@ async function localEncounterFixture(
     pendingMovementDecision?: boolean
     /** That decision asks its target for a d20 save. */
     pendingD20Evidence?: boolean
+    /** A second actor is bound to a Scene token the GM has hidden from players. */
+    hiddenBoundToken?: boolean
   } = {}
 ) {
   const value = movementScene(crypto.randomUUID())
+  const hiddenTokenId = options.hiddenBoundToken ? crypto.randomUUID() : null
+  if (hiddenTokenId)
+    value.scene.tokens = [
+      ...value.scene.tokens,
+      { ...value.scene.tokens[0]!, hidden: true, id: hiddenTokenId, label: 'Ambusher' }
+    ]
   // The held Scene also refuses door changes, so it gets a door to change.
   const door = options.pendingMovementDecision ? doorScene(value.scene.campaignId) : null
   if (door) {
@@ -3716,6 +3980,13 @@ async function localEncounterFixture(
       tokenId: value.tokenId,
       sceneId: value.scene.id
     })
+  if (hiddenTokenId)
+    await native.store.insert('encounterActorTokenBindings', {
+      encounterId,
+      actorId: actors[1]!.id,
+      tokenId: hiddenTokenId,
+      sceneId: value.scene.id
+    })
   const bindingCommand = bindCommand(encounterId, crypto.randomUUID()).command.command
   if (!options.unboundEncounterScene)
     await native.store.insert(
@@ -3813,6 +4084,7 @@ async function localEncounterFixture(
     actors,
     scene: value.scene,
     tokenId: value.tokenId,
+    hiddenTokenId,
     doorId: door?.doorId ?? null,
     pendingOccurrence
   }
@@ -3850,7 +4122,7 @@ function localEncounterEvidence(storage: DurableObjectStorage) {
   }
 }
 
-it('commits warm native reminders, round, initiative, health display, and actor control before acknowledgement', async () => {
+it('commits warm native reminders, round, initiative, health display, and actor control before acknowledgement, with no Convex call', async () => {
   const { base, player, state, actors } = await localEncounterFixture()
   const reminderId = crypto.randomUUID()
   const checkpoints: Array<ReturnType<typeof liveSessionCheckpointRequestSchema.parse>> = []
@@ -3916,42 +4188,20 @@ it('commits warm native reminders, round, initiative, health display, and actor 
           expect(
             evidence.commands.find(({ commandId }) => commandId === command.commandId)
           ).toMatchObject({ commandType: command.type, version: sequence + 1 })
-          expect(evidence.writes).toHaveLength(sequence < 3 ? sequence : sequence - 3)
-          if (command.type === 'SET_ROUND') {
-            expect(checkpoints).toHaveLength(1)
-            expect(checkpoints[0]).toMatchObject({
-              campaignId: base.capture.campaignId,
-              epoch: base.authorityEpoch,
-              fromSequence: 0,
-              sequence,
-              checksum: evidence.checksum
-            })
-            expect(checkpoints[0]?.records.changes).toContainEqual(
+          expect(evidence.writes).toHaveLength(sequence)
+          expect(evidence.writes.at(-1)?.chain).toBe(evidence.checksum)
+          const writeSet = evidence.writes.at(-1)
+          if (typeof writeSet?.json !== 'string') throw new Error('Missing native write set.')
+          expect(JSON.parse(writeSet.json)).toEqual(
+            expect.arrayContaining([
               expect.objectContaining({
-                table: 'encounterRuns',
-                key: [state.id]
-              })
-            )
-            expect(
-              checkpoints[0]?.records.history.filter(
-                ({ table }) => table === 'encounterRunCommands'
-              )
-            ).toHaveLength(sequence)
-          } else {
-            expect(evidence.writes.at(-1)?.chain).toBe(evidence.checksum)
-            const writeSet = evidence.writes.at(-1)
-            if (typeof writeSet?.json !== 'string') throw new Error('Missing native write set.')
-            expect(JSON.parse(writeSet.json)).toEqual(
-              expect.arrayContaining([
-                expect.objectContaining({
-                  op: 'PATCH',
-                  id: evidence.runId,
-                  fields: expect.objectContaining({ version: sequence + 1 })
-                }),
-                expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
-              ])
-            )
-          }
+                op: 'PATCH',
+                id: evidence.runId,
+                fields: expect.objectContaining({ version: sequence + 1 })
+              }),
+              expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
+            ])
+          )
           expect(evidence.receipts).toHaveLength(sequence)
           expect(evidence.receipts.at(-1)).toMatchObject({
             command_id: command.commandId,
@@ -3961,7 +4211,7 @@ it('commits warm native reminders, round, initiative, health display, and actor 
           expect(evidence.authority).toEqual({
             sequence,
             state_checksum: evidence.checksum,
-            published_sequence: sequence < 3 ? 0 : 3
+            published_sequence: 0
           })
           if (command.type === 'UPSERT_REMINDER')
             expect(evidence.state.reminders).toEqual([
@@ -4001,11 +4251,9 @@ it('commits warm native reminders, round, initiative, health display, and actor 
         sent.mockRestore()
       }
       expect(checkedBeforeAck).toBe(true)
-      if (command.type === 'SET_ROUND') {
-        expect(globalThis.fetch).toHaveBeenCalledTimes(1)
-        const [input, init] = vi.mocked(globalThis.fetch).mock.calls[0]!
-        expect(new URL(new Request(input, init).url).pathname).toBe('/live-sessions/checkpoint')
-      } else expect(globalThis.fetch).not.toHaveBeenCalled()
+      // A round change rides the next flush like any other command (Amendment 17).
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      expect(checkpoints).toHaveLength(0)
     })
     await vi.waitFor(() =>
       expect(
@@ -5620,6 +5868,148 @@ it('removes a native Encounter actor and its binding, ending the player token co
     expect(player.messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(true)
   )
 })
+
+it('binds and unbinds an actor token in the room with no Convex call (A35-S10b)', async () => {
+  const { base, state, actors, scene, tokenId } = await localEncounterFixture([], {
+    unboundSceneToken: true
+  })
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const ownerSocket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!ownerSocket) throw new Error('Missing native owner socket.')
+    vi.mocked(globalThis.fetch).mockClear()
+    for (const [index, command] of [
+      { type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id, tokenId },
+      { type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id }
+    ].entries()) {
+      await instance.webSocketMessage(
+        ownerSocket,
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: index,
+          command: {
+            scope: 'ENCOUNTER',
+            command: {
+              ...command,
+              commandId: crypto.randomUUID(),
+              encounterId: state.id,
+              expectedEncounterVersion: state.version + index,
+              sceneId: scene.id
+            }
+          }
+        })
+      )
+      const evidence = localEncounterEvidence(context.storage)
+      expect(evidence.sequence).toBe(index + 1)
+      expect(evidence.authority.published_sequence).toBe(0)
+      expect(evidence.bindings).toHaveLength(index === 0 ? 1 : 0)
+    }
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+})
+
+it('answers actor token bindings only for the tokens the reader can see, with no Convex call (A35-S10b)', async () => {
+  const { base, player, state, scene, tokenId, hiddenTokenId } = await localEncounterFixture([], {
+    hiddenBoundToken: true
+  })
+  await runInDurableObject(base.stub, () => {
+    vi.mocked(globalThis.fetch).mockClear()
+  })
+  expect(await readActorTokenBindings(player, state.id, scene.id)).toEqual([tokenId])
+  expect(
+    await readActorTokenBindings(
+      { messages: base.messages, socket: base.socket },
+      state.id,
+      scene.id
+    )
+  ).toEqual([tokenId, hiddenTokenId].sort())
+  await runInDurableObject(base.stub, () => {
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+})
+
+it('reflects an actor token bind and unbind in the room read with no Convex call (A35-S10b)', async () => {
+  const { base, state, actors, scene, tokenId } = await localEncounterFixture([], {
+    unboundSceneToken: true
+  })
+  const owner = { messages: base.messages, socket: base.socket }
+  await runInDurableObject(base.stub, () => {
+    vi.mocked(globalThis.fetch).mockClear()
+  })
+  expect(await readActorTokenBindings(owner, state.id, scene.id)).toEqual([])
+  for (const [index, command] of [
+    { type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id, tokenId },
+    { type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id }
+  ].entries()) {
+    const commandId = crypto.randomUUID()
+    base.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: index,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            ...command,
+            commandId,
+            encounterId: state.id,
+            expectedEncounterVersion: state.version + index,
+            sceneId: scene.id
+          }
+        }
+      })
+    )
+    await vi.waitFor(() =>
+      expect(
+        base.messages.some(
+          (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+        )
+      ).toBe(true)
+    )
+    expect(await readActorTokenBindings(owner, state.id, scene.id)).toEqual(
+      index === 0 ? [tokenId] : []
+    )
+  }
+  await runInDurableObject(base.stub, () => {
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+})
+
+/** Subscribes `client` to the held Encounter session, asks the room for its token bindings, and returns the token ids. */
+async function readActorTokenBindings(
+  client: { messages: LiveSessionWebSocketServerMessageDto[]; socket: WebSocket },
+  encounterId: string,
+  sceneId: string
+) {
+  client.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
+  await vi.waitFor(() =>
+    expect(
+      client.messages.some(
+        (message) => message.type === 'ENCOUNTER_SESSION' && message.session.held
+      )
+    ).toBe(true)
+  )
+  const requestId = crypto.randomUUID()
+  client.socket.send(
+    JSON.stringify({
+      type: 'ENCOUNTER_READ',
+      requestId,
+      read: { kind: 'ACTOR_TOKEN_BINDINGS', input: { encounterId, sceneId } }
+    })
+  )
+  const answered = () =>
+    client.messages.find(
+      (message) => message.type === 'ENCOUNTER_READ_RESULT' && message.requestId === requestId
+    )
+  await vi.waitFor(() => expect(answered()).toBeDefined())
+  const answer = answered()
+  if (answer?.type !== 'ENCOUNTER_READ_RESULT' || answer.result.kind !== 'ACTOR_TOKEN_BINDINGS')
+    throw new Error('Expected an actor token bindings answer.')
+  return answer.result.result.map(({ tokenId }) => tokenId).sort()
+}
 
 function memberSocket(context: DurableObjectState, userId: string) {
   const socket = context

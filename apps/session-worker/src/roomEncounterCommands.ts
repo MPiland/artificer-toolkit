@@ -248,13 +248,11 @@ export async function executeRoomEncounterCommand(input: {
     ? parsedGm.data
     : await readEncounterGmProjection(context, readRunState(currentRun))
   const result = { ...rawResult, projection }
-  // The table's token-binding view reads Convex, so a binding is durable before it is acknowledged.
+  // Only commands that change Convex-owned holds wait for Convex (ADR 0035 Amendment 17): START and
+  // COMPLETE, and removing a Character actor. Bindings and rounds ride the next flush.
   const checkpointBeforeAcknowledgement =
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
-    command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-    command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-    projection.round !== readRunState(beforeRun).round ||
     (removed !== null &&
       encounterRunActorStateSchema.parse(JSON.parse(removed.stateJson)).kind === 'CHARACTER')
   const recipients = new Map<string, EncounterCommandResultDto>()

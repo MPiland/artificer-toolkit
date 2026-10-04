@@ -7,6 +7,7 @@ import {
 } from './encounterActionChoices.js'
 import { encounterEvidenceRollDtoSchema, getEncounterInputDtoSchema } from './encounterData.js'
 import { sceneEncounterBindingInputSchema, sceneEncounterBindingSchema } from './sceneRecipient.js'
+import { encounterSceneActorTokenBindingDtoSchema } from './vttScenes.js'
 
 /**
  * A version-keyed read the live room answers from its own Encounter state instead of Convex, at
@@ -23,7 +24,11 @@ export const encounterReadDtoSchema = lazySchema(() =>
       input: z.omit(getEncounterOptionalActionChoicesInputDtoSchema, { expectedVersion: true })
     }),
     z.strictObject({ kind: z.literal('LATEST_EVIDENCE_ROLLS'), input: getEncounterInputDtoSchema }),
-    z.strictObject({ kind: z.literal('SCENE_BINDING'), input: sceneEncounterBindingInputSchema })
+    z.strictObject({ kind: z.literal('SCENE_BINDING'), input: sceneEncounterBindingInputSchema }),
+    z.strictObject({
+      kind: z.literal('ACTOR_TOKEN_BINDINGS'),
+      input: sceneEncounterBindingInputSchema
+    })
   ])
 )
 
@@ -45,6 +50,11 @@ export const encounterReadResultDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('SCENE_BINDING'),
       result: z.nullable(sceneEncounterBindingSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('ACTOR_TOKEN_BINDINGS'),
+      /** The actor behind each Scene token the reader can see, and no other. */
+      result: z.array(encounterSceneActorTokenBindingDtoSchema)
     })
   ])
 )

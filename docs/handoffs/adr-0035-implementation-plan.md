@@ -149,6 +149,25 @@ Runs inside VS-8 before REL-5 resumes.
 
 **Acceptance affected:** V15.1 and V15.2 evidence.
 
+**Status: done (2026-10-04).** The synchronous list (START, COMPLETE, Character actor removal; DELETE
+and Character actor add are Convex-side, not room commands), bind, unbind and round change with zero
+Convex calls, and the proactive re-challenge with a closing reason, as before. Added after the architect
+rulings:
+
+- Warm admission: the ticket (version 3) carries the Better Auth subject as `authSubject`; the room
+  verifies the access token locally (RS256, cached Convex site JWKS, issuer, audience, `exp`), requires
+  `sub` equal to it, and admits from the cached lease with no Convex call. Any token it cannot prove goes
+  the cold path. Proven by native tests: warm re-admission, a passive socket surviving a
+  challenge-driven re-authentication, a wrong `sub` closed, an expired or forged token refused.
+- Token-binding view: `ACTOR_TOKEN_BINDINGS` read in `encounterReadDtoSchema`, answered by the room
+  filtered to the viewer's visible tokens; `CampaignVttStage.tsx` uses it while routed (re-asking when
+  the viewer's token set changes) and keeps the Convex action when unrouted. Proven by native tests: a
+  player's read omits a hidden token's binding, and a bind and unbind show in the read with no Convex
+  call.
+- Character actor removal checkpointing: proven in `roomEncounterConcentrationResponse.test.ts` (a
+  Character actor's removal sets `checkpointBeforeAcknowledgement`, a Custom actor's does not) and
+  `roomEncounterTurns.test.ts` (ADVANCE_TURN does not).
+
 ### A35-S10c: dirty-only flush, live views on the room, edits stream in (Amendments 17, 19, 20 and 21)
 
 **Goal:**

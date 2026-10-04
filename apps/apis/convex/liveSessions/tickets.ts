@@ -28,6 +28,8 @@ export const issue = action({
   handler: async (ctx, args): Promise<LiveSessionTicketDto> => {
     const options = liveSessionJoinOptionsDtoSchema.parse(args)
     const key = ticketKey()
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Unauthenticated')
     const issuedAt = Math.floor(Date.now() / 1_000)
     const expiresAt = issuedAt + LIVE_SESSION_TICKET_TTL_SECONDS
     const admission = liveSessionTicketAdmissionDtoSchema.parse(
@@ -37,6 +39,7 @@ export const issue = action({
       })
     )
     const ticket = await new SignJWT({
+      authSubject: identity.subject,
       authorityEpoch: admission.authorityEpoch,
       campaignId: admission.campaignId,
       role: admission.role,

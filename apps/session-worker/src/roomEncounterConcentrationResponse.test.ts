@@ -812,6 +812,33 @@ it('atomically resolves a failed native Concentration save, retains the private 
     expect(retry.recipients.get(gmId)).toEqual(gmResult)
     expect(retry.recipients.get(owner.userId)).toEqual(playerResult)
     expect(evidence()).toEqual(after)
+    // Removing a Character actor releases a Convex-owned hold, so its acknowledgement waits for a
+    // checkpoint; removing any other actor rides the next flush.
+    const remove = (actorId: string, commandId: string, expectedVersion: number) =>
+      store.transact((transaction) =>
+        executeRoomEncounterCommand({
+          store,
+          transaction,
+          inputs,
+          authorization,
+          campaignId,
+          epoch,
+          userId: gmId,
+          recipientUserIds: [gmId],
+          command: { type: 'REMOVE_ACTOR', encounterId, commandId, expectedVersion, actorId },
+          random: () => {
+            throw new Error('Removing an actor must not roll.')
+          },
+          turnExecution: { runtime }
+        })
+      )
+    expect(
+      (await remove(recipientActor.id, uuid(0x1118), state.version + 1))
+        .checkpointBeforeAcknowledgement
+    ).toBe(false)
+    expect(
+      (await remove(actor.id, uuid(0x1119), state.version + 2)).checkpointBeforeAcknowledgement
+    ).toBe(true)
     expect(read).not.toHaveBeenCalled()
     expect(fetch).not.toHaveBeenCalled()
   } finally {

@@ -7,6 +7,8 @@ export const ROOM_LIMITS = {
   maxSocketsPerUser: 4,
   maxSocketsPerRoom: 64,
   authenticationTimeoutMs: 10_000,
+  /** The room challenges an admitted socket this long before its access token expires (ADR 0035 Amendment 23). */
+  reauthenticationLeadMs: 60_000,
   /** With no admitted socket for this long, the room drains and releases its authority (ADR 0033). */
   idleReleaseMs: 5 * 60_000,
   maxPendingCommandsPerSocket: 8,

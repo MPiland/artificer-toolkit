@@ -49,6 +49,7 @@ function signTicket(
 ) {
   const issuedAt = Math.floor(Date.now() / 1_000)
   const jwt = new SignJWT({
+    authSubject: `auth-${input.subject}`,
     authorityEpoch: input.authorityEpoch,
     campaignId: input.campaignId,
     role: input.role,

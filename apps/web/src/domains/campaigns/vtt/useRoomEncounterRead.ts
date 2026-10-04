@@ -30,20 +30,23 @@ type RoomRead<Value> =
  * While the room holds the Encounter session, asks it for `read` on every change of the session
  * version and ignores an answer older than the frame. A read the room cannot answer is
  * `{ routed: false }` and the caller reads Convex as it does without the room. `select` returns
- * the answer's value, or undefined when the answer is not the one asked for.
+ * the answer's value, or undefined when the answer is not the one asked for. A read that also
+ * depends on state outside the Encounter session passes its revision as `refreshKey`.
  */
 export function useRoomEncounterRead<Value>({
   read,
   readEncounter,
+  refreshKey = '',
   room,
   select
 }: {
   read: EncounterReadDto | null
   readEncounter: ReadEncounter
+  refreshKey?: string
   room: HeldEncounterSession | null
   select: (result: EncounterReadResultDto) => Value | undefined
 }): RoomRead<Value> {
-  const key = room && read ? `${room.version}:${JSON.stringify(read)}` : null
+  const key = room && read ? `${room.version}:${refreshKey}:${JSON.stringify(read)}` : null
   const request = useRef({ read, roomVersion: room?.version, select })
   request.current = { read, roomVersion: room?.version, select }
   const [answer, setAnswer] = useState<{

@@ -207,6 +207,7 @@ async function sheetRoom() {
 
   async function connect(userId: string, role: Role) {
     const ticket = await new SignJWT({
+      authSubject: `auth-${userId}`,
       authorityEpoch,
       campaignId,
       role,

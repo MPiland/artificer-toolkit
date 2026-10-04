@@ -15,6 +15,7 @@ describe('Cloudflare live-session ticket verification', () => {
   it('accepts only the signed room, actor, role, and expiration claims', async () => {
     const issuedAt = Math.floor(now.getTime() / 1000)
     const ticket = await new SignJWT({
+      authSubject: 'better-auth-user',
       authorityEpoch: '00000000-0000-4000-8000-000000000005',
       campaignId: '00000000-0000-4000-8000-000000000001',
       role: 'PLAYER',
@@ -30,6 +31,7 @@ describe('Cloudflare live-session ticket verification', () => {
       .sign(new TextEncoder().encode(secret))
 
     await expect(verifyLiveSessionTicket(ticket, secret, now)).resolves.toMatchObject({
+      authSubject: 'better-auth-user',
       campaignId: '00000000-0000-4000-8000-000000000001',
       role: 'PLAYER',
       sub: '00000000-0000-4000-8000-000000000004'

@@ -316,10 +316,20 @@ export function CampaignVttStage({
     (room || currentSceneBinding.encounterVersion === activeEncounter.version)
       ? currentSceneBinding
       : null
-  const actorTokenBindings = useQuery({
+  const roomActorTokenBindings = useRoomEncounterRead({
+    read: sceneBindingInput ? { kind: 'ACTOR_TOKEN_BINDINGS', input: sceneBindingInput } : null,
+    readEncounter: live.readEncounter,
+    // The room answers for the tokens this viewer can see, so a token shown or hidden re-asks it.
+    refreshKey: scene?.tokens.map(({ id }) => id).join(','),
+    room,
+    select: (result) => (result.kind === 'ACTOR_TOKEN_BINDINGS' ? result.result : undefined)
+  })
+  const convexActorTokenBindings = useQuery({
     retry: (failureCount, error) =>
       failureCount < 2 && error.message.includes('Connection lost while action was in flight'),
-    enabled: Boolean(activeEncounterSceneBinding && presented.recipientHeader),
+    enabled: Boolean(
+      !roomActorTokenBindings.routed && activeEncounterSceneBinding && presented.recipientHeader
+    ),
     gcTime: 0,
     queryFn: ({ signal }) => {
       if (!activeEncounterSceneBinding || !presented.recipientHeader)
@@ -342,6 +352,13 @@ export function CampaignVttStage({
       presented.recipientHeader?.recipientRevision ?? null
     ]
   })
+  const actorTokenBindings = roomActorTokenBindings.routed
+    ? {
+        data: roomActorTokenBindings.value,
+        error: roomActorTokenBindings.error,
+        isPending: roomActorTokenBindings.value === undefined && !roomActorTokenBindings.error
+      }
+    : convexActorTokenBindings
   sceneRef.current = scene
   const effectiveMode = campaign.role === 'OWNER' && !gmPreviewUserId ? mode : 'PLAY'
   const fogEnabled = scene?.fogMode !== 'OFF'
@@ -737,7 +754,7 @@ export function CampaignVttStage({
         sceneBindingFailure ||
         bindEncounter.isPending ||
         (currentSceneBinding && !activeEncounterSceneBinding) ||
-        (currentSceneBinding && (actorTokenBindings.isPending || actorTokenBindings.isError)))
+        (currentSceneBinding && (actorTokenBindings.isPending || actorTokenBindings.error)))
     )
       return
     const mechanicsEncounter =
