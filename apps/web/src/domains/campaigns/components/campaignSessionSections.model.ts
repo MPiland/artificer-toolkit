@@ -38,7 +38,7 @@ export function campaignSessionSectionLabel(kind: CampaignSessionSectionKind): s
   if (kind === 'CANON') return 'Canon established'
   if (kind === 'RULING') return 'Rulings'
   if (kind === 'FOLLOW_UP') return 'Follow-ups'
-  return 'Shared notes'
+  return 'Notes'
 }
 
 export function campaignSessionSectionDescription(kind: CampaignSessionSectionKind): string {
@@ -52,5 +52,5 @@ export function campaignSessionSectionDescription(kind: CampaignSessionSectionKi
   if (kind === 'CANON') return 'Facts established at the table.'
   if (kind === 'RULING') return 'Table rulings worth carrying forward.'
   if (kind === 'FOLLOW_UP') return 'Open threads and preparation for next time.'
-  return 'Notes shared with the active party.'
+  return 'Notes you write here are private until you share them.'
 }

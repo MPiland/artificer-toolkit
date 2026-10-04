@@ -331,8 +331,8 @@ export const step = internalMutation({
     }
     const page = await ctx.db
       .query('campaignNotebookSections')
-      .withIndex('by_campaignId_category_id', (q) =>
-        q.eq('campaignId', source.id).eq('category', category)
+      .withIndex('by_campaignId_authorUserId_category_id', (q) =>
+        q.eq('campaignId', source.id).eq('authorUserId', job.ownerUserId).eq('category', category)
       )
       .paginate({
         cursor: job.cursor,
@@ -363,7 +363,7 @@ export const step = internalMutation({
           id: crypto.randomUUID(),
           campaignId: job.destinationCampaignId,
           version: 0,
-          createdBy: job.ownerUserId,
+          authorUserId: job.ownerUserId,
           updatedBy: job.ownerUserId,
           createdAt: now,
           updatedAt: now

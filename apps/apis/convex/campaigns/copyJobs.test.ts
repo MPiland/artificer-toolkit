@@ -80,15 +80,30 @@ describe('Campaign selected notebook copy jobs', () => {
           campaignId: source.id,
           title: `People ${index}`,
           content: `<p>${index}</p>`,
-          visibility: index % 2 ? 'SHARED' : 'GM_PRIVATE',
+          visibility: index % 2 ? 'SHARED' : 'PRIVATE',
           category: 'PEOPLE',
           sortOrder: index,
           version: 4,
-          createdBy: base.other.userId,
-          updatedBy: base.other.userId,
+          authorUserId: base.owner.userId,
+          updatedBy: base.owner.userId,
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-02T00:00:00.000Z'
         })
+      // Another member's entries are never copied, even in a selected category (D87).
+      await ctx.db.insert('campaignNotebookSections', {
+        id: crypto.randomUUID(),
+        campaignId: source.id,
+        title: 'Player person',
+        content: '<p>not the owner</p>',
+        visibility: 'SHARED',
+        category: 'PEOPLE',
+        sortOrder: 50,
+        version: 0,
+        authorUserId: base.other.userId,
+        updatedBy: base.other.userId,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z'
+      })
       await ctx.db.insert('campaignNotebookSections', {
         id: crypto.randomUUID(),
         campaignId: source.id,
@@ -98,7 +113,7 @@ describe('Campaign selected notebook copy jobs', () => {
         category: 'PLACES',
         sortOrder: 99,
         version: 2,
-        createdBy: base.other.userId,
+        authorUserId: base.other.userId,
         updatedBy: base.other.userId,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-02T00:00:00.000Z'
@@ -124,8 +139,9 @@ describe('Campaign selected notebook copy jobs', () => {
       .filter((row) => row.campaignId === destination.id)
       .sort((left, right) => left.sortOrder - right.sortOrder)
     const sourcePeople = before
-      .filter((row) => row.category === 'PEOPLE')
+      .filter((row) => row.category === 'PEOPLE' && row.authorUserId === base.owner.userId)
       .sort((left, right) => left.sortOrder - right.sortOrder)
+    expect(sourcePeople).toHaveLength(9)
     expect(copied).toHaveLength(sourcePeople.length)
     for (const [index, copiedRow] of copied.entries()) {
       const sourceRow = sourcePeople[index]!
@@ -137,7 +153,7 @@ describe('Campaign selected notebook copy jobs', () => {
         sortOrder: sourceRow.sortOrder,
         campaignId: destination.id,
         version: 0,
-        createdBy: base.owner.userId,
+        authorUserId: base.owner.userId,
         updatedBy: base.owner.userId
       })
       expect(copiedRow.id).not.toBe(sourceRow.id)
@@ -202,11 +218,11 @@ describe('Campaign selected notebook copy jobs', () => {
         campaignId: source.id,
         title: 'Stage',
         content: '<p>Stage</p>',
-        visibility: 'GM_PRIVATE',
+        visibility: 'PRIVATE',
         category: 'GENERAL',
         sortOrder: 0,
         version: 1,
-        createdBy: base.owner.userId,
+        authorUserId: base.owner.userId,
         updatedBy: base.owner.userId,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z'
@@ -262,7 +278,7 @@ describe('Campaign selected notebook copy jobs', () => {
         category: 'GENERAL',
         sortOrder: 0,
         version: 0,
-        createdBy: base.owner.userId,
+        authorUserId: base.owner.userId,
         updatedBy: base.owner.userId,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z'
@@ -415,11 +431,11 @@ describe('Campaign selected notebook copy jobs', () => {
         campaignId: source.id,
         title: 'Quota stage',
         content: '<p>quota</p>',
-        visibility: 'GM_PRIVATE',
+        visibility: 'PRIVATE',
         category: 'GENERAL',
         sortOrder: 0,
         version: 0,
-        createdBy: base.owner.userId,
+        authorUserId: base.owner.userId,
         updatedBy: base.owner.userId,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z'
@@ -478,11 +494,11 @@ describe('Campaign selected notebook copy jobs', () => {
         campaignId: source.id,
         title: 'Over the limit',
         content: '<p>limit</p>',
-        visibility: 'GM_PRIVATE',
+        visibility: 'PRIVATE',
         category: 'GENERAL',
         sortOrder: 0,
         version: 0,
-        createdBy: base.owner.userId,
+        authorUserId: base.owner.userId,
         updatedBy: base.owner.userId,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z'

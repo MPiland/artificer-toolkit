@@ -6,6 +6,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import type { CampaignSessionNoteSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { useConvex, usePaginatedQuery } from 'convex/react'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
+import { CampaignNoteByline, CampaignNoteVisibilitySelect } from './CampaignNoteVisibility'
 import * as sharedStyles from '../campaigns.css'
 import * as notesStyles from './notes.css'
 
@@ -36,7 +37,7 @@ export function CampaignSessionNotes({
           Session notes
         </Title>
         <Text c='dimmed' size='sm'>
-          Shared sections autosave after about one second.
+          Notes start private. Share one to put it in front of the whole party. Notes autosave after about one second.
         </Text>
       </div>
       <Select
@@ -98,6 +99,7 @@ export function CampaignSharedSessionNotes({
   )
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [visibility, setVisibility] = useState<CampaignSessionNoteSectionDto['visibility']>('PRIVATE')
   const create = useMutation({
     mutationFn: () =>
       convex.mutation(convexApi.campaigns.sessionNotes.create, {
@@ -105,8 +107,8 @@ export function CampaignSharedSessionNotes({
         sessionId,
         title,
         content,
-        visibility: 'SHARED',
-        kind: 'SHARED_NOTE'
+        visibility,
+        kind: 'NOTE'
       }),
     onSuccess: () => {
       setTitle('')
@@ -116,15 +118,21 @@ export function CampaignSharedSessionNotes({
 
   return (
     <Stack gap='md'>
-      {notes.results.map((section) => (
-        <SessionSectionEditor
-          campaignId={campaign.id}
-          deletable={campaign.role === 'OWNER' || section.authorUserId === currentUserId}
-          editable={campaign.status === 'ACTIVE'}
-          key={section.id}
-          section={section}
-        />
-      ))}
+      {notes.results
+        .filter((section) => section.kind === 'NOTE')
+        .map((section) => (
+          <SessionSectionEditor
+            campaignId={campaign.id}
+            deletable={
+              campaign.status === 'ACTIVE' &&
+              (campaign.role === 'OWNER' || section.authorUserId === currentUserId)
+            }
+            editable={campaign.status === 'ACTIVE' && section.authorUserId === currentUserId}
+            isGm={campaign.role === 'OWNER'}
+            key={section.id}
+            section={section}
+          />
+        ))}
       {notes.status === 'CanLoadMore' ? (
         <Button variant='subtle' onClick={() => notes.loadMore(8)}>
           Load more sections
@@ -146,6 +154,7 @@ export function CampaignSharedSessionNotes({
             value={title}
             onChange={(event) => setTitle(event.currentTarget.value)}
           />
+          <CampaignNoteVisibilitySelect value={visibility} onChange={setVisibility} />
           <RichTextEditor
             label='Session notes'
             name={`session-note-${sessionId}`}
@@ -167,17 +176,20 @@ export function SessionSectionEditor({
   contentLabel = 'Session notes',
   deletable,
   editable,
+  isGm,
   section
 }: {
   campaignId: string
   contentLabel?: string
   deletable: boolean
   editable: boolean
+  isGm: boolean
   section: CampaignSessionNoteSectionDto
 }) {
   const convex = useConvex()
   const [title, setTitle] = useState(section.title)
   const [content, setContent] = useState(section.content)
+  const [visibility, setVisibility] = useState(section.visibility)
   const saved = useRef(section)
   const save = useMutation({
     mutationFn: () =>
@@ -187,7 +199,8 @@ export function SessionSectionEditor({
         sectionId: section.id,
         expectedVersion: saved.current.version,
         title,
-        content
+        content,
+        visibility
       }),
     onSuccess: (updated) => {
       saved.current = updated
@@ -204,19 +217,26 @@ export function SessionSectionEditor({
 
   useEffect(() => {
     if (section.version <= saved.current.version) return
-    const dirty = title !== saved.current.title || content !== saved.current.content
+    const dirty =
+      title !== saved.current.title ||
+      content !== saved.current.content ||
+      visibility !== saved.current.visibility
     if (dirty) return
     saved.current = section
     setTitle(section.title)
     setContent(section.content)
-  }, [content, section, title])
+    setVisibility(section.visibility)
+  }, [content, section, title, visibility])
 
   useEffect(() => {
-    const dirty = title !== saved.current.title || content !== saved.current.content
+    const dirty =
+      title !== saved.current.title ||
+      content !== saved.current.content ||
+      visibility !== saved.current.visibility
     if (!editable || !dirty || save.isPending) return
     const timeout = window.setTimeout(() => save.mutate(), 1_000)
     return () => window.clearTimeout(timeout)
-  }, [content, editable, save.isPending, title])
+  }, [content, editable, save.isPending, title, visibility])
 
   return (
     <Stack gap='xs'>
@@ -225,10 +245,12 @@ export function SessionSectionEditor({
           {save.error.message} Your local text was not overwritten.
         </Alert>
       ) : null}
-      {section.visibility === 'SHARED' ? (
-        <Text c='dimmed' size='xs'>
-          Note by {section.authorLabel}
-        </Text>
+      {section.kind === 'NOTE' && !editable ? (
+        <CampaignNoteByline
+          authorLabel={section.authorLabel}
+          showAuthor={section.visibility === 'SHARED' || isGm}
+          visibility={section.visibility}
+        />
       ) : null}
       <TextInput
         classNames={{ input: sharedStyles.input }}
@@ -237,6 +259,9 @@ export function SessionSectionEditor({
         value={title}
         onChange={(event) => setTitle(event.currentTarget.value)}
       />
+      {editable && section.kind === 'NOTE' ? (
+        <CampaignNoteVisibilitySelect value={visibility} onChange={setVisibility} />
+      ) : null}
       <RichTextEditor
         readOnly={!editable}
         label={contentLabel}
@@ -245,16 +270,22 @@ export function SessionSectionEditor({
         onChange={setContent}
         maximumLength={100_000}
       />
-      {editable ? (
+      {deletable || editable ? (
         <Group>
           {deletable ? (
             <Button color='red' variant='subtle' onClick={() => remove.mutate()}>
               Delete
             </Button>
           ) : null}
-          <Text aria-live='polite' c='dimmed' size='sm'>
-            {save.isPending ? 'Saving…' : save.isSuccess ? 'Saved.' : 'Changes save automatically.'}
-          </Text>
+          {editable ? (
+            <Text aria-live='polite' c='dimmed' size='sm'>
+              {save.isPending
+                ? 'Saving…'
+                : save.isSuccess
+                  ? 'Saved.'
+                  : 'Changes save automatically.'}
+            </Text>
+          ) : null}
         </Group>
       ) : null}
     </Stack>

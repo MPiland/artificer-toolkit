@@ -237,7 +237,7 @@ async function fixture() {
     campaignId: source.id,
     title: 'Selected rollback note',
     content: '<p>Preserved transfer content</p>',
-    visibility: 'GM_PRIVATE',
+    visibility: 'SHARED',
     category: 'GENERAL'
   })
   const copyProgress = await base.first.caller.mutation(api.campaigns.copyJobs.begin, {
@@ -412,7 +412,7 @@ describe('development native SDK account deletion rollback proof', () => {
     const copyRow = base.copyMetadata
     expect(sourceRows.length).toBe(1)
     expect(base.stagedNotes.length).toBe(1)
-    expect(base.stagedNotes[0]?.createdBy === base.subject.userId).toBe(true)
+    expect(base.stagedNotes[0]?.authorUserId === base.subject.userId).toBe(true)
     await expect(
       base.t.run(async (ctx) => {
         await ctx.runMutation(internal.accountDeletion.execute, {

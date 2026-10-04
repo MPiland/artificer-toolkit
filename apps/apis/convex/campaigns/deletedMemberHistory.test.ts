@@ -30,7 +30,7 @@ describe('deleted member Campaign history', () => {
       title: 'Player recap',
       content: '<p>Player recap</p>',
       visibility: 'SHARED',
-      kind: 'SHARED_NOTE'
+      kind: 'NOTE'
     })
     const gmNote = await gm.caller.mutation(api.campaigns.sessionNotes.create, {
       campaignId: campaign.id,
@@ -38,7 +38,7 @@ describe('deleted member Campaign history', () => {
       title: 'GM recap',
       content: '<p>GM recap</p>',
       visibility: 'SHARED',
-      kind: 'SHARED_NOTE'
+      kind: 'NOTE'
     })
     expect(note).toMatchObject({ authorLabel: 'Mira' })
     const readHistory = async () => ({

@@ -8531,9 +8531,11 @@ export declare const api: {
           category?: "GENERAL" | "PEOPLE" | "PLACES";
           content: string;
           title: string;
-          visibility?: "GM_PRIVATE" | "SHARED";
+          visibility?: "PRIVATE" | "SHARED";
         },
         {
+          authorLabel: string;
+          authorUserId: string;
           campaignId: string;
           category: "GENERAL" | "PEOPLE" | "PLACES";
           content: string;
@@ -8542,7 +8544,7 @@ export declare const api: {
           title: string;
           updatedAt: string;
           version: number;
-          visibility: "GM_PRIVATE" | "SHARED";
+          visibility: "PRIVATE" | "SHARED";
         }
       >;
       list: FunctionReference<
@@ -8561,6 +8563,8 @@ export declare const api: {
           continueCursor: string;
           isDone: boolean;
           page: Array<{
+            authorLabel: string;
+            authorUserId: string;
             campaignId: string;
             category: "GENERAL" | "PEOPLE" | "PLACES";
             content: string;
@@ -8569,7 +8573,7 @@ export declare const api: {
             title: string;
             updatedAt: string;
             version: number;
-            visibility: "GM_PRIVATE" | "SHARED";
+            visibility: "PRIVATE" | "SHARED";
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
           splitCursor?: string | null;
@@ -8591,9 +8595,11 @@ export declare const api: {
           expectedVersion: number;
           sectionId: string;
           title?: string;
-          visibility?: "GM_PRIVATE" | "SHARED";
+          visibility?: "PRIVATE" | "SHARED";
         },
         {
+          authorLabel: string;
+          authorUserId: string;
           campaignId: string;
           category: "GENERAL" | "PEOPLE" | "PLACES";
           content: string;
@@ -8602,7 +8608,7 @@ export declare const api: {
           title: string;
           updatedAt: string;
           version: number;
-          visibility: "GM_PRIVATE" | "SHARED";
+          visibility: "PRIVATE" | "SHARED";
         }
       >;
     };
@@ -9589,7 +9595,7 @@ export declare const api: {
           campaignId: string;
           content: string;
           kind:
-            | "SHARED_NOTE"
+            | "NOTE"
             | "AGENDA"
             | "SCENE"
             | "SECRET"
@@ -9603,7 +9609,7 @@ export declare const api: {
           sessionId: string;
           sortOrder?: number;
           title: string;
-          visibility: "SHARED" | "GM_PRIVATE";
+          visibility?: "PRIVATE" | "SHARED";
         },
         {
           authorLabel: string;
@@ -9613,7 +9619,7 @@ export declare const api: {
           createdAt: string;
           id: string;
           kind:
-            | "SHARED_NOTE"
+            | "NOTE"
             | "AGENDA"
             | "SCENE"
             | "SECRET"
@@ -9629,7 +9635,7 @@ export declare const api: {
           title: string;
           updatedAt: string;
           version: number;
-          visibility: "SHARED" | "GM_PRIVATE";
+          visibility: "PRIVATE" | "SHARED";
         }
       >;
       list: FunctionReference<
@@ -9656,7 +9662,7 @@ export declare const api: {
             createdAt: string;
             id: string;
             kind:
-              | "SHARED_NOTE"
+              | "NOTE"
               | "AGENDA"
               | "SCENE"
               | "SECRET"
@@ -9672,7 +9678,7 @@ export declare const api: {
             title: string;
             updatedAt: string;
             version: number;
-            visibility: "SHARED" | "GM_PRIVATE";
+            visibility: "PRIVATE" | "SHARED";
           }>;
           pageStatus?: "SplitRecommended" | "SplitRequired" | null;
           splitCursor?: string | null;
@@ -9692,7 +9698,7 @@ export declare const api: {
           content?: string;
           expectedVersion: number;
           kind?:
-            | "SHARED_NOTE"
+            | "NOTE"
             | "AGENDA"
             | "SCENE"
             | "SECRET"
@@ -9707,7 +9713,7 @@ export declare const api: {
           sessionId: string;
           sortOrder?: number;
           title?: string;
-          visibility?: "SHARED" | "GM_PRIVATE";
+          visibility?: "PRIVATE" | "SHARED";
         },
         {
           authorLabel: string;
@@ -9717,7 +9723,7 @@ export declare const api: {
           createdAt: string;
           id: string;
           kind:
-            | "SHARED_NOTE"
+            | "NOTE"
             | "AGENDA"
             | "SCENE"
             | "SECRET"
@@ -9733,7 +9739,7 @@ export declare const api: {
           title: string;
           updatedAt: string;
           version: number;
-          visibility: "SHARED" | "GM_PRIVATE";
+          visibility: "PRIVATE" | "SHARED";
         }
       >;
     };
@@ -45748,6 +45754,14 @@ export declare const internal: {
               };
         },
         { eventId: string }
+      >;
+    };
+    noteRemoval: {
+      purgeAuthorPrivateNotes: FunctionReference<
+        "mutation",
+        "internal",
+        { authorUserId: string; campaignId: string },
+        null
       >;
     };
     partyInventoryPages: {

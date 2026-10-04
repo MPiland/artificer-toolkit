@@ -178,7 +178,7 @@ export async function verifyCampaignLifecycle(input: {
     return created
   }
   const notes = async (campaignId: string) => {
-    for (const visibility of ['GM_PRIVATE', 'SHARED'] as const)
+    for (const visibility of ['PRIVATE', 'SHARED'] as const)
       await owner.mutation(api.campaigns.notebooks.create, {
         campaignId,
         title: visibility + ' raw notebook',
@@ -191,14 +191,14 @@ export async function verifyCampaignLifecycle(input: {
         campaignId,
         title: 'Person ' + index,
         content: '<p>Selected person ' + index + ' exact raw content.</p>',
-        visibility: index % 2 ? 'SHARED' : 'GM_PRIVATE',
+        visibility: index % 2 ? 'SHARED' : 'PRIVATE',
         category: 'PEOPLE'
       })
     await owner.mutation(api.campaigns.notebooks.create, {
       campaignId,
       title: 'Contextual general note',
       content: '<p>Copied only when explicitly selected.</p>',
-      visibility: 'GM_PRIVATE',
+      visibility: 'PRIVATE',
       category: 'GENERAL'
     })
   }
@@ -571,7 +571,7 @@ export async function verifyCampaignLifecycle(input: {
           id: target.id,
           campaignId: copied.id,
           version: 0,
-          createdBy: ownerUserId,
+          authorUserId: ownerUserId,
           updatedBy: ownerUserId,
           createdAt: target.createdAt,
           updatedAt: target.updatedAt
@@ -901,14 +901,14 @@ export async function verifyCampaignLifecycle(input: {
     sessionId: session.id,
     response: 'YES'
   })
-  for (const visibility of ['GM_PRIVATE', 'SHARED'] as const)
+  for (const visibility of ['PRIVATE', 'SHARED'] as const)
     await owner.mutation(api.campaigns.sessionNotes.create, {
       campaignId: campaign.id,
       sessionId: session.id,
       title: visibility + ' Session note',
       content: '<p>Exact Session payload.</p>',
       visibility,
-      kind: visibility === 'SHARED' ? 'SHARED_NOTE' : 'SECRET'
+      kind: visibility === 'SHARED' ? 'NOTE' : 'SECRET'
     })
   const notebookPage = await owner.query(api.campaigns.notebooks.list, {
     campaignId: campaign.id,

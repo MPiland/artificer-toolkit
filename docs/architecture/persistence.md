@@ -420,8 +420,9 @@ and inserts the next with initial attendance atomically; multiple OPEN Sessions 
 uncapped. Metadata updates need the exact Session version; RSVP and attendance writes need an OPEN Session and an
 ACTIVE Campaign and do not advance the metadata version. Finish (`sessionFinish:finish`) transitions OPEN to
 FINISHED and stores a result in `campaignCommands` (Campaign-scoped command UUID with a canonical input
-fingerprint, shared with the Clock commands); replay rechecks current authority first. Notes: any active member
-creates a SHARED note, the author or owner deletes it, private kinds need the owner, and edits use exact versions.
+fingerprint, shared with the Clock commands); replay rechecks current authority first. Notes follow the
+[note visibility rule](#note-visibility-d87); edits use exact versions, and the GM-only structured kinds
+(everything except `NOTE`) are created by the owner and stay `PRIVATE`.
 Reference pins are navigation references, not snapshots or access grants. Lists use indexed pages with
 continuation cursors and no history cap.
 
@@ -440,10 +441,38 @@ when the Character leaves or the Campaign is deleted (`campaigns/clockSegments.t
 
 ### Campaign notebooks
 
-`campaignNotebookSections` (UUID, text, visibility, version, attribution; GM_PRIVATE or SHARED). Updates need the
-exact version. Removal deletes matching Session reference pins and associated attachments (starting the media
-grace for the last reference, see [media](media.md#native-campaign-attachment-metadata--partial-local-implementation)).
-Player reads query only the SHARED index range so private rows do not affect pages.
+`campaignNotebookSections` (UUID, text, `visibility`, version, `authorUserId`, `updatedBy`). Updates need the
+exact version. Removal (`noteRemoval.ts`) deletes matching Session reference pins and associated attachments
+(starting the media grace for the last reference, see
+[media](media.md#native-campaign-attachment-metadata--partial-local-implementation)).
+
+### Note visibility (D87)
+
+One required field, `visibility: PRIVATE | SHARED` (`campaignNoteVisibilitySchema`), covers notebook entries and
+Session notes; new notes are `PRIVATE`. There is no GM-only notebook gate any more.
+
+- **Who:** any active member creates. Only the author edits an entry or changes its visibility. The author or the
+  GM deletes. An archived Campaign is read-only for every write.
+- **Reads:** a `PRIVATE` note is visible to its author and the GM, a `SHARED` note to every active member. The
+  rule lives in `campaigns/noteVisibility.ts` (`canViewNote`); a by-ID read, update or delete of a hidden note
+  throws the same not-found error as a missing one. Player lists page the sort-order index with a visibility or
+  author filter, so a page can come back short or empty while `isDone` is false; the UI loads more.
+- **Attribution:** DTOs carry `authorUserId` and `authorLabel`, resolved server-side by
+  `readCampaignAuthorLabels`, so a deleted account reads `Deleted user`. The web shows the author on shared notes
+  and to the GM on every note.
+- **Version contention** is unchanged: exact `expectedVersion`, and a stale writer gets a conflict.
+- **Departure:** a leaving member's notes stay. Private ones are then readable only by the GM, and shared ones
+  stay shared.
+- **Account deletion** (`removeAccountCampaignMemberships`, `noteRemoval.ts`): the account's private entries and
+  Session notes are removed by a scheduled `purgeAuthorPrivateNotes` run per Campaign membership, one bounded
+  batch of 48 per table per run, rescheduling itself until the index is empty (entries go through the pin
+  cascade; reruns converge, F12.5). Until it runs, the GM can still read them. Shared ones survive with
+  Deleted-user attribution. Entries count against the Campaign owner's `campaignEntriesPerCampaign` cap.
+- **Copy:** a Campaign copy carries only the copying owner's own entries, keeping their visibility
+  (`by_campaignId_authorUserId_category_id`). Other members' entries are never copied.
+- **Live room:** there is no live-room path for notebook or Session notes; the Session Durable Object neither
+  reads nor writes them, so no room-side filter exists.
+- **Indexes:** `by_campaignId_authorUserId_visibility` on both tables serves the account-deletion sweep.
 
 ### Conversations and chat
 

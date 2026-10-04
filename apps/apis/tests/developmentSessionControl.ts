@@ -156,11 +156,11 @@ export async function verifySessionControl(input: {
     title: 'P15 shared',
     content: '<p>P15 shared</p>',
     visibility: 'SHARED',
-    kind: 'SHARED_NOTE'
+    kind: 'NOTE'
   })
   settled(
     await Promise.allSettled(
-      [owner, player].map(({ client }, index) =>
+      [owner, owner].map(({ client }, index) =>
         client.mutation(
           api.campaigns.sessionNotes.update,
           {
@@ -181,7 +181,7 @@ export async function verifySessionControl(input: {
     sessionId: first.id,
     title: 'P15 private',
     content: '<p>P15 private</p>',
-    visibility: 'GM_PRIVATE',
+    visibility: 'PRIVATE',
     kind: 'SECRET'
   })
   const playerNotes = await player.client.query(api.campaigns.sessionNotes.list, {
@@ -194,7 +194,7 @@ export async function verifySessionControl(input: {
     campaignId,
     title: 'P15 reference label',
     content: '<p>P15 reference</p>',
-    visibility: 'GM_PRIVATE',
+    visibility: 'PRIVATE',
     category: 'GENERAL'
   })
   const pin = await owner.client.mutation(api.campaigns.sessionReferences.create, {

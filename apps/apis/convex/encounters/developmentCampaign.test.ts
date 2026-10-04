@@ -521,7 +521,7 @@ describe('development Campaign fixture cleanup', () => {
       campaignId: base.campaign.id,
       title: 'Fixture notebook',
       content: '<p>Fixture note</p>',
-      visibility: 'GM_PRIVATE',
+      visibility: 'PRIVATE',
       category: 'GENERAL'
     })
     await base.t.run((ctx) =>

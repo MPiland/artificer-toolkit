@@ -217,7 +217,7 @@ export const removeFixtureState = internalMutation({
         )
         .unique()
       check(
-        notebook?.createdBy === input.ownerUserId && notebook.updatedBy === input.ownerUserId,
+        notebook?.authorUserId === input.ownerUserId && notebook.updatedBy === input.ownerUserId,
         'Fixture notebook reference mismatch.'
       )
     }

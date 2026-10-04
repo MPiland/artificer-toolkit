@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { z } from 'zod'
 import type {
   CampaignDetailDto,
@@ -22,7 +22,8 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSessionLists'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api, components } from '../_generated/api'
+import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { api, components, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -77,22 +78,26 @@ async function setup() {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const membershipId = await base.t.run((ctx) =>
-    ctx.db.insert('campaignMemberships', {
-      campaignId: campaign.id,
-      userId: base.other.userId,
-      role: 'PLAYER',
-      status: 'ACTIVE',
-      accessStartedAt: campaign.createdAt,
-      joinedAt: campaign.createdAt,
-      leftAt: null
-    })
-  )
+  const addPlayer = (userId: string) =>
+    base.t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
+        campaignId: campaign.id,
+        userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: campaign.createdAt,
+        joinedAt: campaign.createdAt,
+        leftAt: null
+      })
+    )
+  const membershipId = await addPlayer(base.other.userId)
+  const third = await base.addActor('Third')
+  await addPlayer(third.userId)
   const session = await base.owner.caller.mutation(createSession, {
     campaignId: campaign.id,
     title: 'Old title'
   })
-  return { ...base, campaign, session, membershipId }
+  return { ...base, campaign, session, membershipId, third }
 }
 
 function pageInput(
@@ -101,6 +106,26 @@ function pageInput(
   cursor: string | null = null
 ): CampaignSessionNoteListInput {
   return { campaignId, sessionId, paginationOpts: { cursor, numItems: 2 } }
+}
+
+type Caller = Awaited<ReturnType<typeof setup>>['owner']['caller']
+
+async function listAll(caller: Caller, campaignId: string, sessionId: string) {
+  const rows: CampaignSessionNoteSectionDto[] = []
+  let cursor: string | null = null
+  for (;;) {
+    const page: CampaignSessionNoteListPage = await caller.query(
+      list,
+      pageInput(campaignId, sessionId, cursor)
+    )
+    rows.push(...page.page)
+    if (page.isDone) return rows
+    cursor = page.continueCursor
+  }
+}
+
+async function listIds(caller: Caller, campaignId: string, sessionId: string) {
+  return (await listAll(caller, campaignId, sessionId)).map((row) => row.id)
 }
 
 describe('native Session finish and notes', () => {
@@ -192,7 +217,7 @@ describe('native Session finish and notes', () => {
     })
   })
 
-  it('allows shared collaboration after finish, but only the author or owner can delete', async () => {
+  it('allows notes after finish, but only the author edits and only the author or owner deletes', async () => {
     const { t, owner, other, campaign, session } = await setup()
     await owner.caller.mutation(finish, {
       campaignId: campaign.id,
@@ -206,7 +231,7 @@ describe('native Session finish and notes', () => {
       title: 'Shared shitstorm',
       content: '<p>A shitstorm</p>',
       visibility: 'SHARED',
-      kind: 'SHARED_NOTE'
+      kind: 'NOTE'
     })
     expect(shared).toMatchObject({
       campaignId: campaign.id,
@@ -219,7 +244,10 @@ describe('native Session finish and notes', () => {
     expect(shared.content).not.toContain('shitstorm')
     expect(JSON.stringify(shared)).not.toMatch(/updatedBy|_creationTime|"_id"/)
     const target = { campaignId: campaign.id, sessionId: session.id, sectionId: shared.id }
-    const edited = await other.caller.mutation(update, {
+    await expect(
+      other.caller.mutation(update, { ...target, content: '', expectedVersion: 0 })
+    ).rejects.toThrow('Only the author')
+    const edited = await owner.caller.mutation(update, {
       ...target,
       content: '',
       expectedVersion: 0
@@ -236,28 +264,30 @@ describe('native Session finish and notes', () => {
     expect(stored).toMatchObject({
       title: 'Shared shitstorm',
       content: '',
-      updatedBy: other.userId
+      updatedBy: owner.userId
     })
-    await expect(other.caller.mutation(remove, target)).rejects.toThrow()
+    await expect(other.caller.mutation(remove, target)).rejects.toThrow('Only the author or the GM')
     await expect(
-      other.caller.mutation(update, { ...target, title: 'Stale', expectedVersion: 0 })
+      owner.caller.mutation(update, { ...target, title: 'Stale', expectedVersion: 0 })
     ).rejects.toThrow('version conflict')
-    await expect(
-      other.caller.mutation(update, {
-        ...target,
-        visibility: 'GM_PRIVATE',
-        kind: 'SECRET',
-        expectedVersion: 1
-      })
-    ).rejects.toThrow()
     const own = await other.caller.mutation(create, {
       campaignId: campaign.id,
       sessionId: session.id,
       title: 'Mine',
       content: '',
       visibility: 'SHARED',
-      kind: 'SHARED_NOTE'
+      kind: 'NOTE'
     })
+    await expect(
+      other.caller.mutation(update, {
+        campaignId: campaign.id,
+        sessionId: session.id,
+        sectionId: own.id,
+        kind: 'SECRET',
+        visibility: 'PRIVATE',
+        expectedVersion: 0
+      })
+    ).rejects.toThrow()
     expect(await other.caller.mutation(remove, { ...target, sectionId: own.id })).toEqual({
       ok: true
     })
@@ -272,7 +302,7 @@ describe('native Session finish and notes', () => {
       sessionId: session.id,
       title: 'Private shitstorm',
       content: '<p>Secret</p>',
-      visibility: 'GM_PRIVATE' as const,
+      visibility: 'PRIVATE' as const,
       kind: 'SECRET' as const
     }
     await expect(t.mutation(create, noteInput)).rejects.toThrow()
@@ -306,7 +336,7 @@ describe('native Session finish and notes', () => {
     await owner.caller.mutation(update, {
       ...target,
       visibility: 'SHARED',
-      kind: 'SHARED_NOTE',
+      kind: 'NOTE',
       expectedVersion: 0
     })
     const notes: CampaignSessionNoteSectionDto[] = []
@@ -316,7 +346,7 @@ describe('native Session finish and notes', () => {
           ...noteInput,
           title: `Shared ${index}`,
           visibility: 'SHARED',
-          kind: 'SHARED_NOTE',
+          kind: 'NOTE',
           sortOrder: index + 1
         })
       )
@@ -334,7 +364,7 @@ describe('native Session finish and notes', () => {
     expect(actual).toEqual([secret.id, ...notes.map((note) => note.id)])
     await owner.caller.mutation(update, {
       ...target,
-      visibility: 'GM_PRIVATE',
+      visibility: 'PRIVATE',
       kind: 'SECRET',
       expectedVersion: 1
     })
@@ -381,7 +411,7 @@ describe('native Session finish and notes', () => {
         title: 'Unnamed recap',
         content: '<p>Recap</p>',
         visibility: 'SHARED',
-        kind: 'SHARED_NOTE'
+        kind: 'NOTE'
       })
     ).rejects.toThrow(usernameRequired)
     await expect(
@@ -401,8 +431,172 @@ describe('native Session finish and notes', () => {
         title: 'Named recap',
         content: '<p>Recap</p>',
         visibility: 'SHARED',
-        kind: 'SHARED_NOTE'
+        kind: 'NOTE'
       })
     ).resolves.toMatchObject({ authorLabel: 'Owner' })
+  })
+
+  it('keeps a new note private to its author and the GM, and a hidden note reads as missing by ID', async () => {
+    const { owner, other, third, campaign, session } = await setup()
+    const base = { campaignId: campaign.id, sessionId: session.id, content: '', kind: 'NOTE' } as const
+    const note = await other.caller.mutation(create, { ...base, title: 'Mine' })
+    const gmNote = await owner.caller.mutation(create, { ...base, title: 'GM only' })
+    expect(note).toMatchObject({
+      visibility: 'PRIVATE',
+      authorUserId: other.userId,
+      authorLabel: 'Other'
+    })
+    expect(await listIds(other.caller, campaign.id, session.id)).toEqual([note.id])
+    expect((await listIds(owner.caller, campaign.id, session.id)).sort()).toEqual(
+      [note.id, gmNote.id].sort()
+    )
+    expect(await listIds(third.caller, campaign.id, session.id)).toEqual([])
+    for (const sectionId of [note.id, gmNote.id, crypto.randomUUID()]) {
+      const target = { campaignId: campaign.id, sessionId: session.id, sectionId }
+      await expect(
+        third.caller.mutation(update, { ...target, expectedVersion: 0, title: 'x' })
+      ).rejects.toThrow('Session note not found')
+      await expect(third.caller.mutation(remove, target)).rejects.toThrow('Session note not found')
+    }
+    await expect(
+      owner.caller.mutation(update, {
+        campaignId: campaign.id,
+        sessionId: session.id,
+        sectionId: note.id,
+        expectedVersion: 0,
+        title: 'GM edit'
+      })
+    ).rejects.toThrow('Only the author')
+    await expect(
+      other.caller.mutation(create, { ...base, title: 'Prep', kind: 'AGENDA' })
+    ).rejects.toThrow('Campaign not found')
+  })
+
+  it('lists a shared note to every active member with its author, changeable only by the author, and lets the GM delete it', async () => {
+    const { owner, other, third, campaign, session } = await setup()
+    const note = await other.caller.mutation(create, {
+      campaignId: campaign.id,
+      sessionId: session.id,
+      title: 'Recap',
+      content: '',
+      kind: 'NOTE'
+    })
+    const target = { campaignId: campaign.id, sessionId: session.id, sectionId: note.id }
+    await other.caller.mutation(update, { ...target, expectedVersion: 0, visibility: 'SHARED' })
+    expect(await listAll(third.caller, campaign.id, session.id)).toEqual([
+      expect.objectContaining({ id: note.id, authorUserId: other.userId, authorLabel: 'Other' })
+    ])
+    for (const caller of [owner.caller, third.caller])
+      await expect(
+        caller.mutation(update, { ...target, expectedVersion: 1, visibility: 'PRIVATE' })
+      ).rejects.toThrow('Only the author')
+    await other.caller.mutation(update, { ...target, expectedVersion: 1, visibility: 'PRIVATE' })
+    expect(await listIds(third.caller, campaign.id, session.id)).toEqual([])
+    await other.caller.mutation(update, { ...target, expectedVersion: 2, visibility: 'SHARED' })
+    expect(await owner.caller.mutation(remove, target)).toEqual({ ok: true })
+    expect(await listIds(third.caller, campaign.id, session.id)).toEqual([])
+  })
+
+  it('keeps a departed player’s notes, private ones readable only by the GM', async () => {
+    const { t, owner, other, third, campaign, session, membershipId } = await setup()
+    const [privateNote, sharedNote] = await Promise.all(
+      (['PRIVATE', 'SHARED'] as const).map((visibility) =>
+        other.caller.mutation(create, {
+          campaignId: campaign.id,
+          sessionId: session.id,
+          title: visibility,
+          content: '',
+          visibility,
+          kind: 'NOTE'
+        })
+      )
+    )
+    await t.run((ctx) =>
+      ctx.db.patch(membershipId, { status: 'LEFT', leftAt: new Date().toISOString() })
+    )
+    expect((await listIds(owner.caller, campaign.id, session.id)).sort()).toEqual(
+      [privateNote!.id, sharedNote!.id].sort()
+    )
+    expect(await listAll(third.caller, campaign.id, session.id)).toEqual([
+      expect.objectContaining({ id: sharedNote!.id, authorLabel: 'Other' })
+    ])
+  })
+
+  it('removes a deleted account’s private notes in bounded batches and keeps its shared ones as Deleted user', async ({
+    onTestFinished
+  }) => {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const { t, other, third, campaign, session } = await setup()
+    const [privateNote, sharedNote] = await Promise.all(
+      (['PRIVATE', 'SHARED'] as const).map((visibility) =>
+        other.caller.mutation(create, {
+          campaignId: campaign.id,
+          sessionId: session.id,
+          title: visibility,
+          content: '',
+          visibility,
+          kind: 'NOTE'
+        })
+      )
+    )
+    const authUserId = await t.run(async (ctx) => {
+      const profile = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', other.userId))
+        .unique()
+      if (!profile) throw new Error('Missing player profile.')
+      return profile.authUserId
+    })
+    // More private rows than two removal batches, so the purge must reschedule itself to finish.
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('campaignSessionNotes')
+        .withIndex('by_campaignId_authorUserId_visibility', (q) =>
+          q
+            .eq('campaignId', campaign.id)
+            .eq('authorUserId', other.userId)
+            .eq('visibility', 'PRIVATE')
+        )
+        .unique()
+      if (!row) throw new Error('Missing private row.')
+      const { _id, _creationTime, ...stored } = row
+      for (let index = 0; index < 100; index++)
+        await ctx.db.insert('campaignSessionNotes', {
+          ...stored,
+          id: crypto.randomUUID(),
+          title: `Bulk ${index}`
+        })
+    })
+    await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await listAll(third.caller, campaign.id, session.id)).toEqual([
+      expect.objectContaining({ id: sharedNote!.id, authorLabel: deletedCampaignAuthorLabel })
+    ])
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('campaignSessionNotes')
+          .withIndex('by_campaignId_sessionId_id', (q) =>
+            q.eq('campaignId', campaign.id).eq('sessionId', session.id).eq('id', privateNote!.id)
+          )
+          .unique()
+      )
+    ).toBeNull()
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('campaignSessionNotes')
+          .withIndex('by_campaignId_authorUserId_visibility', (q) =>
+            q
+              .eq('campaignId', campaign.id)
+              .eq('authorUserId', other.userId)
+              .eq('visibility', 'PRIVATE')
+          )
+          .first()
+      )
+    ).toBeNull()
   })
 })

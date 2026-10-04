@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Button, Group, Loader, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
@@ -7,20 +7,21 @@ import type { CampaignNotebookSectionDto } from '@artificer-toolkit/schema/api/c
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import { renderSanitizedRichHtml } from '#app/lib/richText'
+import { CampaignNoteByline, CampaignNoteVisibilitySelect } from './CampaignNoteVisibility'
 import * as sharedStyles from '../campaigns.css'
 import * as notesStyles from './notes.css'
 
 export function CampaignNotebook({
   campaign,
+  currentUserId,
   embedded = false,
   sectionTitle = 'Campaign notes',
-  visibilityFilter,
   categoryFilter
 }: {
   campaign: CampaignDetailDto
+  currentUserId: string
   embedded?: boolean
   sectionTitle?: string
-  visibilityFilter?: 'GM_PRIVATE' | 'SHARED'
   categoryFilter?: CampaignNotebookSectionDto['category']
 }) {
   const notebook = usePaginatedQuery(
@@ -31,9 +32,7 @@ export function CampaignNotebook({
   const createNotebookSection = useConvexMutation(convexApi.campaigns.notebooks.create)
   const [newTitle, setNewTitle] = useState('')
   const [content, setContent] = useState('')
-  const [visibility, setVisibility] = useState<'GM_PRIVATE' | 'SHARED'>(
-    visibilityFilter ?? 'GM_PRIVATE'
-  )
+  const [visibility, setVisibility] = useState<CampaignNotebookSectionDto['visibility']>('PRIVATE')
   const create = useMutation({
     mutationFn: () =>
       createNotebookSection({
@@ -50,11 +49,9 @@ export function CampaignNotebook({
   })
 
   const visibleSections = notebook.results.filter(
-    (section) =>
-      (visibilityFilter === undefined || section.visibility === visibilityFilter) &&
-      (categoryFilter === undefined || section.category === categoryFilter)
+    (section) => categoryFilter === undefined || section.category === categoryFilter
   )
-  const canCreate = campaign.status === 'ACTIVE' && campaign.role === 'OWNER'
+  const active = campaign.status === 'ACTIVE'
 
   return (
     <section
@@ -66,9 +63,7 @@ export function CampaignNotebook({
           {sectionTitle}
         </Title>
         <Text c='dimmed' size='sm'>
-          {campaign.role === 'OWNER'
-            ? 'Write Campaign lore for the party to reference during play.'
-            : 'Campaign lore maintained by the GM.'}
+          Notes start private. Share one to put it in front of the whole party.
         </Text>
       </div>
       {notebook.status === 'LoadingFirstPage' ? (
@@ -76,10 +71,11 @@ export function CampaignNotebook({
       ) : null}
       {visibleSections.map((section) => (
         <NotebookEditor
+          active={active}
           campaignId={campaign.id}
-          editable={campaign.status === 'ACTIVE' && campaign.role === 'OWNER'}
+          currentUserId={currentUserId}
+          isGm={campaign.role === 'OWNER'}
           key={section.id}
-          canChangeVisibility={campaign.role === 'OWNER'}
           section={section}
         />
       ))}
@@ -94,7 +90,7 @@ export function CampaignNotebook({
       {notebook.status === 'Exhausted' && visibleSections.length === 0 ? (
         <Text c='dimmed'>No sections yet.</Text>
       ) : null}
-      {canCreate ? (
+      {active ? (
         <form
           className={sharedStyles.form}
           onSubmit={(event: SubmitEvent) => {
@@ -111,18 +107,7 @@ export function CampaignNotebook({
             value={newTitle}
             onChange={(event) => setNewTitle(event.currentTarget.value)}
           />
-          {campaign.role === 'OWNER' ? (
-            <Select
-              data={[
-                { label: 'GM private', value: 'GM_PRIVATE' },
-                { label: 'Shared with party', value: 'SHARED' }
-              ]}
-              classNames={{ input: sharedStyles.input }}
-              label='Visibility'
-              value={visibility}
-              onChange={(value) => setVisibility((value as typeof visibility) ?? 'GM_PRIVATE')}
-            />
-          ) : null}
+          <CampaignNoteVisibilitySelect value={visibility} onChange={setVisibility} />
           <RichTextEditor
             label='Notes'
             name='campaign-note-content'
@@ -140,16 +125,21 @@ export function CampaignNotebook({
 }
 
 function NotebookEditor({
+  active,
   campaignId,
-  editable,
-  canChangeVisibility,
+  currentUserId,
+  isGm,
   section
 }: {
+  active: boolean
   campaignId: string
-  editable: boolean
-  canChangeVisibility: boolean
+  currentUserId: string
+  isGm: boolean
   section: CampaignNotebookSectionDto
 }) {
+  const isAuthor = section.authorUserId === currentUserId
+  const editable = active && isAuthor
+  const deletable = active && (isAuthor || isGm)
   const [title, setTitle] = useState(section.title)
   const [content, setContent] = useState(section.content)
   const [visibility, setVisibility] = useState(section.visibility)
@@ -192,19 +182,34 @@ function NotebookEditor({
       title !== saved.current.title ||
       content !== saved.current.content ||
       visibility !== saved.current.visibility
-    if (!editable || !dirty || save.isPending) return
+    if (!dirty || save.isPending) return
     const timeout = window.setTimeout(() => save.mutate(), 1_000)
     return () => window.clearTimeout(timeout)
-  }, [content, editable, save.isPending, title, visibility])
+  }, [content, save.isPending, title, visibility])
 
   if (!editable) {
     return (
       <Stack gap='xs'>
         <Title order={3}>{section.title}</Title>
-        <Text c='dimmed' size='xs'>
-          Shared with party
-        </Text>
+        <CampaignNoteByline
+          authorLabel={section.authorLabel}
+          showAuthor={section.visibility === 'SHARED' || isGm}
+          visibility={section.visibility}
+        />
         <div>{renderSanitizedRichHtml(section.content)}</div>
+        {deletable ? (
+          <Group>
+            <Button
+              color='red'
+              disabled={remove.isPending}
+              variant='subtle'
+              onClick={() => remove.mutate()}
+            >
+              Delete
+            </Button>
+          </Group>
+        ) : null}
+        {remove.error ? <Alert color='red'>{remove.error.message}</Alert> : null}
       </Stack>
     )
   }
@@ -218,51 +223,32 @@ function NotebookEditor({
       ) : null}
       {remove.error ? <Alert color='red'>{remove.error.message}</Alert> : null}
       <TextInput
-        disabled={!editable}
         classNames={{ input: sharedStyles.input }}
         label='Section title'
         value={title}
         onChange={(event) => setTitle(event.currentTarget.value)}
       />
-      {canChangeVisibility ? (
-        <Select
-          data={[
-            { label: 'GM private', value: 'GM_PRIVATE' },
-            { label: 'Shared with party', value: 'SHARED' }
-          ]}
-          classNames={{ input: sharedStyles.input }}
-          label='Visibility'
-          value={visibility}
-          onChange={(value) => setVisibility((value as typeof visibility) ?? visibility)}
-        />
-      ) : (
-        <Text c='dimmed' size='xs'>
-          Shared with party
-        </Text>
-      )}
+      <CampaignNoteVisibilitySelect value={visibility} onChange={setVisibility} />
       <RichTextEditor
-        readOnly={!editable}
         label='Notes'
         name={`campaign-note-${section.id}`}
         value={content}
         onChange={setContent}
         maximumLength={100_000}
       />
-      {editable ? (
-        <Group>
-          <Button
-            color='red'
-            disabled={remove.isPending}
-            variant='subtle'
-            onClick={() => remove.mutate()}
-          >
-            Delete
-          </Button>
-          <Text aria-live='polite' c='dimmed' size='sm'>
-            {save.isPending ? 'Saving…' : save.isSuccess ? 'Saved.' : 'Changes save automatically.'}
-          </Text>
-        </Group>
-      ) : null}
+      <Group>
+        <Button
+          color='red'
+          disabled={remove.isPending}
+          variant='subtle'
+          onClick={() => remove.mutate()}
+        >
+          Delete
+        </Button>
+        <Text aria-live='polite' c='dimmed' size='sm'>
+          {save.isPending ? 'Saving…' : save.isSuccess ? 'Saved.' : 'Changes save automatically.'}
+        </Text>
+      </Group>
     </Stack>
   )
 }

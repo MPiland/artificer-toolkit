@@ -121,7 +121,7 @@ export async function verifyDevelopmentCampaignLifecycleBrowser(
         assert.equal(one(beforeRows, 'campaigns').primaryRulesCatalogueId, SRD_RULES_CATALOGUE.id)
         assert.equal(one(beforeRows, 'campaignMemberships').role, 'OWNER')
         assert.equal(one(beforeRows, 'campaignMemberships').status, 'ACTIVE')
-        for (const visibility of ['GM_PRIVATE', 'SHARED'] as const)
+        for (const visibility of ['PRIVATE', 'SHARED'] as const)
           await input.owner.mutation(api.campaigns.notebooks.create, {
             campaignId: detail.id,
             title: visibility + ' raw notebook',
@@ -134,14 +134,14 @@ export async function verifyDevelopmentCampaignLifecycleBrowser(
             campaignId: detail.id,
             title: 'Person ' + index,
             content: '<p>Selected person ' + index + ' exact raw content.</p>',
-            visibility: index % 2 ? 'SHARED' : 'GM_PRIVATE',
+            visibility: index % 2 ? 'SHARED' : 'PRIVATE',
             category: 'PEOPLE'
           })
         await input.owner.mutation(api.campaigns.notebooks.create, {
           campaignId: detail.id,
           title: 'Contextual general note',
           content: '<p>Copied only when explicitly selected.</p>',
-          visibility: 'GM_PRIVATE',
+          visibility: 'PRIVATE',
           category: 'GENERAL'
         })
         source = { detail, inspection: await capture(detail) }
@@ -427,7 +427,7 @@ async function assertCompletedCopy(
       id: copied.id,
       campaignId: destination.id,
       version: 0,
-      createdBy: input.ownerUserId,
+      authorUserId: input.ownerUserId,
       updatedBy: input.ownerUserId,
       createdAt: copied.createdAt,
       updatedAt: copied.updatedAt

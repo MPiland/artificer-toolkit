@@ -191,7 +191,7 @@ describe('reserved native Campaign lifecycle proof', () => {
         campaignId: base.campaign.id,
         title: 'Complete evidence note ' + index,
         content,
-        visibility: index % 2 ? 'SHARED' : 'GM_PRIVATE',
+        visibility: index % 2 ? 'SHARED' : 'PRIVATE',
         category: 'GENERAL'
       })
     const page = await base.owner.caller.query(api.campaigns.notebooks.list, {

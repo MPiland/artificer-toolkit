@@ -23,6 +23,7 @@ import { mutation } from '../lib/mutations'
 import { getAuthenticatedProfile, requireIdentity } from '../lib/identity'
 import { readCampaignAuthorLabels, requireCampaignAuthorUsername } from './authorLabels'
 import { requireCampaignAuthority } from './authority'
+import { canViewNote } from './noteVisibility'
 import { requireSession } from './sessionDocuments'
 
 function present(
@@ -30,7 +31,7 @@ function present(
   authorLabel: string,
   maturity: 'STANDARD' | 'MATURE'
 ) {
-  const privateNote = note.visibility === 'GM_PRIVATE'
+  const privateNote = note.visibility === 'PRIVATE'
   return campaignSessionNoteSectionDtoSchema.parse({
     id: note.id,
     campaignId: note.campaignId,
@@ -52,7 +53,8 @@ async function requireNote(
   ctx: QueryCtx,
   campaignId: string,
   sessionId: string,
-  sectionId: string
+  sectionId: string,
+  viewer: { userId: string; role: 'OWNER' | 'PLAYER' }
 ) {
   const note = await ctx.db
     .query('campaignSessionNotes')
@@ -60,7 +62,7 @@ async function requireNote(
       q.eq('campaignId', campaignId).eq('sessionId', sessionId).eq('id', sectionId.toLowerCase())
     )
     .unique()
-  if (!note) throw new Error('Session note not found.')
+  if (!note || !canViewNote(note, viewer)) throw new Error('Session note not found.')
   return note
 }
 
@@ -72,19 +74,21 @@ export const list = query({
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     const session = await requireSession(ctx, campaign.id, input.sessionId)
-    const rows =
+    const rows = ctx.db
+      .query('campaignSessionNotes')
+      .withIndex('by_campaignId_sessionId_sortOrder_id', (q) =>
+        q.eq('campaignId', campaign.id).eq('sessionId', session.id)
+      )
+    const result = await (
       membership.role === 'OWNER'
-        ? ctx.db
-            .query('campaignSessionNotes')
-            .withIndex('by_campaignId_sessionId_sortOrder_id', (q) =>
-              q.eq('campaignId', campaign.id).eq('sessionId', session.id)
+        ? rows
+        : rows.filter((q) =>
+            q.or(
+              q.eq(q.field('visibility'), 'SHARED'),
+              q.eq(q.field('authorUserId'), userId)
             )
-        : ctx.db
-            .query('campaignSessionNotes')
-            .withIndex('by_campaignId_sessionId_visibility_sortOrder_id', (q) =>
-              q.eq('campaignId', campaign.id).eq('sessionId', session.id).eq('visibility', 'SHARED')
-            )
-    const result = await rows.paginate({
+          )
+    ).paginate({
       ...input.paginationOpts,
       maximumRowsRead: 8,
       maximumBytesRead: 1024 * 1024
@@ -113,8 +117,7 @@ export const create = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (input.visibility === 'SHARED') requireCampaignAuthorUsername(actor.username)
-    if (input.visibility === 'GM_PRIVATE' && membership.role !== 'OWNER')
-      throw new Error('Campaign not found.')
+    if (input.kind !== 'NOTE' && membership.role !== 'OWNER') throw new Error('Campaign not found.')
     const session = await requireSession(ctx, campaign.id, input.sessionId)
     const now = new Date().toISOString()
     const note = campaignStoredSessionNoteSchema.parse({
@@ -140,17 +143,17 @@ export const update = mutation({
   returns: zodToConvex(campaignSessionNoteSectionDtoSchema),
   handler: async (ctx, args): Promise<CampaignSessionNoteSectionDto> => {
     const input = updateCampaignSessionNoteSectionInputSchema.parse(args)
-    const { userId } = await requireIdentity(ctx)
+    const actor = await getAuthenticatedProfile(ctx)
+    if (!actor) throw new Error('Unauthenticated')
+    const { userId } = actor.identity
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const session = await requireSession(ctx, campaign.id, input.sessionId)
-    const existing = await requireNote(ctx, campaign.id, session.id, input.sectionId)
-    const visibility = input.visibility ?? existing.visibility
-    if (
-      (existing.visibility === 'GM_PRIVATE' || visibility === 'GM_PRIVATE') &&
-      membership.role !== 'OWNER'
-    )
-      throw new Error('Campaign not found.')
+    const existing = await requireNote(ctx, campaign.id, session.id, input.sectionId, {
+      userId,
+      role: membership.role
+    })
+    if (existing.authorUserId !== userId) throw new Error('Only the author can edit this note.')
     if (existing.version !== input.expectedVersion)
       throw new Error('Session note version conflict.')
     const merged = createCampaignSessionNoteSectionInputSchema.parse({
@@ -158,10 +161,12 @@ export const update = mutation({
       sessionId: session.id,
       title: input.title ?? existing.title,
       content: input.content ?? existing.content,
-      visibility,
+      visibility: input.visibility ?? existing.visibility,
       kind: input.kind ?? existing.kind,
       sortOrder: input.sortOrder ?? existing.sortOrder
     })
+    if (merged.visibility === 'SHARED') requireCampaignAuthorUsername(actor.username)
+    if (merged.kind !== 'NOTE' && membership.role !== 'OWNER') throw new Error('Campaign not found.')
     const patch = {
       ...merged,
       version: existing.version + 1,
@@ -183,12 +188,12 @@ export const remove = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const session = await requireSession(ctx, campaign.id, input.sessionId)
-    const note = await requireNote(ctx, campaign.id, session.id, input.sectionId)
-    if (
-      membership.role !== 'OWNER' &&
-      (note.visibility === 'GM_PRIVATE' || note.authorUserId !== userId)
-    )
-      throw new Error('Session note not found.')
+    const note = await requireNote(ctx, campaign.id, session.id, input.sectionId, {
+      userId,
+      role: membership.role
+    })
+    if (note.authorUserId !== userId && membership.role !== 'OWNER')
+      throw new Error('Only the author or the GM can delete this note.')
     await ctx.db.delete(note._id)
     return { ok: true }
   }

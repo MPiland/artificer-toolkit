@@ -135,14 +135,17 @@ const validateWork = (caseIds, criteria) => {
       errors.push(`Queue slice ${id} is ${slice.state}, not open`)
     }
   }
-  // Parallel slices are allowed only when they close disjoint acceptance cases.
+  // Parallel slices are allowed only when they close disjoint acceptance cases. An active slice
+  // inside an active parent is the parent's own work, so it is compared with its siblings only.
   const activeCases = new Map()
   for (const slice of slices.values()) {
     if (slice.state !== 'active') continue
+    const scope = (includedBy.get(slice.id) ?? []).find((id) => slices.get(id)?.state === 'active') ?? ''
     for (const caseId of slice.cases ?? []) {
-      if (activeCases.has(caseId)) {
-        errors.push(`Active slices ${activeCases.get(caseId)} and ${slice.id} share case ${caseId}`)
-      } else activeCases.set(caseId, slice.id)
+      const key = `${scope}:${caseId}`
+      if (activeCases.has(key)) {
+        errors.push(`Active slices ${activeCases.get(key)} and ${slice.id} share case ${caseId}`)
+      } else activeCases.set(key, slice.id)
     }
   }
   return errors

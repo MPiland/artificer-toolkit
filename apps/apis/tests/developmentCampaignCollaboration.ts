@@ -18,7 +18,7 @@ export async function verifyCampaignCollaboration(input: {
     campaignId,
     title: 'P14 private note',
     content: '<p>Private preparation</p>',
-    visibility: 'GM_PRIVATE',
+    visibility: 'PRIVATE',
     category: 'GENERAL'
   })
   assert.deepEqual((await player.client.query(api.campaigns.notebooks.list, notebookArgs)).page, [])

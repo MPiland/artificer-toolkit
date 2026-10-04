@@ -22,9 +22,7 @@ export const recoverCampaignClockBoundaryInputSchema = lazySchema(() =>
   })
 )
 
-export const campaignNotebookVisibilityDtoSchema = lazySchema(() =>
-  z.enum(['GM_PRIVATE', 'SHARED'])
-)
+export const campaignNoteVisibilitySchema = lazySchema(() => z.enum(['PRIVATE', 'SHARED']))
 export const campaignNotebookCategoryDtoSchema = lazySchema(() =>
   z.enum(['GENERAL', 'PEOPLE', 'PLACES'])
 )
@@ -32,9 +30,11 @@ export const campaignNotebookSectionDtoSchema = lazySchema(() =>
   z.strictObject({
     id: uuidSchema,
     campaignId: uuidSchema,
+    authorUserId: uuidSchema,
+    authorLabel: campaignAuthorLabelSchema,
     title: shortTextSchema,
     content: authoredRichTextSchema,
-    visibility: campaignNotebookVisibilityDtoSchema,
+    visibility: campaignNoteVisibilitySchema,
     category: campaignNotebookCategoryDtoSchema,
     version: versionSchema,
     createdAt: timestampSchema,
@@ -46,7 +46,7 @@ export const createCampaignNotebookSectionInputSchema = lazySchema(() =>
     campaignId: uuidSchema,
     title: shortTextSchema,
     content: authoredRichTextSchema,
-    visibility: z._default(campaignNotebookVisibilityDtoSchema, 'GM_PRIVATE'),
+    visibility: z._default(campaignNoteVisibilitySchema, 'PRIVATE'),
     category: z._default(campaignNotebookCategoryDtoSchema, 'GENERAL')
   })
 )
@@ -56,7 +56,7 @@ export const updateCampaignNotebookSectionInputSchema = lazySchema(() =>
     sectionId: uuidSchema,
     title: z.optional(shortTextSchema),
     content: z.optional(authoredRichTextSchema),
-    visibility: z.optional(campaignNotebookVisibilityDtoSchema),
+    visibility: z.optional(campaignNoteVisibilitySchema),
     category: z.optional(campaignNotebookCategoryDtoSchema),
     expectedVersion: versionSchema
   })
@@ -336,6 +336,21 @@ export const resetCampaignClockInputSchema = lazySchema(() =>
 )
 export const reconcileCampaignClockInputSchema = campaignLivePlayCommandBaseSchema
 
+export const campaignSessionNoteKindSchema = lazySchema(() =>
+  z.enum([
+    'NOTE',
+    'AGENDA',
+    'SCENE',
+    'SECRET',
+    'REWARD',
+    'SCRATCHPAD',
+    'RECAP',
+    'ENDING_STATE',
+    'CANON',
+    'RULING',
+    'FOLLOW_UP'
+  ])
+)
 export const campaignSessionNoteSectionDtoSchema = lazySchema(() =>
   z.strictObject({
     id: uuidSchema,
@@ -345,20 +360,8 @@ export const campaignSessionNoteSectionDtoSchema = lazySchema(() =>
     authorLabel: campaignAuthorLabelSchema,
     title: shortTextSchema,
     content: authoredRichTextSchema,
-    visibility: z.enum(['SHARED', 'GM_PRIVATE']),
-    kind: z.enum([
-      'SHARED_NOTE',
-      'AGENDA',
-      'SCENE',
-      'SECRET',
-      'REWARD',
-      'SCRATCHPAD',
-      'RECAP',
-      'ENDING_STATE',
-      'CANON',
-      'RULING',
-      'FOLLOW_UP'
-    ]),
+    visibility: campaignNoteVisibilitySchema,
+    kind: campaignSessionNoteKindSchema,
     sortOrder: z.number().check(z.int()).check(z.nonnegative()),
     version: versionSchema,
     createdAt: timestampSchema,
@@ -366,13 +369,13 @@ export const campaignSessionNoteSectionDtoSchema = lazySchema(() =>
   })
 )
 function validateCampaignSessionNoteAccess(
-  value: { visibility: 'SHARED' | 'GM_PRIVATE'; kind: string },
+  value: { visibility: 'PRIVATE' | 'SHARED'; kind: string },
   context: z.core.$RefinementCtx
 ): void {
-  if ((value.kind === 'SHARED_NOTE') !== (value.visibility === 'SHARED'))
+  if (value.kind !== 'NOTE' && value.visibility === 'SHARED')
     context.addIssue({
       code: 'custom',
-      message: 'Shared notes must be shared; all other Session section kinds are GM-private.'
+      message: 'Only notes can be shared; all other Session section kinds stay private.'
     })
 }
 export const createCampaignSessionNoteSectionInputSchema = lazySchema(() =>
@@ -382,20 +385,8 @@ export const createCampaignSessionNoteSectionInputSchema = lazySchema(() =>
       sessionId: uuidSchema,
       title: shortTextSchema,
       content: authoredRichTextSchema,
-      visibility: z.enum(['SHARED', 'GM_PRIVATE']),
-      kind: z.enum([
-        'SHARED_NOTE',
-        'AGENDA',
-        'SCENE',
-        'SECRET',
-        'REWARD',
-        'SCRATCHPAD',
-        'RECAP',
-        'ENDING_STATE',
-        'CANON',
-        'RULING',
-        'FOLLOW_UP'
-      ]),
+      visibility: z._default(campaignNoteVisibilitySchema, 'PRIVATE'),
+      kind: campaignSessionNoteKindSchema,
       sortOrder: z.optional(z.number().check(z.int()).check(z.nonnegative()))
     })
     .check(z.superRefine(validateCampaignSessionNoteAccess))
@@ -407,22 +398,8 @@ export const updateCampaignSessionNoteSectionInputSchema = lazySchema(() =>
     sectionId: uuidSchema,
     title: z.optional(shortTextSchema),
     content: z.optional(authoredRichTextSchema),
-    visibility: z.optional(z.enum(['SHARED', 'GM_PRIVATE'])),
-    kind: z.optional(
-      z.enum([
-        'SHARED_NOTE',
-        'AGENDA',
-        'SCENE',
-        'SECRET',
-        'REWARD',
-        'SCRATCHPAD',
-        'RECAP',
-        'ENDING_STATE',
-        'CANON',
-        'RULING',
-        'FOLLOW_UP'
-      ])
-    ),
+    visibility: z.optional(campaignNoteVisibilitySchema),
+    kind: z.optional(campaignSessionNoteKindSchema),
     sortOrder: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     expectedVersion: versionSchema
   })

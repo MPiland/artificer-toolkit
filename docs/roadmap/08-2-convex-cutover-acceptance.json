@@ -2159,6 +2159,19 @@
                 "apps/apis/convex/campaigns/chat.test.ts › native Campaign text chat › fences Convex chat and Campaign rolls while the live table holds authority (P14.5)",
                 "impl: apps/session-worker/src/nativeLiveSessionRoom.ts (#executeCampaignChatCommand), apps/session-worker/src/roomChatCommands.ts, apps/session-worker/src/roomRateLimits.ts, apps/apis/convex/liveSessions/authorityGuard.ts (assertConvexOwnsCampaignChat)"
               ]
+            },
+            {
+              "id": "P14.6",
+              "text": "The GM and players each write Campaign notebook entries, private by default: a private entry is listed and read only by its author and the GM, a shared entry by every active member, only the author changes its visibility, and a player cannot read, list or edit another member's private entry by ID (D87).",
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › keeps a new entry private to its author and the GM, and a hidden entry reads as missing by ID",
+                "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › lists a shared entry to every active member with its author, changeable only by the author, and lets the GM delete it",
+                "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › keeps a departed player’s entries, private ones readable only by the GM",
+                "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › removes a deleted account’s private entries in bounded batches and keeps its shared ones as Deleted user",
+                "apps/apis/convex/campaigns/copyJobs.test.ts › Campaign selected notebook copy jobs › copies only selected categories in bounded pages and leaves the source exact (copies only the owner's own entries)",
+                "impl: apps/apis/convex/campaigns/notebooks.ts, noteVisibility.ts, noteRemoval.ts, copyJobs.ts; packages/schema/src/api/campaignSessions.ts (campaignNoteVisibilitySchema); apps/web/src/domains/campaigns/components/CampaignNotebook.tsx, CampaignNoteVisibility.tsx"
+              ]
             }
           ]
         },
@@ -2227,6 +2240,21 @@
                 "apps/apis/convex/campaigns/developmentSessionControl.test.ts › runs Session, Clock and GM control contention, replay and authority through public commands (adjustment and condition races with one winner each, effective maximum HP, SECRET adjustment hidden from the player, removal, archived Campaign refuses Clock and finish replays before replaying)",
                 "impl: apps/apis/convex/campaigns/gmWrites.ts, gmReads.ts, clock.ts, sessionFinish.ts",
                 "reworded, user-approved 2026-09-27 (ADR 0035): \"outside live play\" narrows the clause; the entries above still prove it"
+              ]
+            },
+            {
+              "id": "P15.5",
+              "text": "Session notes from the GM and players are private by default: a private note is read only by its author and the GM, a shared note by every active member with its author shown (Q10), and the web Session page offers the private or shared choice (D87).",
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › keeps a new note private to its author and the GM, and a hidden note reads as missing by ID",
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › lists a shared note to every active member with its author, changeable only by the author, and lets the GM delete it",
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › keeps a departed player’s notes, private ones readable only by the GM",
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › removes a deleted account’s private notes in bounded batches and keeps its shared ones as Deleted user",
+                "packages/schema/src/__tests__/campaign-contracts.test.ts › makes new notes private by default and keeps non-note Session sections private",
+                "apps/web/src/domains/campaigns/components/CampaignSessionNotes.test.tsx › SessionSectionEditor › shows a private note to the GM with its author, and to its author as an editable visibility choice",
+                "apps/web/src/domains/campaigns/components/CampaignSessionNotes.test.tsx › SessionSectionEditor › lets only an editable author change a note’s visibility",
+                "impl: apps/apis/convex/campaigns/sessionNotes.ts, noteVisibility.ts, noteRemoval.ts, accountDeparture.helper.ts; apps/web/src/domains/campaigns/components/CampaignSessionNotes.tsx, CampaignNoteVisibility.tsx"
               ]
             }
           ]

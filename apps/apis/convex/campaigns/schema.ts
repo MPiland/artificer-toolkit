@@ -229,13 +229,7 @@ export const campaignTables = {
   campaignSessionNotes: defineTable(zodToConvexFields(campaignStoredSessionNoteSchema.shape))
     .index('by_campaignId_sessionId_id', ['campaignId', 'sessionId', 'id'])
     .index('by_campaignId_sessionId_sortOrder_id', ['campaignId', 'sessionId', 'sortOrder', 'id'])
-    .index('by_campaignId_sessionId_visibility_sortOrder_id', [
-      'campaignId',
-      'sessionId',
-      'visibility',
-      'sortOrder',
-      'id'
-    ]),
+    .index('by_campaignId_authorUserId_visibility', ['campaignId', 'authorUserId', 'visibility']),
   campaignSessions: defineTable(zodToConvexFields(campaignSessionDtoSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_campaignId_id', ['campaignId', 'id'])
@@ -263,14 +257,14 @@ export const campaignTables = {
     zodToConvexFields(campaignStoredNotebookSectionSchema.shape)
   )
     .index('by_campaignId_id', ['campaignId', 'id'])
-    .index('by_campaignId_category_id', ['campaignId', 'category', 'id'])
-    .index('by_campaignId_sortOrder_id', ['campaignId', 'sortOrder', 'id'])
-    .index('by_campaignId_visibility_sortOrder_id', [
+    .index('by_campaignId_authorUserId_category_id', [
       'campaignId',
-      'visibility',
-      'sortOrder',
+      'authorUserId',
+      'category',
       'id'
-    ]),
+    ])
+    .index('by_campaignId_authorUserId_visibility', ['campaignId', 'authorUserId', 'visibility'])
+    .index('by_campaignId_sortOrder_id', ['campaignId', 'sortOrder', 'id']),
   campaignConversations: defineTable(zodToConvexFields(campaignStoredConversationSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_campaignId_kind', ['campaignId', 'kind'])

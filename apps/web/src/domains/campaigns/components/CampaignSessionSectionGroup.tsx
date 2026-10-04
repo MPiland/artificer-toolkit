@@ -35,7 +35,6 @@ export function CampaignSessionSectionGroup({
         sessionId,
         title: campaignSessionSectionLabel(kind),
         content: '',
-        visibility: 'GM_PRIVATE',
         kind
       })
   })
@@ -75,6 +74,7 @@ export function CampaignSessionSectionGroup({
                       contentLabel='Details'
                       deletable={editable}
                       editable={editable}
+                      isGm
                       section={section}
                     />
                   </Accordion.Panel>

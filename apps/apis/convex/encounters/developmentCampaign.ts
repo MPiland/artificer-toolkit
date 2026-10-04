@@ -287,7 +287,7 @@ export const removeFixtureCampaign = internalMutation({
       ) ||
       notebookSections.length > 10 ||
       notebookSections.some(
-        (section) => section.createdBy !== ownerUserId || section.updatedBy !== ownerUserId
+        (section) => section.authorUserId !== ownerUserId || section.updatedBy !== ownerUserId
       )
     )
       throw new Error('Fixture Campaign collaboration dependency mismatch.')

@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { z } from 'zod'
 import type {
   CampaignDetailDto,
@@ -13,8 +13,10 @@ import type {
   updateCampaignNotebookSectionInputSchema,
   deleteCampaignNotebookSectionInputSchema
 } from '@artificer-toolkit/schema/api/campaignSessions'
+import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -54,23 +56,44 @@ async function setup(contentMaturity: 'STANDARD' | 'MATURE' = 'STANDARD') {
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const membershipId = await base.t.run(async (ctx) => {
-    const now = new Date().toISOString()
-    return ctx.db.insert('campaignMemberships', {
-      campaignId: campaign.id,
-      userId: base.other.userId,
-      role: 'PLAYER',
-      status: 'ACTIVE',
-      accessStartedAt: now,
-      joinedAt: now,
-      leftAt: null
+  const addPlayer = (userId: string) =>
+    base.t.run(async (ctx) => {
+      const now = new Date().toISOString()
+      return ctx.db.insert('campaignMemberships', {
+        campaignId: campaign.id,
+        userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: now,
+        joinedAt: now,
+        leftAt: null
+      })
     })
-  })
-  return { ...base, campaign, membershipId }
+  const membershipId = await addPlayer(base.other.userId)
+  const third = await base.addActor('Third')
+  await addPlayer(third.userId)
+  return { ...base, campaign, membershipId, third }
 }
 
 function pageInput(campaignId: string, cursor: string | null = null): CampaignNotebookListInput {
   return { campaignId, paginationOpts: { cursor, numItems: 1 } }
+}
+
+type Caller = Awaited<ReturnType<typeof setup>>['owner']['caller']
+
+async function listAll(caller: Caller, campaignId: string) {
+  const rows: CampaignNotebookSectionDto[] = []
+  let cursor: string | null = null
+  for (;;) {
+    const result: CampaignNotebookListPage = await caller.query(list, pageInput(campaignId, cursor))
+    rows.push(...result.page)
+    if (result.isDone) return rows
+    cursor = result.continueCursor
+  }
+}
+
+async function listIds(caller: Caller, campaignId: string) {
+  return (await listAll(caller, campaignId)).map((row) => row.id)
 }
 
 describe('native Campaign notebooks', () => {
@@ -83,7 +106,9 @@ describe('native Campaign notebooks', () => {
     })
     expect(privateSection).toMatchObject({
       campaignId: campaign.id,
-      visibility: 'GM_PRIVATE',
+      visibility: 'PRIVATE',
+      authorUserId: owner.userId,
+      authorLabel: 'Owner',
       category: 'GENERAL',
       version: 0
     })
@@ -103,10 +128,8 @@ describe('native Campaign notebooks', () => {
     expect(shared.title).not.toContain('shitstorm')
     expect(shared.content).not.toContain('shitstorm')
     expect(JSON.stringify(shared)).not.toMatch(/_id|createdBy|updatedBy/)
-    expect(await other.caller.query(list, pageInput(campaign.id))).toMatchObject({
-      page: [shared],
-      isDone: true
-    })
+    // One-row pages end at the shared row or continue past the hidden one, by id order.
+    expect(await listAll(other.caller, campaign.id)).toEqual([shared])
     expect(
       await t.run(async (ctx) =>
         ctx.db
@@ -131,13 +154,13 @@ describe('native Campaign notebooks', () => {
       sectionId: shared.id.toUpperCase(),
       expectedVersion: 0,
       content: '',
-      visibility: 'GM_PRIVATE'
+      visibility: 'PRIVATE'
     })
     expect(updated).toMatchObject({
       title: 'Shared shitstorm',
       content: '',
       version: 1,
-      visibility: 'GM_PRIVATE'
+      visibility: 'PRIVATE'
     })
     expect(await other.caller.query(list, pageInput(campaign.id))).toMatchObject({ page: [] })
     const rows = await t.run((ctx) => ctx.db.query('campaignNotebookSections').collect())
@@ -145,7 +168,7 @@ describe('native Campaign notebooks', () => {
       title: 'Private shitstorm',
       content: '<p>Private shitstorm</p>',
       sortOrder: 0,
-      createdBy: owner.userId,
+      authorUserId: owner.userId,
       updatedBy: owner.userId
     })
     const republished = await owner.caller.mutation(update, {
@@ -219,7 +242,7 @@ describe('native Campaign notebooks', () => {
     ])
   })
 
-  it('enforces membership and owner writes, including archived and left campaigns', async () => {
+  it('enforces membership and author writes, including archived and left campaigns', async () => {
     const { t, owner, other, campaign, membershipId } = await setup()
     const section = await owner.caller.mutation(create, {
       campaignId: campaign.id,
@@ -232,19 +255,16 @@ describe('native Campaign notebooks', () => {
       t.mutation(create, { campaignId: campaign.id, title: 'x', content: '' })
     ).rejects.toThrow('Unauthenticated')
     await expect(
-      other.caller.mutation(create, { campaignId: campaign.id, title: 'x', content: '' })
-    ).rejects.toThrow('Campaign not found')
-    await expect(
       other.caller.mutation(update, {
         campaignId: campaign.id,
         sectionId: section.id,
         expectedVersion: 0,
         title: 'x'
       })
-    ).rejects.toThrow('Campaign not found')
+    ).rejects.toThrow('Only the author')
     await expect(
       other.caller.mutation(remove, { campaignId: campaign.id, sectionId: section.id })
-    ).rejects.toThrow('Campaign not found')
+    ).rejects.toThrow('Only the author or the GM')
     await owner.caller.mutation(archive, {
       campaignId: campaign.id,
       expectedVersion: campaign.version
@@ -315,5 +335,177 @@ describe('native Campaign notebooks', () => {
       })
     ).rejects.toThrow()
     await expect(owner.caller.query(list, pageInput('not-a-uuid'))).rejects.toThrow()
+  })
+
+  it('keeps a new entry private to its author and the GM, and a hidden entry reads as missing by ID', async () => {
+    const { owner, other, third, campaign } = await setup()
+    const entry = await other.caller.mutation(create, {
+      campaignId: campaign.id,
+      title: 'Mine',
+      content: '<p>mine</p>'
+    })
+    const gmEntry = await owner.caller.mutation(create, {
+      campaignId: campaign.id,
+      title: 'GM only',
+      content: ''
+    })
+    expect(entry).toMatchObject({
+      visibility: 'PRIVATE',
+      authorUserId: other.userId,
+      authorLabel: 'Other'
+    })
+    expect(await listIds(other.caller, campaign.id)).toEqual([entry.id])
+    expect((await listIds(owner.caller, campaign.id)).sort()).toEqual([entry.id, gmEntry.id].sort())
+    expect(await listIds(third.caller, campaign.id)).toEqual([])
+    for (const sectionId of [entry.id, gmEntry.id, crypto.randomUUID()]) {
+      await expect(
+        third.caller.mutation(update, {
+          campaignId: campaign.id,
+          sectionId,
+          expectedVersion: 0,
+          title: 'x'
+        })
+      ).rejects.toThrow('Notebook section not found')
+      await expect(
+        third.caller.mutation(remove, { campaignId: campaign.id, sectionId })
+      ).rejects.toThrow('Notebook section not found')
+    }
+    await expect(
+      owner.caller.mutation(update, {
+        campaignId: campaign.id,
+        sectionId: entry.id,
+        expectedVersion: 0,
+        title: 'GM edit'
+      })
+    ).rejects.toThrow('Only the author')
+    expect(await listIds(other.caller, campaign.id)).toEqual([entry.id])
+  })
+
+  it('lists a shared entry to every active member with its author, changeable only by the author, and lets the GM delete it', async () => {
+    const { t, owner, other, third, campaign } = await setup()
+    const entry = await other.caller.mutation(create, {
+      campaignId: campaign.id,
+      title: 'Shared by Other',
+      content: '<p>shared</p>'
+    })
+    const target = { campaignId: campaign.id, sectionId: entry.id }
+    const shared = await other.caller.mutation(update, {
+      ...target,
+      expectedVersion: 0,
+      visibility: 'SHARED'
+    })
+    expect(shared).toMatchObject({ visibility: 'SHARED', version: 1 })
+    expect(await listAll(third.caller, campaign.id)).toEqual([
+      expect.objectContaining({ id: entry.id, authorUserId: other.userId, authorLabel: 'Other' })
+    ])
+    for (const caller of [owner.caller, third.caller])
+      await expect(
+        caller.mutation(update, { ...target, expectedVersion: 1, visibility: 'PRIVATE' })
+      ).rejects.toThrow('Only the author')
+    await other.caller.mutation(update, { ...target, expectedVersion: 1, visibility: 'PRIVATE' })
+    expect(await listIds(third.caller, campaign.id)).toEqual([])
+    await other.caller.mutation(update, { ...target, expectedVersion: 2, visibility: 'SHARED' })
+    expect(await owner.caller.mutation(remove, target)).toEqual({ ok: true })
+    expect(await listIds(third.caller, campaign.id)).toEqual([])
+    expect(await t.run((ctx) => ctx.db.query('campaignNotebookSections').collect())).toEqual([])
+  })
+
+  it('keeps a departed player’s entries, private ones readable only by the GM', async () => {
+    const { t, owner, other, third, campaign, membershipId } = await setup()
+    const [privateEntry, sharedEntry] = await Promise.all(
+      (['PRIVATE', 'SHARED'] as const).map((visibility) =>
+        other.caller.mutation(create, {
+          campaignId: campaign.id,
+          title: visibility,
+          content: '',
+          visibility
+        })
+      )
+    )
+    await t.run((ctx) =>
+      ctx.db.patch(membershipId, { status: 'LEFT', leftAt: new Date().toISOString() })
+    )
+    expect((await listIds(owner.caller, campaign.id)).sort()).toEqual(
+      [privateEntry!.id, sharedEntry!.id].sort()
+    )
+    expect(await listAll(third.caller, campaign.id)).toEqual([
+      expect.objectContaining({ id: sharedEntry!.id, authorLabel: 'Other' })
+    ])
+  })
+
+  it('removes a deleted account’s private entries in bounded batches and keeps its shared ones as Deleted user', async ({
+    onTestFinished
+  }) => {
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const { t, other, third, campaign } = await setup()
+    const [privateEntry, sharedEntry] = await Promise.all(
+      (['PRIVATE', 'SHARED'] as const).map((visibility) =>
+        other.caller.mutation(create, {
+          campaignId: campaign.id,
+          title: visibility,
+          content: '',
+          visibility
+        })
+      )
+    )
+    const authUserId = await t.run(async (ctx) => {
+      const profile = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', other.userId))
+        .unique()
+      if (!profile) throw new Error('Missing player profile.')
+      return profile.authUserId
+    })
+    // More private rows than two removal batches, so the purge must reschedule itself to finish.
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('campaignNotebookSections')
+        .withIndex('by_campaignId_authorUserId_visibility', (q) =>
+          q
+            .eq('campaignId', campaign.id)
+            .eq('authorUserId', other.userId)
+            .eq('visibility', 'PRIVATE')
+        )
+        .unique()
+      if (!row) throw new Error('Missing private row.')
+      const { _id, _creationTime, ...stored } = row
+      for (let index = 0; index < 100; index++)
+        await ctx.db.insert('campaignNotebookSections', {
+          ...stored,
+          id: crypto.randomUUID(),
+          title: `Bulk ${index}`
+        })
+    })
+    await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await listAll(third.caller, campaign.id)).toEqual([
+      expect.objectContaining({ id: sharedEntry!.id, authorLabel: deletedCampaignAuthorLabel })
+    ])
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('campaignNotebookSections')
+          .withIndex('by_campaignId_id', (q) =>
+            q.eq('campaignId', campaign.id).eq('id', privateEntry!.id)
+          )
+          .unique()
+      )
+    ).toBeNull()
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('campaignNotebookSections')
+          .withIndex('by_campaignId_authorUserId_visibility', (q) =>
+            q
+              .eq('campaignId', campaign.id)
+              .eq('authorUserId', other.userId)
+              .eq('visibility', 'PRIVATE')
+          )
+          .first()
+      )
+    ).toBeNull()
   })
 })

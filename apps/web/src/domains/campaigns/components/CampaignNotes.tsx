@@ -6,7 +6,7 @@ import { CampaignSessionNotes } from './CampaignSessionNotes'
 import * as sharedStyles from '../campaigns.css'
 import * as notesStyles from './notes.css'
 
-type NotesSection = 'GENERAL' | 'PEOPLE' | 'PLACES' | 'SESSIONS' | 'GM_PRIVATE'
+type NotesSection = 'GENERAL' | 'PEOPLE' | 'PLACES' | 'SESSIONS'
 
 export function CampaignNotes({
   campaign,
@@ -16,7 +16,6 @@ export function CampaignNotes({
   currentUserId: string
 }) {
   const [section, setSection] = useState<NotesSection>('GENERAL')
-  const canSeePrivate = campaign.role === 'OWNER'
 
   return (
     <div className={notesStyles.notesWorkspace}>
@@ -24,15 +23,7 @@ export function CampaignNotes({
         <Text c='dimmed' fw={700} size='xs' tt='uppercase'>
           Notes
         </Text>
-        {(
-          [
-            'GENERAL',
-            'PEOPLE',
-            'PLACES',
-            'SESSIONS',
-            ...(canSeePrivate ? ['GM_PRIVATE'] : [])
-          ] as NotesSection[]
-        ).map((value) => (
+        {(['GENERAL', 'PEOPLE', 'PLACES', 'SESSIONS'] as const).map((value) => (
           <button
             className={notesStyles.notesRailItem}
             data-active={section === value || undefined}
@@ -40,7 +31,7 @@ export function CampaignNotes({
             type='button'
             onClick={() => setSection(value)}
           >
-            {value === 'GM_PRIVATE' ? 'GM private' : value.charAt(0) + value.slice(1).toLowerCase()}
+            {value.charAt(0) + value.slice(1).toLowerCase()}
           </button>
         ))}
       </nav>
@@ -53,8 +44,7 @@ export function CampaignNotes({
               { value: 'GENERAL', label: 'General' },
               { value: 'PEOPLE', label: 'People' },
               { value: 'PLACES', label: 'Places' },
-              { value: 'SESSIONS', label: 'Sessions' },
-              ...(canSeePrivate ? [{ value: 'GM_PRIVATE', label: 'GM private' }] : [])
+              { value: 'SESSIONS', label: 'Sessions' }
             ]}
             value={section}
             onChange={(value) => {
@@ -62,8 +52,7 @@ export function CampaignNotes({
                 value === 'GENERAL' ||
                 value === 'PEOPLE' ||
                 value === 'PLACES' ||
-                value === 'SESSIONS' ||
-                value === 'GM_PRIVATE'
+                value === 'SESSIONS'
               )
                 setSection(value)
             }}
@@ -73,18 +62,10 @@ export function CampaignNotes({
           {section === 'GENERAL' || section === 'PEOPLE' || section === 'PLACES' ? (
             <CampaignNotebook
               campaign={campaign}
+              currentUserId={currentUserId}
               embedded
               sectionTitle={`${section.charAt(0)}${section.slice(1).toLowerCase()} notes`}
-              visibilityFilter='SHARED'
               categoryFilter={section}
-            />
-          ) : null}
-          {section === 'GM_PRIVATE' ? (
-            <CampaignNotebook
-              campaign={campaign}
-              embedded
-              sectionTitle='GM private notes'
-              visibilityFilter='GM_PRIVATE'
             />
           ) : null}
           {section === 'SESSIONS' ? (

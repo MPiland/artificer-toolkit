@@ -250,7 +250,7 @@ async function setup(
         await ctx.db.patch(route._id, { ownerUserId: identity.userId })
       })
     }
-    base = { t: ready.t, owner: ready.other, other: ready.owner }
+    base = { t: ready.t, owner: ready.other, other: ready.owner, addActor: ready.addActor }
   } else base = await fixture()
   await base.t.run(async (ctx) => {
     const profile = await ctx.db

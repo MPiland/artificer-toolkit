@@ -153,7 +153,7 @@ describe('P15 Session fixture cleanup', () => {
       title: 'Agenda',
       content: 'Fixture note',
       visibility: 'SHARED',
-      kind: 'SHARED_NOTE'
+      kind: 'NOTE'
     })
     await base.owner.caller.mutation(api.campaigns.sessionRsvps.set, {
       campaignId: base.campaign.id,
@@ -317,7 +317,7 @@ describe('P15 Session fixture cleanup', () => {
         title: 'bad',
         content: 'bad',
         visibility: 'SHARED',
-        kind: 'SHARED_NOTE',
+        kind: 'NOTE',
         sortOrder: 0,
         version: 0,
         createdAt: session.createdAt,

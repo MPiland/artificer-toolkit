@@ -24,6 +24,8 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import { renderSanitizedRichHtml } from '#app/lib/richText'
+import type { CampaignSessionNoteSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
+import { CampaignNoteByline, CampaignNoteVisibilitySelect } from './CampaignNoteVisibility'
 import { SessionSectionEditor } from './CampaignSessionNotes'
 import * as sharedStyles from '../campaigns.css'
 
@@ -87,7 +89,6 @@ function CampaignNotesContent({
     view === 'sessions' && sessionId ? { campaignId: campaign.id, sessionId } : 'skip',
     { initialNumItems: 8 }
   )
-  const sharedSections = notebook.results.filter((section) => section.visibility === 'SHARED')
 
   return (
     <Stack gap='lg'>
@@ -104,16 +105,15 @@ function CampaignNotesContent({
 
       {view === 'campaign' ? (
         <section>
-          <Group justify='space-between' mb='sm'>
-            <Text fw={700}>Campaign notes</Text>
-            <Badge variant='light'>GM maintained</Badge>
-          </Group>
+          <Text fw={700} mb='sm'>
+            Campaign notes
+          </Text>
           {notebook.status === 'LoadingFirstPage' ? (
             <Loader aria-label='Loading Campaign notes' size='sm' />
           ) : null}
           <Accordion multiple variant='separated'>
             {(['GENERAL', 'PEOPLE', 'PLACES'] as const).map((category) => {
-              const sections = sharedSections.filter((section) => section.category === category)
+              const sections = notebook.results.filter((section) => section.category === category)
               const label = `${category.charAt(0)}${category.slice(1).toLowerCase()}`
               return (
                 <Accordion.Item key={category} value={`category:${category}`}>
@@ -125,6 +125,13 @@ function CampaignNotesContent({
                           <Accordion.Item key={section.id} value={`campaign:${section.id}`}>
                             <Accordion.Control>{section.title}</Accordion.Control>
                             <Accordion.Panel>
+                              <CampaignNoteByline
+                                authorLabel={section.authorLabel}
+                                showAuthor={
+                                  section.visibility === 'SHARED' || campaign.role === 'OWNER'
+                                }
+                                visibility={section.visibility}
+                              />
                               <div>{renderSanitizedRichHtml(section.content)}</div>
                             </Accordion.Panel>
                           </Accordion.Item>
@@ -186,11 +193,15 @@ function CampaignNotesContent({
                     <SessionSectionEditor
                       campaignId={campaign.id}
                       deletable={
-                        campaign.role === 'OWNER' || section.authorUserId === currentUserId
+                        campaign.status === 'ACTIVE' &&
+                        (campaign.role === 'OWNER' || section.authorUserId === currentUserId)
                       }
                       editable={
-                        campaign.status === 'ACTIVE' && campaign.capabilities.contributeSessionNotes
+                        campaign.status === 'ACTIVE' &&
+                        campaign.capabilities.contributeSessionNotes &&
+                        section.authorUserId === currentUserId
                       }
+                      isGm={campaign.role === 'OWNER'}
                       section={section}
                     />
                   </Accordion.Panel>
@@ -237,6 +248,7 @@ function SessionSectionCreator({
   const convex = useConvex()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [visibility, setVisibility] = useState<CampaignSessionNoteSectionDto['visibility']>('PRIVATE')
   const create = useMutation({
     mutationFn: () =>
       convex.mutation(convexApi.campaigns.sessionNotes.create, {
@@ -244,8 +256,8 @@ function SessionSectionCreator({
         sessionId,
         title,
         content,
-        visibility: 'SHARED',
-        kind: 'SHARED_NOTE'
+        visibility,
+        kind: 'NOTE'
       }),
     onSuccess: () => {
       setTitle('')
@@ -269,6 +281,7 @@ function SessionSectionCreator({
         value={title}
         onChange={(event) => setTitle(event.currentTarget.value)}
       />
+      <CampaignNoteVisibilitySelect value={visibility} onChange={setVisibility} />
       <RichTextEditor
         label='Session notes'
         name={`session-note-${sessionId}`}

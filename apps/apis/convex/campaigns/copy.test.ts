@@ -81,7 +81,7 @@ describe('native Campaign copy', () => {
         { attunementSlotOverride: 3 }
       )
       for (const [visibility, sortOrder] of [
-        ['GM_PRIVATE', 4],
+        ['PRIVATE', 4],
         ['SHARED', 9]
       ] as const)
         await ctx.db.insert('campaignNotebookSections', {
@@ -93,7 +93,7 @@ describe('native Campaign copy', () => {
           category: 'PLACES',
           sortOrder,
           version: 6,
-          createdBy: other.userId,
+          authorUserId: other.userId,
           updatedBy: other.userId,
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-02T00:00:00.000Z'
@@ -259,11 +259,11 @@ describe('native Campaign copy', () => {
         campaignId: rollback.campaign.id,
         title: 'Rollback note',
         content: '<p>Rollback note</p>',
-        visibility: 'GM_PRIVATE',
+        visibility: 'PRIVATE',
         category: 'PLACES',
         sortOrder: 0,
         version: 0,
-        createdBy: rollback.owner.userId,
+        authorUserId: rollback.owner.userId,
         updatedBy: rollback.owner.userId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

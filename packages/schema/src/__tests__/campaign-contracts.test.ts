@@ -27,6 +27,7 @@ import {
   updateCampaignInputSchema
 } from '../api/campaigns.js'
 import { characterDraftRequestDtoSchema } from '../api/characterBuilder.js'
+import { createCampaignSessionNoteSectionInputSchema } from '../api/campaignSessions.js'
 
 const id = 'f3e3a390-5b22-4a1f-8a0b-bf7f184bd7c9'
 
@@ -453,6 +454,28 @@ describe('campaign contracts', () => {
     expect(
       createCampaignNotebookSectionInputSchema.safeParse({ ...section, category: 'SESSIONS' })
         .success
+    ).toBe(false)
+  })
+
+  it('makes new notes private by default and keeps non-note Session sections private', () => {
+    const entry = { campaignId: id, title: 'Contacts', content: '<p>Rook</p>' }
+    expect(createCampaignNotebookSectionInputSchema.parse(entry).visibility).toBe('PRIVATE')
+    expect(
+      createCampaignNotebookSectionInputSchema.safeParse({ ...entry, visibility: 'GM_PRIVATE' })
+        .success
+    ).toBe(false)
+    const note = { ...entry, sessionId: id, kind: 'NOTE' as const }
+    expect(createCampaignSessionNoteSectionInputSchema.parse(note).visibility).toBe('PRIVATE')
+    expect(
+      createCampaignSessionNoteSectionInputSchema.safeParse({ ...note, visibility: 'SHARED' })
+        .success
+    ).toBe(true)
+    expect(
+      createCampaignSessionNoteSectionInputSchema.safeParse({
+        ...note,
+        kind: 'SECRET',
+        visibility: 'SHARED'
+      }).success
     ).toBe(false)
   })
 

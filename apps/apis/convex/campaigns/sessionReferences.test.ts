@@ -183,7 +183,9 @@ describe('native Campaign session references', () => {
       campaignId: campaign.id.toUpperCase(),
       sectionId: note.id.toUpperCase()
     }
-    await expect(other.caller.mutation(removeNotebook, input)).rejects.toThrow('Campaign not found')
+    await expect(other.caller.mutation(removeNotebook, input)).rejects.toThrow(
+      'Notebook section not found.'
+    )
     expect(await readState()).toEqual(before)
     await expect(
       owner.caller.mutation(async (ctx) => {
@@ -214,7 +216,7 @@ describe('native Campaign session references', () => {
       campaignId: campaign.id,
       title: 'Secret shitstorm',
       content: '<p>Secret shitstorm</p>',
-      visibility: 'GM_PRIVATE'
+      visibility: 'PRIVATE'
     })
     const pin = await owner.caller.mutation(create, {
       campaignId: campaign.id.toUpperCase(),
@@ -289,7 +291,7 @@ describe('native Campaign session references', () => {
         campaignId: campaign.id,
         title: `Mature ${index} shitstorm`,
         content: '',
-        visibility: 'GM_PRIVATE'
+        visibility: 'PRIVATE'
       })
       notebooks.push(note)
       const pin = await owner.caller.mutation(create, {

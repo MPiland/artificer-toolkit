@@ -26,8 +26,7 @@ export async function fixture() {
     contentSource: SRD_CONTENT_SOURCE,
     catalogue: SRD_RULES_CATALOGUE
   })
-  const actors = []
-  for (const name of ['Owner', 'Other']) {
+  const addActor = async (name: string) => {
     const user = await t.run(async (ctx) =>
       ctx.runMutation(components.betterAuth.adapter.create, {
         input: {
@@ -64,9 +63,9 @@ export async function fixture() {
     const caller = t.withIdentity({ subject: user._id, sessionId: session._id })
     const identity = await caller.query(api.account.identity, {})
     if (!identity) throw new Error('Missing test identity.')
-    actors.push({ caller, userId: identity.userId })
+    return { caller, userId: identity.userId }
   }
-  return { t, owner: actors[0]!, other: actors[1]! }
+  return { t, owner: await addActor('Owner'), other: await addActor('Other'), addActor }
 }
 
 export function input(): CharacterDraftCreateInput {

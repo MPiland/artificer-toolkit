@@ -99,7 +99,7 @@ export const cleanup = internalMutation({
       const validated = campaignStoredNotebookSectionSchema.parse(stored)
       if (
         validated.campaignId !== job.destinationCampaignId ||
-        validated.createdBy !== job.ownerUserId ||
+        validated.authorUserId !== job.ownerUserId ||
         validated.updatedBy !== job.ownerUserId
       )
         throw new Error('Campaign copy staging integrity failure.')

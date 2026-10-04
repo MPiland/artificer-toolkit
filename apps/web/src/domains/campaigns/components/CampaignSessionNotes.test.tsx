@@ -23,7 +23,7 @@ const section = {
   title: 'Player recap',
   content: '<p>Player recap</p>',
   visibility: 'SHARED',
-  kind: 'SHARED_NOTE',
+  kind: 'NOTE',
   sortOrder: 0,
   version: 0,
   createdAt: '2026-09-25T12:00:00.000Z',
@@ -31,11 +31,17 @@ const section = {
 } satisfies CampaignSessionNoteSectionDto
 
 describe('SessionSectionEditor', () => {
-  it('names the author of a shared note', () => {
+  it('marks a shared note and names its author to readers', () => {
     renderWithAppProviders(
-      <SessionSectionEditor campaignId={section.campaignId} deletable editable section={section} />
+      <SessionSectionEditor
+        campaignId={section.campaignId}
+        deletable
+        editable={false}
+        isGm={false}
+        section={section}
+      />
     )
-    expect(screen.getByText('Note by Mira')).toBeVisible()
+    expect(screen.getByText('Shared · by Mira')).toBeVisible()
   })
 
   it('shows the deleted-user label the server resolved', () => {
@@ -44,21 +50,74 @@ describe('SessionSectionEditor', () => {
         campaignId={section.campaignId}
         deletable={false}
         editable={false}
+        isGm={false}
         section={{ ...section, authorLabel: deletedCampaignAuthorLabel }}
       />
     )
-    expect(screen.getByText(`Note by ${deletedCampaignAuthorLabel}`)).toBeVisible()
+    expect(screen.getByText(`Shared · by ${deletedCampaignAuthorLabel}`)).toBeVisible()
   })
 
-  it('keeps GM-private sections unattributed', () => {
+  it('shows a private note to the GM with its author, and to its author as an editable visibility choice', () => {
+    const privateSection = { ...section, visibility: 'PRIVATE' } as const
+    const { unmount } = renderWithAppProviders(
+      <SessionSectionEditor
+        campaignId={section.campaignId}
+        deletable
+        editable={false}
+        isGm
+        section={privateSection}
+      />
+    )
+    expect(screen.getByText('Private · by Mira')).toBeVisible()
+    unmount()
     renderWithAppProviders(
       <SessionSectionEditor
         campaignId={section.campaignId}
         deletable
         editable
-        section={{ ...section, visibility: 'GM_PRIVATE', kind: 'SECRET' }}
+        isGm={false}
+        section={privateSection}
       />
     )
-    expect(screen.queryByText(/Note by/)).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Visibility' })).toHaveValue('Private')
+  })
+
+  it('lets only an editable author change a note’s visibility', () => {
+    const { unmount } = renderWithAppProviders(
+      <SessionSectionEditor
+        campaignId={section.campaignId}
+        deletable
+        editable
+        isGm={false}
+        section={section}
+      />
+    )
+    expect(screen.getByRole('combobox', { name: 'Visibility' })).toBeVisible()
+    unmount()
+    renderWithAppProviders(
+      <SessionSectionEditor
+        campaignId={section.campaignId}
+        deletable
+        editable={false}
+        isGm
+        section={section}
+      />
+    )
+    expect(screen.queryByRole('combobox', { name: 'Visibility' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeVisible()
+  })
+
+  it('keeps GM-only sections unlabelled', () => {
+    renderWithAppProviders(
+      <SessionSectionEditor
+        campaignId={section.campaignId}
+        deletable
+        editable
+        isGm
+        section={{ ...section, visibility: 'PRIVATE', kind: 'SECRET' }}
+      />
+    )
+    expect(screen.queryByText(/Private|Shared/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Visibility')).not.toBeInTheDocument()
   })
 })

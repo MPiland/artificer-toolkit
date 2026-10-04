@@ -78,7 +78,7 @@ function createCampaign(overrides: Partial<CampaignDetailDto> = {}): CampaignDet
       shareOwnedContent: true,
       managePartyInventory: false,
       transferOwnInventory: true,
-      manageNotes: false,
+      manageNotes: true,
       contributeSessionNotes: true,
       readTableChat: true,
       readPartyChat: false

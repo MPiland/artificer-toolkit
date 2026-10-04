@@ -34,7 +34,7 @@ export function getCampaignCapabilities(status: 'ACTIVE' | 'ARCHIVED', role: 'OW
     shareOwnedContent: true,
     managePartyInventory: owner,
     transferOwnInventory: !owner,
-    manageNotes: owner,
+    manageNotes: true,
     contributeSessionNotes: true,
     readTableChat,
     readPartyChat
