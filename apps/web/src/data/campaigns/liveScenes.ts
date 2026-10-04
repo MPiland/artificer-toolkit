@@ -99,7 +99,10 @@ export async function loadCampaignSceneEncounterBindings(
       encounterId: binding.encounterId,
       sceneId: header.id
     }),
-    client.query(api.scenes.recipientReads.header, { sceneId: header.id, includeSnapshot: false })
+    client.query(api.scenes.recipientReads.header, {
+      sceneId: header.id,
+      includeSnapshot: false
+    })
   ])
   aborted(signal)
   const parsedFinalBinding =
@@ -293,6 +296,30 @@ export async function loadCampaignLiveScene(
     tokens: entityPages.get('tokens')!.map((row) => row.value.entity),
     measurements: entityPages.get('measurements')!.map((row) => row.value.entity),
     doorStates,
+    fogLayers
+  })
+}
+
+/**
+ * D87: a Scene shown as a view-only image reads only its header and fog. Entities stay behind the
+ * presented-Scene gate, so they are never requested and the Scene carries none.
+ */
+export async function loadCampaignShownScene(
+  client: ConvexReactClient,
+  header: SceneRecipientHeader,
+  signal?: AbortSignal
+) {
+  const fogLayers = await loadFogLayers(client, header, signal)
+  const { recipientRevision: _recipientRevision, snapshot: _snapshot, ...scene } = header
+  return campaignSceneStateDtoSchema.parse({
+    ...scene,
+    annotations: [],
+    barriers: [],
+    darknessZones: [],
+    lights: [],
+    tokens: [],
+    measurements: [],
+    doorStates: {},
     fogLayers
   })
 }

@@ -398,9 +398,18 @@ reads are never gated, and a refused read is indistinguishable from a missing on
   to them (the pending read returns a decision only to the member it is addressed to). Prepared, completed and other
   Campaigns' Runs are refused. Actors stay player-visible once the Run is ACTIVE, with the existing
   redaction unchanged.
-- **Scenes.** `scenes/liveDocuments.isSceneRevealedToPlayers` gates `readLiveSceneForUser` (header, fog
-  layers and chunks): a player reads a Scene only while it is the Campaign's presented Scene
-  (`campaignScenePresentations`). Later reveal rules (PLT-8) extend that one function.
+- **Scenes.** `scenes/liveDocuments.readSceneReveal` returns `PRESENTED`, `SHOWN` or null for a player, and
+  the owner always reads everything. `PRESENTED` (the Campaign's presented Scene,
+  `campaignScenePresentations`) grants every Scene read. `SHOWN` (see below) grants only the `VIEWER` scope:
+  the header (never its compact snapshot), the fog layers and chunks, and the map asset. Entity reads
+  (`capture`, `currentEntities`, `recipientActions`) and the transient host stay `MEMBER` scope and refuse a
+  shown Scene.
+- **Showing a Scene (PLT-8, current).** `campaignSceneShowings` holds at most one row per Campaign
+  (`scenes/showings.ts`): the GM `show`s a live Scene as a view-only image or `stop`s it, and any member reads
+  `current`. Showing the presented Scene is refused. They are plain Convex writes outside the live room, so
+  the presented Scene is untouched. Deleting the Scene definition or the Campaign removes the row, and
+  `media/vttMapAssets.readsCampaignMap` grants a player the map while the Campaign presents or shows a Scene
+  using it. The player surface is a dismissible read-only viewer in the Tabletop window.
 
 ### Campaign content usage
 

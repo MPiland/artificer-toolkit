@@ -3,7 +3,10 @@ import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { domainRejectionReasonDtoSchema } from './domainRejections.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { encounterReadDtoSchema, encounterReadResultDtoSchema } from './encounterRead.js'
-import { characterSheetResponseDtoSchema } from './characterSheetData.js'
+import {
+  characterSheetOverviewDtoSchema,
+  characterSheetResponseDtoSchema
+} from './characterSheetData.js'
 import {
   sceneBarrierDtoSchema,
   sceneFogLayerDtoSchema,
@@ -27,6 +30,7 @@ import {
 } from './liveSessionCommands.js'
 import {
   encounterActorSidesDtoSchema,
+  encounterPlayerProjectionDtoSchema,
   encounterPreparedPendingListDtoSchema,
   encounterSessionStateDtoSchema,
   encounterSettledDecisionDtoSchema,
@@ -90,6 +94,43 @@ export const encounterSessionFrameDtoSchema = lazySchema(() =>
   ])
 )
 export type EncounterSessionFrameDto = z.infer<typeof encounterSessionFrameDtoSchema>
+
+const MAX_SUMMARY_CHARACTERS = 1_000
+
+/**
+ * The live Campaign summary for one member (ADR 0035 Amendment 19): the Character fields the
+ * Party roster and GM Session read from the COMMON Sheet slice, and the ACTIVE Run's status, round
+ * and current actor, each as that member may read them. Only Characters and the Run the room holds
+ * appear; the page keeps Convex's value for everything else. `currentActorId` is the player
+ * projection's, so it is null while the current actor is hidden from a player.
+ */
+export const liveCampaignSummaryDtoSchema = lazySchema(() =>
+  z.strictObject({
+    characters: z
+      .array(
+        z.extend(
+          z.pick(characterSheetOverviewDtoSchema, {
+            currentHitPoints: true,
+            maxHitPoints: true,
+            tempHitPoints: true,
+            conditions: true
+          }),
+          { characterId: uuidSchema }
+        )
+      )
+      .check(z.maxLength(MAX_SUMMARY_CHARACTERS)),
+    encounter: z.nullable(
+      z.extend(
+        z.pick(encounterPlayerProjectionDtoSchema, {
+          round: true,
+          currentActorId: true
+        }),
+        { encounterId: uuidSchema, status: z.literal('ACTIVE') }
+      )
+    )
+  })
+)
+export type LiveCampaignSummaryDto = z.infer<typeof liveCampaignSummaryDtoSchema>
 
 export const LIVE_SESSION_CONTROL_PATH = '/internal/live-sessions/control'
 export const LIVE_SESSION_CONTROL_SECRET_HEADER = 'x-artificer-live-session-secret'
@@ -211,6 +252,9 @@ export const liveSessionWebSocketClientMessageDtoSchema = lazySchema(() =>
     // One Encounter session subscription per socket; a new one replaces the previous.
     z.strictObject({ timeline: z.boolean(), type: z.literal('SUBSCRIBE_ENCOUNTER_SESSION') }),
     z.strictObject({ type: z.literal('UNSUBSCRIBE_ENCOUNTER_SESSION') }),
+    // One live Campaign summary subscription per socket, independent of the other two.
+    z.strictObject({ type: z.literal('SUBSCRIBE_CAMPAIGN_SUMMARY') }),
+    z.strictObject({ type: z.literal('UNSUBSCRIBE_CAMPAIGN_SUMMARY') }),
     // One version-keyed turn read answered from the room's own Encounter state, on demand. It
     // answers with ENCOUNTER_READ_RESULT or ENCOUNTER_READ_REJECTED for the same request ID.
     z.strictObject({
@@ -257,6 +301,11 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
     z.strictObject({
       session: encounterSessionFrameDtoSchema,
       type: z.literal('ENCOUNTER_SESSION')
+    }),
+    // Unsequenced: the subscriber's live Campaign summary, sent when it changes.
+    z.strictObject({
+      summary: liveCampaignSummaryDtoSchema,
+      type: z.literal('CAMPAIGN_SUMMARY')
     }),
     // Unsequenced: the answer to one ENCOUNTER_READ at the Encounter session version it was read at.
     z.strictObject({

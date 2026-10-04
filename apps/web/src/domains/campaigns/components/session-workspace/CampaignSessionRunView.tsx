@@ -10,6 +10,7 @@ import { CampaignSharedSessionNotes } from '../CampaignSessionNotes'
 import { runSessionSectionKinds } from '../campaignSessionSections.model'
 import { CampaignPlayerEncounterDecisions } from './CampaignPlayerEncounterDecisions'
 import { CampaignTabletopLauncher } from '../../vtt/CampaignTabletopLauncher'
+import { useCampaignLiveSummary } from '../../vtt/useCampaignLiveSummary'
 import * as styles from '../../campaignSessions.css'
 
 export function CampaignSessionRunView({
@@ -21,6 +22,8 @@ export function CampaignSessionRunView({
   currentUserId: string
   session: CampaignSessionDto
 }) {
+  // Players' Encounter list follows the summary on its own connection.
+  const liveSummary = useCampaignLiveSummary(campaign.role === 'OWNER' ? campaign.id : undefined)
   if (campaign.role === 'PLAYER') {
     return (
       <Stack gap='lg'>
@@ -43,7 +46,12 @@ export function CampaignSessionRunView({
   return (
     <Stack gap='lg'>
       <CampaignTabletopLauncher campaign={campaign} />
-      <CampaignEncounters campaign={campaign} currentUserId={currentUserId} mode='RUN' />
+      <CampaignEncounters
+        campaign={campaign}
+        currentUserId={currentUserId}
+        liveSummary={liveSummary}
+        mode='RUN'
+      />
       <section className={styles.sessionUtilityPanel} aria-label='Session attendance'>
         <CampaignSessionAttendance campaign={campaign} session={session} />
       </section>
@@ -51,6 +59,7 @@ export function CampaignSessionRunView({
         <CampaignSessionPartySummary
           campaign={campaign}
           currentUserId={currentUserId}
+          liveSummary={liveSummary}
           sessionId={session.id}
         />
       </section>

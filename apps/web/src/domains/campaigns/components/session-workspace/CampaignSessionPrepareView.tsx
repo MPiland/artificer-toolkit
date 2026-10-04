@@ -7,6 +7,7 @@ import { CampaignSessionSchedulePanel } from '../CampaignSessionSchedulePanel'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
 import { prepareSessionSectionKinds } from '../campaignSessionSections.model'
 import { CampaignScenePreparation } from '../../vtt/CampaignScenePreparation'
+import { useCampaignLiveSummary } from '../../vtt/useCampaignLiveSummary'
 import * as styles from '../../campaignSessions.css'
 
 export function CampaignSessionPrepareView({
@@ -20,6 +21,7 @@ export function CampaignSessionPrepareView({
   session: CampaignSessionDto
   onUpdated: (session: CampaignSessionDto) => void
 }) {
+  const liveSummary = useCampaignLiveSummary(campaign.id)
   return (
     <Stack gap='lg'>
       <CampaignScenePreparation
@@ -53,7 +55,12 @@ export function CampaignSessionPrepareView({
       <section className={styles.sessionUtilityPanel} aria-label='Pinned references'>
         <CampaignSessionReferences campaign={campaign} sessionId={session.id} />
       </section>
-      <CampaignEncounters campaign={campaign} currentUserId={currentUserId} mode='PREPARE' />
+      <CampaignEncounters
+        campaign={campaign}
+        currentUserId={currentUserId}
+        liveSummary={liveSummary}
+        mode='PREPARE'
+      />
     </Stack>
   )
 }

@@ -78,10 +78,17 @@ export const header = query({
   },
   handler: async (ctx, args) => {
     const input = sceneRecipientHeaderInputSchema.parse(args)
-    const { capture, scene } = await readRecipientContext(ctx, input.sceneId)
+    const { capture, scene } = await readRecipientContext(
+      ctx,
+      input.sceneId,
+      undefined,
+      undefined,
+      'VIEWER'
+    )
     const recipientRevision = checksumCanonicalJson(capture)
+    // A Scene shown as an image never carries its entities, even compact ones (D87).
     const snapshot =
-      input.includeSnapshot === false
+      input.includeSnapshot === false || scene.reveal === 'SHOWN'
         ? null
         : ((await readCompactScene(ctx, capture, scene)) ?? null)
     const {

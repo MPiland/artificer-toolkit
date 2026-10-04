@@ -540,6 +540,38 @@ describe('live-session contracts', () => {
     ).toBe(false)
   })
 
+  it('subscribes to the live Campaign summary and pushes only a strict summary', () => {
+    for (const type of ['SUBSCRIBE_CAMPAIGN_SUMMARY', 'UNSUBSCRIBE_CAMPAIGN_SUMMARY'])
+      expect(liveSessionWebSocketClientMessageDtoSchema.parse({ type })).toEqual({ type })
+    const summary = {
+      characters: [
+        {
+          characterId: ids.user,
+          conditions: [],
+          currentHitPoints: 8,
+          maxHitPoints: 11,
+          tempHitPoints: 0
+        }
+      ],
+      encounter: { currentActorId: null, encounterId: ids.session, round: 1, status: 'ACTIVE' }
+    }
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.parse({ summary, type: 'CAMPAIGN_SUMMARY' })
+    ).toEqual({ summary, type: 'CAMPAIGN_SUMMARY' })
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        summary: { ...summary, encounter: { ...summary.encounter, status: 'PREPARED' } },
+        type: 'CAMPAIGN_SUMMARY'
+      }).success
+    ).toBe(false)
+    expect(
+      liveSessionWebSocketServerMessageDtoSchema.safeParse({
+        summary: { ...summary, extra: true },
+        type: 'CAMPAIGN_SUMMARY'
+      }).success
+    ).toBe(false)
+  })
+
   it('reads the turn choices on demand without a caller-supplied version', () => {
     const requestId = '00000000-0000-4000-8000-0000000000a1'
     const actorRead = {

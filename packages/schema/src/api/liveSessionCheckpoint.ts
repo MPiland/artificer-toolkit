@@ -9,7 +9,7 @@ import { sceneSessionVisionCharacterRevisionsSchema } from './sceneSessionVision
 /**
  * Why the room sent a checkpoint (ADR 0035 Decision 9; D85 measurement). It attributes Convex I/O
  * to the trigger and is never stored: Convex ignores it beyond the room meter's accounting.
- * - `DEADLINE`: the checkpoint alarm, `checkpointDeadlineMs` after the oldest unpublished command.
+ * - `DEADLINE`: the checkpoint alarm, `flushIntervalMs` after the oldest unpublished command.
  * - `ADMISSION`: a socket authenticated or was admitted and the room saved its pending prefix.
  * - `ACTIVATION`: the bootstrap that claims or recovers an epoch.
  * - `RELOAD`: a command needed the room aggregate reloaded over a newer Convex write.

@@ -3,18 +3,23 @@ import { useQueries } from '@tanstack/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useState } from 'react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { LiveCampaignSummaryDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { getCharacterSheetSlice } from '#app/data/characters/queries'
 import { usePaginatedQuery } from 'convex/react'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
+import { resolveHitPoints } from '../vtt/liveCampaignSummary'
 import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionPartySummary({
   campaign,
   currentUserId,
+  liveSummary,
   sessionId
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
+  /** The room's summary while the table runs; its hit points replace Convex's. */
+  liveSummary: LiveCampaignSummaryDto | null
   sessionId: string
 }) {
   const attendance = usePaginatedQuery(
@@ -55,6 +60,7 @@ export function CampaignSessionPartySummary({
           >
             {assigned.map(({ membership, character }, index) => {
               const sheet = sheets[index]?.data
+              const hitPoints = resolveHitPoints(liveSummary, character.id, sheet?.overview)
               const present =
                 attendance.results.find((entry) => entry.characterId === character.id)?.present ??
                 true
@@ -73,17 +79,21 @@ export function CampaignSessionPartySummary({
                     </div>
                     {!present ? <Badge color='gray'>Absent</Badge> : null}
                   </Group>
-                  {sheet ? (
+                  {hitPoints ? (
                     <Group gap='md'>
                       <Text size='sm'>
-                        HP {sheet.overview.currentHitPoints}/{sheet.overview.maxHitPoints}
+                        HP {hitPoints.currentHitPoints}/{hitPoints.maxHitPoints}
                       </Text>
-                      <Text c='dimmed' size='sm'>
-                        AC {sheet.overview.armorClass}
-                      </Text>
-                      <Text c='dimmed' size='sm'>
-                        Lvl {sheet.identity.totalLevel}
-                      </Text>
+                      {sheet ? (
+                        <>
+                          <Text c='dimmed' size='sm'>
+                            AC {sheet.overview.armorClass}
+                          </Text>
+                          <Text c='dimmed' size='sm'>
+                            Lvl {sheet.identity.totalLevel}
+                          </Text>
+                        </>
+                      ) : null}
                     </Group>
                   ) : (
                     <Text c='dimmed' size='sm'>

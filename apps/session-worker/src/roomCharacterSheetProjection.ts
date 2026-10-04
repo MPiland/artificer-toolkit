@@ -27,10 +27,14 @@ export function projectRoomCharacterSheet(
   }).sheet
 }
 
-/** The Sheet as the facts' viewer reads it, with the same redactions as `sheetSlices.get`. */
+/**
+ * The Sheet as `viewer` reads it, with the same redactions as `sheetSlices.get`. Prepared facts
+ * carry only an owner or GM viewer, so a party member's read overrides it.
+ */
 export function projectRoomCharacterSheetForViewer(
   facts: RoomCharacterSheetFacts,
-  activeEffects: ActiveRuleEffectRecord[]
+  activeEffects: ActiveRuleEffectRecord[],
+  viewer: CharacterSheetResponseDto['meta']['viewer'] = facts.campaignContext.viewer
 ): CharacterSheetResponseDto {
   const sheet = projectRoomCharacterSheet(facts, activeEffects)
   return projectCharacterSheetForViewer(
@@ -38,6 +42,6 @@ export function projectRoomCharacterSheetForViewer(
       ...sheet,
       meta: { ...sheet.meta, partyVisibility: facts.sheetState.partyVisibility }
     },
-    facts.campaignContext
+    { ...facts.campaignContext, viewer }
   )
 }

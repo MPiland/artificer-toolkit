@@ -490,10 +490,32 @@ export function projectOptimisticCharacterSheetSlice(
   }
 }
 
-function projectCommon(
-  sheet: CharacterSheetCommonDto,
+/**
+ * The whole Sheet with the command applied, for the room's push, which carries every slice. It
+ * composes the same projections as the slice transform below.
+ */
+export function projectOptimisticCharacterSheet(
+  sheet: CharacterSheetResponseDto,
   command: CharacterSheetCommandInputDto
-): CharacterSheetCommonDto {
+): CharacterSheetResponseDto {
+  if (sheet.meta.streamVersion !== command.expectedVersion) return sheet
+  return projectCommon(
+    projectExtras(
+      projectResources(
+        projectInventory(projectSpellSlots(projectSpellSources(sheet, command), command), command),
+        command
+      ),
+      command
+    ),
+    command
+  )
+}
+
+function projectCommon<
+  Sheet extends Pick<CharacterSheetResponseDto, 'meta' | 'overview'> & {
+    reference: Pick<CharacterSheetResponseDto['reference'], 'conditionOptions'>
+  }
+>(sheet: Sheet, command: CharacterSheetCommandInputDto): Sheet {
   switch (command.type) {
     case 'SET_INSPIRATION':
       return {

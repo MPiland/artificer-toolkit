@@ -114,6 +114,7 @@ import {
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { RoomCharacterSheetFeed, type FeedScope } from './roomCharacterSheetFeed.js'
 import { RoomEncounterReads } from './roomEncounterReads.js'
+import { RoomCampaignSummaryFeed } from './roomCampaignSummaryFeed.js'
 import { RoomEncounterSessionFeed } from './roomEncounterSessionFeed.js'
 import { loadRoomContentSnapshots } from './roomContentSnapshots.js'
 import {
@@ -281,11 +282,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #sheetFeed: RoomCharacterSheetFeed
   /** The held Encounter session pushed to the sockets that subscribed to it. */
   readonly #encounterFeed: RoomEncounterSessionFeed
+  /** The live Campaign summary pushed to the sockets that subscribed to it (Amendment 19). */
+  readonly #summaryFeed: RoomCampaignSummaryFeed
   /** The version-keyed turn reads a member asks the room for instead of Convex. */
   readonly #encounterReads: RoomEncounterReads
   #postCommitQueued = false
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
+  #reloadQueued = false
+  /** The checkpoint deadline the alarm was last scheduled from; undefined until read in this instance. */
+  #flushDueAt: number | null | undefined
   readonly #admissions = new Map<WebSocket, Admission>()
   readonly #authenticating = new Map<
     WebSocket,
@@ -393,6 +399,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     this.#sheetFeed = new RoomCharacterSheetFeed(feedDependencies)
     this.#encounterFeed = new RoomEncounterSessionFeed(feedDependencies)
+    this.#summaryFeed = new RoomCampaignSummaryFeed(feedDependencies)
     this.#encounterReads = new RoomEncounterReads({
       ...feedDependencies,
       authorization: (scope) => this.#authorization.currentPlay(scope.authorityEpoch),
@@ -463,8 +470,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
       if (parsed.data.operation.type === 'INVALIDATE_INPUTS') {
         this.#authorization.invalidate()
-        // Membership can end sockets, so it reloads now; other inputs reload before their next use.
-        if (parsed.data.operation.scopes.includes('CAMPAIGN'))
+        // With a socket connected every input reloads now (Amendment 21). With none, membership
+        // still reloads now since it can end sockets, and other inputs reload before their next use.
+        if (this.ctx.getWebSockets().some((socket) => this.#liveAdmission(socket)))
+          this.#queueEagerReload()
+        else if (parsed.data.operation.scopes.includes('CAMPAIGN'))
           this.ctx.waitUntil(this.#refreshAuthorization().catch(() => undefined))
         return Response.json({ invalidated: true })
       }
@@ -583,6 +593,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     this.#renewAuthorizationIfDue()
+    this.#flushIfDue()
     if (parsed.data.type === 'RESUME') {
       this.#sendStateSync(socket, admission)
       return
@@ -603,6 +614,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (parsed.data.type === 'SUBSCRIBE_ENCOUNTER_SESSION') {
       this.#encounterFeed.subscribe(socket, parsed.data.timeline)
+      this.#queuePostCommit()
+      return
+    }
+    if (parsed.data.type === 'UNSUBSCRIBE_CAMPAIGN_SUMMARY') {
+      this.#summaryFeed.drop(socket)
+      return
+    }
+    if (parsed.data.type === 'SUBSCRIBE_CAMPAIGN_SUMMARY') {
+      this.#summaryFeed.subscribe(socket)
       this.#queuePostCommit()
       return
     }
@@ -811,7 +831,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const releaseAt = this.#idleReleaseAt()
     if (releaseAt !== null && open.length === 0) deadlines.push(releaseAt)
     const checkpointAt = this.#checkpointAt()
-    if (checkpointAt !== null) deadlines.push(checkpointAt)
+    this.#flushDueAt = checkpointAt
+    // A due flush rides the next incoming message; the alarm flushes only a room that stayed quiet.
+    if (checkpointAt !== null) deadlines.push(checkpointAt + ROOM_LIMITS.flushQuietGraceMs)
     const fogExpiresAt = this.#fogUploads.nextExpiry()
     if (fogExpiresAt !== null) deadlines.push(fogExpiresAt)
     if (deadlines.length === 0) await this.ctx.storage.deleteAlarm()
@@ -828,7 +850,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
 
   #checkpointAt(): number | null {
     const first = this.#journal.oldestUnpublishedCommandTime()
-    return first === null ? null : first + ROOM_LIMITS.checkpointDeadlineMs
+    return first === null ? null : first + ROOM_LIMITS.flushIntervalMs
   }
 
   #openSockets(except?: WebSocket): WebSocket[] {
@@ -1216,6 +1238,60 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return work
   }
 
+  /**
+   * Flushes the outbox, then reloads the held aggregate and rebuilds the Scene cache from what
+   * Convex now holds. A command whose stale path found `#aggregateNeedsReload` and an eager reload
+   * share it.
+   */
+  async #reloadRoomAggregate(value: SocketAttachment, admission: Admission): Promise<void> {
+    await this.#flushOutbox('RELOAD')
+    const candidates = this.#admittedCandidates()
+    await this.#refreshSceneCache(value, admission, candidates)
+    await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
+    if (this.#cache?.scene) this.#cache = { ...this.#cache, synchronized: true }
+  }
+
+  #admittedCandidates(): { admission: Admission; socket: WebSocket }[] {
+    return this.ctx.getWebSockets().flatMap((socket) => {
+      const admission = this.#liveAdmission(socket)
+      return admission ? [{ admission, socket }] : []
+    })
+  }
+
+  /**
+   * An `INVALIDATE_INPUTS` notice with a socket connected reloads at once, as a command's stale
+   * path would, so a Feature or Builder edit reaches the table without waiting for a command
+   * (ADR 0035 Amendment 21). Notices that arrive before the reload runs share it. A failed reload
+   * leaves the cache stale for the next command's own reload and never closes a socket.
+   */
+  #queueEagerReload(): void {
+    if (this.#reloadQueued) return
+    this.#reloadQueued = true
+    this.#commandChain = this.#commandChain.then(async () => {
+      this.#reloadQueued = false
+      const current = this.#journal.readCurrent()
+      if (!current || current.status !== 'ACTIVE') return
+      const candidates = this.#admittedCandidates()
+      const origin = candidates[0]
+      const value = origin ? attachment(origin.socket) : null
+      if (!origin || !value) return
+      try {
+        const authorization = await this.#refreshAuthorization()
+        if (this.#aggregateNeedsReload) await this.#reloadRoomAggregate(value, origin.admission)
+        else if (this.#cache && !roomVisionCurrent(authorization, this.#cache.characterRevisions)) {
+          const { synchronized } = this.#cache
+          await this.#refreshSceneCache(value, origin.admission, candidates)
+          if (synchronized && this.#cache?.scene)
+            this.#cache = { ...this.#cache, synchronized: true }
+          this.#broadcastStateSync()
+        }
+      } catch (error) {
+        console.error('Live Session eager reload failed.', error)
+      }
+      this.#queuePostCommit()
+    })
+  }
+
   /** Transitional Convex-first commands reload only after their acknowledged product commit. */
   async #loadRoomAggregate(sceneId: string | null): Promise<void> {
     const current = this.#journal.readCurrent()
@@ -1363,14 +1439,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const command = sceneCommand.data
     if (this.#aggregateNeedsReload) {
       try {
-        await this.#flushOutbox('RELOAD')
-        const candidates = this.ctx.getWebSockets().flatMap((candidateSocket) => {
-          const candidate = this.#liveAdmission(candidateSocket)
-          return candidate ? [{ admission: candidate, socket: candidateSocket }] : []
-        })
-        await this.#refreshSceneCache(value, admission, candidates)
-        await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-        if (this.#cache?.scene) this.#cache = { ...this.#cache, synchronized: true }
+        await this.#reloadRoomAggregate(value, admission)
       } catch {
         this.#rejectCommand(socket, commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
         return
@@ -3062,7 +3131,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       } catch (error) {
         console.error('Live Session actor reconcile failed.', error)
       }
-      if (this.#sheetFeed.size === 0 && this.#encounterFeed.size === 0) return
+      if (
+        this.#sheetFeed.size === 0 &&
+        this.#encounterFeed.size === 0 &&
+        this.#summaryFeed.size === 0
+      )
+        return
       try {
         if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
         await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
@@ -3080,6 +3154,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         await this.#encounterFeed.push()
       } catch (error) {
         console.error('Live Session Encounter session push failed.', error)
+      }
+      try {
+        await this.#summaryFeed.push()
+      } catch (error) {
+        console.error('Live Session Campaign summary push failed.', error)
       }
     })
   }
@@ -3476,6 +3555,24 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (!roomVisionCurrent(authorization, this.#cache?.characterRevisions ?? []))
         await this.#refreshSceneCache(value, admission, candidates, true)
     })
+  }
+
+  /**
+   * A flush that came due rides the next incoming message instead of waiting for the alarm (ADR 0035
+   * Amendment 17), so an idle or ping-only room makes no call of its own. The deadline is the one
+   * the alarm was scheduled from, so a message reads no storage; every commit and flush reschedules
+   * the alarm, which keeps it current.
+   */
+  #flushIfDue(): void {
+    if (this.#flushDueAt === undefined) this.#flushDueAt = this.#checkpointAt()
+    if (this.#flushDueAt === null || this.#flushDueAt > Date.now()) return
+    // One flush per deadline; rescheduling the alarm after it sets the next one.
+    this.#flushDueAt = null
+    this.ctx.waitUntil(
+      this.#flushOutbox('DEADLINE')
+        .catch((error) => console.error('Live Session deadline flush failed.', error))
+        .then(() => this.#scheduleAlarm())
+    )
   }
 
   /**
@@ -3931,6 +4028,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#authenticating.delete(socket)
     this.#sheetFeed.drop(socket)
     this.#encounterFeed.drop(socket)
+    this.#summaryFeed.drop(socket)
     return generation
   }
 

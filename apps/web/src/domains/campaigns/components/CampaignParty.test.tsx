@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { LiveCampaignSummaryDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignParty } from './CampaignParty'
@@ -30,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   remove: vi.fn(),
   personalSheet: vi.fn(),
   campaignSheet: vi.fn(),
+  liveSummary: null as LiveCampaignSummaryDto | null,
   queryData: vi.fn<(queryKey: unknown[]) => unknown>(() => undefined),
   portrait: vi.fn()
 }))
@@ -79,6 +81,9 @@ vi.mock('#app/data/media', () => ({
     mocks.portrait(target.lookup)
     return { data: null }
   }
+}))
+vi.mock('../vtt/useCampaignLiveSummary', () => ({
+  useCampaignLiveSummary: () => mocks.liveSummary
 }))
 vi.mock('#domains/characters/sheet/core/CharacterSheetView', () => ({
   CharacterSheetView: () => null
@@ -155,6 +160,7 @@ describe('CampaignParty native transport', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.queryData.mockImplementation(() => undefined)
+    mocks.liveSummary = null
     mocks.page.results = []
     mocks.page.status = 'Exhausted'
     mocks.characters.isLoading = false
@@ -419,4 +425,74 @@ describe('CampaignParty native transport', () => {
       expect(within(card).queryByRole('button', { name: 'View Sheet' }) !== null).toBe(sheetVisible)
     }
   )
+
+  it('shows the room hit points on the own card only, and Convex when the room omits them', () => {
+    const own = {
+      id: 'character-1',
+      publicId: 'aria',
+      label: 'Aria',
+      systemId: campaign.gameSystemId
+    }
+    const other = {
+      id: 'character-2',
+      publicId: 'borin',
+      label: 'Borin',
+      systemId: campaign.gameSystemId
+    }
+    mocks.queryData.mockImplementation(([name, args]) => {
+      const { characterId } = args as { characterId?: string }
+      if (name === 'campaigns/characterSheet:basics')
+        return {
+          characterId,
+          label: 'x',
+          classSummary: 'Cleric 3',
+          totalLevel: 3,
+          sheetVisible: true
+        }
+      if (name === 'characters/sheetSlices:get')
+        return { overview: { currentHitPoints: 14, maxHitPoints: 20, armorClass: 15 } }
+      return undefined
+    })
+    const campaignWithBoth = {
+      ...playerCampaign,
+      memberships: [
+        { ...playerMembership, assignedCharacter: own },
+        {
+          ...playerMembership,
+          userId: '33333333-3333-4333-8333-333333333333',
+          username: 'borin',
+          assignedCharacter: other
+        }
+      ]
+    }
+    const view = renderWithAppProviders(
+      <CampaignParty campaign={campaignWithBoth} currentUserId={playerId} />
+    )
+    expect(within(screen.getByText('Aria').closest('article')!).getByText('HP 14/20')).toBeVisible()
+
+    mocks.liveSummary = {
+      characters: [
+        {
+          characterId: own.id,
+          currentHitPoints: 4,
+          maxHitPoints: 20,
+          tempHitPoints: 0,
+          conditions: []
+        },
+        {
+          characterId: other.id,
+          currentHitPoints: 1,
+          maxHitPoints: 9,
+          tempHitPoints: 0,
+          conditions: []
+        }
+      ],
+      encounter: null
+    }
+    view.rerender(<CampaignParty campaign={campaignWithBoth} currentUserId={playerId} />)
+    expect(within(screen.getByText('Aria').closest('article')!).getByText('HP 4/20')).toBeVisible()
+    expect(
+      within(screen.getByText('Borin').closest('article')!).queryByText(/HP/)
+    ).not.toBeInTheDocument()
+  })
 })

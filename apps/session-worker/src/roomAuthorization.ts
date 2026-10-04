@@ -106,6 +106,19 @@ export function roomVisionCurrent(
 }
 
 /**
+ * What a Character's projection is built from besides its play state: the System, Campaign and
+ * Character revisions. A feed that remembers it pushes again after a Builder or content edit that
+ * leaves the play stream version unchanged.
+ */
+export function roomCharacterInputsKey(
+  authorization: LiveSessionRoomAuthorization,
+  characterId: string
+): string {
+  const { system, campaign, characters } = authorization.revisions
+  return `${system}:${campaign}:${characters.find((entry) => entry.characterId === characterId)?.revision}`
+}
+
+/**
  * The room's authorization cache (ADR 0035 Amendment 14): membership, roles, Campaign Character
  * assignments, actor control, auto-roll preferences and party visibility. It is trusted for a
  * lease, and not at all once `INVALIDATE_INPUTS` marks it stale. A stale or expired cache is

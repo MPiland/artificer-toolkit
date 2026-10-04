@@ -83,14 +83,23 @@ export async function removeCampaignScenes(ctx: MutationCtx, campaignId: string)
     if (entities.length > 0) return false
     await ctx.db.delete(save._id)
   }
-  const presentations = await ctx.db
-    .query('campaignScenePresentations')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
-    .take(8)
-  for (const row of [...presentations, ...scenes, ...definitions]) await ctx.db.delete(row._id)
+  const [presentations, showings] = await Promise.all([
+    ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .take(8),
+    ctx.db
+      .query('campaignSceneShowings')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .take(8)
+  ])
+  for (const row of [...presentations, ...showings, ...scenes, ...definitions])
+    await ctx.db.delete(row._id)
   for (const assetId of mapIds) {
     await refreshMapReferenceFlag(ctx, assetId)
     await scheduleDetachedMapCleanup(ctx, assetId)
   }
-  return scenes.length + definitions.length + saves.length + presentations.length === 0
+  return (
+    scenes.length + definitions.length + saves.length + presentations.length + showings.length === 0
+  )
 }

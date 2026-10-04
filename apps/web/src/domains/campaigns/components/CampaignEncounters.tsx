@@ -10,6 +10,7 @@ import {
   type EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { LiveCampaignSummaryDto } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   getCampaignEncounters,
   getEncounter,
@@ -17,16 +18,20 @@ import {
 } from '#app/data/encounters/queries'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
+import { mergeEncounterSummary } from '../vtt/liveCampaignSummary'
 import * as sharedStyles from '../campaigns.css'
 import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignEncounters({
   campaign,
   currentUserId,
+  liveSummary,
   mode
 }: {
   campaign: CampaignDetailDto
   currentUserId: string
+  /** The room's summary while the table runs; its ACTIVE Run replaces Convex's status and round. */
+  liveSummary: LiveCampaignSummaryDto | null
   mode: 'PREPARE' | 'RUN'
 }) {
   const navigate = useNavigate()
@@ -38,7 +43,9 @@ export function CampaignEncounters({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   const blueprints = useEncounterBlueprints(campaign.gameSystemId, canManage && encounterAdderOpen)
-  const summaries = encounters.data ?? []
+  const summaries = (encounters.data ?? []).map((summary) =>
+    mergeEncounterSummary(liveSummary, summary)
+  )
   const selected =
     summaries.find((candidate) => candidate.id === selectedEncounterId) ?? summaries[0]
   const selectedEncounter = useQuery({

@@ -66,7 +66,7 @@
       "purpose": "Each slice closes named criteria with a focused proof and finishes the older slices it includes. The V15 load run, final proof and promotion come last (D80)."
     }
   ],
-  "queue": ["VS-8", "VS-11", "VS-9", "VS-10"],
+  "queue": ["VS-8", "VS-9", "VS-10"],
   "slices": [
     { "id": "A35-S0", "stream": "A35", "state": "done", "title": "Decision gate: ADR 0035, amendments, room CPU, Durable Object cost and checkpoint size measured", "cases": [], "refs": [] },
     { "id": "A35-S1", "stream": "A35", "state": "done", "title": "Encounter writers behind a store interface (package with no Convex runtime dependency)", "cases": ["R06"], "refs": [] },
@@ -96,7 +96,7 @@
     { "id": "A35-S9", "stream": "A35", "state": "integrating", "title": "Budgets in gates, shadow harness deleted, architecture docs rewritten", "cases": ["V15", "R07"], "refs": [] },
     { "id": "A35-S10a", "stream": "A35", "state": "done", "title": "Delta-sized flushes: per-section checkpoint I/O measured, then no Campaign-wide reads; lease renewal leaves the checkpoint", "cases": ["V15"], "refs": ["D86"] },
     { "id": "A35-S10b", "stream": "A35", "state": "done", "title": "No forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires", "cases": ["V15"], "refs": ["D86"] },
-    { "id": "A35-S10c", "stream": "A35", "state": "remaining", "title": "Dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately", "cases": ["V15", "R06", "V14", "P04", "P08"], "refs": ["D86", "D87"] },
+    { "id": "A35-S10c", "stream": "A35", "state": "done", "title": "Dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately", "cases": ["V15", "R06", "V14", "P04", "P08"], "refs": ["D86", "D87"] },
     { "id": "A35-S10d", "stream": "A35", "state": "remaining", "title": "Encounter history stays in the room and is discarded at Run end; Run-scoped replay index; chat and rolls ride the flush", "cases": ["V11", "R06"], "refs": ["D85", "D86"] },
 
     { "id": "A36-S1", "stream": "A36", "state": "done", "title": "Content snapshot format", "cases": [], "refs": [] },
@@ -157,7 +157,7 @@
     { "id": "PLT-5", "stream": "PLT", "state": "done", "title": "Web app on Cloudflare Workers: skeleton SSR for signed-in pages (Mantine Skeleton), focus refetch off, edge bot filtering; staging deploy needs approval", "cases": ["R05", "R09"], "refs": ["D65", "D75"] },
     { "id": "PLT-6", "stream": "PLT", "state": "done", "title": "Player read gates (ACTIVE Encounter only; presented Scene only) and Campaign Files removed", "cases": ["V12"], "criteria": ["V12.9"], "refs": ["D87"] },
     { "id": "PLT-7", "stream": "PLT", "state": "done", "title": "Private and shared notes for the GM and players (notebook and session notes); private by default; the GM reads all", "cases": ["P14", "P15"], "refs": ["D87"] },
-    { "id": "PLT-8", "stream": "PLT", "state": "remaining", "title": "Show to players: a Scene's map as a view-only image with its fog, without changing the played Scene", "cases": [], "refs": ["D87"] },
+    { "id": "PLT-8", "stream": "PLT", "state": "done", "title": "Show to players: a Scene's map as a view-only image with its fog, without changing the played Scene", "cases": ["P14"], "refs": ["D87"] },
 
     { "id": "TST-0", "stream": "TST", "state": "done", "title": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial", "cases": [], "refs": [] },
     { "id": "TST-1", "stream": "TST", "state": "done", "title": "Pure tests: action warnings, target policy, action economy, saves, immunity", "cases": [], "refs": [] },
@@ -184,7 +184,7 @@
     { "id": "VS-6", "stream": "VS", "state": "done", "title": "Builder budgets on content snapshots, with the Builder follow-ups", "cases": ["P02"], "criteria": ["P02.3"], "includes": ["A36-S10", "A36-F1"], "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"] },
     { "id": "VS-7", "stream": "VS", "state": "done", "title": "Web on Cloudflare Workers (code): skeleton SSR for signed-in pages, focus refetch off", "cases": ["R05"], "criteria": ["R05.1"], "includes": ["PLT-5"], "refs": ["D75", "D80", "Re-proves R05.1 on the Worker build; edge rules move to VS-10"] },
     { "id": "VS-8", "stream": "VS", "state": "active", "title": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run", "cases": ["V15"], "criteria": ["V15.1", "V15.2", "V15.3"], "includes": ["TST-0", "TST-6", "A35-S6d", "A35-S6e", "A35-S9", "A35-S10a", "A35-S10b", "A35-S10c", "A35-S10d", "REL-4", "REL-5"], "refs": ["Re-verifies R07 after the architecture docs rewrite", "D86: A35-S10a-d run before REL-5 resumes"] },
-    { "id": "VS-11", "stream": "VS", "state": "active", "title": "Campaign content hidden from players until the GM reveals it (D87): read gates, Campaign Files removed, private and shared notes, Show to players", "cases": ["P14", "P15"], "criteria": ["P14.6", "P15.5"], "includes": ["PLT-6", "PLT-7", "PLT-8"], "refs": ["D87", "PLT-8 criteria to be added to the ledger when it is briefed"] },
+    { "id": "VS-11", "stream": "VS", "state": "done", "title": "Campaign content hidden from players until the GM reveals it (D87): read gates, Campaign Files removed, private and shared notes, Show to players", "cases": ["P14", "P15"], "criteria": ["P14.6", "P14.7", "P15.5"], "includes": ["PLT-6", "PLT-7", "PLT-8"], "refs": ["D87"] },
     { "id": "VS-9", "stream": "VS", "state": "remaining", "title": "Final proof on one source: R08 lifecycle and the R01-R05 audits", "cases": ["R01", "R02", "R03", "R04", "R05", "R08"], "criteria": ["R01.1", "R01.2", "R02.1", "R02.2", "R03.1", "R03.2", "R04.1", "R04.2", "R05.2", "R08.1", "R08.2"], "includes": ["REL-6", "A35-S8b"], "refs": ["yarn validate:pre-staging:local"] },
     { "id": "VS-10", "stream": "VS", "state": "remaining", "title": "Staging and production promotion, with the Cloudflare edge rules (needs approval)", "cases": ["R09", "R10", "V15"], "criteria": ["R09.1", "R09.2", "R10.1", "R10.2", "V15.4"], "includes": ["REL-7"], "refs": ["D75 edge rules: Bot Fight Mode, WAF scanner paths, rate limit, fail closed, 60% alert"] }
   ],

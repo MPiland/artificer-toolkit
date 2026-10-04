@@ -52,7 +52,7 @@ export const readDelivery = internalQuery({
 
 /**
  * Its uploader reads a map anywhere. Otherwise a Campaign that references it grants the read: its
- * owner always, a player only while an open Session presents that exact map.
+ * owner always, a player only while the Campaign presents or shows (D87) a Scene using that exact map.
  */
 async function readsCampaignMap(ctx: QueryCtx, assetId: string, userId: string) {
   for (const campaignId of await mapCampaignIds(ctx, assetId)) {
@@ -69,17 +69,34 @@ async function readsCampaignMap(ctx: QueryCtx, assetId: string, userId: string) 
         q.eq('campaignId', campaign.id).eq('activeMapAssetId', assetId)
       )
       .first()
-    if (!presentation || presentation.sceneId === null) continue
-    const scene = await ctx.db
-      .query('campaignScenes')
-      .withIndex('by_publicId', (q) => q.eq('id', presentation.sceneId!))
+    if (
+      presentation?.sceneId &&
+      (await sceneRevealsMap(ctx, campaign.id, presentation.sceneId, assetId))
+    )
+      return true
+    const showing = await ctx.db
+      .query('campaignSceneShowings')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
       .unique()
-    if (!scene || scene.campaignId !== campaign.id || scene.map.assetId.toLowerCase() !== assetId)
-      continue
-    await requireSceneMap(ctx, campaign.id, scene.map, null)
-    return true
+    if (showing && (await sceneRevealsMap(ctx, campaign.id, showing.sceneId, assetId))) return true
   }
   return false
+}
+
+async function sceneRevealsMap(
+  ctx: QueryCtx,
+  campaignId: string,
+  sceneId: string,
+  assetId: string
+) {
+  const scene = await ctx.db
+    .query('campaignScenes')
+    .withIndex('by_publicId', (q) => q.eq('id', sceneId))
+    .unique()
+  if (!scene || scene.campaignId !== campaignId || scene.map.assetId.toLowerCase() !== assetId)
+    return false
+  await requireSceneMap(ctx, campaignId, scene.map, null)
+  return true
 }
 
 function outputKeys(assetId: string, operationId: string) {

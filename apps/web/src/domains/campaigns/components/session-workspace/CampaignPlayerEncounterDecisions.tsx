@@ -12,6 +12,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import { getCampaignEncounters } from '#app/data/encounters/queries'
 import { encounterPreparedPendingListDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { CampaignEncounterDecision } from '../CampaignEncounterDecision'
+import { mergeEncounterSummary } from '../../vtt/liveCampaignSummary'
 import { useCampaignLiveSession } from '../../vtt/useCampaignLiveSession'
 import * as styles from '../../campaignSessions.css'
 
@@ -19,6 +20,7 @@ export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: Campa
   const encounters = useQuery(getCampaignEncounters(campaign.id))
   const live = useCampaignLiveSession({
     campaignId: campaign.id,
+    campaignSummary: true,
     enabled: campaign.status === 'ACTIVE',
     encounterSession: { timeline: false }
   })
@@ -34,10 +36,18 @@ export function CampaignPlayerEncounterDecisions({ campaign }: { campaign: Campa
   const visibleById = new Map<
     string,
     Pick<EncounterSummaryDto, 'id' | 'name' | 'round' | 'status'>
-  >((encounters.data ?? []).map((summary) => [summary.id, summary]))
+  >(
+    (encounters.data ?? []).map((summary) => [
+      summary.id,
+      mergeEncounterSummary(live.campaignSummary, summary)
+    ])
+  )
   const pendingPreparedById = new Map<
     string,
-    { encounter: EncounterPlayerProjectionDto; pending: PendingEncounterRuleOccurrenceSummaryDto }
+    {
+      encounter: EncounterPlayerProjectionDto
+      pending: PendingEncounterRuleOccurrenceSummaryDto
+    }
   >()
   for (const candidate of pendingPrepared ?? []) {
     const parsed = encounterPlayerProjectionDtoSchema.safeParse(candidate.encounter)

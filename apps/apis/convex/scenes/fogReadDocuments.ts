@@ -14,12 +14,19 @@ import { readLiveScene } from './liveDocuments'
 
 type FogReadAudience = 'RECIPIENT' | 'TRANSIENT_HOST'
 
+/** Recipients also read the fog of a Scene shown as an image (D87); the transient host does not. */
+const readScope = (audience: FogReadAudience) => (audience === 'RECIPIENT' ? 'VIEWER' : 'MEMBER')
+
 export async function readFogLayers(
   ctx: QueryCtx,
   input: SceneFogLayersPageInput,
   audience: FogReadAudience
 ): Promise<SceneFogLayersPage> {
-  const { header, membership, userId } = await readLiveScene(ctx, input.sceneId, 'MEMBER')
+  const { header, membership, userId } = await readLiveScene(
+    ctx,
+    input.sceneId,
+    readScope(audience)
+  )
   if (
     (input.paginationOpts.cursor !== null && input.expectedVersion === null) ||
     (input.expectedVersion !== null && input.expectedVersion !== header.version)
@@ -55,7 +62,11 @@ export async function readFogChunks(
   input: SceneFogChunksPageInput,
   audience: FogReadAudience
 ): Promise<SceneFogChunksPage> {
-  const { header, membership, userId } = await readLiveScene(ctx, input.sceneId, 'MEMBER')
+  const { header, membership, userId } = await readLiveScene(
+    ctx,
+    input.sceneId,
+    readScope(audience)
+  )
   if (
     audience === 'RECIPIENT' &&
     membership.role !== 'OWNER' &&

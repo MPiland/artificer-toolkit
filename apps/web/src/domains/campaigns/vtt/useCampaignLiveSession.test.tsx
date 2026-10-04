@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => ({
   sendCommand: vi.fn(() => true),
   sendTransient: vi.fn(() => true),
   submitCommand: vi.fn(() => Promise.resolve(commit)),
+  subscribeCampaignSummary: vi.fn(),
   subscribeCharacterSheet: vi.fn(),
   subscribeEncounterSession: vi.fn(),
   synchronizeScene: vi.fn(),
@@ -60,6 +61,7 @@ vi.mock('./liveSessionClient', async (importOriginal) => ({
       sendCommand: mocks.sendCommand,
       sendTransient: mocks.sendTransient,
       submitCommand: mocks.submitCommand,
+      subscribeCampaignSummary: mocks.subscribeCampaignSummary,
       subscribeCharacterSheet: mocks.subscribeCharacterSheet,
       subscribeEncounterSession: mocks.subscribeEncounterSession,
       synchronizeScene: mocks.synchronizeScene
@@ -76,6 +78,7 @@ describe('useCampaignLiveSession', () => {
     mocks.sendCommand.mockClear()
     mocks.sendTransient.mockClear()
     mocks.submitCommand.mockClear()
+    mocks.subscribeCampaignSummary.mockClear()
     mocks.subscribeCharacterSheet.mockClear()
     mocks.subscribeEncounterSession.mockClear()
     mocks.synchronizeScene.mockClear()
@@ -144,6 +147,7 @@ describe('useCampaignLiveSession', () => {
     result.current.synchronizeScene(sceneId, 7, 11)
     expect(mocks.synchronizeScene).toHaveBeenCalledWith(sceneId, 7, 11)
     expect(Object.keys(result.current).sort()).toEqual([
+      'campaignSummary',
       'characterSheet',
       'commandReady',
       'encounterSession',
@@ -201,6 +205,31 @@ describe('useCampaignLiveSession', () => {
     act(() => options.onEncounterSession?.(held))
     act(() => options.onStatus('RECONNECTING'))
     expect(result.current.encounterSession).toBeNull()
+  })
+
+  it('follows the live Campaign summary only while requested and connected', async () => {
+    const summary = { characters: [], encounter: null }
+    const { result, rerender } = renderHook(
+      ({ campaignSummary }: { campaignSummary: boolean }) =>
+        useCampaignLiveSession({ campaignId, campaignSummary, enabled: true }),
+      { initialProps: { campaignSummary: true } }
+    )
+    await waitFor(() => expect(mocks.options).not.toBeNull())
+    const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
+    expect(mocks.subscribeCampaignSummary).toHaveBeenLastCalledWith(true)
+
+    act(() => {
+      options.onStatus('CONNECTED')
+      options.onCampaignSummary?.(summary)
+    })
+    expect(result.current.campaignSummary).toEqual(summary)
+    act(() => options.onStatus('RECONNECTING'))
+    expect(result.current.campaignSummary).toBeNull()
+
+    act(() => options.onCampaignSummary?.(summary))
+    rerender({ campaignSummary: false })
+    expect(mocks.subscribeCampaignSummary).toHaveBeenLastCalledWith(false)
+    expect(result.current.campaignSummary).toBeNull()
   })
 
   it('rejects missing Better Auth Convex tokens', async () => {

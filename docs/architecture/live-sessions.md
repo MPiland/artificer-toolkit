@@ -217,7 +217,29 @@ or the GM. [RoomCharacterSheetFeed](../../apps/session-worker/src/roomCharacterS
 viewer-projected Sheet at once and after every committed transaction that changed its `streamVersion`
 (unsequenced `CHARACTER_SHEET` message). Every push re-admits, so a lost assignment, hold or membership
 drops the subscription. The web Sheet takes `expectedVersion` from the pushed `streamVersion`
-(`useLiveCharacterSheet`).
+(`useLiveCharacterSheet`). The feed also pushes again when the Character's inputs change (System,
+Campaign or Character revision), which a content edit changes without changing `streamVersion`
+(`roomCharacterInputsKey`).
+
+### Live Campaign summary (current, ADR 0035 Amendment 19)
+
+`SUBSCRIBE_CAMPAIGN_SUMMARY` and `UNSUBSCRIBE_CAMPAIGN_SUMMARY` (one per socket) subscribe a member to
+`CAMPAIGN_SUMMARY { summary }` (unsequenced, `liveCampaignSummaryDtoSchema`):
+`{ characters: [{ characterId, currentHitPoints, maxHitPoints, tempHitPoints, conditions }], encounter:
+{ encounterId, status: 'ACTIVE', round, currentActorId } | null }`. It replaces the Campaign page's
+Character roster HP and Encounter strip reads from Convex.
+[RoomCampaignSummaryFeed](../../apps/session-worker/src/roomCampaignSummaryFeed.ts) pushes after admission and
+after every committed transaction or reload (`#queuePostCommit`), only when the socket's serialized
+summary changed. It never widens what Convex shows the member:
+
+- only Characters held by the ACTIVE Run appear, and only the ACTIVE Run: a PREPARED Run never appears,
+  to the GM or a player;
+- a Character appears only if the member could read its common Sheet slice from Convex: its owner, the
+  GM, or a party member of a Character whose `partyVisibility.sheet` is on (not the Encounter health
+  display levels). Hit points and conditions come from `projectRoomCharacterSheetForViewer` with that
+  viewer kind, the projection the Sheet feed uses;
+- `currentActorId` is the player projection of the Run (`presentEncounterRun`), so it is null for a
+  player while that actor is hidden.
 
 ### Held Encounter session
 
@@ -470,9 +492,18 @@ read. The tracked mutation builders in `apps/apis/convex/lib/mutations.ts` colle
   the user's canonical username.
 
 One notice per Campaign is scheduled when the mutation succeeds, and only while that Campaign's
-authority is `DO_ACTIVE`. SYSTEM changes are pulled, never pushed. A CAMPAIGN notice reloads at once
-because membership can end sockets; other notices reload before their next use. Checkpoint-originated
-writes send no invalidation back to their own room.
+authority is `DO_ACTIVE`. SYSTEM changes are pulled, never pushed. Checkpoint-originated writes send no
+invalidation back to their own room.
+
+**Eager reload (current, ADR 0035 Amendment 21).** With an admitted socket connected, a notice queues
+one reload on the command chain (`#queueEagerReload`; notices that arrive before it runs share it). It
+does what a command's stale path does: refreshes authorization, and if the aggregate must reload,
+flushes `RELOAD` and reloads it (`#reloadRoomAggregate`, shared with the command path); otherwise it
+rebuilds a Scene vision built from superseded Character revisions and sends `STATE_SYNC`. It then
+queues the post-commit pushes, so a Feature or Builder edit reaches the Sheet, Encounter and summary
+feeds with no command. A failed reload leaves the cache stale for the next command and closes no
+socket. With no socket connected a CAMPAIGN notice still reloads at once, because membership can end
+sockets, and other notices reload before their next use.
 
 **Use.**
 
@@ -621,15 +652,20 @@ Campaign history and separately packed private Character history) and the Scene/
 - **Acknowledge.** The response carries the adopted revisions (see "Own writes"), not authorization
   sections, and does not renew the lease. The room compacts the snapshot and calls `acknowledgeCheckpointInTransaction` in one SQLite transaction.
   Commands committed while publication is in flight remain as a suffix.
-- **Timing.** The earliest unpublished receipt's timestamp fixes the checkpoint deadline
-  (`checkpointDeadlineMs`, 120 s); later commands do not extend it. Admission, Scene presentation, drain
-  and `checkpointBeforeAcknowledgement` commands flush a checkpoint before their boundary (a cold
-  admission flushes; a warm one does not).
+- **Timing (current, ADR 0035 Amendment 17).** The earliest unpublished receipt's timestamp fixes the
+  flush deadline (`flushIntervalMs`, N, 120 s until REL-5 sets it between 30 and 120 s); later commands
+  do not extend it. A due flush rides the next incoming message (`#flushIfDue`, beside the lease
+  renewal), so a burst of commands inside N costs one flush and an idle or ping-only room calls nothing.
+  The message reads the deadline from memory, the value the alarm was last scheduled from, so it
+  touches no storage.
+  The alarm is the backstop for a quiet room and fires `flushQuietGraceMs` (15 s) after the deadline.
+  Admission, Scene presentation, drain and `checkpointBeforeAcknowledgement` commands flush a
+  checkpoint before their boundary (a cold admission flushes; a warm one does not).
 
 ### Checkpoint triggers and the room meter (D85)
 
 Every checkpoint send names one trigger, `LIVE_SESSION_CHECKPOINT_REASONS` in
-`api/liveSessionCheckpoint`: `DEADLINE` (the alarm, 120 s after the earliest unpublished receipt),
+`api/liveSessionCheckpoint`: `DEADLINE` (an incoming message or the quiet alarm, N after the earliest unpublished receipt),
 `ADMISSION` (a socket authenticates, or a background retry after admission), `ACTIVATION` (bootstrap
 recovery and the first publication after activation), `RELOAD` (the room aggregate must reload from
 Convex before a command), `ACKNOWLEDGEMENT` (a command with `checkpointBeforeAcknowledgement`),

@@ -42691,6 +42691,26 @@ export declare const api: {
         }
       >;
     };
+    showings: {
+      current: FunctionReference<
+        "query",
+        "public",
+        { campaignId: string },
+        { sceneId: string; sceneName: string; shownAt: string } | null
+      >;
+      show: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string; sceneId: string },
+        null
+      >;
+      stop: FunctionReference<
+        "mutation",
+        "public",
+        { campaignId: string },
+        null
+      >;
+    };
   };
   social: {
     admissionLists: {

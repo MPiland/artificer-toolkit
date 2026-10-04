@@ -17,7 +17,8 @@ import {
   sceneStoredDefinitionSaveSchema,
   sceneStoredDefinitionEntitySchema,
   sceneStoredInitialStateSchema,
-  sceneStoredPresentationSchema
+  sceneStoredPresentationSchema,
+  sceneStoredShowingSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 
 export const sceneTables = {
@@ -51,6 +52,10 @@ export const sceneTables = {
   campaignScenePresentations: defineTable(zodToConvexFields(sceneStoredPresentationSchema.shape))
     .index('by_campaignId', ['campaignId'])
     .index('by_campaignId_activeMapAssetId', ['campaignId', 'activeMapAssetId']),
+  campaignSceneShowings: defineTable(zodToConvexFields(sceneStoredShowingSchema.shape)).index(
+    'by_campaignId',
+    ['campaignId']
+  ),
   sceneDefinitions: defineTable(zodToConvexFields(sceneStoredDefinitionSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_campaignId_updatedAt_id', ['campaignId', 'updatedAt', 'id'])

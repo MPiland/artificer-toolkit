@@ -136,7 +136,7 @@ function fireCheckpointAlarm(stub: Awaited<ReturnType<typeof fixture>>['stub']) 
   return runInDurableObject(stub, async (instance) => {
     const clock = vi
       .spyOn(Date, 'now')
-      .mockReturnValue(Date.now() + ROOM_LIMITS.checkpointDeadlineMs + 1)
+      .mockReturnValue(Date.now() + ROOM_LIMITS.flushIntervalMs + 1)
     try {
       await instance.alarm()
     } finally {
@@ -827,7 +827,7 @@ it.each([0, 600])(
         .one()
       expect(receipt.command_id).toBe(commandId)
       expect(await state.storage.getAlarm()).toBe(
-        receipt.created_at + ROOM_LIMITS.checkpointDeadlineMs
+        receipt.created_at + ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs
       )
     })
     const alarm = fireCheckpointAlarm(base.stub)
@@ -6485,7 +6485,9 @@ async function leaveAndFireIdleAlarm(base: Awaited<ReturnType<typeof fixture>>) 
     expect(pending.releaseAt).toBeGreaterThanOrEqual(leftAt + 5 * 60_000)
     const checkpointAt = await runInDurableObject(base.stub, (_instance, state) => {
       const first = new DurableCommandJournal(state.storage).oldestUnpublishedCommandTime()
-      return first === null ? null : first + ROOM_LIMITS.checkpointDeadlineMs
+      return first === null
+        ? null
+        : first + ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs
     })
     expect(pending.alarm).toBe(
       checkpointAt === null ? pending.releaseAt : Math.min(checkpointAt, pending.releaseAt!)

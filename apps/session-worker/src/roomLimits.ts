@@ -21,7 +21,13 @@ export const ROOM_LIMITS = {
    * has passed (ADR 0035 Amendment 18).
    */
   authorizationLeaseMs: 240_000,
-  checkpointDeadlineMs: 120_000,
+  /**
+   * N (ADR 0035 Amendment 17): a dirty room flushes no later than this after its first unflushed
+   * command. REL-5 sets the final value, between 30 and 120 s.
+   */
+  flushIntervalMs: 120_000,
+  /** The alarm flushes only once a due flush has gone this long without an incoming message to carry it. */
+  flushQuietGraceMs: 15_000,
   /** A failed checkpoint or release in the alarm retries after this delay instead of at its past deadline. */
   alarmRetryMs: 30_000,
   /** A background preview refresh starts at most once per input in this window. */
@@ -84,7 +90,9 @@ export function messageClass(message: LiveSessionWebSocketClientMessageDto | nul
     message.type === 'SUBSCRIBE_CHARACTER_SHEET' ||
     message.type === 'UNSUBSCRIBE_CHARACTER_SHEET' ||
     message.type === 'SUBSCRIBE_ENCOUNTER_SESSION' ||
-    message.type === 'UNSUBSCRIBE_ENCOUNTER_SESSION'
+    message.type === 'UNSUBSCRIBE_ENCOUNTER_SESSION' ||
+    message.type === 'SUBSCRIBE_CAMPAIGN_SUMMARY' ||
+    message.type === 'UNSUBSCRIBE_CAMPAIGN_SUMMARY'
   )
     return 'SYNC'
   if (message.type === 'SCENE_FOG_BEGIN' || message.type === 'SCENE_FOG_APPEND') return 'FOG_UPLOAD'

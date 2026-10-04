@@ -5,6 +5,7 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionCommandDto,
   type LiveSessionCommandRejectionCodeDto,
+  type LiveCampaignSummaryDto,
   type LiveSessionCorrectionDto,
   type LiveSessionRecipientDeltaDto,
   type LiveSessionRecipientStateDto,
@@ -48,6 +49,8 @@ export interface LiveSessionConnection {
   subscribeCharacterSheet: (characterId: string | null) => void
   /** Follows the room's Encounter session (resent on every reconnect); null stops following. */
   subscribeEncounterSession: (subscription: { timeline: boolean } | null) => void
+  /** Follows the live Campaign summary (resent on every reconnect); false stops following. */
+  subscribeCampaignSummary: (subscribed: boolean) => void
   /**
    * Asks the room for a turn read at its current version. Rejects with
    * `LiveSessionReadRejectedError` when the room refuses it, and with a plain error when the
@@ -124,10 +127,12 @@ type LiveSessionClientMessage = Extract<
       | 'RESUME'
       | 'SCENE_FOG_APPEND'
       | 'SCENE_FOG_BEGIN'
+      | 'SUBSCRIBE_CAMPAIGN_SUMMARY'
       | 'SUBSCRIBE_CHARACTER_SHEET'
       | 'SUBSCRIBE_ENCOUNTER_SESSION'
       | 'SYNCHRONIZE_SCENE'
       | 'TRANSIENT'
+      | 'UNSUBSCRIBE_CAMPAIGN_SUMMARY'
       | 'UNSUBSCRIBE_CHARACTER_SHEET'
       | 'UNSUBSCRIBE_ENCOUNTER_SESSION'
   }
@@ -145,6 +150,7 @@ interface LiveSessionConnectionOptions {
   onError: (error: Error) => void
   onCampaignChatEntry?: (entry: CampaignChatEntryDto) => void
   onPrivateRoll?: (roll: RollHistoryEntryDto) => void
+  onCampaignSummary?: (summary: LiveCampaignSummaryDto) => void
   onCharacterSheet?: (push: LiveSessionCharacterSheetPush) => void
   onEncounterSession?: (session: LiveSessionEncounterSessionPush) => void
   onCommandRejected?: (rejection: LiveSessionCommandRejection) => void
@@ -248,15 +254,22 @@ export function createLiveSessionConnection(
   // One staging step per fog command awaits its progress or rejection.
   const pendingFogSteps = new Map<
     string,
-    { reject: (error: Error) => void; resolve: (progress: SceneFogSaveProgress) => void }
+    {
+      reject: (error: Error) => void
+      resolve: (progress: SceneFogSaveProgress) => void
+    }
   >()
   const pendingReads = new Map<
     string,
-    { reject: (error: Error) => void; resolve: (reply: LiveSessionEncounterReadReply) => void }
+    {
+      reject: (error: Error) => void
+      resolve: (reply: LiveSessionEncounterReadReply) => void
+    }
   >()
   let requestedScene: SceneSynchronizationMessage | null = null
   let requestedSheetCharacterId: string | null = null
   let requestedEncounterSession: { timeline: boolean } | null = null
+  let requestedCampaignSummary = false
   let synchronizedScene: SceneSynchronizationMessage | null = null
   const previewSentAt = new Map<string, number>()
 
@@ -310,7 +323,14 @@ export function createLiveSessionConnection(
 
   const requestEncounterSession = () => {
     if (ready && requestedEncounterSession !== null)
-      send({ ...requestedEncounterSession, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+      send({
+        ...requestedEncounterSession,
+        type: 'SUBSCRIBE_ENCOUNTER_SESSION'
+      })
+  }
+
+  const requestCampaignSummary = () => {
+    if (ready && requestedCampaignSummary) send({ type: 'SUBSCRIBE_CAMPAIGN_SUMMARY' })
   }
 
   const synchronizeRequestedScene = () => {
@@ -415,6 +435,7 @@ export function createLiveSessionConnection(
           synchronizeRequestedScene()
           requestSheet()
           requestEncounterSession()
+          requestCampaignSummary()
           requestResume()
           options.onStatus('CONNECTED')
         } else if (message.type === 'AUTHENTICATION_REQUIRED') {
@@ -434,6 +455,8 @@ export function createLiveSessionConnection(
         } else if (message.type === 'CHARACTER_SHEET') {
           if (message.characterId.toLowerCase() === requestedSheetCharacterId?.toLowerCase())
             options.onCharacterSheet?.(message)
+        } else if (message.type === 'CAMPAIGN_SUMMARY') {
+          if (requestedCampaignSummary) options.onCampaignSummary?.(message.summary)
         } else if (message.type === 'ENCOUNTER_SESSION') {
           if (requestedEncounterSession) options.onEncounterSession?.(message.session)
         } else if (message.type === 'ENCOUNTER_READ_RESULT') {
@@ -697,6 +720,12 @@ export function createLiveSessionConnection(
       requestedEncounterSession = subscription
       if (subscription === null) send({ type: 'UNSUBSCRIBE_ENCOUNTER_SESSION' })
       else requestEncounterSession()
+    },
+    subscribeCampaignSummary(subscribed) {
+      if (subscribed === requestedCampaignSummary) return
+      requestedCampaignSummary = subscribed
+      if (subscribed) requestCampaignSummary()
+      else send({ type: 'UNSUBSCRIBE_CAMPAIGN_SUMMARY' })
     },
     readEncounter(read) {
       return new Promise<LiveSessionEncounterReadReply>((resolve, reject) => {

@@ -23,7 +23,8 @@ export async function encounterRunFixture({
   campaignId,
   systemId,
   actors: entries,
-  scene
+  scene,
+  status = 'ACTIVE'
 }: {
   campaignId: string
   systemId: string
@@ -31,14 +32,20 @@ export async function encounterRunFixture({
     characterId: string
     label?: string
     controllerUserIds?: string[]
+    /** Whether the table sees the actor; a hidden current actor is withheld from players. */
+    public?: boolean
+    /** Makes this the Run's current actor. */
+    current?: boolean
   }[]
   scene?: { sceneId: string; tokenId: string }
+  /** A PREPARED Run has not started: round 0, no initiative round. */
+  status?: 'ACTIVE' | 'PREPARED'
 }) {
   const encounterId = crypto.randomUUID()
   const sideId = crypto.randomUUID()
   // Initiative participants are stored in ascending actor identity order.
   const actors = entries
-    .map(({ characterId, label = 'Aria', controllerUserIds = [] }) =>
+    .map(({ characterId, label = 'Aria', controllerUserIds = [], public: visible = true }) =>
       encounterRunActorStateSchema.parse({
         id: crypto.randomUUID(),
         encounterId,
@@ -50,7 +57,7 @@ export async function encounterRunFixture({
         label,
         systemId,
         stableTieKey: crypto.randomUUID(),
-        public: true,
+        public: visible,
         controllerUserIds,
         disposition: 'FRIENDLY',
         healthDisplay: null,
@@ -64,6 +71,9 @@ export async function encounterRunFixture({
       })
     )
     .sort((left, right) => left.id.localeCompare(right.id))
+  const currentActorId = actors.find((actor) =>
+    entries.some((entry) => entry.current && entry.characterId === actor.sourceId)
+  )?.id
   const optionalCombatSnapshot = {
     schemaVersion: 1,
     gameSystemId: systemId,
@@ -77,13 +87,13 @@ export async function encounterRunFixture({
     blueprintVersion: 1,
     blueprintChecksum: 'b'.repeat(64),
     name: 'Native Sheet Encounter',
-    status: 'ACTIVE',
+    status,
     automationMode: 'MANUAL',
     manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
-    round: 1,
-    currentActorId: null,
+    round: status === 'ACTIVE' ? 1 : 0,
+    currentActorId: currentActorId ?? null,
     actorIds: actors.map(({ id }) => id),
     initiativePolicySnapshot: null,
     initiativePolicySnapshotChecksum: null,
@@ -130,7 +140,14 @@ export async function encounterRunFixture({
       round: 1,
       actorId: actor.id,
       sideId,
-      status: 'READY',
+      // Actors before the current one have acted, matching the Run's current actor.
+      status: !currentActorId
+        ? 'READY'
+        : actor.id === currentActorId
+          ? 'ACTIVE'
+          : turnOrderOrdinal < actors.findIndex((entry) => entry.id === currentActorId)
+            ? 'ACTED'
+            : 'READY',
       initiativeScore: null,
       evaluation: { occurrenceId: null, resultChecksum: null },
       tie: { occurrenceId: null, resultChecksum: null },
@@ -142,9 +159,11 @@ export async function encounterRunFixture({
       updatedAt: NOW
     }))
   })
-  await native.store.insert('encounterInitiativeRounds', initiative.round)
-  for (const participant of initiative.participants)
-    await native.store.insert('encounterInitiativeParticipants', participant)
+  if (status === 'ACTIVE') {
+    await native.store.insert('encounterInitiativeRounds', initiative.round)
+    for (const participant of initiative.participants)
+      await native.store.insert('encounterInitiativeParticipants', participant)
+  }
   if (scene) {
     await native.store.insert('encounterActorTokenBindings', {
       encounterId,

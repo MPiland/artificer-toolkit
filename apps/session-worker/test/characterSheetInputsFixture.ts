@@ -23,6 +23,8 @@ import {
 
 import { characterPageFixtureFor } from '../src/testing/characterPageFixture.js'
 import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
+import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 import { buildSrdSourceKinds } from '../src/testing/srdCharacterSource.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
 
@@ -95,13 +97,21 @@ export async function characterSheetInputsFixture({
   characterId,
   ownerUserId,
   darkvision = false,
-  scene
+  scene,
+  actor,
+  status,
+  pendingDecision = false
 }: {
   campaignId: string
   characterId: string
   ownerUserId: string
   darkvision?: boolean
   scene?: { sceneId: string; tokenId: string }
+  /** How the Run's actor for this Character shows: hidden from players, and whose turn it is. */
+  actor?: { public?: boolean; current?: boolean }
+  status?: 'ACTIVE' | 'PREPARED'
+  /** Holds the Run on a PENDING movement decision addressed to the Character's owner. */
+  pendingDecision?: boolean
 }) {
   const systemId = srdSystemRecord.id
   const characterRevision = crypto.randomUUID()
@@ -166,9 +176,29 @@ export async function characterSheetInputsFixture({
   const { encounterId, actorIds, documents, version } = await encounterRunFixture({
     campaignId,
     systemId,
-    actors: [{ characterId }],
-    scene
+    actors: [{ characterId, ...actor }],
+    scene,
+    status
   })
+
+  if (pendingDecision) {
+    const pending = createMemoryEncounterStore({ idPrefix: 'pending-fixture' })
+    await insertPendingMovementDecision(pending.store, {
+      campaignId,
+      encounterId,
+      encounterVersion: version,
+      sceneId: crypto.randomUUID(),
+      sceneVersion: 1,
+      tokenId: crypto.randomUUID(),
+      userId: ownerUserId,
+      sourceActorId: actorIds[0]!,
+      gameSystemId: systemId,
+      now: NOW
+    })
+    for (const table of ['encounterRuleOccurrences', 'encounterPendingSnapshotParts'] as const)
+      for (const { _id, _creationTime, ...fields } of pending.documents(table))
+        documents.push({ table, id: _id, creationTime: _creationTime, fields })
+  }
 
   const characterInputs: RoomCharacterInputs = {
     parts: [part],

@@ -229,6 +229,52 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('follows the live Campaign summary independently and resends it after a reconnect', async () => {
+    vi.useFakeTimers()
+    const summaries: unknown[] = []
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket: async () => ({ expiresAt: '2026-08-15T12:01:00.000Z', ticket: 'ticket-1' }),
+      onCampaignSummary: (summary) => summaries.push(summary),
+      onError: () => undefined,
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const first = FakeSocket.instances[0]!
+    const sentTypes = (socket: FakeSocket) =>
+      socket.sent.map((message) => (JSON.parse(message) as { type: string }).type)
+    const summary = { characters: [], encounter: null }
+    connection.subscribeCampaignSummary(true)
+    first.open()
+    await vi.waitFor(() => expect(first.sent).toHaveLength(1))
+    expect(sentTypes(first)).not.toContain('SUBSCRIBE_CAMPAIGN_SUMMARY')
+
+    first.receive({ campaignId, type: 'TRANSIENT_READY' })
+    expect(sentTypes(first)).toContain('SUBSCRIBE_CAMPAIGN_SUMMARY')
+    first.receive({ summary, type: 'CAMPAIGN_SUMMARY' })
+    expect(summaries).toEqual([summary])
+
+    first.close(1012, 'restart')
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(2))
+    const second = FakeSocket.instances[1]!
+    second.open()
+    await vi.waitFor(() => expect(second.sent).toHaveLength(1))
+    second.receive({ campaignId, type: 'TRANSIENT_READY' })
+    expect(sentTypes(second)).toContain('SUBSCRIBE_CAMPAIGN_SUMMARY')
+
+    connection.subscribeCampaignSummary(false)
+    expect(JSON.parse(second.sent.at(-1)!) as unknown).toEqual({
+      type: 'UNSUBSCRIBE_CAMPAIGN_SUMMARY'
+    })
+    second.receive({ summary, type: 'CAMPAIGN_SUMMARY' })
+    expect(summaries).toHaveLength(1)
+    connection.close()
+  })
+
   it('answers each Encounter read by its request id and fails the pending ones when the socket drops', async () => {
     const connection = createLiveSessionConnection({
       createSocket: (url, protocols) => new FakeSocket(url, protocols),

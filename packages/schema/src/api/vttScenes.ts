@@ -975,6 +975,20 @@ export const getCampaignScenePresentationInputSchema = lazySchema(() =>
     campaignId: uuidSchema
   })
 )
+export const campaignSceneShowingInputSchema = lazySchema(() =>
+  z.strictObject({ campaignId: uuidSchema })
+)
+export const showCampaignSceneInputSchema = lazySchema(() =>
+  z.extend(campaignSceneShowingInputSchema, { sceneId: uuidSchema })
+)
+/** A Scene the GM is showing players as a view-only image (D87); not the presented Scene. */
+export const campaignSceneShowingDtoSchema = lazySchema(() =>
+  z.strictObject({
+    sceneId: uuidSchema,
+    sceneName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+    shownAt: z.iso.datetime()
+  })
+)
 
 /** Server-only durable campaign-event payload for a Campaign presentation command. */
 export const campaignLiveScenePresentationReceiptDtoSchema = lazySchema(() =>
@@ -1029,6 +1043,9 @@ export type SetCampaignLiveScenePresentationResultDto = z.infer<
   typeof setCampaignLiveScenePresentationResultDtoSchema
 >
 export type CampaignScenePresentationDto = z.infer<typeof campaignScenePresentationDtoSchema>
+export type CampaignSceneShowingInput = z.infer<typeof campaignSceneShowingInputSchema>
+export type ShowCampaignSceneInput = z.infer<typeof showCampaignSceneInputSchema>
+export type CampaignSceneShowingDto = z.infer<typeof campaignSceneShowingDtoSchema>
 export type CampaignLiveScenePresentationReceiptDto = z.infer<
   typeof campaignLiveScenePresentationReceiptDtoSchema
 >

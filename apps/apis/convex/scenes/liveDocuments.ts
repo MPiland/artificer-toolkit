@@ -20,26 +20,44 @@ export function parseLiveEntity(row: Doc<'sceneLiveEntities'>, version: number) 
   return parseSceneLiveEntity(stored(row), version)
 }
 /**
- * D87: a player reads only a Scene the GM has revealed, which today is the Campaign's presented
- * Scene. The single place a further reveal (a Scene shown as an image) extends.
+ * D87: how far the GM has revealed a Scene to players. PRESENTED is the Campaign's presented Scene
+ * and grants every player read. SHOWN is a Scene shown as a view-only image and grants only its
+ * header, map and fog, never its entities (`VIEWER` scope).
  */
-async function isSceneRevealedToPlayers(ctx: QueryCtx, campaignId: string, sceneId: string) {
-  const presentation = await ctx.db
-    .query('campaignScenePresentations')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
-    .unique()
-  return presentation?.sceneId === sceneId
+export type SceneReveal = 'PRESENTED' | 'SHOWN'
+
+async function readSceneReveal(
+  ctx: QueryCtx,
+  campaignId: string,
+  sceneId: string
+): Promise<SceneReveal | null> {
+  const [presentation, showing] = await Promise.all([
+    ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique(),
+    ctx.db
+      .query('campaignSceneShowings')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique()
+  ])
+  if (presentation?.sceneId === sceneId) return 'PRESENTED'
+  return showing?.sceneId === sceneId ? 'SHOWN' : null
 }
 
-export async function readLiveScene(ctx: QueryCtx, sceneId: string, scope: 'OWNER' | 'MEMBER') {
+/** `MEMBER` reads the live Scene; `VIEWER` also reads a Scene shown as an image (header and fog only). */
+export type LiveSceneScope = 'OWNER' | 'MEMBER' | 'VIEWER'
+
+export async function readLiveScene(ctx: QueryCtx, sceneId: string, scope: LiveSceneScope) {
   const { userId } = await requireIdentity(ctx)
   return readLiveSceneForUser(ctx, sceneId, scope, userId)
 }
 
+/** `reveal` is what the caller may read: the Campaign owner always reads everything (PRESENTED). */
 export async function readLiveSceneForUser(
   ctx: QueryCtx,
   sceneId: string,
-  scope: 'OWNER' | 'MEMBER',
+  scope: LiveSceneScope,
   userId: string,
   authorityScope?: CampaignInternalScope
 ) {
@@ -56,7 +74,9 @@ export async function readLiveSceneForUser(
   )
   if (scope === 'OWNER' && membership.role !== 'OWNER')
     throw new Error('Live Scene preparation is only available to the Campaign owner.')
-  if (membership.role !== 'OWNER' && !(await isSceneRevealedToPlayers(ctx, campaign.id, row.id)))
+  const reveal: SceneReveal | null =
+    membership.role === 'OWNER' ? 'PRESENTED' : await readSceneReveal(ctx, campaign.id, row.id)
+  if (reveal === null || (reveal === 'SHOWN' && scope !== 'VIEWER'))
     throw new Error('Live Scene is unavailable.')
   const scene = sceneStoredInitialStateSchema.parse(stored(row))
   const saveRow = await ctx.db
@@ -104,5 +124,5 @@ export async function readLiveSceneForUser(
     counts: save.counts,
     currentCounts: live?.counts ?? { ...save.counts, measurements: 0 }
   })
-  return { header, campaign, membership, userId, liveRow, live }
+  return { header, campaign, membership, userId, liveRow, live, reveal }
 }

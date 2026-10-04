@@ -436,6 +436,12 @@ describe('native Campaign deletion', () => {
         await insertSceneCommandLedger(ctx, [
           undoSceneCommand(baseScene.sceneId, base.owner.userId)
         ])
+        await ctx.db.insert('campaignSceneShowings', {
+          campaignId: base.campaign.id,
+          sceneId: baseScene.sceneId,
+          shownBy: base.owner.userId,
+          shownAt: new Date().toISOString()
+        })
         await insertSceneCommandLedger(ctx, [
           undoSceneCommand(otherScene.sceneId, base.other.userId)
         ])
@@ -470,6 +476,7 @@ describe('native Campaign deletion', () => {
         'sceneFogChunks',
         'sceneGeometrySaves',
         'campaignScenePresentations',
+        'campaignSceneShowings',
         'campaignContentUsage'
       ]) {
         expect(after.tables[name], name).toEqual(

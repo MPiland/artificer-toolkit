@@ -346,6 +346,18 @@ export const remove = mutation({
     if (definition.version !== input.expectedVersion)
       throw new Error('Scene definition changed before deletion.')
     await ctx.db.delete(row._id)
+    // D87: a Scene shown to players stops being shown when its definition is deleted.
+    const showing = await ctx.db
+      .query('campaignSceneShowings')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
+      .unique()
+    const shownScene =
+      showing &&
+      (await ctx.db
+        .query('campaignScenes')
+        .withIndex('by_publicId', (q) => q.eq('id', showing.sceneId))
+        .unique())
+    if (showing && shownScene?.definitionId === definition.id) await ctx.db.delete(showing._id)
     await refreshMapReferenceFlag(ctx, definition.map.assetId)
     await ctx.scheduler.runAfter(0, internal.scenes.definitions.cleanup, {
       saveId: definition.saveId

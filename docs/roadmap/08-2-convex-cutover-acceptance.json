@@ -2172,6 +2172,18 @@
                 "apps/apis/convex/campaigns/copyJobs.test.ts › Campaign selected notebook copy jobs › copies only selected categories in bounded pages and leaves the source exact (copies only the owner's own entries)",
                 "impl: apps/apis/convex/campaigns/notebooks.ts, noteVisibility.ts, noteRemoval.ts, copyJobs.ts; packages/schema/src/api/campaignSessions.ts (campaignNoteVisibilitySchema); apps/web/src/domains/campaigns/components/CampaignNotebook.tsx, CampaignNoteVisibility.tsx"
               ]
+            },
+            {
+              "id": "P14.7",
+              "text": "The GM shows a Scene's map to players as a view-only image with that Scene's fog, without changing the presented Scene: players read its map and fog only while it is shown, never its tokens or other live entities, and stopping the showing or deleting the Scene ends that access (D87, PLT-8).",
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/scenes/showings.test.ts › D87 a shown Scene gives players its header, map and fog but never its entities, and stopping ends it",
+                "apps/apis/convex/scenes/showings.test.ts › D87 deleting a shown Scene ends the showing and the access",
+                "apps/apis/convex/scenes/showings.test.ts › D87 only the owner shows or stops, and the presented Scene cannot be shown",
+                "apps/apis/convex/campaigns/deletion.test.ts (Campaign deletion removes campaignSceneShowings)",
+                "impl: apps/apis/convex/scenes/showings.ts, liveDocuments.ts, fogReadDocuments.ts, recipientReads.ts, campaignDeletion.ts, definitions.ts; apps/apis/convex/media/vttMapAssets.ts; packages/schema/src/api/vttScenes.ts; apps/web/src/domains/campaigns/vtt/CampaignSceneShowingControl.tsx, CampaignShownSceneViewer.tsx, CampaignShownSceneCanvas.tsx"
+              ]
             }
           ]
         },
@@ -3478,7 +3490,28 @@
                 "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › keeps Builder edits committing in Convex and reloads them into the next room command (VS-4: a Builder level-up and level-down commit in Convex while held, room HP changes survive both, the lowered maximum clamps HP, and the acknowledged play version equals Convex's after the checkpoint)",
                 "apps/session-worker/src/roomCharacterRules.test.ts (current HP clamps to the effective maximum; a GM raise does not clamp)",
                 "apps/session-worker/src/roomCheckpointRecords.test.ts (play changes carry the room play clock; several commits fold into one delta with the last version)",
-                "impl (VS-4): the checkpoint carries the room's play streamVersion and Convex refuses one that does not advance (apps/apis/convex/liveSessions/checkpointRecords.ts); the shared reducer clamps current HP to the effective maximum (packages/rules-runtime/src/character/sheetCommandReducer.ts)"
+                "impl (VS-4): the checkpoint carries the room's play streamVersion and Convex refuses one that does not advance (apps/apis/convex/liveSessions/checkpointRecords.ts); the shared reducer clamps current HP to the effective maximum (packages/rules-runtime/src/character/sheetCommandReducer.ts)",
+                "A35-S10c (Amendment 21): an outside edit now reloads into the room at once while a socket is connected, not only at the next command",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › reaches the table with a GM Feature edit and no command, through one eager reload (Amendment 21)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › keeps a notice lazy while no socket is connected (Amendment 21)",
+                "impl (A35-S10c): #queueEagerReload and #reloadRoomAggregate (apps/session-worker/src/nativeLiveSessionRoom.ts); the Sheet feed pushes on a Character input revision change (roomCharacterSheetFeed.ts)"
+              ]
+            },
+            {
+              "id": "V14.6",
+              "text": "While a table is running, Campaign pages outside it show the room's live Campaign summary (held Characters' hit points and conditions, the ACTIVE Run's round) with no polling, projected for the viewer: a player never sees another member's Character unless its Sheet is party-visible, a hidden current actor, or a PREPARED Run; other values fall back to Convex (ADR 0035 Amendment 19, D87).",
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › pushes a held Character's hit points to its owner and the GM as the Campaign summary (Amendment 19)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › never shows a player another member's Character unless its Sheet is party-visible (D87)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › withholds a hidden current actor from players but not the GM (ADR 0034)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › shows no Run in the Campaign summary while the Run is only PREPARED (D87)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › stops pushing the Campaign summary after the socket unsubscribes",
+                "packages/schema/src/__tests__/live-session-contracts.test.ts › subscribes to the live Campaign summary and pushes only a strict summary",
+                "apps/web/src/domains/campaigns/vtt/liveCampaignSummary.test.ts (room values override Convex only for what the room provides)",
+                "apps/web/src/domains/campaigns/vtt/liveSessionClient.test.ts and useCampaignLiveSession.test.tsx (subscribe, resubscribe after reconnect, followed only while connected)",
+                "apps/web/src/domains/campaigns/CampaignParty.test.tsx (own card shows room HP; other players' cards never do)",
+                "impl: apps/session-worker/src/roomCampaignSummaryFeed.ts; apps/web/src/domains/campaigns/vtt/useCampaignLiveSummary.ts; CampaignParty, CampaignSessionPartySummary, CampaignEncounters, CampaignPlayerEncounterDecisions"
               ]
             }
           ]
@@ -3776,7 +3809,11 @@
                 "apps/session-worker/test/nativeCharacterSheet.test.ts › plays a Character Sheet command through the room with the real Character rules path (A35-S6b)",
                 "apps/session-worker/test/nativeCharacterSheet.test.ts › refuses a Sheet command from a player who does not own the Character (A35-S6b)",
                 "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › refuses Convex play, commits the owner through the room and refuses a non-owner (VS-4: Convex refuses HELD play, the owner's command commits through the room and checkpoints, a non-owner is refused, an exact retry replays without writes)",
-                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › keeps Builder edits committing in Convex and reloads them into the next room command (Builder structure stays in Convex while held)"
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts › Sheet play on a held Character › keeps Builder edits committing in Convex and reloads them into the next room command (Builder structure stays in Convex while held)",
+                "A35-S10c (Amendment 20): the Sheet shows a room play edit at once and reverts it with the room's reason on a refusal; a pending Encounter decision never blocks Sheet play (Convex Sheet play has no decision guard)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › commits a Sheet play command while an Encounter decision is pending, and still holds Encounter play (Amendment 20)",
+                "apps/web/src/domains/characters/sheet/core/useLiveCharacterSheet.test.tsx (optimistic edit, refusal revert with reason, retry with the same command, same-version refresh)",
+                "impl (A35-S10c): apps/web/src/data/characters/optimisticSheet.ts (projectOptimisticCharacterSheet, shared with the Convex optimistic path), apps/web/src/domains/characters/sheet/core/useLiveCharacterSheet.ts"
               ]
             },
             {

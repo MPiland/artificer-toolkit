@@ -118,6 +118,7 @@ function EncounterRunFixture() {
       <CampaignEncounters
         campaign={campaign}
         currentUserId={tabletopCurrentUserId}
+        liveSummary={null}
         mode='PREPARE'
       />
     </Stack>

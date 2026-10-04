@@ -26,6 +26,8 @@ import type {
 import { useGetCharacterList, getCharacterSheetSlice } from '#app/data/characters/queries'
 import { useGetCampaignList } from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
+import { resolveHitPoints } from '../vtt/liveCampaignSummary'
+import { useCampaignLiveSummary } from '../vtt/useCampaignLiveSummary'
 import * as sharedStyles from '../campaigns.css'
 import * as partyStyles from './party.css'
 import { CampaignRosterPortrait } from './CampaignRosterPortrait'
@@ -39,6 +41,7 @@ export function CampaignParty({
   currentUserId: string
   openCharacterPicker?: boolean
 }) {
+  const liveSummary = useCampaignLiveSummary(campaign.id)
   const assignCharacter = useConvexMutation(convexApi.campaigns.assignments.assign)
   const unassignCharacter = useConvexMutation(convexApi.campaigns.assignments.unassign)
   const leaveCampaign = useConvexMutation(convexApi.campaigns.membershipDeparture.leave)
@@ -157,6 +160,10 @@ export function CampaignParty({
               const fullSheetShown = member.userId === currentUserId || campaign.role === 'OWNER'
               const sheet =
                 fullSheetShown && assignedIndex >= 0 ? sheets[assignedIndex]?.data : undefined
+              const hitPoints =
+                fullSheetShown && character
+                  ? resolveHitPoints(liveSummary, character.id, sheet?.overview)
+                  : undefined
               return (
                 <article className={partyStyles.partyCard} key={member.userId}>
                   <Group align='flex-start' justify='space-between' wrap='nowrap'>
@@ -190,14 +197,16 @@ export function CampaignParty({
                           .filter(Boolean)
                           .join(' · ')}
                       </Text>
-                      {sheet ? (
+                      {hitPoints ? (
                         <Group className={partyStyles.partySummary} gap='xs'>
                           <Text size='sm'>
-                            HP {sheet.overview.currentHitPoints}/{sheet.overview.maxHitPoints}
+                            HP {hitPoints.currentHitPoints}/{hitPoints.maxHitPoints}
                           </Text>
-                          <Text c='dimmed' size='sm'>
-                            AC {sheet.overview.armorClass}
-                          </Text>
+                          {sheet ? (
+                            <Text c='dimmed' size='sm'>
+                              AC {sheet.overview.armorClass}
+                            </Text>
+                          ) : null}
                         </Group>
                       ) : null}
                     </>

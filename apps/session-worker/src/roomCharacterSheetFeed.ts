@@ -6,7 +6,7 @@ import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
-import { admitsRoomMember } from './roomAuthorization.js'
+import { admitsRoomMember, roomCharacterInputsKey } from './roomAuthorization.js'
 
 export interface FeedMember {
   membershipEpoch: string
@@ -21,8 +21,23 @@ export interface FeedScope {
 
 interface Subscription {
   characterId: string
-  /** The play stream version last pushed to this socket; null until the first push. */
-  pushedVersion: number | null
+  /** The play stream version and input revisions last pushed to this socket; null until the first push. */
+  pushedKey: string | null
+}
+
+/** The Characters the campaign's ACTIVE Runs hold in the room, as live actors. */
+export async function heldCharacterIds(
+  store: RoomEncounterStore,
+  campaignId: string
+): Promise<Set<string>> {
+  const held = new Set<string>()
+  for (const run of store.documents('encounterRuns')) {
+    const state = readRunState(run)
+    if (state.status !== 'ACTIVE' || state.campaignId !== campaignId) continue
+    for (const actor of await readRunActors({ db: store.store }, state))
+      if (actor.kind === 'CHARACTER' && actor.frozenState === null) held.add(actor.sourceId)
+  }
+  return held
 }
 
 /**
@@ -49,7 +64,7 @@ export class RoomCharacterSheetFeed {
   }
 
   subscribe(socket: WebSocket, characterId: string): void {
-    this.#subscriptions.set(socket, { characterId: characterId.toLowerCase(), pushedVersion: null })
+    this.#subscriptions.set(socket, { characterId: characterId.toLowerCase(), pushedKey: null })
   }
 
   drop(socket: WebSocket): void {
@@ -65,6 +80,7 @@ export class RoomCharacterSheetFeed {
         authorization: LiveSessionRoomAuthorization
         characterId: string
         member: FeedMember
+        pushedKey: string
         scope: FeedScope
         sockets: WebSocket[]
       }
@@ -86,20 +102,22 @@ export class RoomCharacterSheetFeed {
         this.#subscriptions.delete(socket)
         continue
       }
-      if (play.streamVersion === subscription.pushedVersion) continue
+      const pushedKey = `${play.streamVersion}:${roomCharacterInputsKey(admitted.authorization, subscription.characterId)}`
+      if (pushedKey === subscription.pushedKey) continue
       // The viewer kind decides the redactions, so one projection serves each kind.
-      const key = `${subscription.characterId}:${admitted.viewer}`
+      const key = `${subscription.characterId}:${admitted.viewer}:${pushedKey}`
       const group = stale.get(key) ?? {
         authorization: admitted.authorization,
         characterId: subscription.characterId,
         member,
+        pushedKey,
         scope,
         sockets: []
       }
       group.sockets.push(socket)
       stale.set(key, group)
     }
-    for (const { authorization, characterId, member, scope, sockets } of stale.values()) {
+    for (const { authorization, characterId, member, pushedKey, scope, sockets } of stale.values()) {
       // No transaction: preparation is read-only for product state (reconciliation writes need one), so a push never writes outside a journaled transaction; the next command's transaction reconciles and a later push shows it.
       const facts = await prepareRoomLiveCharacterSheet(
         store,
@@ -126,7 +144,7 @@ export class RoomCharacterSheetFeed {
         const subscription = this.#subscriptions.get(socket)
         // The socket may have left or resubscribed while the Sheet was prepared.
         if (subscription?.characterId !== characterId) continue
-        subscription.pushedVersion = streamVersion
+        subscription.pushedKey = pushedKey
         this.dependencies.send(socket, {
           type: 'CHARACTER_SHEET',
           characterId,
@@ -150,31 +168,12 @@ export class RoomCharacterSheetFeed {
       !character ||
       assigned.userId !== character.ownerUserId ||
       (member.role !== 'OWNER' && assigned.userId !== member.userId) ||
-      !(await this.#heldByActiveRun(scope.campaignId, characterId))
+      !(await heldCharacterIds(this.dependencies.store, scope.campaignId)).has(characterId)
     )
       return null
     return {
       authorization,
       viewer: character.ownerUserId === member.userId ? 'CHARACTER_OWNER' : 'CAMPAIGN_OWNER'
     } as const
-  }
-
-  async #heldByActiveRun(campaignId: string, characterId: string): Promise<boolean> {
-    const { store } = this.dependencies
-    for (const run of store.documents('encounterRuns')) {
-      const state = readRunState(run)
-      if (state.status !== 'ACTIVE' || state.campaignId !== campaignId) continue
-      const actors = await readRunActors({ db: store.store }, state)
-      if (
-        actors.some(
-          (actor) =>
-            actor.kind === 'CHARACTER' &&
-            actor.sourceId === characterId &&
-            actor.frozenState === null
-        )
-      )
-        return true
-    }
-    return false
   }
 }

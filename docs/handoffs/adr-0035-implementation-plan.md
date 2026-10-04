@@ -196,6 +196,18 @@ rulings:
 
 **Acceptance affected:** R06.3, V14.5, P04.3, P08.2 and P08.4 (re-proof); V15.
 
+**Status: done (2026-10-04).** N stays 120 s until REL-5 measures it. The Convex Sheet path is unchanged, so the accepted P04.3, P08.2 and P08.4 proofs stand; R06.3, V14.5 and the new V14.6 carry the S10c proofs. The flush tests (no idle calls, one flush per burst, the quiet alarm) are in `nativeCharacterSheet.test.ts` and feed V15 in REL-5.
+
+- Landed in the room:
+  - `ROOM_LIMITS.flushIntervalMs` (N) replaces `checkpointDeadlineMs`, and a due flush rides the next incoming message (`#flushIfDue`). The alarm fires `flushQuietGraceMs` (15 s) after the deadline.
+  - A message reads the flush deadline from memory (the value the alarm was last scheduled from), so previews and pings touch no storage.
+  - `INVALIDATE_INPUTS` queues one coalesced eager reload while an admitted socket is connected (`#queueEagerReload`, sharing `#reloadRoomAggregate` with the command path), then pushes. The Sheet feed now also pushes when the Character's input revisions change.
+  - The live Campaign summary feed (`SUBSCRIBE_CAMPAIGN_SUMMARY`, `UNSUBSCRIBE_CAMPAIGN_SUMMARY`, `CAMPAIGN_SUMMARY`, `roomCampaignSummaryFeed.ts`), privacy-projected as the Sheet and Encounter feeds are.
+  - A pending decision does not block a Sheet play command in the room (proved by test); Encounter turn commands stay held.
+- Landed on the web:
+  - `useCampaignLiveSummary` opens one summary subscription per page container while a table runs (from `getCampaignLiveAuthority`). The party cards, Session party summary, Encounter list and player decisions take room HP and round from it and fall back to Convex for anything it leaves out. Other players' cards still show no HP.
+  - `useLiveCharacterSheet` shows a play edit at once through `projectOptimisticCharacterSheet` and drops it on a refusal, rethrowing the room's reason. Convex Sheet play has no pending-decision guard, so Amendment 20 needs nothing on the Convex side.
+
 ### A35-S10d: Encounter history stays in the room (Amendment 22, D85)
 
 **Goal:**

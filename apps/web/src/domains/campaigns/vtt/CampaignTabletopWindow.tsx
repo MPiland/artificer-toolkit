@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useCampaignDetail } from '#app/data/campaigns/queries'
 import { useAutoRollDicePreference } from '#app/settings/useAutoRollDicePreference'
 import { CampaignGmRoller } from '../components/CampaignGmRoller'
+import { CampaignSceneShowingControl } from './CampaignSceneShowingControl'
+import { CampaignShownSceneViewer } from './CampaignShownSceneViewer'
 import { CampaignVttStage } from './CampaignVttStage'
 import * as styles from './CampaignTabletopWindow.css'
 
@@ -40,6 +42,9 @@ export function CampaignTabletopWindow({
           </Badge>
         </Group>
         <Group gap='md' wrap='nowrap'>
+          {campaign.role === 'OWNER' ? (
+            <CampaignSceneShowingControl campaignId={campaign.id} />
+          ) : null}
           <Switch
             aria-label='Roll my dice automatically'
             checked={autoRoll.autoRollDice}
@@ -59,7 +64,11 @@ export function CampaignTabletopWindow({
       <div className={styles.stage}>
         <CampaignVttStage campaign={campaign} currentUserId={currentUserId} />
       </div>
-      {campaign.role === 'OWNER' ? <CampaignGmRoller campaignId={campaign.id} /> : null}
+      {campaign.role === 'OWNER' ? (
+        <CampaignGmRoller campaignId={campaign.id} />
+      ) : (
+        <CampaignShownSceneViewer campaignId={campaign.id} currentUserId={currentUserId} />
+      )}
     </main>
   )
 }

@@ -6,7 +6,8 @@ import {
 } from '../api/sceneDefinitionSave.js'
 import {
   sceneDefinitionSettingsDtoSchema,
-  campaignScenePresentationDtoSchema
+  campaignScenePresentationDtoSchema,
+  showCampaignSceneInputSchema
 } from '../api/vttScenes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
@@ -63,5 +64,13 @@ export const sceneStoredPresentationSchema = lazySchema(() =>
     activeMapAssetId: z.nullable(postgresUuidSchema),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime()
+  })
+)
+export const sceneStoredShowingSchema = lazySchema(() =>
+  z.extend(showCampaignSceneInputSchema, {
+    campaignId: postgresUuidSchema,
+    sceneId: postgresUuidSchema,
+    shownBy: postgresUuidSchema,
+    shownAt: z.iso.datetime()
   })
 )

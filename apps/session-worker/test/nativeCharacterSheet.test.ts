@@ -27,7 +27,7 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
-import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
+import { characterSheetInputsFixture, darkvisionDefinition } from './characterSheetInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
 
@@ -55,7 +55,16 @@ function signAccessToken(subject: string, issuedAt: number) {
  * `characterSheetInputsFixture`; only Convex's transport is replaced. The GM opens the room, the
  * assigned player owns the Character and a second player holds no assignment.
  */
-async function sheetRoom() {
+async function sheetRoom(
+  options: {
+    /** How the Run's actor for the Character shows, and the Run's status. */
+    run?: {
+      actor?: { public?: boolean; current?: boolean }
+      status?: 'ACTIVE' | 'PREPARED'
+      pendingDecision?: boolean
+    }
+  } = {}
+) {
   const campaignId = crypto.randomUUID()
   const characterId = crypto.randomUUID()
   const authorityEpoch = crypto.randomUUID()
@@ -76,8 +85,21 @@ async function sheetRoom() {
   const inputs = await characterSheetInputsFixture({
     campaignId,
     characterId,
-    ownerUserId: ownerId
+    ownerUserId: ownerId,
+    ...options.run
   })
+  /** The Character after a GM edit grants it Darkvision: another revision and Sheet content. */
+  const edited = await characterSheetInputsFixture({
+    campaignId,
+    characterId,
+    ownerUserId: ownerId,
+    darkvision: true
+  })
+  let characterEdited = false
+  /** Every Convex route the room called, in order. */
+  const calls: string[] = []
+  /** While set, the authorization read waits for it, so notices can arrive during a reload. */
+  let authorizationGate: Promise<void> | null = null
   const accessTokens = new Map(
     await Promise.all(
       members.map(
@@ -103,6 +125,7 @@ async function sheetRoom() {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const request = new Request(input, init)
       const pathname = new URL(request.url).pathname
+      calls.push(pathname)
       expect(request.headers.get('x-artificer-live-session-secret')).toBe(secret)
       if (pathname === ROOM_INPUTS_PATH) {
         const body = liveRoomInputsInputSchema.parse(await request.json())
@@ -119,35 +142,48 @@ async function sheetRoom() {
             ownerUserId: gmId,
             members,
             assignments,
-            characterInputs: inputs.characterInputs
+            characterInputs: characterEdited
+              ? { ...inputs.characterInputs, parts: edited.characterInputs.parts }
+              : inputs.characterInputs,
+            definitions: [darkvisionDefinition]
           })
         )
       }
-      if (pathname === ROOM_AUTHORIZATION_PATH)
+      if (pathname === ROOM_AUTHORIZATION_PATH) {
+        await authorizationGate
         return Response.json(
           roomAuthorizationResponse({
             members,
             assignments,
-            characterRevisions: [{ characterId, revision: inputs.characterRevision }],
-            play: {
-              encounter: {
-                encounterId: inputs.encounterId,
-                sceneId: crypto.randomUUID(),
-                healthDisplayDefault: 'HIDDEN',
-                actors: [
-                  {
-                    id: inputs.actorId,
-                    kind: 'CHARACTER',
-                    sourceId: characterId,
-                    controllerUserIds: [],
-                    healthDisplay: null
-                  }
-                ],
-                tokens: []
+            characterRevisions: [
+              {
+                characterId,
+                revision: characterEdited ? edited.characterRevision : inputs.characterRevision
               }
+            ],
+            play: {
+              encounter:
+                options.run?.status === 'PREPARED'
+                  ? null
+                  : {
+                      encounterId: inputs.encounterId,
+                      sceneId: crypto.randomUUID(),
+                      healthDisplayDefault: 'HIDDEN',
+                      actors: [
+                        {
+                          id: inputs.actorId,
+                          kind: 'CHARACTER',
+                          sourceId: characterId,
+                          controllerUserIds: [],
+                          healthDisplay: null
+                        }
+                      ],
+                      tokens: []
+                    }
             }
           })
         )
+      }
       if (pathname === '/live-sessions/checkpoint') {
         const body = liveSessionCheckpointRequestSchema.parse(await request.json())
         checkpoints.push(body)
@@ -250,7 +286,9 @@ async function sheetRoom() {
   /** One Sheet command from a member; resolves with the room's reply to that command ID. */
   async function play(
     member: Awaited<ReturnType<typeof connect>>,
-    command: { type: 'ADJUST_HIT_POINTS'; mode: 'DAMAGE' | 'HEAL'; amount: number },
+    command:
+      | { type: 'ADJUST_HIT_POINTS'; mode: 'DAMAGE' | 'HEAL'; amount: number }
+      | { type: 'SET_PARTY_VISIBILITY'; visibility: { sheet: boolean; health: 'HIDDEN' } },
     commandId: string,
     expectedVersion: number
   ) {
@@ -298,7 +336,27 @@ async function sheetRoom() {
     characterDeleted = true
   }
 
+  /** Convex commits a GM edit that grants the Character Darkvision. */
+  function commitCharacterEdit() {
+    characterEdited = true
+  }
+
+  /** Holds authorization reads until the returned function is called. */
+  function holdAuthorization() {
+    let release = () => {}
+    authorizationGate = new Promise<void>((resolve) => {
+      release = () => {
+        authorizationGate = null
+        resolve()
+      }
+    })
+    return release
+  }
+
   return {
+    calls,
+    commitCharacterEdit,
+    holdAuthorization,
     gm,
     gmId,
     owner,
@@ -714,7 +772,7 @@ it('commits chat and to-GM rolls in the room to their recipients, replays exact 
   await runInDurableObject(room.stub, async (instance) => {
     const clock = vi
       .spyOn(Date, 'now')
-      .mockReturnValue(Date.now() + ROOM_LIMITS.checkpointDeadlineMs + 1)
+      .mockReturnValue(Date.now() + ROOM_LIMITS.flushIntervalMs + 1)
     try {
       await instance.alarm()
     } finally {
@@ -907,4 +965,305 @@ it('retains a GM private roll in the room for the GM alone and posts each reveal
   )
   await vi.waitFor(() => expect(repliesTo(room.owner, playerRoll)).toHaveLength(1))
   expect(repliesTo(room.owner, playerRoll)[0]).toMatchObject({ type: 'COMMAND_REJECTED' })
+})
+
+type SheetMessage<Type extends LiveSessionWebSocketServerMessageDto['type']> = Extract<
+  LiveSessionWebSocketServerMessageDto,
+  { type: Type }
+>
+
+const summariesOf = (member: SheetMember) =>
+  member.messages.filter(
+    (message): message is SheetMessage<'CAMPAIGN_SUMMARY'> => message.type === 'CAMPAIGN_SUMMARY'
+  )
+
+const sheetsOf = (member: SheetMember) =>
+  member.messages.filter(
+    (message): message is SheetMessage<'CHARACTER_SHEET'> => message.type === 'CHARACTER_SHEET'
+  )
+
+function subscribeSummary(member: SheetMember) {
+  member.socket.send(JSON.stringify({ type: 'SUBSCRIBE_CAMPAIGN_SUMMARY' }))
+}
+
+function control(room: SheetRoom, operation: object) {
+  return SELF.fetch(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
+    body: JSON.stringify({ campaignId: room.campaignId, operation }),
+    headers: { 'content-type': 'application/json', [LIVE_SESSION_CONTROL_SECRET_HEADER]: secret },
+    method: 'POST'
+  })
+}
+
+const authorizationReads = (room: SheetRoom) =>
+  room.calls.filter((path) => path === ROOM_AUTHORIZATION_PATH).length
+
+/** Moves the room's clock forward until the test restores its mocks. */
+function advanceRoomClock(room: SheetRoom, ms: number) {
+  return runInDurableObject(room.stub, () => {
+    const now = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(now + ms)
+  })
+}
+
+it("pushes a held Character's hit points to its owner and the GM as the Campaign summary (Amendment 19)", async () => {
+  const room = await sheetRoom()
+  subscribeSummary(room.owner)
+  subscribeSummary(room.gm)
+  await vi.waitFor(() => {
+    expect(summariesOf(room.owner)).toHaveLength(1)
+    expect(summariesOf(room.gm)).toHaveLength(1)
+  })
+  const expected = (currentHitPoints: number) => ({
+    type: 'CAMPAIGN_SUMMARY',
+    summary: {
+      characters: [
+        expect.objectContaining({
+          characterId: room.characterId,
+          currentHitPoints,
+          maxHitPoints: 11
+        })
+      ],
+      encounter: {
+        encounterId: room.encounterId,
+        status: 'ACTIVE',
+        round: 1,
+        currentActorId: null
+      }
+    }
+  })
+  expect(summariesOf(room.owner)[0]).toEqual(expected(11))
+  expect(summariesOf(room.gm)[0]).toEqual(expected(11))
+
+  const [committed] = await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  expect(committed).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  await vi.waitFor(() => {
+    expect(summariesOf(room.owner).at(-1)).toEqual(expected(8))
+    expect(summariesOf(room.gm).at(-1)).toEqual(expected(8))
+  })
+})
+
+it("never shows a player another member's Character unless its Sheet is party-visible (D87)", async () => {
+  const room = await sheetRoom()
+  subscribeSummary(room.stranger)
+  await vi.waitFor(() => expect(summariesOf(room.stranger)).toHaveLength(1))
+  // The Run is public to players; the Character is not.
+  expect(summariesOf(room.stranger)[0]?.summary).toEqual({
+    characters: [],
+    encounter: expect.objectContaining({ encounterId: room.encounterId, status: 'ACTIVE' })
+  })
+  await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  subscribeSummary(room.owner)
+  await vi.waitFor(() => expect(summariesOf(room.owner)).toHaveLength(1))
+  expect(summariesOf(room.stranger)).toHaveLength(1)
+
+  // Once the owner shares the Sheet (room play state), the same projection a party member reads appears.
+  const [shared] = await room.play(
+    room.owner,
+    { type: 'SET_PARTY_VISIBILITY', visibility: { sheet: true, health: 'HIDDEN' } },
+    crypto.randomUUID(),
+    2
+  )
+  expect(shared).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  await vi.waitFor(() =>
+    expect(summariesOf(room.stranger).at(-1)?.summary.characters).toEqual([
+      expect.objectContaining({ characterId: room.characterId, currentHitPoints: 8 })
+    ])
+  )
+})
+
+it('withholds a hidden current actor from players but not the GM (ADR 0034)', async () => {
+  const room = await sheetRoom({ run: { actor: { public: false, current: true } } })
+  subscribeSummary(room.owner)
+  subscribeSummary(room.gm)
+  await vi.waitFor(() => {
+    expect(summariesOf(room.owner)).toHaveLength(1)
+    expect(summariesOf(room.gm)).toHaveLength(1)
+  })
+  expect(summariesOf(room.owner)[0]?.summary.encounter?.currentActorId).toBeNull()
+  expect(summariesOf(room.gm)[0]?.summary.encounter?.currentActorId).toBe(room.actorId)
+})
+
+it('shows no Run in the Campaign summary while the Run is only PREPARED (D87)', async () => {
+  const room = await sheetRoom({ run: { status: 'PREPARED' } })
+  subscribeSummary(room.owner)
+  subscribeSummary(room.gm)
+  await vi.waitFor(() => {
+    expect(summariesOf(room.owner)).toHaveLength(1)
+    expect(summariesOf(room.gm)).toHaveLength(1)
+  })
+  for (const member of [room.owner, room.gm])
+    expect(summariesOf(member)[0]?.summary).toEqual({ characters: [], encounter: null })
+})
+
+it('stops pushing the Campaign summary after the socket unsubscribes', async () => {
+  const room = await sheetRoom()
+  subscribeSummary(room.owner)
+  subscribeSummary(room.gm)
+  await vi.waitFor(() => {
+    expect(summariesOf(room.owner)).toHaveLength(1)
+    expect(summariesOf(room.gm)).toHaveLength(1)
+  })
+  room.owner.socket.send(JSON.stringify({ type: 'UNSUBSCRIBE_CAMPAIGN_SUMMARY' }))
+  await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  // The GM's push is the barrier: the owner's would have come with it.
+  await vi.waitFor(() => expect(summariesOf(room.gm)).toHaveLength(2))
+  expect(summariesOf(room.owner)).toHaveLength(1)
+})
+
+it('commits a Sheet play command while an Encounter decision is pending, and still holds Encounter play (Amendment 20)', async () => {
+  const room = await sheetRoom({ run: { pendingDecision: true } })
+  const [played] = await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  expect(played).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+
+  // An Encounter turn command is still held behind the decision.
+  const advanceId = crypto.randomUUID()
+  room.gm.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: room.encounterId,
+          commandId: advanceId,
+          expectedVersion: 1
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      room.gm.messages.find(
+        (message) =>
+          (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+          message.commandId === advanceId
+      )
+    ).toMatchObject({ type: 'COMMAND_REJECTED' })
+  )
+})
+
+it('reaches the table with a GM Feature edit and no command, through one eager reload (Amendment 21)', async () => {
+  const room = await sheetRoom()
+  room.owner.socket.send(
+    JSON.stringify({ type: 'SUBSCRIBE_CHARACTER_SHEET', characterId: room.characterId })
+  )
+  await vi.waitFor(() => expect(sheetsOf(room.owner)).toHaveLength(1))
+  expect(sheetsOf(room.owner)[0]?.sheet.reference.senses).toEqual([])
+
+  // Convex commits the edit and notifies the room; several notices arrive while the first reload waits.
+  room.commitCharacterEdit()
+  const release = room.holdAuthorization()
+  const readsBefore = authorizationReads(room)
+  for (let notice = 0; notice < 4; notice += 1)
+    expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CHARACTER'] })).status).toBe(
+      200
+    )
+  release()
+  await vi.waitFor(() =>
+    expect(sheetsOf(room.owner).at(-1)?.sheet.reference.senses).toEqual([
+      expect.objectContaining({ senseId: expect.any(String) })
+    ])
+  )
+  expect(sheetsOf(room.owner).at(-1)?.streamVersion).toBe(1)
+  // The first reload, then one reload shared by the notices that arrived behind it.
+  await vi.waitFor(() => expect(authorizationReads(room) - readsBefore).toBe(2))
+})
+
+it('keeps a notice lazy while no socket is connected (Amendment 21)', async () => {
+  const room = await sheetRoom()
+  for (const member of [room.gm, room.owner, room.stranger]) member.socket.close()
+  await vi.waitFor(async () =>
+    expect(
+      await runInDurableObject(room.stub, (_instance, state) => state.getWebSockets())
+    ).toEqual([])
+  )
+  const readsBefore = authorizationReads(room)
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CHARACTER'] })).status).toBe(
+    200
+  )
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  expect(authorizationReads(room)).toBe(readsBefore)
+})
+
+it('makes no Convex call for an idle member, however long the quiet (Amendment 17)', async () => {
+  const room = await sheetRoom()
+  const callsAfterConnect = room.calls.length
+  const readsAfterConnect = authorizationReads(room)
+  await advanceRoomClock(room, ROOM_LIMITS.flushIntervalMs * 3)
+  room.owner.socket.send(JSON.stringify({ type: 'RESUME' }))
+  await vi.waitFor(() =>
+    expect(room.owner.messages.filter((message) => message.type === 'STATE_SYNC')).not.toHaveLength(
+      0
+    )
+  )
+  // Only the lease renewal, at most one per half-lease, may call Convex.
+  expect(
+    room.calls.slice(callsAfterConnect).filter((path) => path !== ROOM_AUTHORIZATION_PATH)
+  ).toEqual([])
+  expect(authorizationReads(room) - readsAfterConnect).toBeLessThanOrEqual(1)
+})
+
+it('flushes a burst of commands once, carried by the next incoming message after the interval (Amendment 17)', async () => {
+  const room = await sheetRoom()
+  for (const [index, amount] of [1, 1, 1].entries()) {
+    const [committed] = await room.play(
+      room.owner,
+      { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount },
+      crypto.randomUUID(),
+      1 + index
+    )
+    expect(committed).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  }
+  expect(room.checkpoints).toHaveLength(0)
+
+  await advanceRoomClock(room, ROOM_LIMITS.flushIntervalMs + 1)
+  subscribeSummary(room.owner)
+  await vi.waitFor(() => expect(room.checkpoints).toHaveLength(1))
+  subscribeSummary(room.gm)
+  await vi.waitFor(() => expect(summariesOf(room.gm)).toHaveLength(1))
+  expect(room.checkpoints).toHaveLength(1)
+})
+
+it('flushes a due burst from the alarm after the quiet grace when no message carries it (Amendment 17)', async () => {
+  const room = await sheetRoom()
+  await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 1 },
+    crypto.randomUUID(),
+    1
+  )
+  const { alarmAt, committedAt } = await runInDurableObject(room.stub, (_instance, state) => ({
+    alarmAt: state.storage.getAlarm(),
+    committedAt: state.storage.sql
+      .exec<{ created_at: number }>('SELECT created_at FROM durable_command_receipts')
+      .one().created_at
+  }))
+  expect(await alarmAt).toBe(
+    committedAt + ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs
+  )
+  await advanceRoomClock(room, ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs)
+  await runInDurableObject(room.stub, (instance) => instance.alarm())
+  await vi.waitFor(() => expect(room.checkpoints).toHaveLength(1))
 })

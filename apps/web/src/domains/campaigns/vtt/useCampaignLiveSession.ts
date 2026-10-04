@@ -6,6 +6,7 @@ import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRe
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterSessionFrameDto,
+  LiveCampaignSummaryDto,
   LiveSessionCommandDto,
   LiveSessionRecipientStateDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -33,6 +34,7 @@ export type HeldEncounterSession = Extract<EncounterSessionFrameDto, { held: tru
 
 export function useCampaignLiveSession({
   campaignId,
+  campaignSummary: followsCampaignSummary = false,
   characterSheetId = null,
   enabled,
   encounterSession = null,
@@ -41,6 +43,8 @@ export function useCampaignLiveSession({
   onTransient
 }: {
   campaignId: string
+  /** Follows the room's live Campaign summary, which Pages outside the table read (ADR 0035 A19). */
+  campaignSummary?: boolean
   /** The held Character whose viewer-projected Sheet the room pushes (D73). */
   characterSheetId?: string | null
   enabled: boolean
@@ -57,6 +61,7 @@ export function useCampaignLiveSession({
   const onCampaignChatEntryRef = useRef(onCampaignChatEntry)
   const onPrivateRollRef = useRef(onPrivateRoll)
   const convex = useConvex()
+  const [campaignSummary, setCampaignSummary] = useState<LiveCampaignSummaryDto | null>(null)
   const [characterSheet, setCharacterSheet] = useState<LiveSessionCharacterSheetPush | null>(null)
   const [heldEncounterSession, setHeldEncounterSession] = useState<HeldEncounterSession | null>(
     null
@@ -73,6 +78,7 @@ export function useCampaignLiveSession({
 
   useEffect(() => {
     if (!enabled) {
+      setCampaignSummary(null)
       setCharacterSheet(null)
       setHeldEncounterSession(null)
       setCommandReady(false)
@@ -102,6 +108,7 @@ export function useCampaignLiveSession({
       onError: (nextError) => setError(errorMessage(nextError)),
       onCampaignChatEntry: (entry) => onCampaignChatEntryRef.current?.(entry),
       onPrivateRoll: (roll) => onPrivateRollRef.current?.(roll),
+      onCampaignSummary: setCampaignSummary,
       onCharacterSheet: setCharacterSheet,
       onEncounterSession: (session) => setHeldEncounterSession(session.held ? session : null),
       onCommandRejected: setRejection,
@@ -113,7 +120,10 @@ export function useCampaignLiveSession({
       onStatus: (nextStatus) => {
         setStatus(nextStatus)
         // Without the room, Convex is the source again until the room pushes a fresh frame.
-        if (nextStatus !== 'CONNECTED') setHeldEncounterSession(null)
+        if (nextStatus !== 'CONNECTED') {
+          setCampaignSummary(null)
+          setHeldEncounterSession(null)
+        }
       },
       onTransient: (message) => onTransientRef.current?.(message),
       url: resolveLiveSessionWebSocketUrl(configuredUrl, campaignId)
@@ -124,6 +134,11 @@ export function useCampaignLiveSession({
       liveConnection.close()
     }
   }, [campaignId, convex, enabled])
+
+  useEffect(() => {
+    connection.current?.subscribeCampaignSummary(enabled && followsCampaignSummary)
+    return () => setCampaignSummary(null)
+  }, [campaignId, enabled, followsCampaignSummary])
 
   useEffect(() => {
     connection.current?.subscribeCharacterSheet(enabled ? characterSheetId : null)
@@ -199,6 +214,7 @@ export function useCampaignLiveSession({
   )
 
   return {
+    campaignSummary,
     characterSheet,
     commandReady,
     encounterSession: heldEncounterSession,
