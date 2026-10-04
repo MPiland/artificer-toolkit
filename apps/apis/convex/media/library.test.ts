@@ -4,8 +4,6 @@ import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import sharp from 'sharp'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
-import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, components, internal } from '../_generated/api'
 import { startLocalR2 } from '../../tests/localR2'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -54,25 +52,6 @@ async function setup() {
     mode: 'create',
     character: created.character
   })
-  const campaign = await base.owner.caller.mutation(api.campaigns.create.create, {
-    name: 'My images',
-    format: 'ONGOING',
-    toneTags: ['HEROIC'],
-    contentMaturity: 'STANDARD',
-    gameSystemId: srdSystemRecord.id,
-    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
-  })
-  await base.t.run((ctx) =>
-    ctx.db.insert('campaignMemberships', {
-      campaignId: campaign.id,
-      userId: base.other.userId,
-      role: 'PLAYER',
-      status: 'ACTIVE',
-      accessStartedAt: campaign.createdAt,
-      joinedAt: campaign.createdAt,
-      leftAt: null
-    })
-  )
   const portrait = { type: 'CHARACTER_PORTRAIT' as const, characterId: created.character.id }
   type Caller = typeof base.owner.caller
   const put = async (url: string, body: Buffer) =>
@@ -102,20 +81,19 @@ async function setup() {
       })
     }
   }
-  const finalizeFile = async (
-    caller: Caller,
-    body: Buffer,
-    profile: 'CAMPAIGN_FILE' | 'CAMPAIGN_HANDOUT_MAP' = 'CAMPAIGN_FILE'
-  ) => {
-    const intent = await caller.mutation(api.media.fileAssets.createUpload, {
-      ...metadata(body),
-      profile,
-      target: { type: profile, campaignId: campaign.id }
-    })
+  const savePortrait = async (body: Buffer) => {
+    const intent = await base.owner.caller.mutation(
+      api.media.characterPortraitAssets.createUpload,
+      { ...metadata(body), target: portrait }
+    )
     await put(intent.url, body)
     return {
       intent,
-      result: await caller.action(api.media.fileActions.finalize, { assetId: intent.assetId })
+      binding: await base.owner.caller.action(api.media.characterPortraitActions.save, {
+        assetId: intent.assetId,
+        crop: portraitCrop,
+        target: portrait
+      })
     }
   }
   const readAsset = (id: string) =>
@@ -134,7 +112,7 @@ async function setup() {
           .unique()
       )
     )?.mediaBytes ?? 0
-  return { ...base, campaign, portrait, saveAvatar, finalizeFile, readAsset, mediaBytes }
+  return { ...base, portrait, saveAvatar, savePortrait, readAsset, mediaBytes }
 }
 
 it('reuses the same owner’s identical image within its class and charges it once', async () => {
@@ -145,63 +123,28 @@ it('reuses the same owner’s identical image within its class and charges it on
   const charged = (await base.readAsset(assetId))!.chargedBytes
   expect(await base.mediaBytes(base.owner.userId)).toBe(charged)
 
-  // The same image uploaded as a Campaign file resolves to the existing asset.
-  const duplicate = await base.finalizeFile(base.owner.caller, image)
-  expect(duplicate.result).toEqual({ assetId, status: 'READY', preview: null })
-  expect(await base.readAsset(duplicate.intent.assetId)).toMatchObject({
+  // A portrait upload of the same image resolves to the existing asset and binds straight to the Character.
+  const portraitUpload = await base.savePortrait(image)
+  expect(portraitUpload.binding).toEqual({ assetId, revision: 1 })
+  expect(await base.readAsset(portraitUpload.intent.assetId)).toMatchObject({
     status: 'DELETED',
     chargedBytes: 0,
     variants: []
   })
   expect(await base.mediaBytes(base.owner.userId)).toBe(charged)
-  // A retried finalize of the discarded upload still answers with the reused asset.
-  expect(
-    await base.owner.caller.action(api.media.fileActions.finalize, {
-      assetId: duplicate.intent.assetId
-    })
-  ).toEqual({ assetId, status: 'READY', preview: null })
 
-  // So does a portrait upload of the same image, bound straight to the Character.
-  const portraitIntent = await base.owner.caller.mutation(
-    api.media.characterPortraitAssets.createUpload,
-    {
-      target: base.portrait,
-      originalFileName: 'portrait.png',
-      declaredMimeType: 'image/png',
-      declaredBytes: image.byteLength,
-      idempotencyKey: crypto.randomUUID()
-    }
-  )
-  await fetch(portraitIntent.url, {
-    method: 'PUT',
-    body: new Uint8Array(image),
-    headers: { 'content-type': 'image/png' }
-  })
-  expect(
-    await base.owner.caller.action(api.media.characterPortraitActions.save, {
-      assetId: portraitIntent.assetId,
-      crop: portraitCrop,
-      target: base.portrait
-    })
-  ).toEqual({ assetId, revision: 1 })
-  expect(await base.mediaBytes(base.owner.userId)).toBe(charged)
-
-  // A handout map is its own class, and another owner never matches.
-  const handout = await base.finalizeFile(base.owner.caller, image, 'CAMPAIGN_HANDOUT_MAP')
-  expect(handout.result.assetId).toBe(handout.intent.assetId)
-  const foreign = await base.finalizeFile(base.other.caller, image)
-  expect(foreign.result.assetId).toBe(foreign.intent.assetId)
-  expect(await base.readAsset(foreign.result.assetId)).toMatchObject({
+  // Another owner never matches: the same image is charged to them separately.
+  const foreign = await base.saveAvatar(base.other.caller, image)
+  expect(foreign.binding.assetId).toBe(foreign.intent.assetId)
+  expect(await base.readAsset(foreign.intent.assetId)).toMatchObject({
     ownerUserId: base.other.userId,
     contentHash: (await base.readAsset(assetId))!.contentHash
   })
-  const handoutCharge = (await base.readAsset(handout.result.assetId))!.chargedBytes
-  expect(await base.mediaBytes(base.owner.userId)).toBe(charged + handoutCharge)
+  expect(await base.mediaBytes(base.owner.userId)).toBe(charged)
 
   await base.t.finishAllScheduledFunctions(vi.runAllTimers)
   const keys = [...server.objects.keys()]
-  for (const discarded of [duplicate.intent.assetId, portraitIntent.assetId])
-    expect(keys.some((key) => key.includes(discarded))).toBe(false)
+  expect(keys.some((key) => key.includes(portraitUpload.intent.assetId))).toBe(false)
 }, 60_000)
 
 it('frames each reference on its own and prunes framing no slot uses', async () => {
@@ -268,25 +211,6 @@ it('attaches only the caller’s own ready content art, under each slot’s own 
   const base = await setup()
   const { binding } = await base.saveAvatar(base.owner.caller, await picture(3))
   const assetId = binding.assetId!
-  const text = await base.owner.caller.mutation(api.media.fileAssets.createUpload, {
-    profile: 'CAMPAIGN_FILE',
-    target: { type: 'CAMPAIGN_FILE', campaignId: base.campaign.id },
-    originalFileName: 'notes.txt',
-    declaredMimeType: 'text/plain',
-    declaredBytes: 5,
-    idempotencyKey: crypto.randomUUID()
-  })
-  await fetch(text.url, {
-    method: 'PUT',
-    body: new Uint8Array(Buffer.from('notes')),
-    headers: { 'content-type': 'text/plain' }
-  })
-  await base.owner.caller.action(api.media.fileActions.finalize, { assetId: text.assetId })
-  const handout = await base.finalizeFile(
-    base.owner.caller,
-    await picture(4),
-    'CAMPAIGN_HANDOUT_MAP'
-  )
   const pending = await base.owner.caller.mutation(api.media.assets.createAvatarUpload, {
     originalFileName: 'pending.png',
     declaredMimeType: 'image/png',
@@ -315,9 +239,7 @@ it('attaches only the caller’s own ready content art, under each slot’s own 
     [base.other.caller, base.portrait, assetId, 'Character is unavailable.'],
     [base.owner.caller, artwork(otherDraft), assetId, 'Save an owned draft'],
     // Only READY content art fills an image slot.
-    [base.owner.caller, base.portrait, pending.assetId, 'Image is unavailable.'],
-    [base.owner.caller, base.portrait, text.assetId, 'Image is unavailable.'],
-    [base.owner.caller, base.portrait, handout.result.assetId, 'Image is unavailable.']
+    [base.owner.caller, base.portrait, pending.assetId, 'Image is unavailable.']
   ] as const
   for (const [caller, target, id, message] of denied)
     await expect(
@@ -330,56 +252,28 @@ it('attaches only the caller’s own ready content art, under each slot’s own 
       crop
     })
   ).toEqual({ assetId, revision: 1 })
-
-  // Campaign records follow the same rule: the caller's own asset, in a Campaign they may write.
-  await expect(
-    base.other.caller.mutation(api.campaigns.attachments.create, {
-      campaignId: base.campaign.id,
-      assetId,
-      displayName: 'Not mine'
-    })
-  ).rejects.toThrow('unavailable')
-  expect(
-    await base.owner.caller.mutation(api.campaigns.attachments.create, {
-      campaignId: base.campaign.id,
-      assetId,
-      displayName: 'Portrait as handout'
-    })
-  ).toMatchObject({ assetId, profile: 'CAMPAIGN_FILE' })
-  expect(
-    await base.owner.caller.mutation(api.campaigns.attachments.create, {
-      campaignId: base.campaign.id,
-      assetId: handout.result.assetId,
-      displayName: 'Map'
-    })
-  ).toMatchObject({ profile: 'CAMPAIGN_HANDOUT_MAP' })
 }, 60_000)
 
 it('lists only the caller’s ready images of one class, newest first, and previews them owner-only', async () => {
   const base = await setup()
   const older = await base.saveAvatar(base.owner.caller, await picture(11))
   vi.advanceTimersByTime(1000)
-  const newer = await base.finalizeFile(base.owner.caller, await picture(12))
-  const handout = await base.finalizeFile(
-    base.owner.caller,
-    await picture(13),
-    'CAMPAIGN_HANDOUT_MAP'
-  )
-  const foreign = await base.finalizeFile(base.other.caller, await picture(14))
+  const newer = await base.savePortrait(await picture(12))
+  const foreign = await base.saveAvatar(base.other.caller, await picture(14))
   await base.owner.caller.mutation(api.media.assets.createAvatarUpload, {
     originalFileName: 'pending.png',
     declaredMimeType: 'image/png',
     declaredBytes: 10,
     idempotencyKey: crypto.randomUUID()
   })
-  const list = (caller: typeof base.owner.caller, profileClass: 'CONTENT_ART' | 'HANDOUT_MAP') =>
+  const list = (caller: typeof base.owner.caller) =>
     caller.query(api.media.library.list, {
-      profileClass,
+      profileClass: 'CONTENT_ART',
       paginationOpts: { cursor: null, numItems: 10 }
     })
-  const contentArt = await list(base.owner.caller, 'CONTENT_ART')
+  const contentArt = await list(base.owner.caller)
   expect(contentArt.page.map((item) => item.assetId)).toEqual([
-    newer.result.assetId,
+    newer.binding.assetId,
     older.binding.assetId
   ])
   expect(contentArt.page[0]).toMatchObject({
@@ -388,11 +282,8 @@ it('lists only the caller’s ready images of one class, newest first, and previ
     width: 600,
     height: 400
   })
-  expect((await list(base.owner.caller, 'HANDOUT_MAP')).page.map((item) => item.assetId)).toEqual([
-    handout.result.assetId
-  ])
-  expect((await list(base.other.caller, 'CONTENT_ART')).page.map((item) => item.assetId)).toEqual([
-    foreign.result.assetId
+  expect((await list(base.other.caller)).page.map((item) => item.assetId)).toEqual([
+    foreign.binding.assetId
   ])
   const firstPage = await base.owner.caller.query(api.media.library.list, {
     profileClass: 'CONTENT_ART',
@@ -408,18 +299,18 @@ it('lists only the caller’s ready images of one class, newest first, and previ
   ).rejects.toThrow('Unauthenticated')
 
   const preview = await base.owner.caller.action(api.media.libraryActions.getImage, {
-    assetId: newer.result.assetId,
+    assetId: newer.intent.assetId,
     variantKind: 'THUMBNAIL'
   })
   expect(preview).toMatchObject({
-    assetId: newer.result.assetId,
+    assetId: newer.intent.assetId,
     crop: null,
     width: 320,
     height: 213
   })
   await expect(
     base.other.caller.action(api.media.libraryActions.getImage, {
-      assetId: newer.result.assetId,
+      assetId: newer.intent.assetId,
       variantKind: 'THUMBNAIL'
     })
   ).rejects.toThrow('unavailable')
@@ -439,11 +330,6 @@ it('keeps a shared asset while any reference remains, then retires it once after
     target: base.portrait,
     variantKind: 'THUMBNAIL'
   })
-  const attachment = await base.owner.caller.mutation(api.campaigns.attachments.create, {
-    campaignId: base.campaign.id,
-    assetId,
-    displayName: 'Shared'
-  })
   const settle = () => base.t.mutation(internal.media.assets.cleanup, { assetId })
 
   await base.owner.caller.mutation(api.media.assets.removeAvatar, {})
@@ -451,25 +337,6 @@ it('keeps a shared asset while any reference remains, then retires it once after
   expect(await base.readAsset(assetId)).toMatchObject({ status: 'READY', cleanupAt: null })
   await base.owner.caller.mutation(api.media.characterPortraitAssets.remove, {
     target: base.portrait
-  })
-  await settle()
-  expect(await base.readAsset(assetId)).toMatchObject({
-    status: 'READY',
-    cleanupAt: null,
-    // Framing no reference uses is gone; the Campaign file needs none.
-    cropThumbnails: []
-  })
-  // Campaign members still read the file while the owner's own slots are empty.
-  expect(
-    await base.other.caller.query(internal.campaigns.attachments.readDelivery, {
-      campaignId: base.campaign.id,
-      attachmentId: attachment.id
-    })
-  ).toMatchObject({ assetId })
-
-  await base.owner.caller.mutation(api.campaigns.attachments.remove, {
-    campaignId: base.campaign.id,
-    attachmentId: attachment.id
   })
   await settle()
   const graced = (await base.readAsset(assetId))!

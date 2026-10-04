@@ -29,6 +29,7 @@ import { query } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { encounterReadTransaction } from './encounterPorts'
+import { readMemberEncounter } from './readAccess'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
 const encounterStatusOrder = ['ACTIVE', 'PREPARED', 'COMPLETED'] as const
 
@@ -49,15 +50,9 @@ export const get = query({
   },
   handler: async (ctx, args): Promise<EncounterProjection> => {
     const input = getEncounterInputDtoSchema.parse({ encounterId: args.encounterId.toLowerCase() })
-    const { userId } = await requireIdentity(ctx)
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-      .unique()
-    if (!row) throw new Error('Encounter is unavailable.')
-    const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
+    const { run, campaign, membership } = await readMemberEncounter(ctx, input.encounterId)
     return encounterProjectionDtoSchema.parse(
-      await presentEncounterRun(encounterReadTransaction(ctx), row, campaign, membership)
+      await presentEncounterRun(encounterReadTransaction(ctx), run, campaign, membership)
     )
   }
 })

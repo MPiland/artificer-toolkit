@@ -10,7 +10,6 @@ describe('Campaign access presentation', () => {
       'announcements',
       'party',
       'notes',
-      'files',
       'inventory',
       'table',
       'content'
@@ -36,7 +35,6 @@ describe('Campaign access presentation', () => {
       'announcements',
       'party',
       'notes',
-      'files',
       'inventory',
       'table',
       'content',

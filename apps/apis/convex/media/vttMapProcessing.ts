@@ -32,17 +32,10 @@ export async function processVttMapClaim(
   if (bytes.byteLength !== asset.upload.declaredBytes)
     throw new MediaValidationError('Map byte count does not match the upload intent.')
   const processed = await processMedia(bytes, 'VTT_MAP', asset.upload.declaredMimeType)
-  if (!processed.width || !processed.height)
-    throw new MediaValidationError('Map dimensions are unavailable.')
   const variants: VttMapStoredVariant[] = []
   for (const [index, variant] of processed.variants.entries()) {
     const objectKey = operation.outputs[index]?.objectKey
-    if (
-      !objectKey ||
-      variant.kind === 'SOURCE' ||
-      variant.width === null ||
-      variant.height === null
-    )
+    if (!objectKey || variant.kind === 'SOURCE')
       throw new MediaValidationError('Map output is unavailable.')
     const stored = vttMapStoredVariantSchema.parse({
       kind: variant.kind,

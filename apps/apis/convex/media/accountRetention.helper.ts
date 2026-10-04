@@ -1,52 +1,41 @@
-import { mediaStoredAssetSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { readActiveCampaignMembers } from '../campaigns/authority'
 
 type CampaignReferences = {
-  attachments: Doc<'campaignAttachments'>[]
   definitions: Doc<'sceneDefinitions'>[]
   scenes: Doc<'campaignScenes'>[]
 }
 
 async function campaignReferences(ctx: MutationCtx, asset: Doc<'mediaAssets'>) {
-  const [attachments, definitions, scenes] = await Promise.all([
+  const [definitions, scenes] = await Promise.all([
     ctx.db
-      .query('campaignAttachments')
-      .withIndex('by_assetId', (query) => query.eq('assetId', asset.id))
+      .query('sceneDefinitions')
+      .withIndex('by_mapAssetId', (query) => query.eq('map.assetId', asset.id))
       .collect(),
-    asset.profileClass === 'VTT_MAP'
-      ? ctx.db
-          .query('sceneDefinitions')
-          .withIndex('by_mapAssetId', (query) => query.eq('map.assetId', asset.id))
-          .collect()
-      : Promise.resolve([]),
-    asset.profileClass === 'VTT_MAP'
-      ? ctx.db
-          .query('campaignScenes')
-          .withIndex('by_mapAssetId', (query) => query.eq('map.assetId', asset.id))
-          .collect()
-      : Promise.resolve([])
+    ctx.db
+      .query('campaignScenes')
+      .withIndex('by_mapAssetId', (query) => query.eq('map.assetId', asset.id))
+      .collect()
   ])
   const byCampaign = new Map<string, CampaignReferences>()
   const group = (campaignId: string) => {
-    const references = byCampaign.get(campaignId) ?? {
-      attachments: [],
-      definitions: [],
-      scenes: []
-    }
+    const references = byCampaign.get(campaignId) ?? { definitions: [], scenes: [] }
     byCampaign.set(campaignId, references)
     return references
   }
-  for (const attachment of attachments) group(attachment.campaignId).attachments.push(attachment)
   for (const definition of definitions) group(definition.campaignId).definitions.push(definition)
   for (const scene of scenes) group(scene.campaignId).scenes.push(scene)
   return [...byCampaign].sort(([left], [right]) => left.localeCompare(right))
 }
 
 /** A copy for the Campaign owner that shares the departing user's stored objects (no byte copy). */
-async function insertOwnerCopy(ctx: MutationCtx, asset: Doc<'mediaAssets'>, ownerUserId: string) {
+async function insertOwnerCopy(
+  ctx: MutationCtx,
+  asset: Extract<Doc<'mediaAssets'>, { profileClass: 'VTT_MAP' }>,
+  ownerUserId: string
+) {
   const { _id, _creationTime, ...stored } = asset
   const copy = {
     ...stored,
@@ -59,9 +48,7 @@ async function insertOwnerCopy(ctx: MutationCtx, asset: Doc<'mediaAssets'>, owne
   }
   await ctx.db.insert(
     'mediaAssets',
-    copy.profileClass === 'VTT_MAP'
-      ? vttMapStoredAssetSchema.parse({ ...copy, hasSceneReferences: true })
-      : mediaStoredAssetSchema.parse({ ...copy, cropThumbnails: [] })
+    vttMapStoredAssetSchema.parse({ ...copy, hasSceneReferences: true })
   )
   return copy.id
 }
@@ -78,7 +65,7 @@ export async function retainAccountCampaignMedia(ctx: MutationCtx, userId: strin
     .withIndex('by_ownerUserId', (query) => query.eq('ownerUserId', userId))
     .collect()
   for (const asset of assets.sort((left, right) => left.id.localeCompare(right.id))) {
-    if (asset.status !== 'READY') continue
+    if (asset.status !== 'READY' || asset.profileClass !== 'VTT_MAP') continue
     const copies = new Map<string, string>()
     for (const [campaignId, references] of await campaignReferences(ctx, asset)) {
       const campaign = await ctx.db
@@ -105,13 +92,10 @@ export async function retainAccountCampaignMedia(ctx: MutationCtx, userId: strin
         copyId = await insertOwnerCopy(ctx, asset, owner.userId)
         copies.set(owner.userId, copyId)
       }
-      for (const attachment of references.attachments)
-        await ctx.db.patch(attachment._id, { assetId: copyId })
       for (const definition of references.definitions)
         await ctx.db.patch(definition._id, { map: { ...definition.map, assetId: copyId } })
       for (const scene of references.scenes)
         await ctx.db.patch(scene._id, { map: { ...scene.map, assetId: copyId } })
-      if (asset.profileClass !== 'VTT_MAP') continue
       const presentations = await ctx.db
         .query('campaignScenePresentations')
         .withIndex('by_campaignId_activeMapAssetId', (query) =>

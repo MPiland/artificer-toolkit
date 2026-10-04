@@ -1,6 +1,5 @@
 export * from './campaignCommunication.js'
 export * from './campaignAnnouncements.js'
-export * from './campaignAttachments.js'
 export * from './campaignCore.js'
 export * from './campaignInventory.js'
 export * from './campaignLiveState.js'

@@ -1330,14 +1330,14 @@ describe('native Encounter Run commands', () => {
         leftAt: null
       })
     )
-    expect(await other.caller.query(getEncounter, { encounterId: run.id })).toEqual(
-      projectPlayerEncounterProjection(encounterGmProjectionDtoSchema.parse(pending.projection), {
-        userId: other.userId,
-        characters: new Map()
-      })
+    // D87: a PREPARED Run paused on a GM decision is unavailable to a player.
+    await expect(other.caller.query(getEncounter, { encounterId: run.id })).rejects.toThrow(
+      'Encounter is unavailable.'
     )
     expect(await other.caller.query(listEncounters, { campaignId: campaign.id })).toEqual([])
-    expect(await other.caller.query(getPendingOccurrence, { encounterId: run.id })).toBeNull()
+    await expect(other.caller.query(getPendingOccurrence, { encounterId: run.id })).rejects.toThrow(
+      'Encounter is unavailable.'
+    )
     const pendingStored = await t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),

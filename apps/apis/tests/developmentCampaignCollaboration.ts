@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import type { ConvexHttpClient } from 'convex/browser'
-import type { SignedCampaignFileDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import { api } from '../convex/_generated/api'
 import { verifyCampaignCollaborationBrowser } from '../../web/tests/live-backend/campaignCollaboration'
 
@@ -13,7 +12,6 @@ export async function verifyCampaignCollaboration(input: {
   evidenceDirectory: string
 }) {
   const { owner, player, anonymous, campaignId } = input
-  let attachmentId: string | undefined
   let privateRollId: string | undefined
   const notebookArgs = { campaignId, paginationOpts: { cursor: null, numItems: 8 } }
   const privateNote = await owner.client.mutation(api.campaigns.notebooks.create, {
@@ -38,41 +36,7 @@ export async function verifyCampaignCollaboration(input: {
     publicId: input.publicId,
     evidenceDirectory: input.evidenceDirectory,
     verifyState: async (stage) => {
-      if (stage.startsWith('file-')) {
-        const attachments = await player.client.query(api.campaigns.attachments.list, notebookArgs)
-        assert.equal(attachments.isDone, true)
-        if (stage === 'file-uploaded') {
-          assert.equal(attachments.page.length, 1)
-          const attachment = attachments.page[0]!
-          attachmentId = attachment.id
-          assert.equal(attachment.displayName, 'p14-collaboration.txt')
-          for (const client of [owner.client, player.client]) {
-            const delivery: SignedCampaignFileDeliveryDto = await client.action(
-              api.media.fileActions.getDelivery,
-              {
-                campaignId,
-                attachmentId
-              }
-            )
-            assert.equal(delivery.fileName, 'p14-collaboration.txt')
-            const response = await fetch(delivery.url, { signal: AbortSignal.timeout(30_000) })
-            assert.equal(response.status, 200)
-            assert.equal(await response.text(), 'P14 shared file\n')
-          }
-          await assert.rejects(
-            anonymous.action(api.media.fileActions.getDelivery, { campaignId, attachmentId }),
-            /Unauthenticated/
-          )
-        } else {
-          assert.deepEqual(attachments.page, [])
-          assert.ok(attachmentId)
-          for (const client of [owner.client, player.client])
-            await assert.rejects(
-              client.action(api.media.fileActions.getDelivery, { campaignId, attachmentId }),
-              /Campaign attachment not found/
-            )
-        }
-      } else if (stage.startsWith('gm-')) {
+      if (stage.startsWith('gm-')) {
         const table = await player.client.query(api.campaigns.chat.list, {
           campaignId,
           room: 'TABLE',

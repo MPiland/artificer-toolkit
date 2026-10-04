@@ -83,8 +83,6 @@ it('moves crops onto references and rewrites every asset as an owner-scoped asse
     portrait: crypto.randomUUID(),
     artwork: crypto.randomUUID(),
     uncropped: crypto.randomUUID(),
-    text: crypto.randomUUID(),
-    handout: crypto.randomUUID(),
     map: crypto.randomUUID(),
     processing: crypto.randomUUID()
   }
@@ -122,36 +120,6 @@ it('moves crops onto references and rewrites every asset as an owner-scoped asse
       ctx,
       'mediaAssets',
       legacyAsset(ids.uncropped, { profile: 'AUTHORED_IMAGE', crop: null })
-    )
-    await insertLegacy(
-      ctx,
-      'mediaAssets',
-      legacyAsset(ids.text, {
-        profile: 'CAMPAIGN_FILE',
-        campaignId,
-        retainedFromUserId: crypto.randomUUID(),
-        upload: {
-          originalFileName: 'notes.txt',
-          declaredMimeType: 'text/plain',
-          declaredBytes: 5,
-          idempotencyKey: crypto.randomUUID()
-        },
-        variants: [
-          {
-            kind: 'SOURCE',
-            objectKey: `ready/${ids.text}/source.txt`,
-            byteSize: 5,
-            width: null,
-            height: null,
-            mimeType: 'text/plain'
-          }
-        ]
-      })
-    )
-    await insertLegacy(
-      ctx,
-      'mediaAssets',
-      legacyAsset(ids.handout, { profile: 'CAMPAIGN_HANDOUT_MAP', campaignId })
     )
     await insertLegacy(
       ctx,
@@ -253,9 +221,7 @@ it('moves crops onto references and rewrites every asset as an owner-scoped asse
     [ids.avatar, 'CONTENT_ART'],
     [ids.portrait, 'CONTENT_ART'],
     [ids.artwork, 'CONTENT_ART'],
-    [ids.uncropped, 'CONTENT_ART'],
-    [ids.text, 'TEXT_FILE'],
-    [ids.handout, 'HANDOUT_MAP']
+    [ids.uncropped, 'CONTENT_ART']
   ] as const) {
     const asset = byId.get(id)
     expect(mediaStoredAssetSchema.parse(asset)).toMatchObject({

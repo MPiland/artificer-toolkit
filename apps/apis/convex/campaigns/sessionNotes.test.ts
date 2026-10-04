@@ -23,7 +23,6 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, components } from '../_generated/api'
-import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -385,14 +384,6 @@ describe('native Session finish and notes', () => {
         kind: 'SHARED_NOTE'
       })
     ).rejects.toThrow(usernameRequired)
-    const file = await readyCampaignFile(t, other.userId)
-    await expect(
-      other.caller.mutation(api.campaigns.attachments.create, {
-        campaignId: campaign.id,
-        assetId: file.id,
-        displayName: 'Unnamed handout'
-      })
-    ).rejects.toThrow(usernameRequired)
     await expect(
       other.caller.mutation(api.campaigns.chat.send, {
         campaignId: campaign.id,
@@ -402,12 +393,7 @@ describe('native Session finish and notes', () => {
         clientNonce: crypto.randomUUID()
       })
     ).rejects.toThrow(usernameRequired)
-    expect(
-      await t.run(async (ctx) => ({
-        notes: await ctx.db.query('campaignSessionNotes').collect(),
-        attachments: await ctx.db.query('campaignAttachments').collect()
-      }))
-    ).toEqual({ notes: [], attachments: [] })
+    expect(await t.run((ctx) => ctx.db.query('campaignSessionNotes').collect())).toEqual([])
     await expect(
       owner.caller.mutation(create, {
         campaignId: campaign.id,

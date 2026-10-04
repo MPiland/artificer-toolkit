@@ -5,7 +5,6 @@ export type CampaignTab =
   | 'announcements'
   | 'party'
   | 'notes'
-  | 'files'
   | 'inventory'
   | 'table'
   | 'content'
@@ -19,7 +18,6 @@ export function getCampaignTabs(campaign: CampaignDetailDto): CampaignTab[] {
     ...(campaign.capabilities.manageNotes || campaign.capabilities.contributeSessionNotes
       ? (['notes'] as const)
       : []),
-    'files',
     ...(campaign.capabilities.managePartyInventory || campaign.capabilities.transferOwnInventory
       ? (['inventory'] as const)
       : []),

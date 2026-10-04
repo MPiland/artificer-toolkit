@@ -9,9 +9,8 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import { readLatestEvidenceRolls } from '@artificer-toolkit/encounter-persistence/evidenceRolls'
 import { query } from '../lib/queries'
-import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireIdentity } from '../lib/identity'
 import { encounterReadTransaction } from './encounterPorts'
+import { readMemberEncounter } from './readAccess'
 
 const latestRollsValidator: Validator<EncounterEvidenceRollDto[], 'required', string> = zodToConvex<
   z.core.$ZodType<EncounterEvidenceRollDto[]>
@@ -22,13 +21,10 @@ export const latest = query({
   args: zodToConvexFields(getEncounterInputDtoSchema.shape),
   returns: latestRollsValidator,
   handler: async (ctx, args): Promise<EncounterEvidenceRollDto[]> => {
-    const { userId } = await requireIdentity(ctx)
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', args.encounterId.toLowerCase()))
-      .unique()
-    if (!run) throw new Error('Encounter is unavailable.')
-    const authority = await requireCampaignAuthority(ctx, run.campaignId, userId)
-    return readLatestEvidenceRolls(encounterReadTransaction(ctx), { run, ...authority })
+    const { run, campaign, membership } = await readMemberEncounter(
+      ctx,
+      args.encounterId.toLowerCase()
+    )
+    return readLatestEvidenceRolls(encounterReadTransaction(ctx), { run, campaign, membership })
   }
 })

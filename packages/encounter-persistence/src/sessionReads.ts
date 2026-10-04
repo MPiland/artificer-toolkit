@@ -5,7 +5,8 @@ import {
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto,
   type EncounterPreparedPendingListDto,
-  type EncounterSessionStateDto
+  type EncounterSessionStateDto,
+  type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
@@ -119,6 +120,36 @@ export async function readEncounterSessionState(
   }
 }
 
+/** The decision kinds a paused START can wait on before the Run is ACTIVE. */
+function isPreStartDecision(
+  pending: PendingEncounterRuleOccurrenceSummaryDto | null
+): pending is PendingEncounterRuleOccurrenceSummaryDto {
+  return (
+    pending?.kind === 'INITIATIVE_DECLARATION' ||
+    pending?.kind === 'INITIATIVE_EVIDENCE' ||
+    pending?.kind === 'INITIATIVE_ORDER' ||
+    pending?.kind === 'RECHARGE_EVIDENCE'
+  )
+}
+
+/**
+ * D87: whether the member may read the Run by ID. The GM reads every Run; a player reads only the
+ * ACTIVE Run, or a PREPARED Run paused on any START decision addressed to them (the pending read
+ * returns a decision only to the member it is addressed to).
+ */
+export async function canMemberReadRun(
+  ctx: EncounterReadTransaction,
+  row: Run,
+  campaign: Campaign,
+  membership: Membership
+): Promise<boolean> {
+  if (membership.role === 'OWNER' || row.status === 'ACTIVE') return true
+  return (
+    row.status === 'PREPARED' &&
+    (await readPendingRunDecision(ctx, row, campaign, membership)) !== null
+  )
+}
+
 /** The PREPARED Runs paused on a START decision the member can see, each with that decision. */
 export async function readEncounterPreparedPending(
   ctx: EncounterReadTransaction,
@@ -128,12 +159,7 @@ export async function readEncounterPreparedPending(
   const visible: EncounterPreparedPendingListDto = []
   for (const row of rows) {
     const pending = await readPendingRunDecision(ctx, row, campaign, membership)
-    if (
-      pending?.kind === 'INITIATIVE_DECLARATION' ||
-      pending?.kind === 'INITIATIVE_EVIDENCE' ||
-      pending?.kind === 'INITIATIVE_ORDER' ||
-      pending?.kind === 'RECHARGE_EVIDENCE'
-    )
+    if (isPreStartDecision(pending))
       visible.push({
         encounter: await presentEncounterRun(ctx, row, campaign, membership),
         pending

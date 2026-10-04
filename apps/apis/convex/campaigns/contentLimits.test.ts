@@ -6,10 +6,6 @@ import type {
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
-  CampaignAttachmentDto,
-  CreateCampaignAttachmentInput
-} from '@artificer-toolkit/schema/api/campaignAttachments'
-import type {
   CampaignNotebookListInput,
   CampaignNotebookListPage,
   CampaignNotebookSectionDto,
@@ -28,7 +24,6 @@ import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogu
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
-import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -58,11 +53,6 @@ const listNotebook = makeFunctionReference<
   CampaignNotebookListInput,
   CampaignNotebookListPage
 >('campaigns/notebooks:list')
-const createAttachment = makeFunctionReference<
-  'mutation',
-  CreateCampaignAttachmentInput,
-  CampaignAttachmentDto
->('campaigns/attachments:create')
 const beginScene = makeFunctionReference<
   'mutation',
   BeginSceneDefinitionInput,
@@ -177,17 +167,10 @@ describe('per-Campaign content limits (Q18)', () => {
     ).rejects.toThrow('Only the Campaign owner can view Campaign usage.')
   }, 30000)
 
-  it('counts notebook sections and attachments through every insert and cascade delete', async () => {
-    const { t, owner, other, campaign } = await setup()
+  it('counts notebook sections through every insert and cascade delete', async () => {
+    const { t, owner, campaign } = await setup()
     const note = await owner.caller.mutation(createNotebook, section(campaign.id))
-    const file = await readyCampaignFile(t, other.userId)
-    await other.caller.mutation(createAttachment, {
-      campaignId: campaign.id,
-      assetId: file.id,
-      displayName: 'Handout',
-      noteSectionId: note.id
-    })
-    expect(await readUsage(t, campaign.id)).toEqual({ entries: 2, scenes: 0 })
+    expect(await readUsage(t, campaign.id)).toEqual({ entries: 1, scenes: 0 })
     await owner.caller.mutation(removeNotebook, { campaignId: campaign.id, sectionId: note.id })
     expect(await readUsage(t, campaign.id)).toBeNull()
   }, 30000)
@@ -203,24 +186,6 @@ describe('per-Campaign content limits (Q18)', () => {
       'This Campaign has reached its entries limit.'
     )
     expect(await readUsage(t, campaign.id)).toEqual({ entries: FREE_ENTRIES, scenes: 0 })
-  }, 30000)
-
-  it('applies the hosting owner tier to member attachments, not the member tier', async () => {
-    const { t, owner, other, campaign } = await setup()
-    await seedUsage(t, campaign.id, { entries: FREE_ENTRIES })
-    await setTier(t, other.userId, 'PRO_GM')
-    const file = await readyCampaignFile(t, other.userId)
-    const attach = () =>
-      other.caller.mutation(createAttachment, {
-        campaignId: campaign.id,
-        assetId: file.id,
-        displayName: 'Map'
-      })
-    await expect(attach()).rejects.toThrow('entries limit')
-    await setTier(t, owner.userId, 'GM')
-    await setTier(t, other.userId, 'FREE')
-    await expect(attach()).resolves.toMatchObject({ displayName: 'Map' })
-    expect(await readUsage(t, campaign.id)).toEqual({ entries: FREE_ENTRIES + 1, scenes: 0 })
   }, 30000)
 
   it('keeps over-limit content readable and editable after a downgrade while refusing new entries', async () => {

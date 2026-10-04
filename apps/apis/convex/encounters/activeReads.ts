@@ -18,6 +18,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/sessionReads'
 import { readActiveRun } from './projectionReads'
 import { encounterReadTransaction } from './encounterPorts'
+import { readMemberEncounter } from './readAccess'
 
 /** One authenticated snapshot keeps the tabletop's active Campaign Run and pending decision in sync. */
 export const active = query({
@@ -52,13 +53,7 @@ export const decisionSettlement = query({
     const input = getEncounterDecisionSettlementInputDtoSchema.parse(args)
     const encounterId = input.encounterId.toLowerCase()
     const occurrenceId = input.occurrenceId.toLowerCase()
-    const { userId } = await requireIdentity(ctx)
-    const run = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', encounterId))
-      .unique()
-    if (!run) throw new Error('Encounter is unavailable.')
-    await requireCampaignAuthority(ctx, run.campaignId, userId)
+    const { run } = await readMemberEncounter(ctx, encounterId)
     return readEncounterDecisionSettlement(encounterReadTransaction(ctx), {
       encounterId: run.id,
       occurrenceId,

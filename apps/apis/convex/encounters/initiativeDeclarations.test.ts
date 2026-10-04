@@ -533,15 +533,18 @@ describe('native initiative declarations', () => {
       const pending = result.occurrence?.pending
       if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected declaration.')
-      const playerPending = await base.player.caller.query(
-        api.encounters.pendingReads.pendingRuleOccurrence,
-        { encounterId: run.id }
-      )
       if (pending.actorId === characterActor.id) {
-        expect(playerPending).toMatchObject({
-          kind: 'INITIATIVE_DECLARATION',
-          actorId: characterActor.id
-        })
+        expect(
+          await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+            encounterId: run.id
+          })
+        ).toMatchObject({ kind: 'INITIATIVE_DECLARATION', actorId: characterActor.id })
+        // D87: a decision addressed to the player opens the pre-start Run to them.
+        expect(
+          await base.player.caller.query(api.encounters.projectionReads.get, {
+            encounterId: run.id
+          })
+        ).toMatchObject({ id: run.id, status: 'PREPARED' })
         expect(
           await base.player.caller.query(api.encounters.projectionReads.pendingPrepared, {
             campaignId: base.campaign.id
@@ -610,7 +613,21 @@ describe('native initiative declarations', () => {
           }
         })
       } else {
-        expect(playerPending).toBeNull()
+        // D87: a pre-start decision addressed to someone else leaves the Run unavailable to them.
+        await expect(
+          base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+            encounterId: run.id
+          })
+        ).rejects.toThrow('Encounter is unavailable.')
+        await expect(
+          base.player.caller.query(api.encounters.projectionReads.get, { encounterId: run.id })
+        ).rejects.toThrow('Encounter is unavailable.')
+        await expect(
+          base.player.caller.query(api.encounters.timelineReads.timeline, {
+            encounterId: run.id,
+            limit: 20
+          })
+        ).rejects.toThrow('Encounter is unavailable.')
         expect(
           await base.player.caller.query(api.encounters.projectionReads.pendingPrepared, {
             campaignId: base.campaign.id
@@ -731,11 +748,12 @@ describe('native initiative declarations', () => {
           throw new Error('Expected an issued declaration.')
         const role = pending.actorId === characterActor.id ? 'PLAYER' : 'OWNER'
         const caller = role === 'PLAYER' ? base.player.caller : base.owner.caller
-        const visible = await base.player.caller.query(
+        const visible = base.player.caller.query(
           api.encounters.pendingReads.pendingRuleOccurrence,
           { encounterId: run.id }
         )
-        expect(visible?.kind === 'INITIATIVE_DECLARATION').toBe(role === 'PLAYER')
+        if (role === 'PLAYER') expect((await visible)?.kind).toBe('INITIATIVE_DECLARATION')
+        else await expect(visible).rejects.toThrow('Encounter is unavailable.')
         expect(
           await base.player.caller.query(api.encounters.projectionReads.pendingPrepared, {
             campaignId: base.campaign.id
@@ -745,8 +763,7 @@ describe('native initiative declarations', () => {
         if (command.resolution.kind !== 'INITIATIVE_DECLARATION')
           throw new Error('Expected a declaration response command.')
         const before = await storedInitiative(base)
-        const answer = (member: typeof base.player) =>
-          executeInRoom(member.caller, { command })
+        const answer = (member: typeof base.player) => executeInRoom(member.caller, { command })
         if (role === 'PLAYER') {
           await expect(executeInRoom(base.player.caller, { command: start })).rejects.toThrow()
           const membership = await base.t.run((ctx) =>
@@ -794,7 +811,10 @@ describe('native initiative declarations', () => {
         }
         await expect(
           executeInRoom(caller, {
-            command: { ...command, expectedOccurrenceVersion: command.expectedOccurrenceVersion + 1 }
+            command: {
+              ...command,
+              expectedOccurrenceVersion: command.expectedOccurrenceVersion + 1
+            }
           })
         ).rejects.toThrow()
         await expect(
@@ -1028,18 +1048,18 @@ describe('native initiative declarations', () => {
       if (!actor) throw new Error('Expected pending Encounter actor.')
       const command = declarationCommand({ encounterId: run.id, pending })
       if (actor.sourceId === base.character.id) {
-        expect(
-          await secondPlayer.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        await expect(
+          secondPlayer.query(api.encounters.pendingReads.pendingRuleOccurrence, {
             encounterId: run.id
           })
-        ).toBeNull()
+        ).rejects.toThrow('Encounter is unavailable.')
         await executeInRoom(base.player.caller, command)
       } else if (actor.sourceId === secondCharacter.id) {
-        expect(
-          await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        await expect(
+          base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
             encounterId: run.id
           })
-        ).toBeNull()
+        ).rejects.toThrow('Encounter is unavailable.')
         await executeInRoom(secondPlayer, command)
       } else {
         await executeInRoom(base.owner.caller, command)
@@ -1054,11 +1074,11 @@ describe('native initiative declarations', () => {
     const finalActor = run.actors.find((actor) => actor.id === finalPending.actorId)
     if (finalActor?.sourceId !== secondCharacter.id)
       throw new Error('Expected final declaration from the second Character controller.')
-    expect(
-      await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    await expect(
+      base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: run.id
       })
-    ).toBeNull()
+    ).rejects.toThrow('Encounter is unavailable.')
     const terminal = declarationCommand({ encounterId: run.id, pending: finalPending })
     const settled = await executeInRoom(secondPlayer, terminal)
     expect(settled.projection.status).toBe('ACTIVE')

@@ -1016,31 +1016,6 @@ or missing attempts every 15 minutes, and drops the obligation only after the pr
 component metadata deletion both succeed. This uses Convex's durable scheduler, not a new queue
 table. Upload expiry, processing fences, and detached-asset grace precede cleanup.
 
-`campaigns/attachments:list/create/remove` now provide native paginated metadata and member attachment
-creation for owned READY Campaign-file assets, with uploader-or-GM removal and archived read-only behavior.
-Notebook deletion cascades associated attachments atomically; shared asset references prevent
-premature retirement, and deleted-account purge removes references before retiring bytes. The
-stored file schema supports UTF-8 SOURCE variants without making image dimensions nullable.
-`media/fileAssets:createUpload` reuses the avatar/artwork reservation and exact-length/MIME single-PUT
-signer after current Campaign membership checks. Owner-scoped replay binds the target/profile and
-file metadata, while abandoned uploads keep the existing expiry fence and quota cleanup. Upload
-permission remains available to active members of archived Campaigns; attaching still requires an
-ACTIVE Campaign. Internal begin/finish/reject finalization now preclaims immutable keys, normalizes
-real R2 bytes, rechecks owner/current membership, and atomically settles actual quota. Validation
-and quota rejection retire keys after the write fence; operational/killed actions preserve the raw
-upload for same-asset retry after the 15-minute fence. Focused loopback tests cover partial writes,
-rollback, revocation and cleanup. `media/fileActions:finalize` now orchestrates those internal
-transactions and Node processing, preserving READY replay, REJECTED validation/quota outcomes and
-fenced retry after operational failure. The Campaign file web surface now uses generated Convex
-functions for signed PUT/finalize/attach and reactive paginated list/delivery/removal; its obsolete
-attachment tRPC facade and query key are removed. Complete lifecycle proof remains pending; see
-[native attachment metadata](../../docs/architecture/media.md#native-campaign-attachment-metadata--partial-local-implementation).
-Internal `campaigns/attachments:readDelivery` now provides the member-authorized verified SOURCE
-projection for `media/fileActions:getDelivery`. It resolves the current Campaign/attachment pair, rejects missing or
-inconsistent file bindings, and permits archived/shared-member reads without granting notebook access.
-The public action signs a five-minute R2 download with verified MIME type and encoded attachment
-filename, returning the unchanged delivery DTO. The internal query never exposes object keys to clients.
-
 `MEDIA_STORAGE_MODE=local` requires loopback `CONVEX_SITE_URL` and `LOCAL_R2_ENDPOINT`. It uses
 the test-only `artificer-local-media` bucket and fixed dummy credentials, ignoring all managed
 R2 credentials. `MEDIA_STORAGE_MODE=r2` requires a managed Convex site, HTTPS Cloudflare

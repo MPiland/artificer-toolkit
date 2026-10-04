@@ -2,7 +2,7 @@ import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campai
 import type { QueryCtx } from '../_generated/server'
 import { readAuthUsers } from '../lib/authUserReads'
 
-/** Shared Campaign authorship (chat, rolls, shared notes, handouts) needs a username to show. */
+/** Shared Campaign authorship (chat, rolls, shared notes) needs a username to show. */
 export function requireCampaignAuthorUsername(username: string | null): asserts username is string {
   if (!username) throw new Error('A username is required to post in this Campaign.')
 }

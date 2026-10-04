@@ -13,11 +13,9 @@ import {
   readEncounterActionChoices,
   readEncounterOptionalActionChoices
 } from '@artificer-toolkit/encounter-persistence/actionChoiceReads'
-import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
-import { requireIdentity } from '../lib/identity'
-import { requireCampaignAuthority } from '../campaigns/authority'
 import { encounterTurnReadTransaction } from './turnReadPorts'
+import { readMemberEncounter } from './readAccess'
 
 const choicesValidator: Validator<EncounterActionChoicesResponseDto, 'required', string> =
   zodToConvex<z.core.$ZodType<EncounterActionChoicesResponseDto>>(
@@ -28,24 +26,13 @@ const optionalChoicesValidator: Validator<EncounterOptionalActionChoicesDto, 're
     encounterOptionalActionChoicesDtoSchema
   )
 
-/** The caller's Campaign authority over the Run the request names. */
-async function readRunAuthority(ctx: QueryCtx, encounterId: string) {
-  const { userId } = await requireIdentity(ctx)
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', encounterId))
-    .unique()
-  if (!run) throw new Error('Encounter Run was not found.')
-  return { run, ...(await requireCampaignAuthority(ctx, run.campaignId, userId)) }
-}
-
 export const get = query({
   args: zodToConvexFields(getEncounterActionChoicesInputDtoSchema.shape),
   returns: choicesValidator,
   handler: async (ctx, args): Promise<EncounterActionChoicesResponseDto> => {
     const request = getEncounterActionChoicesInputDtoSchema.parse(args)
     return readEncounterActionChoices(encounterTurnReadTransaction(ctx), {
-      ...(await readRunAuthority(ctx, request.encounterId)),
+      ...(await readMemberEncounter(ctx, request.encounterId)),
       request
     })
   }
@@ -57,7 +44,7 @@ export const optional = query({
   handler: async (ctx, args): Promise<EncounterOptionalActionChoicesDto> => {
     const request = getEncounterOptionalActionChoicesInputDtoSchema.parse(args)
     return readEncounterOptionalActionChoices(encounterTurnReadTransaction(ctx), {
-      ...(await readRunAuthority(ctx, request.encounterId)),
+      ...(await readMemberEncounter(ctx, request.encounterId)),
       request
     })
   }

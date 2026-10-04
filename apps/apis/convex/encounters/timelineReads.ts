@@ -15,8 +15,7 @@ import {
   type EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import { query } from '../lib/queries'
-import { requireIdentity } from '../lib/identity'
-import { requireCampaignAuthority } from '../campaigns/authority'
+import { readMemberEncounter } from './readAccess'
 import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { readEncounterTimelinePage } from '@artificer-toolkit/encounter-persistence/timelinePages'
@@ -32,13 +31,7 @@ export const timeline = query({
       encounterId: args.encounterId.toLowerCase(),
       ...(args.cursor === undefined ? {} : { cursor: args.cursor.toLowerCase() })
     })
-    const { userId } = await requireIdentity(ctx)
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-      .unique()
-    if (!row) throw new Error('Encounter is unavailable.')
-    const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
+    const { run: row, campaign, membership } = await readMemberEncounter(ctx, input.encounterId)
     readCampaignRunState(row, campaign)
     const missingMetadata = await ctx.db
       .query('encounterRunCommands')

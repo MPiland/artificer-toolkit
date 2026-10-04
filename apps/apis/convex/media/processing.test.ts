@@ -95,34 +95,28 @@ describe('media processing', () => {
     }
   )
 
-  it.each([
-    ['CONTENT_ART', 2048, 1024],
-    ['HANDOUT_MAP', 4096, 2048]
-  ] as const)(
-    'normalizes %s to a %ipx source and does not crop',
-    async (profile, width, height) => {
-      const source = await image(4200, 2100).png().toBuffer()
-      const result = await processMedia(source, profile, 'image/png')
-      expect([result.width, result.height]).toEqual([width, height])
-      expect(
-        result.variants.map(({ kind, width, height }) => ({
-          kind,
-          width,
-          height
-        }))
-      ).toEqual([
-        { kind: 'SOURCE', width, height },
-        { kind: 'DISPLAY', width: 1600, height: 800 },
-        { kind: 'THUMBNAIL', width: 320, height: 160 }
-      ])
-      for (const variant of result.variants) {
-        expect(await sharp(variant.bytes).metadata()).toMatchObject({
-          width: variant.width,
-          height: variant.height
-        })
-      }
+  it('normalizes CONTENT_ART to a 2048px source and does not crop', async () => {
+    const source = await image(4200, 2100).png().toBuffer()
+    const result = await processMedia(source, 'CONTENT_ART', 'image/png')
+    expect([result.width, result.height]).toEqual([2048, 1024])
+    expect(
+      result.variants.map(({ kind, width, height }) => ({
+        kind,
+        width,
+        height
+      }))
+    ).toEqual([
+      { kind: 'SOURCE', width: 2048, height: 1024 },
+      { kind: 'DISPLAY', width: 1600, height: 800 },
+      { kind: 'THUMBNAIL', width: 320, height: 160 }
+    ])
+    for (const variant of result.variants) {
+      expect(await sharp(variant.bytes).metadata()).toMatchObject({
+        width: variant.width,
+        height: variant.height
+      })
     }
-  )
+  })
 
   it('hashes the normalized bytes, so re-encoded copies of one image share a content hash', async () => {
     const png = await image(300, 200).png().toBuffer()
@@ -137,8 +131,6 @@ describe('media processing', () => {
       'image/png'
     )
     expect(other.contentHash).not.toBe(first.contentHash)
-    const text = await processMedia(Buffer.from('notes'), 'TEXT_FILE', 'text/plain')
-    expect(text.contentHash).toBe(await sha256(Buffer.from('notes')))
   })
 
   it('applies EXIF orientation and removes the source EXIF and ICC from every result', async () => {
@@ -211,18 +203,9 @@ describe('media processing', () => {
     await expect(processMedia(Buffer.alloc(0), 'CONTENT_ART', 'image/png')).rejects.toThrow(
       'Upload data is empty.'
     )
-    await expect(processMedia(Buffer.alloc(0), 'TEXT_FILE', 'text/plain')).rejects.toThrow(
-      'Upload data is empty.'
-    )
-    await expect(
-      processMedia(Buffer.from('\uFEFF', 'utf8'), 'TEXT_FILE', 'text/plain')
-    ).rejects.toThrow('Upload data is empty.')
     await expect(
       processMedia(Buffer.alloc(6 * 1024 * 1024 + 1), 'CONTENT_ART', 'image/png')
     ).rejects.toThrow('Image exceeds the 6 MiB limit.')
-    await expect(
-      processMedia(Buffer.alloc(6 * 1024 * 1024 + 1), 'TEXT_FILE', 'text/plain')
-    ).rejects.toThrow('File exceeds the 6 MiB limit.')
     await expect(
       processMedia(Buffer.alloc(25 * 1024 * 1024 + 1), 'VTT_MAP', 'image/png')
     ).rejects.toThrow('Map exceeds the 25 MiB limit.')
@@ -296,49 +279,4 @@ describe('media processing', () => {
       expect(metadata.icc).toBeUndefined()
     }
   })
-
-  it('normalizes UTF-8 campaign files without image dimensions and retains original byte size', async () => {
-    const source = Buffer.from('\uFEFFNotes\r\n\tRésumé 🐉\n', 'utf8')
-    const result = await processMedia(source, 'TEXT_FILE', 'text/plain')
-    const normalized = Buffer.from('Notes\r\n\tRésumé 🐉\n', 'utf8')
-    expect(result).toEqual({
-      originalByteSize: source.byteLength,
-      verifiedByteSize: normalized.byteLength,
-      verifiedMimeType: 'text/plain',
-      contentHash: await sha256(normalized),
-      width: null,
-      height: null,
-      variants: [
-        {
-          kind: 'SOURCE',
-          bytes: normalized,
-          mimeType: 'text/plain',
-          width: null,
-          height: null
-        }
-      ],
-      tiles: []
-    })
-  })
-
-  it('rejects malformed UTF-8 and all forbidden C0/DEL text controls', async () => {
-    await expect(
-      processMedia(Buffer.from([0xc3, 0x28]), 'TEXT_FILE', 'text/plain')
-    ).rejects.toThrow('Text files must use valid UTF-8.')
-    for (const code of [...Array.from({ length: 32 }, (_, value) => value), 127]) {
-      if (code === 9 || code === 10 || code === 13) continue
-      await expect(
-        processMedia(Buffer.from(`notes${String.fromCharCode(code)}`), 'TEXT_FILE', 'text/plain')
-      ).rejects.toThrow('Text files cannot contain control characters.')
-    }
-  })
-
-  it.each(['CONTENT_ART', 'HANDOUT_MAP', 'VTT_MAP'] as const)(
-    'does not accept text for %s',
-    async (profile) => {
-      await expect(
-        processMedia(Buffer.from('notes'), profile, 'text/plain')
-      ).rejects.toBeInstanceOf(MediaValidationError)
-    }
-  )
 })

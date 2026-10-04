@@ -323,12 +323,6 @@ export const removeFixtureCampaign = internalMutation({
           .withIndex('by_campaignId_noteSectionId', (q) =>
             q.eq('campaignId', campaign.id).eq('target.noteSectionId', section.id)
           )
-          .take(1),
-        attachments: await ctx.db
-          .query('campaignAttachments')
-          .withIndex('by_campaignId_noteSectionId', (q) =>
-            q.eq('campaignId', campaign.id).eq('noteSectionId', section.id)
-          )
           .take(1)
       }))
     )
@@ -349,9 +343,7 @@ export const removeFixtureCampaign = internalMutation({
           ) ||
           payloads.some((payload) => payload === null)
       ) ||
-      noteDependencies.some(
-        ({ references, attachments }) => references.length || attachments.length
-      ) ||
+      noteDependencies.some(({ references }) => references.length) ||
       ((conversations.length || notebookSections.length) &&
         (sessions.length ||
           announcements.length ||

@@ -28,6 +28,7 @@ import { readRecipientContext } from '../scenes/recipientContext'
 import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { encounterReadTransaction } from './encounterPorts'
+import { readMemberEncounter } from './readAccess'
 
 async function readBoundSceneScope(
   ctx: QueryCtx,
@@ -38,13 +39,7 @@ async function readBoundSceneScope(
     expectedVersion?: number
   }
 ) {
-  const { userId } = await requireIdentity(ctx)
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-    .unique()
-  if (!run) throw new Error('Encounter is unavailable.')
-  const { campaign } = await requireCampaignAuthority(ctx, run.campaignId, userId)
+  const { run, campaign, userId } = await readMemberEncounter(ctx, input.encounterId)
   const { binding, scene } = await readBoundEncounterScene(
     encounterReadTransaction(ctx),
     {

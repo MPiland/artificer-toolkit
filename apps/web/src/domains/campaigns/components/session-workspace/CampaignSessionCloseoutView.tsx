@@ -5,7 +5,6 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { useConvex } from 'convex/react'
 import { CampaignSessionReferences } from '../CampaignSessionReferences'
-import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
 import { CampaignSharedSessionNotes } from '../CampaignSessionNotes'
 import { closeoutSessionSectionKinds } from '../campaignSessionSections.model'
@@ -46,11 +45,6 @@ export function CampaignSessionCloseoutView({
             sessionId={session.id}
           />
         </section>
-        <CampaignFileList
-          campaign={campaign}
-          currentUserId={currentUserId}
-          sessionId={session.id}
-        />
         <section className={styles.sessionUtilityPanel} aria-label='Pinned references'>
           <CampaignSessionReferences campaign={campaign} editable={false} sessionId={session.id} />
         </section>
@@ -75,7 +69,6 @@ export function CampaignSessionCloseoutView({
           sessionId={session.id}
         />
       </section>
-      <CampaignFileList campaign={campaign} currentUserId={currentUserId} sessionId={session.id} />
       {session.status === 'OPEN' ? (
         <section className={styles.sessionCompletion} aria-label='Session status'>
           <Group align='center' justify='space-between' wrap='wrap'>

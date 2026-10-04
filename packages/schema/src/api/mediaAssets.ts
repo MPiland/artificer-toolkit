@@ -1,7 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { authoredDraftListInputSchema } from './authoredDrafts.js'
 import {
-  campaignFileMimeTypeSchema,
   imageMimeTypeSchema,
   normalizedImageCropSchema,
   mediaAssetStatusSchema,
@@ -12,11 +11,9 @@ import {
 
 /**
  * Assets are interchangeable within a class (ADR 0012, 2026-09-27 amendment): content art serves
- * avatars, portraits, authored artwork and Campaign file images; maps and text files stay apart.
+ * avatars, portraits and authored artwork; maps stay apart.
  */
-export const mediaProfileClassSchema = lazySchema(() =>
-  z.enum(['CONTENT_ART', 'TEXT_FILE', 'HANDOUT_MAP', 'VTT_MAP'])
-)
+export const mediaProfileClassSchema = lazySchema(() => z.enum(['CONTENT_ART', 'VTT_MAP']))
 /** SHA-256 hex digest: normalized bytes for de-duplication, or a canonical crop. */
 export const mediaSha256Schema = lazySchema(() => z.string().check(z.regex(/^[0-9a-f]{64}$/)))
 
@@ -61,18 +58,6 @@ export const mediaStoredVariantSchema = lazySchema(() =>
     height: z.number().check(z.int()).check(z.positive()),
     mimeType: z.literal('image/webp')
   })
-)
-/** Normalized WebP image variants, or the single verified UTF-8 SOURCE of a text file. */
-export const mediaStoredFileVariantSchema = lazySchema(() =>
-  z.discriminatedUnion('mimeType', [
-    mediaStoredVariantSchema,
-    z.extend(mediaStoredVariantSchema, {
-      kind: z.literal('SOURCE'),
-      mimeType: z.literal('text/plain'),
-      width: z.null(),
-      height: z.null()
-    })
-  ])
 )
 /** A thumbnail derived from SOURCE for one crop; any reference using that crop shares it. */
 export const mediaCropThumbnailSchema = lazySchema(() =>
@@ -178,56 +163,25 @@ export const authoredImageSlotSchema = lazySchema(() =>
       })
     )
 )
-/** Unrefined stored fields, for map rows to extend; image and file rows use the refined schema. */
-export const mediaStoredAssetFieldsSchema = lazySchema(() =>
+/** A stored content-art asset; map rows extend its fields. */
+export const mediaStoredAssetSchema = lazySchema(() =>
   z.strictObject({
     id: z.string().check(z.uuid()),
     ownerUserId: z.string().check(z.uuid()),
     /** The asset whose stored objects these variants are; a retained Campaign copy shares its source's. */
     storageAssetId: z.string().check(z.uuid()),
-    profileClass: z.enum(['CONTENT_ART', 'TEXT_FILE', 'HANDOUT_MAP']),
-    upload: z.extend(avatarUploadInputSchema, { declaredMimeType: campaignFileMimeTypeSchema }),
+    profileClass: z.literal('CONTENT_ART'),
+    upload: avatarUploadInputSchema,
     status: mediaAssetStatusSchema,
     rawObjectKey: z.nullable(z.string()),
     uploadExpiresAt: z.number(),
     chargedBytes: z.number().check(z.int()).check(z.nonnegative()),
     contentHash: z.nullable(mediaSha256Schema),
-    variants: z.array(mediaStoredFileVariantSchema).check(z.maxLength(3)),
+    variants: z.array(mediaStoredVariantSchema).check(z.maxLength(3)),
     cropThumbnails: z.array(mediaCropThumbnailSchema).check(z.maxLength(32)),
     operation: z.nullable(mediaProcessingOperationSchema),
     cleanupAt: z.nullable(z.number())
   })
-)
-export const mediaStoredAssetSchema = lazySchema(() =>
-  mediaStoredAssetFieldsSchema.check(
-    z.superRefine((asset, context) => {
-      const text = asset.profileClass === 'TEXT_FILE'
-      if ((asset.upload.declaredMimeType === 'text/plain') !== text)
-        context.addIssue({
-          code: 'custom',
-          path: ['upload'],
-          message: 'Only text files accept text uploads.'
-        })
-      if (asset.variants.some((variant) => (variant.mimeType === 'text/plain') !== text))
-        context.addIssue({
-          code: 'custom',
-          path: ['variants'],
-          message: 'File variants must match the upload type.'
-        })
-      if (asset.profileClass !== 'CONTENT_ART' && asset.cropThumbnails.length > 0)
-        context.addIssue({
-          code: 'custom',
-          path: ['cropThumbnails'],
-          message: 'Only content art is cropped.'
-        })
-      if (asset.profileClass !== 'CONTENT_ART' && asset.operation?.binding)
-        context.addIssue({
-          code: 'custom',
-          path: ['operation'],
-          message: 'Only content art binds an image slot.'
-        })
-    })
-  )
 )
 export const mediaProcessClaimSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -303,7 +257,6 @@ export const mediaImageAttachInputSchema = lazySchema(() =>
 export type MediaProfileClass = z.infer<typeof mediaProfileClassSchema>
 export type MediaStoredAsset = z.infer<typeof mediaStoredAssetSchema>
 export type MediaStoredVariant = z.infer<typeof mediaStoredVariantSchema>
-export type MediaStoredFileVariant = z.infer<typeof mediaStoredFileVariantSchema>
 export type MediaCropThumbnail = z.infer<typeof mediaCropThumbnailSchema>
 export type MediaCropThumbnailClaim = z.infer<typeof mediaCropThumbnailClaimSchema>
 export type MediaProcessingOperation = z.infer<typeof mediaProcessingOperationSchema>

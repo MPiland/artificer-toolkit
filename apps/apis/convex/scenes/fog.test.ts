@@ -16,6 +16,7 @@ import { seedFogLayer } from '../../tests/fixtures/liveSceneFog'
 import { liveSceneHead } from '../../tests/fixtures/liveSceneToken'
 import {
   createSceneDefinitionFixture,
+  presentFixtureScene,
   publishEmptyScene
 } from '../../tests/fixtures/sceneDefinitions'
 
@@ -38,6 +39,7 @@ const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, Ca
 it('keeps private layers owner-only, while active players read shared and own layers', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
+  await presentFixtureScene(base, sceneId)
   await base.t.run((ctx) =>
     ctx.db.insert('sceneLiveStates', liveSceneHead(sceneId, { version: 2, fogLayers: 2 }))
   )
@@ -128,6 +130,7 @@ it('keeps private layers owner-only, while active players read shared and own la
 it('hydrates all member fog only through the internal transient reader', async () => {
   const base = await createSceneDefinitionFixture()
   const { sceneId } = await publishEmptyScene(base)
+  await presentFixtureScene(base, sceneId)
   await base.t.run((ctx) =>
     ctx.db.insert('sceneLiveStates', liveSceneHead(sceneId, { version: 3, fogLayers: 3 }))
   )

@@ -376,9 +376,10 @@ describe('native Encounter current Character conditions', () => {
     expect(await owner.caller.query(list, { campaignId: campaign.id })).toEqual([
       encounterSummaryOf(completed)
     ])
-    expect(
-      characterConditions(await player.caller.query(get, { encounterId: run.id }), actor.id)
-    ).toEqual([])
+    // D87: a player reads no COMPLETED Run.
+    await expect(player.caller.query(get, { encounterId: run.id })).rejects.toThrow(
+      'Encounter is unavailable.'
+    )
     await expect(
       owner.caller.query(timeline, { encounterId: run.id, limit: 50 })
     ).resolves.toMatchObject({ entries: expect.any(Array), nextCursor: null })

@@ -14,6 +14,7 @@ import type {
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { createEncounterSceneFixture as setup } from '../../tests/fixtures/encounterScene'
 import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 
@@ -119,6 +120,8 @@ async function prepare(hiddenTokenIndex: number | null = null) {
     commandId: crypto.randomUUID(),
     encounterId: base.run.id
   })
+  // D87: a player reads only the ACTIVE Encounter.
+  await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
   return { ...base, tokenIds }
 }
 
@@ -259,6 +262,7 @@ describe('native Encounter recipient bindings', () => {
         .action(encounterBindings, await bindingInput(base, base.owner.caller))
     ).rejects.toThrow()
 
+    const presentedInput = await bindingInput(base, base.owner.caller)
     await base.t.run(async (ctx) => {
       const presentation = await ctx.db
         .query('campaignScenePresentations')
@@ -269,10 +273,8 @@ describe('native Encounter recipient bindings', () => {
     })
     await expect(
       base.owner.caller.query(getBinding, { encounterId: base.run.id, sceneId: base.sceneId })
-    ).rejects.toThrow('presentation is stale')
-    await expect(
-      base.owner.caller.action(encounterBindings, await bindingInput(base, base.owner.caller))
-    ).rejects.toThrow()
+    ).rejects.toThrow('Live Scene is unavailable.')
+    await expect(base.owner.caller.action(encounterBindings, presentedInput)).rejects.toThrow()
 
     await base.t.run(async (ctx) => {
       const presentation = await ctx.db
@@ -284,7 +286,7 @@ describe('native Encounter recipient bindings', () => {
     })
     await expect(
       base.owner.caller.query(getBinding, { encounterId: base.run.id, sceneId: base.sceneId })
-    ).rejects.toThrow('presentation is stale')
+    ).rejects.toThrow('Live Scene is unavailable.')
   }, 60000)
 
   it('rejects stale Encounter, Scene, or recipient revisions', async () => {

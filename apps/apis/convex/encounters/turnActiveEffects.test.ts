@@ -488,11 +488,11 @@ describe('native public turn active-effect journeys', () => {
       projection: pendingIncoming.projection
     })
     expect(await stored(base)).toEqual(paused)
-    expect(
-      await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    await expect(
+      base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
       })
-    ).toBeNull()
+    ).rejects.toThrow('Encounter is unavailable.')
     const settled = await executeInRoom(
       base.owner.caller,
       diceResponse(base.run.id, pendingIncoming)
@@ -874,11 +874,11 @@ describe('native public turn active-effect journeys', () => {
     const pending = await resolveInitiative(base, start)
     const final = diceResponse(base.run.id, pending)
     const before = await stored(base)
-    expect(
-      await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    await expect(
+      base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
       })
-    ).toBeNull()
+    ).rejects.toThrow('Encounter is unavailable.')
     await expect(executeInRoom(base.other.caller, final)).rejects.toThrow()
     const wrongRequest: EncounterExecuteInput = {
       command: {

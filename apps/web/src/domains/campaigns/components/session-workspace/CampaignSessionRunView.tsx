@@ -2,7 +2,6 @@ import { Stack, Text, Title } from '@mantine/core'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignSessionAttendance } from '../CampaignSessionAttendance'
-import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
 import { CampaignEncounters } from '../CampaignEncounters'
 import { CampaignSessionPartySummary } from '../CampaignSessionPartySummary'
 import { CampaignSessionReferences } from '../CampaignSessionReferences'
@@ -27,11 +26,6 @@ export function CampaignSessionRunView({
       <Stack gap='lg'>
         <CampaignTabletopLauncher campaign={campaign} />
         <CampaignPlayerEncounterDecisions campaign={campaign} />
-        <CampaignFileList
-          campaign={campaign}
-          currentUserId={currentUserId}
-          sessionId={session.id}
-        />
         <section className={styles.sessionUtilityPanel} aria-label='Shared Session notes'>
           <CampaignSharedSessionNotes
             campaign={campaign}
@@ -50,7 +44,6 @@ export function CampaignSessionRunView({
     <Stack gap='lg'>
       <CampaignTabletopLauncher campaign={campaign} />
       <CampaignEncounters campaign={campaign} currentUserId={currentUserId} mode='RUN' />
-      <CampaignFileList campaign={campaign} currentUserId={currentUserId} sessionId={session.id} />
       <section className={styles.sessionUtilityPanel} aria-label='Session attendance'>
         <CampaignSessionAttendance campaign={campaign} session={session} />
       </section>

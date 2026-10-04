@@ -451,11 +451,11 @@ describe('native Encounter turn Recharge', () => {
       throw new Error('Expected owner Recharge evidence after initiative settles.')
     if (!orderReplay) throw new Error('Expected tied initiative order evidence.')
     await expect(replayInRoom(base.owner.caller, orderReplay)).resolves.toEqual(result)
-    expect(
-      await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    await expect(
+      base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
       })
-    ).toBeNull()
+    ).rejects.toThrow('Encounter is unavailable.')
     const firstRecharge = rechargeResolution({
       encounterId: base.run.id,
       pending: result.occurrence.pending,

@@ -2,7 +2,6 @@ import { Stack, Text, Title } from '@mantine/core'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignEncounters } from '../CampaignEncounters'
-import { CampaignFileList } from '../CampaignFiles/CampaignFileList'
 import { CampaignSessionReferences } from '../CampaignSessionReferences'
 import { CampaignSessionSchedulePanel } from '../CampaignSessionSchedulePanel'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
@@ -54,7 +53,6 @@ export function CampaignSessionPrepareView({
       <section className={styles.sessionUtilityPanel} aria-label='Pinned references'>
         <CampaignSessionReferences campaign={campaign} sessionId={session.id} />
       </section>
-      <CampaignFileList campaign={campaign} currentUserId={currentUserId} sessionId={session.id} />
       <CampaignEncounters campaign={campaign} currentUserId={currentUserId} mode='PREPARE' />
     </Stack>
   )

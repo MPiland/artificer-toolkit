@@ -816,22 +816,6 @@ async function cleanup() {
           false
         )
       }
-      if (collaborationAuthors.some((author) => author.userId === fixture.ownerUserId)) {
-        const attachments = await client.query(api.campaigns.attachments.list, {
-          campaignId: campaign.id,
-          paginationOpts: { cursor: null, numItems: 8 }
-        })
-        assert.equal(attachments.isDone, true)
-        assert.ok(attachments.page.length <= 1)
-        for (const attachment of attachments.page) {
-          assert.equal(attachment.displayName, 'p14-collaboration.txt')
-          assert.equal(attachment.uploaderUserId, fixture.ownerUserId)
-          await client.mutation(api.campaigns.attachments.remove, {
-            campaignId: campaign.id,
-            attachmentId: attachment.id
-          })
-        }
-      }
       if (inventoryOwners.has(fixture.ownerUserId)) {
         await cli(
           'campaigns/developmentInventory:removeFixtureState',
@@ -4945,21 +4929,9 @@ try {
     const assertFinalDeferredCleanup = (captured: DeletionCapture) => {
       const finalTables = catalogue(captured)
       const retainedAssets = finalTables.mediaAssets ?? []
-      // The Campaign owner holds a copy sharing the handout's stored objects; the subject's own
-      // asset is purged, never transferred (ADR 0012 amendment).
-      assert.equal(retainedAssets.length, 1)
-      assert.notEqual(retainedAssets[0]?.id, fixture.ids.handoutAssetId)
-      assert.equal(retainedAssets[0]?.storageAssetId, fixture.ids.handoutAssetId)
-      assert.equal(retainedAssets[0]?.ownerUserId, fixture.auditor.identity.userId)
-      const retainedAttachments = finalTables.campaignAttachments ?? []
-      assert.equal(retainedAttachments.length, 1)
-      assert.equal(retainedAttachments[0]?.id, fixture.ids.handoutAttachmentId)
-      assert.equal(retainedAttachments[0]?.assetId, retainedAssets[0]?.id)
-      assert.equal(retainedAttachments[0]?.uploaderUserId, fixture.subject.identity.userId)
-      assert.equal(
-        retainedAssets.some((row) => row.id === fixture.ids.subjectSceneAssetId),
-        false
-      )
+      // The subject's own assets are purged, never transferred (ADR 0012 amendment); only a map a
+      // shared Campaign still references is retained, and this fixture has none.
+      assert.deepEqual(retainedAssets, [], 'Native account deletion retains media.')
       for (const name of [
         'charactersWithPortrait',
         'sceneDefinitions',
@@ -4986,7 +4958,6 @@ try {
     let baseline: DeletionCapture | undefined
     let deleted: DeletionCapture | undefined
     let historicalChat: unknown
-    let historicalAttachments: unknown
     let historicalSession: unknown
     let historicalRun: unknown
     let historicalTimeline: unknown
@@ -5066,13 +5037,6 @@ try {
                 limit: 50
               })
             )
-            historicalAttachments = await fixture.auditor.client.query(
-              api.campaigns.attachments.list,
-              {
-                campaignId: fixture.ids.sharedCampaignId,
-                paginationOpts: { cursor: null, numItems: 8 }
-              }
-            )
             historicalSession = await fixture.auditor.client.query(api.campaigns.sessions.get, {
               campaignId: fixture.ids.sharedCampaignId,
               sessionNumber: fixture.ids.sessionNumber
@@ -5113,27 +5077,6 @@ try {
                   : entry
               )
             })
-            assert.deepEqual(
-              await fixture.auditor.client.query(api.campaigns.attachments.list, {
-                campaignId: fixture.ids.sharedCampaignId,
-                paginationOpts: { cursor: null, numItems: 8 }
-              }),
-              historicalAttachments
-            )
-            const delivery = await fixture.auditor.client.action(
-              api.media.fileActions.getDelivery,
-              {
-                campaignId: fixture.ids.sharedCampaignId,
-                attachmentId: fixture.ids.handoutAttachmentId
-              }
-            )
-            assert.equal(delivery.assetId, fixture.ids.handoutAssetId)
-            assert.equal(delivery.fileName, 'f12-handout.txt')
-            const delivered = await fetch(delivery.url, {
-              signal: AbortSignal.timeout(30_000)
-            })
-            assert.equal(delivered.status, 200)
-            assert.equal(await delivered.text(), 'F12 retained shared handout\n')
             assert.deepEqual(
               await fixture.auditor.client.query(api.campaigns.sessions.get, {
                 campaignId: fixture.ids.sharedCampaignId,

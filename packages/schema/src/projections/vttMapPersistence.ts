@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import {
   mediaSha256Schema,
-  mediaStoredAssetFieldsSchema,
+  mediaStoredAssetSchema,
   mediaStoredVariantSchema
 } from '../api/mediaAssets.js'
 import {
@@ -39,7 +39,7 @@ export const vttMapProcessingOperationSchema = lazySchema(() =>
 )
 export const vttMapStoredAssetSchema = lazySchema(() =>
   z.extend(
-    z.omit(mediaStoredAssetFieldsSchema, {
+    z.omit(mediaStoredAssetSchema, {
       cropThumbnails: true
     }),
     {

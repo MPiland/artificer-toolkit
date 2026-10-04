@@ -80,14 +80,7 @@ export const assets = migrations.define({
   migrateOne: async (ctx, row) => {
     if (!('profile' in row)) return
     const profile = row.profile
-    const profileClass: MediaProfileClass =
-      profile === 'VTT_MAP'
-        ? 'VTT_MAP'
-        : profile === 'CAMPAIGN_HANDOUT_MAP'
-          ? 'HANDOUT_MAP'
-          : row.upload.declaredMimeType === 'text/plain'
-            ? 'TEXT_FILE'
-            : 'CONTENT_ART'
+    const profileClass: MediaProfileClass = profile === 'VTT_MAP' ? 'VTT_MAP' : 'CONTENT_ART'
     const processing = row.status === 'PROCESSING'
     if (row.operation) {
       await ctx.scheduler.runAt(

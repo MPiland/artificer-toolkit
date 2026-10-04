@@ -6,10 +6,6 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type { CreateVttMapUploadIntentInput } from '@artificer-toolkit/schema/api/media'
 import type {
-  CampaignAttachmentDto,
-  CreateCampaignAttachmentInput
-} from '@artificer-toolkit/schema/api/campaignAttachments'
-import type {
   BeginSceneDefinitionInput,
   SceneDefinitionSaveProgress
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
@@ -44,16 +40,6 @@ const createMapUpload = makeFunctionReference<
   CreateVttMapUploadIntentInput,
   z.infer<typeof mediaSinglePutUploadSchema>
 >('media/vttMapAssets:createUpload')
-const createAttachment = makeFunctionReference<
-  'mutation',
-  CreateCampaignAttachmentInput,
-  CampaignAttachmentDto
->('campaigns/attachments:create')
-const readAttachmentDelivery = makeFunctionReference<
-  'query',
-  { campaignId: string; attachmentId: string },
-  { assetId: string; objectKey: string; mimeType: string; fileName: string; byteSize: number }
->('campaigns/attachments:readDelivery')
 const backfill = makeFunctionReference<
   'mutation',
   { cursor: string | null },
@@ -142,23 +128,23 @@ function map(ownerUserId: string, overrides: Record<string, unknown> = {}) {
   })
 }
 
-function file(ownerUserId: string, overrides: Record<string, unknown> = {}) {
+function contentArt(ownerUserId: string) {
   const id = crypto.randomUUID()
   return mediaStoredAssetSchema.parse({
     id,
     ownerUserId,
     storageAssetId: id,
-    profileClass: 'TEXT_FILE',
+    profileClass: 'CONTENT_ART',
     upload: {
-      originalFileName: 'notes.txt',
-      declaredMimeType: 'text/plain',
-      declaredBytes: 5,
+      originalFileName: 'art.png',
+      declaredMimeType: 'image/png',
+      declaredBytes: 1,
       idempotencyKey: crypto.randomUUID()
     },
     status: 'READY',
     rawObjectKey: null,
     uploadExpiresAt: 123,
-    chargedBytes: 5,
+    chargedBytes: 2,
     contentHash: null,
     cropThumbnails: [],
     operation: null,
@@ -166,25 +152,25 @@ function file(ownerUserId: string, overrides: Record<string, unknown> = {}) {
     variants: [
       {
         kind: 'SOURCE',
-        objectKey: `ready/${id}/source.txt`,
-        byteSize: 5,
-        width: null,
-        height: null,
-        mimeType: 'text/plain'
+        objectKey: `ready/${id}/source.webp`,
+        byteSize: 2,
+        width: 100,
+        height: 100,
+        mimeType: 'image/webp'
       }
-    ],
-    ...overrides
+    ]
   })
 }
 
 async function referenceMap(
   base: Awaited<ReturnType<typeof setup>>,
   assetId: string,
-  kind: 'definition' | 'live'
+  kind: 'definition' | 'live',
+  campaignId = base.campaign.id
 ) {
   const now = new Date().toISOString()
   const settings = {
-    campaignId: base.campaign.id,
+    campaignId,
     name: 'Retention reference',
     ambientIllumination: 'BRIGHT' as const,
     fogMode: 'PER_PLAYER' as const,
@@ -399,111 +385,7 @@ it('allows retention over quota and rolls an outer account-deletion transaction 
   ).rejects.toThrow('Image storage limit reached.')
 })
 
-it.each(['TEXT_FILE', 'HANDOUT_MAP'] as const)(
-  'moves a public Campaign attachment to an owner copy through uploader deletion, keeping attribution: %s',
-  async (profileClass) => {
-    const base = await setup()
-    const asset = file(
-      base.other.userId,
-      profileClass === 'TEXT_FILE'
-        ? {}
-        : {
-            profileClass,
-            upload: {
-              originalFileName: 'map.png',
-              declaredMimeType: 'image/png',
-              declaredBytes: 1,
-              idempotencyKey: crypto.randomUUID()
-            },
-            variants: [
-              {
-                kind: 'SOURCE',
-                objectKey: `ready/${crypto.randomUUID()}/source.webp`,
-                byteSize: 1,
-                width: 100,
-                height: 100,
-                mimeType: 'image/webp'
-              }
-            ],
-            chargedBytes: 1
-          }
-    )
-    await base.t.run(async (ctx) => {
-      await ctx.db.insert('mediaAssets', asset)
-      await ctx.db.insert('campaignMemberships', {
-        campaignId: base.campaign.id,
-        userId: base.other.userId,
-        role: 'PLAYER',
-        status: 'ACTIVE',
-        accessStartedAt: base.campaign.createdAt,
-        joinedAt: base.campaign.createdAt,
-        leftAt: null
-      })
-    })
-    const attachment = await base.other.caller.mutation(createAttachment, {
-      campaignId: base.campaign.id,
-      assetId: asset.id,
-      displayName: 'Original notes'
-    })
-    const snapshot = () =>
-      base.t.run(async (ctx) => ({
-        assets: await ctx.db.query('mediaAssets').take(8),
-        attachments: await ctx.db.query('campaignAttachments').take(8),
-        profiles: await ctx.db.query('userProfiles').take(8)
-      }))
-    const beforeRollback = await snapshot()
-    await expect(
-      base.t.run(async (ctx) => {
-        await retainAccountCampaignMedia(ctx, base.other.userId)
-        throw new Error('late attachment rollback')
-      })
-    ).rejects.toThrow('late attachment rollback')
-    expect(await snapshot()).toEqual(beforeRollback)
-    await deleteAccount(base, base.other.userId)
-    const stored = await base.t.run((ctx) =>
-      ctx.db
-        .query('campaignAttachments')
-        .withIndex('by_campaignId_id', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('id', attachment.id)
-        )
-        .unique()
-    )
-    if (!stored) throw new Error('Missing retained attachment.')
-    const { _id: _attachmentId, _creationTime: _attachmentCreated, ...storedFields } = stored
-    const { uploaderLabel: _uploaderLabel, ...originalFields } = attachment
-    // Only the asset moves; the departed uploader stays the attachment's author.
-    expect(storedFields).toEqual({ ...originalFields, assetId: storedFields.assetId })
-    expect(storedFields.assetId).not.toBe(asset.id)
-    expect(await readAsset(base, storedFields.assetId)).toMatchObject({
-      ownerUserId: base.owner.userId,
-      storageAssetId: asset.id,
-      profileClass,
-      variants: asset.variants
-    })
-    expect(await readProfile(base, base.other.userId)).toBeNull()
-    expect((await readProfile(base, base.owner.userId))!.mediaBytes).toBe(
-      (beforeRollback.profiles.find((profile) => profile.userId === base.owner.userId)
-        ?.mediaBytes ?? 0) + asset.chargedBytes
-    )
-    await expect(
-      base.owner.caller.query(readAttachmentDelivery, {
-        campaignId: base.campaign.id,
-        attachmentId: attachment.id
-      })
-    ).resolves.toMatchObject({
-      assetId: storedFields.assetId,
-      objectKey: asset.variants[0]!.objectKey
-    })
-    await expect(
-      base.other.caller.query(readAttachmentDelivery, {
-        campaignId: base.campaign.id,
-        attachmentId: attachment.id
-      })
-    ).rejects.toThrow()
-  }
-)
-
-it('copies one asset once per Campaign owner and never retains personal references', async () => {
+it('copies one map once per Campaign owner and never retains personal references', async () => {
   const base = await setup()
   const departing = await createPartyPlayer(base.t, base.campaign)
   const elsewhere = await base.other.caller.mutation(createCampaign, {
@@ -514,63 +396,38 @@ it('copies one asset once per Campaign owner and never retains personal referenc
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const art = file(departing.userId, {
-    profileClass: 'CONTENT_ART',
-    upload: {
-      originalFileName: 'art.png',
-      declaredMimeType: 'image/png',
-      declaredBytes: 1,
-      idempotencyKey: crypto.randomUUID()
-    },
-    variants: [
-      {
-        kind: 'SOURCE',
-        objectKey: `ready/${crypto.randomUUID()}/source.webp`,
-        byteSize: 2,
-        width: 100,
-        height: 100,
-        mimeType: 'image/webp'
-      }
-    ],
-    chargedBytes: 2
-  })
+  const art = map(departing.userId, { chargedBytes: 2 })
+  const avatar = contentArt(departing.userId)
   await base.t.run(async (ctx) => {
     await ctx.db.insert('mediaAssets', art)
+    await ctx.db.insert('mediaAssets', avatar)
     const profile = await ctx.db
       .query('userProfiles')
       .withIndex('by_userId', (q) => q.eq('userId', departing.userId))
       .unique()
-    // The same image is also the departing user's avatar: a personal reference.
+    // A personal reference: never copied, only Campaign references are.
     await ctx.db.patch(profile!._id, {
-      avatarAssetId: art.id,
+      avatarAssetId: avatar.id,
       avatarCrop: { x: 0, y: 0, width: 1, height: 1 }
     })
-    for (const campaignId of [base.campaign.id, elsewhere.id])
-      await ctx.db.insert('campaignAttachments', {
-        id: crypto.randomUUID(),
-        campaignId,
-        assetId: art.id,
-        uploaderUserId: departing.userId,
-        profile: 'CAMPAIGN_FILE',
-        displayName: 'Shared art',
-        description: null,
-        sessionId: null,
-        noteSectionId: null,
-        createdAt: new Date().toISOString()
-      })
   })
+  await referenceMap(base, art.id, 'definition')
+  await referenceMap(base, art.id, 'live', elsewhere.id)
   await base.t.run((ctx) => retainAccountCampaignMedia(ctx, departing.userId))
-  const attachments = await base.t.run((ctx) => ctx.db.query('campaignAttachments').take(8))
-  const copies = await Promise.all(attachments.map((row) => readAsset(base, row.assetId)))
+  const [definition] = await base.t.run((ctx) => ctx.db.query('sceneDefinitions').take(8))
+  const [scene] = await base.t.run((ctx) => ctx.db.query('campaignScenes').take(8))
+  const copies = await Promise.all(
+    [definition!.map.assetId, scene!.map.assetId].map((id) => readAsset(base, id))
+  )
   expect(copies.map((copy) => copy?.ownerUserId).sort()).toEqual(
     [base.owner.userId, base.other.userId].sort()
   )
   expect(new Set(copies.map((copy) => copy?.id)).size).toBe(2)
-  for (const copy of copies)
-    expect(copy).toMatchObject({ storageAssetId: art.id, cropThumbnails: [], chargedBytes: 2 })
-  // The original stays the departing user's, still only their avatar.
+  for (const copy of copies) expect(copy).toMatchObject({ storageAssetId: art.id, chargedBytes: 2 })
+  // The original and the avatar stay the departing user's.
   expect(await readAsset(base, art.id)).toMatchObject({ ownerUserId: departing.userId })
-  expect((await readProfile(base, departing.userId))?.avatarAssetId).toBe(art.id)
+  expect(await readAsset(base, avatar.id)).toMatchObject({ ownerUserId: departing.userId })
+  expect((await readProfile(base, departing.userId))?.avatarAssetId).toBe(avatar.id)
 })
 
 it('blocks a saved-before-deletion publication and Campaign-owner delivery after uploader deletion', async () => {

@@ -9,6 +9,7 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
+import { sceneStoredPresentationSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -158,4 +159,25 @@ export async function publishScene(
 
 export function publishEmptyScene(base: Awaited<ReturnType<typeof createSceneDefinitionFixture>>) {
   return publishScene(base)
+}
+
+/** Makes the Scene its Campaign's presented Scene, which is what a player may read (D87). */
+export async function presentFixtureScene(
+  base: Pick<Awaited<ReturnType<typeof createSceneDefinitionFixture>>, 't' | 'campaign'>,
+  sceneId: string
+) {
+  const now = new Date().toISOString()
+  await base.t.run((ctx) =>
+    ctx.db.insert(
+      'campaignScenePresentations',
+      sceneStoredPresentationSchema.parse({
+        campaignId: base.campaign.id,
+        sceneId,
+        version: 0,
+        activeMapAssetId: null,
+        createdAt: now,
+        updatedAt: now
+      })
+    )
+  )
 }

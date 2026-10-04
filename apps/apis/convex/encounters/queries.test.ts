@@ -230,14 +230,38 @@ describe('native Encounter reads', () => {
       currentHitPoints: 1,
       tempHitPoints: 3
     })
+    // D87: a player reads no PREPARED Run.
+    await expect(other.caller.query(get, { encounterId: run.id })).rejects.toThrow(
+      'Encounter is unavailable.'
+    )
+    expect(await other.caller.query(list, { campaignId: campaign.id })).toEqual([])
+    expect((await other.caller.query(active, { campaignId: campaign.id })).encounter).toBeNull()
+    await expect(other.caller.query(pending, { encounterId: run.id })).rejects.toThrow(
+      'Encounter is unavailable.'
+    )
+
+    await setStatus(t, run.id, 'COMPLETED')
+    expect(await owner.caller.query(get, { encounterId: run.id })).toMatchObject({
+      status: 'COMPLETED'
+    })
+    await expect(other.caller.query(get, { encounterId: run.id })).rejects.toThrow(
+      'Encounter is unavailable.'
+    )
+    expect(await owner.caller.query(list, { campaignId: campaign.id })).toHaveLength(1)
+    expect(await other.caller.query(list, { campaignId: campaign.id })).toEqual([])
+
+    await setStatus(t, run.id, 'ACTIVE')
+    const activeOwnerProjection = encounterGmProjectionDtoSchema.parse(
+      await owner.caller.query(get, { encounterId: run.id })
+    )
     const playerProjection = await other.caller.query(get, { encounterId: run.id })
     expect(playerProjection).toEqual(
-      projectPlayerEncounterProjection(ownerProjection, {
+      projectPlayerEncounterProjection(activeOwnerProjection, {
         userId: other.userId,
         characters: new Map()
       })
     )
-    expect(playerProjection.currentActorId).toBeNull()
+    expect(playerProjection.currentActorId).toBe(ownerCreature!.id)
     expect(playerProjection.actors).toHaveLength(1)
     expect(playerProjection.actors[0]).toEqual({
       id: ownerCreature!.id,
@@ -271,24 +295,6 @@ describe('native Encounter reads', () => {
     expect(JSON.stringify(playerProjection)).not.toContain(ownerHidden!.id)
     expect(JSON.stringify(playerProjection)).not.toContain('secret GM note')
     expect(JSON.stringify(playerProjection)).not.toContain('visible only to GM')
-    expect(await other.caller.query(list, { campaignId: campaign.id })).toEqual([])
-    expect((await other.caller.query(active, { campaignId: campaign.id })).encounter).toBeNull()
-    expect(await other.caller.query(pending, { encounterId: run.id })).toBeNull()
-
-    await setStatus(t, run.id, 'COMPLETED')
-    expect(await owner.caller.query(get, { encounterId: run.id })).toMatchObject({
-      status: 'COMPLETED'
-    })
-    expect(await other.caller.query(get, { encounterId: run.id })).toMatchObject({
-      status: 'COMPLETED'
-    })
-    expect(await owner.caller.query(list, { campaignId: campaign.id })).toHaveLength(1)
-    expect(await other.caller.query(list, { campaignId: campaign.id })).toEqual([])
-
-    await setStatus(t, run.id, 'ACTIVE')
-    const activeOwnerProjection = encounterGmProjectionDtoSchema.parse(
-      await owner.caller.query(get, { encounterId: run.id })
-    )
     expect((await owner.caller.query(active, { campaignId: campaign.id })).encounter).toEqual(
       activeOwnerProjection
     )
@@ -358,7 +364,11 @@ describe('native Encounter reads', () => {
   }, 30000)
 
   it('switches exact ownership projection when Campaign ownership and membership change together', async () => {
-    const { t, owner, other, campaign, run } = await setup()
+    const { t, owner, other, campaign, run: prepared } = await setup()
+    await setStatus(t, prepared.id, 'ACTIVE')
+    const run = encounterGmProjectionDtoSchema.parse(
+      await owner.caller.query(get, { encounterId: prepared.id })
+    )
     await t.run(async (ctx) => {
       const ownerMembership = await ctx.db
         .query('campaignMemberships')

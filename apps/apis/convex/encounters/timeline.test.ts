@@ -22,6 +22,7 @@ import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/e
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
@@ -110,10 +111,10 @@ describe('native Encounter timeline reads', () => {
   it('pages owner history by UUID cursor and concatenates without omissions', async () => {
     const { owner, other, run } = await setup()
     await writeHistory(owner, run)
-    expect(await other.caller.query(timeline, { encounterId: run.id, limit: 10 })).toEqual({
-      entries: [],
-      nextCursor: null
-    })
+    // D87: a player reads no PREPARED Run's history.
+    await expect(other.caller.query(timeline, { encounterId: run.id, limit: 10 })).rejects.toThrow(
+      'Encounter is unavailable.'
+    )
     const pages: EncounterTimelineDto[] = []
     let cursor: string | undefined
     do {
@@ -267,6 +268,7 @@ describe('native Encounter timeline reads', () => {
         stateJson: JSON.stringify(state),
         stateChecksum: checksumCanonicalJson(state)
       })
+      await activateFixtureRun(ctx, run.id)
     })
     const ids = new Set<string>()
     const versions: number[] = []

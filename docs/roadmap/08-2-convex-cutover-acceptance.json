@@ -536,13 +536,13 @@
             },
             {
               "id": "F12.3",
-              "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033), including held Runs (ADR 0035), and retained handout delivery survive with Deleted user attribution.",
+              "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033), including held Runs (ADR 0035), survive with Deleted user attribution.",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
-                "apps/apis/convex/campaigns/deletedMemberHistory.test.ts › keeps the Session log, Encounter Run history and handout delivery attributed to the deleted account id (after auth onDelete and media purgeAccount: shared Session notes and handouts read Deleted user, RSVPs and the Run timeline keep the opaque account id, handout delivery unchanged)",
+                "apps/apis/convex/campaigns/deletedMemberHistory.test.ts › keeps the Session log and Encounter Run history attributed to the deleted account id (after auth onDelete and media purgeAccount: shared Session notes read Deleted user, RSVPs and the Run timeline keep the opaque account id)",
                 "apps/apis/convex/campaigns/chat.test.ts › masks a removed profile while retaining OOC, roleplay, and roll snapshots (chat and roll entries read Deleted user once the profile is gone)",
                 "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
-                "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls, Session notes and attachments), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/campaigns/attachments.ts, apps/apis/convex/lib/authTriggers.helper.ts",
+                "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls and Session notes), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/lib/authTriggers.helper.ts",
                 "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove the clause for Runs Convex owns; a Run held by the room is not covered",
                 "apps/apis/convex/liveSessions/roomInputs.test.ts › reads as DELETED once the Character no longer exists",
                 "apps/session-worker/src/roomInputs.test.ts › hydrates a Run whose Character left or was deleted, leaving its actor to the reconcile",
@@ -638,11 +638,11 @@
             ".codex/validation/phase82-f14-final/file-finalize-after-format.log",
             ".codex/validation/phase82-f14-final/campaign-files-after-format.log"
           ],
-          "notes": "Accepted at LOCAL_INTEGRATION. The shared Convex/R2 transport covers every current non-Scene profile: account avatars, Character portraits, authored images for all eight authored domains, Campaign files and Campaign handout maps. Upload claims bind caller, target, profile, type, size and expiry; finalization reauthorizes, validates bytes, applies shared Node processing and quotas, and attaches only current fenced results. Signed reads enforce current ownership or membership. Reference-aware cleanup retries provider failures and retains keys until acknowledgement. Fresh final-source checks pass 43 backend and 18 web tests, 8/8 Convex and 2/2 web typecheck tasks, focused format and lint, plus 16 post-format tests. Independent review found no F14-owned defect or missing non-Scene profile. Scene VTT_MAP, managed provider enforcement and release remain V04/R09/R08.",
+          "notes": "Accepted at LOCAL_INTEGRATION. The shared Convex/R2 transport covers every current non-Scene profile: account avatars, Character portraits, authored images for all eight authored domains. Upload claims bind caller, target, profile, type, size and expiry; finalization reauthorizes, validates bytes, applies shared Node processing and quotas, and attaches only current fenced results. Signed reads enforce current ownership or membership. Reference-aware cleanup retries provider failures and retains keys until acknowledgement. Fresh final-source checks pass 43 backend and 18 web tests, 8/8 Convex and 2/2 web typecheck tasks, focused format and lint, plus 16 post-format tests. Independent review found no F14-owned defect or missing non-Scene profile. Campaign files and Campaign handout maps were removed by D87 (PLT-6). Scene VTT_MAP, managed provider enforcement and release remain V04/R09/R08.",
           "criteria": [
             {
               "id": "F14.1",
-              "text": "Upload claims bind caller, target, profile, type, size and expiry for avatars, Character portraits, authored images in all eight domains, Campaign files and handout maps.",
+              "text": "Upload claims bind caller, target, profile, type, size and expiry for avatars, Character portraits, authored images in all eight domains.",
               "status": "ACCEPTED",
               "proof": [".codex/validation/phase82-f14-final/acceptance.md"]
             },
@@ -2129,7 +2129,7 @@
             ".codex/validation/phase82-media-csp/verification.md",
             ".codex/validation/phase82-p14-complete/verification.md"
           ],
-          "notes": "Accepted at LOCAL_E2E. Two authenticated browser clients and the actual personal-development Convex/R2 backend pass TABLE send/edit/tombstone, PARTY and DIRECT privacy, shared notebook create/update/delete, signed file upload/download/name/byte checks, removal and delivery denial, private GM isolation and TABLE roll convergence. Native postchecks pass notebook version contention, matching chat-nonce replay, unread reconciliation and unauthorized writes. All 12 browser checkpoints, zero unexpected diagnostics, exact fixture cleanup and revoked JWT denial pass together. Successful transfer-specific Chromium abort events remain retained separately only after exact byte proof. Fresh focused native checks pass five suites/26 tests; native Clock/Session dependency checks, 21 CSP tests, scoped web typechecks/lint and guarded development upload also pass. Source hashes, failed attempts and ordered evidence are retained in phase82-p14-complete/verification.md. Campaign lifecycle/account deletion retain P09/F12; complete Session/control contention retains P15; full release lifecycle and staging/production promotion retain R08.",
+          "notes": "Accepted at LOCAL_E2E. Two authenticated browser clients and the actual personal-development Convex/R2 backend pass TABLE send/edit/tombstone, PARTY and DIRECT privacy, shared notebook create/update/delete, private GM isolation and TABLE roll convergence. Native postchecks pass notebook version contention, matching chat-nonce replay, unread reconciliation and unauthorized writes. All 12 browser checkpoints, zero unexpected diagnostics, exact fixture cleanup and revoked JWT denial pass together. Successful transfer-specific Chromium abort events remain retained separately only after exact byte proof. Fresh focused native checks pass five suites/26 tests; native Clock/Session dependency checks, 21 CSP tests, scoped web typechecks/lint and guarded development upload also pass. Source hashes, failed attempts and ordered evidence are retained in phase82-p14-complete/verification.md. Campaign file upload and download (the former P14.3) was removed by D87 (PLT-6). Campaign lifecycle/account deletion retain P09/F12; complete Session/control contention retains P15; full release lifecycle and staging/production promotion retain R08.",
           "criteria": [
             {
               "id": "P14.1",
@@ -2140,12 +2140,6 @@
             {
               "id": "P14.2",
               "text": "Shared notebooks create, update and delete, with version contention and matching nonce replay.",
-              "status": "ACCEPTED",
-              "proof": [".codex/validation/phase82-p14-complete/verification.md"]
-            },
-            {
-              "id": "P14.3",
-              "text": "Signed file upload and download with name and byte checks, removal and delivery denial pass.",
               "status": "ACCEPTED",
               "proof": [".codex/validation/phase82-p14-complete/verification.md"]
             },
@@ -3323,6 +3317,17 @@
                 "apps/web/src/domains/campaigns/components/CampaignParty.test.tsx › shows another player only roster basics, with View Sheet only when Party can view is %s",
                 "apps/web/src/domains/characters/sheet/core/CharacterSheetPartyVisibility.test.tsx › lets the Character’s player share the Sheet and choose a health display level",
                 "impl: apps/apis/convex/campaigns/characterSheet.ts (get, basics), apps/apis/convex/campaigns/characterState.ts (readCampaignCharacterReader), packages/rules-runtime/src/character/campaignCharacterSheet.ts (PARTY_MEMBER projection), apps/apis/convex/media/characterPortraitAssets.ts, apps/web/src/domains/campaigns/components/CampaignParty.tsx"
+              ]
+            },
+            {
+              "id": "V12.9",
+              "text": "Campaign content stays hidden from players until the GM reveals it (D87): a player reads only the Campaign's ACTIVE Encounter, or a PREPARED Run paused on a pre-start decision addressed to them, and only the presented Scene and its fog; the GM's reads are unchanged, and Campaign Files no longer exist.",
+              "status": "READY_FOR_ACCEPTANCE",
+              "proof": [
+                "apps/apis/convex/encounters/cutoverPrivacy.test.ts › D87 a player reads only the active Encounter; prepared, completed and foreign Runs are unavailable (projection, timeline, pending, evidence and decision-settlement reads for the GM and a player across PREPARED, ACTIVE and COMPLETED)",
+                "apps/apis/convex/encounters/initiativeDeclarations.test.ts › shows a Character declaration only to its current controller and the GM (a pre-start decision opens the PREPARED Run by ID to the player it is addressed to and refuses another player)",
+                "apps/apis/convex/scenes/readGate.test.ts › D87 a player reads a Scene and its fog only once it is the presented Scene; the GM always reads (recipient header, fog layers and chunks)",
+                "impl: apps/apis/convex/encounters/readAccess.ts (readMemberEncounter, the one Encounter read gate), packages/encounter-persistence/src/sessionReads.ts (canMemberReadRun), apps/apis/convex/scenes/liveDocuments.ts (isSceneRevealedToPlayers, the one Scene read gate PLT-8 extends), docs/architecture/persistence.md (Campaign read gates for players)"
               ]
             }
           ]

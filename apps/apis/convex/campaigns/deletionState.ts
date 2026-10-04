@@ -4,7 +4,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
 import { removeCampaignEncounterRuns } from '../encounters/campaignDeletion'
 import { removeCampaignScenes } from '../scenes/campaignDeletion'
-import { removeCampaignAttachment } from './attachmentDocuments'
 import { cancelNotification } from '../notifications/intents'
 
 const PAGE_SIZE = 8
@@ -22,14 +21,6 @@ export async function removeCampaignState(ctx: MutationCtx, job: Doc<'campaignDe
   const phases = [
     async () => removeCampaignEncounterRuns(ctx, campaignId),
     async () => removeCampaignScenes(ctx, campaignId),
-    async () => {
-      const rows = await ctx.db
-        .query('campaignAttachments')
-        .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaignId))
-        .take(PAGE_SIZE)
-      for (const row of rows) await removeCampaignAttachment(ctx, row)
-      return rows.length === 0
-    },
     async () => {
       const row = await ctx.db
         .query('campaignAnnouncements')

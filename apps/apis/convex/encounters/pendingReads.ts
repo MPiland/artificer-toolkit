@@ -11,9 +11,8 @@ import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/d
 import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery, query } from '../lib/queries'
-import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireIdentity } from '../lib/identity'
 import { encounterReadTransaction } from './encounterPorts'
+import { readMemberEncounter } from './readAccess'
 
 const pendingRuleOccurrenceDefinition = {
   args: zodToConvexFields(getPendingEncounterRuleOccurrenceInputDtoSchema.shape),
@@ -29,17 +28,11 @@ const pendingRuleOccurrenceDefinition = {
     const input = getPendingEncounterRuleOccurrenceInputDtoSchema.parse({
       encounterId: args.encounterId.toLowerCase()
     })
-    const { userId } = await requireIdentity(ctx)
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-      .unique()
-    if (!row) throw new Error('Encounter is unavailable.')
-    const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
-    readCampaignRunState(row, campaign)
+    const { run, campaign, membership } = await readMemberEncounter(ctx, input.encounterId)
+    readCampaignRunState(run, campaign)
     return zMini
       .nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema)
-      .parse(await readPendingRunDecision(encounterReadTransaction(ctx), row, campaign, membership))
+      .parse(await readPendingRunDecision(encounterReadTransaction(ctx), run, campaign, membership))
   }
 }
 

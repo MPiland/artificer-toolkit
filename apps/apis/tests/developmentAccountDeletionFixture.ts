@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict'
-import { makeFunctionReference } from 'convex/server'
 import type { ConvexHttpClient } from 'convex/browser'
 import type { CreateSocialListingInput } from '@artificer-toolkit/schema/api/socialHub'
 import type { ExecuteCampaignRollInput } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { CreateCampaignFileUploadIntentInput } from '@artificer-toolkit/schema/api/media'
 import {
   developmentAccountDeletionInspectResultSchema,
   developmentAccountDeletionKnownSchema,
@@ -27,12 +25,6 @@ type FixtureAuthor = {
   identity: { userId: string }
 }
 type FixtureCli = typeof developmentCli
-
-const createFileUpload = makeFunctionReference<
-  'mutation',
-  CreateCampaignFileUploadIntentInput,
-  { assetId: string; method: 'PUT'; url: string; expiresAt: string }
->('media/fileAssets:createUpload')
 
 function record(value: unknown): Record<string, unknown> {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value))
@@ -201,36 +193,6 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
     subjectId: characterFixture.equipment.subjectId
   })
 
-  const handoutBody = Buffer.from('F12 retained shared handout\n', 'utf8')
-  const handoutUpload = await subject.client.mutation(createFileUpload, {
-    profile: 'CAMPAIGN_FILE',
-    target: { type: 'CAMPAIGN_FILE', campaignId: sharedCampaign.id },
-    originalFileName: 'f12-handout.txt',
-    declaredMimeType: 'text/plain',
-    declaredBytes: handoutBody.byteLength,
-    idempotencyKey: crypto.randomUUID()
-  })
-  assert.equal(
-    (
-      await fetch(handoutUpload.url, {
-        method: handoutUpload.method,
-        body: handoutBody,
-        headers: { 'content-type': 'text/plain' }
-      })
-    ).ok,
-    true
-  )
-  const finalizedHandout = await subject.client.action(api.media.fileActions.finalize, {
-    assetId: handoutUpload.assetId
-  })
-  assert.equal(finalizedHandout.status, 'READY')
-  const handout = await subject.client.mutation(api.campaigns.attachments.create, {
-    campaignId: sharedCampaign.id,
-    assetId: handoutUpload.assetId,
-    displayName: 'F12 retained handout',
-    description: 'Subject-owned shared Campaign handout.'
-  })
-
   const subjectScenes = await createEncounterLifecycleScenes({
     owner: subject.client,
     campaignId: ownedActiveCampaign.id
@@ -352,7 +314,6 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
   assert.ok(known.campaignIds.includes(sharedCampaign.id))
   assert.ok(known.campaignIds.includes(ownedActiveCampaign.id))
   assert.ok(known.campaignIds.includes(ownedArchivedCampaign.id))
-  assert.ok(known.mediaAssetIds.includes(handout.assetId))
   assert.ok(known.mediaAssetIds.includes(subjectScenes.assetId))
 
   return {
@@ -380,8 +341,6 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
       runId: run.id,
       blueprintId: blueprint.id,
       subjectBlueprintId: subjectBlueprint.id,
-      handoutAttachmentId: handout.id,
-      handoutAssetId: handout.assetId,
       subjectSceneId: subjectScenes.scenes[0].sceneId,
       subjectSceneAssetId: subjectScenes.assetId
     }

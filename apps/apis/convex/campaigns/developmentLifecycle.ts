@@ -504,13 +504,6 @@ async function campaignRows(
       4,
       'campaignVehicles'
     ),
-    campaignAttachments: await rows(
-      ctx.db
-        .query('campaignAttachments')
-        .withIndex('by_campaignId_id', (q) => q.eq('campaignId', campaignId)),
-      8,
-      'campaignAttachments'
-    ),
     campaignAnnouncements: await rows(
       ctx.db
         .query('campaignAnnouncements')

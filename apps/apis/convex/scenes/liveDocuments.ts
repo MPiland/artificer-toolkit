@@ -1,7 +1,4 @@
-import {
-  sceneLiveStateHeaderSchema,
-  type SceneLiveStateHeader
-} from '@artificer-toolkit/schema/api/sceneLiveState'
+import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
 import {
   sceneStoredInitialStateSchema,
   sceneStoredDefinitionSaveSchema
@@ -22,6 +19,18 @@ function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {
 export function parseLiveEntity(row: Doc<'sceneLiveEntities'>, version: number) {
   return parseSceneLiveEntity(stored(row), version)
 }
+/**
+ * D87: a player reads only a Scene the GM has revealed, which today is the Campaign's presented
+ * Scene. The single place a further reveal (a Scene shown as an image) extends.
+ */
+async function isSceneRevealedToPlayers(ctx: QueryCtx, campaignId: string, sceneId: string) {
+  const presentation = await ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+    .unique()
+  return presentation?.sceneId === sceneId
+}
+
 export async function readLiveScene(ctx: QueryCtx, sceneId: string, scope: 'OWNER' | 'MEMBER') {
   const { userId } = await requireIdentity(ctx)
   return readLiveSceneForUser(ctx, sceneId, scope, userId)
@@ -47,6 +56,8 @@ export async function readLiveSceneForUser(
   )
   if (scope === 'OWNER' && membership.role !== 'OWNER')
     throw new Error('Live Scene preparation is only available to the Campaign owner.')
+  if (membership.role !== 'OWNER' && !(await isSceneRevealedToPlayers(ctx, campaign.id, row.id)))
+    throw new Error('Live Scene is unavailable.')
   const scene = sceneStoredInitialStateSchema.parse(stored(row))
   const saveRow = await ctx.db
     .query('sceneDefinitionSaves')

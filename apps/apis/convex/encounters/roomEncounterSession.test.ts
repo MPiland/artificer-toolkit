@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { api } from '../_generated/api'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import {
   domainRejection,
   playerControlFixture,
@@ -202,6 +203,8 @@ describe('Room-pushed Encounter session', () => {
       commandId: crypto.randomUUID(),
       encounterId: base.run.id
     })
+    // D87: a player reads only the ACTIVE Encounter.
+    await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
     const input = { encounterId: base.run.id, sceneId: base.sceneId }
     for (const member of [base.other, base.owner]) {
       const query = await member.caller.query(api.encounters.sceneBindings.get, input)

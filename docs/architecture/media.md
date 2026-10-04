@@ -25,7 +25,7 @@ stateDiagram-v2
 ```
 
 The signed upload binds the object key, declared byte length and MIME type. Account avatar, Character
-portrait, authored artwork, Campaign file/handout and VTT map uploads keep their domain-specific upload
+portrait, authored artwork and VTT map uploads keep their domain-specific upload
 authorization and references; there is no public bucket/key API. Processing actions recheck identity,
 slot revision, current references and quota before their internal mutation commits metadata.
 
@@ -36,18 +36,17 @@ until provider deletion and component metadata deletion succeed.
 ### Owner-scoped assets and "My images" — current (ADR 0012 amendment, Q17)
 
 Stored assets belong to their uploader and name no target. The slot binding lives only on the domain
-reference: `userProfiles.avatarAssetId`, `characters.portraitAssetId`, `authoredImageSlots.assetId`,
-`campaignAttachments.assetId`, and Scene definition/live Scene `map.assetId`.
+reference: `userProfiles.avatarAssetId`, `characters.portraitAssetId`, `authoredImageSlots.assetId`, and Scene definition/live Scene `map.assetId`.
 
-- **Profile classes.** Each asset records a `profileClass`: `CONTENT_ART` (avatar, portrait, authored
-  artwork and Campaign file images, all normalized to at most 2048 px), `TEXT_FILE`, `HANDOUT_MAP`
-  (4096 px) or `VTT_MAP` (full size with tiles). An asset serves any slot of its class.
+- **Profile classes.** Each asset records a `profileClass`: `CONTENT_ART` (avatar, portrait and authored
+  artwork, all normalized to at most 2048 px) or `VTT_MAP` (full size with tiles). Campaign Files and
+  handouts were removed (D87): Campaign content reaches players by GM reveal, not file attachment. An asset serves any slot of its class.
 - **Reads** follow the slot's own rules: a portrait read authorizes the Character (or its Campaign
-  scope), a handout read authorizes Campaign membership, a map read authorizes its uploader, the owner
+  scope), a map read authorizes its uploader, the owner
   of a Campaign that references it, or a player while an open Session presents it.
 - **Attaching** requires the slot's write rules and that the caller owns a READY asset of a compatible
   class. `media/library:attachImage` attaches content art to an avatar, portrait or authored draft slot
-  through each domain's bind helper; `campaigns/attachments:create` attaches a file or handout; Scene
+  through each domain's bind helper; Scene
   definitions accept the writer's own map or one the Campaign already references.
 - **Framing belongs to the reference.** Each cropped slot stores its own crop. SOURCE, DISPLAY and an
   uncropped THUMBNAIL are shared; a slot's THUMBNAIL is derived from SOURCE per crop hash the first
@@ -191,84 +190,6 @@ waits until issued PUTs expire plus the 15-minute settling fence; failed process
 that fence. Recropping uses new immutable thumbnail keys and retires the prior key through the same
 path. Detached assets keep the existing 24-hour recovery grace.
 
-#### Native Campaign attachment metadata — partial local implementation
-
-```mermaid
-flowchart LR
-    create["campaigns/attachments:create: current active member"] --> asset["mediaAssets: owned READY file, exact Campaign"]
-    asset --> attachment["campaignAttachments: public UUID, metadata, optional Session/notebook IDs"]
-    remove["uploader/GM remove or notebook cascade"] --> attachment
-    attachment --> refs["last reference removed: 24-hour grace"]
-    refs --> cleanup["media/assets:cleanup rechecks references, then retires R2 keys"]
-```
-
-Native attachment create/list/remove now preserve the transitional member, uploader and GM
-boundaries. Writes require an ACTIVE Campaign; current members may list archived Campaigns.
-Listing pages the Campaign/created-time/UUID index descending with 48-row/one-MiB read targets,
-without a total attachment cap. The DTO remains unchanged and never includes object keys or URLs.
-Metadata retains its original text. Optional Session/notebook IDs must belong to the Campaign;
-the existing association contract does not grant notebook access or reveal its private text.
-Internal `campaigns/attachments:readDelivery` now resolves an exact Campaign/attachment pair for
-current members, including archived reads and members other than the uploader. It rechecks the
-READY file's Campaign/profile/uploader binding and returns only verified SOURCE metadata to the
-`media/fileActions:getDelivery` signing action. Removed attachments cannot authorize downloads even while another reference
-keeps the same asset alive. This internal object-key projection is never a public/reactive DTO;
-raw upload keys, preview variants and notebook content are not returned. The action signs a five-minute
-SOURCE download with the verified MIME type and an encoded attachment filename in the signed response
-headers. It reuses the configured R2 client and returns the unchanged file delivery DTO, not storage
-metadata. Each request rechecks current membership; an already-issued URL remains valid until expiry.
-
-Campaign files share the native `mediaAssets` table without weakening the existing image contract:
-their separate stored schema supports normalized WebP variants or SOURCE-only UTF-8 text with
-null dimensions. Files are Campaign-bound; handout maps reject text and have no VTT behavior.
-Duplicate attachments to one asset remain allowed. Explicit removal and notebook deletion start
-grace only after the last reference; reattachment cancels retirement. Cleanup rechecks current
-attachment references. After account-profile deletion, bounded account purge removes attachment
-references before retiring that asset's keys; surviving accounts are untouched.
-
-`media/fileAssets:createUpload` now requires current Campaign membership and uses the same native
-reservation/signer as avatars and authored artwork. The exact target/profile and declared file
-metadata bind owner-scoped replay. It reserves 6 MiB once and issues a private single PUT bound to
-the declared byte length and MIME type; permission renewal moves cleanup past the new expiry plus
-the existing settling fence. Uploads remain PENDING and cannot attach before content verification.
-Archived Campaign membership still permits upload, matching the transitional service; attachment
-creation separately rejects archived Campaigns. Invalid intents, quota exhaustion and signing
-configuration failures leave no partial reservation or asset row.
-
-`media/fileActions:finalize` now orchestrates the internal file finalization mutations and Node byte
-processor. It accepts only the asset UUID, returns the current READY result on an authorized retry,
-returns REJECTED for validation/quota rejection, and sanitizes operational errors without discarding
-retryable uploads. Internal file finalization claims immutable output keys before any storage writes. The shared
-bounded reader and processor verify actual byte count and normalize strict UTF-8 text (SOURCE only,
-BOM removed) or metadata-free WebP images (SOURCE/DISPLAY/THUMBNAIL), without a crop. Settlement
-rechecks the current owner and Campaign membership, the unexpired operation ID, and the exact
-output keys/kinds before atomically charging actual bytes and marking READY. A detached READY file
-keeps 24-hour grace; attachment creation cancels that retirement.
-
-Validation or quota rejection retains the preclaimed keys until the existing write fence retires
-them. Operational failure or an abandoned action retains its raw upload and reservation; after the
-15-minute operation fence, expiry returns that same asset to PENDING_UPLOAD with 24-hour grace.
-Retry then claims fresh immutable keys. Unlike the transitional immediate reset, retry cannot start
-before that fence: a failed action is not proof that its provider PUT stopped. Old callbacks cannot
-settle or reject a replacement operation. No additional retry queue or failure-state field is used.
-The shared reader treats explicit missing objects (404/410) as invalid uploads; storage authorization,
-throttling, timeout and server failures remain operational errors, not proof of invalid file content.
-
-The Campaign file web surface now calls these generated Convex functions directly. Uploads transfer
-bytes with the issued signed PUT before finalization and attachment creation. Listing uses the native
-reactive 48-row pagination result with explicit load-more behavior; delivery and removal use the
-native action/mutation and need no query invalidation. The unused attachment query key and browser
-tRPC facade were removed. Session and notebook selectors still use their owning transitional Campaign
-readers until those domains migrate; they do not transport file or attachment data.
-
-This is partial local implementation, not complete media or cutover acceptance. Attachment tests
-seed READY metadata; upload tests transfer real loopback bytes and prove abandoned-upload cleanup.
-Finalization tests run internal claims, real loopback normalization/writes, settlement and public
-attachment creation, including rollback, revocation and partial-write recovery. Public finalization
-and signed delivery are locally implemented; generated bindings are refreshed without deploying.
-Hosted signing enforcement, other frontend media profiles, Campaign deletion/copy and the complete
-real-backend lifecycle remain pending. No cloud push is claimed.
-
 Configuration and proof boundaries are documented in
 [the API workspace](../../apps/apis/README.md#convex-media-foundation--in-progress).
 The existing implementation below remains authoritative for profiles not yet replaced.
@@ -359,7 +280,7 @@ Signed URLs and upload tokens are credentials, never persisted domain truth. Dom
 
 Phase 02 enables `ACCOUNT_AVATAR`, `CHARACTER_PORTRAIT`, and `AUTHORED_IMAGE`. Each accepted upload is normalized once and produces immutable source, display, and thumbnail variants. Account avatars, Character portraits, and authored artwork store normalized square thumbnail framing; authored detail pages and Character Sheet inspectors use the uncropped display variant. Originals are temporary and are removed after successful normalization. Clients cannot choose a bucket, object key, visibility, or output variant path.
 
-Phase 06 adds `CAMPAIGN_FILE` and `CAMPAIGN_HANDOUT_MAP`. Campaign files accept normalized JPEG/PNG/WebP or strict UTF-8 `text/plain`, and handout maps accept normalized images only. Both remain private, limited to 6 MiB, and require fresh Campaign membership before attachment listing or signed delivery. Handout maps are ordinary Campaign assets and have no VTT behavior. PDF, office, archive, executable, SVG/HTML, resumable upload, and external malware-scanning support remain deferred rather than being represented as accepted safe formats.
+Phase 06 briefly added `CAMPAIGN_FILE` and `CAMPAIGN_HANDOUT_MAP`; D87 removed them with the `campaignAttachments` table, so only image profiles remain. PDF, office, archive, executable, SVG/HTML, resumable upload, and external malware-scanning support are not accepted formats.
 
 Phase 08 adds `VTT_MAP` for Campaign owners. Maps are JPEG, PNG, or WebP up to 25 MiB, 8,192 px per side, and 64 MP. New maps use private R2 multipart upload with exact 6 MiB parts (at most five); the browser receives only part-specific two-hour URLs and returns exact ETags to the completion command. Finalization verifies the source dimensions, produces immutable display and thumbnail variants, and generates 1,024 px renderer tiles (at most 64) in the same persisted provider. Delivery returns five-minute signed overview and tile URLs only after current Campaign authorization. Existing Supabase-backed map rows remain readable through their persisted `storage_provider`; they are not copied during this cutover. A scene definition continues to reference the stable asset ID, and database triggers prevent deleting or changing an asset while any scene definition or Encounter snapshot references it.
 
@@ -386,7 +307,6 @@ Object-store writes cannot share a transaction with Postgres. Every queued delet
 - `profiles.avatar_asset_id` owns the current account avatar reference.
 - `characters.portrait_asset_id` owns Character presentation independently of Builder aggregate replacement.
 - `authored_image_slots` owns one `DRAFT` and one `ACTIVE` artwork slot per authored route identity.
-- `campaign_attachments` owns Campaign file and handout references, including uploader identity and optional Session or Campaign-note association.
 
 Saving an authored draft initializes its draft slot from active artwork once. Editing artwork changes only the draft slot. Activation promotes that slot in the same transaction that replaces the active aggregate and removes the draft. Discarding a draft removes only its draft slot. This follows [ADR 0011](../adr/0011-active-authored-content-and-json-drafts.md); media does not recreate authored revision history.
 
@@ -405,9 +325,9 @@ R2 credentials are server-only: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_
 > transfer design below, including `retainedFromUserId`, is historical.
 
 [ADR 0030](../adr/0030-owner-deletion-and-retained-dependencies.md) replaces uploader-deletion vetoes.
-The native account transaction enumerates all owned assets and actual indexed Scene/attachment
-references. Referenced READY VTT maps, Campaign files and handout maps move to the current canonical
-Campaign owner, preserving variants, keys, public UUID and original attachment uploader. The recipient's
+The native account transaction enumerates all owned assets and actual indexed Scene
+references. Referenced READY VTT maps move to the current canonical
+Campaign owner, preserving variants, keys and public UUID. The recipient's
 charge increases atomically; existing shared media retention does not use the new-upload quota to veto
 deletion. New uploads/finalization keep their existing quota checks. A fresh server upload idempotency
 key avoids a collision in the destination owner's namespace.

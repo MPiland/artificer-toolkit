@@ -19,6 +19,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterPartyVisibilityDto } from '@artificer-toolkit/schema/api/healthDisplay'
 import { api } from '../_generated/api'
+import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
@@ -56,6 +57,8 @@ async function setup() {
   await base.owner.caller.mutation(api.account.updateProfile, { username: 'TableGM', bio: null })
   const party = await createPartyPlayer(base.t, base.campaign)
   await party.join()
+  // D87: a player reads only the ACTIVE Encounter.
+  await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
   const enemy = base.run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!enemy) throw new Error('Missing enemy actor.')
   const gmView = async () =>

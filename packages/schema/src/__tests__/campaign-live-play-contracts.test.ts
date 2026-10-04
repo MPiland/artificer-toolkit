@@ -11,7 +11,6 @@ import {
   campaignAnnouncementNotificationDataSchema,
   notificationIntentDataSchema
 } from '../api/notifications.js'
-import { createCampaignFileUploadIntentInputSchema } from '../api/media.js'
 
 const uuid = '00000000-0000-4000-8000-000000000001'
 
@@ -70,29 +69,6 @@ describe('Campaign live-play contracts', () => {
     ).toBe(false)
     expect(
       campaignPlaySettingsDtoSchema.safeParse({ ...base, manualReminderMode: 'LOUD' }).success
-    ).toBe(false)
-  })
-
-  it('keeps Campaign files small and handout maps image-only', () => {
-    expect(
-      createCampaignFileUploadIntentInputSchema.safeParse({
-        profile: 'CAMPAIGN_FILE',
-        target: { type: 'CAMPAIGN_FILE', campaignId: uuid },
-        originalFileName: 'notes.txt',
-        declaredMimeType: 'text/plain',
-        declaredBytes: 32,
-        idempotencyKey: uuid
-      }).success
-    ).toBe(true)
-    expect(
-      createCampaignFileUploadIntentInputSchema.safeParse({
-        profile: 'CAMPAIGN_HANDOUT_MAP',
-        target: { type: 'CAMPAIGN_HANDOUT_MAP', campaignId: uuid },
-        originalFileName: 'map.txt',
-        declaredMimeType: 'text/plain',
-        declaredBytes: 32,
-        idempotencyKey: uuid
-      }).success
     ).toBe(false)
   })
 

@@ -307,11 +307,7 @@ triggers.register('campaignNotebookSections', async (ctx, change) => {
 // Per-Campaign entry and Scene counters (Q18). Triggers see every insert and delete, including
 // cascades, so no create or cleanup path maintains them by hand.
 function registerCampaignContentUsage(
-  tableName:
-    | 'campaignNotebookSections'
-    | 'campaignAttachments'
-    | 'campaignVehicles'
-    | 'sceneDefinitions',
+  tableName: 'campaignNotebookSections' | 'campaignVehicles' | 'sceneDefinitions',
   resource: 'campaignEntriesPerCampaign' | 'scenesPerCampaign'
 ) {
   triggers.register(tableName, async (ctx, change) => {
@@ -323,7 +319,6 @@ function registerCampaignContentUsage(
 }
 
 registerCampaignContentUsage('campaignNotebookSections', 'campaignEntriesPerCampaign')
-registerCampaignContentUsage('campaignAttachments', 'campaignEntriesPerCampaign')
 registerCampaignContentUsage('campaignVehicles', 'campaignEntriesPerCampaign')
 registerCampaignContentUsage('sceneDefinitions', 'scenesPerCampaign')
 

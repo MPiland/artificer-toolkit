@@ -13,7 +13,6 @@ import { CampaignLiveControls } from './components/CampaignLiveControls'
 import { CampaignSessions } from './components/CampaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
 import { CampaignAnnouncements } from './components/CampaignAnnouncements/CampaignAnnouncements'
-import { CampaignFiles } from './components/CampaignFiles/CampaignFiles'
 import { CampaignTableSettings } from './components/CampaignTableSettings/CampaignTableSettings'
 import { CampaignVehicles } from './components/CampaignVehicles/CampaignVehicles'
 import * as sharedStyles from './campaigns.css'
@@ -23,7 +22,6 @@ const tabLabels: Record<CampaignTab, string> = {
   announcements: 'Announcements',
   party: 'Party',
   notes: 'Notes',
-  files: 'Files',
   inventory: 'Inventory',
   table: 'Table',
   content: 'Content',
@@ -162,9 +160,6 @@ export function CampaignDetailPage({
             </Stack>
           </Tabs.Panel>
         ) : null}
-        <Tabs.Panel value='files' pt='md'>
-          <CampaignFiles campaign={campaign} currentUserId={currentUserId} />
-        </Tabs.Panel>
         <Tabs.Panel value='table' pt='md'>
           <CampaignTableSettings campaign={campaign} />
         </Tabs.Panel>

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { api, internal } from '../_generated/api'
-import { readyCampaignFile } from '../../tests/fixtures/campaignFile'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
 import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const page = { cursor: null, numItems: 16 }
 
 describe('deleted member Campaign history', () => {
-  it('keeps the Session log, Encounter Run history and handout delivery attributed to the deleted account id', async () => {
+  it('keeps the Session log and Encounter Run history attributed to the deleted account id', async () => {
     const base = await playerControlFixture()
     const { t, owner: gm, other: departing, campaign, run } = base
     await departing.caller.mutation(api.account.updateProfile, { username: 'Mira', bio: null })
@@ -42,12 +41,6 @@ describe('deleted member Campaign history', () => {
       kind: 'SHARED_NOTE'
     })
     expect(note).toMatchObject({ authorLabel: 'Mira' })
-    const file = await readyCampaignFile(t, departing.userId, 'HANDOUT_MAP')
-    const handout = await departing.caller.mutation(api.campaigns.attachments.create, {
-      campaignId: campaign.id,
-      assetId: file.id,
-      displayName: 'Player handout'
-    })
     const readHistory = async () => ({
       timeline: await gm.caller.query(api.encounters.timelineReads.timeline, {
         encounterId: run.id,
@@ -62,14 +55,6 @@ describe('deleted member Campaign history', () => {
         campaignId: campaign.id,
         sessionId: session.id,
         paginationOpts: page
-      }),
-      handouts: await gm.caller.query(api.campaigns.attachments.list, {
-        campaignId: campaign.id,
-        paginationOpts: page
-      }),
-      delivery: await gm.caller.query(internal.campaigns.attachments.readDelivery, {
-        campaignId: campaign.id,
-        attachmentId: handout.id
       })
     })
     const before = await readHistory()
@@ -85,15 +70,6 @@ describe('deleted member Campaign history', () => {
     expect(before.rsvps.page).toEqual([
       expect.objectContaining({ userId: departing.userId, response: 'YES' })
     ])
-    expect(handout).toMatchObject({ uploaderLabel: 'Mira' })
-    expect(before.handouts.page).toEqual([
-      expect.objectContaining({
-        id: handout.id,
-        uploaderUserId: departing.userId,
-        uploaderLabel: 'Mira'
-      })
-    ])
-    expect(before.delivery).toMatchObject({ assetId: file.id })
 
     const authUserId = await t.run(async (ctx) => {
       const profile = await ctx.db
@@ -104,31 +80,17 @@ describe('deleted member Campaign history', () => {
       return profile.authUserId
     })
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
-    // The deferred media cleanup must not take a handout the Campaign retained.
-    await t.mutation(internal.media.assets.purgeAccount, { userId: departing.userId })
 
     // Every retained record keeps the opaque account id; no current member or profile resolves it,
-    // so the deleted author's username is replaced while current members stay named. The handout
-    // now names the GM's copy, which serves the same stored bytes (ADR 0012 amendment).
+    // so the deleted author's username is replaced while current members stay named.
     const after = await readHistory()
-    const copyId = after.delivery.assetId
-    expect(copyId).not.toBe(file.id)
     expect(after).toEqual({
       ...before,
-      delivery: { ...before.delivery, assetId: copyId },
       notes: {
         ...before.notes,
         page: before.notes.page.map((row) =>
           row.id === note.id ? { ...row, authorLabel: deletedCampaignAuthorLabel } : row
         )
-      },
-      handouts: {
-        ...before.handouts,
-        page: before.handouts.page.map((row) => ({
-          ...row,
-          assetId: copyId,
-          uploaderLabel: deletedCampaignAuthorLabel
-        }))
       }
     })
     const detail = await gm.caller.query(api.campaigns.queries.get, { id: campaign.id })

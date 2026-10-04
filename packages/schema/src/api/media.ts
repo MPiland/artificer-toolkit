@@ -6,12 +6,9 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 export const mediaImageProfileSchema = lazySchema(() =>
   z.enum(['ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE'])
 )
-export const campaignFileProfileSchema = lazySchema(() =>
-  z.enum(['CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP'])
-)
 export const vttMapProfileSchema = lazySchema(() => z.literal('VTT_MAP'))
 export const mediaProfileSchema = lazySchema(() =>
-  z.union([mediaImageProfileSchema, campaignFileProfileSchema, vttMapProfileSchema])
+  z.union([mediaImageProfileSchema, vttMapProfileSchema])
 )
 
 export const mediaAssetStatusSchema = lazySchema(() =>
@@ -22,9 +19,6 @@ export const mediaVariantKindSchema = lazySchema(() => z.enum(['SOURCE', 'DISPLA
 
 export const imageMimeTypeSchema = lazySchema(() =>
   z.enum(['image/jpeg', 'image/png', 'image/webp'])
-)
-export const campaignFileMimeTypeSchema = lazySchema(() =>
-  z.enum(['image/jpeg', 'image/png', 'image/webp', 'text/plain'])
 )
 
 export const normalizedImageCropSchema = lazySchema(() =>
@@ -58,14 +52,6 @@ export const mediaTargetSchema = lazySchema(() =>
       type: z.literal('AUTHORED_IMAGE'),
       subjectKind: authoredSubjectKindSchema,
       subjectId: postgresUuidSchema
-    }),
-    z.strictObject({
-      type: z.literal('CAMPAIGN_FILE'),
-      campaignId: z.string().check(z.uuid())
-    }),
-    z.strictObject({
-      type: z.literal('CAMPAIGN_HANDOUT_MAP'),
-      campaignId: z.string().check(z.uuid())
     }),
     z.strictObject({
       type: z.literal('VTT_MAP'),
@@ -102,58 +88,6 @@ export const createVttMapUploadIntentInputSchema = lazySchema(() =>
         }
       })
     )
-)
-
-export const createCampaignFileUploadIntentInputSchema = lazySchema(() =>
-  z
-    .strictObject({
-      profile: campaignFileProfileSchema,
-      target: z.discriminatedUnion('type', [
-        z.strictObject({
-          type: z.literal('CAMPAIGN_FILE'),
-          campaignId: z.string().check(z.uuid())
-        }),
-        z.strictObject({
-          type: z.literal('CAMPAIGN_HANDOUT_MAP'),
-          campaignId: z.string().check(z.uuid())
-        })
-      ]),
-      originalFileName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(255)),
-      declaredMimeType: campaignFileMimeTypeSchema,
-      declaredBytes: z
-        .number()
-        .check(z.int())
-        .check(z.positive())
-        .check(z.lte(6 * 1024 * 1024)),
-      idempotencyKey: z.string().check(z.uuid())
-    })
-    .check(
-      z.superRefine((input, context) => {
-        if (input.profile !== input.target.type)
-          context.addIssue({
-            code: 'custom',
-            path: ['target'],
-            message: 'The upload profile must match its target.'
-          })
-        if (input.profile === 'CAMPAIGN_HANDOUT_MAP' && input.declaredMimeType === 'text/plain')
-          context.addIssue({
-            code: 'custom',
-            path: ['declaredMimeType'],
-            message: 'Handout maps must be images.'
-          })
-      })
-    )
-)
-
-export const signedCampaignFileDeliveryDtoSchema = lazySchema(() =>
-  z.strictObject({
-    assetId: z.string().check(z.uuid()),
-    url: z.string().check(z.url()),
-    expiresAt: z.iso.datetime(),
-    mimeType: campaignFileMimeTypeSchema,
-    fileName: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(255)),
-    byteSize: z.number().check(z.int()).check(z.positive())
-  })
 )
 
 export const signedImageDeliveryDtoSchema = lazySchema(() =>
@@ -391,13 +325,8 @@ export const imageLookupInputSchema = lazySchema(() =>
 )
 
 export type MediaImageProfile = z.infer<typeof mediaImageProfileSchema>
-export type CampaignFileProfile = z.infer<typeof campaignFileProfileSchema>
 export type VttMapProfile = z.infer<typeof vttMapProfileSchema>
-export type CreateCampaignFileUploadIntentInput = z.infer<
-  typeof createCampaignFileUploadIntentInputSchema
->
 export type CreateVttMapUploadIntentInput = z.infer<typeof createVttMapUploadIntentInputSchema>
-export type SignedCampaignFileDeliveryDto = z.infer<typeof signedCampaignFileDeliveryDtoSchema>
 export type MediaAssetStatus = z.infer<typeof mediaAssetStatusSchema>
 export type MediaVariantKind = z.infer<typeof mediaVariantKindSchema>
 export type NormalizedImageCrop = z.infer<typeof normalizedImageCropSchema>

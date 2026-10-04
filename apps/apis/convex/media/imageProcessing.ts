@@ -72,7 +72,6 @@ async function cropThumbnail(ctx: ActionCtx, asset: MediaStoredAsset, crop: Norm
     ),
     crop
   )
-  if (!thumbnail.width || !thumbnail.height) throw new Error('Image is unavailable.')
   await storage.store(ctx, thumbnail.bytes, { key: claim.objectKey, type: thumbnail.mimeType })
   return ctx.runMutation(internal.media.cropThumbnails.record, {
     assetId: asset.id,

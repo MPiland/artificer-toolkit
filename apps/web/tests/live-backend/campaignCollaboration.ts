@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect, type Page } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
 
@@ -11,8 +11,6 @@ type CampaignCollaborationStage =
   | 'notebook-created'
   | 'notebook-updated'
   | 'notebook-deleted'
-  | 'file-uploaded'
-  | 'file-removed'
   | 'gm-private-rolled'
   | 'gm-table-rolled'
 
@@ -41,8 +39,6 @@ const directOnly = 'P14 direct only'
 const sharedNote = 'P14 shared note'
 const sharedNoteUpdated = 'P14 shared note updated'
 const privateNote = 'P14 private note'
-const sharedFileName = 'p14-collaboration.txt'
-const sharedFileContents = 'P14 shared file\n'
 
 export async function verifyCampaignCollaborationBrowser(
   input: CampaignCollaborationVerificationInput
@@ -51,7 +47,6 @@ export async function verifyCampaignCollaborationBrowser(
   const browser = await chromium.launch({ headless: true })
   const diagnostics: string[] = []
   const abortedRequests = new Map<string, string>()
-  const verifiedTransfers = new Set<string>()
   let stage = 'sign in'
   let owner: Page | undefined
   let player: Page | undefined
@@ -178,56 +173,6 @@ export async function verifyCampaignCollaborationBrowser(
       fullPage: true
     })
 
-    stage = 'file upload'
-    await Promise.all([selectFiles(owner), selectFiles(player)])
-    await owner.locator('input[type="file"]').setInputFiles({
-      name: sharedFileName,
-      mimeType: 'text/plain',
-      buffer: Buffer.from(sharedFileContents)
-    })
-    const uploaded = owner.waitForResponse(
-      (response) =>
-        response.request().method() === 'PUT' &&
-        new URL(response.url()).pathname.startsWith('/pending/'),
-      { timeout: 30_000 }
-    )
-    await owner.getByRole('button', { name: 'Upload file', exact: true }).click()
-    const uploadResponse = await uploaded
-    expect(uploadResponse.ok()).toBe(true)
-    await expect(
-      owner
-        .getByRole('region', { name: 'Campaign files', exact: true })
-        .getByText(sharedFileName, { exact: true })
-    ).toBeVisible({ timeout: 30_000 })
-    await expect(player.getByText(sharedFileName, { exact: true })).toBeVisible()
-    await input.verifyState('file-uploaded')
-    verifiedTransfers.add(`PUT ${uploadResponse.url()}`)
-    await player.screenshot({
-      caret: 'initial',
-      path: `${input.evidenceDirectory}/campaign-collaboration-file-uploaded.png`,
-      fullPage: true
-    })
-
-    stage = 'file download'
-    const downloadPromise = player.waitForEvent('download')
-    await player.getByRole('button', { name: 'Download', exact: true }).click()
-    const download = await downloadPromise
-    expect(download.suggestedFilename()).toBe(sharedFileName)
-    const downloadedFile = `${input.evidenceDirectory}/${sharedFileName}`
-    await download.saveAs(downloadedFile)
-    expect(await readFile(downloadedFile, 'utf8')).toBe(sharedFileContents)
-    verifiedTransfers.add(`GET ${download.url()}`)
-
-    stage = 'file remove'
-    await owner.getByRole('button', { name: 'Remove', exact: true }).click()
-    await expect(player.getByText(sharedFileName, { exact: true })).toHaveCount(0)
-    await input.verifyState('file-removed')
-    await player.screenshot({
-      caret: 'initial',
-      path: `${input.evidenceDirectory}/campaign-collaboration-file-removed.png`,
-      fullPage: true
-    })
-
     stage = 'GM private roll'
     await openChat(player)
     const playerTableHistory = player.getByRole('log', { name: 'Table history' })
@@ -267,20 +212,10 @@ export async function verifyCampaignCollaborationBrowser(
     throw new Error(scrub(`${message} | global diagnostics: ${diagnostics.join(' | ')}`, input))
   } finally {
     await browser.close()
-    // Chromium can abort a transfer after delivering its response/download. Only
-    // these exact URLs qualify, after the proof has verified the stored/downloaded bytes.
-    const verifiedTransferAborts: string[] = []
-    for (const [request, diagnostic] of abortedRequests) {
-      if (verifiedTransfers.has(request)) verifiedTransferAborts.push(scrub(diagnostic, input))
-      else diagnostics.push(diagnostic)
-    }
+    diagnostics.push(...abortedRequests.values())
     await writeFile(
       `${input.evidenceDirectory}/campaign-collaboration-diagnostics.json`,
-      JSON.stringify(
-        { diagnostics: diagnostics.map((value) => scrub(value, input)), verifiedTransferAborts },
-        null,
-        2
-      )
+      JSON.stringify({ diagnostics: diagnostics.map((value) => scrub(value, input)) }, null, 2)
     )
   }
 }
@@ -366,11 +301,6 @@ async function selectNotes(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Close Campaign chat', exact: true }).click()
   await page.getByRole('tab', { name: 'Notes', exact: true }).click()
   await expect(page.getByRole('region', { name: 'General notes' })).toBeVisible()
-}
-
-async function selectFiles(page: Page): Promise<void> {
-  await page.getByRole('tab', { name: 'Files', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Campaign files', exact: true })).toBeVisible()
 }
 
 async function rollManualDice(page: Page, destination: 'PRIVATE' | 'TABLE'): Promise<void> {

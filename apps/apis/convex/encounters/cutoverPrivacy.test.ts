@@ -17,7 +17,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
+import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -42,6 +42,14 @@ const timeline = makeFunctionReference<'query', { encounterId: string; limit: nu
 const pending = makeFunctionReference<'query', { encounterId: string }, unknown>(
   'encounters/pendingReads:pendingRuleOccurrence'
 )
+const evidenceLatest = makeFunctionReference<'query', { encounterId: string }, unknown>(
+  'encounters/evidenceRolls:latest'
+)
+const decisionSettlement = makeFunctionReference<
+  'query',
+  { encounterId: string; occurrenceId: string; occurrenceVersion: number },
+  unknown
+>('encounters/activeReads:decisionSettlement')
 
 it('V12 current native reads redact hidden actors and deny outsider or departed viewers', async () => {
   const base = await fixture()
@@ -77,18 +85,9 @@ it('V12 current native reads redact hidden actors and deny outsider or departed 
       joinedAt: campaign.createdAt,
       leftAt: null
     })
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing Encounter Run.')
     const hidden = run.actors[1]
     if (!hidden) throw new Error('Missing hidden actor.')
-    const state = encounterRunStateSchema.parse({ ...readRunState(row), currentActorId: hidden.id })
-    await ctx.db.patch(row._id, {
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
+    await activateFixtureRun(ctx, run.id, { currentActorId: hidden.id })
     await updateFixtureRunActors(ctx, run.id, (actor) =>
       actor.id === hidden.id && actor.kind === 'CUSTOM'
         ? { ...actor, public: false, gmNotes: 'V12 secret', currentHitPoints: 1, tempHitPoints: 3 }
@@ -101,7 +100,7 @@ it('V12 current native reads redact hidden actors and deny outsider or departed 
   const player = await base.other.caller.query(get, { encounterId: run.id })
   expect(owner.actors).toHaveLength(2)
   expect(JSON.stringify(player)).not.toContain('V12 secret')
-  expect(JSON.stringify(player)).not.toContain(owner.actors[1]!.id)
+  expect(JSON.stringify(player)).not.toContain(run.actors[1]!.id)
   await expect(
     base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
   ).resolves.toEqual({ entries: [], nextCursor: null })
@@ -123,4 +122,102 @@ it('V12 current native reads redact hidden actors and deny outsider or departed 
   await expect(
     base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
   ).rejects.toThrow('Campaign not found')
+}, 30000)
+
+it('D87 a player reads only the active Encounter; prepared, completed and foreign Runs are unavailable', async () => {
+  const base = await fixture()
+  const createdCampaign = (host: typeof base.owner, name: string) =>
+    host.caller.mutation(createCampaign, {
+      name,
+      format: 'ONGOING',
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD',
+      gameSystemId: srdSystemRecord.id,
+      primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+    })
+  const prepareRun = async (host: typeof base.owner, campaignId: string) => {
+    const blueprint = await host.caller.mutation(createBlueprint, {
+      gameSystemId: srdSystemRecord.id,
+      name: 'D87 gate',
+      commandId: crypto.randomUUID(),
+      enemies: [{ kind: 'CUSTOM', label: 'Gated', maxHitPoints: 10 }]
+    })
+    return host.caller.mutation(createRun, {
+      campaignId,
+      blueprintId: blueprint.id,
+      commandId: crypto.randomUUID()
+    })
+  }
+  const campaign = await createdCampaign(base.owner, 'D87 table')
+  const run = await prepareRun(base.owner, campaign.id)
+  const foreign = await prepareRun(
+    base.other,
+    (await createdCampaign(base.other, 'D87 elsewhere')).id
+  )
+  await base.t.run((ctx) =>
+    ctx.db.insert('campaignMemberships', {
+      campaignId: campaign.id,
+      userId: base.other.userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: campaign.createdAt,
+      joinedAt: campaign.createdAt,
+      leftAt: null
+    })
+  )
+  const readAll = (caller: typeof base.owner.caller, encounterId: string) =>
+    Promise.all([
+      caller.query(get, { encounterId }),
+      caller.query(timeline, { encounterId, limit: 20 }),
+      caller.query(pending, { encounterId }),
+      caller.query(evidenceLatest, { encounterId })
+    ])
+  const unavailable = 'Encounter is unavailable.'
+
+  // PREPARED: the GM reads it; a player cannot, through any read.
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(4)
+  for (const read of [get, pending, evidenceLatest])
+    await expect(base.other.caller.query(read, { encounterId: run.id })).rejects.toThrow(
+      unavailable
+    )
+  await expect(
+    base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
+  ).rejects.toThrow(unavailable)
+  await expect(
+    base.other.caller.query(decisionSettlement, {
+      encounterId: run.id,
+      occurrenceId: crypto.randomUUID(),
+      occurrenceVersion: 1
+    })
+  ).rejects.toThrow(unavailable)
+
+  // ACTIVE: both read it, with the existing player redaction.
+  await base.t.run((ctx) => activateFixtureRun(ctx, run.id))
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(4)
+  await expect(readAll(base.other.caller, run.id)).resolves.toHaveLength(4)
+
+  // COMPLETED: only the GM reads it.
+  await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', run.id))
+      .unique()
+    if (!row) throw new Error('Missing Encounter Run.')
+    const state = encounterRunStateSchema.parse({ ...readRunState(row), status: 'COMPLETED' })
+    await ctx.db.patch(row._id, {
+      status: 'COMPLETED',
+      stateJson: JSON.stringify(state),
+      stateChecksum: checksumCanonicalJson(state)
+    })
+  })
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(4)
+  await expect(base.other.caller.query(get, { encounterId: run.id })).rejects.toThrow(unavailable)
+  await expect(
+    base.other.caller.query(timeline, { encounterId: run.id, limit: 20 })
+  ).rejects.toThrow(unavailable)
+
+  // Another Campaign's Run is not readable by a GM who is not its member.
+  await expect(base.owner.caller.query(get, { encounterId: foreign.id })).rejects.toThrow(
+    'Campaign not found'
+  )
 }, 30000)

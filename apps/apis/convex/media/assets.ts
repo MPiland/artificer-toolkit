@@ -11,7 +11,6 @@ import {
   mediaProcessingOperationSchema,
   mediaReferencedImageSchema,
   mediaSinglePutUploadSchema,
-  mediaStoredAssetFieldsSchema,
   mediaStoredAssetSchema,
   type AvatarBindingDto,
   type MediaImageBinding,
@@ -181,17 +180,8 @@ export async function createMediaUpload(ctx: MutationCtx, args: unknown, target:
   const input =
     target.type === 'VTT_MAP'
       ? vttMapStoredAssetSchema.shape.upload.parse(args)
-      : target.type === 'CAMPAIGN_FILE' || target.type === 'CAMPAIGN_HANDOUT_MAP'
-        ? mediaStoredAssetFieldsSchema.shape.upload.parse(args)
-        : avatarUploadInputSchema.parse(args)
-  const profileClass: MediaProfileClass =
-    target.type === 'VTT_MAP'
-      ? 'VTT_MAP'
-      : target.type === 'CAMPAIGN_HANDOUT_MAP'
-        ? 'HANDOUT_MAP'
-        : input.declaredMimeType === 'text/plain'
-          ? 'TEXT_FILE'
-          : 'CONTENT_ART'
+      : avatarUploadInputSchema.parse(args)
+  const profileClass: MediaProfileClass = target.type === 'VTT_MAP' ? 'VTT_MAP' : 'CONTENT_ART'
   const authenticated = await getAuthenticatedProfile(ctx)
   if (!authenticated) throw new Error('Unauthenticated')
   const userId = authenticated.identity.userId
@@ -577,21 +567,17 @@ async function assetIsReferenced(
 ) {
   if (profile?.avatarAssetId === asset.id) return true
   if (asset.profileClass === 'VTT_MAP') return mapIsReferenced(ctx, asset.id)
-  const [portrait, attachment, slot] = await Promise.all([
+  const [portrait, slot] = await Promise.all([
     ctx.db
       .query('characters')
       .withIndex('by_portraitAssetId', (q) => q.eq('portraitAssetId', asset.id))
-      .first(),
-    ctx.db
-      .query('campaignAttachments')
-      .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
       .first(),
     ctx.db
       .query('authoredImageSlots')
       .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
       .first()
   ])
-  return portrait !== null || attachment !== null || slot !== null
+  return portrait !== null || slot !== null
 }
 
 /**
@@ -682,17 +668,6 @@ export const purgeAccount = internalMutation({
         })
       }
       if (portraits.length === 32) {
-        await ctx.scheduler.runAfter(0, internal.media.assets.purgeAccount, {
-          userId
-        })
-        return null
-      }
-      const attachments = await ctx.db
-        .query('campaignAttachments')
-        .withIndex('by_assetId', (q) => q.eq('assetId', asset.id))
-        .take(32)
-      for (const attachment of attachments) await ctx.db.delete(attachment._id)
-      if (attachments.length === 32) {
         await ctx.scheduler.runAfter(0, internal.media.assets.purgeAccount, {
           userId
         })

@@ -1236,7 +1236,6 @@ async function readDeferred(
   )
   const [
     knownAssets,
-    attachments,
     portraits,
     sceneDefinitions,
     campaignScenes,
@@ -1254,15 +1253,6 @@ async function readDeferred(
           ctx.db.query('mediaAssets').withIndex('by_publicId', (q) => q.eq('id', id)),
           1,
           'mediaAssets by public ID'
-        )
-      )
-    ),
-    Promise.all(
-      assetIds.map((id) =>
-        bounded(
-          ctx.db.query('campaignAttachments').withIndex('by_assetId', (q) => q.eq('assetId', id)),
-          32,
-          'campaignAttachments'
         )
       )
     ),
@@ -1409,7 +1399,6 @@ async function readDeferred(
   )
   return {
     mediaAssets: uniqueRows([...ownedAssets, ...knownAssets.flat()]),
-    campaignAttachments: uniqueRows(attachments.flat()),
     charactersWithPortrait: uniqueRows(portraits.flat()),
     sceneDefinitions: uniqueRows(sceneDefinitions.flat()),
     campaignScenes: uniqueRows(campaignScenes.flat()),

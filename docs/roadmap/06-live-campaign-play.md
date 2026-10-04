@@ -14,6 +14,8 @@ Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, 
 
 ## Implemented scope
 
+> Historical: Campaign files and handouts (`campaignAttachments`, `CAMPAIGN_FILE`, `CAMPAIGN_HANDOUT_MAP`) were removed in PLT-6 (decision D87). Campaign content now reaches players by GM reveal.
+
 - Campaign management now owns player-readable table settings, pinned Vehicle instances with isolated inventory custody, private Campaign files/handouts, immutable announcements, and the manual Campaign clock.
 - The existing Session workspace now composes focused prepare, run, and closeout views. Active players may open the authorized live/history surface without receiving GM-private preparation or reference pins.
 - Phase 02 remains the asset lifecycle owner, Phase 05 remains the delivery/preference owner, and Encounters remain the Session-bound run owner. Phase 06 adds only the Campaign references and authorization seams.

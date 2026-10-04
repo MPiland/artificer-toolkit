@@ -20,7 +20,6 @@ import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
-import { removeCampaignAttachment } from './attachmentDocuments'
 import { assertCampaignContentAllowed } from './contentUsage'
 
 function present(section: CampaignNotebookSectionDto, maturity: 'STANDARD' | 'MATURE') {
@@ -156,16 +155,6 @@ export const remove = mutation({
         .take(48)
       for (const pin of pins) await ctx.db.delete(pin._id)
       if (pins.length < 48) break
-    }
-    while (true) {
-      const attachments = await ctx.db
-        .query('campaignAttachments')
-        .withIndex('by_campaignId_noteSectionId', (q) =>
-          q.eq('campaignId', campaign.id).eq('noteSectionId', section.id)
-        )
-        .take(48)
-      for (const attachment of attachments) await removeCampaignAttachment(ctx, attachment)
-      if (attachments.length < 48) break
     }
     await ctx.db.delete(section._id)
     return { ok: true }

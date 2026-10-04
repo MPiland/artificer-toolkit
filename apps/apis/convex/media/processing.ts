@@ -4,31 +4,26 @@ import { createHash } from 'node:crypto'
 import sharp from 'sharp'
 import type { z } from 'zod'
 import { normalizedImageCropSchema } from '@artificer-toolkit/schema/api/media'
-import type {
-  campaignFileMimeTypeSchema,
-  imageMimeTypeSchema,
-  MediaVariantKind
-} from '@artificer-toolkit/schema/api/media'
+import type { imageMimeTypeSchema, MediaVariantKind } from '@artificer-toolkit/schema/api/media'
 import type { NormalizedImageCrop } from '@artificer-toolkit/schema/api/media'
 import type { MediaProfileClass } from '@artificer-toolkit/schema/api/mediaAssets'
 
 type ImageMimeType = z.infer<typeof imageMimeTypeSchema>
-type MediaMimeType = z.infer<typeof campaignFileMimeTypeSchema>
 
 export interface ProcessedMedia {
   originalByteSize: number
   verifiedByteSize: number
-  verifiedMimeType: MediaMimeType
+  verifiedMimeType: ImageMimeType
   /** SHA-256 of the normalized bytes; the same owner's identical content de-duplicates on it. */
   contentHash: string
-  width: number | null
-  height: number | null
+  width: number
+  height: number
   variants: {
     kind: MediaVariantKind
     bytes: Buffer
-    mimeType: 'image/webp' | 'text/plain'
-    width: number | null
-    height: number | null
+    mimeType: 'image/webp'
+    width: number
+    height: number
   }[]
   tiles: {
     row: number
@@ -99,11 +94,10 @@ export async function cropMediaThumbnail(
 export async function processMedia(
   bytes: Uint8Array,
   profileClass: MediaProfileClass,
-  declaredMimeType: MediaMimeType
+  declaredMimeType: ImageMimeType
 ): Promise<ProcessedMedia> {
   const isMap = profileClass === 'VTT_MAP'
-  const isText = declaredMimeType === 'text/plain'
-  const label = isMap ? 'Map' : isText ? 'File' : 'Image'
+  const label = isMap ? 'Map' : 'Image'
   const maxBytes = (isMap ? 25 : 6) * 1024 * 1024
   const maxPixels = isMap ? 64_000_000 : 25_000_000
   if (bytes.byteLength === 0) throw new MediaValidationError('Upload data is empty.')
@@ -111,49 +105,6 @@ export async function processMedia(
     throw new MediaValidationError(`${label} exceeds the ${isMap ? 25 : 6} MiB limit.`)
   }
   const source = Buffer.from(bytes)
-
-  if (isText) {
-    if (profileClass === 'HANDOUT_MAP') {
-      throw new MediaValidationError('Handout maps must be images.')
-    }
-    if (profileClass !== 'TEXT_FILE') {
-      throw new MediaValidationError(
-        `${isMap ? 'Map' : 'Image'} format or dimensions are not supported.`
-      )
-    }
-    let text: string
-    try {
-      text = new TextDecoder('utf-8', { fatal: true }).decode(source)
-    } catch {
-      throw new MediaValidationError('Text files must use valid UTF-8.')
-    }
-    for (let index = 0; index < text.length; index += 1) {
-      const code = text.charCodeAt(index)
-      if (code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31) || code === 127) {
-        throw new MediaValidationError('Text files cannot contain control characters.')
-      }
-    }
-    const body = Buffer.from(text, 'utf8')
-    if (body.byteLength === 0) throw new MediaValidationError('Upload data is empty.')
-    return {
-      originalByteSize: source.byteLength,
-      verifiedByteSize: body.byteLength,
-      verifiedMimeType: 'text/plain',
-      contentHash: createHash('sha256').update(body).digest('hex'),
-      width: null,
-      height: null,
-      variants: [
-        {
-          kind: 'SOURCE',
-          bytes: body,
-          mimeType: 'text/plain',
-          width: null,
-          height: null
-        }
-      ],
-      tiles: []
-    }
-  }
 
   const inspection = await sharp(source, { animated: true })
     .metadata()
@@ -194,8 +145,8 @@ export async function processMedia(
     throw new MediaValidationError(`${label} type does not match the upload intent.`)
   }
 
-  // Content art is capped at 2048 px; handout maps keep 4096 px and VTT maps keep full size (Q17).
-  const sourceLimit = profileClass === 'HANDOUT_MAP' ? 4096 : 2048
+  // Content art is capped at 2048 px; VTT maps keep full size (Q17).
+  const sourceLimit = 2048
   const pipeline = sharp(source, { limitInputPixels: maxPixels }).rotate()
   if (!isMap) pipeline.resize(sourceLimit, sourceLimit, { fit: 'inside', withoutEnlargement: true })
   const normalized = await pipeline
