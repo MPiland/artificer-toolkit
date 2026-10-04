@@ -2,7 +2,7 @@
 
 - **Status:** decision (approved 2026-09-27; groundwork implemented locally; authority switch and final proof pending)
 - **Date:** 2026-09-27
-- **Revised:** 2026-09-30
+- **Revised:** 2026-10-03 (D86)
 - **Scope:** who owns live Encounter state and combat play state while a table is live, how commands are authorized and made durable, how Convex receives the result, how views outside the room see it, and the free-tier cost budget for live play
 - **Update when:** live Encounter authority, checkpointing, the room's durability, outside-the-room reads or edits, or the live-play cost budget changes
 - **Supersedes:**
@@ -248,6 +248,130 @@ passed with three 4 MiB ledgers. See the
 [2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
 Final integration and the complete local lifecycle remain pending. This decision does not advance
 Phase 8.2 acceptance or establish a Q16 budget pass.
+
+## D86: write-behind state flush; live views read the room — 2026-10-03
+
+**Decided by the product owner on 2026-10-03 (VS-8).** Recorded as D86 in the
+[decisions log](../handoffs/phase-08-2-decisions.md). Not yet implemented; see the
+[slice plan](../handoffs/adr-0035-implementation-plan.md#write-behind-flush-slices-d86).
+
+**Why.** The REL-5 V15 runs showed the checkpoint path costs more than the commands it persists:
+
+- every checkpoint reads a floor of about 250 KB, growing by about one document and 251 B per
+  checkpoint: the Campaign, every assignment and active membership, the room authorization rebuilt
+  to renew the lease, and receipt-ledger collision and orphan checks;
+- token binding, removal and every socket admission force a synchronous checkpoint, so ordinary
+  table actions wait on Convex;
+- pages outside the table that show room-owned state read Convex, which lags by up to 120 s;
+- edits made outside the room reach the table only at its next command;
+- the Encounter timeline and command history are persisted to Convex although D85 decided they need
+  not outlive the Run.
+
+**Principle.** Commands never call Convex; the room persists the state those commands changed,
+coalesced and flushed on an interval and at key moments. A committed change is state that would be
+lost if the room's storage were lost. Previews, pings and cursors never count. No changed state
+means no flush and no Convex call.
+
+17. **Flush cadence replaces Amendments 4 and 13.**
+    - The room flushes only its dirty set, coalesced per record, no later than N after the first
+      unflushed change. N is one tunable constant between 30 s and 120 s, which REL-5 sets from
+      the V15 measurements. Live viewers read the room (Amendment 19), so N bounds only the
+      storage-loss window and what non-live readers see.
+    - A due flush is sent while the room handles its next incoming message. An alarm fires only
+      when the room goes quiet, which keeps alarm-billed Durable Object requests down.
+    - Synchronous key moments are the ones that change Convex-owned holds: START, COMPLETE, DELETE,
+      adding or removing a Character actor (D74), and the departure reconcile (D81).
+    - Drain and idle release still flush before they finish, so Convex is current once a table
+      closes.
+    - Round boundaries, token binding and removal, and socket admission no longer force a
+      checkpoint. Their state rides the next interval flush. The token-binding view that read Convex
+      reads the room, or is deleted if nothing reads it.
+    - Durability is unchanged: an acknowledged command is in the room's SQLite before the
+      acknowledgement.
+18. **Flush cost scales with the delta, not the Campaign.**
+    - A flush reads only the records in its delta, for the checksum fence, plus the authority row
+      for the epoch and sequence fence. It never reads every assignment or membership.
+    - Controller-list filtering reads only the Characters in the delta.
+    - Lease renewal (Amendment 14) leaves the checkpoint. The room renews its authorization
+      separately, at most once per half-lease (120 s) and only while sockets are connected.
+      Invalidation notices and eviction retries are unchanged.
+    - Each flush records its Convex bytes read and written per section (D85), so any remaining floor
+      is measured, not modelled.
+19. **While a table is running, every view of room-owned state reads the room. This extends
+    Decision 7.**
+    - The Character Sheet keeps its room path (A35-S7a) from any window. It is not limited to the
+      table's window.
+    - Pages outside the table that show room-owned state switch to the room for any viewer
+      authorized to see the page while the Campaign's table is running. Room-owned state means
+      HP, conditions, resources and slots, round and turn, and token positions.
+    - They subscribe to one room feed, the live Campaign summary, not to per-page feeds. The feed
+      applies exactly the visibility the viewer already has on that page and never widens it: Party
+      can view, roster basics, health display levels (ADR 0034), hidden actors and GM-only map
+      state, private rolls (D62, Q14), and D87's hidden-until-revealed Campaign content.
+    - They return to Convex when the table ends. The switch uses the same "is a table running"
+      check as the Sheet. It does not track whether the viewer has the table open.
+    - Each window holds its own room connection, subscribed only to what it shows. A Sheet or
+      summary window receives no map, Encounter or chat.
+    - Convex's copy is read live only when no table is running. It is current then, because the
+      table flushes before it closes.
+20. **Sheet edits show at once.** The Sheet shows a play edit immediately and sends it to the room.
+    - The room applies the edit and confirms it.
+    - On a refusal (no slot left, lost permission or a conflicting edit), the Sheet reverts the
+      edit and shows the reason.
+    - A pending Encounter decision never blocks Sheet play edits. Pending decisions block only
+      Encounter actions, turn commands and undo.
+    - Rests stay refused while held.
+21. **Edits made outside the room stream into the room.** Builder and GM content edits, such as a
+    new weapon Feature during a map session without an Encounter, keep the `INVALIDATE_INPUTS`
+    notification.
+    - While table sockets are connected, the room reloads the affected inputs when the notice
+      arrives, coalesced per notice, and pushes the changed projection. It no longer waits for the
+      next command.
+    - With no sockets connected, the room reloads lazily, as today.
+22. **Encounter history stays in the room (D85; amends Decision 3 contents, Amendments 7 and 12, and
+    D70 for Encounter-scoped history).**
+    - The Encounter timeline, command log and rule receipts live in the room's SQLite and are
+      discarded when the Run ends.
+    - Checkpoints stop writing Encounter history ledgers and parts, and stop writing per-command
+      headers whose only reader is the timeline.
+    - Chat messages and roll cards persist by the regular flush, not at room close, with stable IDs
+      (D69).
+    - Cross-epoch replay (D68) keeps a compact Run-scoped replay index: command ID, actor,
+      fingerprint, resulting version, and the roll card ID where one exists. The index is deleted
+      when the Run ends. A retry across an epoch returns "applied at version V" plus the current
+      projection; any roll result comes from its persisted roll card.
+    - Character-scoped receipts produced by Encounter commands are dropped, following Foundry. The
+      D70 Character history API has no browser consumer.
+23. **Proactive re-authentication.** The room challenges each socket shortly before its admission
+    expires, at expiry minus 60 s. The client answers with a refreshed token from its refresh cycle.
+    A passive socket is never dropped silently, and nobody signs in again.
+
+**Consequences.**
+
+- **Convex writes scale with changed state, not with command count.** An idle or preview-only
+  table makes no Convex calls.
+- **Live viewers never see lag.** Everyone viewing a running table's Campaign sees the room's state:
+  the table, Sheets in any window, and summary pages.
+- **Flushes stay infrequent.** N bounds only the storage-loss window and what non-live readers
+  see, so flushes come at most once per N.
+- **One connection per open window.** The extra cost is one admission, answered from the room's
+  cache with no checkpoint (Amendment 17), plus a hibernated socket.
+- **Loss window.** Losing the room's storage loses at most N of changes, about one round, which
+  D85 accepts.
+- **Retired:**
+  - flushes forced by binding, admission and round change;
+  - lease renewal by checkpoint;
+  - Encounter history ledgers in Convex;
+  - the timeline-pagination use of receipt headers.
+
+**Unchanged:**
+
+- room authority, durability before acknowledgement, fencing and epochs;
+- rules and dice in the room (D41);
+- the privacy projection;
+- `INVALIDATE_INPUTS` and eviction;
+- chat and roll persistence (D69);
+- player control and GM override (ADR 0034).
 
 ## Also decided with this ADR
 

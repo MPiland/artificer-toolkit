@@ -568,6 +568,76 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     end Campaign-owned state by D81.
   - **Why held:** a released Character could change in Convex while room-owned effects still write
     it, so the room would write from a stale base and its checkpoint would be refused.
+- **D87 (2026-10-03): Campaign content is hidden from players until the GM reveals it. Decided by
+  the product owner on 2026-10-03 (VS-8).**
+  - **Rule:** everything a GM authors or prepares in a Campaign is GM-only by default: Encounters
+    and their actors before they run, Scenes not presented, NPCs, locations and notes. Players see
+    it only when the GM reveals or runs it. This follows Foundry, where players see nothing without
+    a permission grant.
+  - **Applies to:** every player-facing read, the room's live feeds (D86), and all future world
+    content.
+  - **Existing visibility unchanged:** ADR 0034's Party can view, roster basics and health
+    display, and the D62/Q14 projection.
+  - **Audit (2026-10-03).** Players cannot list hidden content. Three by-ID gaps exist:
+    - `encounters.projectionReads.get`, the timeline and the pending reads have no status or role
+      check, so a player with a prepared Encounter's ID sees its player view;
+    - player Scene and fog reads (`recipientReads.header`, `fogReads.layers`/`chunks`) do not
+      require the presented Scene;
+    - `attachments.list` returns every Campaign file to every member.
+  - **Gates (decided):**
+    - Players read only the ACTIVE Encounter, plus a pre-start decision addressed to them.
+      Actors stay player-visible by default once a Run is active, like Foundry's combat tracker.
+    - Player Scene and fog reads require the presented Scene, or a Scene the GM is showing as an
+      image (below).
+  - **Campaign Files removed (decided).** The `campaignAttachments` feature is removed entirely:
+    uploads, handout maps, the web Campaign Files area, its media profiles and retention hooks.
+    Pre-launch, so there is no compatibility layer, and local data is reset. Images on notebook
+    entries go to the
+    [post-launch backlog](../roadmap/future-enhancements.md#images-on-notebook-entries-d87).
+  - **Show to players (decided, before launch).** The GM can show a Scene's map to players as a
+    view-only image, with that Scene's fog, without changing the Scene being played. This replaces
+    handout maps; a world map is a Scene.
+  - **Notes (decided).**
+    - The GM and players each keep private and shared notes, in the Campaign notebook and in
+      session notes.
+    - New notes are private by default.
+    - A private note is visible to its author and the GM. As in Foundry, the GM can read every
+      note.
+    - A shared note is visible to the whole Campaign.
+    - Today the notebook is GM-only and a player's session notes are always public. Both change.
+  - **Work:** slices PLT-6 (read gates and Campaign Files removal), PLT-7 (private and shared
+    notes for everyone) and PLT-8 (Show to players), in VS-11.
+- **D86 (2026-10-03): write-behind state flush; live views read the room. Decided by the product
+  owner on 2026-10-03 (VS-8). Amends ADR 0035 Decisions 3 and 7, Amendments 1, 4, 7, 12, 13 and
+  14, D70 for Encounter-scoped history, and implements D85's history rule.**
+  - **Flushes:**
+    - Commands never call Convex. The room persists the state they changed, dirty-only and
+      coalesced, at most once per N (30–120 s, set by REL-5 from V15).
+    - Only hold-changing lifecycle commands flush synchronously: START, COMPLETE, DELETE, adding or
+      removing a Character actor, and the departure reconcile.
+    - Binding, admission and round change no longer force a checkpoint. Drain and release still
+      flush.
+  - **Flush cost scales with the delta:**
+    - no Campaign-wide roster reads;
+    - the lease is renewed separately, at most once per 120 s while sockets are connected;
+    - each flush records per-section I/O.
+  - **Live views read the room:**
+    - While a table is running, every view of room-owned state reads the room: the table, the Sheet
+      from any window, and summary pages through one live Campaign summary feed.
+    - The feed never widens a viewer's visibility (D87).
+    - Views return to Convex when the table ends. Each window holds its own connection.
+  - **Sheet edits** show at once, revert with the reason on a refusal, and are never blocked by a
+    pending Encounter decision.
+  - **Edits made outside the room** reload into the room immediately while sockets are connected.
+  - **Encounter history:**
+    - The timeline, command log and receipts stay in the room and are discarded at Run end.
+      Character receipts from Encounter commands are dropped too.
+    - A Run-scoped replay index serves cross-epoch retries.
+    - Chat and roll cards ride the regular flush.
+  - **Sign-in expiry:** the room re-challenges each socket 60 s before its admission expires.
+  - **Where:**
+    - [ADR 0035 D86](../adr/0035-room-authoritative-live-encounters.md#d86-write-behind-state-flush-live-views-read-the-room--2026-10-03);
+    - slices A35-S10a–d, then REL-5 ([plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86)).
 - **D85 (2026-10-03): measure live-play cost before changing checkpoints; Encounter history follows
   Foundry. Decided by the product owner on 2026-10-03 (VS-8).**
   - **Finding:** S0 modelled checkpoint I/O at about 5.9 MB per session at N = 120 s and 2.4 MB at

@@ -105,6 +105,15 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 This is a per-person, opt-in "Share my cursor" setting, sent at most 4 times a second and only while the mouse moves. It costs about 2,000–4,000 Durable Object requests per 4-hour session with 6 people. Revisit it when revenue supports the paid Workers plan; the launch matches Roll20, with a ping only.
 
+### Images on notebook entries (D87)
+
+D87 removes Campaign Files, which was the only way to attach an image to a notebook section or session. Notes are text-only at launch.
+
+- **Example:** an NPC portrait on a People section, or a sketch on a Places section.
+- **Candidate direction:** one optional image field on the notebook section itself, using the existing media pipeline. It is visible to whoever can see that section, so it needs no separate file list or permission model.
+
+Raised by the user on 2026-10-03.
+
 ### Rules-engine-native modifier model
 Much of the modifier vocabulary predates the rules engine and expresses capability rules as numeric workarounds. For example, Shocking Grasp's "can't take reactions" is authored as `REACTION_COUNT` `SET_VALUE` 0. Review the whole modifier model with the engine in mind:
 - capability modifiers (`DISABLE` / `ENABLE` over reactions, bonus actions, movement modes, concentration, and so on) instead of zeroing counts, so effects compose cleanly and the UI can say "Reactions disabled (Shocking Grasp)";

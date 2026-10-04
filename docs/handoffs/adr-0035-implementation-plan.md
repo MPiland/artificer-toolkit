@@ -97,6 +97,124 @@ The largest piece of work is moving the Convex write code behind a store interfa
 | **S8** Pages outside the room and chat                                                                   | Pages that are not live read the last checkpoint and show when it was taken. Roll cards go live through the room, then persist to chat by checkpoint with stable IDs, de-duplicated.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | No duplicate roll cards; a private GM roll is never in players' live feed                                                                                                                                                                                                                                                                                                                  | V11.5, P06.4                                                               |
 | **S9** Budgets and cleanup                                                                               | Delete the shadow harness. Add Decision 9 budgets to V15 (Convex I/O, and Durable Object requests, duration, rows and CPU). Rewrite `live-sessions.md`, `persistence.md` and `rules-runtime.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Budget gates                                                                                                                                                                                                                                                                                                                                                                               | V15.2 plus new criteria                                                    |
 
+## Write-behind flush slices (D86)
+
+**Approved 2026-10-03** with
+[ADR 0035 D86](../adr/0035-room-authoritative-live-encounters.md#d86-write-behind-state-flush-live-views-read-the-room--2026-10-03).
+Runs inside VS-8 before REL-5 resumes.
+
+**Order:** S10a → S10b → S10c → S10d → REL-5.
+
+- The slices run one at a time because they share the checkpoint writer and the room's flush path.
+- S10a comes first so later slices are measured against a delta-sized flush.
+- S10d could run before S10c, since it reduces each flush, but the order does not change the end state.
+
+### A35-S10a: delta-sized flushes (Amendment 18)
+
+**Goal:**
+
+- Instrument each checkpoint's Convex bytes read and written per section: authority fence, Campaign and roster, per-record checksums, authorization renewal, and receipt-ledger checks.
+- Then remove the floor:
+  - fence on the authority row and the delta's own records only;
+  - filter controllers for Characters in the delta only;
+  - move lease renewal to a separate call at most once per 120 s while sockets are connected;
+  - drop the ledger collision and orphan reads that S10d makes moot, or narrow them to the delta.
+
+**Key tests first:**
+
+- A one-actor HP flush reads only the delta's records plus the authority row, whatever the Campaign's roster size (a 4-member and a 40-member Campaign read the same bytes).
+- Fence refusals are unchanged: epoch, sequence, checksum, drain and release.
+- The lease is renewed without a checkpoint.
+- A lost eviction is still corrected within the lease.
+
+**Acceptance affected:** V15.2 evidence.
+
+### A35-S10b: no forced binding or admission flushes; proactive re-challenge (Amendments 17 and 23)
+
+**Goal:**
+
+- Token bind and unbind, AUTHENTICATE, and round change stop checkpointing before acknowledgement.
+- Find the token-binding view that reads Convex. Point it at the room, or delete it if nothing reads it.
+- The synchronous list becomes START, COMPLETE, DELETE, adding or removing a Character actor, and the departure reconcile. Fix LS:170's REVERT_LAST_ACTION entry.
+- The room challenges each socket at admission expiry minus 60 s.
+
+**Key tests first:**
+
+- Bind, unbind, admission and round change make zero Convex calls.
+- Lifecycle commands still wait.
+- A passive socket past its JWT lifetime keeps receiving pushes after a refresh-cycle re-authentication.
+- An unanswered challenge closes the socket with a reason, never silently.
+
+**Acceptance affected:** V15.1 and V15.2 evidence.
+
+### A35-S10c: dirty-only flush, live views on the room, edits stream in (Amendments 17, 19, 20 and 21)
+
+**Goal:**
+
+- **Flush cadence:** a dirty-only coalesced flush at N (a single constant, 30–120 s), replacing the 120 s deadline. A due flush rides the next incoming message; an alarm fires only when the room is quiet.
+- **Live summary feed:**
+  - List every page outside the table that shows room-owned state: HP, conditions, resources and slots, round and turn, token positions.
+  - Add one privacy-projected live Campaign summary feed in the room.
+  - Switch those parts of the pages to that feed while the table is running, using the Sheet's "is a table running" check, and back to Convex when it ends.
+- **Sheet edits:** the Sheet shows play edits at once and reverts with the reason on a refusal. The Sheet keeps its room path from any window.
+- **Eager reload:** `INVALIDATE_INPUTS` reloads at once and pushes while sockets are connected.
+
+**Key tests first:**
+
+- **No idle calls:** an idle table and a ping-only table make zero Convex calls.
+- **Coalescing:** a burst of commands within N yields one flush.
+- **Summary pages:**
+  - a summary page opened in another window shows a table HP change as fast as the table does;
+  - it returns to Convex, current, after the table closes;
+  - hidden actors and GM-only data never reach a player's summary.
+- **Sheet edits:**
+  - a Sheet edit in a non-table window shows at once and applies once on retry;
+  - a refusal reverts and shows its reason;
+  - a pending decision does not block a Sheet edit.
+- **Reload:** a GM's weapon Feature edit during a map session without an Encounter reaches the table without a command.
+
+**Acceptance affected:** R06.3, V14.5, P04.3, P08.2 and P08.4 (re-proof); V15.
+
+### A35-S10d: Encounter history stays in the room (Amendment 22, D85)
+
+**Goal:**
+
+- Checkpoints stop writing Encounter history ledgers, ledger parts and timeline-only headers.
+- The room discards its timeline, command log and receipts when the Run ends.
+- A compact Run-scoped replay index replaces cross-epoch receipt hydrate (`roomInputs.ts`), and is deleted when the Run ends.
+- Chat and roll cards ride the regular flush.
+- Remove the receipt families that have no product reader, and their readers, cleanup and tests (pre-launch, so no compatibility layer).
+- Reset and reseed local data.
+
+**Key tests first:**
+
+- **Replay:** a retry across an epoch returns the applied version plus the current projection, with no second effect or reroll.
+- **Chat:** chat and roll cards persist with stable IDs and no duplicates.
+- **Run end:** nothing of the timeline stays in Convex or the room's SQLite after COMPLETE.
+- **Deletion:** Campaign and account deletion are still correct.
+
+**Acceptance affected:** V11.5 and R06 replay re-proof; persistence docs.
+
+### REL-5 (resumes): re-measure V15 and set N
+
+**Goal:**
+
+- **Re-run:** run V15 on the new design with the event recorder, and diagnose the a11 reactor stall (MOVEMENT_REACTION not delivered) if it recurs.
+- **Measure:** Convex I/O per session and per flush trigger, Durable Object requests, rows and duration.
+- **Set N:** a value in 30–120 s that fits Q16 and Workers Free.
+- **Record the budgets.**
+- **Session model (product owner, 2026-10-03):** a 5-hour session with 4 fights of 8 rounds, 5 players and a GM, played weekly; assume 6 enemies per fight and about 3 hours of combat. Measure one group, report per-session costs, then the weekly groups that fit each free tier. The planning estimate (about 2,000 commands, 2.5–12 MB Convex, 1,300 Durable Object requests and 5–9k rows per session, so 10–45 weekly groups) is unverified until measured.
+
+**Key tests first:** the V15 gate with hard budgets.
+
+**Acceptance affected:** V15.1–V15.3.
+
+**Docs per slice:**
+
+- `live-sessions.md`: cadence, the live summary feed, the Sheet from any window, and re-challenge;
+- `persistence.md`: history and receipts;
+- `character.md`: Sheet edits show at once.
+
 ## Checkpoint contract
 
 The contract is `liveSessions/checkpoint:commit`, an internal mutation behind the Worker-secret route `/live-sessions/checkpoint`.

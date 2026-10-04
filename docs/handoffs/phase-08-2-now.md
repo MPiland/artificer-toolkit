@@ -44,8 +44,14 @@
   - Measure before changing any checkpoint cadence, payload or record shape. Remove only proven waste.
   - Encounter history follows Foundry: chat and roll cards persist; the turn timeline need not outlive the Run.
   - Losing up to one round on a rare DO storage loss is acceptable.
+- **TST-0 and TST-6 are done.** REL-5 is paused: V15 runs a9–a11 failed (a reactor player never got MOVEMENT_REACTION). The developmentHttpClient event recorder is uncommitted and not yet run.
+- **D86 (product owner):** write-behind flush; live views read the room. [ADR 0035 D86](../adr/0035-room-authoritative-live-encounters.md#d86-write-behind-state-flush-live-views-read-the-room--2026-10-03) and the [slice plan](adr-0035-implementation-plan.md#write-behind-flush-slices-d86).
+  - Order: A35-S10a → S10b → S10c → S10d, then REL-5 resumes and sets N.
+  - This supersedes item 6 below.
+- **D87 (product owner):** Campaign content is hidden from players until the GM reveals it. The audit is done; the fixes are VS-11 (queued after VS-8): PLT-6 read gates and Campaign Files removed, PLT-7 private and shared notes for everyone, PLT-8 Show to players. VS-11 touches no checkpoint code, so it may run alongside the D86 slices.
+- **V15 session model (product owner):** 5-hour sessions, 4 fights of 8 rounds, 5 players and a GM, weekly play; assume 6 enemies and about 3 hours of combat. REL-5 measures one group and extrapolates; group counts are checked in testing.
 
-**Remaining, in order**
+**Remaining, in order** (items 1–2 done; D86 slices come before item 3)
 1. **TST-0.** The baseline full suite passed all 2161 tests but exited 1: 2 teardown errors from leaked scheduled `contentSnapshots/actions:build` (scheduled by `contentSnapshots/marking.ts`, needs `MEDIA_STORAGE_MODE`). Fix that. Then:
    - upgrade convex-test 0.0.56 → 0.0.60 and compare unshuffled plus seeds 101 and 202;
    - extend the 60 s session fixtures (`tests/fixtures/characters.ts`, `publication.ts`);
