@@ -1182,8 +1182,8 @@
       "label": "SRD monster attacks that run",
       "value": "510 / 551",
       "from": "40 / 491",
-      "goal": "all printed attacks (41 left, Phase 8.3: RUL-9 slices 2 and 9)",
-      "met": false
+      "goal": "M9 sweep; the 41 left carry to Phase 8.3 (RUL-9 slices 2 and 9)",
+      "met": true
     },
     { "label": "Fast rules tests (rules-runtime)", "value": "408+", "from": "53" },
     {
