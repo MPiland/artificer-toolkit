@@ -144,7 +144,7 @@ Evidence:
 
 ## R08 — Complete development lifecycle passes from a fresh isolated Convex development deployment
 
-- **Status:** NOT_STARTED
+- **Status:** IN_PROGRESS
 - **Accepted:** never accepted
 - **Proof tier:** RELEASE
 - **Criteria met:** 0/2
