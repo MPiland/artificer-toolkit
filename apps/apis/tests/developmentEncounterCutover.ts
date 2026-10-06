@@ -1850,9 +1850,11 @@ export async function verifyEncounterReactionContention({
     assert.equal(encounterRuleUsageUsed(reactor, SRD_REACTION_ALLOWANCE_DEFINITION_ID), 1)
     const damage = moverBefore.currentHitPoints - mover.currentHitPoints
     assert.ok(damage === 1 || damage === 2, `V14.4 reaction dealt ${damage} damage.`)
-    // The root move's exact retry gets the room's stored receipt back, without a second publication.
+    // The root move's exact retry gets the room's stored receipt back, marked `replayed`, without a
+    // second publication.
     const replay = await owner.executeSceneCommand(rootCommand, root.expectedSessionSequence)
-    assert.deepEqual(replay, root)
+    if (!root.result) throw new Error('V14.4 root move committed without a result.')
+    assert.deepEqual(replay, { ...root, result: { ...root.result, replayed: true } })
     assert.deepEqual(held(), final)
     const result = {
       proof: 'V14.4 real-backend reaction response race',

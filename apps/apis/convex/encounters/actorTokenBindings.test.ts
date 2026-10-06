@@ -84,7 +84,6 @@ it('removes a bound actor token atomically, versions the Run, and replays its re
   )
 }, 60000)
 
-
 async function boundFixture() {
   const base = await setup()
   await base.other.caller.mutation(bindScene, {
@@ -158,9 +157,7 @@ async function snapshot(base: Awaited<ReturnType<typeof boundFixture>>) {
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
     liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
-    commands: await (await readEncounterHistory(ctx))
-      .query('encounterRunCommands')
-      .collect()
+    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
   }))
 }
 
@@ -419,7 +416,7 @@ it('rejects anonymous, player, revoked, pending and completed fresh writes', asy
   const before = await snapshot(base)
   await expect(base.t.mutation(execute, { input: base.input })).rejects.toThrow('Unauthenticated')
   await expect(base.owner.caller.mutation(execute, { input: base.input })).rejects.toThrow(
-    'Campaign not found'
+    'Only the GM can do that.'
   )
   expect(await snapshot(base)).toEqual(before)
   const pending = await base.t.run((ctx) =>

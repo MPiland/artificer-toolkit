@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { authoredDraftListInputSchema, authoredDraftListPageSchema } from './authoredDrafts.js'
 import { characterHistoryEntryDtoSchema } from './characterHistory.js'
+import { receiptLedgerEntrySchema } from './liveSessionCheckpointRecords.js'
 
 export const developmentReceiptLedgerScopeSchema = lazySchema(() =>
   z.strictObject({
@@ -18,6 +19,11 @@ export const developmentReceiptLedgerEntryInputSchema = lazySchema(() =>
 
 export const developmentReceiptLedgerSeedInputSchema = lazySchema(() =>
   z.extend(developmentReceiptLedgerEntryInputSchema, { rollback: z.boolean() })
+)
+
+/** The seed action builds and hashes the maximal entry, so the creating mutation only writes it. */
+export const developmentReceiptLedgerCreateInputSchema = lazySchema(() =>
+  z.extend(developmentReceiptLedgerSeedInputSchema, { entry: receiptLedgerEntrySchema })
 )
 
 export const developmentReceiptLedgerPageInputSchema = lazySchema(() =>
@@ -82,6 +88,9 @@ export type DevelopmentReceiptLedgerEntryInput = z.infer<
 >
 export type DevelopmentReceiptLedgerSeedInput = z.infer<
   typeof developmentReceiptLedgerSeedInputSchema
+>
+export type DevelopmentReceiptLedgerCreateInput = z.infer<
+  typeof developmentReceiptLedgerCreateInputSchema
 >
 export type DevelopmentReceiptLedgerSeedResult = z.infer<
   typeof developmentReceiptLedgerSeedResultSchema

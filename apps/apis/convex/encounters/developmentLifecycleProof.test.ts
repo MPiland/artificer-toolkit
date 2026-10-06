@@ -143,10 +143,13 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     blueprint: result.blueprint,
     characterId: character.id,
     policies,
-    sceneFixture: result
+    sceneFixture: result,
+    // Convex runs these commands in-process with no room holding the Run, so reads are never behind.
+    checkpoint: async () => undefined
   })
   expect(automated).toHaveLength(4)
   await verifyEncounterTransactions({
+    checkpoint: async () => undefined,
     owner: clients.owner,
     player: clients.player,
     ownerUserId: owner.userId,

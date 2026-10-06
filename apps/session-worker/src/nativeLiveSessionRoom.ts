@@ -89,6 +89,7 @@ import {
 } from './liveSessionRoutes.js'
 import {
   encounterCommandRefusal,
+  RoomAdmissionExpiredError,
   sceneNotPresentedRejection
 } from './nativeRoomEncounterCommand.js'
 import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
@@ -891,16 +892,20 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         .then(() =>
           this.#meter.command(() => this.#executeCommand(socket, work.admission, work.message))
         )
-        .catch((error: unknown) =>
-          error instanceof RoomRateLimitedError
-            ? this.#rejectCommand(socket, commandId, 'RATE_LIMITED', error.message)
-            : this.#rejectCommand(
-                socket,
-                commandId,
-                'UNAVAILABLE',
-                'Live Session command unavailable.'
-              )
-        )
+        .catch((error: unknown) => {
+          if (error instanceof RoomRateLimitedError)
+            this.#rejectCommand(socket, commandId, 'RATE_LIMITED', error.message)
+          else if (error instanceof RoomAdmissionExpiredError) {
+            const refusal = encounterCommandRefusal(error)
+            this.#rejectCommand(socket, commandId, refusal.code, refusal.message)
+          } else
+            this.#rejectCommand(
+              socket,
+              commandId,
+              'UNAVAILABLE',
+              'Live Session command unavailable.'
+            )
+        })
         .finally(() => {
           this.#pendingCommands.release(socket)
           if (playerEncounter === null) return
@@ -1961,7 +1966,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           !authorization ||
           !admitsRoomMember(authorization, admission)
         )
-          throw new Error('Live Session command admission expired before commit.')
+          throw new RoomAdmissionExpiredError()
         if (entry.sequence !== current.sequence + 1)
           throw new Error('Room command sequence does not match its authority.')
         this.#buckets.charge(this.#bucket('SCENE', value, admission))
@@ -2358,7 +2363,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             this.#cache !== sceneCache ||
             this.#presentationChanging
           )
-            throw new Error('Live Session command admission expired before commit.')
+            throw new RoomAdmissionExpiredError()
           if (!receipt || entry.sequence !== current.sequence + 1)
             throw new Error('Room Sheet command sequence does not match its authority.')
           const committed = this.#journal.commitInTransaction({
@@ -2526,7 +2531,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             checksumCanonicalJson(latest.revisions) !==
               checksumCanonicalJson(authorization.revisions)
           )
-            throw new Error('Live Session command admission expired before commit.')
+            throw new RoomAdmissionExpiredError()
           if (!receipt || entry.sequence !== current.sequence + 1)
             throw new Error('Room chat command sequence does not match its authority.')
           this.#buckets.charge(bucket)
@@ -2688,7 +2693,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
               checksumCanonicalJson(authorization.revisions) ||
             !admitsRoomMember(latest, admission)
           )
-            throw new Error('Live Session command admission expired before commit.')
+            throw new RoomAdmissionExpiredError()
           if (!receipt || entry.sequence !== current.sequence + 1)
             throw new Error('Room command sequence does not match its authority.')
           if (tableBucket) this.#buckets.charge(tableBucket)
@@ -2926,7 +2931,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const before = cache.scene
     const authorization = await this.#authorizationBoundary(value)
     if (!admitsRoomMember(authorization, admission))
-      throw new Error('Room Scene edit admission expired.')
+      throw new RoomAdmissionExpiredError()
     this.#roomStore.assertAuthorityHead({
       epoch: current.authorityEpoch,
       sequence: current.sequence,
@@ -2973,7 +2978,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           this.#cache.presentation?.expectedPresentationVersion !==
             cache.presentation!.expectedPresentationVersion
         )
-          throw new Error('Room Scene edit admission expired before commit.')
+          throw new RoomAdmissionExpiredError()
         if (!receipt || !nextStateJson || entry.sequence !== sequence)
           throw new Error('Room Scene edit sequence does not match its authority.')
         this.#buckets.charge(this.#bucket('SCENE', value, admission))
@@ -3039,7 +3044,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#liveAdmission(socket)?.generation !== admission.generation ||
       !admitsRoomMember(authorization, admission)
     )
-      throw new Error('Live Session command admission expired.')
+      throw new RoomAdmissionExpiredError()
     this.#roomStore.assertAuthorityHead({
       epoch: current.authorityEpoch,
       sequence: current.sequence,
@@ -3126,7 +3131,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           this.#cache.presentation?.expectedPresentationVersion !==
             context.presentation.expectedPresentationVersion
         )
-          throw new Error('Live Session command admission expired before commit.')
+          throw new RoomAdmissionExpiredError()
         if (!receipt || !nextStateJson || entry.sequence !== sequence)
           throw new Error('Room command sequence does not match its authority.')
         this.#buckets.charge(this.#bucket('SCENE', value, admission))
@@ -3244,7 +3249,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#liveAdmission(socket)?.generation !== admission.generation ||
         !admitsRoomMember(authorization, admission)
       )
-        throw new Error('Live Session binding admission expired.')
+        throw new RoomAdmissionExpiredError()
       this.#roomStore.assertAuthorityHead({
         epoch: current.authorityEpoch,
         sequence: current.sequence,
@@ -3300,7 +3305,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             this.#cache.presentation?.expectedPresentationVersion !==
               presentation.expectedPresentationVersion
           )
-            throw new Error('Live Session binding admission expired before commit.')
+              throw new RoomAdmissionExpiredError()
           if (!receipt || !nextStateJson || entry.sequence !== sequence)
             throw new Error('Room binding sequence does not match its authority.')
           const committed = this.#journal.commitInTransaction({
@@ -3363,6 +3368,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     if (error instanceof RoomRateLimitedError) {
       this.#rejectCommand(socket, commandId, 'RATE_LIMITED', error.message)
+      return
+    }
+    if (error instanceof RoomAdmissionExpiredError) {
+      const refusal = encounterCommandRefusal(error)
+      this.#rejectCommand(
+        socket,
+        commandId,
+        refusal.code,
+        refusal.message,
+        this.#journal.readCurrent()?.sequence ?? 0,
+        correction
+      )
       return
     }
     if (error instanceof RoomSceneCommandRefusal) {

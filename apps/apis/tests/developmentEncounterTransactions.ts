@@ -33,15 +33,22 @@ export async function verifyEncounterTransactions({
   campaignId,
   fixture,
   rollback,
-  concurrent
+  concurrent,
+  checkpoint
 }: {
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
   player: DevelopmentClient
+  /** Publishes the room's committed commands; Convex reads show a held Run only after one. */
+  checkpoint: () => Promise<void>
   ownerUserId: string
   playerUserId: string
   campaignId: string
   fixture: Awaited<ReturnType<typeof verifyEncounterLifecycle>>
-  rollback: (input: {
+  /**
+   * Forces Convex's own binding mutations to roll back. Absent when a live room holds the Run: its
+   * bindings are room commands and Convex fences its own path (D47), so the in-process run covers it.
+   */
+  rollback?: (input: {
     encounterId: string
     operation:
       | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
@@ -89,12 +96,11 @@ export async function verifyEncounterTransactions({
       expectedVersion: prepared.version
     }
   }
-  const starts = await Promise.all([
-    concurrent('OWNER', executeEncounterCommand, start),
-    concurrent('OWNER', executeEncounterCommand, start)
-  ])
-  assert.deepEqual(starts[0], starts[1])
-  const started = encounterCommandResultDtoSchema.parse(starts[0])
+  // The room client refuses a second pending submission of one command, so identical-command
+  // replay is asserted after the first answer (below); competing STARTs are V08's native proof.
+  const started = encounterCommandResultDtoSchema.parse(
+    await owner.mutation(executeEncounterCommand, start)
+  )
   let projection = encounterGmProjectionDtoSchema.parse(started.projection)
   assert.equal(projection.status, 'ACTIVE')
   let bindingInput: BindEncounterToPresentedSceneInputDto = {
@@ -102,13 +108,14 @@ export async function verifyEncounterTransactions({
     encounterId: prepared.id,
     commandId: crypto.randomUUID()
   }
-  assert.deepEqual(
-    await rollback({
-      encounterId: prepared.id,
-      operation: { kind: 'SCENE_BINDING', input: bindingInput }
-    }),
-    { rolledBack: true }
-  )
+  if (rollback)
+    assert.deepEqual(
+      await rollback({
+        encounterId: prepared.id,
+        operation: { kind: 'SCENE_BINDING', input: bindingInput }
+      }),
+      { rolledBack: true }
+    )
   const previousPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   assert.ok(previousPresentation)
   const competingBinding = { ...bindingInput, commandId: crypto.randomUUID() }
@@ -138,6 +145,19 @@ export async function verifyEncounterTransactions({
   assert.equal(bound.replayed, false)
   const scene = fixture.scenes.find((candidate) => candidate.liveSceneId === bound.sceneId)
   assert.ok(scene)
+  // The presentation raced the binding, and the room moves Encounter tokens only on its presented
+  // Scene (D42): present the bound Scene again if the race left another one up.
+  await checkpoint()
+  const presented = await owner.query(api.scenes.presentations.get, { campaignId })
+  assert.ok(presented)
+  if (presented.sceneId !== bound.sceneId)
+    await owner.action(api.scenes.presentations.setLive, {
+      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
+      commandId: crypto.randomUUID(),
+      campaignId,
+      sceneId: bound.sceneId,
+      expectedPresentationVersion: presented.version
+    })
   assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
   const actor = projection.actors.find((candidate) => candidate.kind === 'CHARACTER')
   assert.ok(actor?.sourceId)
@@ -150,13 +170,14 @@ export async function verifyEncounterTransactions({
     sceneId: bound.sceneId,
     tokenId: scene.tokenIds[0]
   }
-  assert.deepEqual(
-    await rollback({
-      encounterId: prepared.id,
-      operation: { kind: 'TOKEN_BINDING', input: tokenInput }
-    }),
-    { rolledBack: true }
-  )
+  if (rollback)
+    assert.deepEqual(
+      await rollback({
+        encounterId: prepared.id,
+        operation: { kind: 'TOKEN_BINDING', input: tokenInput }
+      }),
+      { rolledBack: true }
+    )
   const otherActor = projection.actors.find((candidate) => candidate.id !== actor.id)
   assert.ok(otherActor)
   const competingToken = { ...tokenInput, actorId: otherActor.id, commandId: crypto.randomUUID() }
@@ -164,7 +185,13 @@ export async function verifyEncounterTransactions({
     concurrent('OWNER', bindToken, { input: tokenInput }),
     concurrent('OWNER', bindToken, { input: competingToken })
   ])
-  assert.equal(tokenResults.filter((result) => result.status === 'fulfilled').length, 1)
+  assert.equal(
+    tokenResults.filter((result) => result.status === 'fulfilled').length,
+    1,
+    JSON.stringify(
+      tokenResults.map((result) => (result.status === 'fulfilled' ? 'ok' : String(result.reason)))
+    )
+  )
   const tokenWinner = tokenResults[0]!.status === 'fulfilled' ? 0 : 1
   const tokenSuccess = tokenResults[tokenWinner]!
   assert.equal(tokenSuccess.status, 'fulfilled')
@@ -228,6 +255,8 @@ export async function verifyEncounterTransactions({
     if (transfer[0]!.status === 'rejected')
       // The room plans the former owner's advance as a player, who does not control the actor.
       assert.match(String(transfer[0]!.reason), /NOT_ACTOR_CONTROLLER/)
+    // Convex holds the room's commands only after a save point (D86).
+    await checkpoint()
     const current = encounterGmProjectionDtoSchema.parse(
       await player.query(api.encounters.projectionReads.get, { encounterId: prepared.id })
     )
@@ -259,6 +288,7 @@ export async function verifyEncounterTransactions({
     }),
     { ok: true }
   )
+  await checkpoint()
   const replayProjection = await owner.query(api.encounters.projectionReads.get, {
     encounterId: prepared.id
   })
@@ -305,9 +335,28 @@ export async function verifyEncounterTransactions({
   projection = completed
   assert.deepEqual(await owner.mutation(api.campaigns.sessionFinish.finish, finishInput), finished)
   assert.deepEqual(await owner.mutation(executeEncounterCommand, start), { ...started, projection })
-  // COMPLETE deletes the Scene binding (ADR 0035 Amendment 30): retries of both are refused.
-  await assert.rejects(owner.mutation(bindScene, bindingInput), /Completed/)
-  await assert.rejects(owner.mutation(bindToken, { input: tokenInput }), /Completed/)
+  // COMPLETE deletes the Scene binding (ADR 0035 Amendment 30): once Convex holds the finished Run
+  // the room journal still replays retries of both, but a new command is refused.
+  await checkpoint()
+  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
+    ...tokenResult,
+    projection
+  })
+  await assert.rejects(
+    owner.mutation(bindScene, { ...bindingInput, commandId: crypto.randomUUID() }),
+    /Completed/
+  )
+  await assert.rejects(
+    owner.mutation(bindToken, {
+      input: {
+        ...tokenInput,
+        commandId: crypto.randomUUID(),
+        expectedEncounterVersion: projection.version
+      }
+    }),
+    /Completed/
+  )
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection

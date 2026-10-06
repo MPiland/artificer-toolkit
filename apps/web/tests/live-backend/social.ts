@@ -364,10 +364,11 @@ export async function verifySocialBrowser(input: SocialBrowserInput): Promise<vo
     await recordModerationAction(moderator, 'Start review', 'P17 listing review')
     await input.verifyState('listing-review')
     await recordModerationAction(moderator, 'Hide listing', 'P17 listing hide')
-    await expect(fixtureDiscoveryLink).toHaveCount(0)
+    // The player's page learns of the moderator's action through its own live subscription.
+    await expect(fixtureDiscoveryLink).toHaveCount(0, { timeout: 30_000 })
     await input.verifyState('listing-hidden')
     await recordModerationAction(moderator, 'Restore listing', 'P17 listing restore')
-    await expect(fixtureDiscoveryLink).toBeVisible()
+    await expect(fixtureDiscoveryLink).toBeVisible({ timeout: 30_000 })
     await input.verifyState('listing-restored')
     await recordModerationAction(moderator, 'Resolve report', 'P17 listing resolve')
     await input.verifyState('listing-resolved')

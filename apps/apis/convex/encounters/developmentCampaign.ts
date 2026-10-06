@@ -348,7 +348,7 @@ export const removeFixtureCampaign = internalMutation({
         (sessions.length ||
           announcements.length ||
           contentShares.length ||
-          contentRemovalEvents.length))
+          (contentRemovalEvents.length > 0 && !sceneDeparture)))
     )
       throw new Error('Fixture Campaign collaboration dependency mismatch.')
 

@@ -18,7 +18,7 @@ export type EncounterProjectionActorInput = ProjectionActor<EncounterRunActorSta
 
 /**
  * Current Character hit points and conditions, with the Character's stored effective maximum, by
- * Character ID; the Run keeps no copy of them.
+ * Character ID; the Run keeps no copy of them. A Character actor without an entry is not projected.
  */
 export type EncounterProjectionCharacterStates = ReadonlyMap<
   string,

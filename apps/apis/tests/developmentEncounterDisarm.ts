@@ -8,6 +8,7 @@ import {
   encounterPlayerProjectionDtoSchema,
   resolveEncounterActionInputDtoSchema,
   type EncounterCommandResultDto,
+  type EncounterTimelineDto,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -18,9 +19,6 @@ import type {
   GetEncounterActionChoicesInputDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import { encounterStoredRuleReceiptSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
@@ -35,7 +33,6 @@ import {
   type DevelopmentClient,
   executeEncounterCommand
 } from './developmentClient'
-import { developmentCli } from './developmentCli'
 import { createDisarmCreature, createDisarmWeapon } from './fixtures/disarmCreature'
 
 const actionChoices = makeFunctionReference<
@@ -86,6 +83,8 @@ export async function verifyEncounterDisarm({
   otherEquipmentId,
   initiativePolicyDefinitionId,
   initiativePolicyCatalogueId,
+  checkpoint,
+  readTimeline,
   browser
 }: {
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
@@ -97,6 +96,10 @@ export async function verifyEncounterDisarm({
   otherEquipmentId: string
   initiativePolicyDefinitionId: string
   initiativePolicyCatalogueId: string
+  /** Publishes what the room holds to Convex: a running table saves only at save points (D90). */
+  checkpoint: () => Promise<void>
+  /** The GM's Run timeline as the room pushes it; the room carries Encounter history for the Run (D88). */
+  readTimeline: () => Promise<EncounterTimelineDto | null>
   browser?: EncounterDisarmBrowserRunner
 }) {
   const weapon = createDisarmWeapon(crypto.randomUUID())
@@ -130,8 +133,10 @@ export async function verifyEncounterDisarm({
   })
   const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find((entry) => entry.document.kind === 'DISARM')
   assert.ok(disarm)
-  // The GM initiates the Disarm; with auto-roll off, Assisted prompts both participants for d20s.
+  // The GM initiates the Disarm; each participant's d20 follows that actor's controller's auto-roll
+  // preference, so with it off for both, Assisted prompts both for d20s.
   await owner.mutation(api.account.setAutoRollDice, { autoRollDice: false })
+  await player.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   const settings = await owner.query(api.campaigns.playSettings.get, { campaignId })
   const { version, updatedAt: _updatedAt, ...fields } = settings
   await owner.mutation(api.campaigns.playSettings.save, {
@@ -367,6 +372,8 @@ export async function verifyEncounterDisarm({
     definitionId: definition.definitionId,
     sceneContext
   })
+  // The GM's drawer submits the account's stored roll visibility with every action.
+  const { gmRollVisibility } = await owner.query(api.account.rollPreferences, {})
   let command: ResolveEncounterActionInputDto = resolveEncounterActionInputDtoSchema.parse({
     type: 'RESOLVE_ACTION',
     encounterId: run.id,
@@ -376,6 +383,7 @@ export async function verifyEncounterDisarm({
     targetActorId: target.id,
     actionId: action.id,
     sceneContext,
+    visibility: gmRollVisibility,
     optionalCombatIntent: {
       definitionId: descriptor.definitionId,
       optionId: descriptor.optionId,
@@ -396,6 +404,7 @@ export async function verifyEncounterDisarm({
   )
 
   async function snapshot() {
+    await checkpoint()
     const [ownerRun, playerRun, sheet, character] = await Promise.all([
       owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
       player.query(api.encounters.projectionReads.get, { encounterId: run.id }),
@@ -434,7 +443,9 @@ export async function verifyEncounterDisarm({
     const occurrence = encounterCommandResultDtoSchema.parse(result).occurrence
     const pending = occurrence?.pending
     if (occurrence?.status !== 'PENDING' || pending?.kind !== 'D20_EVIDENCE')
-      throw new Error('Expected Assisted Disarm d20 evidence.')
+      throw new Error(
+        `Expected Assisted Disarm d20 evidence, received ${occurrence?.status ?? 'no occurrence'} with ${pending?.kind ?? 'no pending decision'}.`
+      )
     return {
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: run.id,
@@ -475,7 +486,7 @@ export async function verifyEncounterDisarm({
     assert.deepEqual(await owner.mutation(executeEncounterCommand, { command }), initiated)
     await assert.rejects(
       player.mutation(executeEncounterCommand, { command: first }),
-      /current Disarm participant/
+      /NOT_ACTOR_CONTROLLER/
     )
     await assert.rejects(
       owner.mutation(executeEncounterCommand, {
@@ -599,59 +610,29 @@ export async function verifyEncounterDisarm({
       assert.deepEqual(await snapshot(), after)
     }
 
-    const receipt = encounterStoredRuleReceiptSchema.parse(
-      await developmentCli(
-        'encounterRuleReceipts',
-        { encounterId: run.id, commandId: command.commandId },
-        false,
-        'disarm-receipts'
-      )
-    )
-    const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-    assert.equal(receipt.resultChecksum, checksumCanonicalJson(stored))
-    assert.equal(receipt.commandFingerprint, checksumCanonicalJson(command))
-    assert.equal(receipt.encounterId, run.id)
-    assert.equal(receipt.commandId, command.commandId)
-    assert.equal(receipt.commandType, 'RESOLVE_ACTION')
-    assert.equal(receipt.actorUserId, ownerUserId)
-    assert.equal(receipt.campaignId, campaignId)
-    assert.equal(receipt.encounterVersion, after.run.version)
-    assert.equal(receipt.occurrenceId, completed.occurrence?.occurrenceId)
-    if (stored.status !== 'COMPLETE' || stored.applicationOutputs.kind !== 'CONTESTED_ACTION')
-      throw new Error('Disarm receipt must contain a complete contested action.')
-    assert.equal(stored.occurrenceId, receipt.occurrenceId)
-    assert.equal(stored.occurrenceVersion, completed.occurrence?.occurrenceVersion)
-    const output = stored.applicationOutputs
-    assert.equal(output.occurrenceId, receipt.occurrenceId)
-    assert.equal(output.sourceActorId, source.id)
-    assert.equal(output.targetActorId, target.id)
-    assert.equal(output.policy.definitionId, descriptor.definitionId)
-    assert.equal(output.outcome, 'SOURCE_WIN')
-    assert.equal(output.sourceRoll.actorId, source.id)
-    assert.equal(output.targetRoll.actorId, target.id)
-    assert.deepEqual(output.sourceRoll.rawFaces, [20])
-    assert.deepEqual(output.targetRoll.rawFaces, [1])
-    assert.equal(output.sourceRoll.selectedNatural, 20)
-    assert.equal(output.targetRoll.selectedNatural, 1)
-    assert.deepEqual(output.stateTransition, {
-      kind: 'CHARACTER_ITEM_USE_STATE',
-      characterId,
-      itemInstanceId: held.id,
-      fromState: 'EQUIPPED',
-      toState: 'CARRIED',
-      beforeStreamVersion: before.sheet.meta.streamVersion,
-      afterStreamVersion: after.sheet.meta.streamVersion,
-      beforeStateChecksum: checksumCanonicalJson(before.character.state.equipment),
-      afterStateChecksum: checksumCanonicalJson(after.character.state.equipment)
-    })
-    assert.equal(output.actionEconomyTransition?.definitionId, SRD_ACTION_ALLOWANCE_DEFINITION_ID)
-    assert.equal(output.actionEconomyTransition?.beforeUsed, 0)
-    assert.equal(output.actionEconomyTransition?.afterUsed, 1)
+    // The room holds the Run's rule receipts and no client reads them (D88). The GM's timeline is the
+    // room's client-visible record: one root action issued by the GM, no newer than the completed
+    // Run. The Disarm outputs show in the Run, Sheet and Character asserted above.
+    const timelineEntries = async () => {
+      const timeline = await readTimeline()
+      assert.ok(timeline, 'The room must push the held Run timeline.')
+      return timeline.entries
+    }
+    const recorded = await timelineEntries()
+    const resolvedActions = recorded.filter((entry) => entry.commandType === 'RESOLVE_ACTION')
+    assert.equal(resolvedActions.length, 1)
+    const [resolvedAction] = resolvedActions
+    assert.equal(resolvedAction?.actorUserId, ownerUserId)
+    assert.ok(resolvedAction && resolvedAction.version <= after.run.version)
 
+    // An exact replay returns the command's own stored receipt over the Run's current projection.
     const rootReplay = await owner.mutation(executeEncounterCommand, { command })
-    assert.deepEqual(rootReplay, { ...completed, projection: after.run })
+    assert.deepEqual(rootReplay, { ...initiated, projection: after.run })
     assert.deepEqual(await owner.mutation(executeEncounterCommand, { command }), rootReplay)
-    assert.deepEqual(await owner.mutation(executeEncounterCommand, { command: first }), answered)
+    assert.deepEqual(await owner.mutation(executeEncounterCommand, { command: first }), {
+      ...answered,
+      projection: after.run
+    })
     assert.deepEqual(
       browserSecond
         ? await player.mutation(executeEncounterCommand, { command: second })
@@ -659,15 +640,7 @@ export async function verifyEncounterDisarm({
       completed
     )
     assert.deepEqual(await snapshot(), after)
-    assert.deepEqual(
-      await developmentCli(
-        'encounterRuleReceipts',
-        { encounterId: run.id, commandId: command.commandId },
-        false,
-        'disarm-receipts'
-      ),
-      receipt
-    )
+    assert.deepEqual(await timelineEntries(), recorded, 'Exact replays must not add history.')
     await controls?.reload()
     assert.deepEqual(await snapshot(), after)
     const evidenceDirectory = new URL(
@@ -676,12 +649,11 @@ export async function verifyEncounterDisarm({
     )
     await mkdir(evidenceDirectory, { recursive: true })
     await writeFile(
-      new URL('receipt-' + run.id + '.json', evidenceDirectory),
+      new URL('timeline-' + run.id + '.json', evidenceDirectory),
       JSON.stringify(
         {
           proof: 'Assisted Creature Disarm versus assigned PLAYER Character',
-          receipt,
-          result: stored,
+          timelineEntry: resolvedAction,
           publicAgreement: {
             encounterId: run.id,
             rootCommandId: command.commandId,
@@ -713,7 +685,7 @@ export async function verifyEncounterDisarm({
       ) + '\n'
     )
     console.log(
-      'Assisted Disarm public discovery, participant evidence, item state, receipt, replay and privacy passed.'
+      'Assisted Disarm public discovery, participant evidence, item state, history, replay and privacy passed.'
     )
   }
   if (browser) {

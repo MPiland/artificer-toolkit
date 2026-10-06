@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { extname, isAbsolute, join, relative, sep } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { convexEnvironmentValue } from './developmentConvexEnvironment'
@@ -36,12 +37,47 @@ async function redactEvidence(path: string, secrets: readonly string[]): Promise
   }
 }
 
+/**
+ * Runs `cleanup` once the browser run requests it through `signalPath`, then tells the run it is
+ * done. Resolves with the cleanup failure, or null, and never rejects.
+ */
+async function serveCleanupRequest(
+  signalPath: string,
+  cleanup: () => Promise<void>,
+  browserRun: Promise<unknown>
+): Promise<{ failure: unknown } | null> {
+  let finished = false
+  const markFinished = () => {
+    finished = true
+  }
+  void browserRun.then(markFinished, markFinished)
+  while (!finished) {
+    if (await readFile(`${signalPath}.requested`).then(() => true, () => false)) {
+      try {
+        await cleanup()
+        return null
+      } catch (failure) {
+        return { failure }
+      } finally {
+        await writeFile(`${signalPath}.done`, '')
+      }
+    }
+    await delay(1_000)
+  }
+  return null
+}
+
 export async function verifyDevelopmentVttBrowser(input: {
   campaignName: string
   gm: FixtureCredential
   player: FixtureCredential
   player2: FixtureCredential
   checkpoint?: { path: string; startSection: DiagnosticSection }
+  /**
+   * Deletes the fixture Campaign while the browser run's own Session Worker is still up. The run
+   * requests it only after a fully passing journey.
+   */
+  cleanupWhileWorkerRuns?: () => Promise<void>
 }): Promise<void> {
   const startedAt = new Date().toISOString().replaceAll(':', '-')
   const evidenceDirectory = fileURLToPath(
@@ -80,8 +116,12 @@ export async function verifyDevelopmentVttBrowser(input: {
   )
   let output = ''
   let passed = false
+  let cleanupOutcome: Awaited<ReturnType<typeof serveCleanupRequest>> = null
+  const cleanupSignalPath = input.cleanupWhileWorkerRuns
+    ? `${evidenceDirectory}/cleanup-${startedAt}`
+    : null
   try {
-    const result = await promisify(execFile)(
+    const browserRun = promisify(execFile)(
       'pwsh.exe',
       [
         '-NoProfile',
@@ -109,13 +149,20 @@ export async function verifyDevelopmentVttBrowser(input: {
                 MANAGED_VTT_CHECKPOINT_PATH: input.checkpoint.path,
                 MANAGED_VTT_START_SECTION: input.checkpoint.startSection
               }
-            : {})
+            : {}),
+          ...(cleanupSignalPath ? { MANAGED_VTT_CLEANUP_SIGNAL: cleanupSignalPath } : {})
         },
         windowsHide: true,
         timeout: 30 * 60_000,
         maxBuffer: 2 * 1024 * 1024
       }
     )
+    const cleanupServed =
+      cleanupSignalPath && input.cleanupWhileWorkerRuns
+        ? serveCleanupRequest(cleanupSignalPath, input.cleanupWhileWorkerRuns, browserRun)
+        : Promise.resolve(null)
+    const result = await browserRun
+    cleanupOutcome = await cleanupServed
     output = result.stdout + result.stderr
     passed = true
   } catch (error) {
@@ -131,7 +178,12 @@ export async function verifyDevelopmentVttBrowser(input: {
     await writeFile(`${evidenceDirectory}/playwright.log`, output)
     await writeFile(`${evidenceDirectory}/playwright-${startedAt}.log`, output)
     await redactEvidence(evidenceDirectory, secrets)
+    if (cleanupSignalPath)
+      await Promise.all(
+        ['requested', 'done'].map((suffix) => rm(`${cleanupSignalPath}.${suffix}`, { force: true }))
+      )
   }
   assert.ok(passed, `Native VTT browser suite failed; see ${evidenceDirectory}/playwright.log.`)
+  if (cleanupOutcome) throw cleanupOutcome.failure
   console.log('Native VTT browser journey passed.')
 }

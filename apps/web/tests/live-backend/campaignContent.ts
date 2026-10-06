@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { chromium, expect, type Page } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
+import { watchNavigationAbortedRequests } from './campaignCollaboration'
 
 type CampaignContentVerificationInput = {
   email: string
@@ -150,9 +151,12 @@ function captureDiagnostics(
     if (message.type() === 'error') errors.push(message.text().slice(0, 3000))
   })
   page.on('pageerror', (error) => errors.push(error.message.slice(0, 3000)))
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
   page.on('requestfailed', (request) => {
-    failedRequests.push(
-      `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? ''}`
+    const entry = `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? ''}`
+    failedRequests.push(entry)
+    tolerateNavigationAbort(request, () =>
+      failedRequests.splice(failedRequests.lastIndexOf(entry), 1)
     )
   })
   page.on('response', (response) => {

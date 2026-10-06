@@ -265,6 +265,84 @@ describe('Character Sheet inspector', () => {
     })
   })
 
+  describe('spell level disclosure', () => {
+    const characterId = '00000000-0000-0000-0000-000000000001'
+    const classId = '00000000-0000-0000-0000-000000000002'
+    type SpellGroups = Extract<CharacterSheetPanelDto, { kind: 'SPELLS' }>['groups']
+    const knownGroup = (level: number, spellId: string, label: string): SpellGroups[number] => {
+      const source = {
+        spellId,
+        sourceKind: 'CLASS' as const,
+        sourceInstanceId: `CLASS:${classId}`
+      }
+      return {
+        level,
+        label: `Level ${level}`,
+        sources: [
+          {
+            target: { kind: 'SPELL', source },
+            source,
+            spellId,
+            label,
+            sourceLabel: 'Known source',
+            prepared: false,
+            canPrepare: false,
+            known: true,
+            canManageKnown: true,
+            knownClassId: classId,
+            state: 'DEFAULT'
+          }
+        ]
+      }
+    }
+    const view = (groups: SpellGroups) => (
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={{
+          kind: 'SPELLS',
+          target: { kind: 'SPELLS' },
+          panelId: 'spells',
+          characterId,
+          title: 'Manage spells',
+          state: 'DEFAULT',
+          editable: true,
+          allowedCommands: ['SET_KNOWN_SPELLS'],
+          slots: [],
+          groups
+        }}
+        pending={false}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+        onTargetChange={vi.fn()}
+      />
+    )
+    const magicMissile = knownGroup(1, '00000000-0000-0000-0000-000000000003', 'Magic Missile')
+    const fireball = knownGroup(3, '00000000-0000-0000-0000-000000000004', 'Fireball')
+
+    it('opens the level that gains its first held Spell', () => {
+      const { rerender } = renderWithAppProviders(view([]))
+
+      rerender(view([magicMissile]))
+
+      expect(
+        within(screen.getByRole('group', { name: 'Magic Missile' })).getByRole('button', {
+          name: 'Forget'
+        })
+      ).toBeDefined()
+    })
+
+    it('keeps a level the player collapsed closed when another level appears', async () => {
+      const user = userEvent.setup()
+      const { rerender } = renderWithAppProviders(view([magicMissile]))
+      expect(screen.getByRole('group', { name: 'Magic Missile' })).toBeDefined()
+
+      await user.click(screen.getByRole('button', { name: 'Level 1' }))
+      rerender(view([magicMissile, fireball]))
+
+      expect(screen.getByRole('group', { name: 'Fireball' })).toBeDefined()
+      expect(screen.queryByRole('group', { name: 'Magic Missile' })).toBeNull()
+    })
+  })
+
   it('keeps preparation options independent when another class already commits the Spell', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn().mockResolvedValue(true)

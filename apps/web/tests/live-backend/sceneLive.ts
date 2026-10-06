@@ -279,11 +279,11 @@ export async function verifySceneLiveBrowser(
         nativePlayerSockets,
         'TRANSIENT_READY'
       )
-      const departureResponse = await player.reload({
+      await player.reload({
         waitUntil: 'domcontentloaded',
         timeout: 90_000
       })
-      expect(departureResponse?.status()).toBe(404)
+      // Signed-in pages are a skeleton on the server (D75), so the refusal is the client-rendered page.
       await expect(
         player.getByRole('heading', { name: 'Page not found', exact: true })
       ).toBeVisible({

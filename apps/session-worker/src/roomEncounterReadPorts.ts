@@ -204,6 +204,7 @@ export async function roomEncounterReadTransaction(input: {
     },
     readAutoRollDice: async (id) => readRoomPreference(authorization, id).autoRollDice,
     readGmRollVisibility: async (id) => readRoomPreference(authorization, id).gmRollVisibility,
+    isRoomHeldRun: async () => true,
     hasAccountProfile: async (id) => inputs.hasAccountProfile(id, transaction),
     readActorInitiativeRoll: async (state, campaign, actorId) => {
       if (campaign.id !== campaignId || state.campaignId !== campaignId)

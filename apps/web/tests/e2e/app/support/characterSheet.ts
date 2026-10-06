@@ -182,6 +182,10 @@ export async function verifyPersonalSheetExtras(page: Page): Promise<void> {
   await expect(renamedCompanion).toBeVisible()
   await renamedCompanion.getByLabel('Current hit points').fill('0')
   await renamedCompanion.getByLabel('Current hit points').press('Tab')
+  // The sheet's Extras row shows the committed hit points; reload only once the command has landed.
+  await expect(
+    page.locator('[aria-label="Open P04 Owl (Owl) details"] [data-extra-metric="HP"] strong')
+  ).toHaveText(/^0 \/ \d+$/)
   await expect(page.getByRole('button', { name: 'Manage hit points', exact: true })).toBeEnabled()
   await page.waitForLoadState('networkidle')
   await page.reload({ waitUntil: 'networkidle' })

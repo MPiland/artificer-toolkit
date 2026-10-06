@@ -340,9 +340,14 @@ controllers are unlisted, via
 [reconcileRunActorDepartures](../../packages/encounter-persistence/src/actorDepartures.ts). A removal
 checkpoints before its receipt, then the room drops cached play and Scene and challenges every socket.
 `RoomInputs.evictCharacter` drops the departed Character's cached inputs. A failed step is logged and the
-next trigger retries it. A Run the room never hydrated this epoch is covered at release by
+next trigger retries it. Until the next checkpoint, Convex's own Run reads present a held Run's unassigned,
+unfrozen Character actor as frozen at its play record's values and leave out the actor of a deleted
+Character (`readEncounterCharacterStates`); outside a held Run the same state is an integrity error.
+A Run the room never hydrated this epoch is covered at release by
 `reconcileOpenRunsAtRelease` in Convex. Checkpoint ingestion rejects an open Run's actor row that names a
-departed controller or an unassigned unfrozen Character.
+departed controller or an unassigned unfrozen Character. Scene vision composition (`composeRoomSceneVision`)
+skips such an actor, and a frozen one, so a departure never fails activation: it binds no Character vision
+(`readCampaignCharacterAssignment`, the same departed test as `readEncounterCharacterStates`).
 
 Known gap: a Character actor already frozen whose account is deleted later is removed only at release,
 because a frozen actor names no departure for the room to reconcile.
@@ -496,7 +501,13 @@ fetches that section. The held PLAY stays the room's own, which `applyPlay` keep
 `RoomInputs.adopt` restamps the cached input records read at the sent PLAY and Character revisions, so
 the room's own checkpoint does not reload them: a held part never carries what a checkpoint writes (the
 Campaign part has no play data, and a Character part's play state, effects and sheet state are replaced by
-the room's own on every read). The restamp is memory only and ignored once its record is rewritten, so
+the room's own on every read). For that reason Convex stamps a Character part with its SYSTEM, CAMPAIGN and
+CHARACTER revisions only, as it does the Authority and Definition parts: a PLAY change racing a command's
+reads (a checkpoint landing between the part and the System read) cannot split the part from the System
+read it is merged with, and a checkpoint never reloads a held Character. A restamped record is served with the restamped revisions, not the ones
+it was stored with, so a part merged with a fresh System or Campaign read reports one revision per scope
+(a stale one fails the merge as "Live rules revision changed during preparation", naming the scope and
+both revisions, an UNAVAILABLE command on the first command after a checkpoint). The restamp is memory only and ignored once its record is rewritten, so
 an outside edit, which advances a revision the room did not adopt, still misses and reads, and a room
 woken from hibernation reads once. A multi-page flush adopts per page: each page is sent the revisions
 after the previous page's adoption (`adoptRevisions`), and `RoomCheckpoints` reports every page's response
@@ -964,7 +975,16 @@ Encounter already in the Campaign) throw `ConvexError` data matching `domainReje
 Worker-secret routes in `liveSessions/stateHttp.ts` return that data as JSON with status 422; every other
 failure keeps the redacted 409 text. A nested Convex function stopped at its execution limit changed
 nothing, so the route answers 503 and the room refuses with `UNAVAILABLE` and
-`LIVE_SESSION_TRY_AGAIN_MESSAGE` (D47). The room forwards a domain rejection as `COMMAND_REJECTED` with
+`LIVE_SESSION_TRY_AGAIN_MESSAGE` (D47). A command whose authorization, admission or table changed
+between its start and its commit (`RoomAdmissionExpiredError`, thrown by every commit-time fence in
+`nativeLiveSessionRoom.ts`: Encounter, Encounter binding, Character Sheet, Scene edit, Scene geometry
+and Scene commands, and by their pre-commit admission checks) wrote nothing and is refused the same
+way (`UNAVAILABLE` with the try-again message, mapped by `encounterCommandRefusal`); the fence stays strict, so an
+outside change that a reload picks up mid-command (an Encounter created in Convex, which bumps PLAY
+without a notice) costs that one command a retry, and the same command ID resent is answered by the
+journal. The development room client (`developmentHttpClient.ts`) resends such an Encounter or
+Encounter-binding command up to twice.
+The room forwards a domain rejection as `COMMAND_REJECTED` with
 code `DOMAIN_REJECTED`, the `reason` and its message; every other rejection carries `reason: null` and a
 generic message, so Convex internals never reach clients. A permission refusal says what it is
 (`GM_ONLY`, `NOT_ACTOR_CONTROLLER`) and never reads as stale state; a genuinely stale version keeps

@@ -16,7 +16,7 @@ export function CampaignSceneShowingControl({ campaignId }: { campaignId: string
   const actions = useCampaignSceneShowingActions(campaignId)
   return (
     <Group gap='xs' wrap='nowrap'>
-      <Menu position='bottom-end' withinPortal>
+      <Menu position='bottom-end' withInitialFocusPlaceholder={false} withinPortal>
         <Menu.Target>
           <Button
             leftSection={<Presentation aria-hidden size={16} />}

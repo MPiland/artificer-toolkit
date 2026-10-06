@@ -3,21 +3,33 @@ import {
   getFunctionName,
   type ArgsAndOptions,
   type FunctionReference,
-  type FunctionReturnType
+  type FunctionReturnType,
+  type OptionalRestArgs
 } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import type { DomainRejectionErrorData } from '@artificer-toolkit/schema/api/domainRejections'
+import type {
+  GetEncounterActionChoicesInputDto,
+  GetEncounterOptionalActionChoicesInputDto
+} from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
   encounterExecuteInputSchema,
   type EncounterCommandInputDto,
-  type EncounterCommandResultDto
+  type EncounterCommandResultDto,
+  type EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EncounterReadDto,
+  EncounterReadResultDto
+} from '@artificer-toolkit/schema/api/encounterRead'
+import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import {
   LIVE_SESSION_PATH_PREFIX,
   LIVE_SESSION_TICKET_PROTOCOL_PREFIX,
   LIVE_SESSION_WEBSOCKET_PROTOCOL,
   liveSessionWebSocketServerMessageDtoSchema,
+  type EncounterSessionFrameDto,
   type LiveSessionWebSocketClientMessageDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
@@ -29,6 +41,8 @@ import {
 } from '@artificer-toolkit/schema/api/sceneFog'
 import {
   encounterActorTokenBindingCommandInputDtoSchema,
+  type BindEncounterToPresentedSceneInputDto,
+  type BindEncounterToPresentedSceneResultDto,
   type EncounterActorTokenBindingCommandInputDto,
   type SceneCommandInputDto,
   type SceneCommandResultDto,
@@ -38,7 +52,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SOCKET_MESSAGE_BUDGETS } from '../../session-worker/src/roomLimits'
 import { api } from '../convex/_generated/api.js'
 import { executeEncounterCommand } from './developmentClient'
-import { bindToken } from './developmentEncounterLifecycle'
+import { bindScene, bindToken } from './developmentEncounterLifecycle'
 
 type RoomCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
 type RoomSocket = Pick<WebSocket, 'addEventListener' | 'close' | 'send'>
@@ -65,12 +79,21 @@ export type CommandRoom = {
     command: RoomCommand,
     requirement?: RoomSceneRequirement
   ) => Promise<EncounterCommandResultDto>
+  /** Binds the Encounter to the room's presented Scene, as the GM's tabletop does (D47). */
+  executeEncounterBinding: (
+    command: BindEncounterToPresentedSceneInputDto,
+    requirement: RoomSceneRequirement
+  ) => Promise<BindEncounterToPresentedSceneResultDto>
   executeScene: (
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
     replayOfSequence?: number
   ) => Promise<RoomSceneCommit>
   /** Stages a fog patch over the socket and publishes it, as the browser does (D79). */
   executeSceneFog: (command: SceneFogPatchCommand) => Promise<RoomSceneCommit>
+  /** Asks one turn read the room answers from its own Encounter state (A35-S6e), as the tabletop does. */
+  readEncounter: (read: EncounterReadDto) => Promise<EncounterReadResultDto>
+  /** Subscribes to the Encounter session and resolves with the frame the room answers with, as it holds the Run now. */
+  readEncounterSession: () => Promise<EncounterSessionFrameDto>
   /** Resolves once the room has admitted this member and sent its first STATE_SYNC. */
   whenReady: () => Promise<void>
   /** The Scene as the room last reported it to this socket, or null before the room has sent one. */
@@ -99,6 +122,37 @@ export class RoomCommandRejectedError extends Error {
   }
 }
 
+/** A domain rejection surfaces as the same ConvexError data a direct Convex call throws. */
+function roomRejection(
+  message: Extract<
+    LiveSessionWebSocketServerMessageDto,
+    { type: 'COMMAND_REJECTED' | 'ENCOUNTER_READ_REJECTED' }
+  >
+): Error {
+  if (message.reason === 'RULE_WARNINGS')
+    return new ConvexError({
+      code: 'DOMAIN_REJECTED',
+      reason: message.reason,
+      message: message.message,
+      warnings: message.type === 'COMMAND_REJECTED' ? (message.warnings ?? []) : []
+    } satisfies DomainRejectionErrorData)
+  return message.reason
+    ? new ConvexError({
+        code: 'DOMAIN_REJECTED',
+        reason: message.reason,
+        message: message.message
+      } satisfies DomainRejectionErrorData)
+    : new RoomCommandRejectedError(message.code, message.message)
+}
+
+/** A refusal the room gives as the read's answer; any other failure reads Convex, as the tabletop does. */
+function isAuthoritativeRefusal(error: unknown): boolean {
+  return (
+    error instanceof ConvexError ||
+    (error instanceof RoomCommandRejectedError && error.code === 'FORBIDDEN')
+  )
+}
+
 type PendingCommand = {
   sent: boolean
   timer: ReturnType<typeof setTimeout>
@@ -109,6 +163,12 @@ type PendingCommand = {
       command: RoomCommand
       requirement: RoomSceneRequirement | null
       resolve: (result: EncounterCommandResultDto) => void
+    }
+  | {
+      scope: 'ENCOUNTER_BINDING'
+      command: BindEncounterToPresentedSceneInputDto
+      requirement: RoomSceneRequirement
+      resolve: (result: BindEncounterToPresentedSceneResultDto) => void
     }
   | {
       scope: 'SCENE'
@@ -129,12 +189,24 @@ type PendingCommand = {
     }
 )
 
+type PendingRead<Value> = {
+  timer: ReturnType<typeof setTimeout>
+  resolve: (value: Value) => void
+  reject: (error: Error) => void
+}
+
 const commandTimeoutMs = 120_000
+// A room that answers "try again" (an outside change landed mid-command) is asked once more.
+const roomRetryLimit = 2
 // Closing an idle room lets a finished driver exit; the next command joins with a fresh ticket.
 const idleCloseMs = 5_000
 // The local web origin the Worker admits; the drivers authenticate with the same origin.
 const liveSessionOrigin = 'http://localhost:3000'
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '[::1]'])
+// Convex hides an Encounter's Run from a player until its checkpoint (D87), so only a GM-side client
+// can look up an Encounter's Campaign. Every client in the process shares what the GM resolved, so
+// a player's or anonymous client reaches the room and gets the room's own answer.
+const encounterCampaigns = new Map<string, string>()
 
 /**
  * The Session Worker's base URL (http or https), for the room sockets and the development-only
@@ -176,6 +248,8 @@ export function openCommandRoom(options: {
   onEvent?: (event: string) => void
 }): CommandRoom {
   const pending = new Map<string, PendingCommand>()
+  const pendingReads = new Map<string, PendingRead<EncounterReadResultDto>>()
+  const sessionReads = new Set<PendingRead<EncounterSessionFrameDto>>()
   let socket: RoomSocket | null = null
   let admitted = false
   // Admitted and synced: set by STATE_SYNC, cleared when the room asks to authenticate again.
@@ -193,6 +267,7 @@ export function openCommandRoom(options: {
   let commandTokens = commandBudget.capacity - 1
   let commandTokensAt = Date.now()
   let commandRetry: ReturnType<typeof setTimeout> | null = null
+  const retried = new Map<string, number>()
 
   const send = (message: LiveSessionWebSocketClientMessageDto) =>
     socket?.send(JSON.stringify(message))
@@ -208,6 +283,16 @@ export function openCommandRoom(options: {
       entry.reject(error)
     }
     pending.clear()
+    for (const read of pendingReads.values()) {
+      clearTimeout(read.timer)
+      read.reject(error)
+    }
+    pendingReads.clear()
+    for (const read of sessionReads) {
+      clearTimeout(read.timer)
+      read.reject(error)
+    }
+    sessionReads.clear()
     for (const waiter of readyWaiters.splice(0)) waiter.reject(error)
     socket?.close(1000, 'Development driver closed the Session room.')
     options.onClosed()
@@ -215,13 +300,32 @@ export function openCommandRoom(options: {
 
   const close = () => fail(new Error('The Session room connection is closed.'))
 
+  const closeWhenIdle = () => {
+    if (
+      pending.size === 0 &&
+      pendingReads.size === 0 &&
+      sessionReads.size === 0 &&
+      !failure &&
+      !options.holdOpen
+    )
+      idleTimer = setTimeout(close, idleCloseMs)
+  }
+
   const take = (commandId: string) => {
     const entry = pending.get(commandId)
     if (!entry) return null
     pending.delete(commandId)
     clearTimeout(entry.timer)
-    if (pending.size === 0 && !failure && !options.holdOpen)
-      idleTimer = setTimeout(close, idleCloseMs)
+    closeWhenIdle()
+    return entry
+  }
+
+  const takeRead = (requestId: string) => {
+    const entry = pendingReads.get(requestId)
+    if (!entry) return null
+    pendingReads.delete(requestId)
+    clearTimeout(entry.timer)
+    closeWhenIdle()
     return entry
   }
 
@@ -259,7 +363,7 @@ export function openCommandRoom(options: {
     for (const entry of pending.values()) {
       if (entry.sent) continue
       const required =
-        entry.scope === 'ENCOUNTER'
+        entry.scope === 'ENCOUNTER' || entry.scope === 'ENCOUNTER_BINDING'
           ? entry.requirement
           : {
               sceneId: entry.command.sceneId,
@@ -275,6 +379,15 @@ export function openCommandRoom(options: {
       if (entry.scope === 'ENCOUNTER') {
         send({
           command: { command: entry.command, scope: 'ENCOUNTER' },
+          expectedSessionSequence: sequence,
+          type: 'COMMAND'
+        })
+        entry.sent = true
+        continue
+      }
+      if (entry.scope === 'ENCOUNTER_BINDING') {
+        send({
+          command: { command: entry.command, scope: 'ENCOUNTER_BINDING' },
           expectedSessionSequence: sequence,
           type: 'COMMAND'
         })
@@ -347,6 +460,9 @@ export function openCommandRoom(options: {
       if (entry?.scope === 'ENCOUNTER' && delta?.scope === 'ENCOUNTER') {
         take(message.commandId)
         entry.resolve(delta.result)
+      } else if (entry?.scope === 'ENCOUNTER_BINDING' && delta?.scope === 'ENCOUNTER_BINDING') {
+        take(message.commandId)
+        entry.resolve(delta.result)
       } else if (entry?.scope === 'SCENE') {
         take(message.commandId)
         if (delta?.scope === 'SCENE' && entry.sentSequence !== null)
@@ -380,24 +496,31 @@ export function openCommandRoom(options: {
       sequence = message.currentSequence
       if (message.correction?.state)
         roomScene = { id: message.correction.state.id, version: message.correction.state.version }
-      // A domain rejection surfaces as the same ConvexError data a direct Convex call throws.
-      take(message.commandId)?.reject(
-        message.reason === 'RULE_WARNINGS'
-          ? new ConvexError({
-              code: 'DOMAIN_REJECTED',
-              reason: message.reason,
-              message: message.message,
-              warnings: message.warnings ?? []
-            } satisfies DomainRejectionErrorData)
-          : message.reason
-            ? new ConvexError({
-                code: 'DOMAIN_REJECTED',
-                reason: message.reason,
-                message: message.message
-              } satisfies DomainRejectionErrorData)
-            : new RoomCommandRejectedError(message.code, message.message)
-      )
+      const entry = pending.get(message.commandId)
+      const retries = (retried.get(message.commandId) ?? 0) + 1
+      if (
+        entry &&
+        (entry.scope === 'ENCOUNTER' || entry.scope === 'ENCOUNTER_BINDING') &&
+        message.code === 'UNAVAILABLE' &&
+        message.message === LIVE_SESSION_TRY_AGAIN_MESSAGE &&
+        retries <= roomRetryLimit
+      ) {
+        // The room wrote nothing, and its journal covers an exact resend of the same command.
+        retried.set(message.commandId, retries)
+        entry.sent = false
+      } else take(message.commandId)?.reject(roomRejection(message))
       flush()
+    } else if (message.type === 'ENCOUNTER_SESSION') {
+      for (const read of sessionReads) {
+        clearTimeout(read.timer)
+        read.resolve(message.session)
+      }
+      sessionReads.clear()
+      closeWhenIdle()
+    } else if (message.type === 'ENCOUNTER_READ_RESULT') {
+      takeRead(message.requestId)?.resolve(message.result)
+    } else if (message.type === 'ENCOUNTER_READ_REJECTED') {
+      takeRead(message.requestId)?.reject(roomRejection(message))
     }
   }
 
@@ -487,15 +610,64 @@ export function openCommandRoom(options: {
     )
   }
 
+  const whenReady = () =>
+    failure
+      ? Promise.reject(failure)
+      : synced
+        ? Promise.resolve()
+        : new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject }))
+
+  const readEncounter = async (read: EncounterReadDto): Promise<EncounterReadResultDto> => {
+    await whenReady()
+    const requestId = crypto.randomUUID()
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = null
+    const answer = new Promise<EncounterReadResultDto>((resolve, reject) =>
+      pendingReads.set(requestId, {
+        resolve,
+        reject,
+        timer: setTimeout(
+          () =>
+            takeRead(requestId)?.reject(
+              new Error('The Session room did not answer ENCOUNTER_READ in time.')
+            ),
+          commandTimeoutMs
+        )
+      })
+    )
+    send({ read, requestId, type: 'ENCOUNTER_READ' })
+    return answer
+  }
+
+  const readEncounterSession = async (): Promise<EncounterSessionFrameDto> => {
+    await whenReady()
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = null
+    const answer = new Promise<EncounterSessionFrameDto>((resolve, reject) => {
+      const read: PendingRead<EncounterSessionFrameDto> = {
+        resolve,
+        reject,
+        timer: setTimeout(() => {
+          sessionReads.delete(read)
+          closeWhenIdle()
+          reject(new Error('The Session room did not send the Encounter session in time.'))
+        }, commandTimeoutMs)
+      }
+      sessionReads.add(read)
+    })
+    // A subscription replaces the previous one, and the room answers it with the session it holds now.
+    encounterTimeline ??= false
+    encounterSubscribed = true
+    send({ timeline: encounterTimeline, type: 'SUBSCRIBE_ENCOUNTER_SESSION' })
+    return answer
+  }
+
   return {
     close,
     scene: () => roomScene,
-    whenReady: () =>
-      failure
-        ? Promise.reject(failure)
-        : synced
-          ? Promise.resolve()
-          : new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject })),
+    whenReady,
+    readEncounter,
+    readEncounterSession,
     subscribeEncounterSession(timeline) {
       encounterTimeline = timeline
       encounterSubscribed = false
@@ -510,6 +682,21 @@ export function openCommandRoom(options: {
           scope: 'ENCOUNTER',
           command,
           requirement: requirement ?? null,
+          sent: false,
+          resolve,
+          reject,
+          timer: expire(command, reject)
+        })
+      )
+    },
+    executeEncounterBinding(command, requirement) {
+      const refused = refusal(command.commandId)
+      if (refused) return Promise.reject(refused)
+      return new Promise((resolve, reject) =>
+        track({
+          scope: 'ENCOUNTER_BINDING',
+          command,
+          requirement,
           sent: false,
           resolve,
           reject,
@@ -578,7 +765,6 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   #fetchToken: (() => Promise<string>) | null = null
   readonly #holdRooms: boolean
   readonly #rooms = new Map<string, CommandRoom>()
-  readonly #encounterCampaigns = new Map<string, string>()
   readonly #sceneCampaigns = new Map<string, string>()
   readonly #frameListeners = new Set<(frame: RoomFrame) => void>()
   readonly #roomEvents = new Map<string, string[]>()
@@ -613,8 +799,21 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
       return this.#executeTokenBinding(args[0] as { input: unknown }) as Promise<
         FunctionReturnType<Mutation>
       >
+    // The GM's tabletop always binds through the room (D47), so every binding does.
+    if (name === getFunctionName(bindScene))
+      return this.#bindSceneThroughRoom(
+        args[0] as BindEncounterToPresentedSceneInputDto
+      ) as Promise<FunctionReturnType<Mutation>>
     if (name !== getFunctionName(executeEncounterCommand)) return super.mutation(mutation, ...args)
     return this.#executeEncounterCommand(args[0]) as Promise<FunctionReturnType<Mutation>>
+  }
+
+  override async query<Query extends FunctionReference<'query'>>(
+    query: Query,
+    ...args: OptionalRestArgs<Query>
+  ): Promise<FunctionReturnType<Query>> {
+    const held = await this.#readHeldRun(getFunctionName(query), args[0])
+    return held === undefined ? super.query(query, ...args) : (held as FunctionReturnType<Query>)
   }
 
   async executeSceneCommand(
@@ -639,11 +838,11 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   }
 
   async #encounterCampaign(encounterId: string): Promise<string> {
-    let campaignId = this.#encounterCampaigns.get(encounterId)
+    let campaignId = encounterCampaigns.get(encounterId)
     if (!campaignId) {
       campaignId = (await this.query(api.encounters.projectionReads.get, { encounterId }))
         .campaignId
-      this.#encounterCampaigns.set(encounterId, campaignId)
+      encounterCampaigns.set(encounterId, campaignId)
     }
     return campaignId
   }
@@ -659,7 +858,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
    */
   async warmRoom(input: { encounterId: string; sceneId: string }): Promise<string> {
     const campaignId = await this.#sceneCampaign(input.sceneId)
-    this.#encounterCampaigns.set(input.encounterId, campaignId)
+    encounterCampaigns.set(input.encounterId, campaignId)
     await this.#room(campaignId).whenReady()
     return campaignId
   }
@@ -684,6 +883,14 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     this.#room(campaignId).subscribeEncounterSession(timeline)
   }
 
+  /** The Run's timeline as the room pushes it to this member; null while the room holds no Run. */
+  async encounterTimeline(campaignId: string): Promise<EncounterTimelineDto | null> {
+    const room = this.#room(campaignId)
+    room.subscribeEncounterSession(true)
+    const session = await room.readEncounterSession()
+    return session.held ? session.timeline : null
+  }
+
   sendTransient(campaignId: string, envelope: SceneTransientEnvelopeDto) {
     this.#room(campaignId).sendTransient(envelope)
   }
@@ -697,6 +904,42 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     for (const room of [...this.#rooms.values()]) room.close()
   }
 
+  /**
+   * What the room answers a turn read or the pending decision with while it holds the Run (A35-S6e),
+   * at its own version, as the tabletop reads them. Undefined when Convex answers instead: the read
+   * is not a room read, the room does not hold the Run or cannot answer from its own state.
+   */
+  async #readHeldRun(name: string, args: unknown): Promise<unknown> {
+    if (name === getFunctionName(api.encounters.pendingReads.pendingRuleOccurrence)) {
+      const { encounterId } = args as { encounterId: string }
+      const session = await this.#room(
+        await this.#encounterCampaign(encounterId)
+      ).readEncounterSession()
+      if (!session.held) return undefined
+      if (session.state.encounter?.id === encounterId) return session.state.pending
+      return session.preparedPending.find((entry) => entry.encounter.id === encounterId)?.pending
+    }
+    let read: EncounterReadDto
+    if (name === getFunctionName(api.encounters.actionChoices.get)) {
+      const { expectedVersion: _expectedVersion, ...input } =
+        args as GetEncounterActionChoicesInputDto
+      read = { kind: 'ACTION_CHOICES', input }
+    } else if (name === getFunctionName(api.encounters.actionChoices.optional)) {
+      const { expectedVersion: _expectedVersion, ...input } =
+        args as GetEncounterOptionalActionChoicesInputDto
+      read = { kind: 'OPTIONAL_ACTION_CHOICES', input }
+    } else return undefined
+    const room = this.#room(await this.#encounterCampaign(read.input.encounterId))
+    try {
+      const reply = await room.readEncounter(read)
+      return reply.kind === read.kind ? reply.result : undefined
+    } catch (error) {
+      // The room's own refusal is the answer; Convex trails the room and would repeat it from older state.
+      if (isAuthoritativeRefusal(error)) throw error
+      return undefined
+    }
+  }
+
   async #executeEncounterCommand(input: unknown): Promise<EncounterCommandResultDto> {
     const { command } = encounterExecuteInputSchema.parse(input)
     return this.#room(await this.#encounterCampaign(command.encounterId)).executeEncounter(command)
@@ -705,12 +948,32 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   async #executeTokenBinding(args: { input: unknown }): Promise<EncounterCommandResultDto> {
     const input = encounterActorTokenBindingCommandInputDtoSchema.parse(args.input)
     const campaignId = await this.#encounterCampaign(input.encounterId)
-    // The room reads the binding's Scene from its presented Scene, as the GM's tabletop holds it.
-    const header = await this.query(api.scenes.liveReads.header, { sceneId: input.sceneId })
-    return this.#room(campaignId).executeEncounter(input, {
-      sceneId: input.sceneId,
-      expectedSceneVersion: header.version
+    // The room reads the binding's Scene from its presented Scene, as the GM's tabletop holds it, so
+    // the command waits for that Scene; a binding for another Scene is then the room's to refuse.
+    return this.#room(campaignId).executeEncounter(
+      input,
+      await this.#presentedSceneRequirement(campaignId)
+    )
+  }
+
+  async #presentedSceneRequirement(campaignId: string) {
+    const presentation = await this.query(api.scenes.presentations.get, { campaignId })
+    if (!presentation?.sceneId) throw new Error('The Campaign is not presenting a Scene.')
+    const header = await this.query(api.scenes.recipientReads.header, {
+      sceneId: presentation.sceneId
     })
+    return { sceneId: presentation.sceneId, expectedSceneVersion: header.version }
+  }
+
+  async #bindSceneThroughRoom(
+    input: BindEncounterToPresentedSceneInputDto
+  ): Promise<BindEncounterToPresentedSceneResultDto> {
+    const campaignId = await this.#encounterCampaign(input.encounterId)
+    // The room binds to the Scene it presents, so it must hold the Scene the GM presented.
+    return this.#room(campaignId).executeEncounterBinding(
+      input,
+      await this.#presentedSceneRequirement(campaignId)
+    )
   }
 
   #room(campaignId: string): CommandRoom {

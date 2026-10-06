@@ -1,7 +1,8 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { makeFunctionReference } from 'convex/server'
-import { ConvexError } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import {
+  developmentReceiptLedgerCreateInputSchema,
   developmentReceiptLedgerEntryInputSchema,
   developmentReceiptLedgerInspectionSchema,
   developmentReceiptLedgerNativePageSchema,
@@ -10,9 +11,9 @@ import {
   developmentReceiptLedgerRemovalSchema,
   developmentReceiptLedgerSeedInputSchema,
   developmentReceiptLedgerSeedResultSchema,
+  type DevelopmentReceiptLedgerCreateInput,
   type DevelopmentReceiptLedgerScope,
-  type DevelopmentReceiptLedgerSeedInput,
-  type DevelopmentReceiptLedgerSeedResult
+  type DevelopmentReceiptLedgerSeedInput
 } from '@artificer-toolkit/schema/api/developmentReceiptLedger'
 import { characterHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/characterHistory'
 import {
@@ -21,20 +22,26 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
   RECEIPT_LEDGER_MAX_BYTES,
-  RECEIPT_LEDGER_MAX_PARTS
+  RECEIPT_LEDGER_MAX_PARTS,
+  type ReceiptLedgerEncodedPayload
 } from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
+import {
+  decodeReceiptLedgerPayload,
+  encodeReceiptLedgerPayload
+} from '@artificer-toolkit/encounter-persistence/receiptLedger'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { QueryCtx } from '../_generated/server'
+import type { ActionCtx, QueryCtx } from '../_generated/server'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
 import { internalAction } from '../_generated/server'
-import { createReceiptLedger, deleteReceiptHeaders } from '../lib/receiptLedgers'
+import { deleteReceiptHeaders, writeReceiptLedger } from '../lib/receiptLedgers'
 import { paginateReceiptHeaders } from '../lib/receiptPagination'
 import { readCharacterReceiptHistory } from './documents'
 
 const SEED_ROLLBACK_MARKER = 'RECEIPT_LEDGER_PROOF_ROLLBACK_AFTER_CREATE'
+const FIXTURE_OCCURRED_AT = '2026-09-30T00:00:00.000Z'
 
 async function requireFixtureCharacter(ctx: QueryCtx, scope: DevelopmentReceiptLedgerScope) {
   await requireFixtureAccount(ctx, scope.userId)
@@ -60,91 +67,122 @@ function fixtureIdentity(characterId: string, ordinal: number) {
   return `${characterId.slice(0, -2)}${ordinal.toString(16).padStart(2, '0')}`
 }
 
-export const seed = internalMutation({
-  args: zodToConvexFields(developmentReceiptLedgerSeedInputSchema.shape),
-  returns: zodToConvex(developmentReceiptLedgerSeedResultSchema),
-  handler: async (ctx, args) => {
-    const input = developmentReceiptLedgerSeedInputSchema.parse(args)
-    await requireFixtureCharacter(ctx, input)
-    const ledgerId = fixtureIdentity(input.characterId, input.ordinal)
-    const commandId = ledgerId
-    const eventId = crypto.randomUUID()
-    const occurredAt = '2026-09-30T00:00:00.000Z'
-    const commandFingerprint = checksumCanonicalJson({
-      characterId: input.characterId,
-      userId: input.userId,
-      ordinal: input.ordinal
-    })
-    function entry(summary: string) {
-      const history = characterHistoryEntryDtoSchema.parse({
-        eventId,
-        occurredAt,
-        actorId: input.userId,
-        eventType: 'RECEIPT_LEDGER_PROOF',
-        summary
-      })
-      const value = {
-        id: eventId,
-        characterId: input.characterId,
-        commandId,
-        actorId: input.userId,
-        commandFingerprint,
-        occurredAt,
-        historyJson: history,
-        historyChecksum: checksumRuleDocument(history)
-      }
-      return liveSessionCheckpointHistoryEntrySchema.parse({
-        table: 'characterCommandReceipts',
-        key: liveSessionCheckpointHistoryKeyFields.characterCommandReceipts.map(
-          (field) => value[field]
-        ),
-        value,
-        checksum: checksumCanonicalJson(value)
-      })
-    }
-    const encoder = new TextEncoder()
-    const overhead = encoder.encode(canonicalizeJson([entry('')])).byteLength
-    if (overhead >= RECEIPT_LEDGER_MAX_BYTES)
-      throw new Error('Receipt ledger fixture overhead is invalid.')
-    const padded = entry(
-      String.fromCharCode(65 + input.ordinal).repeat(RECEIPT_LEDGER_MAX_BYTES - overhead)
-    )
-    const byteLength = encoder.encode(canonicalizeJson([padded])).byteLength
-    if (byteLength !== RECEIPT_LEDGER_MAX_BYTES)
-      throw new Error('Receipt ledger fixture is not exactly maximal.')
-    await createReceiptLedger(
-      ctx,
-      {
-        id: ledgerId,
-        scope: 'CHARACTER',
-        scopeId: input.characterId,
-        epoch: null,
-        checkpointId: null,
-        createdAt: occurredAt
-      },
-      [padded]
-    )
-    if (input.rollback) throw new ConvexError(SEED_ROLLBACK_MARKER)
-    return developmentReceiptLedgerSeedResultSchema.parse({
-      ledgerId,
-      commandId,
+/**
+ * Builds, encodes and decodes the maximal ledger in an action with the production codec. The
+ * creating mutation then only writes it: encoding, decoding and hashing a 4 MiB body overrun the
+ * one-second mutation limit, and production never writes a body that large in one mutation
+ * (checkpoints are capped at 1 MiB).
+ */
+async function seedMaximalLedger(ctx: ActionCtx, input: DevelopmentReceiptLedgerSeedInput) {
+  const ledgerId = fixtureIdentity(input.characterId, input.ordinal)
+  const eventId = crypto.randomUUID()
+  const commandFingerprint = checksumCanonicalJson({
+    characterId: input.characterId,
+    userId: input.userId,
+    ordinal: input.ordinal
+  })
+  function entry(summary: string) {
+    const history = characterHistoryEntryDtoSchema.parse({
       eventId,
-      byteLength
+      occurredAt: FIXTURE_OCCURRED_AT,
+      actorId: input.userId,
+      eventType: 'RECEIPT_LEDGER_PROOF',
+      summary
+    })
+    const value = {
+      id: eventId,
+      characterId: input.characterId,
+      commandId: ledgerId,
+      actorId: input.userId,
+      commandFingerprint,
+      occurredAt: FIXTURE_OCCURRED_AT,
+      historyJson: history,
+      historyChecksum: checksumRuleDocument(history)
+    }
+    return liveSessionCheckpointHistoryEntrySchema.parse({
+      table: 'characterCommandReceipts',
+      key: liveSessionCheckpointHistoryKeyFields.characterCommandReceipts.map(
+        (field) => value[field]
+      ),
+      value,
+      checksum: checksumCanonicalJson(value)
     })
   }
+  const encoder = new TextEncoder()
+  const overhead = encoder.encode(canonicalizeJson([entry('')])).byteLength
+  if (overhead >= RECEIPT_LEDGER_MAX_BYTES)
+    throw new Error('Receipt ledger fixture overhead is invalid.')
+  const padded = entry(
+    String.fromCharCode(65 + input.ordinal).repeat(RECEIPT_LEDGER_MAX_BYTES - overhead)
+  )
+  const encoded = encodeReceiptLedgerPayload([padded])
+  if (encoded.byteLength !== RECEIPT_LEDGER_MAX_BYTES)
+    throw new Error('Receipt ledger fixture is not exactly maximal.')
+  const [decoded] = decodeReceiptLedgerPayload(encoded)
+  await ctx.runMutation(
+    makeFunctionReference<
+      'mutation',
+      DevelopmentReceiptLedgerCreateInput & { encoded: ReceiptLedgerEncodedPayload },
+      null
+    >('characters/developmentReceiptLedgers:create'),
+    { ...input, entry: decoded!, encoded }
+  )
+  return developmentReceiptLedgerSeedResultSchema.parse({
+    ledgerId,
+    commandId: ledgerId,
+    eventId,
+    byteLength: encoded.byteLength
+  })
+}
+
+export const create = internalMutation({
+  args: {
+    ...zodToConvexFields(developmentReceiptLedgerSeedInputSchema.shape),
+    entry: v.any(),
+    encoded: v.object({
+      entryCount: v.number(),
+      byteLength: v.number(),
+      checksum: v.string(),
+      partCount: v.number(),
+      payload: v.null(),
+      parts: v.array(v.bytes())
+    })
+  },
+  returns: zodToConvex(developmentReceiptLedgerRemovalSchema),
+  handler: async (ctx, { encoded, ...args }) => {
+    const { entry, rollback, ...scope } = developmentReceiptLedgerCreateInputSchema.parse(args)
+    await requireFixtureCharacter(ctx, scope)
+    await writeReceiptLedger(
+      ctx,
+      {
+        id: fixtureIdentity(scope.characterId, scope.ordinal),
+        scope: 'CHARACTER',
+        scopeId: scope.characterId,
+        epoch: null,
+        checkpointId: null,
+        createdAt: FIXTURE_OCCURRED_AT
+      },
+      encoded,
+      [entry]
+    )
+    if (rollback) throw new ConvexError(SEED_ROLLBACK_MARKER)
+    return null
+  }
+})
+
+export const seed = internalAction({
+  args: zodToConvexFields(developmentReceiptLedgerSeedInputSchema.shape),
+  returns: zodToConvex(developmentReceiptLedgerSeedResultSchema),
+  handler: async (ctx, args) =>
+    seedMaximalLedger(ctx, developmentReceiptLedgerSeedInputSchema.parse(args))
 })
 
 export const verifySeedRollback = internalAction({
   args: zodToConvexFields(developmentReceiptLedgerEntryInputSchema.shape),
   returns: zodToConvex(developmentReceiptLedgerRemovalSchema),
   handler: async (ctx, args) => {
-    const seedReference = makeFunctionReference<
-      'mutation',
-      DevelopmentReceiptLedgerSeedInput,
-      DevelopmentReceiptLedgerSeedResult
-    >('characters/developmentReceiptLedgers:seed')
     try {
-      await ctx.runMutation(seedReference, {
+      await seedMaximalLedger(ctx, {
         ...developmentReceiptLedgerEntryInputSchema.parse(args),
         rollback: true
       })

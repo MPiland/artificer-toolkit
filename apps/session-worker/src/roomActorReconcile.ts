@@ -79,7 +79,11 @@ export async function reconcileRoomActorDepartures(input: {
   const isMissing = async (characterId: string) => deletedCharacterIds.has(characterId)
   const ctx: EncounterProjectionTransaction & { db: RoomEncounterStore['store'] } = {
     db: store.store,
-    ports: { readCharacterPlay, requireSystem: async () => inputs.systemSnapshot() }
+    ports: {
+      readCharacterPlay,
+      requireSystem: async () => inputs.systemSnapshot(),
+      isRoomHeldRun: async () => true
+    }
   }
   for await (const state of openRuns(store))
     await reconcileRunActorDepartures(ctx, state, { isDeparted, isUnassigned, isMissing })

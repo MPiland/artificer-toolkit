@@ -351,18 +351,29 @@ function actionAllowanceUsed(run: unknown, actorId: string): number {
   return encounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID)
 }
 
+/** Sends an auth request; a 429 waits the server's bounded `X-Retry-After`, as the browser clients do. */
 async function auth(path: string, body?: Record<string, unknown>, session?: string) {
-  return fetch(new URL(`/api/auth${path}`, siteUrl), {
-    method: body ? 'POST' : 'GET',
-    headers: {
-      origin: 'http://localhost:3000',
-      'content-type': 'application/json',
-      ...(session ? { authorization: `Bearer ${session}` } : {})
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    redirect: 'manual',
-    signal: AbortSignal.timeout(30_000)
-  })
+  for (let retry = 0; ; retry++) {
+    const response = await fetch(new URL(`/api/auth${path}`, siteUrl), {
+      method: body ? 'POST' : 'GET',
+      headers: {
+        origin: 'http://localhost:3000',
+        'content-type': 'application/json',
+        ...(session ? { authorization: `Bearer ${session}` } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(30_000)
+    })
+    if (response.status !== 429 || retry === 3) return response
+    const retrySeconds = Number(response.headers.get('X-Retry-After'))
+    assert.ok(
+      Number.isInteger(retrySeconds) && retrySeconds > 0 && retrySeconds <= 10,
+      "Auth rate limit requires the server's bounded retry delay."
+    )
+    console.log(`Auth rate limit on ${path}: waiting ${retrySeconds}s before retry ${retry + 1}.`)
+    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000))
+  }
 }
 
 async function responseToken(response: Response) {
@@ -480,18 +491,7 @@ async function createAuthor() {
       )
     }
   }
-  let signIn = await auth('/sign-in/email', { email, password })
-  if (signIn.status === 429) {
-    const retrySeconds = Number(signIn.headers.get('X-Retry-After'))
-    assert.ok(
-      Number.isInteger(retrySeconds) && retrySeconds > 0 && retrySeconds <= 10,
-      "Fixture sign-in requires the server's bounded retry delay."
-    )
-    console.log(`Fixture sign-in rate limit: waiting ${retrySeconds}s before one retry.`)
-    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000))
-    signIn = await auth('/sign-in/email', { email, password })
-  }
-  fixture.session = await responseToken(signIn)
+  fixture.session = await responseToken(await auth('/sign-in/email', { email, password }))
   const jwt = await authToken(fixture.session)
   const claims = record(JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8')))
   assert.ok(!('email' in claims) && !('name' in claims), 'JWT must not include profile PII.')
@@ -518,23 +518,9 @@ async function createAuthor() {
 }
 
 async function restoreAuthor(credential: VttCheckpointCredential) {
-  let signIn = await auth('/sign-in/email', {
-    email: credential.email,
-    password: credential.password
-  })
-  if (signIn.status === 429) {
-    const retrySeconds = Number(signIn.headers.get('X-Retry-After'))
-    assert.ok(
-      Number.isInteger(retrySeconds) && retrySeconds > 0 && retrySeconds <= 10,
-      "Fixture sign-in requires the server's bounded retry delay."
-    )
-    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000))
-    signIn = await auth('/sign-in/email', {
-      email: credential.email,
-      password: credential.password
-    })
-  }
-  const session = await responseToken(signIn)
+  const session = await responseToken(
+    await auth('/sign-in/email', { email: credential.email, password: credential.password })
+  )
   const jwt = await authToken(session)
   const claims = record(JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8')))
   assert.ok(!('email' in claims) && !('name' in claims), 'JWT must not include profile PII.')
@@ -573,6 +559,29 @@ async function waitForCampaignDeletion(
     if (Date.now() >= deadline)
       throw new Error(`${fixtureName} Campaign deletion timed out at ${status.status}.`)
     await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+}
+
+/**
+ * Deletes the VTT fixture Campaigns. Deletion tells the Session Worker to drop each room, so the
+ * browser proof runs it while its Playwright-managed Worker is still up.
+ */
+async function deleteVttCampaigns() {
+  while (vttCampaigns.length) {
+    const fixture = vttCampaigns[0]!
+    const campaign = await fixture.owner.query(api.campaigns.queries.get, {
+      id: fixture.campaignId
+    })
+    assert.deepEqual(
+      await fixture.owner.mutation(api.campaigns.deletion.remove, {
+        campaignId: fixture.campaignId,
+        expectedVersion: campaign.version,
+        confirmation: 'DELETE'
+      }),
+      { ok: true }
+    )
+    await waitForCampaignDeletion(fixture.owner, fixture.campaignId, 'VTT fixture')
+    vttCampaigns.shift()
   }
 }
 
@@ -729,20 +738,7 @@ async function cleanup() {
       }
     }
   }
-  for (const fixture of vttCampaigns) {
-    const campaign = await fixture.owner.query(api.campaigns.queries.get, {
-      id: fixture.campaignId
-    })
-    assert.deepEqual(
-      await fixture.owner.mutation(api.campaigns.deletion.remove, {
-        campaignId: fixture.campaignId,
-        expectedVersion: campaign.version,
-        confirmation: 'DELETE'
-      }),
-      { ok: true }
-    )
-    await waitForCampaignDeletion(fixture.owner, fixture.campaignId, 'VTT fixture')
-  }
+  await deleteVttCampaigns()
   for (const cohort of custodyFixtureCohorts) await removeCampaignCustodyFixture(cohort)
   for (const { campaignId, cohort } of custodySocialFixtureGroups) {
     await cli(
@@ -796,7 +792,11 @@ async function cleanup() {
         }
         const definitions = await client.query(api.scenes.definitionReads.list, page)
         assert.equal(definitions.isDone, true)
-        if (definitions.page.length) {
+        // Deleting a Scene definition keeps its played live Scene and presentation, so the
+        // live list decides whether Scene state remains.
+        const liveScenes = await client.query(api.scenes.definitionReads.listLive, page)
+        assert.equal(liveScenes.isDone, true)
+        if (definitions.page.length || liveScenes.page.length) {
           await cli(
             'scenes/developmentScene:removeFixtureState',
             { ownerUserId: fixture.ownerUserId, campaignId: campaign.id },
@@ -1650,7 +1650,8 @@ try {
           gm,
           player,
           player2,
-          checkpoint: { path: vttCheckpointPath, startSection }
+          checkpoint: { path: vttCheckpointPath, startSection },
+          ...(vttCheckpointMode === 'resume' ? { cleanupWhileWorkerRuns: deleteVttCampaigns } : {})
         })
       }
       retainVttFixtureAfterFailure = vttCheckpointMode === 'resume-retain'
@@ -1814,6 +1815,7 @@ try {
         gm,
         player,
         player2,
+        cleanupWhileWorkerRuns: deleteVttCampaigns,
         ...(vttCheckpointMode === 'retain-on-failure'
           ? {
               checkpoint: {
@@ -2825,6 +2827,11 @@ try {
           otherEquipmentId: characterFixture.equipment.subjectId,
           initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
           initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          readTimeline: () => owner.client.encounterTimeline(campaign.id),
           browser: disarmBrowser
             ? async (fixture, verify) => {
                 const { verifyEncounterDisarmBrowser } =
@@ -2911,10 +2918,15 @@ try {
         if (effectsBrowser) {
           if (!targetEffectDraft)
             throw new Error('Action-effect browser target fixture is unavailable.')
+          const { RoomControl } = await import('./developmentRoomMeasurement')
+          const roomControl = await RoomControl.open(owner.client)
           await verifyEncounterEffects({
             ...effectInput,
             targetCreatureId: targetEffectDraft.subjectId,
             playerUserId: player.identity.userId,
+            saveTable: async () => {
+              await roomControl.barrier(campaign.id)
+            },
             browser: async (fixture, verify) => {
               const { verifyEncounterEffectsBrowser } =
                 await import('../../web/tests/live-backend/encounterEffects')
@@ -3019,7 +3031,7 @@ try {
           }),
           preparedRuns[loserIndex]
         )
-        await owner.client.mutation(executeEncounterCommand, {
+        const winnerCompleted = await owner.client.mutation(executeEncounterCommand, {
           command: {
             type: 'COMPLETE',
             encounterId: winner.value.projection.id,
@@ -3040,9 +3052,10 @@ try {
           ).encounter,
           loserStarted.projection
         )
+        // An exact replay returns the stored receipt with the Run's current projection.
         assert.deepEqual(
           await owner.client.mutation(executeEncounterCommand, startInputs[winnerIndex]!),
-          winner.value
+          { ...winner.value, projection: winnerCompleted.projection }
         )
         await owner.client.mutation(executeEncounterCommand, {
           command: {
@@ -3076,10 +3089,18 @@ try {
           blueprint: result.blueprint,
           characterId,
           policies,
-          sceneFixture: result
+          sceneFixture: result,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          }
         })
         const { verifyEncounterTransactions } = await import('./developmentEncounterTransactions')
         await verifyEncounterTransactions({
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
           owner: owner.client,
           player: player.client,
           ownerUserId: owner.identity.userId,
@@ -3089,12 +3110,6 @@ try {
           concurrent: (actor, reference, args) =>
             (actor === 'OWNER' ? owner.client : player.client).mutation(reference, args, {
               skipQueue: true
-            }),
-          rollback: (input) =>
-            owner.client.action(api.encounters.developmentLifecycle.verifyRollback, {
-              ...input,
-              ownerUserId: owner.identity.userId,
-              campaignId: campaign.id
             })
         })
       }
@@ -3116,7 +3131,8 @@ try {
       }
       if (movementBrowser) {
         const { readAuthoritativeSceneToken } = await import('./developmentEncounterCutover')
-        const { awaitSceneCheckpoint } = await import('./developmentCheckpoint')
+        const { awaitCampaignCheckpoint, awaitSceneCheckpoint } =
+          await import('./developmentCheckpoint')
         const { prepareEncounterMovementFixture, publishMovementReactionCreature } =
           await import('./developmentEncounterMovement')
         const { verifyEncounterMovementBrowser } =
@@ -3284,7 +3300,9 @@ try {
               submission.command.command,
               submission.command.expectedSessionSequence
             )
-            assert.deepEqual(replay, submission.result)
+            // The room marks a replayed receipt `replayed` and returns the rest of it unchanged.
+            assert.equal(replay?.replayed, true)
+            assert.deepEqual(replay, { ...submission.result, replayed: true })
             assert.deepEqual(
               await readMovementState(),
               before,
@@ -3333,7 +3351,8 @@ try {
             )
           },
           verifyAuthoritative: async (stage, observedSceneVersion) => {
-            // Room Scene commits reach Convex at a checkpoint; read only once it holds the observed write.
+            // Room Scene and Run commits reach Convex at a checkpoint; read only once it holds them.
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
             await awaitSceneCheckpoint(
               owner.client,
               fixture.scene.liveSceneId,
@@ -4928,6 +4947,8 @@ try {
               }),
               { ok: true }
             )
+            // Deletion runs as a bounded job; the Campaign still blocks account deletion until it ends.
+            await waitForCampaignDeletion(fixture.subject.client, campaignId, 'Account deletion')
           }
           assert.deepEqual(
             await cli(
@@ -5004,11 +5025,22 @@ try {
               }),
               historicalSession
             )
-            assert.deepEqual(
+            // Runs are Campaign-owned (ADR 0033), so a finished Session does not freeze one: the
+            // open Run stays and only the deleted account's Character actor leaves it. The room
+            // holds the Run and removes that actor itself (D74); the barrier publishes the room's
+            // committed state so Convex reflects the removal (D90).
+            const beforeRun = encounterGmProjectionDtoSchema.parse(historicalRun)
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(fixture.auditor.client, fixture.ids.sharedCampaignId)
+            const afterRun = encounterGmProjectionDtoSchema.parse(
               await fixture.auditor.client.query(api.encounters.projectionReads.get, {
                 encounterId: fixture.ids.runId
-              }),
-              historicalRun
+              })
+            )
+            assert.equal(afterRun.status, beforeRun.status)
+            assert.deepEqual(
+              afterRun.actors,
+              beforeRun.actors.filter((actor) => actor.sourceId !== fixture.ids.characterId)
             )
             await assert.rejects(
               fixture.subject.client.query(api.account.identity, {}),
@@ -5089,6 +5121,8 @@ try {
             }),
             { ok: true }
           )
+          // Account deletion refuses while an owned Campaign's deletion job is still running.
+          await waitForCampaignDeletion(author.client, campaign.id, 'Account deletion')
         }
       }
     } catch (error) {
@@ -5172,6 +5206,9 @@ try {
         )
       }
     })
+    // The reset revoked the author's session (verifySessions), so cleanup must not sign it in again.
+    const recovered = accounts.find((fixture) => fixture.email === author.email)
+    if (recovered) delete recovered.session
   } else if (
     process.argv.includes('--auth-browser') ||
     process.argv.includes('--profile-browser')

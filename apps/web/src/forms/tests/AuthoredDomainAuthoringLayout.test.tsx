@@ -24,11 +24,10 @@ import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
 const convexMocks = vi.hoisted(() => ({
-  loadMore: vi.fn(),
   mutation: vi.fn(),
   nodeRuntimeResolve: vi.fn(),
   query: vi.fn(),
-  usePaginatedQuery: vi.fn()
+  useContentCatalogue: vi.fn()
 }))
 
 vi.mock('convex/react', async (importOriginal) => ({
@@ -40,8 +39,8 @@ vi.mock('convex/react', async (importOriginal) => ({
   useQuery: () => ({ assetId: null, revision: 0 })
 }))
 
-vi.mock('convex-helpers/react', () => ({
-  usePaginatedQuery: convexMocks.usePaginatedQuery
+vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
+  useContentCatalogue: convexMocks.useContentCatalogue
 }))
 
 vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
@@ -114,16 +113,16 @@ const nativeRaceCatalogueItems = [
 ]
 
 beforeEach(() => {
-  convexMocks.loadMore.mockClear()
   convexMocks.mutation.mockReset().mockResolvedValue(authoredRouteStoryDrafts.race)
   convexMocks.nodeRuntimeResolve.mockReset().mockImplementation(resolveStaticNodeRuntimeQuery)
   convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
-  convexMocks.usePaginatedQuery.mockReset().mockReturnValue({
-    isLoading: false,
-    loadMore: convexMocks.loadMore,
-    results: nativeRaceCatalogueItems,
-    status: 'Exhausted'
-  })
+  convexMocks.useContentCatalogue
+    .mockReset()
+    .mockImplementation((_subjectKind, { enabled = true } = {}) => ({
+      items: enabled ? nativeRaceCatalogueItems : undefined,
+      isError: false,
+      isPending: false
+    }))
 })
 
 describe('non-character authored domain layout coverage', () => {
@@ -169,11 +168,10 @@ describe('non-character authored domain layout coverage', () => {
     expect(picker).toBeInTheDocument()
     expect(screen.getByText(/nothing is copied until you confirm/i)).toBeInTheDocument()
     expect(convexMocks.mutation).not.toHaveBeenCalled()
-    expect(convexMocks.usePaginatedQuery).toHaveBeenLastCalledWith(
-      expect.anything(),
-      { subjectKind: 'RACE', systemId: authoredRouteStorySystem.id },
-      { initialNumItems: 48 }
-    )
+    expect(convexMocks.useContentCatalogue).toHaveBeenLastCalledWith('RACE', {
+      enabled: true,
+      systemId: authoredRouteStorySystem.id
+    })
     await user.click(picker)
     await user.type(picker, 'Elf')
     await user.click(await screen.findByRole('option', { name: 'Elf', hidden: true }))
@@ -199,28 +197,21 @@ describe('non-character authored domain layout coverage', () => {
   it('loads native Race parents only for a subrace and excludes subrace parents', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
-    convexMocks.usePaginatedQuery.mockReturnValue({
-      isLoading: false,
-      loadMore: convexMocks.loadMore,
-      results: nativeRaceCatalogueItems,
-      status: 'CanLoadMore'
-    })
 
     render(<TestRouterProvider>{renderCreateLayout('race')}</TestRouterProvider>)
     await user.click(await screen.findByRole('button', { name: /Start from scratch/i }))
-    expect(convexMocks.usePaginatedQuery).toHaveBeenLastCalledWith(expect.anything(), 'skip', {
-      initialNumItems: 48
+    expect(convexMocks.useContentCatalogue).toHaveBeenLastCalledWith('RACE', {
+      enabled: false,
+      systemId: authoredRouteStorySystem.id
     })
 
     await user.click(screen.getByRole('combobox', { name: 'Type' }))
     await user.click(await screen.findByRole('option', { name: 'Subrace', hidden: true }))
 
-    expect(convexMocks.usePaginatedQuery).toHaveBeenLastCalledWith(
-      expect.anything(),
-      { subjectKind: 'RACE', systemId: authoredRouteStorySystem.id },
-      { initialNumItems: 48 }
-    )
-    expect(convexMocks.loadMore).toHaveBeenCalledWith(48)
+    expect(convexMocks.useContentCatalogue).toHaveBeenLastCalledWith('RACE', {
+      enabled: true,
+      systemId: authoredRouteStorySystem.id
+    })
     const parent = screen.getByRole('combobox', { name: 'Parent race' })
     await user.click(parent)
     expect(await screen.findByRole('option', { name: 'Elf', hidden: true })).toBeInTheDocument()
@@ -570,11 +561,10 @@ describe('non-character authored domain layout coverage', () => {
 
     await user.click(await screen.findByRole('button', { name: /Use an existing spell/i }))
 
-    expect(convexMocks.usePaginatedQuery).toHaveBeenCalledWith(
-      expect.anything(),
-      { subjectKind: 'SPELL', systemId: authoredRouteStorySystem.id },
-      { initialNumItems: 48 }
-    )
+    expect(convexMocks.useContentCatalogue).toHaveBeenCalledWith('SPELL', {
+      enabled: true,
+      systemId: authoredRouteStorySystem.id
+    })
   })
 })
 

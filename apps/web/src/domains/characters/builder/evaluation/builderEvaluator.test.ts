@@ -24,6 +24,7 @@ import { prepareSrdImport } from '@artificer-toolkit/source-data/srd/import.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { dragonborn } from '@artificer-toolkit/source-data/srd/races/dragonborn.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   ContentSnapshotLoadError,
@@ -179,9 +180,22 @@ const fighterIntent = {
   background: { backgroundId: acolyte.id },
   classes: [{ classId: fighter.id, classLevel: 1 }]
 }
+// Spell documents are read only for the Spells a Character names (ADR 0036), so the Wizard names one.
+const wizardCantrip = srdSpells.find(
+  (spell) => spell.level === 0 && spell.classIds?.includes(wizard.id)
+)
+if (!wizardCantrip) throw new Error('Expected a SRD Wizard cantrip.')
 const wizardIntent = {
   race: { raceId: elf.id, subraceId: highElf.id },
-  classes: [{ classId: wizard.id, classLevel: 1 }]
+  classes: [{ classId: wizard.id, classLevel: 1 }],
+  spellSelections: [
+    {
+      id: '00000000-0000-4000-8000-000000000904',
+      source: { kind: 'CLASS' as const, classId: wizard.id, classLevel: 1 },
+      timing: { kind: 'IMMEDIATE' as const },
+      spells: [wizardCantrip.id]
+    }
+  ]
 }
 
 describe('Builder worker evaluation', () => {

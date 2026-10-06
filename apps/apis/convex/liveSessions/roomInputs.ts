@@ -536,11 +536,15 @@ async function readCharactersPage(
   const part: LiveRoomCharacterPart = {
     status: 'ASSIGNED',
     characterId: requested,
-    revisions: await readLiveSessionRulesRevisions(ctx, {
-      systemId: active.systemId,
-      campaignId: campaign.id,
-      characterId: active.id
-    }),
+    // A Character part holds no play data (the room owns it), so PLAY moving, as the room's own
+    // checkpoint does, never changes the part and must not split it from the System read it merges with.
+    revisions: (
+      await readLiveSessionRulesRevisions(ctx, {
+        systemId: active.systemId,
+        campaignId: campaign.id,
+        characterId: active.id
+      })
+    ).filter((revision) => revision.scope !== 'PLAY'),
     // A continuation always carries a pagination cursor, so a null one starts the Character.
     inputs:
       paginationCursor === null ? await readStoredCharacterInputs(ctx, active, campaign) : null,

@@ -212,6 +212,29 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
     campaignId: sharedCampaign.id,
     title: 'F12 finished retained Session'
   })
+  // Chat and rolls are Convex's until the live table opens with the Run's first room command (D47).
+  await subject.client.mutation(api.campaigns.chat.send, {
+    campaignId: sharedCampaign.id,
+    room: 'TABLE',
+    mode: 'OOC',
+    body: 'F12 retained subject message',
+    clientNonce: crypto.randomUUID()
+  })
+  const roll: ExecuteCampaignRollInput = {
+    campaignId: sharedCampaign.id,
+    destination: 'TABLE',
+    clientNonce: crypto.randomUUID(),
+    roll: {
+      characterId,
+      expression: '1d20',
+      source: { kind: 'MANUAL', label: 'F12 retained subject roll' }
+    }
+  }
+  await subject.client.mutation(api.campaigns.rolls.execute, roll)
+  await auditor.client.mutation(api.campaigns.conversations.open, {
+    campaignId: sharedCampaign.id,
+    kind: 'TABLE'
+  })
   const subjectBlueprint = await subject.client.mutation(api.encounters.blueprints.create, {
     gameSystemId: srdSystemRecord.id,
     name: 'F12 subject-owned Blueprint',
@@ -260,28 +283,6 @@ export async function createDevelopmentAccountDeletionFixture<Author extends Fix
   )
   assert.ok(started.projection.actors.some((actor) => actor.kind !== 'CHARACTER'))
 
-  await subject.client.mutation(api.campaigns.chat.send, {
-    campaignId: sharedCampaign.id,
-    room: 'TABLE',
-    mode: 'OOC',
-    body: 'F12 retained subject message',
-    clientNonce: crypto.randomUUID()
-  })
-  const roll: ExecuteCampaignRollInput = {
-    campaignId: sharedCampaign.id,
-    destination: 'TABLE',
-    clientNonce: crypto.randomUUID(),
-    roll: {
-      characterId,
-      expression: '1d20',
-      source: { kind: 'MANUAL', label: 'F12 retained subject roll' }
-    }
-  }
-  await subject.client.mutation(api.campaigns.rolls.execute, roll)
-  await auditor.client.mutation(api.campaigns.conversations.open, {
-    campaignId: sharedCampaign.id,
-    kind: 'TABLE'
-  })
   const finish: FinishCampaignSessionInput = {
     campaignId: sharedCampaign.id,
     sessionId: session.id,

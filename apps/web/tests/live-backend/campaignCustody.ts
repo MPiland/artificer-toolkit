@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect, type Page } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
+import { watchNavigationAbortedRequests } from './campaignCollaboration'
 
 export type CampaignCustodyStage =
   | 'cargo-filled'
@@ -186,7 +187,9 @@ export async function verifyCampaignCustodyBrowser(
       await older.click()
       await expect.poll(() => auditRows.count()).toBeGreaterThan(before)
     }
-    await expect(audit.getByText('vehicle lifecycle', { exact: true })).toHaveCount(9)
+    // Six from the native custody fixture (five Vehicle lifecycle actions and one Shared Equipment
+    // return) plus this browser run's four.
+    await expect(audit.getByText('vehicle lifecycle', { exact: true })).toHaveCount(10)
     const auditIds = await auditRows.evaluateAll((rows) =>
       rows.map((row) => row.getAttribute('data-audit-event-id'))
     )
@@ -413,8 +416,11 @@ function captureDiagnostics(
   currentStage: () => string,
   diagnostics: string[]
 ): void {
-  const record = (kind: string, detail: string) =>
-    diagnostics.push(`${account} ${currentStage()}: ${kind} ${detail.slice(0, 3000)}`)
+  const record = (kind: string, detail: string) => {
+    const entry = `${account} ${currentStage()}: ${kind} ${detail.slice(0, 3000)}`
+    diagnostics.push(entry)
+    return entry
+  }
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning')
       record('console', message.text())
@@ -425,12 +431,14 @@ function captureDiagnostics(
     if (url.hostname.endsWith('.supabase.co') || url.pathname.startsWith('/api/trpc'))
       record('legacy request', `${request.method()} ${url.hostname}${url.pathname}`)
   })
-  page.on('requestfailed', (request) =>
-    record(
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
+  page.on('requestfailed', (request) => {
+    const entry = record(
       'requestfailed',
       `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? ''}`
     )
-  )
+    tolerateNavigationAbort(request, () => diagnostics.splice(diagnostics.lastIndexOf(entry), 1))
+  })
   page.on('response', (response) => {
     if (response.status() >= 400)
       record('response', `${response.status()} ${new URL(response.url()).pathname}`)

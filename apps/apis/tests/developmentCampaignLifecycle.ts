@@ -383,7 +383,7 @@ export async function verifyCampaignLifecycle(input: {
     const nativeGrace24h: Array<{ assetId: string; cleanupAt: number }> = []
     expected.mediaAssets = expected.mediaAssets!.map((asset) => {
       if (!detachedMapIds.has(String(asset.id))) return asset
-      assert.equal(asset.profile, 'VTT_MAP')
+      assert.equal(asset.profileClass, 'VTT_MAP')
       assert.equal(asset.hasSceneReferences, true)
       const actual = personalAfter.mediaAssets!.find((row) => row.id === asset.id)
       assert.ok(actual, 'Detached map remains uploader-owned until normal cleanup.')
@@ -955,6 +955,16 @@ export async function verifyCampaignLifecycle(input: {
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null
   })
+  // Chat is Convex's until the live table opens with the Run's first room command.
+  for (const room of ['TABLE', 'PARTY', 'DIRECT'] as const)
+    await player.mutation(api.campaigns.chat.send, {
+      campaignId: campaign.id,
+      room,
+      mode: 'OOC',
+      body: room + ' native payload',
+      clientNonce: crypto.randomUUID(),
+      ...(room === 'DIRECT' ? { directUserId: ownerUserId } : {})
+    })
   let run = await owner.mutation(api.encounters.runs.create, {
     campaignId: campaign.id,
     blueprintId: blueprint.id,
@@ -1159,15 +1169,6 @@ export async function verifyCampaignLifecycle(input: {
     receivingDefinition,
     state: sceneState
   })
-  for (const room of ['TABLE', 'PARTY', 'DIRECT'] as const)
-    await player.mutation(api.campaigns.chat.send, {
-      campaignId: campaign.id,
-      room,
-      mode: 'OOC',
-      body: room + ' native payload',
-      clientNonce: crypto.randomUUID(),
-      ...(room === 'DIRECT' ? { directUserId: ownerUserId } : {})
-    })
   stage('populated-session-notebooks-clock-run-initiative-chat', {
     state: await inspect(campaign.id),
     blueprint

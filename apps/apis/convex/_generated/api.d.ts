@@ -46038,6 +46038,26 @@ export declare const internal: {
       >;
     };
     developmentReceiptLedgers: {
+      create: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          characterId: string;
+          encoded: {
+            byteLength: number;
+            checksum: string;
+            entryCount: number;
+            partCount: number;
+            parts: Array<ArrayBuffer>;
+            payload: null;
+          };
+          entry: any;
+          ordinal: number;
+          rollback: boolean;
+          userId: string;
+        },
+        null
+      >;
       inspect: FunctionReference<
         "query",
         "internal",
@@ -46135,7 +46155,7 @@ export declare const internal: {
         null
       >;
       seed: FunctionReference<
-        "mutation",
+        "action",
         "internal",
         {
           characterId: string;

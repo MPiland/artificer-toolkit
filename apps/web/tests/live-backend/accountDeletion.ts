@@ -3,7 +3,12 @@ import { access, mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium, expect, type BrowserContext, type Page } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
-import { signIn, waitForRouterIdle, watchAuthenticatedSession } from './campaignCollaboration'
+import {
+  signIn,
+  waitForRouterIdle,
+  watchAuthenticatedSession,
+  watchNavigationAbortedRequests
+} from './campaignCollaboration'
 
 const origin = 'http://localhost:3000'
 const accountDeletePath = '/api/auth/account/delete'
@@ -84,7 +89,7 @@ export async function verifyAccountDeletionBrowser(
     await installBoundaryGuard(context, contextName, () => stage, record)
     const page = await context.newPage()
     pages.push(page)
-    captureDiagnostics(page, contextName, () => stage, record, deleteResponses)
+    captureDiagnostics(page, contextName, () => stage, diagnostics, record, deleteResponses)
     return { context, page }
   }
 
@@ -381,6 +386,7 @@ function captureDiagnostics(
   page: Page,
   context: string,
   currentStage: () => string,
+  diagnostics: Diagnostic[],
   record: (diagnostic: Diagnostic) => void,
   deleteResponses: { context: string; status: number }[]
 ): void {
@@ -404,15 +410,20 @@ function captureDiagnostics(
       stage: currentStage()
     })
   )
-  page.on('requestfailed', (request) =>
-    record({
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
+  page.on('requestfailed', (request) => {
+    const diagnostic: Diagnostic = {
       context,
       detail: `${request.method()} ${request.failure()?.errorText ?? 'unknown failure'}`,
       kind: 'requestfailed',
       path: new URL(request.url()).pathname,
       stage: currentStage()
-    })
-  )
+    }
+    record(diagnostic)
+    tolerateNavigationAbort(request, () =>
+      diagnostics.splice(diagnostics.lastIndexOf(diagnostic), 1)
+    )
+  })
   page.on('response', (response) => {
     const path = new URL(response.url()).pathname
     if (path === accountDeletePath && response.request().method() === 'POST')

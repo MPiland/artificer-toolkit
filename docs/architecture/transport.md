@@ -116,6 +116,13 @@ arguments never supply these identifiers. Other account lookups retain the gener
 Better Auth client and account lifecycle triggers remain in `authClient.helper.ts` and
 `authTriggers.helper.ts`; deletion restrictions and purge scheduling are unchanged.
 
+The browser Better Auth client (`apps/web/src/auth/betterAuthClient.ts`) fetches the Convex token
+through `fetchWithTokenRetry`. A transient `GET /api/auth/convex/token` failure (network error, 429 or
+5xx) is retried up to four times, honoring `Retry-After`/`x-retry-after`, so a rate limit does not read
+as a signed-out user while the server Session is valid. 401 and other definitive answers return at once.
+After the retries are exhausted the response is returned unchanged, and the Convex auth adapter then
+treats the token as absent.
+
 Native Encounter commands run the Character work they need in the same transaction as direct calls,
 not nested Convex functions: a GM tool's Sheet command goes through
 `executeEncounterCharacterCommand` (`characters/encounterCommands.ts`) and initiative reads through

@@ -49,7 +49,7 @@ export async function executeEncounterActorTokenBinding(
     .unique()
   if (!run) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (run.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
@@ -85,18 +85,18 @@ export async function executeEncounterActorTokenBinding(
   // A completed Run has no history to replay and no binding to change (ADR 0035 Amendment 30).
   if (run.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (input.expectedEncounterVersion !== run.version)
-    throw new Error('Encounter changed before its Scene binding could update.')
+    rejectDomain('VERSION_STALE', 'Encounter changed before its Scene binding could update.')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
     .take(1)
-  if (pending.length) throw new Error('Encounter rule resolution is pending.')
+  if (pending.length) rejectDomain('PENDING_DECISION', 'Encounter rule resolution is pending.')
   const binding = await ctx.db
     .query('encounterSceneBindings')
     .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
     .unique()
   if (!binding || binding.campaignId !== campaign.id || binding.sceneId !== input.sceneId)
-    throw new Error('Encounter Scene binding was not found.')
+    rejectDomain('SCENE_NOT_PRESENTED', 'Encounter Scene binding was not found.')
   const scene = await callbacks.readScene(input.sceneId)
   if (!scene || scene.campaignId !== campaign.id)
     throw new Error('Campaign live Scene was not found.')
@@ -113,7 +113,7 @@ export async function executeEncounterActorTokenBinding(
     throw new Error('Stored Encounter actor token binding is inconsistent.')
   if (input.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING') {
     if (!(await callbacks.hasToken(scene.id, input.tokenId)))
-      throw new Error('Scene token was not found.')
+      rejectDomain('TARGET_UNAVAILABLE', 'Scene token was not found.')
     const tokenBinding = await ctx.db
       .query('encounterActorTokenBindings')
       .withIndex('by_encounterId_tokenId', (q) =>
@@ -123,7 +123,7 @@ export async function executeEncounterActorTokenBinding(
     if (tokenBinding && tokenBinding.sceneId !== scene.id)
       throw new Error('Stored Encounter actor token binding is inconsistent.')
     if (tokenBinding && tokenBinding.actorId !== input.actorId)
-      throw new Error('Scene token is already bound to another Encounter actor.')
+      rejectDomain('TARGET_UNAVAILABLE', 'Scene token is already bound to another Encounter actor.')
     const value = encounterActorTokenBindingSchema.parse({
       actorId: input.actorId,
       encounterId: run.id,
@@ -133,7 +133,8 @@ export async function executeEncounterActorTokenBinding(
     if (actorBinding) await ctx.db.patch(actorBinding._id, value)
     else await ctx.db.insert('encounterActorTokenBindings', value)
   } else {
-    if (!actorBinding) throw new Error('Encounter actor token binding was not found.')
+    if (!actorBinding)
+      rejectDomain('TARGET_UNAVAILABLE', 'Encounter actor token binding was not found.')
     await ctx.db.delete(actorBinding._id)
   }
   const now = new Date().toISOString()

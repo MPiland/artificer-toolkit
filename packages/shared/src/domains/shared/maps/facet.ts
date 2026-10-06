@@ -1805,11 +1805,22 @@ function createFacetPredicateNodeMap(
                     ])
                   )
                   .then((o) =>
-                    o.mapValues('equipment', {
-                      whereColumn: 'id',
-                      valueColumn: 'category',
-                      input: p.id(['equipmentIds'])
-                    })
+                    o.condition((c2) =>
+                      c2
+                        .if(p.scope(['equipmentIds']).selected)
+                        .then((o2) =>
+                          o2.mapValues('equipment', {
+                            whereColumn: 'id',
+                            valueColumn: 'category',
+                            input: p.id(['equipmentIds'])
+                          })
+                        )
+                        .elseIf(p.scope(['equipmentIds']).all)
+                        .then((o2) =>
+                          o2.chain((s) => s.seed('equipment', { valueColumn: 'category' }).end())
+                        )
+                        .end()
+                    )
                   )
                   .elseIf(local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED'))
                   .then((o) =>
@@ -1941,11 +1952,24 @@ function createFacetPredicateNodeMap(
                 c
                   .if(local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'))
                   .then((o) =>
-                    o.mapValues('equipment_properties', {
-                      whereColumn: 'equipment_id',
-                      valueColumn: 'property_code',
-                      input: p.id(['equipmentIds'])
-                    })
+                    o.condition((c2) =>
+                      c2
+                        .if(p.scope(['equipmentIds']).selected)
+                        .then((o2) =>
+                          o2.mapValues('equipment_properties', {
+                            whereColumn: 'equipment_id',
+                            valueColumn: 'property_code',
+                            input: p.id(['equipmentIds'])
+                          })
+                        )
+                        .elseIf(p.scope(['equipmentIds']).all)
+                        .then((o2) =>
+                          o2.chain((s) =>
+                            s.seed('equipment_properties', { valueColumn: 'property_code' }).end()
+                          )
+                        )
+                        .end()
+                    )
                   )
                   .elseIf(local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED'))
                   .then((o) =>

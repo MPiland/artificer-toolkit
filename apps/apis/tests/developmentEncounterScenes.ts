@@ -64,6 +64,7 @@ export type EncounterLifecycleSceneOptions = {
   map: { height: number; width: number }
   grid: SceneDefinitionDto['grid']
   barriers?: SceneDefinitionDto['barriers']
+  fogMode?: SceneDefinitionDto['fogMode']
   tokens: [
     SceneDefinitionDto['tokens'][number],
     SceneDefinitionDto['tokens'][number],
@@ -109,7 +110,7 @@ async function createScene(
       campaignId,
       name,
       ambientIllumination: 'BRIGHT',
-      fogMode: 'PER_PLAYER',
+      fogMode: options.fogMode ?? 'PER_PLAYER',
       visionRevealMode: 'ON_DRAG',
       grid: options.grid,
       map: { assetId, ...options.map, tileManifestAssetId: null }

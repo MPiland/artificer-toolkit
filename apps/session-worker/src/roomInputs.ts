@@ -550,6 +550,20 @@ export class RoomInputs {
     return restamp?.stamped === revision ? restamp.stamp : revision
   }
 
+  /**
+   * A held part reporting the revisions it is current at. After a restamp those differ from the
+   * revisions it was stored with, and a caller merging them with a fresh read must see one view.
+   */
+  #current<Part extends { revisions: LiveSessionRulesRevisions }>(
+    held: RoomRecord,
+    part: Part
+  ): Part {
+    const stamp = this.#stamp(held)
+    return stamp && stamp !== held.revision
+      ? { ...part, revisions: liveSessionRulesRevisionsSchema.parse(JSON.parse(stamp)) }
+      : part
+  }
+
   /** Whether every revision the cached read observed is still the revision `observed` reports. */
   #isCurrent(record: RoomRecord, observed: LiveSessionRulesRevisions | null) {
     const stamp = this.#stamp(record)
@@ -937,7 +951,10 @@ export class RoomInputs {
       ? transaction.record(CACHE_KIND, key)
       : this.#store.record(CACHE_KIND, key)
     if (held && this.#isCurrent(held, observed)) {
-      const part = expectAssigned(liveRoomCharacterPartSchema.parse(JSON.parse(held.json)))
+      const part = this.#current(
+        held,
+        expectAssigned(liveRoomCharacterPartSchema.parse(JSON.parse(held.json)))
+      )
       const content = await this.#readContent(this.#characterManifest(part), key)
       this.#content.set(key, content)
       return this.#withCurrentPlay(part)
@@ -1018,7 +1035,7 @@ export class RoomInputs {
     return content.objects
   }
 
-  async #point<Kind extends ResponseKind>(
+  async #point<Kind extends 'CAMPAIGN_PLAY' | 'SYSTEM'>(
     scope: Exclude<LiveRoomInputsScope, { kind: PagedKind | 'SCENE' }>,
     observed: LiveSessionRulesRevisions | null,
     kind: Kind,
@@ -1029,7 +1046,7 @@ export class RoomInputs {
       ? transaction.record(CACHE_KIND, key)
       : this.#store.record(CACHE_KIND, key)
     if (held && this.#isCurrent(held, observed)) {
-      const response = expectKind(this.#parse(held), kind)
+      const response = this.#current(held, expectKind(this.#parse(held), kind))
       const source: LiveRoomInputsResponse = response
       if (source.kind === 'CAMPAIGN_PLAY')
         this.#content.set(key, await this.#readContent(source.contentSnapshots, key))

@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises'
-import { chromium, expect, type Page } from '@playwright/test'
+import { chromium, expect, type Page, type Request } from '@playwright/test'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
 
 type CampaignCollaborationStage =
@@ -146,25 +146,30 @@ export async function verifyCampaignCollaborationBrowser(
       .getByRole('heading', { name: 'New section', exact: true })
       .locator('..')
     await creator.getByRole('textbox', { name: 'Section title' }).fill(sharedNote)
-    await expect(creator.getByRole('combobox', { name: 'Visibility' })).toHaveValue(
-      'Shared with party'
-    )
+    const visibility = creator.getByRole('combobox', { name: 'Visibility' })
+    await expect(visibility).toHaveValue('Private')
+    await visibility.click()
+    await owner.getByRole('option', { name: 'Shared with party', exact: true }).click()
+    await expect(visibility).toHaveValue('Shared with party')
     await creator.getByLabel('Notes', { exact: true }).fill('Shared preparation')
     await creator.getByRole('button', { name: 'Create section', exact: true }).click()
     await expect(creator.getByRole('textbox', { name: 'Section title' })).toHaveValue('')
     await input.verifyState('notebook-created')
     await expect(player.getByRole('heading', { name: sharedNote, exact: true })).toBeVisible()
 
+    // The GM also lists the driver's own private note, and the list order shifts as notes save, so
+    // each section is found by the title it currently holds.
+    const sectionTitled = (title: string) => ownerNotebook.locator(`input[value="${title}"]`)
     stage = 'notebook update'
-    await ownerNotebook
-      .getByRole('textbox', { name: 'Section title' })
-      .first()
-      .fill(sharedNoteUpdated)
+    await sectionTitled(sharedNote).fill(sharedNoteUpdated)
     await expect(player.getByText(sharedNoteUpdated, { exact: true })).toBeVisible()
     await input.verifyState('notebook-updated')
 
     stage = 'notebook delete'
-    await ownerNotebook.getByRole('button', { name: 'Delete', exact: true }).click()
+    await sectionTitled(sharedNoteUpdated)
+      .locator('xpath=ancestor::*[.//button[normalize-space()="Delete"]][1]')
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click()
     await expect(player.getByText(sharedNoteUpdated, { exact: true })).toHaveCount(0)
     await input.verifyState('notebook-deleted')
     await player.screenshot({
@@ -306,11 +311,10 @@ async function selectNotes(page: Page): Promise<void> {
 async function rollManualDice(page: Page, destination: 'PRIVATE' | 'TABLE'): Promise<void> {
   await page.getByRole('button', { name: 'Open manual dice roller', exact: true }).click()
   const roller = page.getByRole('dialog')
-  await expect(roller.getByRole('radio', { name: 'Private', exact: true })).toBeChecked()
-  if (destination === 'TABLE') {
-    await roller.getByText('Table', { exact: true }).click()
-    await expect(roller.getByRole('radio', { name: 'Table', exact: true })).toBeChecked()
-  }
+  // The GM roller offers Public or Private and a new profile starts Public (Q14), so choose explicitly.
+  const label = destination === 'TABLE' ? 'Public' : 'Private'
+  await roller.getByText(label, { exact: true }).click()
+  await expect(roller.getByRole('radio', { name: label, exact: true })).toBeChecked()
   await roller.getByRole('button', { name: 'Roll', exact: true }).click()
   await page.keyboard.press('Escape')
 }
@@ -333,6 +337,35 @@ export async function waitForRouterIdle(page: Page): Promise<void> {
   })
 }
 
+/**
+ * Sign-in ends in a hard navigation (`window.location.assign`), which aborts the old document's
+ * in-flight requests (session verification, lazy route chunks). The abort is reported before the
+ * navigation's own request or commit event, so it cannot be judged when it arrives. Callers record
+ * every failure as a diagnostic, then pass the failed request and a function that removes that
+ * diagnostic. The returned function evaluates deferred: only an exact `net::ERR_ABORTED` is
+ * retracted, and only once a main-frame commit has happened after the request was issued (at once if
+ * that commit is already counted, otherwise at the next one). Any other failure text, or an abort
+ * with no later commit, stays a diagnostic for the caller's assertion.
+ */
+export function watchNavigationAbortedRequests(
+  page: Page
+): (request: Request, retract: () => void) => void {
+  const commitsAtIssue = new WeakMap<Request, number>()
+  const awaitingCommit: (() => void)[] = []
+  let commits = 0
+  page.on('request', (request) => commitsAtIssue.set(request, commits))
+  page.on('framenavigated', (frame) => {
+    if (frame !== page.mainFrame()) return
+    commits++
+    for (const retract of awaitingCommit.splice(0)) retract()
+  })
+  return (request, retract) => {
+    if (request.failure()?.errorText !== 'net::ERR_ABORTED') return
+    if ((commitsAtIssue.get(request) ?? commits) < commits) retract()
+    else awaitingCommit.push(retract)
+  }
+}
+
 export function captureDiagnostics(
   page: Page,
   account: 'owner' | 'player',
@@ -340,6 +373,7 @@ export function captureDiagnostics(
   diagnostics: string[],
   abortedRequests: Map<string, string>
 ): void {
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
   const record = (kind: string, detail: string) => {
     const entry = `${account} ${currentStage()}: ${kind} ${detail.slice(0, 3000)}`
     diagnostics.push(entry)
@@ -350,10 +384,12 @@ export function captureDiagnostics(
   page.on('pageerror', (error) => record('pageerror', error.message))
   page.on('requestfailed', (request) => {
     if (request.failure()?.errorText === 'net::ERR_ABORTED') {
+      const key = `${request.method()} ${request.url()}`
       abortedRequests.set(
-        `${request.method()} ${request.url()}`,
+        key,
         `${account} ${currentStage()}: requestfailed ${request.method()} ${new URL(request.url()).pathname} net::ERR_ABORTED`
       )
+      tolerateNavigationAbort(request, () => abortedRequests.delete(key))
       return
     }
     record(

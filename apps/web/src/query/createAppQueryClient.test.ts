@@ -115,8 +115,9 @@ describe('app query client Convex bridge', () => {
       expect(query).not.toHaveBeenCalled()
       stopStale()
       await vi.advanceTimersByTimeAsync(0)
-      expect(removedEvents).toHaveLength(2)
-      expect(new Set(removedEvents)).toHaveLength(1)
+      // TanStack Query only removes (and announces) the instance that is still in the cache, so the
+      // evicted instance's late removal is silent and the current one stays subscribed.
+      expect(removedEvents).toHaveLength(1)
       expect(unsubscriptions[1]).not.toHaveBeenCalled()
 
       currentResult = updated

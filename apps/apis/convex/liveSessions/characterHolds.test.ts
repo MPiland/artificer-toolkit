@@ -277,6 +277,37 @@ describe('native Character live holds', () => {
     expect(await attuned()).toEqual(itemIds.slice(0, 3))
   })
 
+  it('reads a held Run whose Character departed as the room will freeze it, writing nothing (D74)', async () => {
+    const base = await setupCharacterRun()
+    const { authority } = await claim(base)
+    const readRun = () =>
+      base.owner.caller.query(api.encounters.projectionReads.get, { encounterId: base.run.id })
+    const readStored = () =>
+      base.t.run(async (ctx) => ({
+        run: await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+          .unique(),
+        actors: await ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
+          .collect()
+      }))
+    const shown = await readRun()
+    const stored = await readStored()
+    await base.player.caller.mutation(api.campaigns.assignments.unassign, {
+      campaignId: base.campaign.id
+    })
+
+    // Convex writes no actor of a held Run, and the read shows the departed Character's values.
+    expect(await readStored()).toEqual(stored)
+    expect(await readRun()).toEqual(shown)
+
+    // Outside the hold the same state is corrupt: Convex freezes at departure.
+    await base.t.run((ctx) => ctx.db.delete(authority._id))
+    await expect(readRun()).rejects.toThrow('Encounter Character state is unavailable.')
+  })
+
   it('ignores expired and retired epochs and releases only the matching replacement epoch', async () => {
     const base = await setupCharacterRun()
     await base.t.run((ctx) => writeRunLifecycle(ctx, base.run.id, 'ACTIVE'))

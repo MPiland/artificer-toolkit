@@ -17,6 +17,7 @@ import {
   RECEIPT_LEDGER_MAX_ENTRIES,
   receiptLedgerMetadataSchema,
   receiptLedgerPartMetadataSchema,
+  type ReceiptLedgerEncodedPayload,
   type ReceiptLedgerMetadata,
   type ReceiptLedgerPayloadMetadata
 } from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
@@ -317,9 +318,22 @@ export async function createReceiptLedger(
   entries: readonly (ReceiptLedgerEntry | null)[]
 ): Promise<InsertedReceiptHeader[]> {
   const encoded = encodeReceiptLedgerPayload(entries)
+  return writeReceiptLedger(ctx, identity, encoded, decodeReceiptLedgerPayload(encoded))
+}
+
+/**
+ * Stores an encoded ledger and its headers. `decoded` must be `decodeReceiptLedgerPayload(encoded)`;
+ * a caller that already holds both (a ledger too large to encode and decode within one mutation's
+ * time limit) passes them in.
+ */
+export async function writeReceiptLedger(
+  ctx: MutationCtx,
+  identity: Omit<ReceiptLedgerMetadata, keyof ReceiptLedgerPayloadMetadata>,
+  encoded: ReceiptLedgerEncodedPayload,
+  decoded: readonly (ReceiptLedgerEntry | null)[]
+): Promise<InsertedReceiptHeader[]> {
   const { payload, parts: buffers, ...payloadMetadata } = encoded
   const metadata = receiptLedgerMetadataSchema.parse({ ...identity, ...payloadMetadata })
-  const decoded = decodeReceiptLedgerPayload(encoded)
   for (const entry of decoded) {
     if (entry && !receiptLedgerEntryInScope(metadata, entry))
       throw new Error('Receipt ledger entry scope does not match.')

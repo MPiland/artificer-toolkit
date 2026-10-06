@@ -59,8 +59,7 @@ describe('account deletion with a Character held by a live room', () => {
           limit: 50
         })
       ).entries.filter((entry) => entry.authorUserId === player.userId)
-    const readTimeline = () =>
-      readTimelineInRoom(gm.caller, run.id)
+    const readTimeline = () => readTimelineInRoom(gm.caller, run.id)
     const chatBefore = await readChat()
     expect(chatBefore.some((entry) => entry.roll !== null)).toBe(true)
     expect(chatBefore.some((entry) => entry.body === 'Held table chat')).toBe(true)
@@ -115,6 +114,19 @@ describe('account deletion with a Character held by a live room', () => {
       [{ campaignId: campaign.id, userId: player.userId, membershipEpoch: accessStartedAt }]
     ])
     expect(await stored()).toEqual(held)
+
+    // Until the room checkpoints, the GM's Convex reads leave out the deleted Character's actor.
+    const heldActorIds = held.actors.map((actor) => actor.id)
+    expect(heldActorIds).toContain(base.character.id)
+    const { encounter } = await gm.caller.query(api.encounters.activeReads.active, {
+      campaignId: campaign.id
+    })
+    expect(encounter?.actors.map((actor) => actor.id).sort()).toEqual(
+      heldActorIds.filter((id) => id !== base.character.id).sort()
+    )
+    expect(
+      (await gm.caller.query(api.encounters.projectionReads.get, { encounterId: run.id })).actors
+    ).toHaveLength(heldActorIds.length - 1)
 
     // The room removes the deleted Character's actor and releases its hold.
     await expect(reconcileDeparturesInRoom(gm.caller, run.id)).resolves.toEqual({

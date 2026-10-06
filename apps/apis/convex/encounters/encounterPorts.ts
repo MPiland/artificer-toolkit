@@ -30,7 +30,7 @@ import {
   createConvexEncounterStoreReader
 } from '../lib/convexEncounterStore'
 import { readAutoRollDice, readGmRollVisibility } from '../lib/rollPreferences'
-import { requireActiveCampaignLiveAuthority } from '../liveSessions/authorityGuard'
+import { isRoomHeldRun, requireActiveCampaignLiveAuthority } from '../liveSessions/authorityGuard'
 import { readEncounterSource, snapshotBlueprintEnemies } from './blueprintSnapshots'
 import { readActorInitiativeRoll } from './initiativeSources'
 import { snapshotEncounterOptionalCombatPolicies } from './policySnapshots'
@@ -83,6 +83,7 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
     },
     readAutoRollDice: (userId) => readAutoRollDice(ctx, userId),
     readGmRollVisibility: (userId) => readGmRollVisibility(ctx, userId),
+    isRoomHeldRun: (run) => isRoomHeldRun(ctx, run),
     hasAccountProfile: async (userId) =>
       (await ctx.db
         .query('userProfiles')

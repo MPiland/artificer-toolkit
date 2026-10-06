@@ -6,7 +6,12 @@ import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { DevelopmentClient } from '../../../apis/tests/developmentClient'
 import type { CampaignMembershipLifecycleStage } from '../../../apis/tests/developmentCampaignMembershipLifecycle'
-import { signIn, waitForRouterIdle, watchAuthenticatedSession } from './campaignCollaboration'
+import {
+  signIn,
+  waitForRouterIdle,
+  watchAuthenticatedSession,
+  watchNavigationAbortedRequests
+} from './campaignCollaboration'
 
 type MembershipAccount = {
   email: string
@@ -81,8 +86,9 @@ export async function verifyCampaignMembershipBrowser<T>(
           .replaceAll(account.password, `[account ${index} password]`),
       text.replace(/(https?:\/\/[^?\s"'<>]+)\?[^\s"'<>]+/g, '$1?[redacted]')
     )
+  const outsiderIndex = 3
   const denied = (stage: CampaignMembershipLifecycleStage, index: number) =>
-    index === 3 ||
+    index === outsiderIndex ||
     (stage === 'AFTER_LEAVE' && index === 1) ||
     (stage === 'AFTER_REMOVE' && index === 2)
 
@@ -163,7 +169,7 @@ export async function verifyCampaignMembershipBrowser<T>(
           (index === 2 && ['BEFORE_REMOVE', 'AFTER_REMOVE'].includes(currentStage))
         const denialWindow = index === 3 || departureWindow
         const queryDenial =
-          /^\[CONVEX Q\(campaigns\/(?:queries:get|clock:get)\)\](?: \[Request ID: [a-f0-9]+\])? Server Error\nUncaught Error: (?:Uncaught Error: )?Campaign not found\.(?:\n\s+at [^\n]+)*\s*$/.test(
+          /^(?:Error: )?\[CONVEX Q\(campaigns\/(?:queries:get|clock:get)\)\](?: \[Request ID: [a-f0-9]+\])? Server Error\nUncaught Error: (?:Uncaught Error: )?Campaign not found\.(?:\n\s+(?:Called by client|at [^\n]+))*\s*$/.test(
             detail
           )
         const denialBoundary =
@@ -202,7 +208,11 @@ export async function verifyCampaignMembershipBrowser<T>(
                 detail
               )) ||
             (kind === 'console error' &&
-              /^%o\n\n%s\n\n%s\n Error: Authentication verification is unavailable\./.test(detail)))
+              // React's boundary logs the SSR verification failure with a format prefix. The router's
+              // own log of the same fail-closed error (transport.md) has none.
+              /^(?:%o\n\n%s\n\n%s\n )?Error: Authentication verification is unavailable\./.test(
+                detail
+              )))
         const boundedAuthRetry =
           authRateLimit ||
           (authenticatingReload &&
@@ -254,18 +264,24 @@ export async function verifyCampaignMembershipBrowser<T>(
           }
           boundedAuthRetries.push(entry)
         } else diagnostics.push(entry)
+        return entry
       }
       page.on('console', (message) => {
         if (['error', 'warning'].includes(message.type()))
           record(`console ${message.type()}`, message.text())
       })
       page.on('pageerror', (error) => record('pageerror', error.stack ?? error.message))
-      page.on('requestfailed', (request) =>
-        record(
+      const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
+      page.on('requestfailed', (request) => {
+        // A failed request is never denial or retry noise, so `record` always files it in `diagnostics`.
+        const entry = record(
           'requestfailed',
           `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? 'unknown failure'}`
         )
-      )
+        tolerateNavigationAbort(request, () =>
+          diagnostics.splice(diagnostics.lastIndexOf(entry), 1)
+        )
+      })
       page.on('response', (response) => {
         if (response.status() >= 400)
           record('response', `${response.status()} ${new URL(response.url()).pathname}`)
@@ -427,9 +443,14 @@ export async function verifyCampaignMembershipBrowser<T>(
     await expect(page.locator('vite-error-overlay')).toHaveCount(0)
     await expect(page).not.toHaveURL(/\/sign-in/)
     if (campaign === 'CAMPAIGN_NOT_FOUND') {
-      await expect(page.getByText("This page couldn't load", { exact: true })).toBeVisible({
-        timeout: 30_000
-      })
+      // The outsider only ever visits directly: the route loader's denial shows the route error
+      // state. A page that was open when its member left returns to the Campaigns list
+      // (CampaignDetailPage), and a reload of that URL stays there.
+      await expect(
+        index === outsiderIndex
+          ? page.getByText("This page couldn't load", { exact: true })
+          : page.getByRole('heading', { name: 'Campaigns', exact: true, level: 1 })
+      ).toBeVisible({ timeout: 30_000 })
       await expect(page.getByRole('heading', { name: 'Party roster', exact: true })).toHaveCount(0)
       await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toHaveCount(0)
       await expect(page.getByRole('button', { name: 'Remove player', exact: true })).toHaveCount(0)

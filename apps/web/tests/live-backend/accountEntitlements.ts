@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { chromium, expect, type Page } from '@playwright/test'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
+import { watchNavigationAbortedRequests } from './campaignCollaboration'
 
 type AccountEntitlementsVerificationInput = {
   email: string
@@ -109,11 +110,12 @@ function captureDiagnostics(page: Page, diagnostics: string[]): void {
       diagnostics.push(`${new URL(page.url()).pathname}: ${message.text().slice(0, 8000)}`)
   })
   page.on('pageerror', (error) => diagnostics.push(error.message.slice(0, 1000)))
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
   page.on('requestfailed', (request) => {
     if (!['fetch', 'xhr'].includes(request.resourceType())) return
-    diagnostics.push(
-      `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? 'request failed'}`
-    )
+    const entry = `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? 'request failed'}`
+    diagnostics.push(entry)
+    tolerateNavigationAbort(request, () => diagnostics.splice(diagnostics.lastIndexOf(entry), 1))
   })
   page.on('response', (response) => {
     if (response.status() >= 400)

@@ -564,6 +564,7 @@ export async function replayRoomEncounterCommand(input: {
             db: store.store,
             ports: {
               readCharacterPlay,
+              isRoomHeldRun: async () => true,
               requireSystem: async (id) => {
                 if (id !== system.id) throw new Error('Room Encounter System mismatch.')
                 return system

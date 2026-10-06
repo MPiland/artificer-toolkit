@@ -223,9 +223,7 @@ export async function verifyEncounterMovementBrowser(
     await expect(
       owner.getByRole('button', { name: 'Open pending decision', exact: true })
     ).toBeVisible()
-    await verifyAuthoritative(
-      input.scenario === 'PASSAGE' ? 'passage-issued' : 'movement-issued'
-    )
+    await verifyAuthoritative(input.scenario === 'PASSAGE' ? 'passage-issued' : 'movement-issued')
 
     if (input.scenario === 'PASSAGE') {
       stage = 'select Passage option'
@@ -346,8 +344,8 @@ export async function verifyEncounterMovementBrowser(
 
     stage = 'verify departed player refusal'
     await input.revokePlayer()
-    const departure = await player.reload({ waitUntil: 'domcontentloaded', timeout: 90_000 })
-    expect(departure?.status()).toBe(404)
+    await player.reload({ waitUntil: 'domcontentloaded', timeout: 90_000 })
+    // Signed-in pages are a skeleton on the server (D75), so the refusal is the client-rendered page.
     await expect(player.getByRole('heading', { name: 'Page not found', exact: true })).toBeVisible()
     await expect(
       player.getByRole('region', { name: `Live scene: ${input.scene.name}` })
@@ -600,7 +598,8 @@ function captureRoomSceneCommands(
       if (delta?.scope === 'SCENE') {
         capture.result(delta.result)
         capture.sceneVersion(delta.result.sceneId, delta.result.version)
-      } else if (delta?.scope === 'SCENE_VERSION') capture.sceneVersion(delta.sceneId, delta.version)
+      } else if (delta?.scope === 'SCENE_VERSION')
+        capture.sceneVersion(delta.sceneId, delta.version)
     })
   })
 }

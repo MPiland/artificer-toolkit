@@ -41,6 +41,8 @@ const diagnosticSections = [
   'recovery'
 ] as const
 const checkpointPath = process.env.MANAGED_VTT_CHECKPOINT_PATH?.trim() || null
+const cleanupSignalPath = process.env.MANAGED_VTT_CLEANUP_SIGNAL?.trim() || null
+const cleanupHandshakeTimeoutMs = 3 * 60_000
 const startSection = diagnosticSection(process.env.MANAGED_VTT_START_SECTION, 'fixture-ready')
 const endSection = diagnosticSection(process.env.MANAGED_VTT_END_SECTION, 'recovery')
 const startSectionIndex = diagnosticSections.indexOf(startSection)
@@ -51,7 +53,7 @@ if (endSectionIndex < startSectionIndex)
 test('connects three users through the live room and recovers a reversible scene commit', async ({
   browser
 }, testInfo) => {
-  test.setTimeout(10 * 60_000)
+  test.setTimeout(10 * 60_000 + (cleanupSignalPath ? cleanupHandshakeTimeoutMs : 0))
   const clients: ManagedClient[] = []
   let failure: unknown
   let cleanupFailure: unknown
@@ -224,7 +226,22 @@ test('connects three users through the live room and recovers a reversible scene
 
   if (failure) throw failure
   if (cleanupFailure) throw cleanupFailure
+  if (cleanupSignalPath) await requestCampaignCleanup(cleanupSignalPath)
 })
+
+/**
+ * Asks the driver to delete the fixture Campaign while this run's Session Worker is still up:
+ * deletion drops the Campaign's live room through that Worker.
+ */
+async function requestCampaignCleanup(signalPath: string): Promise<void> {
+  await writeFile(`${signalPath}.requested`, '')
+  await expect
+    .poll(() => readFile(`${signalPath}.done`).then(() => true, () => false), {
+      message: 'The driver did not finish deleting the fixture Campaign.',
+      timeout: cleanupHandshakeTimeoutMs
+    })
+    .toBe(true)
+}
 
 type DiagnosticSection = (typeof diagnosticSections)[number]
 
@@ -459,6 +476,13 @@ async function collectTokenDragTimings(
   const clients = [gm, ...players]
   const previewPlayerSet = new Set(previewPlayers)
   const privatePlayers = players.filter((player) => !previewPlayerSet.has(player))
+  // GM previews are private by default (live-sessions.md audience rule); this section measures shared ones.
+  const sharePreviews = gm.page.getByRole('button', {
+    name: 'Show my previews to players',
+    exact: true
+  })
+  await sharePreviews.click()
+  await expect(sharePreviews).toHaveAttribute('aria-pressed', 'true')
   try {
     for (let index = 0; index < totalSamples; index += 1) {
       const priorVersion = await readSceneVersion(gm.page)
@@ -903,7 +927,6 @@ async function setMaxHpModifierAndCollect(
   if (collect) {
     const durationMs = observedAt - submittedAt
     samples.authoritative.push(durationMs)
-    samples.durable.push(durationMs)
     samples.ruleBound.push(durationMs)
   }
 }

@@ -229,6 +229,8 @@ export const removeFixtureState = internalMutation({
       fogChildren.reduce((count, child) => count + child.layers.length, 0) > 16
     )
       throw new Error('Fixture Scene fog bounds exceeded.')
+    // Each published save keeps its own full chunk set (at most 256), and up to 16 saves exist.
+    const fogChunkLimit = 16 * 256
     const fogChunkRows = []
     for (const [index, child] of fogChildren.entries()) {
       const saves = new Map(
@@ -260,13 +262,14 @@ export const removeFixtureState = internalMutation({
         const chunks = await ctx.db
           .query('sceneFogChunks')
           .withIndex('by_saveId_ordinal', (q) => q.eq('saveId', save.id))
-          .take(257 - fogChunkRows.length)
+          .take(fogChunkLimit + 1 - fogChunkRows.length)
         fogChunkRows.push(...chunks)
-        if (fogChunkRows.length > 256) throw new Error('Fixture Scene fog chunk bounds exceeded.')
+        if (fogChunkRows.length > fogChunkLimit)
+          throw new Error('Fixture Scene fog chunk bounds exceeded.')
       }
     }
     // Bounds above keep the complete fixture deletion inside one transaction, even for
-    // one full 256-chunk fog layer. Published history is removed only with its fixture Scene.
+    // sixteen full 256-chunk fog saves. Published history is removed only with its fixture Scene.
     for (const chunk of fogChunkRows) await ctx.db.delete(chunk._id)
     for (const child of fogChildren) {
       for (const layer of child.layers) await ctx.db.delete(layer._id)

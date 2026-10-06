@@ -66,7 +66,6 @@ export const removeFixtureState = internalMutation({
       campaigns,
       characters,
       characterDrafts,
-      allDefinitions,
       definitionDrafts,
       runs
     ] = await Promise.all([
@@ -85,12 +84,6 @@ export const removeFixtureState = internalMutation({
       ctx.db.query('campaigns').withIndex('by_ownerUserId_status').take(101),
       ctx.db.query('characters').withIndex('by_userId').take(101),
       ctx.db.query('characterDrafts').withIndex('by_userId_updatedAt').take(101),
-      ctx.db
-        .query('reusableDefinitions')
-        .withIndex('by_gameSystemId_owner_family_label_id', (q) =>
-          q.eq('gameSystemId', source.gameSystemId)
-        )
-        .take(101),
       ctx.db.query('reusableDefinitionDrafts').withIndex('by_definitionId').take(101),
       ctx.db.query('encounterRuns').withIndex('by_campaignId_createdAt_id').take(101)
     ])
@@ -121,7 +114,6 @@ export const removeFixtureState = internalMutation({
         characters,
         characterDrafts,
         characterDraftPayloads,
-        allDefinitions,
         definitionDrafts,
         runs
       ].some((rows) => rows.length > 100)
@@ -159,17 +151,24 @@ export const removeFixtureState = internalMutation({
       ...characterDrafts,
       ...characterDraftPayloads,
       ...definitionDrafts,
-      ...runs,
-      ...allDefinitions.filter((definition) => definition.contentSourceId !== source.id)
+      ...runs
     ]
     // An incidental literal UUID also blocks cleanup; a false positive is safe for this fixture.
-    if (
-      consumers.some((consumer) => {
-        const document = JSON.stringify(consumer)
-        return identities.some((identity) => document.includes(identity))
-      })
-    )
+    const references = (consumer: unknown) => {
+      const document = JSON.stringify(consumer)
+      return identities.some((identity) => document.includes(identity))
+    }
+    if (consumers.some(references))
       throw new Error('Lifecycle fixture policies are still referenced.')
+    // Every other definition of the System is inspected, however many a local deployment has
+    // accumulated: Convex's own read limit fails the cleanup instead of truncating the check.
+    for await (const definition of ctx.db
+      .query('reusableDefinitions')
+      .withIndex('by_gameSystemId_owner_family_label_id', (q) =>
+        q.eq('gameSystemId', source.gameSystemId)
+      ))
+      if (definition.contentSourceId !== source.id && references(definition))
+        throw new Error('Lifecycle fixture policies are still referenced.')
 
     for (const definition of definitions) await ctx.db.delete(definition._id)
     await ctx.db.delete(catalogue._id)

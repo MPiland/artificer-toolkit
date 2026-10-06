@@ -32,6 +32,8 @@ import { api } from '../convex/_generated/api.js'
 import type { DevelopmentClient } from './developmentClient'
 import { developmentCli as cli } from './developmentCli'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
+import type { DevelopmentHttpClient } from './developmentHttpClient'
+import { RoomControl } from './developmentRoomMeasurement'
 import { developmentTarget } from './developmentTarget'
 
 const prepare = makeFunctionReference<
@@ -66,25 +68,26 @@ const held = makeFunctionReference<
   boolean
 >('liveSessions/authority:held')
 
-// The room checkpoints a pending Scene commit at its deadline alarm (`ROOM_LIMITS.checkpointDeadlineMs`).
-const SCENE_CHECKPOINT_TIMEOUT_MS = 180_000
-
 /**
- * Room Scene commits reach Convex only at a checkpoint, so Convex reads of a presented Scene lag the
- * room. Waits, without disturbing connected sockets, until Convex holds the Scene at `version`.
+ * A running table saves only at save points (D90), so Convex reads of a presented Scene or a held
+ * Run lag the room. Publishes everything the room has committed through the development barrier,
+ * without disturbing connected sockets.
  */
+export async function awaitCampaignCheckpoint(client: DevelopmentHttpClient, campaignId: string) {
+  await (await RoomControl.open(client)).barrier(campaignId)
+}
+
+/** Publishes the room's committed commands, then asserts Convex holds the Scene at `version`. */
 export async function awaitSceneCheckpoint(
-  client: Pick<ConvexHttpClient, 'query'>,
+  client: DevelopmentHttpClient,
   sceneId: string,
   version: number
 ) {
-  const deadline = Date.now() + SCENE_CHECKPOINT_TIMEOUT_MS
-  while (true) {
-    const header = await client.query(api.scenes.liveReads.header, { sceneId })
-    if (header.version >= version) return
-    assert.ok(Date.now() < deadline, `Scene ${sceneId} did not checkpoint to version ${version}.`)
-    await new Promise((resolve) => setTimeout(resolve, 1_000))
-  }
+  const before = await client.query(api.scenes.liveReads.header, { sceneId })
+  if (before.version >= version) return
+  await awaitCampaignCheckpoint(client, before.campaignId)
+  const after = await client.query(api.scenes.liveReads.header, { sceneId })
+  assert.ok(after.version >= version, `Scene ${sceneId} did not checkpoint to version ${version}.`)
 }
 
 /** Uses real native mutations: a post-publication throw must roll back the entire checkpoint. */
@@ -216,28 +219,23 @@ export async function verifyDevelopmentCheckpoint({
     const after = developmentCheckpointInspectionSchema.parse(
       await invoke(inspect, undefined, scope)
     )
-    const sharedEntryCount = large ? 64 : 2
-    assert.equal(after.runVersion, before.runVersion + sharedEntryCount)
+    assert.equal(after.runVersion, before.runVersion + (large ? 64 : 2))
     assert.equal(after.playStreamVersion, before.playStreamVersion + 1)
-    assert.equal(after.sharedHeaderCount, before.sharedHeaderCount + sharedEntryCount)
+    // The room keeps Encounter history for the whole Run, so a checkpoint writes no Encounter
+    // command headers and no Campaign ledger (D85, D88); only Character history is published.
+    assert.equal(after.sharedHeaderCount, before.sharedHeaderCount)
     assert.equal(after.privateHeaderCount, before.privateHeaderCount + 1)
     const ledgers = after.ledgers.filter(
       (ledger) => ledger.checkpointId === checkpoint?.checkpointId
     )
-    assert.equal(ledgers.length, 2)
     assert.deepEqual(
-      ledgers
-        .map(({ scope, scopeId, epoch, entryCount }) => ({ scope, scopeId, epoch, entryCount }))
-        .sort((left, right) => left.scope.localeCompare(right.scope)),
-      [
-        {
-          scope: 'CAMPAIGN',
-          scopeId: campaignId,
-          epoch: checkpoint.epoch,
-          entryCount: sharedEntryCount
-        },
-        { scope: 'CHARACTER', scopeId: characterId, epoch: checkpoint.epoch, entryCount: 1 }
-      ]
+      ledgers.map(({ scope, scopeId, epoch, entryCount }) => ({
+        scope,
+        scopeId,
+        epoch,
+        entryCount
+      })),
+      [{ scope: 'CHARACTER', scopeId: characterId, epoch: checkpoint.epoch, entryCount: 1 }]
     )
     const replayed = liveSessionCheckpointResponseSchema.parse(
       await invoke(publish, undefined, checkpoint)
@@ -245,7 +243,8 @@ export async function verifyDevelopmentCheckpoint({
     assert.equal(replayed.status, 'REPLAYED')
     assert.deepEqual(replayed.authority, committed.authority)
     assert.deepEqual(await invoke(inspect, undefined, scope), after)
-    const records = { ...checkpoint.records, history: [...checkpoint.records.history].reverse() }
+    // Order is part of the payload: the fixture's one history entry cannot be reordered.
+    const records = { ...checkpoint.records, changes: [...checkpoint.records.changes].reverse() }
     assert.notEqual(checksumCanonicalJson(records), checkpoint.payloadChecksum)
     await assert.rejects(
       invoke(publish, undefined, {

@@ -1202,6 +1202,11 @@ describe('live room inputs (ADR 0035 S2)', () => {
       campaign: { id: base.campaign.id }
     })
     expect(first.continueCursor).toBeNull()
+    expect(part.revisions.map(({ scope }) => scope).sort()).toEqual([
+      'CAMPAIGN',
+      'CHARACTER',
+      'SYSTEM'
+    ])
     expect(part.revisions).toContainEqual(
       expect.objectContaining({ scope: 'CHARACTER', id: base.character.id })
     )

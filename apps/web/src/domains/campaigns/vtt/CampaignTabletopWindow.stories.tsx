@@ -35,6 +35,7 @@ import {
   sceneRecipientPageSchema
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
+  type CampaignSceneShowingDto,
   type CampaignSceneStateDto,
   setCampaignLiveScenePresentationInputDtoSchema,
   setCampaignLiveScenePresentationResultDtoSchema
@@ -63,6 +64,12 @@ const mediaGetDelivery = fn()
 const fogBegin = fn()
 const fogAppend = fn()
 const storyFogSaveId = '77777777-7777-4777-8777-777777777799'
+const showScene = fn()
+const shownScene = {
+  sceneId: '77777777-7777-4777-8777-777777777798',
+  sceneName: 'The Ashen Stair',
+  shownAt: '2099-08-15T20:00:00.000Z'
+} satisfies CampaignSceneShowingDto
 const meta = {
   component: CampaignTabletopWindow,
   parameters: {
@@ -301,9 +308,52 @@ export const PlayerWindow: Story = {
   }
 }
 
+// D87: the GM shows another Scene's map to players without changing the presented Scene.
+export const GmShowsSceneToPlayers: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER')),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await userEvent.click(await page.findByRole('button', { name: 'Show to players' }))
+    const presented = await page.findByRole('menuitem', { name: tabletopLiveScene.name })
+    await expect(presented).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.click(page.getByRole('menuitem', { name: shownScene.sceneName }))
+    await waitFor(() =>
+      expect(showScene).toHaveBeenCalledWith({
+        campaignId: tabletopCampaignId,
+        sceneId: shownScene.sceneId
+      })
+    )
+  }
+}
+
+export const PlayerSeesShownScene: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), shownScene),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    const viewer = await page.findByRole('dialog', { name: shownScene.sceneName })
+    await expect(
+      await within(viewer).findByRole('img', { name: `Map of ${shownScene.sceneName}` })
+    ).toBeVisible()
+    await expect(page.queryByRole('button', { name: 'Show to players' })).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() =>
+      expect(page.queryByRole('dialog', { name: shownScene.sceneName })).not.toBeInTheDocument()
+    )
+  }
+}
+
 function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
-  campaign: CampaignDetailDto
+  campaign: CampaignDetailDto,
+  showing: CampaignSceneShowingDto | null = null
 ): JSX.Element {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -371,6 +421,27 @@ function renderWindow(
   queryClient.setQueryDefaults(skippedActionChoicesQuery.queryKey, {
     queryFn: async () => null
   })
+  const showingQuery = convexQuery(convexApi.scenes.showings.current, {
+    campaignId: tabletopCampaignId
+  })
+  const presentationQuery = convexQuery(convexApi.scenes.presentations.get, {
+    campaignId: tabletopCampaignId
+  })
+  const shownHeaderQuery = convexQuery(convexApi.scenes.recipientReads.header, {
+    sceneId: shownScene.sceneId,
+    includeSnapshot: false
+  })
+  queryClient.setQueryDefaults(showingQuery.queryKey, { queryFn: async () => showing })
+  queryClient.setQueryDefaults(presentationQuery.queryKey, {
+    queryFn: async () => ({
+      campaignId: tabletopCampaignId,
+      sceneId: scene.id,
+      version: presentationVersion
+    })
+  })
+  queryClient.setQueryDefaults(shownHeaderQuery.queryKey, {
+    queryFn: async () => ({ ...header, id: shownScene.sceneId, name: shownScene.sceneName })
+  })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
@@ -402,6 +473,12 @@ function renderWindow(
               id: tabletopLiveScene.id,
               name: tabletopLiveScene.name,
               version: tabletopLiveScene.version
+            },
+            {
+              definitionId: shownScene.sceneId,
+              id: shownScene.sceneId,
+              name: shownScene.sceneName,
+              version: 0
             }
           ],
           isDone: true,
@@ -533,10 +610,16 @@ function renderWindow(
     })
   })
   Object.defineProperty(convex, 'mutation', {
-    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference]) => {
-      throw new Error(`Unexpected story fixture mutation: ${getFunctionName(reference)}`)
+    value: fn<ConvexReactClient['mutation']>().mockImplementation(async (...[reference, args]) => {
+      const name = getFunctionName(reference)
+      if (name === getFunctionName(convexApi.scenes.showings.show)) {
+        showScene(args)
+        return null
+      }
+      throw new Error(`Unexpected story fixture mutation: ${name}`)
     })
   })
+  showScene.mockReset()
   fogBegin.mockReset()
   fogAppend.mockReset()
 

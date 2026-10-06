@@ -223,8 +223,6 @@ export async function prepareEncounterMovementFixture({
     (actor) => actor.kind === 'CHARACTER' && actor.sourceId === playerCharacterId
   )
   if (!reactor || !mover) throw new Error('Movement reaction fixture actors are unavailable.')
-  // Bind natively before START opens the Session room; while the room owns the presented Scene,
-  // Convex refuses a native binding and the GM binds through the room (D47).
   await owner.mutation(bindScene, {
     type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
     encounterId: created.id,
@@ -277,7 +275,9 @@ export async function prepareEncounterMovementFixture({
       }
     })
   }
-  let run = await owner.query(api.encounters.projectionReads.get, { encounterId: created.id })
+  // The room holds the started Run between save points (D90), so Convex's projection lags the
+  // initiative commands; the version to bind against is the one the last command returned.
+  let run = started.projection
   for (const [actorId, tokenId] of [
     [reactor.id, reactorTokenId],
     [mover.id, moverTokenId]

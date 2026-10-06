@@ -65,11 +65,14 @@ type EncounterEffectsInput =
       owner: DevelopmentClient
       playerUserId?: string
       browser?: undefined
+      saveTable?: undefined
     })
   | (EncounterEffectsBaseInput & {
       owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
       playerUserId: string
       browser: EncounterEffectsBrowserRunner
+      /** Saves the room's running table to Convex (D90); the room holds the Run while the browser plays. */
+      saveTable: () => Promise<void>
     })
 function conditionIds(conditions: unknown): string[] {
   if (!Array.isArray(conditions)) throw new Error('Encounter conditions are unavailable.')
@@ -97,7 +100,8 @@ export async function verifyEncounterEffects({
   targetCreatureId = creatureId,
   leaveLastRunActive = false,
   playerUserId,
-  browser
+  browser,
+  saveTable
 }: EncounterEffectsInput) {
   assert.notEqual(owner, player, 'Action-effect verification requires independent clients.')
   const frightened = srdSystemRecord.conditionTypes.find(
@@ -245,6 +249,8 @@ export async function verifyEncounterEffects({
         campaignId,
         name,
         options: {
+          // A player sees only explored tokens (D87); this proof checks the condition, not fog.
+          fogMode: 'OFF',
           map: { width: 400, height: 200 },
           grid: {
             kind: 'SQUARE',
@@ -332,6 +338,8 @@ export async function verifyEncounterEffects({
         targetTokenId
       }
       scene = { id: preparedScene.liveSceneId, name }
+      // The room holds the bound Run; Convex's reads below need it saved first.
+      await saveTable?.()
     }
     let root: ResolveEncounterActionInputDto = {
       type: 'RESOLVE_ACTION',
@@ -344,6 +352,8 @@ export async function verifyEncounterEffects({
       targetActorId: target.id,
       actionId: `${source.id}:FEATURE:${encounterEffectFeatureId}:EFFECT:${encounterEffectId}`,
       optionalCombatIntent: null,
+      // The tabletop sends its roll visibility with every action; PUBLIC is its default.
+      visibility: 'PUBLIC',
       sceneContext
     }
     const choices = browser
@@ -374,14 +384,14 @@ export async function verifyEncounterEffects({
       const issued =
         browserRoot?.result ?? (await owner.mutation(executeEncounterCommand, { command: root }))
       assert.equal(issued.occurrence?.status, 'PENDING')
+      // The room holds the Run between save points (D85), so the issued receipt, not a Convex read,
+      // shows the Run and the decision pending on it.
       assert.deepEqual(
-        await owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
-        beforeRun,
+        issued.projection,
+        encounterGmProjectionDtoSchema.parse(beforeRun),
         'Issuing a save cannot advance the Run before evidence completes.'
       )
-      const pending = await owner.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: run.id
-      })
+      const pending = issued.occurrence?.pending
       if (!pending || pending.kind !== 'D20_EVIDENCE')
         throw new Error('Action-effect save evidence is unavailable.')
       await controls?.assertPendingPrivacy()
@@ -420,6 +430,7 @@ export async function verifyEncounterEffects({
         browserResponse?.result ??
         (await owner.mutation(executeEncounterCommand, { command: response }))
       assert.equal(terminal.occurrence?.status, 'COMPLETE')
+      await saveTable?.()
       const finalRun = encounterGmProjectionDtoSchema.parse(
         await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
       )

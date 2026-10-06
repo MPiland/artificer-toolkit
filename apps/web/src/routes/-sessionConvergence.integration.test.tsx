@@ -108,11 +108,12 @@ it('keeps authenticated navigation renderable when live session convergence over
       navigation = router.navigate({ to: '/home' })
     })
     await waitFor(() => expect(refreshes).toBe(2))
-    await screen.findByText('Loading fixture')
     await act(async () => {
       navigationSession.resolve()
       await navigationSession
     })
+    // The router offers the pending fallback once the beforeLoad chain settles and the loader runs.
+    await screen.findByText('Loading fixture')
     await waitFor(() => expect(queryClient.getQueryData(['prior-identity'])).toBeUndefined())
     await act(async () => {
       child.resolve()

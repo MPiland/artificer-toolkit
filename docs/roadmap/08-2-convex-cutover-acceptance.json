@@ -2182,6 +2182,7 @@
                 "apps/apis/convex/scenes/showings.test.ts › D87 deleting a shown Scene ends the showing and the access",
                 "apps/apis/convex/scenes/showings.test.ts › D87 only the owner shows or stops, and the presented Scene cannot be shown",
                 "apps/apis/convex/campaigns/deletion.test.ts (Campaign deletion removes campaignSceneShowings)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx › GmShowsSceneToPlayers (the GM's \"Show to players\" menu) and PlayerSeesShownScene (the player's view-only modal) (REL-4; Storybook run local-validation/rel4/stories2)",
                 "impl: apps/apis/convex/scenes/showings.ts, liveDocuments.ts, fogReadDocuments.ts, recipientReads.ts, campaignDeletion.ts, definitions.ts; apps/apis/convex/media/vttMapAssets.ts; packages/schema/src/api/vttScenes.ts; apps/web/src/domains/campaigns/vtt/CampaignSceneShowingControl.tsx, CampaignShownSceneViewer.tsx, CampaignShownSceneCanvas.tsx"
               ]
             }
@@ -2796,7 +2797,8 @@
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits each fog owner with native geometry before acknowledgement and resynchronizes the table (D52) (A35-S6b)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › recovers a native Scene commit whose acknowledgement was lost and retries without a duplicate write (D27) (A35-S6b: a native geometry save checkpoints once; the room store logs each record's net change)",
                 "note: the Convex movement stage and fast-only undo were removed in A35-S6c3 (VS-1 review, 2026-10-02: no stage or fast-only undo remains in apps/apis/convex or apps/session-worker/src); the room path is the only movement writer",
-                "note: the browser movement journeys re-run on the final source under R08's complete local lifecycle and V15; that release re-proof does not hold this criterion open (D80)"
+                "note: the browser movement journeys re-run on the final source under R08's complete local lifecycle and V15; that release re-proof does not hold this criterion open (D80)",
+                "REL-4 (2026-10-06): the movement, passage, scene-live-browser and disarm-browser journeys passed in the full 49-proof run local-validation/rel4/j2; the VTT browser journey (vtt-browser) passed in local-validation/local-convex-proofs/t10-vtt-browser with authoritative p95 833 ms (limit 1000), rule-bound Sheet convergence p95 869 ms (limit 1500), durable p95 87 ms and ephemeral p95 37 ms (playwright-2026-10-06T12-29-51.599Z.log) (a small-table journey, not the frozen V15 workload); no single run had every journey green: campaign-membership-browser and campaign-collaboration-browser are flaky under load (each passed once after its last fix, in local-validation/rel4/w3 and w3b), so the complete green run belongs to R08"
               ]
             },
             {
@@ -3836,7 +3838,8 @@
                 "apps/apis/convex/liveSessions/characterHolds.test.ts › acquires active Run holds once and retains the other Run through removal and completion",
                 "apps/apis/convex/liveSessions/characterHolds.test.ts › fences play before replay while Builder edits retain the actual play record and stream",
                 "impl: apps/apis/convex/encounters/runs.ts (deletePrepared isRoomHeldRun fence), apps/apis/convex/encounters/actorTokenBindings.ts (isRoomHeldRun fence)",
-                "rerun: the held-Character Sheet push with these fences on the final source remains under R06.3 (REL-4) and R08"
+                "rerun: the held-Character Sheet push with these fences on the final source remains under R06.3 and R08",
+                "REL-4 (2026-10-06): in the full 49-proof run local-validation/rel4/j2 the checkpoint, checkpoint-large, encounter-action-contention, encounter-reaction-contention, character-concurrency and session-control proofs passed; encounter-lifecycle failed there and passed on the later source in local-validation/rel4/t10 (product fixes: room input revisions, retryable admission expiry, D74 read degradation for a departed player's actor, domain rejections for binding refusals)"
               ]
             }
           ]

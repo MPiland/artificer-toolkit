@@ -15,7 +15,9 @@ export function mergeNativeRulesRevisions(
     const key = `${observation.scope}:${observation.id}`
     const previous = revisions.get(key)
     if (previous && previous.revision !== observation.revision)
-      throw new Error('Live rules revision changed during preparation.')
+      throw new Error(
+        `Live rules revision changed during preparation. ${key} was ${previous.revision}, now ${observation.revision}.`
+      )
     revisions.set(key, observation)
   }
   if (revisions.size > MAX_LIVE_SESSION_RULES_REVISIONS)

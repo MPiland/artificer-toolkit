@@ -20,6 +20,7 @@ import {
   liveSessionStorageRecoveryInputSchema,
   liveSessionAuthorityDtoSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
+import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
@@ -2617,6 +2618,61 @@ it('binds an Encounter to the presented Scene in SQLite before acknowledgement, 
     expect(
       new RoomEncounterStore(context.storage).documents('encounterSceneBindings')
     ).toHaveLength(1)
+  })
+})
+
+it('refuses a binding whose admission expires before commit with a retry and writes nothing (D47)', async () => {
+  const { base, state } = await localEncounterFixture([], { unboundEncounterScene: true })
+  const commandId = crypto.randomUUID()
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const ownerSocket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!ownerSocket) throw new Error('Missing owner native socket.')
+    const evidence = () => ({
+      ...localEncounterEvidence(context.storage),
+      sceneBindings: new RoomEncounterStore(context.storage).documents('encounterSceneBindings')
+    })
+    const before = evidence()
+    const sent = vi.spyOn(ownerSocket, 'send')
+    const clock = vi.spyOn(Date, 'now')
+    // The token expires between the binding's start and its commit.
+    const head = RoomEncounterStore.prototype.assertAuthorityHead
+    const expiring = vi
+      .spyOn(RoomEncounterStore.prototype, 'assertAuthorityHead')
+      .mockImplementation(function (
+        this: RoomEncounterStore,
+        ...args: Parameters<RoomEncounterStore['assertAuthorityHead']>
+      ) {
+        head.apply(this, args)
+        clock.mockReturnValue((base.issuedAt + 3_601) * 1_000)
+      })
+    try {
+      await instance.webSocketMessage(
+        ownerSocket,
+        JSON.stringify(bindCommand(state.id, commandId))
+      )
+      const messages = sent.mock.calls.map(([data]) =>
+        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
+      )
+      expect(messages).toContainEqual(
+        expect.objectContaining({
+          code: 'UNAVAILABLE',
+          commandId,
+          message: LIVE_SESSION_TRY_AGAIN_MESSAGE,
+          type: 'COMMAND_REJECTED'
+        })
+      )
+      expect(messages.some((message) => message.type === 'COMMAND_COMMITTED')).toBe(false)
+      expect(evidence()).toEqual(before)
+    } finally {
+      expiring.mockRestore()
+      clock.mockRestore()
+      sent.mockRestore()
+    }
   })
 })
 
@@ -6255,6 +6311,63 @@ it('binds and unbinds an actor token in the room with no Convex call (A35-S10b)'
       expect(evidence.bindings).toHaveLength(index === 0 ? 1 : 0)
     }
     expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+})
+
+it('answers a refused actor token binding with its domain reason, never UNAVAILABLE or silence (REL-4)', async () => {
+  const { base, state, actors, scene, tokenId } = await localEncounterFixture([], {
+    unboundSceneToken: true
+  })
+  const refusals = [
+    [
+      { type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id, tokenId },
+      { sceneId: crypto.randomUUID() },
+      'SCENE_NOT_PRESENTED',
+      'Encounter Scene binding was not found.'
+    ],
+    [
+      { type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id },
+      { sceneId: scene.id },
+      'TARGET_UNAVAILABLE',
+      'Encounter actor token binding was not found.'
+    ],
+    [
+      { type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', actorId: actors[0]!.id, tokenId },
+      { sceneId: scene.id, expectedEncounterVersion: state.version + 1 },
+      'VERSION_STALE',
+      'Encounter changed before its Scene binding could update.'
+    ]
+  ] as const
+  await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = memberSocket(context, base.userId)
+    const before = localEncounterEvidence(context.storage)
+    const sent = vi.spyOn(socket, 'send')
+    try {
+      for (const [command, overrides] of refusals)
+        await instance.webSocketMessage(
+          socket,
+          encounterFrame({
+            ...command,
+            commandId: crypto.randomUUID(),
+            encounterId: state.id,
+            expectedEncounterVersion: state.version,
+            ...overrides
+          })
+        )
+      expect(sentMessages(sent)).toEqual(
+        refusals.map(([, , reason, message]) =>
+          expect.objectContaining({
+            type: 'COMMAND_REJECTED',
+            code: 'DOMAIN_REJECTED',
+            reason,
+            message
+          })
+        )
+      )
+      expect(localEncounterEvidence(context.storage)).toEqual(before)
+    } finally {
+      sent.mockRestore()
+    }
   })
 })
 

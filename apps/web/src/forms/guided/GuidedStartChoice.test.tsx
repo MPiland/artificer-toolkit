@@ -6,17 +6,12 @@ import { GuidedStartChoice } from './GuidedStartChoice'
 
 const mocks = vi.hoisted(() => ({
   copySource: vi.fn(),
-  loadMore: vi.fn(),
-  usePaginatedQuery: vi.fn(),
+  useContentCatalogue: vi.fn(),
   useQuery: vi.fn()
 }))
 
-vi.mock('convex/react', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('convex/react')>())
-}))
-
-vi.mock('convex-helpers/react', () => ({
-  usePaginatedQuery: mocks.usePaginatedQuery
+vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
+  useContentCatalogue: mocks.useContentCatalogue
 }))
 
 vi.mock('@tanstack/react-query', async (importOriginal) => ({
@@ -87,28 +82,20 @@ describe('GuidedStartChoice', () => {
       isError: false,
       isLoading: false
     })
-    mocks.usePaginatedQuery.mockReturnValue({
-      loadMore: mocks.loadMore,
-      results: [source],
-      status: 'Exhausted'
-    })
+    mocks.useContentCatalogue.mockReturnValue({ items: [source], isError: false, isPending: false })
   })
 
   it('lazily reads the exact-System native Background catalogue and copies its selected UUID', async () => {
     const user = userEvent.setup()
     renderChoice()
 
-    expect(mocks.usePaginatedQuery).not.toHaveBeenCalled()
+    expect(mocks.useContentCatalogue).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: /^Use an existing background/ }))
 
-    expect(mocks.usePaginatedQuery).toHaveBeenCalledWith(
-      expect.anything(),
-      {
-        subjectKind: 'BACKGROUND',
-        systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53'
-      },
-      { initialNumItems: 48 }
-    )
+    expect(mocks.useContentCatalogue).toHaveBeenCalledWith('BACKGROUND', {
+      enabled: true,
+      systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53'
+    })
 
     await user.type(screen.getByRole('combobox', { name: 'Search backgrounds' }), source.label)
     await user.click(await screen.findByRole('option', { name: source.label }))
@@ -119,29 +106,20 @@ describe('GuidedStartChoice', () => {
     expect(mocks.copySource).toHaveBeenCalledWith(source.id)
   })
 
-  it('loads every native page before enabling the searchable picker', async () => {
-    mocks.usePaginatedQuery.mockReturnValue({
-      loadMore: mocks.loadMore,
-      results: [source],
-      status: 'CanLoadMore'
-    })
+  it('keeps the searchable picker disabled until the catalogue has loaded', async () => {
+    mocks.useContentCatalogue.mockReturnValue({ items: undefined, isError: false, isPending: true })
     const user = userEvent.setup()
     renderChoice()
 
     await user.click(screen.getByRole('button', { name: /^Use an existing background/ }))
 
-    expect(mocks.loadMore).toHaveBeenCalledWith(48)
     expect(screen.getByRole('combobox', { name: 'Search backgrounds' })).toBeDisabled()
   })
 
   it('disables copying when a reactive update removes the selected source', async () => {
     const user = userEvent.setup()
-    const catalogue = {
-      loadMore: mocks.loadMore,
-      results: [source],
-      status: 'Exhausted' as const
-    }
-    mocks.usePaginatedQuery.mockReturnValue(catalogue)
+    const catalogue = { items: [source], isError: false, isPending: false }
+    mocks.useContentCatalogue.mockReturnValue(catalogue)
     const view = renderChoice()
 
     await user.click(screen.getByRole('button', { name: /^Use an existing background/ }))
@@ -149,7 +127,7 @@ describe('GuidedStartChoice', () => {
     await user.click(await screen.findByRole('option', { name: source.label }))
     expect(screen.getByRole('button', { name: 'Create copy' })).toBeEnabled()
 
-    catalogue.results = []
+    mocks.useContentCatalogue.mockReturnValue({ ...catalogue, items: [] })
     view.rerender(
       <GuidedStartChoice
         domain='background'
@@ -167,13 +145,14 @@ describe('GuidedStartChoice', () => {
     const view = renderChoice('')
 
     await user.click(screen.getByRole('button', { name: /^Use an existing background/ }))
-    expect(mocks.usePaginatedQuery).toHaveBeenCalledWith(expect.anything(), 'skip', {
-      initialNumItems: 48
+    expect(mocks.useContentCatalogue).toHaveBeenCalledWith('BACKGROUND', {
+      enabled: false,
+      systemId: ''
     })
     expect(screen.getByText('A System is required before backgrounds can be copied.')).toBeVisible()
 
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mocks.usePaginatedQuery.mockImplementation(() => {
+    mocks.useContentCatalogue.mockImplementation(() => {
       throw new Error('native failure')
     })
     view.rerender(
@@ -196,14 +175,10 @@ describe('GuidedStartChoice', () => {
 
     await user.click(screen.getByRole('button', { name: /^Use an existing class/ }))
 
-    expect(mocks.usePaginatedQuery).toHaveBeenCalledWith(
-      expect.anything(),
-      {
-        subjectKind: 'CLASS',
-        systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53'
-      },
-      { initialNumItems: 48 }
-    )
+    expect(mocks.useContentCatalogue).toHaveBeenCalledWith('CLASS', {
+      enabled: true,
+      systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53'
+    })
   })
 
   it.each([
@@ -224,11 +199,10 @@ describe('GuidedStartChoice', () => {
         })
       )
 
-      expect(mocks.usePaginatedQuery).toHaveBeenCalledWith(
-        expect.anything(),
-        { subjectKind, systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53' },
-        { initialNumItems: 48 }
-      )
+      expect(mocks.useContentCatalogue).toHaveBeenCalledWith(subjectKind, {
+        enabled: true,
+        systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53'
+      })
       await user.type(screen.getByRole('combobox', { name: `Search ${plural}` }), source.label)
       await user.click(await screen.findByRole('option', { name: source.label }))
       await user.click(screen.getByRole('button', { name: 'Create copy' }))

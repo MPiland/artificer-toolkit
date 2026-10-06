@@ -53,12 +53,13 @@ export async function bindEncounterToPresentedScene(
     .withIndex('by_encounterId', (q) => q.eq('encounterId', encounter.id))
     .unique()
   if (existing) {
+    if (existing.campaignId !== campaign.id)
+      throw new Error('Stored Encounter Scene binding belongs to another Campaign.')
     if (
-      existing.campaignId !== campaign.id ||
       existing.commandId !== input.commandId ||
       existing.commandFingerprint !== commandFingerprint
     )
-      throw new Error('Encounter already has a different Campaign Scene binding.')
+      rejectDomain('VERSION_STALE', 'Encounter already has a different Campaign Scene binding.')
     return {
       commandId: input.commandId,
       encounterId: encounter.id,
@@ -68,7 +69,7 @@ export async function bindEncounterToPresentedScene(
   }
   const presentation = await callbacks.readPresentation(campaign.id)
   const sceneId = presentation?.sceneId
-  if (!sceneId) throw new Error('The Campaign is not presenting a Scene.')
+  if (!sceneId) rejectDomain('SCENE_NOT_PRESENTED', 'The Campaign is not presenting a Scene.')
   if (!room) {
     if (!callbacks.assertOutsideRoom)
       throw new Error('Outside-room Scene ownership guard is unavailable.')
@@ -77,7 +78,7 @@ export async function bindEncounterToPresentedScene(
     sceneId !== room.sceneId.toLowerCase() ||
     presentation.version !== room.expectedPresentationVersion
   )
-    throw new Error('Scene presentation is stale.')
+    rejectDomain('VERSION_STALE', 'Scene presentation is stale.')
   const scene = await callbacks.readScene(sceneId)
   if (!scene || scene.campaignId !== campaign.id)
     throw new Error('The presented Campaign Scene is unavailable.')

@@ -293,7 +293,7 @@ export function projectGmFacts(
     version: encounter.version,
     round: encounter.round,
     currentActorId: currentActorIdForProjection(encounter),
-    actors: stableActors(encounter).map((actor) => {
+    actors: stableActors(encounter).flatMap((actor) => {
       const current =
         actor.kind === 'CHARACTER'
           ? characterStates.get(actor.sourceId)
@@ -303,7 +303,8 @@ export function projectGmFacts(
               maximum: actor.maxHitPoints,
               conditions: actor.conditions
             }
-      if (!current) throw new Error('Encounter Character state is unavailable.')
+      // A Character without state is deleted and its actor awaits removal by the room (D74).
+      if (!current) return []
       const source =
         actor.kind === 'CHARACTER' || actor.sourceFactsChecksum === null
           ? null

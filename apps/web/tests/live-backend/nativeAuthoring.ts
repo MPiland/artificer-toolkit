@@ -6,6 +6,7 @@ import {
   artificerPortableContentDtoSchema,
   type ArtificerPortableContentDto
 } from '@artificer-toolkit/schema/api/imports'
+import { watchNavigationAbortedRequests } from './campaignCollaboration'
 
 // One owned copy of canonical SRD data, provisioned/removed by the development driver.
 // Credentials stay in memory; screenshots are taken only after account setup/sign-in.
@@ -86,6 +87,7 @@ export async function verifyNativeAuthoring(input: {
   context.setDefaultTimeout(30000)
   context.setDefaultNavigationTimeout(90000)
   const page = await context.newPage()
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
   const waitForAuthenticatedClient = async () => {
     await expect.poll(() => authenticatedSessionObserved, { timeout: 30000 }).toBe(true)
     await page.waitForFunction(() => {
@@ -130,12 +132,16 @@ export async function verifyNativeAuthoring(input: {
       traceNavigation(
         `request failed ${new URL(request.url()).pathname.startsWith('/_serverFn/') ? 'session refresh' : 'other'}`
       )
-      failedRequests.push({
+      const failure = {
         stage,
         path: new URL(request.url()).pathname,
         documentPath: requestDocuments.get(request),
         error: request.failure()?.errorText ?? null
-      })
+      }
+      failedRequests.push(failure)
+      tolerateNavigationAbort(request, () =>
+        failedRequests.splice(failedRequests.lastIndexOf(failure), 1)
+      )
     })
     page.on('websocket', (socket) => {
       socket.on('framereceived', ({ payload }) => {
@@ -483,13 +489,17 @@ export async function verifyNativeAuthoring(input: {
           path: `${input.evidenceDirectory}/${input.domain}-catalogue-homebrew-mobile.png`
         })
         await page.setViewportSize({ width: 1280, height: 900 })
+        // The mobile width switched the list to cards, and the rows below are table rows.
+        await page.getByRole('button', { name: 'Table view', exact: true }).click()
+        // Filter options are faceted by the search text, so SRD is offered only once the search
+        // no longer narrows the list to the replacement record alone.
+        await search.clear()
         await source.click()
         await page.getByRole('option', { name: 'SRD', exact: true }).click()
         await expect(replacementRow).toHaveCount(0)
         await source.click()
         await page.getByRole('option', { name: 'Homebrew', exact: true }).click()
         await expect(replacementRow).toBeVisible()
-        await page.getByRole('button', { name: 'Table view', exact: true }).click()
 
         stage = `edit retained ${domainLabel} draft`
         await page.getByRole('button', { name: `Open ${replacementLabel}`, exact: true }).click()
@@ -618,6 +628,17 @@ export async function verifyNativeAuthoring(input: {
       routerState,
       route: new URL(page.url()).pathname,
       navigationTrace: navigationTrace.slice(-30),
+      unresolvedSteps: await page
+        .locator(
+          '[aria-label="Incomplete"], [aria-label="Needs review"], [aria-label="Has errors"]'
+        )
+        .evaluateAll((markers) =>
+          markers.map(
+            (marker) =>
+              `${marker.getAttribute('aria-label')}: ${marker.parentElement?.textContent?.trim().slice(0, 60) ?? ''}`
+          )
+        )
+        .catch(() => []),
       body: (
         await page
           .locator('body')

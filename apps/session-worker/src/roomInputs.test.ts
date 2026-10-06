@@ -545,7 +545,9 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
             {
               ...characterPage,
               characterId,
-              revisions: revisions(state.label, characterId),
+              revisions: revisions(state.label, characterId).filter(
+                ({ scope }) => scope !== 'PLAY'
+              ),
               inputs: offset === 0 ? characterInputs(characterId, state.label) : null,
               contentSnapshots: offset === 0 ? atRevision(characterManifest, state.label) : null,
               documents: effects.slice(offset, end)
@@ -1787,6 +1789,16 @@ describe('room inputs (ADR 0035 S2)', () => {
       expect(convex.loads).toEqual([])
     })
 
+    it('keeps a held Character current when only PLAY moves, so a read racing a checkpoint cannot split it', async () => {
+      const convex = await hydrated()
+      const moved = revisions(1, FIRST_CHARACTER).map((entry) =>
+        entry.scope === 'PLAY' ? { ...entry, revision: uuid(0x999) } : entry
+      )
+      const character = await convex.inputs.character(FIRST_CHARACTER, moved)
+      expect(character.revisions.some(({ scope }) => scope === 'PLAY')).toBe(false)
+      expect(convex.reads).toEqual([])
+    })
+
     describe('after the room checkpoint advanced the revisions it sent', () => {
       const sent = {
         system: uuid(0x1001),
@@ -1810,6 +1822,10 @@ describe('room inputs (ADR 0035 S2)', () => {
         )
         expect(play.campaign.id).toBe(CAMPAIGN)
         expect(character.inputs).toEqual(characterInputs(FIRST_CHARACTER))
+        expect(play.revisions.find(({ scope }) => scope === 'PLAY')?.revision).toBe(adopted.play)
+        expect(character.revisions.find(({ scope }) => scope === 'CHARACTER')?.revision).toBe(
+          adopted.characters[0].revision
+        )
         expect(convex.reads).toEqual([])
         expect(convex.loads).toEqual([])
       })

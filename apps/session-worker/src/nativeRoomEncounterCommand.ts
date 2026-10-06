@@ -27,6 +27,17 @@ export function sceneNotPresentedRejection(): LiveSessionDomainRejectionError {
 }
 
 /**
+ * A command's admission or authorization changed between its start and its commit (an outside
+ * change reloaded the cache, a member left, the table moved): nothing was written, so the same
+ * command can be retried.
+ */
+export class RoomAdmissionExpiredError extends Error {
+  constructor() {
+    super('Live Session command admission expired before commit.')
+  }
+}
+
+/**
  * What a member is told when a private route refuses their Encounter command without a domain
  * reason: Convex redacts the cause, so only the route's status is shown. A failure inside the room
  * itself is logged, since the member is told nothing about it.
@@ -35,6 +46,8 @@ export function encounterCommandRefusal(error: unknown): {
   code: LiveSessionCommandRejectionCodeDto
   message: string
 } {
+  if (error instanceof RoomAdmissionExpiredError)
+    return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   if (!(error instanceof LiveSessionRouteError))
     console.error('Live Session Encounter command failed in the room.', error)
   const status = error instanceof LiveSessionRouteError ? error.status : 0

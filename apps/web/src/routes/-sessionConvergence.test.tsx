@@ -9,9 +9,12 @@ const mocks = vi.hoisted(() => ({
   auth: { isLoading: true, isAuthenticated: false },
   snapshot: undefined as AuthSessionSnapshotDto | undefined,
   setAuth: vi.fn(),
-  invalidate: vi.fn(),
-  isNavigating: false,
-  query: vi.fn()
+  query: vi.fn(),
+  router: {
+    invalidate: vi.fn(),
+    subscribe: vi.fn(),
+    state: { isLoading: false, status: 'idle' }
+  }
 }))
 const client = { setAuth: mocks.setAuth }
 
@@ -26,8 +29,7 @@ vi.mock('convex/react', async (importOriginal) => ({
 }))
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@tanstack/react-router')>()),
-  useRouter: () => ({ invalidate: mocks.invalidate }),
-  useRouterState: () => mocks.isNavigating,
+  useRouter: () => mocks.router,
   Outlet: () => null
 }))
 
@@ -45,7 +47,7 @@ describe('initial session convergence', () => {
     vi.clearAllMocks()
     mocks.auth = { isLoading: true, isAuthenticated: false }
     mocks.snapshot = undefined
-    mocks.isNavigating = false
+    mocks.router.state = { isLoading: false, status: 'idle' }
     vi.spyOn(Route, 'useRouteContext').mockReturnValue({ queryClient, user: null })
   })
   afterEach(() => {
@@ -104,7 +106,7 @@ describe('initial session convergence', () => {
         <Component />
       </>
     )
-    await waitFor(() => expect(mocks.invalidate).toHaveBeenCalled())
+    await waitFor(() => expect(mocks.router.invalidate).toHaveBeenCalled())
     expect(queryClient.getQueryData(['private-draft'])).toBeUndefined()
   })
 
@@ -113,28 +115,26 @@ describe('initial session convergence', () => {
     async (change) => {
       vi.spyOn(Route, 'useRouteContext').mockReturnValue({ queryClient, user })
       queryClient.setQueryData(['private-draft'], { label: 'Private draft' })
-      mocks.isNavigating = true
+      let onResolved: (() => void) | undefined
+      mocks.router.subscribe.mockImplementation((_event: string, listener: () => void) => {
+        onResolved = listener
+        return () => {}
+      })
+      mocks.router.state = { isLoading: true, status: 'pending' }
       mocks.auth = { isLoading: false, isAuthenticated: true }
       mocks.snapshot = {
         user: change === 'revocation' ? null : { ...user, authoringExperience: 'advanced' },
         featureFlags: { publicSignUpEnabled: false, libraryImportEnabled: false },
         isSuperAdmin: false
       }
-      const view = mountRoot()
-      expect(mocks.invalidate).not.toHaveBeenCalled()
+      mountRoot()
+      expect(mocks.router.invalidate).not.toHaveBeenCalled()
       expect(queryClient.getQueryData(['private-draft'])).toEqual(
         change === 'revocation' ? undefined : { label: 'Private draft' }
       )
-      mocks.isNavigating = false
-      const Component = Route.options.component
-      if (!Component) throw new Error('The root component must be registered.')
-      view.rerender(
-        <>
-          <AuthSessionGate />
-          <Component />
-        </>
-      )
-      await waitFor(() => expect(mocks.invalidate).toHaveBeenCalledOnce())
+      expect(mocks.router.subscribe).toHaveBeenCalledWith('onResolved', expect.any(Function))
+      onResolved?.()
+      expect(mocks.router.invalidate).toHaveBeenCalledOnce()
     }
   )
 

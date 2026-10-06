@@ -180,17 +180,14 @@ export async function verifyEncounterLifecycle({
   assert.equal(projection.currentActorId, second.id)
   assert.deepEqual(projection.actors, actorsBeforeRoundCorrection)
   await execute({ ...commandBase(), type: 'SET_CURRENT_ACTOR', actorId: null })
-  const noCursor = projection
   await assert.rejects(
     owner.mutation(executeEncounterCommand, {
       command: { ...commandBase(), type: 'ADVANCE_TURN' }
     }),
     /current actor can advance/
   )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
-    noCursor
-  )
+  // The room holds the Run between save points (D85), so Convex's projection lags. The refused
+  // command left the Run unchanged because the next command, at the held version, advances it by one.
   await execute({ ...commandBase(), type: 'SET_CURRENT_ACTOR', actorId: second.id })
   await execute({ ...commandBase(), type: 'ADVANCE_TURN' })
   assert.equal(projection.round, 3)
@@ -232,25 +229,12 @@ export async function verifyEncounterLifecycle({
     sceneId: scenes[0].liveSceneId,
     expectedPresentationVersion: null
   })
-  await assert.rejects(player.mutation(bindScene, bindingInput), /Campaign not found/)
+  // Binding goes through the room (D47), which refuses a player as the GM's (D42).
+  await assert.rejects(player.mutation(bindScene, bindingInput), /GM_ONLY/)
   await assert.rejects(anonymous.mutation(bindScene, bindingInput), /Unauthenticated/)
   const bound = await owner.mutation(bindScene, bindingInput)
   assert.equal(bound.sceneId, scenes[0].liveSceneId)
   assert.equal(bound.replayed, false)
-  await owner.action(api.scenes.presentations.setLive, {
-    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
-    commandId: crypto.randomUUID(),
-    campaignId,
-    sceneId: scenes[1].liveSceneId,
-    expectedPresentationVersion: 0
-  })
-  const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
-  assert.equal(presentation?.sceneId, scenes[1].liveSceneId)
-  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
-  await assert.rejects(
-    owner.mutation(bindScene, { ...bindingInput, commandId: crypto.randomUUID() }),
-    /different.*binding/
-  )
   const tokenInput: EncounterActorTokenBindingCommandInputDto = {
     type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
     commandId: crypto.randomUUID(),
@@ -260,7 +244,7 @@ export async function verifyEncounterLifecycle({
     tokenId: scenes[0].tokenIds[0],
     expectedEncounterVersion: projection.version
   }
-  await assert.rejects(player.mutation(bindToken, { input: tokenInput }), /Campaign not found/)
+  await assert.rejects(player.mutation(bindToken, { input: tokenInput }), /GM_ONLY/)
   await assert.rejects(anonymous.mutation(bindToken, { input: tokenInput }), /Unauthenticated/)
   const tokenResult = await owner.mutation(bindToken, { input: tokenInput })
   projection = encounterGmProjectionDtoSchema.parse(tokenResult.projection)
@@ -315,6 +299,32 @@ export async function verifyEncounterLifecycle({
     ...tokenResult,
     projection
   })
+  // The room binds and moves tokens only on the Scene it presents (D42, D47): a retry of the same
+  // binding replays, and a different one is a domain refusal, not UNAVAILABLE.
+  await owner.action(api.scenes.presentations.setLive, {
+    type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
+    commandId: crypto.randomUUID(),
+    campaignId,
+    sceneId: scenes[1].liveSceneId,
+    expectedPresentationVersion: 0
+  })
+  const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
+  assert.equal(presentation?.sceneId, scenes[1].liveSceneId)
+  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
+  await assert.rejects(
+    owner.mutation(bindScene, { ...bindingInput, commandId: crypto.randomUUID() }),
+    /VERSION_STALE.*different.*binding/
+  )
+  await assert.rejects(
+    owner.mutation(bindToken, {
+      input: {
+        ...tokenInput,
+        commandId: crypto.randomUUID(),
+        expectedEncounterVersion: projection.version
+      }
+    }),
+    /SCENE_NOT_PRESENTED/
+  )
   await execute({ ...commandBase(), type: 'COMPLETE' })
   assert.equal(projection.status, 'COMPLETED')
   assert.deepEqual(projection.reminders, reminders)
@@ -333,9 +343,22 @@ export async function verifyEncounterLifecycle({
       projection
     })
   }
-  // COMPLETE deletes the Scene binding with the rest of the Run's rows (ADR 0035 Amendment 30), so
-  // a token binding retry is a typed rejection; the room journal still answers command retries.
-  await assert.rejects(owner.mutation(bindToken, { input: tokenInput }), /Completed/)
+  // COMPLETE deletes the Scene binding with the rest of the Run's rows (ADR 0035 Amendment 30): the
+  // room journal still answers a retry of the same command, and a new binding is a typed rejection.
+  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
+    ...tokenResult,
+    projection
+  })
+  await assert.rejects(
+    owner.mutation(bindToken, {
+      input: {
+        ...tokenInput,
+        commandId: crypto.randomUUID(),
+        expectedEncounterVersion: projection.version
+      }
+    }),
+    /Completed/
+  )
   await assert.rejects(
     owner.mutation(executeEncounterCommand, {
       command: { ...start, expectedVersion: projection.version }

@@ -28,13 +28,16 @@ export async function verifyEncounterAutomation({
   blueprint,
   characterId,
   policies,
-  sceneFixture
+  sceneFixture,
+  checkpoint
 }: {
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
   player: DevelopmentClient
   campaignId: string
   blueprint: EncounterBlueprintDto
   characterId: string
+  /** Publishes the room's committed commands; Convex reads show a held Run only after one. */
+  checkpoint: () => Promise<void>
   policies: ReturnType<typeof createEncounterLifecyclePolicyFixture>
   sceneFixture: Pick<Awaited<ReturnType<typeof verifyEncounterLifecycle>>, 'scenes' | 'manualRun'>
 }) {
@@ -193,6 +196,8 @@ export async function verifyEncounterAutomation({
           )
           const pending = result.occurrence.pending
           assert.ok(pending)
+          // Convex holds the running table only at save points (D90).
+          await checkpoint()
           assert.deepEqual(
             await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
             before
@@ -313,6 +318,7 @@ export async function verifyEncounterAutomation({
         }),
         (error) => assertDomainRejection(error, 'VERSION_STALE')
       )
+      await checkpoint()
       assert.deepEqual(
         await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
         beforeRemoval
@@ -347,6 +353,7 @@ export async function verifyEncounterAutomation({
     })
     assert.equal(projection.currentActorId, insertionCursor)
     assert.equal(projection.actors.length, 2)
+    await checkpoint()
     assert.deepEqual(
       await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
       projection
@@ -427,6 +434,8 @@ export async function verifyEncounterAutomation({
     assert.equal(projection.round, beforeReinforcementCleanupRound + 1)
     await execute({ ...commandBase(), type: 'COMPLETE' })
     assert.equal(projection.status, 'COMPLETED')
+    // Convex refuses the binding retries below only once it holds the finished Run.
+    await checkpoint()
     // The room journal replays each command's own receipt, shown over the current Run.
     for (const { input, result } of issuedCommands) {
       assert.deepEqual(await owner.mutation(executeEncounterCommand, input), {
@@ -436,10 +445,30 @@ export async function verifyEncounterAutomation({
     }
     assert.deepEqual(await owner.mutation(api.encounters.runs.create, creation), projection)
     assert.deepEqual(await player.query(api.characters.sheet.get, { id: characterId }), sheet)
-    // COMPLETE deletes the Scene binding with the Run's other rows, so a retry of either binding
-    // is refused rather than replayed (ADR 0035 Amendment 30).
-    await assert.rejects(owner.mutation(bindScene, sceneBindingInput), /Completed/)
-    await assert.rejects(owner.mutation(bindToken, { input: tokenBindingInput }), /Completed/)
+    // COMPLETE deletes the Scene binding with the Run's other rows (ADR 0035 Amendment 30): the
+    // room journal still replays a retry of either binding, but a new command is refused.
+    assert.deepEqual(await owner.mutation(bindScene, sceneBindingInput), {
+      ...sceneBinding,
+      replayed: true
+    })
+    assert.deepEqual(await owner.mutation(bindToken, { input: tokenBindingInput }), {
+      ...tokenBinding,
+      projection
+    })
+    await assert.rejects(
+      owner.mutation(bindScene, { ...sceneBindingInput, commandId: crypto.randomUUID() }),
+      /Completed/
+    )
+    await assert.rejects(
+      owner.mutation(bindToken, {
+        input: {
+          ...tokenBindingInput,
+          commandId: crypto.randomUUID(),
+          expectedEncounterVersion: projection.version
+        }
+      }),
+      /Completed/
+    )
     assert.deepEqual(
       await owner.query(api.scenes.definitionReads.get, { campaignId, sceneId: scene.sceneId }),
       originalHeader

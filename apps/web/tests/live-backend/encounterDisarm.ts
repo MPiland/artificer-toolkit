@@ -166,6 +166,7 @@ export async function verifyEncounterDisarmBrowser(
         if (result.command.type !== 'RESOLVE_RULE_OCCURRENCE')
           throw new Error('Decision drawer did not submit RESOLVE_RULE_OCCURRENCE.')
         submitted.push({ actor, command: result.command })
+        // The GM sees the defender's decision too (D87), so the GM's drawer stays open on it.
         if (actor === 'OWNER')
           await page.getByRole('button', { name: 'Close pending decision', exact: true }).click()
         else

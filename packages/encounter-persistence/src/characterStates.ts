@@ -14,7 +14,7 @@ import { readCharacterMaximumHitPoints } from './characterMaximumHitPoints.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readRunActors, replaceRunActor } from './documents.js'
 import type { EncounterPersistenceTransaction, EncounterProjectionTransaction } from './ports.js'
-import type { EncounterDocument, EncounterWriteContext } from './store.js'
+import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /**
  * Projects a Character's hit points over its effective maximum, as the Sheet shows them, and its
@@ -42,11 +42,30 @@ export function characterProjectionState(
 }
 
 /**
+ * The Character's assignment in the Campaign, or `null` when it has none there. An unfrozen Character
+ * actor of a room-held Run without one has departed (D74): the room freezes it, and until then
+ * readers treat it as frozen.
+ */
+export async function readCampaignCharacterAssignment(
+  ctx: EncounterReadContext,
+  campaignId: string,
+  characterId: string
+) {
+  const assignment = await ctx.db
+    .query('campaignCharacterAssignments')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+    .unique()
+  return assignment?.campaignId === campaignId ? assignment : null
+}
+
+/**
  * Reads each Character actor's current hit points and conditions for a Run projection (ADR 0034
  * decision 4). A completed Run, and an open Run whose Character left the Campaign, show the values
  * frozen when the Run stopped reading it: a detached Character grants no current Sheet access.
  * `campaignConditions` layers the Campaign's own conditions, as the viewer may see them, over each
- * live Character's Sheet conditions.
+ * live Character's Sheet conditions. A room-held Run's actor whose assignment is gone and which the
+ * room has not yet frozen reads as frozen at the Character's current play values; a deleted
+ * Character has no entry (D74).
  */
 export async function readEncounterCharacterStates(
   ctx: EncounterProjectionTransaction,
@@ -81,13 +100,21 @@ export async function readEncounterCharacterStates(
     const assignment =
       state.status === 'COMPLETED'
         ? null
-        : await ctx.db
-            .query('campaignCharacterAssignments')
-            .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-            .unique()
-    if (assignment?.campaignId !== state.campaignId)
-      throw new Error('Encounter Character state is unavailable.')
+        : await readCampaignCharacterAssignment(ctx, state.campaignId, characterId)
     const play = await readEncounterCharacterPlay(ctx, characterId)
+    if (!assignment) {
+      // D74: Convex leaves a room-held Run's departed actors to the room, which freezes them at
+      // their current play values, or removes them once the Character is deleted. Until its next
+      // checkpoint the read shows what the room converges to, and no Character state for a deleted
+      // Character, whose actor the projection leaves out.
+      if (state.status === 'COMPLETED' || !(await ctx.ports.isRoomHeldRun(state)))
+        throw new Error('Encounter Character state is unavailable.')
+      if (play) {
+        conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
+        states.set(characterId, await readCharacterPlayProjection(ctx, play, conditionTypes))
+      }
+      continue
+    }
     if (!play || play.userId !== assignment.userId)
       throw new Error('Stored Encounter Character source is unavailable.')
     conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes

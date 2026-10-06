@@ -2,7 +2,11 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium, expect, type Page } from '@playwright/test'
 import type { CampaignCopyProgress } from '@artificer-toolkit/schema/api/campaignCopy'
-import { waitForRouterIdle, watchAuthenticatedSession } from './campaignCollaboration'
+import {
+  waitForRouterIdle,
+  watchAuthenticatedSession,
+  watchNavigationAbortedRequests
+} from './campaignCollaboration'
 
 export type CampaignLifecycleStage =
   | 'before-copy'
@@ -256,19 +260,24 @@ async function navigateAuthenticated(
 }
 
 function captureDiagnostics(page: Page, currentStage: () => string, diagnostics: string[]) {
-  const record = (kind: string, detail: string) =>
-    diagnostics.push(`${currentStage()}: ${kind} ${detail.slice(0, 3000)}`)
+  const record = (kind: string, detail: string) => {
+    const entry = `${currentStage()}: ${kind} ${detail.slice(0, 3000)}`
+    diagnostics.push(entry)
+    return entry
+  }
   page.on('console', (message) => {
     if (message.type() === 'error' || message.type() === 'warning')
       record('console', message.text())
   })
   page.on('pageerror', (error) => record('pageerror', error.message))
-  page.on('requestfailed', (request) =>
-    record(
+  const tolerateNavigationAbort = watchNavigationAbortedRequests(page)
+  page.on('requestfailed', (request) => {
+    const entry = record(
       'requestfailed',
       `${request.method()} ${new URL(request.url()).pathname} ${request.failure()?.errorText ?? ''}`
     )
-  )
+    tolerateNavigationAbort(request, () => diagnostics.splice(diagnostics.lastIndexOf(entry), 1))
+  })
   page.on('response', (response) => {
     if (response.status() >= 400)
       record('response', `${response.status()} ${new URL(response.url()).pathname}`)

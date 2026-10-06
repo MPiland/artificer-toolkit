@@ -2,7 +2,7 @@
 
 - **Status:** decision
 - **Date:** 2026-09-18
-- **Revised:** 2026-09-20
+- **Revised:** 2026-09-20; Session-finish sentence corrected 2026-10-06 (ADR 0033)
 
 ## Context
 
@@ -25,9 +25,11 @@ Social applications/reports/audits and pending Encounter decisions do not determ
 Repair or detach live dependencies; retain acquired mechanics and historical snapshots under existing
 custody and source-loss rules. Do not delete another owner's content to make deletion pass.
 
-FINISHED Sessions remain read-only history, including Runs still marked ACTIVE or SETUP. Trusted
-cleanup skips those Runs before requiring live Character sources. Open encounters remove the owner's
-Character actor and reconcile invalidated pending decisions while preserving already settled results.
+FINISHED Sessions remain read-only history. **Current (ADR 0033, corrected 2026-10-06):** Encounter
+Runs belong to the Campaign, and finishing a Session changes no Run, so cleanup does not skip a Run
+because its Session is FINISHED. Open Runs remove the owner's Character actor and
+reconcile invalidated pending decisions while preserving already settled results. *Historical
+(before ADR 0033):* trusted cleanup skipped Runs still marked ACTIVE or SETUP in a FINISHED Session.
 Shared Campaign messages, rolls and Session history remain readable with the author presented as
 `Deleted user`; private Characters and personal account data are removed.
 

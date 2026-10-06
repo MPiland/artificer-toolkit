@@ -334,9 +334,10 @@ export async function verifySceneAuthoring(input: {
         (await owner.client.query(api.campaigns.queries.get, { id: campaignId })).role,
         'PLAYER'
       )
-      await assert.rejects(
-        owner.client.action(api.media.vttMapActions.getDelivery, { assetId }),
-        /unavailable|presented/i
+      // The uploader keeps reading its own map after transferring the Campaign (Q17).
+      assert.equal(
+        (await owner.client.action(api.media.vttMapActions.getDelivery, { assetId })).assetId,
+        assetId
       )
       const delivery = await input.player.client.action(api.media.vttMapActions.getDelivery, {
         assetId

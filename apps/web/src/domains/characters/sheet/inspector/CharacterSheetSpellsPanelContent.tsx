@@ -1,5 +1,5 @@
 import { Accordion, Text } from '@mantine/core'
-import type { ComponentProps } from 'react'
+import { useState, type ComponentProps } from 'react'
 import clsx from 'clsx'
 import { useCharacterPreparationCatalogue } from '#app/data/contentSnapshots/useCharacterPreparationCatalogue'
 import { CharacterSheetPreparationPicker } from './CharacterSheetPreparationPicker'
@@ -35,6 +35,10 @@ export function CharacterSheetSpellsPanelContent({
   submitCommand: SubmitSheetCommand
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
 }) {
+  // Tracking collapsed items keeps the user's choices while a new level opens by default.
+  const [collapsedItems, setCollapsedItems] = useState<ReadonlySet<string>>(
+    new Set(['spells:empty'])
+  )
   const canUseSlot = panel.editable && panel.allowedCommands.includes('USE_SPELL_SLOT')
   const canRestoreSlot = panel.editable && panel.allowedCommands.includes('RESTORE_SPELL_SLOT')
   const catalogue = useCharacterPreparationCatalogue(preparationOptions)
@@ -147,6 +151,7 @@ export function CharacterSheetSpellsPanelContent({
       left.rowId.localeCompare(right.rowId)
   )
   const spellLevels = heldGroups.map((group) => group.level).sort((left, right) => left - right)
+  const accordionItems = ['slots', ...spellLevels.map((level) => `spells:${level}`), 'spells:empty']
   const pickerRevision = `${panel.characterId}:${catalogue.revision}:${JSON.stringify(preparationOptions?.classes.map((source) => [source.classId, source.eligibleSpellIds]))}`
   async function setPrepared(classId: string, spellId: string, prepared: boolean) {
     if (
@@ -224,7 +229,10 @@ export function CharacterSheetSpellsPanelContent({
             control: inspectorShellStyles.disclosureControl,
             root: inspectorShellStyles.disclosureRoot
           }}
-          defaultValue={['slots', ...spellLevels.map((level) => `spells:${level}`)]}
+          value={accordionItems.filter((item) => !collapsedItems.has(item))}
+          onChange={(open) =>
+            setCollapsedItems(new Set(accordionItems.filter((item) => !open.includes(item))))
+          }
           order={3}
           variant='default'
         >

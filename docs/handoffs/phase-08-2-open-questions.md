@@ -2,7 +2,7 @@
 
 > Questions waiting for the user's answer only; keep this file short. Answer inline under **Answer** (or in chat). Answered items move to [Resolved](phase-08-2-decisions.md#resolved) with the decision; decisions made on the user's behalf, approved implementation decisions and resolved questions live in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 >
-> Updated: 2026-10-01.
+> Updated: 2026-10-06.
 
 ## Open
 
@@ -36,5 +36,15 @@ Run-applied effects, Campaign settings) end at departure.
 `UPDATE_SPELL_SOURCE_CUSTOMIZATION` (customName, displayAsAttack in `sheetState.spellCustomizations`)
 currently survives departure. Players can also write these, so GM-written ones cannot be told apart.
 Recommendation: keep them, as player-facing presentation.
+
+**Answer:** pending.
+
+### Better Auth rate limits for session reads — Claude, 2026-10-06
+
+Should the Better Auth rate limits for session reads (`/convex/token`, `/get-session`) be raised?
+Under proof load, sign-in hit 429s. The web client now retries `GET /convex/token` on network error,
+429 and 5xx (up to 4 attempts, backoff up to 15 s, honouring `Retry-After`; see
+[transport.md](../architecture/transport.md)). Recommendation: keep the limits and revisit with real
+usage data.
 
 **Answer:** pending.

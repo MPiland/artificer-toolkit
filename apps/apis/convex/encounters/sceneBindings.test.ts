@@ -236,7 +236,7 @@ describe('native Encounter Scene bindings', () => {
       await ctx.db.patch(binding._id, { campaignId: crypto.randomUUID() })
     })
     await expect(base.other.caller.mutation(bind, input)).rejects.toThrow(
-      'different Campaign Scene binding'
+      'Stored Encounter Scene binding belongs to another Campaign.'
     )
     expect(
       await base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())

@@ -43,7 +43,10 @@ export async function developmentCli(
           }),
           signal: AbortSignal.timeout(60_000)
         })
-        if (!response.ok) throw new Error('The local fixture request failed.')
+        if (!response.ok)
+          throw Object.assign(new Error('The local fixture request failed.'), {
+            status: response.status
+          })
         const result = z
           .object({ status: z.literal('success'), value: z.json() })
           .parse(await response.json())
@@ -96,6 +99,7 @@ export async function developmentCli(
     const code: unknown = Reflect.get(fields, 'code')
     const signal: unknown = Reflect.get(fields, 'signal')
     const killed: unknown = Reflect.get(fields, 'killed')
+    const status: unknown = Reflect.get(fields, 'status')
     const childOut: unknown = Reflect.get(fields, 'stdout')
     const childErr: unknown = Reflect.get(fields, 'stderr')
     const metadata = {
@@ -105,6 +109,7 @@ export async function developmentCli(
           : null,
       signal: typeof signal === 'string' && /^[A-Z\d]+$/.test(signal) ? signal : null,
       killed: killed === true,
+      httpStatus: typeof status === 'number' ? status : null,
       elapsedMs: Date.now() - startedAt,
       stdoutBytes: typeof childOut === 'string' ? Buffer.byteLength(childOut) : null,
       stderrBytes: typeof childErr === 'string' ? Buffer.byteLength(childErr) : null,

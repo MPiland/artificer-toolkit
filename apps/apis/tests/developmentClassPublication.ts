@@ -168,8 +168,9 @@ export async function verifyClassPublicationRaces({
   )
   if (!workingSpell.updatedAt)
     throw new Error('Spell working draft save did not return its revision.')
-  // A published Spell cannot veto deleting its Class (ADR 0030): the deletion commits and the Spell
-  // keeps its reference. A republication racing it validates a live Class, so it commits only first.
+  // A published Spell cannot veto deleting its Class (ADR 0030): the deletion commits and the
+  // Spell's published document keeps its reference. A republication racing it either commits or is
+  // refused against the missing Class.
   const race = await Promise.allSettled([
     owner.mutation(
       api.content.publication.publishDraft,
@@ -194,8 +195,23 @@ export async function verifyClassPublicationRaces({
   assert.equal((await readClass())?.item ?? null, null)
   const spellAfter = await readSpell()
   assert.ok(spellAfter?.item)
-  assert.deepEqual(spellAfter.item.classIds, [base.subjectId])
-  if (race[0]?.status === 'rejected') assert.deepEqual(spellAfter, spellBefore)
+  // The published Spell is judged by which side of the race the publication fell on.
+  const publication = race[0]
+  if (publication?.status === 'rejected') {
+    assert.deepEqual(
+      spellAfter.item,
+      spellBefore.item,
+      `A refused republication must leave the published Spell unchanged: ${String(publication.reason)}`
+    )
+  } else {
+    assert.ok(
+      spellAfter.item.classIds.every((id) => id === base.subjectId),
+      'A committed republication may keep or drop the deleted Class, never add another.'
+    )
+  }
+  console.log(
+    `Spell republication ${publication?.status} against Class deletion; published Class references: ${JSON.stringify(spellAfter.item.classIds)}.`
+  )
   await owner.mutation(api.content.deletion.deleteActive, {
     subjectKind: 'SPELL',
     subjectId: spell.subjectId

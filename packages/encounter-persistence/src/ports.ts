@@ -92,6 +92,8 @@ export interface EncounterReadPorts {
   readAutoRollDice(userId: string): Promise<boolean>
   /** The GM's remembered Public/Private roll toggle: it decides rolls the GM did not start. */
   readGmRollVisibility(userId: string): Promise<RollVisibilityDto>
+  /** Whether a live room holds this open Run, so Convex leaves its actor departures to the room. */
+  isRoomHeldRun(run: Pick<EncounterRunState, 'campaignId' | 'status'>): Promise<boolean>
   /** Whether the app profile of this user still exists (it goes last in account deletion). */
   hasAccountProfile(userId: string): Promise<boolean>
   /** One actor's initiative roll as made: its expression and the Character's roll mode. */
@@ -221,9 +223,9 @@ export interface EncounterTurnReadTransaction<
   readonly ports: EncounterTurnReadPorts<TFacts>
 }
 
-/** Stored projection reads need only the System vocabulary and verified Character play. */
+/** Stored projection reads need only the System vocabulary, verified Character play and the hold. */
 export interface EncounterProjectionTransaction extends EncounterReadContext {
-  readonly ports: Pick<EncounterReadPorts, 'requireSystem' | 'readCharacterPlay'>
+  readonly ports: Pick<EncounterReadPorts, 'requireSystem' | 'readCharacterPlay' | 'isRoomHeldRun'>
 }
 
 /** A write transaction over the Encounter store and the ports it uses beside it. */
