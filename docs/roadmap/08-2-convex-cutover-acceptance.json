@@ -3888,7 +3888,7 @@
           "id": "R08",
           "title": "Complete development lifecycle passes from a fresh isolated Convex development deployment",
           "proofTier": "RELEASE",
-          "status": "NOT_STARTED",
+          "status": "IN_PROGRESS",
           "criteria": [
             {
               "id": "R08.1",
@@ -3899,7 +3899,7 @@
             {
               "id": "R08.2",
               "text": "The lifecycle runs on one final source state shared by the R01–R05 release audits, and later source changes rerun it from the earliest affected stage.",
-              "status": "NOT_STARTED",
+              "status": "IN_PROGRESS",
               "proof": null
             }
           ]
