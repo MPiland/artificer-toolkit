@@ -1118,7 +1118,7 @@ it('rejects Encounter history entries by contract', async () => {
 
 it('rolls back the entire checkpoint when deleting a required part of a surviving pending snapshot', async () => {
   const base = await nativeDisarmFixture('PROMPT')
-  const started = await disarmInRoom(base, base.owner, base.command)
+  const started = await disarmInRoom(base.owner, base.command)
   if (started.occurrence?.status !== 'PENDING')
     throw new Error('Expected pending Disarm occurrence.')
   const occurrenceId = started.occurrence.occurrenceId

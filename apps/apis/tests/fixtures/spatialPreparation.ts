@@ -13,6 +13,7 @@ import { createEncounterSceneFixture } from './encounterScene'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { seedSpatialEffect } from './spatialEffect'
 import { activateFixtureRun } from './activeInitiative'
+import { attachFixtureRoom, executeSceneInRoom } from './localRoomWorker'
 import { planMovementInRoom } from './liveSessionWorker'
 export async function createSpatialPreparationFixture() {
   const base = await createEncounterSceneFixture()
@@ -124,11 +125,8 @@ export async function grantFixtureActorControl(
   await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, actor)
 }
 
-/**
- * A bound move over one seeded spatial hazard in an Assisted Run, committed by the room to a
- * TERMINAL outcome and ready to publish.
- */
-export async function planSpatialTerminalFixture(
+/** Seeds a bound move over one spatial hazard in an Assisted Run, not yet sent to any room. */
+async function seedSpatialTerminalFixture(
   path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
 ) {
   const fixture = await createSpatialPreparationFixture()
@@ -187,7 +185,31 @@ export async function planSpatialTerminalFixture(
     }
   })
   const effect = await seedSpatialEffect(base)
-  const plan = await planMovementInRoom(base.owner.caller, input)
+  return { ...fixture, input, effect }
+}
+
+/**
+ * A bound move over one seeded spatial hazard in an Assisted Run, committed by the stand-in room to
+ * a TERMINAL outcome and ready to publish.
+ */
+export async function planSpatialTerminalFixture(
+  path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
+) {
+  const seeded = await seedSpatialTerminalFixture(path)
+  const plan = await planMovementInRoom(seeded.base.owner.caller, seeded.input)
   if (plan.outcome.kind !== 'TERMINAL') throw new Error('Expected a terminal room plan.')
-  return { ...fixture, input, plan, effect }
+  return { ...seeded, plan }
+}
+
+/**
+ * The real-room twin of `planSpatialTerminalFixture` (it needs `useLocalRoomWorker`): the same
+ * seeded move, committed through the real room in one step, so there is no plan or `publish`.
+ */
+export async function commitSpatialTerminalFixtureInRoom(
+  path?: ReturnType<typeof sceneTokenMovementCommandInputDtoSchema.parse>['path']
+) {
+  const seeded = await seedSpatialTerminalFixture(path)
+  await attachFixtureRoom(seeded.base.t, seeded.base.campaign.id)
+  const commit = await executeSceneInRoom(seeded.base.owner.caller, seeded.input)
+  return { ...seeded, commit }
 }

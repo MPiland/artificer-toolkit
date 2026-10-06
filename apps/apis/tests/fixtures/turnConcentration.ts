@@ -19,7 +19,7 @@ import { api, components, internal } from '../../convex/_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../../convex/characters/stateDocuments'
 import { writeCharacterRecord } from './characterRecords'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
-import { executeInRoom } from './liveSessionWorker'
+import { executeInRoom } from './roomRouting'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'

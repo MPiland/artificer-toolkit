@@ -61,6 +61,8 @@ async function attackOgre(input: {
     }),
     hitPoints: target.currentHitPoints,
     conditionIds: readEncounterActorConditionState(target.conditions).ids,
+    receiptApplications: mechanics.targetPlan.receiptApplications,
+    transition: mechanics.targetPlan.targetTransition,
     damage: execution.applications.flatMap((application) =>
       application.kind === 'DAMAGE'
         ? [[application.requestedAmount, application.damageTypeId] as const]
@@ -117,6 +119,59 @@ describe('SRD Creature attacks with several hit results', () => {
     expect(hit.hitPoints).toBe(59 - 18)
     // One damage source, so one Concentration check at the DC of its total.
     expect(hit.concentrationChecks).toMatchObject([{ appliedAmount: 18, damageTypeId: null }])
+  })
+})
+
+describe('SRD Creature critical hits and hit point maximum drains', () => {
+  it('rolls every damage die of the Hell Hound’s Bite twice on a natural 20', async () => {
+    // Bite, +5: 2d8 + 3 piercing and 4d6 fire when critical; every die rolling 1.
+    const crit = await attackOgre({
+      attacker: 'Hell Hound',
+      feature: 'Bite',
+      rolls: [19, 0, 0, 0, 0, 0, 0]
+    })
+    expect(crit.execution.d20).toMatchObject({ selectedNatural: 20, resultPath: 'ON_CRIT' })
+    expect(crit.damage).toEqual([
+      [2 + 3, srdDamageTypeId('PIERCING')],
+      [4, srdDamageTypeId('FIRE')]
+    ])
+  })
+
+  it('reports the natural 20 and DC of the Giant Spider’s saved poison', async () => {
+    const saved = await attackOgre({
+      attacker: 'Giant Spider',
+      feature: 'Bite',
+      rolls: [9, 3, 19, 2, 4]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({
+      selectedNatural: 20,
+      defenseOrDc: 11,
+      resultPath: 'ON_SAVE_SUCCESS'
+    })
+  })
+
+  it('drains the target’s hit point maximum with the Wight’s Life Drain until a long rest (D62)', async () => {
+    // Life Drain, +4: 6 (1d6 + 2) necrotic, then DC 13 Constitution or the maximum drops by that much.
+    const drained = await attackOgre({
+      attacker: 'Wight',
+      feature: 'Life Drain',
+      rolls: [9, 3, 0]
+    })
+    expect(drained.execution.nestedD20).toMatchObject({
+      defenseOrDc: 13,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(drained.damage).toEqual([[6, srdDamageTypeId('NECROTIC')]])
+    expect(drained.transition.after.maximumHitPoints).toBe(
+      drained.transition.before.maximumHitPoints - 6
+    )
+    expect(drained.receiptApplications).toContainEqual(
+      expect.objectContaining({
+        kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+        reductionAmount: 6,
+        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
+      })
+    )
   })
 })
 

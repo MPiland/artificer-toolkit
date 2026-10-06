@@ -12,6 +12,7 @@ import {
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { setupCreatureReactionRun } from './movementReaction'
+import { executeInRoom, executeSceneInRoom } from './localRoomWorker'
 import { planMovementDecisionInRoom, planMovementInRoom } from './liveSessionWorker'
 
 const bindActorToken = makeFunctionReference<
@@ -289,4 +290,43 @@ export async function useMovementReactions(
     prepared = { outcome: plan.outcome }
     publish = plan.publish
   }
+}
+
+/**
+ * The real-room twin of `useMovementReactions` (it needs `useLocalRoomWorker`). The real room plans
+ * and commits a move in one step, so there is no plan or `publish` to inspect: the move commits
+ * through `executeSceneInRoom`, then each Use/Decline choice is answered Use with the first option
+ * as the GM through `executeInRoom`. Stops after `maxUses` Uses or at the first result whose pending
+ * request is not a reaction choice, and returns that result's occurrence.
+ */
+export async function useMovementReactionsInRoom(
+  value: Pick<
+    Awaited<ReturnType<typeof setupReactionMovementScene>>,
+    'base' | 'owner' | 'rootInput'
+  >,
+  maxUses = 10
+) {
+  const { owner } = value
+  const commit = await executeSceneInRoom(owner.caller, value.rootInput)
+  let occurrence = commit.result?.occurrence ?? null
+  let responseCommandId: string | null = null
+  for (let uses = 0; uses < maxUses; uses++) {
+    const pending = occurrence?.pending
+    if (pending?.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0]) break
+    responseCommandId = crypto.randomUUID()
+    const answered = await executeInRoom(owner.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        commandId: responseCommandId,
+        encounterId: value.base.run.id,
+        expectedVersion: pending.encounterVersion,
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
+        correlationId: null,
+        resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
+      }
+    })
+    occurrence = answered.occurrence
+  }
+  return { occurrence, responseCommandId }
 }

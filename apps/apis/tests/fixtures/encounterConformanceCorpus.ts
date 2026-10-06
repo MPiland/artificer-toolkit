@@ -9,7 +9,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
 import { prepareRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { recordTurnMovement } from '@artificer-toolkit/encounter-persistence/turnMovement'
-import { persistHeldHistoryToConvex } from './liveSessionWorker'
+import { persistHeldHistoryToConvex } from './roomRouting'
 import { playerControlFixture, type PlayerControlFixture } from './playerControl'
 
 export type EncounterStoreOperation = (transaction: EncounterWriteTransaction) => Promise<unknown>

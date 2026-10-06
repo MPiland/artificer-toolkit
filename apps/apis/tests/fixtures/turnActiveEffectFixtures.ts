@@ -55,7 +55,7 @@ import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { createRulesRuntime } from './rulesRuntime'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
-import { executeInRoom } from './liveSessionWorker'
+import { executeInRoom } from './roomRouting'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'

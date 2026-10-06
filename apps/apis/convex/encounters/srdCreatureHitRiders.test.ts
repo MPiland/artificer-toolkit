@@ -261,9 +261,13 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(cards.find((card) => card.source.kind === 'ATTACK')?.evidence.terms[0]?.rolls).toEqual([
       20
     ])
+    // Cards one command posts at the same instant list in the order of their random IDs.
     expect(
-      cards.filter((card) => card.source.kind === 'DAMAGE').map((card) => card.evidence.total)
-    ).toEqual([2 + 3, 4])
+      cards
+        .filter((card) => card.source.kind === 'DAMAGE')
+        .map((card) => card.evidence.total)
+        .sort((a, b) => a - b)
+    ).toEqual([4, 2 + 3])
     expect(await damageTaken(base)).toBe(2 + 3 + 4)
   }, 30000)
 

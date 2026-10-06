@@ -874,6 +874,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   #fetchToken: (() => Promise<string>) | null = null
   readonly #holdRooms: boolean
   readonly #rooms = new Map<string, CommandRoom>()
+  readonly #openedRoomCampaignIds = new Set<string>()
   readonly #sceneCampaigns = new Map<string, string>()
   readonly #frameListeners = new Set<(frame: RoomFrame) => void>()
   readonly #roomEvents = new Map<string, string[]>()
@@ -1033,6 +1034,11 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     for (const room of [...this.#rooms.values()]) room.close()
   }
 
+  /** Every Campaign whose room this client has opened, including rooms since closed. */
+  openedRoomCampaignIds(): ReadonlySet<string> {
+    return this.#openedRoomCampaignIds
+  }
+
   /**
    * What the room answers a turn read or the pending decision with while it holds the Run (A35-S6e),
    * at its own version, as the tabletop reads them. Undefined when Convex answers instead: the read
@@ -1106,6 +1112,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   #room(campaignId: string): CommandRoom {
     const existing = this.#rooms.get(campaignId)
     if (existing) return existing
+    this.#openedRoomCampaignIds.add(campaignId)
     const url = this.workerUrl()
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     url.pathname = `${url.pathname.replace(/\/$/, '')}${LIVE_SESSION_PATH_PREFIX}/${campaignId}`

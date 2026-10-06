@@ -21,7 +21,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { activateFixtureRun } from './activeInitiative'
-import { readEncounterHistory } from './liveSessionWorker'
+import { readEncounterHistory } from './roomRouting'
 
 const creatureId = '00000000-0000-4000-8000-000000000ce0'
 const featureId = '00000000-0000-4000-8000-000000000ce1'

@@ -41,7 +41,8 @@ import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
-import { executeInRoom } from './liveSessionWorker'
+import { attachFixtureRoom } from './localRoomWorker'
+import { executeInRoom } from './roomRouting'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -375,6 +376,7 @@ export async function setupCreatureReactionRun(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   run = encounterGmProjectionDtoSchema.parse(
     (
       await settleStart(

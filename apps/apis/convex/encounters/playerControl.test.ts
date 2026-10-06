@@ -21,7 +21,13 @@ import {
 } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
+import {
+  checkpointLiveRoom,
+  executeInRoom,
+  invalidateRoomInputs,
+  RoomCommandRefusal,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { encounterReadTransaction } from './encounterPorts'
 
 const leaveCampaign = makeFunctionReference<
@@ -40,6 +46,7 @@ const readProjection = makeFunctionReference<
 
 /** Each member's control of each actor, read through the one predicate. */
 async function controlMatrix(base: PlayerControlFixture, members: Record<string, Member>) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => {
     const campaign = await ctx.db
       .query('campaigns')
@@ -127,6 +134,8 @@ async function hide(base: PlayerControlFixture, actorId: string) {
 }
 
 describe('Encounter actor control', () => {
+  useLocalRoomWorker()
+
   it('answers GM, assigned player, granted controller, other player and departed member', async () => {
     const base = await playerControlFixture()
     const members = { gm: base.owner, player: base.player, other: base.other }
@@ -184,6 +193,9 @@ describe('Encounter actor control', () => {
       expectedMembershipAccessStartedAt: base.campaign.createdAt,
       commandId: crypto.randomUUID()
     })
+    // Convex's scheduler sends the room this notice; convex-test runs none.
+    await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+    await checkpointLiveRoom(base.campaign.id)
     const projection = await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -240,6 +252,7 @@ describe('Encounter actor control', () => {
       disposition: 'HOSTILE'
     })
     // The GM projection keeps health; the companion's fixed Bite dealt 1 damage.
+    await checkpointLiveRoom(base.campaign.id)
     const enemy = encounterGmProjectionDtoSchema
       .parse(await base.owner.caller.query(readProjection, { encounterId: base.run.id }))
       .actors.find((actor) => actor.id === base.enemy.id)
@@ -361,8 +374,9 @@ describe('Encounter actor control', () => {
         tokenId
       })
     )
-    const canMove = (member: Member) =>
-      base.t.run(async (ctx) => {
+    const canMove = async (member: Member) => {
+      await checkpointLiveRoom(base.campaign.id)
+      return base.t.run(async (ctx) => {
         const campaign = await ctx.db
           .query('campaigns')
           .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
@@ -388,6 +402,7 @@ describe('Encounter actor control', () => {
           }
         )
       })
+    }
     expect([
       await canMove(base.owner),
       await canMove(base.player),

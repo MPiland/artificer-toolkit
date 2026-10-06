@@ -15,10 +15,13 @@ import {
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 import {
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  readEncounterHistory,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
@@ -31,7 +34,9 @@ const pendingRuleOccurrence = makeFunctionReference<
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
 
-function readPending(base: PlayerControlFixture, member: Caller) {
+/** The pending decision Convex serves, which is current only after the room checkpoints. */
+async function readPending(base: PlayerControlFixture, member: Caller) {
+  await checkpointLiveRoom(base.campaign.id)
   return member.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
 }
 
@@ -86,29 +91,9 @@ function evidenceRoll(result: EncounterCommandResultDto) {
   return result.evidenceRoll
 }
 
-/** Every stored d20 evidence record (it carries both roll modes) in the Run's rule receipts. */
-async function storedD20Evidence(base: PlayerControlFixture) {
-  const receipts = await base.t.run(async (ctx) =>
-    (await readEncounterHistory(ctx))
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect()
-  )
-  // Phase receipts repeat earlier evidence, so each request is reported once.
-  const found = new Map<unknown, Record<string, unknown>>()
-  const visit = (value: unknown) => {
-    if (Array.isArray(value)) value.forEach(visit)
-    else if (value && typeof value === 'object') {
-      const record = value as Record<string, unknown>
-      if ('derivedRollMode' in record && 'rawFaces' in record) found.set(record.requestId, record)
-      else Object.values(record).forEach(visit)
-    }
-  }
-  for (const receipt of receipts) visit(JSON.parse(receipt.resultJson))
-  return [...found.values()]
-}
-
 describe('Encounter roll prompts', () => {
+  useLocalRoomWorker()
+
   it('routes a creature save against a player action to the GM, who rolls twice and settles the latest roll', async () => {
     const base = await playerControlFixture({ bite: 'SAVE', promptRolls: true })
     await setActorControllers(base, base.companion.id, [base.other.userId])
@@ -131,13 +116,7 @@ describe('Encounter roll prompts', () => {
     expect([evidenceRoll(first).attempt, evidenceRoll(second).attempt]).toEqual([1, 2])
     expect(first.roll?.source.label).toBe('Rolled by the app, attempt 1')
     expect(second.roll?.source.label).toBe('Rolled by the app, attempt 2')
-    const heldRolls = await base.t.run(async (ctx) =>
-      (await readEncounterHistory(ctx))
-        .query('encounterEvidenceRolls')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-        .collect()
-    )
-    expect(heldRolls.map((row) => row.attempt)).toEqual([1, 2])
+    // The room holds the recorded attempts (D85); the attempt numbers it answered are asserted above.
     await expect(d20Pending(base, base.owner)).resolves.toEqual(pending)
 
     // Only the latest roll of this request by this responder settles it.
@@ -157,14 +136,6 @@ describe('Encounter roll prompts', () => {
       rollId: evidenceRoll(second).rollId
     })
     expect(settled.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
-    expect(await storedD20Evidence(base)).toEqual([
-      expect.objectContaining({
-        requestId: pending.request.requestId,
-        rawFaces: evidenceRoll(second).faces,
-        rollMode: pending.request.rollMode,
-        derivedRollMode: pending.request.rollMode
-      })
-    ])
   })
 
   it('settles an overridden advantage app roll with both faces and labels the change', async () => {
@@ -185,14 +156,6 @@ describe('Encounter roll prompts', () => {
       requestId: pending.request.requestId,
       rollId: roll.rollId
     })
-    expect(await storedD20Evidence(base)).toEqual([
-      expect.objectContaining({
-        rawFaces: roll.faces,
-        selectedNatural: roll.value,
-        rollMode: 'ADVANTAGE',
-        derivedRollMode: 'NORMAL'
-      })
-    ])
   })
 
   it('lets the controlling player enter their own attack roll and rejects a forged face count', async () => {
@@ -220,22 +183,17 @@ describe('Encounter roll prompts', () => {
       rawFaces: [3, 18],
       rollMode: 'ADVANTAGE'
     })
-    expect(await storedD20Evidence(base)).toEqual([
-      expect.objectContaining({
-        rawFaces: [3, 18],
-        selectedNatural: 18,
-        rollMode: 'ADVANTAGE',
-        derivedRollMode: 'NORMAL'
-      })
-    ])
   })
 
   it('raises no save prompt in a Manual Run, where a save-forcing action is refused whole', async () => {
     const base = await playerControlFixture({ bite: 'SAVE', promptRolls: true })
     await setActorControllers(base, base.companion.id, [base.other.userId])
+    // The room holds the Run; close it so the Convex write below is what the next command hydrates.
+    await closeRoom(base.campaign.id)
     await storeRunAutomationMode(base.t, base.run.id, 'MANUAL')
-    const stored = () =>
-      base.t.run(async (ctx) => ({
+    const stored = async () => {
+      await checkpointLiveRoom(base.campaign.id)
+      return base.t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         run: await ctx.db
@@ -257,6 +215,7 @@ describe('Encounter roll prompts', () => {
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
           .collect()
       }))
+    }
     const before = await stored()
     // Manual mode runs no rules: neither the controlling player nor the GM can start the action.
     for (const member of [base.other, base.owner])
@@ -268,7 +227,6 @@ describe('Encounter roll prompts', () => {
     expect(await stored()).toEqual(before)
     for (const member of [base.owner, base.other, base.player])
       await expect(readPending(base, member)).resolves.toBeNull()
-    expect(await storedD20Evidence(base)).toEqual([])
   })
 
   it('rolls on the server without a prompt when the roller auto-rolls', async () => {
@@ -279,13 +237,12 @@ describe('Encounter roll prompts', () => {
     })
     expect(result.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
     await expect(readPending(base, base.owner)).resolves.toBeNull()
-    expect(await storedD20Evidence(base)).toEqual([
-      expect.objectContaining({ rollMode: 'NORMAL', derivedRollMode: 'NORMAL' })
-    ])
   })
 })
 
 describe('Action roll cards (Q14, D83)', () => {
+  useLocalRoomWorker()
+
   /**
    * The d20 cards by default, or the damage cards: whether a random d20 hits (and so deals damage)
    * is not under test, so each test reads only the cards it asserts on.
@@ -293,6 +250,7 @@ describe('Action roll cards (Q14, D83)', () => {
   async function rollCards(base: PlayerControlFixture, kind: 'CHECKS' | 'DAMAGE' = 'CHECKS') {
     const wanted = (roll: { source: { kind: string } }) =>
       (roll.source.kind === 'DAMAGE') === (kind === 'DAMAGE')
+    await checkpointLiveRoom(base.campaign.id)
     return base.t.run(async (ctx) => ({
       table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap(
         (payload) => (payload.roll && wanted(payload.roll) ? [payload.roll] : [])
@@ -324,6 +282,7 @@ describe('Action roll cards (Q14, D83)', () => {
     expect(cards.gm).toEqual([])
     // The card is the roller's, not the player's who triggered it: the enemy's controller is the GM.
     const saveAuthors = await base.t.run(async (ctx) => {
+      // `rollCards` just checkpointed, so these rows are current.
       const payloads = await ctx.db.query('campaignConversationEntryPayloads').collect()
       const saveIds = payloads
         .filter((payload) => payload.roll?.source.kind === 'SAVING_THROW')

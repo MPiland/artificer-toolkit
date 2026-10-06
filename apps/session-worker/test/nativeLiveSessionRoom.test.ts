@@ -4809,6 +4809,64 @@ it('checkpoints the complete native Encounter prefix before acknowledging COMPLE
   })
 })
 
+it('records the corrected initiative state on each turn correction and no rule receipt for it', async () => {
+  const { base, state, actors } = await localEncounterFixture()
+  const corrections = [
+    { type: 'SET_ROUND', round: 2 },
+    { type: 'SET_CURRENT_ACTOR', actorId: actors[1]!.id },
+    { type: 'PREVIOUS_TURN' }
+  ]
+  const evidence = await runInDurableObject(base.stub, async (instance, context) => {
+    const socket = context
+      .getWebSockets()
+      .find(
+        (candidate) =>
+          (candidate.deserializeAttachment() as { userId: string }).userId === base.userId
+      )
+    if (!socket) throw new Error('Missing owner native socket.')
+    for (const [index, fields] of corrections.entries())
+      await instance.webSocketMessage(
+        socket,
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: index,
+          command: {
+            scope: 'ENCOUNTER',
+            command: encounterCommandInputDtoSchema.parse({
+              ...fields,
+              encounterId: state.id,
+              commandId: crypto.randomUUID(),
+              expectedVersion: index + 1
+            })
+          }
+        })
+      )
+    return {
+      commands: localEncounterEvidence(context.storage).commands,
+      receipts: new RoomEncounterStore(context.storage).documents('encounterRuleReceipts')
+    }
+  })
+  const recorded = evidence.commands.filter((command) =>
+    corrections.some(({ type }) => type === command.commandType)
+  )
+  expect(recorded.map((command) => command.commandType)).toEqual(
+    corrections.map(({ type }) => type)
+  )
+  for (const command of recorded) {
+    if (!('initiativeStateJson' in command) || command.initiativeStateJson === null)
+      throw new Error('Missing corrected initiative state.')
+    expect(command.initiativeStateChecksum).toMatch(/^[a-f0-9]{64}$/)
+    expect(checksumCanonicalJson(JSON.parse(command.initiativeStateJson))).toBe(
+      command.initiativeStateChecksum
+    )
+  }
+  expect(
+    evidence.receipts.some((receipt) =>
+      corrections.some(({ type }) => type === receipt.commandType)
+    )
+  ).toBe(false)
+})
+
 it('commits a warm native initiative roll privately and replays its exact evidence after eviction', async () => {
   const { base, player, state, actors } = await localEncounterFixture()
   const commandId = crypto.randomUUID()

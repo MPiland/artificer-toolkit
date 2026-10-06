@@ -34,9 +34,13 @@ import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
-  commitSceneInRoom,
-  insertActiveLiveAuthority
-} from '../../tests/fixtures/liveSessionWorker'
+  attachFixtureRoom,
+  checkpointRoom,
+  executeSceneInRoom,
+  insertActiveLiveAuthority,
+  readLiveAuthorityEpoch,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { api } from '../_generated/api'
 import {
   campaignRollNonceFingerprint,
@@ -178,16 +182,11 @@ async function setupScene(withGeometry = false) {
     campaignId: base.campaign.id,
     sceneId: scene.sceneId
   })
-  const epoch = crypto.randomUUID()
-  await base.t.run((ctx) =>
-    insertActiveLiveAuthority(ctx, {
-      campaignId: base.campaign.id,
-      epoch,
-      createdAt: new Date().toISOString()
-    })
-  )
-  if (withGeometry)
-    await commitSceneInRoom(base.owner.caller, base.campaign.id, {
+  let epoch: string = crypto.randomUUID()
+  if (withGeometry) {
+    // The real room claims the Campaign's authority with its first command; read its epoch back.
+    await attachFixtureRoom(base.t, base.campaign.id)
+    await executeSceneInRoom(base.owner.caller, {
       type: 'MOVE_SCENE_TOKEN',
       commandId: crypto.randomUUID(),
       sceneId: scene.sceneId,
@@ -198,6 +197,17 @@ async function setupScene(withGeometry = false) {
       movementKind: 'VOLUNTARY',
       path: [token.position, { x: 900, y: 100 }]
     })
+    await checkpointRoom(base.campaign.id)
+    epoch = await readLiveAuthorityEpoch(base.t, base.campaign.id)
+  } else {
+    await base.t.run((ctx) =>
+      insertActiveLiveAuthority(ctx, {
+        campaignId: base.campaign.id,
+        epoch,
+        createdAt: new Date().toISOString()
+      })
+    )
+  }
   const request = (
     cursor: Extract<LiveRoomInputsScope, { kind: 'SCENE' }>['cursor'] = null
   ): LiveRoomInputsInput => ({
@@ -365,28 +375,6 @@ describe('raw room Scene inputs', () => {
       await ctx.db.patch(row._id, { checksum: checksumCanonicalJson({ corrupted: true }) })
     })
     await expect(base.t.query(read, input)).rejects.toThrow('entity is inconsistent')
-  })
-
-  it('returns all five native families after a committed geometry and fog change', async () => {
-    const base = await setupScene(true)
-    const response = await readRoomInputsBatch((input) => base.t.query(read, input), base.request())
-    if (response.kind !== 'SCENE') throw new Error('Expected Scene inputs.')
-    expect(response.sceneVersion).toBe(1)
-    expect(response.continueCursor).toBeNull()
-    // The room writes every chunk of the explored layer, so chunk rows repeat at the end.
-    expect([...new Set(response.documents.map((document) => document.table))]).toEqual([
-      'sceneLiveStates',
-      'sceneLiveEntities',
-      'sceneFogLayers',
-      'sceneFogSaves',
-      'sceneFogChunks'
-    ])
-    expect(
-      response.documents.find((document) => document.table === 'sceneLiveEntities')?.fields.value
-    ).toMatchObject({
-      collection: 'tokens',
-      entity: { label: 'Native token', position: { x: 900, y: 100 } }
-    })
   })
 
   it('reads an empty materialized Scene with exact source pins and no synthesized live rows', async () => {
@@ -592,6 +580,34 @@ describe('raw room Scene inputs', () => {
     const readPage = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(changed)
     expect(await readRoomInputsBatch(readPage, base.request())).toEqual(first)
     expect(readPage).toHaveBeenLastCalledWith(base.request(first.continueCursor))
+  })
+})
+
+describe('raw room Scene inputs from the real room', () => {
+  useLocalRoomWorker()
+
+  it('returns all five native families after a committed geometry and fog change', async () => {
+    // The Worker's HTTP and socket calls need real timers.
+    vi.useRealTimers()
+    const base = await setupScene(true)
+    const response = await readRoomInputsBatch((input) => base.t.query(read, input), base.request())
+    if (response.kind !== 'SCENE') throw new Error('Expected Scene inputs.')
+    expect(response.sceneVersion).toBe(1)
+    expect(response.continueCursor).toBeNull()
+    // The room writes every chunk of the explored layer, so chunk rows repeat at the end.
+    expect([...new Set(response.documents.map((document) => document.table))]).toEqual([
+      'sceneLiveStates',
+      'sceneLiveEntities',
+      'sceneFogLayers',
+      'sceneFogSaves',
+      'sceneFogChunks'
+    ])
+    expect(
+      response.documents.find((document) => document.table === 'sceneLiveEntities')?.fields.value
+    ).toMatchObject({
+      collection: 'tokens',
+      entity: { label: 'Native token', position: { x: 900, y: 100 } }
+    })
   })
 })
 

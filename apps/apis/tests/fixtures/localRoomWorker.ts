@@ -19,10 +19,11 @@ import {
   encounterExecuteInputSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type { z } from 'zod'
 import { api, internal } from '../../convex/_generated/api'
-import type { QueryCtx } from '../../convex/_generated/server'
+import type { MutationCtx, QueryCtx } from '../../convex/_generated/server'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import type schema from '../../convex/schema'
 import {
@@ -30,6 +31,7 @@ import {
   type ContentSnapshotScopeRef
 } from '../../convex/contentSnapshots/marking'
 import { executeEncounterCommand } from '../developmentClient'
+import { bindToken } from '../developmentEncounterLifecycle'
 import {
   DevelopmentHttpClient,
   RoomCommandRejectedError,
@@ -45,7 +47,58 @@ import { startLocalR2 } from '../localR2'
  * and content snapshots are built by the real producer into a loopback R2 bucket.
  *
  * One Worker serves a test file (`useLocalRoomWorker`); each test attaches its own convex-test
- * instance and a fresh Campaign (`attachRoomWorker`).
+ * instance and a fresh Campaign (`attachRoomWorker`). After each test the fixture closes the
+ * rooms the test touched, and a Campaign ID a file reuses restarts the Worker, because a closed
+ * room's durable state still holds the old Run.
+ *
+ * MIGRATION RECIPE (from `liveSessionWorker.ts`, the stand-in room, to this fixture)
+ *
+ * 1. Setup. Call `useLocalRoomWorker()` once in the file (or inside one `describe`). After the
+ *    Campaign has its content, call `attachRoomWorker(t)` then `seedRoomContentSnapshots(campaignId)`,
+ *    or just `attachFixtureRoom(t, campaignId)`, which is a no-op for a file on the stand-in. Shared
+ *    fixtures (`playerControl`, `turnConcentration`, `nativeDisarm`, `movementReactionEffects`,
+ *    `spatialPreparation`) call it themselves. Do this before the first room command.
+ * 2. Calls (old -> new, same arguments unless noted):
+ *    - `executeInRoom`, `executeSheetInRoom` -> the same names here. The room's dice are real.
+ *    - `readEncounterSessionInRoom`, `readTimelineInRoom`, `readEncounterInRoom` ->
+ *      `readRoomEncounterSession`, `readRoomTimeline`, `readRoomEncounter` (plus `readRoomRollCards`).
+ *    - `commitSceneInRoom` -> `executeSceneInRoom(caller, command, replayOfSequence?)`; it returns
+ *      `{ result, version, expectedSessionSequence }`.
+ *    - `bindActorTokenInRoom` -> the same name here. `inProcessDevelopmentClient` ->
+ *      `roomDevelopmentClient(caller)`.
+ *    - `replayInRoom` -> call `executeInRoom` again with the same command: the room answers a
+ *      retry from its held history.
+ *    - `executeRoomEncounterCommand` -> `executeInRoom(caller, { command })`; the room authorizes
+ *      the member itself, so there is no `actor`, `authorityEpoch` or `random` argument.
+ *    - `planMovementInRoom`, `planMovementDecisionInRoom` -> no plan-then-publish split exists: the
+ *      real room plans and commits in one step. Use `executeSceneInRoom` and assert on the commit
+ *      result, or `useMovementReactionsInRoom` / `commitSpatialTerminalFixtureInRoom`. An assertion
+ *      on a plan's `outcome` internals has no room equivalent: cover it with a rules-runtime test.
+ *    - `reconcileDeparturesInRoom` -> `invalidateRoomInputs(campaignId, ['CAMPAIGN'])` while a member
+ *      socket is connected (the room reconciles departures after reloading authorization).
+ *    - `insertActiveLiveAuthority` -> the same name here, for a test that runs no room. When the
+ *      room runs, it claims authority itself on first join: read the epoch with
+ *      `readLiveAuthorityEpoch(t, campaignId)` after its first command (and `claimActiveLiveAuthority`
+ *      has no equivalent for that reason).
+ *    - No equivalent, by design: `readHeldReplayIndex`, `persistHeldHistoryToConvex`
+ *      (the room does not expose held history), `discardRoomJournal`, `endRoomEpoch`
+ *      (`closeRoom` ends the epoch). Run the operation through the room, or end the Run.
+ * 3. Convex writes under a held Run. The room holds a Run's state and history (D85) until the Run
+ *    ends, so Convex reads see only checkpointed rows. Before a test reads a Run or its history
+ *    from Convex, call `checkpointLiveRoom(campaignId)`. Before a test writes the Run or its
+ *    actors straight in Convex (`t.run` patches, direct mutations), call `closeRoom(campaignId)`
+ *    so the room drops its held copy, then write; the next room command hydrates from Convex.
+ *    `readEncounterHistory(ctx)` reads Convex's rows only.
+ * 4. Dice. Queue rolls instead of `setAutoRollDice` or mocking `rollRandom`:
+ *    `queueRoomRolls(campaignId, rolls)` before the command that draws them.
+ * 5. After a Builder or Campaign edit that the room's inputs depend on, call
+ *    `invalidateRoomInputs(campaignId, scopes)` (`CAMPAIGN`, `PLAY`, `CHARACTER`, `PREFERENCES`)
+ *    so the room reloads them before the next command.
+ * 6. Refusals. `RoomCommandRefusal` is the thrown refusal; `expectRedactedRoomRefusal` asserts one.
+ *
+ * Shared fixtures route through `roomRouting.ts` while the stand-in exists: a file that called
+ * `useLocalRoomWorker()` gets this room, every other file the stand-in. `usesRoomWorker()` tells
+ * which. Delete `roomRouting.ts` and the stand-in once the last file migrates.
  */
 
 /** An identity-bound convex-test caller (a Campaign member), or the unauthenticated `t` itself. */
@@ -251,40 +304,82 @@ type AttachedRoom = {
   t: TestConvex<typeof schema>
   clients: Map<RoomCaller | null, DevelopmentHttpClient>
   peers: DevelopmentHttpClient[]
+  /** Campaigns the test reached through the Worker's control routes rather than a room client. */
+  touched: Set<string>
 }
 
 let started: Promise<RoomWorker> | null = null
 let attached: AttachedRoom | null = null
+/** Campaigns whose rooms earlier tests of this file touched on the current Worker. */
+const touchedCampaignIds = new Set<string>()
+/** Whether a room failed to close, so the Worker must not serve another test. */
+let workerDiscarded = false
 
-/** Starts one Worker for the test file and stops it, with its loopback servers, after the file. */
+/**
+ * Starts one Worker for the test file and stops it, with its loopback servers, after the file.
+ * After each test every room it touched is closed (sockets, drain, checkpoint, release), so none
+ * outlives the test to call Convex for a later test's instance.
+ */
 export function useLocalRoomWorker() {
   beforeAll(() => {
     started = startWorker()
     return started.then(() => undefined)
   }, STARTUP_TIMEOUT_MS)
-  afterEach(() => {
-    for (const client of [...(attached?.clients.values() ?? []), ...(attached?.peers ?? [])])
-      client.closeRooms()
+  afterEach(async () => {
+    if (!attached) return
+    const { worker, clients, peers, touched } = attached
+    const all = [...clients.values(), ...peers]
+    for (const client of all) client.closeRooms()
+    for (const client of all) for (const id of client.openedRoomCampaignIds()) touched.add(id)
+    // The test's own `vi.unstubAllEnvs()` ran before this hook, and Convex refuses the room's
+    // drain without the Worker secret (a 503 the room retries), so the room's environment returns.
+    stubRoomEnvironment(worker)
+    for (const campaignId of touched) {
+      // A room that cannot drain (a test left corrupt rows in Convex) stays open on this Worker, so
+      // the next test gets a fresh one rather than a neighbour that calls its Convex.
+      await closeRoom(campaignId).catch(() => {
+        workerDiscarded = true
+      })
+      touchedCampaignIds.add(campaignId)
+    }
     attached = null
   })
   afterAll(async () => {
     await (await started)?.dispose()
     started = null
+    touchedCampaignIds.clear()
+    workerDiscarded = false
   })
 }
 
 /**
  * Points the file's Worker at this test's convex-test instance and gives Convex the room's
- * environment (secrets, the Worker's URL, local R2). Each test needs a fresh Campaign: the Worker's
- * rooms are keyed by Campaign and outlive the test.
+ * environment (secrets, the Worker's URL, local R2). A room is keyed by its Campaign ID and keeps
+ * its durable state after it closes, as a platform does, so a test whose Campaign ID an earlier test
+ * of the file already used (a mocked `crypto.randomUUID` that restarts its sequence) gets a fresh
+ * Worker with empty storage.
  */
 export async function attachRoomWorker(t: TestConvex<typeof schema>) {
+  if (!started) throw new Error('Call useLocalRoomWorker() in the test file first.')
+  if (attached?.t === t) return attached.worker.r2
+  const campaigns = await t.run((ctx) => ctx.db.query('campaigns').collect())
+  if (workerDiscarded || campaigns.some((campaign) => touchedCampaignIds.has(campaign.id))) {
+    await (await started).dispose()
+    touchedCampaignIds.clear()
+    workerDiscarded = false
+    started = startWorker()
+  }
   const worker = await started
-  if (!worker) throw new Error('Call useLocalRoomWorker() in the test file first.')
   worker.bridge.serve(t)
   worker.r2.objects.clear()
   worker.r2.contentSnapshotObjects.clear()
   worker.errorLogs.length = 0
+  stubRoomEnvironment(worker)
+  attached = { worker, t, clients: new Map(), peers: [], touched: new Set() }
+  return worker.r2
+}
+
+function stubRoomEnvironment(worker: RoomWorker) {
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', WORKER_SECRET)
   vi.stubEnv('LIVE_SESSION_TICKET_SECRET', TICKET_SECRET)
   vi.stubEnv('LIVE_SESSION_WORKER_URL', worker.url)
@@ -292,8 +387,26 @@ export async function attachRoomWorker(t: TestConvex<typeof schema>) {
   vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
   vi.stubEnv('LOCAL_R2_ENDPOINT', worker.r2.endpoint)
   vi.stubEnv('CONVEX_SITE_URL', LOCAL_CONVEX_SITE_URL)
-  attached = { worker, t, clients: new Map(), peers: [] }
-  return worker.r2
+}
+
+/**
+ * Whether the running test file (or the `describe` that called `useLocalRoomWorker`) uses the real
+ * room. Shared fixtures that still serve tests on the stand-in room route on this
+ * (`roomRouting.ts`); it goes with the stand-in.
+ */
+export function usesRoomWorker() {
+  return started !== null
+}
+
+/**
+ * For a fixture that drives the room while it builds, once its content is imported: attaches the
+ * real room to the fixture's `t` and builds the Campaign's content snapshots. A no-op for a test on
+ * the stand-in room.
+ */
+export async function attachFixtureRoom(t: TestConvex<typeof schema>, campaignId: string) {
+  if (!usesRoomWorker()) return
+  await attachRoomWorker(t)
+  await seedRoomContentSnapshots(campaignId)
 }
 
 function room(): AttachedRoom {
@@ -339,14 +452,36 @@ function openRoomClient(caller: RoomCaller | null): DevelopmentHttpClient {
  * Sends an Encounter command through the member's socket to the real room, as a browser does.
  * Sending a settled command again is a retry: the live room's held history answers it (D85).
  */
-export function executeInRoom(
+export async function executeInRoom(
   caller: RoomCaller,
   input: z.input<typeof encounterExecuteInputSchema>
 ): Promise<EncounterCommandResultDto> {
+  // Async, so an input the contract refuses rejects the promise, as the room's own refusals do.
   return roomDevelopmentClient(caller).mutation(
     executeEncounterCommand,
     encounterExecuteInputSchema.parse(input)
   )
+}
+
+/**
+ * Commits a Scene command (a token move, a door, fog) through the member's socket, as the tabletop
+ * does. The room plans and commits it atomically and answers with the committed result; there is no
+ * separate plan step to inspect. A retry passes the sequence the commit carried.
+ */
+export function executeSceneInRoom(
+  caller: RoomCaller,
+  command: Parameters<DevelopmentHttpClient['executeSceneCommand']>[0],
+  replayOfSequence?: number
+) {
+  return roomDevelopmentClient(caller).executeSceneCommand(command, replayOfSequence)
+}
+
+/** Binds or unbinds an Encounter actor's Scene token through the room as the GM (D78). */
+export function bindActorTokenInRoom(
+  caller: RoomCaller,
+  input: EncounterActorTokenBindingCommandInputDto
+) {
+  return roomDevelopmentClient(caller).mutation(bindToken, { input })
 }
 
 /** Sends one live Character Sheet command through the member's socket, as the Sheet does while the room holds the Character. */
@@ -426,7 +561,13 @@ export async function expectRedactedRoomRefusal(
   })
 }
 
-async function postToWorker(path: string, body?: unknown, tolerated: readonly number[] = []) {
+async function postToWorker(
+  campaignId: string,
+  path: string,
+  body?: unknown,
+  tolerated: readonly number[] = []
+) {
+  room().touched.add(campaignId)
   const post = () =>
     fetch(new URL(path, room().worker.url), {
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -449,12 +590,12 @@ async function postToWorker(path: string, body?: unknown, tolerated: readonly nu
  * followed by `mockReturnValue` would.
  */
 export function queueRoomRolls(campaignId: string, rolls: LiveSessionTestRollsInputDto) {
-  return postToWorker(`${LIVE_SESSION_TEST_ROLLS_PATH}/${campaignId}`, rolls)
+  return postToWorker(campaignId, `${LIVE_SESSION_TEST_ROLLS_PATH}/${campaignId}`, rolls)
 }
 
 /** Publishes everything the room has committed to Convex, without disturbing its sockets. */
 export function checkpointRoom(campaignId: string) {
-  return postToWorker(`${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}/${campaignId}`)
+  return postToWorker(campaignId, `${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}/${campaignId}`)
 }
 
 /**
@@ -462,7 +603,12 @@ export function checkpointRoom(campaignId: string) {
  * room answers 409 while it holds no live authority, and Convex is then the only state there is.
  */
 export function checkpointLiveRoom(campaignId: string) {
-  return postToWorker(`${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}/${campaignId}`, undefined, [409])
+  return postToWorker(
+    campaignId,
+    `${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}/${campaignId}`,
+    undefined,
+    [409]
+  )
 }
 
 /**
@@ -470,7 +616,7 @@ export function checkpointLiveRoom(campaignId: string) {
  * runs no scheduler, so a test that edits a held Character delivers it here.
  */
 export function invalidateRoomInputs(campaignId: string, scopes: LiveSessionInputScope[]) {
-  return postToWorker(LIVE_SESSION_CONTROL_PATH, {
+  return postToWorker(campaignId, LIVE_SESSION_CONTROL_PATH, {
     campaignId,
     operation: { type: 'INVALIDATE_INPUTS', scopes }
   })
@@ -478,7 +624,10 @@ export function invalidateRoomInputs(campaignId: string, scopes: LiveSessionInpu
 
 /** The control route Convex calls to close a Campaign's room: it drains, checkpoints and releases. */
 export function closeRoom(campaignId: string) {
-  return postToWorker(LIVE_SESSION_CONTROL_PATH, { campaignId, operation: { type: 'CLOSE_ROOM' } })
+  return postToWorker(campaignId, LIVE_SESSION_CONTROL_PATH, {
+    campaignId,
+    operation: { type: 'CLOSE_ROOM' }
+  })
 }
 
 /**
@@ -487,6 +636,39 @@ export function closeRoom(campaignId: string) {
  */
 export function readEncounterHistory(ctx: QueryCtx) {
   return createConvexEncounterStoreReader(ctx)
+}
+
+/**
+ * Seeds the Campaign's active live authority row, for tests of Convex's room-facing queries and
+ * mutations that run with no room (the epoch is the caller's to choose). When the real room runs,
+ * it claims authority itself on first join: read its epoch with `readLiveAuthorityEpoch`.
+ */
+export function insertActiveLiveAuthority(
+  ctx: MutationCtx,
+  { campaignId, epoch, createdAt }: { campaignId: string; epoch: string; createdAt: string }
+) {
+  return ctx.db.insert('campaignLiveAuthorities', {
+    campaignId,
+    epoch,
+    phase: 'DO_ACTIVE',
+    activationFingerprint: '0'.repeat(64),
+    persistedSequence: 0,
+    persistedStateChecksum: '0'.repeat(64),
+    createdAt,
+    updatedAt: createdAt
+  })
+}
+
+/** The epoch of the live authority the real room claimed for the Campaign. */
+export async function readLiveAuthorityEpoch(t: TestConvex<typeof schema>, campaignId: string) {
+  const authority = await t.run((ctx) =>
+    ctx.db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique()
+  )
+  if (!authority) throw new Error('The room holds no live authority for this Campaign.')
+  return authority.epoch
 }
 
 /**

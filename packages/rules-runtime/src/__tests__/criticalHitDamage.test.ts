@@ -173,7 +173,7 @@ describe('critical hits double every damage die of the attack (SRD 5.1)', () => 
       }
     })
     expect(rolls).toEqual([])
-    expect(critical.d20).toMatchObject({ resultPath: 'ON_CRIT' })
+    expect(critical.d20).toMatchObject({ selectedNatural: 20, resultPath: 'ON_CRIT' })
     expect(outcomeDice(critical).hit).toEqual(['d8', 'd8'])
     expect(damage(critical)).toEqual([[4 + 7 + 3, srdDamageTypeId('SLASHING')]])
   })

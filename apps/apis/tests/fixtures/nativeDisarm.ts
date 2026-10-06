@@ -55,15 +55,20 @@ import {
 import { requireCampaignAuthority } from '../../convex/campaigns/authority'
 import { encounterTurnReadTransaction } from '../../convex/encounters/turnReadPorts'
 import { readMovementTargets } from './movementTargets'
-import * as rollRandom from '../../convex/lib/rollRandom'
-import { executeRoomEncounterCommand, insertActiveLiveAuthority } from './liveSessionWorker'
 import { seedActiveInitiative } from './activeInitiative'
 import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 
 import { createDisarmCreature, createDisarmWeapon, disarmHeldEntryId } from './disarmCreature'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
-import { executeInRoom, readEncounterHistory } from './liveSessionWorker'
+import {
+  attachFixtureRoom,
+  closeRoom,
+  insertActiveLiveAuthority,
+  usesRoomWorker,
+  type RoomCaller
+} from './localRoomWorker'
+import { executeInRoom, readEncounterHistory } from './roomRouting'
 export { disarmHeldEntryId, disarmOtherEntryId } from './disarmCreature'
 export const getNativeActionChoices = makeFunctionReference<
   'query',
@@ -170,6 +175,7 @@ export async function nativeDisarmFixture(
     ? run.actors.find((candidate) => candidate.kind === 'CHARACTER')
     : creatures[1]
   if (!actor || !target) throw new Error('Missing Disarm participants.')
+  await attachFixtureRoom(base.t, base.campaign.id)
   await executeInRoom(base.owner.caller, {
     command: {
       type: 'REPLACE_OPTIONAL_COMBAT_RULES',
@@ -179,6 +185,9 @@ export async function nativeDisarmFixture(
       definitionIds: [optional.id]
     }
   })
+  // The real room holds the Run until it closes; the Run is then started in Convex below, as the
+  // stand-in room reads it, and the first command's room hydrates from it.
+  if (usesRoomWorker()) await closeRoom(base.campaign.id)
   const prepared = await base.owner.caller.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')
@@ -302,42 +311,28 @@ export async function nativeDisarmFixture(
     })
     return { command, contest: preparation.contest }
   })
-  const authorityEpoch = crypto.randomUUID()
-  await base.t.run((ctx) =>
-    insertActiveLiveAuthority(ctx, {
-      campaignId: base.campaign.id,
-      epoch: authorityEpoch,
-      createdAt: base.campaign.createdAt
-    })
-  )
+  // The real room claims live authority itself on first join.
+  if (!usesRoomWorker())
+    await base.t.run((ctx) =>
+      insertActiveLiveAuthority(ctx, {
+        campaignId: base.campaign.id,
+        epoch: crypto.randomUUID(),
+        createdAt: base.campaign.createdAt
+      })
+    )
   return {
     ...base,
     run,
     actor,
     target,
     heldItemId: characterTarget ? item.id : disarmHeldEntryId,
-    authorityEpoch,
     ...prepared
   }
 }
 
-/** Sends a command through the room as `member`; the room's dice come from `nextRollInt`. */
-export function disarmInRoom(
-  base: Awaited<ReturnType<typeof nativeDisarmFixture>>,
-  member: Awaited<ReturnType<typeof nativeDisarmFixture>>['player'],
-  command: EncounterCommandInputDto
-) {
-  return executeRoomEncounterCommand({
-    caller: member.caller,
-    actor: {
-      campaignId: base.campaign.id,
-      authorityEpoch: base.authorityEpoch,
-      expectedUserId: member.userId,
-      expectedRole: member.userId === base.owner.userId ? 'OWNER' : 'PLAYER'
-    },
-    command,
-    random: (maximum) => rollRandom.nextRollInt(maximum)
-  })
+/** Sends a command through the room as `member`; the stand-in room's dice come from `nextRollInt`. */
+export function disarmInRoom(member: { caller: RoomCaller }, command: EncounterCommandInputDto) {
+  return executeInRoom(member.caller, { command })
 }
 
 export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {

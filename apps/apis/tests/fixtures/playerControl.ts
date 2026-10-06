@@ -27,7 +27,8 @@ import { setupCharacterRun } from './encounterCharacter'
 import { createPartyPlayer } from './partyPlayer'
 import { importedSubject } from './publication'
 import { setAutoRollDice } from './rollPreferences'
-import { executeInRoom } from './liveSessionWorker'
+import { attachFixtureRoom, checkpointLiveRoom, usesRoomWorker } from './localRoomWorker'
+import { executeInRoom } from './roomRouting'
 
 /**
  * How the companion's Bite resolves: `ACTIVATED` deals fixed damage with no roll, `ATTACK` needs the
@@ -240,6 +241,7 @@ export async function playerControlFixture(
     character,
     actionId
   }
+  await attachFixtureRoom(base.t, base.campaign.id)
   return {
     ...fixture,
     /** The Run's current version, read fresh for each command. */
@@ -270,10 +272,13 @@ export async function playerControlFixture(
 
 export type PlayerControlFixture = Awaited<ReturnType<typeof playerControlFixture>>
 
+/** The real room holds the Run (D85), so Convex's version is current only after a checkpoint. */
 async function readRunVersion(base: {
   t: Awaited<ReturnType<typeof setupCharacterRun>>['t']
+  campaign: { id: string }
   run: { id: string }
 }): Promise<number> {
+  if (usesRoomWorker()) await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')

@@ -79,7 +79,7 @@ describe('room Disarm commands', () => {
   it('lets the assigned Character initiator answer before handing the Creature defender request to the owner', async () => {
     const base = await nativeDisarmFixture('PROMPT', false, true)
     const before = await disarmRecords(base)
-    const started = await disarmInRoom(base, base.owner, base.command)
+    const started = await disarmInRoom(base.owner, base.command)
     const first = evidence(base, started, 20)
     await expect(
       base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -96,7 +96,7 @@ describe('room Disarm commands', () => {
         contest: { initiatorControllerCharacterId: base.character.id }
       }
     })
-    const answered = await disarmInRoom(base, base.player, first)
+    const answered = await disarmInRoom(base.player, first)
     expect(answered.occurrence).toMatchObject({
       status: 'PENDING',
       occurrenceId: started.occurrence?.occurrenceId,
@@ -150,9 +150,9 @@ describe('room Disarm commands', () => {
         contest: { rollEvidence: { initiator: { rawFaces: [20] }, defender: null } }
       }
     })
-    await expect(disarmInRoom(base, base.player, second)).rejects.toThrow()
+    await expect(disarmInRoom(base.player, second)).rejects.toThrow()
     expect(await disarmRecords(base)).toEqual(staged)
-    const completed = await disarmInRoom(base, base.owner, second)
+    const completed = await disarmInRoom(base.owner, second)
     expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', outcome: null })
     const after = await disarmRecords(base)
     expect(contestedOutput(after)).toMatchObject({
@@ -170,7 +170,7 @@ describe('room Disarm commands', () => {
       throw new Error('Missing terminal Disarm root receipt.')
     expect(root).toMatchObject({ actorUserId: base.owner.userId })
     // The room journals the root's original pending occurrence and reads the projection as it is now.
-    await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual({
+    await expect(disarmInRoom(base.owner, base.command)).resolves.toEqual({
       ...started,
       projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
         encounterId: base.run.id
@@ -206,7 +206,7 @@ describe('room Disarm commands', () => {
         .mockReturnValueOnce(sourceFace - 1)
         .mockReturnValueOnce(targetFace - 1)
       try {
-        const result = await disarmInRoom(base, base.owner, base.command)
+        const result = await disarmInRoom(base.owner, base.command)
         expect(result).toMatchObject({
           projection: { version: base.command.expectedVersion + 1 },
           occurrence: { status: 'COMPLETE', outcome: null }
@@ -269,14 +269,14 @@ describe('room Disarm commands', () => {
         expect(after.occurrences).toHaveLength(1)
         expect(after.occurrences[0]?.state).toBe('COMPLETED')
         expect(random).toHaveBeenCalledTimes(2)
-        await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual(result)
+        await expect(disarmInRoom(base.owner, base.command)).resolves.toEqual(result)
         expect(await disarmRecords(base)).toEqual(after)
         expect(random).toHaveBeenCalledTimes(2)
         await expect(
-          disarmInRoom(base, base.owner, { ...base.command, targetActorId: base.actor.id })
+          disarmInRoom(base.owner, { ...base.command, targetActorId: base.actor.id })
         ).rejects.toThrow()
         await expect(
-          disarmInRoom(base, base.owner, { ...base.command, commandId: crypto.randomUUID() })
+          disarmInRoom(base.owner, { ...base.command, commandId: crypto.randomUUID() })
         ).rejects.toThrow()
         expect(await disarmRecords(base)).toEqual(after)
       } finally {
@@ -294,7 +294,7 @@ describe('room Disarm commands', () => {
       .mockReturnValueOnce(19)
       .mockReturnValueOnce(0)
     try {
-      await disarmInRoom(base, base.owner, base.command)
+      await disarmInRoom(base.owner, base.command)
     } finally {
       random.mockRestore()
     }
@@ -331,7 +331,7 @@ describe('room Disarm commands', () => {
     async (characterTarget) => {
       const base = await nativeDisarmFixture('PROMPT', characterTarget)
       const before = await disarmRecords(base)
-      const started = await disarmInRoom(base, base.owner, base.command)
+      const started = await disarmInRoom(base.owner, base.command)
       const first = evidence(base, started, 20)
       const pending = await disarmRecords(base)
       expect(pending.run).toEqual(before.run)
@@ -346,15 +346,15 @@ describe('room Disarm commands', () => {
           contest: { actionKind: 'DISARM' }
         }
       })
-      await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual(started)
+      await expect(disarmInRoom(base.owner, base.command)).resolves.toEqual(started)
       await expect(
         base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
           encounterId: base.run.id
         })
       ).resolves.toBeNull()
-      await expect(disarmInRoom(base, base.player, first)).rejects.toThrow()
+      await expect(disarmInRoom(base.player, first)).rejects.toThrow()
       await expect(
-        disarmInRoom(base, base.owner, {
+        disarmInRoom(base.owner, {
           ...first,
           resolution: {
             kind: 'SYSTEM_ROLL',
@@ -365,7 +365,7 @@ describe('room Disarm commands', () => {
       ).rejects.toThrow()
       expect(await disarmRecords(base)).toEqual(pending)
 
-      const next = await disarmInRoom(base, base.owner, first)
+      const next = await disarmInRoom(base.owner, first)
       expect(next.occurrence?.occurrenceId).toBe(started.occurrence?.occurrenceId)
       const second = evidence(base, next, 1)
       const staged = await disarmRecords(base)
@@ -384,9 +384,9 @@ describe('room Disarm commands', () => {
           encounterId: base.run.id
         })
       ).resolves.toEqual(characterTarget ? next.occurrence?.pending : null)
-      if (!characterTarget) await expect(disarmInRoom(base, base.player, second)).rejects.toThrow()
+      if (!characterTarget) await expect(disarmInRoom(base.player, second)).rejects.toThrow()
       await expect(
-        disarmInRoom(base, base.owner, { ...first, commandId: crypto.randomUUID() })
+        disarmInRoom(base.owner, { ...first, commandId: crypto.randomUUID() })
       ).rejects.toThrow()
       expect(await disarmRecords(base)).toEqual(staged)
       const responder = characterTarget ? base.player : base.owner
@@ -408,14 +408,14 @@ describe('room Disarm commands', () => {
             encounterId: base.run.id
           })
         ).resolves.toBeNull()
-        await expect(disarmInRoom(base, base.player, second)).rejects.toThrow()
+        await expect(disarmInRoom(base.player, second)).rejects.toThrow()
         expect(await disarmRecords(base)).toEqual(staged)
         await base.t.run(async (ctx) => {
           const { _id, _creationTime, ...restored } = assignment
           await ctx.db.insert('campaignCharacterAssignments', restored)
         })
       }
-      const result = await disarmInRoom(base, responder, second)
+      const result = await disarmInRoom(responder, second)
       expect(result.occurrence).toMatchObject({
         status: 'COMPLETE',
         outcome: null
@@ -445,7 +445,7 @@ describe('room Disarm commands', () => {
       const root = after.commands.find((command) => command.commandId === base.command.commandId)
       if (root?.commandType !== 'RESOLVE_ACTION')
         throw new Error('Missing terminal Disarm root receipt.')
-      await expect(disarmInRoom(base, base.owner, base.command)).resolves.toEqual({
+      await expect(disarmInRoom(base.owner, base.command)).resolves.toEqual({
         ...started,
         projection: await base.owner.caller.query(api.encounters.projectionReads.get, {
           encounterId: base.run.id
@@ -461,7 +461,7 @@ describe('room Disarm commands', () => {
     await setAutoRollDice(base.t, base.owner.userId, true)
     const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValueOnce(19)
     try {
-      const started = await disarmInRoom(base, base.owner, base.command)
+      const started = await disarmInRoom(base.owner, base.command)
       // The Creature initiator auto-rolled for the GM; the Character's own d20 waits on its player.
       expect(started.occurrence).toMatchObject({
         status: 'PENDING',
@@ -474,7 +474,7 @@ describe('room Disarm commands', () => {
       )
       if (pending?.kind !== 'D20_EVIDENCE') throw new Error('Missing the defender request.')
       expect(pending.rollerActorId).toBe(base.target.id)
-      const answered = await disarmInRoom(base, base.player, {
+      const answered = await disarmInRoom(base.player, {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
@@ -515,7 +515,7 @@ describe('room Disarm commands', () => {
       return run.version
     }
     const setCurrentActor = async (actorId: string) =>
-      disarmInRoom(base, base.owner, {
+      disarmInRoom(base.owner, {
         type: 'SET_CURRENT_ACTOR',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
@@ -524,7 +524,7 @@ describe('room Disarm commands', () => {
       })
     await setCurrentActor(helper.id)
     // The Character helps an enemy Creature, which Assisted mode warns about first.
-    await disarmInRoom(base, base.owner, {
+    await disarmInRoom(base.owner, {
       type: 'USE_BASIC_ACTION',
       encounterId: base.run.id,
       commandId: crypto.randomUUID(),
@@ -541,7 +541,7 @@ describe('room Disarm commands', () => {
       expectedVersion: await version()
     }
     const helped = { ...base, command }
-    const started = await disarmInRoom(base, base.owner, command)
+    const started = await disarmInRoom(base.owner, command)
     await expect(
       base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
@@ -550,14 +550,14 @@ describe('room Disarm commands', () => {
       rollerActorId: base.actor.id,
       request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
     })
-    const answered = await disarmInRoom(base, base.owner, evidence(helped, started, 20))
+    const answered = await disarmInRoom(base.owner, evidence(helped, started, 20))
     const defender = await base.owner.caller.query(
       api.encounters.pendingReads.pendingRuleOccurrence,
       { encounterId: base.run.id }
     )
     if (defender?.kind !== 'D20_EVIDENCE') throw new Error('Missing the defender request.')
     expect(defender.request.rollMode).toBe('NORMAL')
-    await disarmInRoom(base, base.owner, evidence(helped, answered, 1))
+    await disarmInRoom(base.owner, evidence(helped, answered, 1))
     expect(encounterBasicActionEffects(actorState(await disarmRecords(base), helper.id))).toEqual(
       []
     )
@@ -568,7 +568,7 @@ describe('room Disarm commands', () => {
     const before = await disarmRecords(base)
     if (!base.command.optionalCombatIntent) throw new Error('Missing Disarm selection.')
     await expect(
-      disarmInRoom(base, base.owner, {
+      disarmInRoom(base.owner, {
         ...base.command,
         optionalCombatIntent: {
           ...base.command.optionalCombatIntent,
@@ -576,11 +576,11 @@ describe('room Disarm commands', () => {
         }
       })
     ).rejects.toThrow()
-    await expect(disarmInRoom(base, base.player, base.command)).rejects.toThrow()
+    await expect(disarmInRoom(base.player, base.command)).rejects.toThrow()
     expect(await disarmRecords(base)).toEqual(before)
 
     const assisted = await nativeDisarmFixture('PROMPT', true)
-    const result = await disarmInRoom(assisted, assisted.owner, assisted.command)
+    const result = await disarmInRoom(assisted.owner, assisted.command)
     const response = evidence(assisted, result, 20)
     const staged = await disarmRecords(assisted)
     for (const actorId of [assisted.actor.id, assisted.target.id]) {
@@ -598,7 +598,7 @@ describe('room Disarm commands', () => {
         }
       })
       const changed = await disarmRecords(assisted)
-      await expect(disarmInRoom(assisted, assisted.owner, response)).rejects.toThrow()
+      await expect(disarmInRoom(assisted.owner, response)).rejects.toThrow()
       expect(await disarmRecords(assisted)).toEqual(changed)
       await assisted.t.run(async (ctx) => {
         if (state.kind === 'CHARACTER')
