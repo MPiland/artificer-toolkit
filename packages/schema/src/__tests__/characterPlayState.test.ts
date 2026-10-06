@@ -110,14 +110,18 @@ describe('Character play state split', () => {
       updatedAt: '2026-09-29T00:00:00.000Z'
     })
     expect(readCharacterPlay(stored)).toEqual(state)
-    expect(() => readCharacterPlay({
-      ...stored,
-      state: { ...state, hitpoints: { current: 4, hitDice: [] } }
-    })).toThrow('checksum mismatch')
-    expect(characterStoredPlayStateSchema.safeParse({
-      ...stored,
-      state: { ...state, hitpoints: { current: '5', hitDice: [] } }
-    }).success).toBe(false)
+    expect(() =>
+      readCharacterPlay({
+        ...stored,
+        state: { ...state, hitpoints: { current: 4, hitDice: [] } }
+      })
+    ).toThrow('checksum mismatch')
+    expect(
+      characterStoredPlayStateSchema.safeParse({
+        ...stored,
+        state: { ...state, hitpoints: { current: '5', hitDice: [] } }
+      }).success
+    ).toBe(false)
   })
 
   it('merges back exactly what it split', () => {

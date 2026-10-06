@@ -1,4 +1,7 @@
-import { persistHeldHistoryToConvex, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  persistHeldHistoryToConvex,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 import { writeReceiptRecord, readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
@@ -332,7 +335,9 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
           .query('encounterRunActors')
           .withIndex('by_encounterId_id', (q) => q.eq('encounterId', runId))
           .collect(),
-        commands: await (await readEncounterHistory(ctx))
+        commands: await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRunCommands')
           .withIndex('by_encounterId', (q) => q.eq('encounterId', runId))
           .collect(),
@@ -340,7 +345,9 @@ async function fixtureState(base: Awaited<ReturnType<typeof setup>>, runIds?: re
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', runId))
           .collect(),
-        receipts: await (await readEncounterHistory(ctx))
+        receipts: await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', runId))
           .collect(),

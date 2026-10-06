@@ -8,11 +8,11 @@ Closes P02.3 (ADR 0036, budgets amended by D84). Local Docker Convex `phase82-lo
 
 `node scripts/builderBudgets.mjs phase82-vs6-builder-budgets-20261003b` passed. Database I/O is read plus write bytes from the native execution log:
 
-| Journey             | Classes | Autosaves | Max autosave | Commit (budget)      | Full build | Edit-phase Convex calls |
-| ------------------- | ------- | --------- | ------------ | -------------------- | ---------- | ----------------------- |
-| Human Fighter Rogue | 2       | 9         | 14,506 B     | 545,757 B (665,600)  | 854,401 B  | autosave only           |
-| Human Life Cleric   | 1       | 7         | 12,866 B     | 400,443 B (460,800)  | 627,969 B  | autosave only           |
-| Dragonborn Champion | 1       | 7         | 13,074 B     | 435,712 B (460,800)  | 664,755 B  | autosave only           |
+| Journey             | Classes | Autosaves | Max autosave | Commit (budget)     | Full build | Edit-phase Convex calls |
+| ------------------- | ------- | --------- | ------------ | ------------------- | ---------- | ----------------------- |
+| Human Fighter Rogue | 2       | 9         | 14,506 B     | 545,757 B (665,600) | 854,401 B  | autosave only           |
+| Human Life Cleric   | 1       | 7         | 12,866 B     | 400,443 B (460,800) | 627,969 B  | autosave only           |
+| Dragonborn Champion | 1       | 7         | 13,074 B     | 435,712 B (460,800) | 664,755 B  | autosave only           |
 
 Failures outside the journeys are the three expected authentication negatives (`authInvitations:redeem`, `authInvitationActions:redeem`, `account:identity`).
 

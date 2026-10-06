@@ -14,9 +14,7 @@ import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 /** The planner contracts the room answers from its own SQLite transaction. */
 export interface LiveCaptureReads {
   encounterRules(input: LiveSessionEncounterRulesInput): Promise<LiveSessionEncounterRulesResponse>
-  prepareCharacter(
-    scope: LiveSessionCharacterRulesInput
-  ): Promise<PreparedLiveCharacterSheet>
+  prepareCharacter(scope: LiveSessionCharacterRulesInput): Promise<PreparedLiveCharacterSheet>
 }
 
 /**

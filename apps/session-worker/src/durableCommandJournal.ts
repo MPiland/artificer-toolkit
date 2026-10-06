@@ -185,7 +185,7 @@ function writeStoredJson(
   storage.sql.exec('DELETE FROM durable_command_json_chunks WHERE document_key = ?', documentKey)
   if (value.length <= INLINE_JSON_CODE_UNITS) return value
   const chunks: string[] = []
-  for (let start = 0; start < value.length; ) {
+  for (let start = 0; start < value.length;) {
     let end = Math.min(start + CHUNK_CODE_UNITS, value.length)
     const lastCodeUnit = value.charCodeAt(end - 1)
     if (end < value.length && lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) end -= 1

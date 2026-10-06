@@ -21,12 +21,12 @@ The retained native browser baseline is
 Fighter passed; Cleric failed the native Convex execution limit, so the third journey was not run.
 The active modules matched the captured source, and fixture cleanup completed.
 
-| Native function | Maximum database bytes read | Maximum documents read | Failed executions |
-| --- | ---: | ---: | ---: |
-| `characters/sheetSlices:get` | 6,636,652 | 1,101 | 2 |
-| `characters/panels:get` | 6,636,652 | 1,101 | 1 |
-| `characters/preparationOptions:get` | 6,636,652 | 1,101 | 1 |
-| `characters/sheetCommands:execute` | 6,647,427 | 1,111 | 0 |
+| Native function                     | Maximum database bytes read | Maximum documents read | Failed executions |
+| ----------------------------------- | --------------------------: | ---------------------: | ----------------: |
+| `characters/sheetSlices:get`        |                   6,636,652 |                  1,101 |                 2 |
+| `characters/panels:get`             |                   6,636,652 |                  1,101 |                 1 |
+| `characters/preparationOptions:get` |                   6,636,652 |                  1,101 |                 1 |
+| `characters/sheetCommands:execute`  |                   6,647,427 |                  1,111 |                 0 |
 
 These are observed maxima across the baseline packet, not monthly budget estimates or latency percentiles.
 The baseline includes the Builder StrictMode autosave repair, Worker SSR rich-text parser repair and
@@ -101,12 +101,12 @@ Evidence is retained as
 entries and SHA-256 `88098d25f003ec7d7343cfef42f496cc8e2c88244e1868a8839268a00e0987cb`.
 Before/after source parity matched. All 1,012 current Convex modules matched their deployed hashes.
 
-| Native function | Maximum database bytes read | Maximum documents read | Executions | Failed executions |
-| --- | ---: | ---: | ---: | ---: |
-| `characters/sheetSlices:get` | 5,002,119 | 492 | 22 | 0 |
-| `characters/panels:get` | 5,001,844 | 491 | 4 | 0 |
-| `characters/preparationOptions:get` | 5,005,085 | 492 | 4 | 0 |
-| `characters/sheetCommands:execute` | 5,014,997 | 502 | 2 | 0 |
+| Native function                     | Maximum database bytes read | Maximum documents read | Executions | Failed executions |
+| ----------------------------------- | --------------------------: | ---------------------: | ---------: | ----------------: |
+| `characters/sheetSlices:get`        |                   5,002,119 |                    492 |         22 |                 0 |
+| `characters/panels:get`             |                   5,001,844 |                    491 |          4 |                 0 |
+| `characters/preparationOptions:get` |                   5,005,085 |                    492 |          4 |                 0 |
+| `characters/sheetCommands:execute`  |                   5,014,997 |                    502 |          2 |                 0 |
 
 Observed maximum reads fell about 25% in bytes and 55% in documents. The baseline and final packets
 cover different completed journeys, so this is a comparison of observed maxima, not a matched

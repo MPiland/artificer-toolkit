@@ -28,8 +28,8 @@ custody and source-loss rules. Do not delete another owner's content to make del
 FINISHED Sessions remain read-only history. **Current (ADR 0033, corrected 2026-10-06):** Encounter
 Runs belong to the Campaign, and finishing a Session changes no Run, so cleanup does not skip a Run
 because its Session is FINISHED. Open Runs remove the owner's Character actor and
-reconcile invalidated pending decisions while preserving already settled results. *Historical
-(before ADR 0033):* trusted cleanup skipped Runs still marked ACTIVE or SETUP in a FINISHED Session.
+reconcile invalidated pending decisions while preserving already settled results. _Historical
+(before ADR 0033):_ trusted cleanup skipped Runs still marked ACTIVE or SETUP in a FINISHED Session.
 Shared Campaign messages, rolls and Session history remain readable with the author presented as
 `Deleted user`; private Characters and personal account data are removed.
 

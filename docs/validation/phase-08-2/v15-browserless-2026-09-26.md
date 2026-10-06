@@ -33,16 +33,16 @@ is unchanged. Both runs completed the full frozen schedule and then failed the c
 
 Each value is run 1 / run 2, in ms. There were 848 command samples per run.
 
-| Measure | p50 | p95 | p99 / max | Budget | Result |
-| --- | --- | --- | --- | --- | --- |
-| Gameplay command, all | 896 / 809 | **2,785 / 2,528** | max 4,328 / 4,038 | p95 ≤ 1,000 | **Missed** (2.5–2.8×) |
-| `RESOLVE_ACTION` (n=352) | 810 / 753 | 1,021 / 852 | | | Borderline |
-| `ADVANCE_TURN` (n=176) | 862 / 773 | 1,318 / 1,071 | | | Missed |
-| `SCENE_MOVE` (n=160) | 2,168 / 1,997 | 3,051 / 2,611 | | | Missed |
-| `REACTION_RESPONSE` (n=160) | 2,605 / 2,404 | 3,283 / 2,948 | | | Missed |
-| Reaction composite (move → response → end) | 6,576 / 6,013 | 7,934 / 7,058 | | | (no budget) |
-| Warm durable convergence (n=688) | 158 / 145 | **281 / 258** | 308 / 271 | p95 ≤ 250, p99 ≤ 500 | p95 **missed** narrowly; p99 met |
-| Ephemeral preview | | | | p95 ≤ 150 | **Not measured** |
+| Measure                                    | p50           | p95               | p99 / max         | Budget               | Result                           |
+| ------------------------------------------ | ------------- | ----------------- | ----------------- | -------------------- | -------------------------------- |
+| Gameplay command, all                      | 896 / 809     | **2,785 / 2,528** | max 4,328 / 4,038 | p95 ≤ 1,000          | **Missed** (2.5–2.8×)            |
+| `RESOLVE_ACTION` (n=352)                   | 810 / 753     | 1,021 / 852       |                   |                      | Borderline                       |
+| `ADVANCE_TURN` (n=176)                     | 862 / 773     | 1,318 / 1,071     |                   |                      | Missed                           |
+| `SCENE_MOVE` (n=160)                       | 2,168 / 1,997 | 3,051 / 2,611     |                   |                      | Missed                           |
+| `REACTION_RESPONSE` (n=160)                | 2,605 / 2,404 | 3,283 / 2,948     |                   |                      | Missed                           |
+| Reaction composite (move → response → end) | 6,576 / 6,013 | 7,934 / 7,058     |                   |                      | (no budget)                      |
+| Warm durable convergence (n=688)           | 158 / 145     | **281 / 258**     | 308 / 271         | p95 ≤ 250, p99 ≤ 500 | p95 **missed** narrowly; p99 met |
+| Ephemeral preview                          |               |                   |                   | p95 ≤ 150            | **Not measured**                 |
 
 **Previews.** The harness cannot drive previews without a browser: `DevelopmentHttpClient` has no preview
 frame, and the workload only measures previews through `v15WorkloadBrowser`. Previews are Worker-only
@@ -52,22 +52,22 @@ fan-out that does not execute Convex functions, so D49 does not depend on them.
 
 Values are `executionTime` / `userExecutionTime` in ms, run 2. Run 1 was about 5–10% slower throughout.
 
-| Function | n | exec p50 / p95 | user p50 / p95 | Reads p50 | Calls per command |
-| --- | --- | --- | --- | --- | --- |
-| `encounters/projectionReads:get`, subscription | 3,525 | 128 / 153 | 116 / 140 | 7 docs / 33 KB | about 6 per commit |
-| `encounters/projectionReads:get`, HTTP (driver reread) | 694 | 144 / 166 | 131 / 151 | 7 / 33 KB | 1 per command (driver) |
-| `liveSessions/encounterCaptureBundle:capture` | 890 | 270 / 310 | 239 / 268 | 57 / 259 KB | 1 per action or turn; about 2 per move |
-| `liveSessions/encounterRulesCapture:capture` | 439 | 189 / 210 | 167 / 184 | 40 / 82 KB | move and reaction steps |
-| `liveSessions/encounterActionCommit:commit` | 355 | 271 / 316 | 250 / 283 | 62 / 428 KB | 1 per `RESOLVE_ACTION` |
-| `liveSessions/encounterTurnCommit:commit` | 211 | 290 / 338 | 267 / 314 | 109 / 692 KB | 1 per `ADVANCE_TURN` |
-| `liveSessions/encounterRoute:route` | 161 | 162 / 174 | 151 / 162 | | 1 per move |
-| `liveSessions/encounterMovement:begin` | 322 | 232 / 255 | 210 / 228 | | per move |
-| `liveSessions/encounterMovement:observe` | 322 | 225 / 246 | 205 / 223 | | per move |
-| `liveSessions/encounterMovement:prepare` | 322 | 259 / 296 | 232 / 257 | | per move |
-| `liveSessions/encounterMovement:commit` | 322 | 326 / 423 | 282 / 354 | | per move |
-| `encounters/pendingReads:pendingRuleOccurrence` | 322 | 122 / 137 | 112 / 126 | 7 / 33 KB | driver, per reaction |
-| Reference: `adapter:findOne` (auth component) | 78 | 12 / 17 | 10 / 15 | 1 | |
-| Reference: `campaigns/deletion:status` | 1,330 | 28 / 49 | 22 / 25 | 4 | |
+| Function                                               | n     | exec p50 / p95 | user p50 / p95 | Reads p50      | Calls per command                      |
+| ------------------------------------------------------ | ----- | -------------- | -------------- | -------------- | -------------------------------------- |
+| `encounters/projectionReads:get`, subscription         | 3,525 | 128 / 153      | 116 / 140      | 7 docs / 33 KB | about 6 per commit                     |
+| `encounters/projectionReads:get`, HTTP (driver reread) | 694   | 144 / 166      | 131 / 151      | 7 / 33 KB      | 1 per command (driver)                 |
+| `liveSessions/encounterCaptureBundle:capture`          | 890   | 270 / 310      | 239 / 268      | 57 / 259 KB    | 1 per action or turn; about 2 per move |
+| `liveSessions/encounterRulesCapture:capture`           | 439   | 189 / 210      | 167 / 184      | 40 / 82 KB     | move and reaction steps                |
+| `liveSessions/encounterActionCommit:commit`            | 355   | 271 / 316      | 250 / 283      | 62 / 428 KB    | 1 per `RESOLVE_ACTION`                 |
+| `liveSessions/encounterTurnCommit:commit`              | 211   | 290 / 338      | 267 / 314      | 109 / 692 KB   | 1 per `ADVANCE_TURN`                   |
+| `liveSessions/encounterRoute:route`                    | 161   | 162 / 174      | 151 / 162      |                | 1 per move                             |
+| `liveSessions/encounterMovement:begin`                 | 322   | 232 / 255      | 210 / 228      |                | per move                               |
+| `liveSessions/encounterMovement:observe`               | 322   | 225 / 246      | 205 / 223      |                | per move                               |
+| `liveSessions/encounterMovement:prepare`               | 322   | 259 / 296      | 232 / 257      |                | per move                               |
+| `liveSessions/encounterMovement:commit`                | 322   | 326 / 423      | 282 / 354      |                | per move                               |
+| `encounters/pendingReads:pendingRuleOccurrence`        | 322   | 122 / 137      | 112 / 126      | 7 / 33 KB      | driver, per reaction                   |
+| Reference: `adapter:findOne` (auth component)          | 78    | 12 / 17        | 10 / 15        | 1              |                                        |
+| Reference: `campaigns/deletion:status`                 | 1,330 | 28 / 49        | 22 / 25        | 4              |                                        |
 
 - **Where the time goes.** Each Convex HTTP route adds about 5 ms beyond its child function. Actions and
   turns each make 2 serial Convex round trips (bundle, then commit), about 700–800 ms. A bound move makes
@@ -93,14 +93,15 @@ The evidence:
    the later ones fast. Instead, the first five executions of every function were as fast as the rest or
    faster:
 
-   | Function | First five executions | Later p50 |
-   | --- | --- | --- |
-   | `encounterCaptureBundle:capture` | 195–203 | 239 |
-   | `encounterRulesCapture:capture` | 140–156 | 167 |
-   | `encounterActionCommit:commit` | 224–250 | 250 |
+   | Function                         | First five executions | Later p50 |
+   | -------------------------------- | --------------------- | --------- |
+   | `encounterCaptureBundle:capture` | 195–203               | 239       |
+   | `encounterRulesCapture:capture`  | 140–156               | 167       |
+   | `encounterActionCommit:commit`   | 224–250               | 250       |
 
    Executions later in a same-function burst were no faster than the first one in the burst. For example,
    `projectionReads:get` measured 108 compared with 117 over 3,080 samples.
+
 2. **Idle probe with minimal handler work** (`probe.json`). `projectionReads:get` with an unknown
    Encounter authenticates, reads at most one index entry and throws. Over 30 back-to-back calls its user
    time was 131, 102, then **53–78 ms steady**. It was 55–115 ms after 3 s idle. `account:session`, on
@@ -110,12 +111,12 @@ The evidence:
 3. **Probe that fails at the handler's first input parse** (`probe2.json`). This probe read 0 documents
    and wrote 0. Each function got 20 back-to-back calls, and the values below are user time in ms:
 
-   | Function | User time, ms | Share of its workload p50 |
-   | --- | --- | --- |
-   | `encounterCaptureBundle:capture` | 264, then 147–184 | about 65% |
-   | `encounterRulesCapture:capture` | 119–137 | about 74% |
-   | `encounterActionCommit:commit` | 155–201 | about 64% |
-   | `encounterMovement:commit` | 156–223 | about 58% |
+   | Function                         | User time, ms     | Share of its workload p50 |
+   | -------------------------------- | ----------------- | ------------------------- |
+   | `encounterCaptureBundle:capture` | 264, then 147–184 | about 65%                 |
+   | `encounterRulesCapture:capture`  | 119–137           | about 74%                 |
+   | `encounterActionCommit:commit`   | 155–201           | about 64%                 |
+   | `encounterMovement:commit`       | 156–223           | about 58%                 |
 
    Only the first call is higher (for example 264 compared with about 155). That fits a one-time compile
    or code cache, while module evaluation repeats on every call.
@@ -210,16 +211,16 @@ full frozen schedule and then failed the command p95 assertion
 Values are run 1 / run 2, in ms. There were 848 command samples per run. The "Before D52" column is
 the earlier p95.
 
-| Measure | p50 | p95 | Before D52 p95 | Budget | Result |
-| --- | --- | --- | --- | --- | --- |
-| Gameplay command, all | 801 / 806 | **1,089 / 1,090** | 2,785 / 2,528 | p95 ≤ 1,000 | **Missed** by 9% |
-| `RESOLVE_ACTION` (n=352) | 745 / 748 | 873 / 913 | 1,021 / 852 | | Met |
-| `ADVANCE_TURN` (n=176) | 762 / 761 | 1,080 / 1,059 | 1,318 / 1,071 | | Missed |
-| `SCENE_MOVE` (n=160) | 867 / 863 | 1,370 / 1,360 | 3,051 / 2,611 | | Missed |
-| `REACTION_RESPONSE` (n=160) | 1,003 / 996 | 1,372 / 1,300 | 3,283 / 2,948 | | Missed |
-| Reaction composite (move → response → end) | 3,436 / 3,440 | 4,080 / 3,978 | 7,934 / 7,058 | | (no budget) |
-| Warm durable convergence (n=688) | 142 / 141 | **251 / 252** | 281 / 258 | p95 ≤ 250 | **Missed** by 1–2 ms |
-| Durable convergence p99 / max | | 269 / 269, max 313 / 322 | 308 / 271 | p99 ≤ 500 | Met |
+| Measure                                    | p50           | p95                      | Before D52 p95 | Budget      | Result               |
+| ------------------------------------------ | ------------- | ------------------------ | -------------- | ----------- | -------------------- |
+| Gameplay command, all                      | 801 / 806     | **1,089 / 1,090**        | 2,785 / 2,528  | p95 ≤ 1,000 | **Missed** by 9%     |
+| `RESOLVE_ACTION` (n=352)                   | 745 / 748     | 873 / 913                | 1,021 / 852    |             | Met                  |
+| `ADVANCE_TURN` (n=176)                     | 762 / 761     | 1,080 / 1,059            | 1,318 / 1,071  |             | Missed               |
+| `SCENE_MOVE` (n=160)                       | 867 / 863     | 1,370 / 1,360            | 3,051 / 2,611  |             | Missed               |
+| `REACTION_RESPONSE` (n=160)                | 1,003 / 996   | 1,372 / 1,300            | 3,283 / 2,948  |             | Missed               |
+| Reaction composite (move → response → end) | 3,436 / 3,440 | 4,080 / 3,978            | 7,934 / 7,058  |             | (no budget)          |
+| Warm durable convergence (n=688)           | 142 / 141     | **251 / 252**            | 281 / 258      | p95 ≤ 250   | **Missed** by 1–2 ms |
+| Durable convergence p99 / max              |               | 269 / 269, max 313 / 322 | 308 / 271      | p99 ≤ 500   | Met                  |
 
 The move p50 fell from about 2.0–2.2 s to 0.86 s, and the reaction response p50 from about 2.4–2.6 s
 to 1.0 s. Action and turn commands did not change; they were already two calls.
@@ -228,18 +229,18 @@ to 1.0 s. Action and turn commands did not change; they were already two calls.
 
 Values are `executionTime` / `userExecutionTime` in ms, run 2. Run 1 was within ±3%.
 
-| Function | n | exec p50 / p95 | user p50 / p95 | Reads p50 | Calls per command |
-| --- | --- | --- | --- | --- | --- |
-| `encounters/projectionReads:get`, subscription | 3,515 | 125 / 150 | 113 / 136 | 7 docs / 33 KB | 3.87 per durable commit |
-| `encounters/projectionReads:get`, HTTP (driver reread) | 694 | 141 / 162 | 128 / 147 | 7 / 33 KB | 1 per command (driver) |
-| `liveSessions/encounterCaptureBundle:capture` | 568 | 262 / 302 | 235 / 269 | 44 / 250 KB | 1 per action or turn (was 890) |
-| `liveSessions/encounterRulesCapture:capture` | 80 | 185 / 206 | 165 / 184 | 32 / 82 KB | rare (was 439) |
-| `liveSessions/encounterActionCommit:commit` | 353 | 272 / 321 | 251 / 284 | 62 / 428 KB | 1 per `RESOLVE_ACTION` |
-| `liveSessions/encounterTurnCommit:commit` | 211 | 288 / 351 | 265 / 313 | 109 / 691 KB | 1 per `ADVANCE_TURN` |
-| `liveSessions/encounterMovement:stage` | 322 | 346 / 396 | 283 / 314 | 141 / 335 KB | 1 per move or response |
-| `liveSessions/encounterMovement:commit` | 322 | 341 / 438 | 291 / 362 | 145 / 468 KB | 1 per move or response |
-| `encounters/pendingReads:pendingRuleOccurrence` | 322 | 118 / 135 | 108 / 125 | 7 / 33 KB | driver, per reaction |
-| Removed: `encounterRoute:route`, `encounterMovement:begin`, `:observe`, `:prepare` | 0 | | | | were 161 + 3 × 322 |
+| Function                                                                           | n     | exec p50 / p95 | user p50 / p95 | Reads p50      | Calls per command              |
+| ---------------------------------------------------------------------------------- | ----- | -------------- | -------------- | -------------- | ------------------------------ |
+| `encounters/projectionReads:get`, subscription                                     | 3,515 | 125 / 150      | 113 / 136      | 7 docs / 33 KB | 3.87 per durable commit        |
+| `encounters/projectionReads:get`, HTTP (driver reread)                             | 694   | 141 / 162      | 128 / 147      | 7 / 33 KB      | 1 per command (driver)         |
+| `liveSessions/encounterCaptureBundle:capture`                                      | 568   | 262 / 302      | 235 / 269      | 44 / 250 KB    | 1 per action or turn (was 890) |
+| `liveSessions/encounterRulesCapture:capture`                                       | 80    | 185 / 206      | 165 / 184      | 32 / 82 KB     | rare (was 439)                 |
+| `liveSessions/encounterActionCommit:commit`                                        | 353   | 272 / 321      | 251 / 284      | 62 / 428 KB    | 1 per `RESOLVE_ACTION`         |
+| `liveSessions/encounterTurnCommit:commit`                                          | 211   | 288 / 351      | 265 / 313      | 109 / 691 KB   | 1 per `ADVANCE_TURN`           |
+| `liveSessions/encounterMovement:stage`                                             | 322   | 346 / 396      | 283 / 314      | 141 / 335 KB   | 1 per move or response         |
+| `liveSessions/encounterMovement:commit`                                            | 322   | 341 / 438      | 291 / 362      | 145 / 468 KB   | 1 per move or response         |
+| `encounters/pendingReads:pendingRuleOccurrence`                                    | 322   | 118 / 135      | 108 / 125      | 7 / 33 KB      | driver, per reaction           |
+| Removed: `encounterRoute:route`, `encounterMovement:begin`, `:observe`, `:prepare` | 0     |                |                |                | were 161 + 3 × 322             |
 
 - **Calls per command.** The command path made 1,879 Convex function calls for 848 commands
   (2.2 per command), down from 3,366 (4.0). A move or reaction response is now exactly two calls.
@@ -325,24 +326,24 @@ This re-run follows the D59 lazy schema rollout. It is diagnostic evidence only;
 
 Values are run 1 / run 2, in ms.
 
-| Measure | p50 | p95 | After D52 p95 | Budget | Result |
-| --- | --- | --- | --- | --- | --- |
-| Gameplay command, all | 486 / 476 | **800 / 788** | 1,089 / 1,090 | p95 ≤ 1,000 | **Met**, 20% margin |
-| `RESOLVE_ACTION` | 417 / 411 | 529 / 477 | 873 / 913 | | Met |
-| `ADVANCE_TURN` | 480 / 476 | 616 / 612 | 1,080 / 1,059 | | Met |
-| `SCENE_MOVE` | 544 / 537 | 765 / 654 | 1,370 / 1,360 | | Met |
-| `REACTION_RESPONSE` | 763 / 752 | **1,008 / 987** | 1,372 / 1,300 | per-operation ≤ 1,000 | **At the budget**: run 1 failed |
-| Warm durable convergence | 61 / 63 | **103 / 104** | 251 / 252 | p95 ≤ 250 | **Met**, 58% margin |
-| Durable convergence p99 / max | | 120 / 115, max 231 / 128 | 269 / 269 | p99 ≤ 500 | Met |
+| Measure                       | p50       | p95                      | After D52 p95 | Budget                | Result                          |
+| ----------------------------- | --------- | ------------------------ | ------------- | --------------------- | ------------------------------- |
+| Gameplay command, all         | 486 / 476 | **800 / 788**            | 1,089 / 1,090 | p95 ≤ 1,000           | **Met**, 20% margin             |
+| `RESOLVE_ACTION`              | 417 / 411 | 529 / 477                | 873 / 913     |                       | Met                             |
+| `ADVANCE_TURN`                | 480 / 476 | 616 / 612                | 1,080 / 1,059 |                       | Met                             |
+| `SCENE_MOVE`                  | 544 / 537 | 765 / 654                | 1,370 / 1,360 |                       | Met                             |
+| `REACTION_RESPONSE`           | 763 / 752 | **1,008 / 987**          | 1,372 / 1,300 | per-operation ≤ 1,000 | **At the budget**: run 1 failed |
+| Warm durable convergence      | 61 / 63   | **103 / 104**            | 251 / 252     | p95 ≤ 250             | **Met**, 58% margin             |
+| Durable convergence p99 / max |           | 120 / 115, max 231 / 128 | 269 / 269     | p99 ≤ 500             | Met                             |
 
 Per-function timings (run 2, execution p50 in ms, before → after):
 
-| Function | Before | After |
-| --- | --- | --- |
-| `projectionReads:get` (subscription) | 125 | 57 |
-| Capture bundle | 262 | 134 |
-| Action commit | 272 | 148 |
-| Turn commit | 288 | 190 |
+| Function                             | Before | After |
+| ------------------------------------ | ------ | ----- |
+| `projectionReads:get` (subscription) | 125    | 57    |
+| Capture bundle                       | 262    | 134   |
+| Action commit                        | 272    | 148   |
+| Turn commit                          | 288    | 190   |
 
 - **Setup is no longer the bottleneck.** The routes around the fast calls fell by a similar amount: the action route went from 359 to 194 ms.
 - **Movement routes are now the slowest.** The `encounter-movement-stage` and `encounter-movement` routes each take about 295 ms (p95 336 / 397 ms).
@@ -362,18 +363,18 @@ Per-function timings (run 2, execution p50 in ms, before → after):
 
 Values are run 1 / run 2, in ms.
 
-| Measure | p50 | p95 | After D59 p95 | Budget |
-| --- | --- | --- | --- | --- |
-| Gameplay command, all | 482 / 488 | 789 / 780 | 800 / 788 | p95 ≤ 1,000 |
-| `REACTION_RESPONSE` | 724 / 724 | **956 / 986** | 1,008 / 987 | ≤ 1,000 |
-| Warm durable convergence | | 107 / 106 (p99 753 / 130) | 103 / 104 | p95 ≤ 250, p99 ≤ 500 |
+| Measure                  | p50       | p95                       | After D59 p95 | Budget               |
+| ------------------------ | --------- | ------------------------- | ------------- | -------------------- |
+| Gameplay command, all    | 482 / 488 | 789 / 780                 | 800 / 788     | p95 ≤ 1,000          |
+| `REACTION_RESPONSE`      | 724 / 724 | **956 / 986**             | 1,008 / 987   | ≤ 1,000              |
+| Warm durable convergence |           | 107 / 106 (p99 753 / 130) | 103 / 104     | p95 ≤ 250, p99 ≤ 500 |
 
 **Reads halved; time did not change.**
 
-| Function | Documents p50 (D59 → D64 step 1) | KB p50 | User time p50 |
-| --- | --- | --- | --- |
-| `encounterMovement:stage` | 141 → 87 | 336 → 268 | 170 → 164 ms |
-| `encounterMovement:commit` | 145 → 73 | 473 → 186 | 167 → 164 ms |
+| Function                   | Documents p50 (D59 → D64 step 1) | KB p50    | User time p50 |
+| -------------------------- | -------------------------------- | --------- | ------------- |
+| `encounterMovement:stage`  | 141 → 87                         | 336 → 268 | 170 → 164 ms  |
+| `encounterMovement:commit` | 145 → 73                         | 473 → 186 | 167 → 164 ms  |
 
 The movement handlers are bound by CPU (parsing, checksums, planning inputs), not by database reads. Step 1 still stands on its own merits: it cuts database load, cuts the stage payload, and cuts the room's parsing. But only removing a whole call (D64 step 2), or cutting handler CPU, will bring `REACTION_RESPONSE` clearly under 1 s.
 
@@ -383,12 +384,12 @@ Runs `v15bl-d64s2-r1` and `-r2` at `221fce311` both failed the overall command p
 
 Per-function numbers for run 2 against step 1 (run 2):
 
-| Function | n | exec p50 / p95 | docs p50 | KB p50 |
-| --- | --- | --- | --- | --- |
-| `encounterMovement:answer` (new) | 152 | 468 / 522 | 179 | 634 |
-| `encounterMovementPrefetch:prefetch` (new) | 935 | 107 / 283 | 21 | 143 |
-| `encounterMovement:stage` (moves only now) | 170 | 202 / 265 | 87 | 268 |
-| `encounterMovement:commit` (moves only now) | 170 | 175 / 292 | 73 | 186 |
+| Function                                    | n   | exec p50 / p95 | docs p50 | KB p50 |
+| ------------------------------------------- | --- | -------------- | -------- | ------ |
+| `encounterMovement:answer` (new)            | 152 | 468 / 522      | 179      | 634    |
+| `encounterMovementPrefetch:prefetch` (new)  | 935 | 107 / 283      | 21       | 143    |
+| `encounterMovement:stage` (moves only now)  | 170 | 202 / 265      | 87       | 268    |
+| `encounterMovement:commit` (moves only now) | 170 | 175 / 292      | 73       | 186    |
 
 - **The one-call answer saved no work.** It does the stage and commit work in one transaction, including a full re-read to verify the prefetch, so it costs what the two calls cost together.
 - **The prefetch added load.** It ran about 6 queries per decision (one per member). They competed with the command path, which pushed the overall p95 over budget.

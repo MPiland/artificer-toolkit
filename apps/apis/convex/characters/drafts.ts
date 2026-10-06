@@ -154,7 +154,9 @@ export async function saveCharacterDraft(
     input.baseActiveUpdatedAt !== undefined &&
     input.baseActiveUpdatedAt !== draft.baseActiveUpdatedAt
   )
-    throw draftReplaced('Character draft base revision does not match; reopen the draft before saving.')
+    throw draftReplaced(
+      'Character draft base revision does not match; reopen the draft before saving.'
+    )
   const payload = parseDraftPayload(userId, input)
   const now = new Date(Math.max(Date.now(), Date.parse(draft.updatedAt) + 1)).toISOString()
   const payloadRecord = await replaceCharacterDraftPayload(ctx, draft, payload, now)

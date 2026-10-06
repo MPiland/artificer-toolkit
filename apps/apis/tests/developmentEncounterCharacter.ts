@@ -43,8 +43,11 @@ export async function verifyEncounterCharacterCommands({
     }
   })
   // Manual initiative: the GM rolls the Character's and sets the opponent's before START.
-  const { version: playSettingsVersion, updatedAt: _updatedAt, ...playSettings } =
-    await owner.query(api.campaigns.playSettings.get, { campaignId })
+  const {
+    version: playSettingsVersion,
+    updatedAt: _updatedAt,
+    ...playSettings
+  } = await owner.query(api.campaigns.playSettings.get, { campaignId })
   await owner.mutation(api.campaigns.playSettings.save, {
     ...playSettings,
     expectedVersion: playSettingsVersion,

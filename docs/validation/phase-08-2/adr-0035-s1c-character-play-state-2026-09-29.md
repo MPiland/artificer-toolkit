@@ -19,10 +19,10 @@ which sums the stored JSON bytes of every written document. The "before" column 
 
 ## Bytes written
 
-| Path | Before | After |
-| --- | --- | --- |
-| Sheet HP change | 8.2 KB: Character replace 7,589 B, command receipt 648 B | 1.1 KB: play record 496 B, receipt 648 B |
-| Encounter damage to a Character | 8.3 KB: Character replace 7,606 B, receipt 676 B | 1.2 KB: play record 513 B, receipt 676 B |
+| Path                            | Before                                                   | After                                    |
+| ------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
+| Sheet HP change                 | 8.2 KB: Character replace 7,589 B, command receipt 648 B | 1.1 KB: play record 496 B, receipt 648 B |
+| Encounter damage to a Character | 8.3 KB: Character replace 7,606 B, receipt 676 B         | 1.2 KB: play record 513 B, receipt 676 B |
 
 The test now asserts the play record replace is under 800 B and the totals under 1.5 KB and 1.6 KB.
 

@@ -182,7 +182,9 @@ function measuredWindows(executions, starts, failures) {
   }))
   return windowNames.map((name) => ({
     name,
-    executions: windows.filter((window) => window.name === name).flatMap(({ executions }) => executions)
+    executions: windows
+      .filter((window) => window.name === name)
+      .flatMap(({ executions }) => executions)
   }))
 }
 

@@ -113,12 +113,15 @@ const validateWork = (caseIds, criteria) => {
   }
   for (const [id, owners] of includedBy) {
     if (!slices.has(id)) errors.push(`${owners.join(', ')} include unknown slice ${id}`)
-    if (owners.length > 1) errors.push(`${id} is included by more than one slice: ${owners.join(', ')}`)
+    if (owners.length > 1)
+      errors.push(`${id} is included by more than one slice: ${owners.join(', ')}`)
   }
   for (const [id, criterion] of criteria) {
     const owners = criterionOwners.get(id) ?? []
     if (!closedCriterionStates.includes(criterion.status) && owners.length !== 1) {
-      errors.push(`Open criterion ${id} must be closed by exactly one open slice (has ${owners.length})`)
+      errors.push(
+        `Open criterion ${id} must be closed by exactly one open slice (has ${owners.length})`
+      )
     }
   }
   for (const slice of slices.values()) {
@@ -140,7 +143,8 @@ const validateWork = (caseIds, criteria) => {
   const activeCases = new Map()
   for (const slice of slices.values()) {
     if (slice.state !== 'active') continue
-    const scope = (includedBy.get(slice.id) ?? []).find((id) => slices.get(id)?.state === 'active') ?? ''
+    const scope =
+      (includedBy.get(slice.id) ?? []).find((id) => slices.get(id)?.state === 'active') ?? ''
     for (const caseId of slice.cases ?? []) {
       const key = `${scope}:${caseId}`
       if (activeCases.has(key)) {
@@ -231,20 +235,27 @@ const readHistory = () => {
   const git = (args) =>
     execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim()
   const ledgerRelative = 'docs/roadmap/08-2-convex-cutover-acceptance.json'
-  return git(['log', '--reverse', '--format=%H %cI', '--', ledgerRelative])
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => {
-      const [commit, date] = line.split(' ')
-      const snapshot = JSON.parse(git(['show', `${commit}:${ledgerRelative}`]))
-      const criteria = (snapshot.gates ?? []).flatMap((gate) =>
-        (gate.cases ?? []).flatMap((kase) => kase.criteria ?? [])
-      )
-      return { commit: commit.slice(0, 9), date, total: criteria.length, ...countByStatus(criteria) }
-    })
-    // Ledger versions before the per-criterion shape have no criteria to count.
-    .filter((point) => point.total > 0)
-    .concat({ commit: 'working', date: report.generatedAt, ...report.criteria })
+  return (
+    git(['log', '--reverse', '--format=%H %cI', '--', ledgerRelative])
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [commit, date] = line.split(' ')
+        const snapshot = JSON.parse(git(['show', `${commit}:${ledgerRelative}`]))
+        const criteria = (snapshot.gates ?? []).flatMap((gate) =>
+          (gate.cases ?? []).flatMap((kase) => kase.criteria ?? [])
+        )
+        return {
+          commit: commit.slice(0, 9),
+          date,
+          total: criteria.length,
+          ...countByStatus(criteria)
+        }
+      })
+      // Ledger versions before the per-criterion shape have no criteria to count.
+      .filter((point) => point.total > 0)
+      .concat({ commit: 'working', date: report.generatedAt, ...report.criteria })
+  )
 }
 
 if (process.argv.includes('--json')) {

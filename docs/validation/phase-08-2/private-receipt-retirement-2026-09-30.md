@@ -29,14 +29,14 @@ and ADR record the intentional change to D70's physical cleanup boundary.
 Compiler, tests and native commands were serialized through `local-validation/.validation.lock`.
 TypeScript used `GOMAXPROCS=2`, Turbo concurrency one and loose environment mode.
 
-| Order | Command | Result | Log under `local-validation/phase82-receipt-native-integration/` |
-| --- | --- | --- | --- |
-| 1 | `yarn workspace @artificer-toolkit/apis test:convex apps/apis/convex/lib/receiptLedgers.test.ts apps/apis/convex/characters/receiptCleanup.test.ts apps/apis/convex/characters/accountDeletion.test.ts` | Exit 0; 54/54 tests | `private-purge-tests-v8.log`, `.exit` |
-| 2 | `yarn turbo run build --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/rules-runtime --concurrency=1 --env-mode=loose` | Exit 0 | `dependency-build-v8.log`, `.exit` |
-| 3 | `yarn turbo run typecheck:convex --filter=@artificer-toolkit/apis --concurrency=1 --env-mode=loose` | Exit 0 | `typecheck-v8.log`, `.exit` |
-| 4 | Local `convex codegen --typecheck disable`, with explicit localhost URL and runtime-generated key | Exit 0 | `local-codegen-v8.log`, `.exit` |
-| 5 | Local `convex deploy --yes --typecheck disable --codegen disable`, with the same localhost target | Exit 0 | `local-deploy-v8.log`, `.exit` |
-| 6 | `pwsh -NoProfile -File scripts/runLocalConvexProof.ps1 -Name phase82-receipt-max-v8-20260930 -Proof receipt-ledgers` | Exit 0 | `native-proof-v8.log`, `.exit` |
+| Order | Command                                                                                                                                                                                                 | Result              | Log under `local-validation/phase82-receipt-native-integration/` |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------- |
+| 1     | `yarn workspace @artificer-toolkit/apis test:convex apps/apis/convex/lib/receiptLedgers.test.ts apps/apis/convex/characters/receiptCleanup.test.ts apps/apis/convex/characters/accountDeletion.test.ts` | Exit 0; 54/54 tests | `private-purge-tests-v8.log`, `.exit`                            |
+| 2     | `yarn turbo run build --filter=@artificer-toolkit/schema --filter=@artificer-toolkit/encounter-persistence --filter=@artificer-toolkit/rules-runtime --concurrency=1 --env-mode=loose`                  | Exit 0              | `dependency-build-v8.log`, `.exit`                               |
+| 3     | `yarn turbo run typecheck:convex --filter=@artificer-toolkit/apis --concurrency=1 --env-mode=loose`                                                                                                     | Exit 0              | `typecheck-v8.log`, `.exit`                                      |
+| 4     | Local `convex codegen --typecheck disable`, with explicit localhost URL and runtime-generated key                                                                                                       | Exit 0              | `local-codegen-v8.log`, `.exit`                                  |
+| 5     | Local `convex deploy --yes --typecheck disable --codegen disable`, with the same localhost target                                                                                                       | Exit 0              | `local-deploy-v8.log`, `.exit`                                   |
+| 6     | `pwsh -NoProfile -File scripts/runLocalConvexProof.ps1 -Name phase82-receipt-max-v8-20260930 -Proof receipt-ledgers`                                                                                    | Exit 0              | `native-proof-v8.log`, `.exit`                                   |
 
 The ignored `run-types-v8.ps1` and `run-native-v8.ps1` wrappers retain precise invocations.
 The native packet retains `.metadata.json`, `.command.txt`, `.guard.json`, `.native-executions.jsonl`,
@@ -61,11 +61,11 @@ capture metadata and source inventories under
 - Exact fixture accounts, credentials, sessions, aliases and drafts are removed through SDK
   cleanup; stale JWTs are then denied.
 
-| Native function | Maximum recorded wall time | Maximum recorded database read bytes |
-| --- | ---: | ---: |
-| Account-deletion hook, including idempotent fixture cleanup | 0.208 s | 12,308 |
-| Retirement rollback mutation | 0.275 s | 14,475 |
-| Purge, 16 scheduled passes plus two completed retries | 0.146 s | 1,968,243 |
+| Native function                                             | Maximum recorded wall time | Maximum recorded database read bytes |
+| ----------------------------------------------------------- | -------------------------: | -----------------------------------: |
+| Account-deletion hook, including idempotent fixture cleanup |                    0.208 s |                               12,308 |
+| Retirement rollback mutation                                |                    0.275 s |                               14,475 |
+| Purge, 16 scheduled passes plus two completed retries       |                    0.146 s |                            1,968,243 |
 
 These are focused maxima, not workload percentiles. First maximal construction took 1.047 s wall
 time and 0.917 s user execution time; its deliberate rollback took 0.682 s user execution time.

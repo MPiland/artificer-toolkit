@@ -286,7 +286,9 @@ export async function spatialDamageEffect(input: {
  * The captured SRD Character's sheet, prepared from its stored inputs and the SRD snapshot objects
  * the way a room prepares it. Every Character actor reads this one Character.
  */
-export async function srdCharacterReads(characterId: string): Promise<LiveCaptureReads['prepareCharacter']> {
+export async function srdCharacterReads(
+  characterId: string
+): Promise<LiveCaptureReads['prepareCharacter']> {
   const part = liveRoomCharacterPartSchema.parse(
     characterPageFixtureFor({ characterId, userId: USER_ID, campaignId: CAMPAIGN_ID })
   )
@@ -369,7 +371,9 @@ function moveSave(input: {
       ? {
           movementResolution: {
             commandJson: input.movementResolution.commandJson,
-            commandChecksum: checksumCanonicalJson(JSON.parse(input.movementResolution.commandJson)),
+            commandChecksum: checksumCanonicalJson(
+              JSON.parse(input.movementResolution.commandJson)
+            ),
             pendingSnapshotJson: input.movementResolution.pendingSnapshotJson,
             pendingSnapshotChecksum: checksumCanonicalJson(
               JSON.parse(input.movementResolution.pendingSnapshotJson)

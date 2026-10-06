@@ -135,12 +135,10 @@ function compileEquipmentBase(
   authored: EquipmentAuthored | VariantEquipmentAuthored | ResolvedEquipment
 ): CompiledEquipmentBase {
   const effects = authored.effects?.length
-    ? authored.effects.map(
-        (effect: EquipmentEffectAuthored): CompiledEquipmentEffectGroup => ({
-          ...compileEffect(effect),
-          grip: effect.grip
-        })
-      )
+    ? authored.effects.map((effect: EquipmentEffectAuthored): CompiledEquipmentEffectGroup => ({
+        ...compileEffect(effect),
+        grip: effect.grip
+      }))
     : undefined
 
   const features =

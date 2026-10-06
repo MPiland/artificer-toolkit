@@ -172,8 +172,10 @@ describe('native canonical Character repair state', () => {
     const stored = await readState()
     if (!stored.character) throw new Error('Missing canonical Character.')
     await t.run(async (ctx) => {
-      const build = await ctx.db.query('characterBuildStates')
-        .withIndex('by_characterId', (q) => q.eq('characterId', character.id)).unique()
+      const build = await ctx.db
+        .query('characterBuildStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+        .unique()
       if (!build) throw new Error('Missing Character build fixture.')
       await ctx.db.patch(build._id, { checksum: '0'.repeat(64) })
     })

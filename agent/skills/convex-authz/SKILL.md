@@ -1,6 +1,7 @@
 ---
 description: "Audit and harden Convex authorization: identity-from-arg impersonation, missing per-document ownership checks, PII-leaking public queries, and writes into containers the caller doesn't own. Deterministic scan + canonical requireIdentity/requireOwner fix + tsc verify. Use for 'secure my app' / 'audit auth' / 'who can access this data', not generic code review."
 ---
+
 <!-- GENERATED from convex-agents content/capabilities/convex-authz.json — do not edit by hand. -->
 
 # Convex Authz Auditor/Hardener

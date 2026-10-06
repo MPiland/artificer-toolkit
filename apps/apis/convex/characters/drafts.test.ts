@@ -172,7 +172,9 @@ describe('native Character working drafts', () => {
     expect(foreign).not.toBeInstanceOf(ConvexError)
     // The generation was reopened elsewhere.
     await expect(
-      replacedBy(owner.caller.mutation(save, { ...saveInput, expectedDraftId: crypto.randomUUID() }))
+      replacedBy(
+        owner.caller.mutation(save, { ...saveInput, expectedDraftId: crypto.randomUUID() })
+      )
     ).resolves.toMatchObject({ code: 'DRAFT_REPLACED' })
     // The base revision moved on.
     await expect(

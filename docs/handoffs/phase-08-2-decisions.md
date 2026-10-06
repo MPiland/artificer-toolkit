@@ -842,7 +842,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   [2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
   Final integration, the complete local lifecycle and Q16 remain pending. See
   [ADR 0035 D71](../adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30).
-  *Amendment (2026-10-05, A35-S11h):* "Shared Encounter history is retained" no longer holds for
+  _Amendment (2026-10-05, A35-S11h):_ "Shared Encounter history is retained" no longer holds for
   finished Runs. D85 and D88 (ADR 0035 Amendment 22) keep Encounter history in the room for the Run only,
   and ADR 0035 Amendment 30 deletes every Run child row at COMPLETE except the Run, its actors and their
   source facts. Account and Character deletion still leave all Encounter rows untouched; what they leave

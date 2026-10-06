@@ -10,15 +10,15 @@ Target: local Docker Convex backend `phase82-local-linux` at http://127.0.0.1:32
 
 ## Clock executions (native function log, 16 completions)
 
-| Function | Docs read | Bytes read | Docs written | Bytes written | Time (s) | Note |
-|---|---|---|---|---|---|---|
-| campaigns/clock:advance (DAILY recovery commit) | 89 | 126,926 | 8 | 7,182 | 0.680 | succeeded |
-| campaigns/clock:advance (first attempt) | 89 | 126,926 | 0 | 0 | 0.680 | OCC conflict on `characterPlayStates`, retryCount 0, retried |
-| campaigns/clock:reconcile | 10 | 3,634 | 4 | 2,341 | 0.050 | |
-| campaigns/clock:pause | 10 | 3,634 | 3 | 1,746 | 0.030 | |
-| campaigns/clock:configure, start, rewind, reset | 8 | 3,006 | 2-3 | 1,151-1,738 | 0.03-0.09 | |
-| campaigns/clock:initialize | 6 | 2,319 | 2 | 1,152 | 0.230 | |
-| campaigns/clock:advance, replay/contention (9 rows) | 6-7 | 2,320-3,083 | 0 | 0 | 0.03-0.07 | 5 rejected "Campaign clock changed", 4 exact replays |
+| Function                                            | Docs read | Bytes read  | Docs written | Bytes written | Time (s)  | Note                                                         |
+| --------------------------------------------------- | --------- | ----------- | ------------ | ------------- | --------- | ------------------------------------------------------------ |
+| campaigns/clock:advance (DAILY recovery commit)     | 89        | 126,926     | 8            | 7,182         | 0.680     | succeeded                                                    |
+| campaigns/clock:advance (first attempt)             | 89        | 126,926     | 0            | 0             | 0.680     | OCC conflict on `characterPlayStates`, retryCount 0, retried |
+| campaigns/clock:reconcile                           | 10        | 3,634       | 4            | 2,341         | 0.050     |                                                              |
+| campaigns/clock:pause                               | 10        | 3,634       | 3            | 1,746         | 0.030     |                                                              |
+| campaigns/clock:configure, start, rewind, reset     | 8         | 3,006       | 2-3          | 1,151-1,738   | 0.03-0.09 |                                                              |
+| campaigns/clock:initialize                          | 6         | 2,319       | 2            | 1,152         | 0.230     |                                                              |
+| campaigns/clock:advance, replay/contention (9 rows) | 6-7       | 2,320-3,083 | 0            | 0             | 0.03-0.07 | 5 rejected "Campaign clock changed", 4 exact replays         |
 
 Maximum Clock execution: 89 documents read, 126,926 bytes read, 8 documents written, 7,182 bytes written, 0.680 s. Only one OCC event was recorded (the advance above); the run's overall maxima were `campaigns/assignments:assign` (467 docs, 934,010 B, 0.637 s) and `content/publication:publishDraft` (407 docs, 766,194 B, 0.502 s).
 

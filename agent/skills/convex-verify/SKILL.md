@@ -1,6 +1,7 @@
 ---
-description: "Prove a Convex feature works — seed, drive as multiple mocked users via convex-test, assert behavior including the negative authz cases (wrong user refused, data-scope enforced)."
+description: 'Prove a Convex feature works — seed, drive as multiple mocked users via convex-test, assert behavior including the negative authz cases (wrong user refused, data-scope enforced).'
 ---
+
 <!-- GENERATED from convex-agents content/capabilities/convex-verify.json — do not edit by hand. -->
 
 # Prove a feature works — seed, drive, assert

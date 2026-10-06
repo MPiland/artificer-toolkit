@@ -337,9 +337,7 @@ describe('Encounter history stays in the room (D85)', () => {
     const pending = await d20Pending(base, base.other)
     const held = () =>
       base.t.run(async (ctx) =>
-        (await readEncounterHistory(ctx, base.campaign.id))
-          .query('encounterRunCommands')
-          .collect()
+        (await readEncounterHistory(ctx, base.campaign.id)).query('encounterRunCommands').collect()
       )
     const before = await held()
     expect(before.length).toBeGreaterThan(0)

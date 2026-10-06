@@ -10,18 +10,18 @@ The visual language is recognizable but not a defensible market advantage by its
 
 ## Provisional heuristic assessment
 
-| Heuristic | Score | Evidence |
-|---|---|---|
-| System status | Not assessed | Saved label visible; transitions untested |
-| Match to users' world | 3/4 | Familiar subject vocabulary; node terminology needs clarification |
-| User control | Not assessed | Undo and escape behavior untested |
-| Consistency | 3/4 | Cohesive visual shell; color and action semantics vary |
-| Error prevention | Not assessed | Valid connections and validation untested |
-| Recognition over recall | 3/4 | Selected detail helps; edge meaning remains ambiguous |
-| Efficiency | Not assessed | No runnable comparison with existing forms |
-| Aesthetic minimalism | 3/4 | Strong hierarchy; authoring and social action competition |
-| Error recovery | Not assessed | No error states supplied |
-| Help | Not assessed | No help flow supplied |
+| Heuristic               | Score        | Evidence                                                          |
+| ----------------------- | ------------ | ----------------------------------------------------------------- |
+| System status           | Not assessed | Saved label visible; transitions untested                         |
+| Match to users' world   | 3/4          | Familiar subject vocabulary; node terminology needs clarification |
+| User control            | Not assessed | Undo and escape behavior untested                                 |
+| Consistency             | 3/4          | Cohesive visual shell; color and action semantics vary            |
+| Error prevention        | Not assessed | Valid connections and validation untested                         |
+| Recognition over recall | 3/4          | Selected detail helps; edge meaning remains ambiguous             |
+| Efficiency              | Not assessed | No runnable comparison with existing forms                        |
+| Aesthetic minimalism    | 3/4          | Strong hierarchy; authoring and social action competition         |
+| Error recovery          | Not assessed | No error states supplied                                          |
+| Help                    | Not assessed | No help flow supplied                                             |
 
 Observable subset: 12/16. This is not an overall usability score or shipping gate.
 

@@ -138,13 +138,9 @@ async function capture(base: Fixture) {
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect(),
-    commands: await (await readEncounterHistory(ctx))
-      .query('encounterRunCommands')
-      .collect(),
+    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await (await readEncounterHistory(ctx))
-      .query('encounterRuleReceipts')
-      .collect(),
+    receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
     sceneBindings: await ctx.db.query('encounterSceneBindings').collect(),
     characters: await ctx.db.query('characters').collect(),

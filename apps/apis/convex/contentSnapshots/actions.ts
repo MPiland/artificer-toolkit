@@ -46,7 +46,7 @@ export const build = internalAction({
         // schedules another build.
         const sources: ContentSnapshotListSource[] = []
         let cursor: string | null = null
-        for (let isDone = false; !isDone; ) {
+        for (let isDone = false; !isDone;) {
           const page: { sources: string[]; continueCursor: string; isDone: boolean } =
             await ctx.runQuery(internal.contentSnapshots.heads.readScopeKind, {
               ...ref,

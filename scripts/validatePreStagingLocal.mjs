@@ -1381,7 +1381,7 @@ async function main() {
     runningServices.clear()
   }
 
-  for (let index = 0; index < selectedStages.length; ) {
+  for (let index = 0; index < selectedStages.length;) {
     const current = selectedStages[index]
     const batch = [current]
     if (!manifest.localConvexFixtures && batch.some(({ proofName }) => proofName)) {

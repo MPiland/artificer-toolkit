@@ -248,7 +248,8 @@ function SessionSectionCreator({
   const convex = useConvex()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [visibility, setVisibility] = useState<CampaignSessionNoteSectionDto['visibility']>('PRIVATE')
+  const [visibility, setVisibility] =
+    useState<CampaignSessionNoteSectionDto['visibility']>('PRIVATE')
   const create = useMutation({
     mutationFn: () =>
       convex.mutation(convexApi.campaigns.sessionNotes.create, {

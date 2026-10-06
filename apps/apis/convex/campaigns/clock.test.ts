@@ -691,9 +691,9 @@ describe('native Campaign clock and combat', () => {
       }
     })
     const resourceUsed = async () =>
-      (await player.caller.query(api.characters.sheet.get, { id: character.id }))!.resources.items.find(
-        (entry) => entry.id === resource.id
-      )!.used
+      (await player.caller.query(api.characters.sheet.get, {
+        id: character.id
+      }))!.resources.items.find((entry) => entry.id === resource.id)!.used
     const readRows = () =>
       t.run(async (ctx) => ({
         prompts: await ctx.db.query('campaignClockRecoveryPrompts').collect(),
@@ -743,9 +743,9 @@ describe('native Campaign clock and combat', () => {
         boundaryKind: 'DAWN'
       })
     ])
-    await expect(
-      player.caller.query(recoveryPrompts, { campaignId: campaign.id })
-    ).rejects.toThrow('Campaign not found')
+    await expect(player.caller.query(recoveryPrompts, { campaignId: campaign.id })).rejects.toThrow(
+      'Campaign not found'
+    )
     await expect(
       player.caller.mutation(dismissRecoveryPrompt, {
         campaignId: campaign.id,

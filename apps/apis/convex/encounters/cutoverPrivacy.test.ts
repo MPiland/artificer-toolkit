@@ -154,10 +154,7 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
     })
   )
   const readAll = (caller: typeof base.owner.caller, encounterId: string) =>
-    Promise.all([
-      caller.query(get, { encounterId }),
-      caller.query(pending, { encounterId })
-    ])
+    Promise.all([caller.query(get, { encounterId }), caller.query(pending, { encounterId })])
   const unavailable = 'Encounter is unavailable.'
 
   // PREPARED: the GM reads it; a player cannot, through any read.

@@ -579,7 +579,7 @@ export async function verifyCampaignQualifiedCurrencyCustody(
       const expected = structuredClone(previous.currencies.page)
       if (delta < 0n) {
         let remaining = -delta
-        for (let index = 0; index < expected.length && remaining > 0n; ) {
+        for (let index = 0; index < expected.length && remaining > 0n;) {
           const currency = expected[index]
           assert.ok(currency)
           if (qualifiedKey(currency, currency.denominationId) !== namespaceKey(namespace)) {

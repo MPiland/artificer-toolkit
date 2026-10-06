@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { api, internal } from '../_generated/api'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
-import { executeInRoom,
-  readTimelineInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
 
 const page = { cursor: null, numItems: 16 }
 

@@ -408,8 +408,8 @@ export async function applyEncounterInitiativeAdvance(input: {
       : input.state.round
   return {
     round,
-    participants: input.state.participants.map(
-      (participant) => participants.get(participant.actorId)!
+    participants: input.state.participants.map((participant) =>
+      participants.get(participant.actorId)!
     ),
     sides: input.state.sides.map((side) => sides.get(side.sideId)!)
   }

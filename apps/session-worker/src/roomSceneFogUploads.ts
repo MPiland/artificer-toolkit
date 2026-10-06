@@ -220,7 +220,9 @@ export class RoomSceneFogUploads {
   /** The earliest window end among staged and published rows, for the room's alarm. */
   nextExpiry(): number | null {
     const [row] = this.#sql
-      .exec<{ expires_at: number | null }>('SELECT MIN(expires_at) AS expires_at FROM room_scene_fog_uploads')
+      .exec<{ expires_at: number | null }>(
+        'SELECT MIN(expires_at) AS expires_at FROM room_scene_fog_uploads'
+      )
       .toArray()
     return row?.expires_at ?? null
   }

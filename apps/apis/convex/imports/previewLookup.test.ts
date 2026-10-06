@@ -252,11 +252,7 @@ describe('native import preview lookup', () => {
         currentVersionId: _currentVersionId,
         ...rootFields
       } = root
-      const {
-        _id: _versionId,
-        _creationTime: _versionCreationTime,
-        ...versionFields
-      } = version
+      const { _id: _versionId, _creationTime: _versionCreationTime, ...versionFields } = version
       for (let index = 0; index < 100; index++) {
         const id = crypto.randomUUID()
         const label = `Master Race ${index.toString().padStart(3, '0')}`

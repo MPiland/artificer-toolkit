@@ -20,7 +20,10 @@ export function roomSceneDefinitionRecords(
   const ids = new Set<string>()
   const ordinals = new Map<string, Set<number>>()
   const entities = pages.flatMap((page) => {
-    if (canonicalizeJson(page.header) !== headerJson || canonicalizeJson(page.source) !== sourceJson)
+    if (
+      canonicalizeJson(page.header) !== headerJson ||
+      canonicalizeJson(page.source) !== sourceJson
+    )
       throw new Error('Room Scene definition changed during hydrate.')
     return page.entities.map((raw) => {
       const value = sceneStoredDefinitionEntitySchema.parse(raw)
@@ -33,19 +36,29 @@ export function roomSceneDefinitionRecords(
         value.entityId !== value.value.entity.id ||
         value.ordinal >= header.counts[collection] ||
         value.checksum !== checksumCanonicalJson(value.value) ||
-        positions.has(value.ordinal) || ids.has(identity)
-      ) throw new Error('Room Scene definition integrity mismatch.')
+        positions.has(value.ordinal) ||
+        ids.has(identity)
+      )
+        throw new Error('Room Scene definition integrity mismatch.')
       positions.add(value.ordinal)
       ordinals.set(collection, positions)
       ids.add(identity)
-      return { kind: ROOM_SCENE_DEFINITION_ENTITY, key, revision: null, json: canonicalizeJson(value) }
+      return {
+        kind: ROOM_SCENE_DEFINITION_ENTITY,
+        key,
+        revision: null,
+        json: canonicalizeJson(value)
+      }
     })
   })
-  if (header.id !== first.source.sceneId ||
-      header.definitionSaveId !== first.source.definitionSaveId ||
-      header.definitionVersion !== first.source.definitionVersion ||
-      sceneDefinitionCollectionSchema.options.some((collection) =>
-        (ordinals.get(collection)?.size ?? 0) !== header.counts[collection]))
+  if (
+    header.id !== first.source.sceneId ||
+    header.definitionSaveId !== first.source.definitionSaveId ||
+    header.definitionVersion !== first.source.definitionVersion ||
+    sceneDefinitionCollectionSchema.options.some(
+      (collection) => (ordinals.get(collection)?.size ?? 0) !== header.counts[collection]
+    )
+  )
     throw new Error('Room Scene definition source or counts are inconsistent.')
   return [
     { kind: ROOM_SCENE_DEFINITION_HEADER, key: header.id, revision: null, json: headerJson },

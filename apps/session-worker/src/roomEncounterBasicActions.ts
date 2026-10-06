@@ -25,26 +25,49 @@ export async function executeRoomEncounterBasicAction(input: {
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
   const plan = await planNativeLiveBasicAction(scope, input.command, {
-    encounterRules: (request) => readRoomEncounterTurnCapture(ctx, inputs, transaction, request,
-      observed.filter((revision) => revision.scope !== 'CHARACTER'), {
-        readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
-        readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
-      }),
-    prepareCharacter: (characterScope) => prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
+    encounterRules: (request) =>
+      readRoomEncounterTurnCapture(
+        ctx,
+        inputs,
+        transaction,
+        request,
+        observed.filter((revision) => revision.scope !== 'CHARACTER'),
+        {
+          readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
+          readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
+        }
+      ),
+    prepareCharacter: (characterScope) =>
+      prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
   })
   if (plan.kind === 'REPLAY') return plan.result
-  const run = await ctx.db.query('encounterRuns').withIndex('by_publicId', (query) => query.eq('id', scope.encounterId)).unique()
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (query) => query.eq('id', scope.encounterId))
+    .unique()
   if (!run) throw new Error('Room basic action Run is unavailable.')
   const actors = await readRunActors(ctx, readRunState(run))
-  const ids = new Set(actors.flatMap((actor) => actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
-  const revisions = observed.filter((revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id))
+  const ids = new Set(
+    actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
+  )
+  const revisions = observed.filter(
+    (revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id)
+  )
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
-  return persistEncounterBasicAction(ctx, { ...plan.input, revisions }, {
-    validateReadFence: (state, actors, fence) => assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, { revisions: fence.revisions, scenes: [] }),
-    readDefinition: async (id, userId) => {
-      await ctx.ports.requireCampaignAuthority(scope.campaignId, userId)
-      const source = await inputs.definition(id, observed, transaction)
-      return source.sourceKind === 'PLATFORM' ? source.definition : null
+  return persistEncounterBasicAction(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        }),
+      readDefinition: async (id, userId) => {
+        await ctx.ports.requireCampaignAuthority(scope.campaignId, userId)
+        const source = await inputs.definition(id, observed, transaction)
+        return source.sourceKind === 'PLATFORM' ? source.definition : null
+      }
     }
-  })
+  )
 }

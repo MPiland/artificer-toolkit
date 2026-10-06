@@ -878,10 +878,7 @@ export function CampaignVttStage({
     : (live.rejection?.message ?? live.error)
 
   return (
-    <section
-      className={styles.shell}
-      aria-label={`Live scene: ${scene.name}`}
-    >
+    <section className={styles.shell} aria-label={`Live scene: ${scene.name}`}>
       <div className={styles.header}>
         <div className={styles.identity}>
           <span

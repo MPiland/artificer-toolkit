@@ -19,7 +19,9 @@ import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/characte
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import { readCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 
-export type PreparedLiveCharacterSheet = Awaited<ReturnType<typeof prepareLiveCharacterSheetFacts>> & {
+export type PreparedLiveCharacterSheet = Awaited<
+  ReturnType<typeof prepareLiveCharacterSheetFacts>
+> & {
   revisions: LiveSessionRulesRevisions
 }
 
@@ -58,7 +60,11 @@ export async function prepareLiveCharacterSheetFacts(input: {
       const pin = object.versions[index]!
       const previous = versions.get(root.id)
       if (previous) {
-        const identity = ({ identity, version, storedParentId }: ContentSnapshotPublicationVersion) =>
+        const identity = ({
+          identity,
+          version,
+          storedParentId
+        }: ContentSnapshotPublicationVersion) =>
           canonicalizeJson({ identity, version, storedParentId: storedParentId ?? null })
         if (identity(previous) !== identity(pin))
           throw new Error('Character rules source versions disagree.')

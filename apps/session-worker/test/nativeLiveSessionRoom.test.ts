@@ -2651,10 +2651,7 @@ it('refuses a binding whose admission expires before commit with a retry and wri
         clock.mockReturnValue((base.issuedAt + 3_601) * 1_000)
       })
     try {
-      await instance.webSocketMessage(
-        ownerSocket,
-        JSON.stringify(bindCommand(state.id, commandId))
-      )
+      await instance.webSocketMessage(ownerSocket, JSON.stringify(bindCommand(state.id, commandId)))
       const messages = sent.mock.calls.map(([data]) =>
         liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(data)))
       )

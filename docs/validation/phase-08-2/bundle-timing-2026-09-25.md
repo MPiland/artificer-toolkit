@@ -20,21 +20,21 @@
 
 There were two independent runs. Each value is run 1 / run 2, in ms.
 
-| Measure | p50 | p95 | max |
-| --- | --- | --- | --- |
-| Room command wall-clock, all (n=40) | 927 / 953 | 1,185 / 1,082 | 1,450 / 1,420 |
-| `RESOLVE_ACTION` wall-clock (n=14) | 908 / 936 | 1,211 / 1,043 | |
-| `ADVANCE_TURN` wall-clock (n=26) | 950 / 972 | 1,146 / 1,124 | |
-| Bundle query, in-room (n=40) | 448 / 463 | 575 / 529 | 696 / 771 |
-| Bundle query, JavaScript time only | 317 / 330 | 427 / 370 | |
-| Bundle HTTP action (Worker → Convex) | 534 / 544 | 692 / 624 | |
-| Commit mutation (turn/action) | 294 / 305 | 400 / 364 | |
-| Commit HTTP action | 364 / 381 | 500 / 454 | |
-| Time in the Worker/DO outside both HTTP calls | 28 / 28 | 38 / 35 | |
-| Direct bundle, `TURN_COMMAND`, client (n=40) | 504 / 490 | 665 / 708 | |
-| Direct bundle, `TURN_COMMAND`, query | 493 / 482 | 643 / 700 | |
-| Direct bundle, `ACTION_COMMAND`, client (n=40) | 534 / 424 | 755 / 486 | |
-| Direct bundle, `ACTION_COMMAND`, query | 517 / 407 | 741 / 472 | |
+| Measure                                        | p50       | p95           | max           |
+| ---------------------------------------------- | --------- | ------------- | ------------- |
+| Room command wall-clock, all (n=40)            | 927 / 953 | 1,185 / 1,082 | 1,450 / 1,420 |
+| `RESOLVE_ACTION` wall-clock (n=14)             | 908 / 936 | 1,211 / 1,043 |               |
+| `ADVANCE_TURN` wall-clock (n=26)               | 950 / 972 | 1,146 / 1,124 |               |
+| Bundle query, in-room (n=40)                   | 448 / 463 | 575 / 529     | 696 / 771     |
+| Bundle query, JavaScript time only             | 317 / 330 | 427 / 370     |               |
+| Bundle HTTP action (Worker → Convex)           | 534 / 544 | 692 / 624     |               |
+| Commit mutation (turn/action)                  | 294 / 305 | 400 / 364     |               |
+| Commit HTTP action                             | 364 / 381 | 500 / 454     |               |
+| Time in the Worker/DO outside both HTTP calls  | 28 / 28   | 38 / 35       |               |
+| Direct bundle, `TURN_COMMAND`, client (n=40)   | 504 / 490 | 665 / 708     |               |
+| Direct bundle, `TURN_COMMAND`, query           | 493 / 482 | 643 / 700     |               |
+| Direct bundle, `ACTION_COMMAND`, client (n=40) | 534 / 424 | 755 / 486     |               |
+| Direct bundle, `ACTION_COMMAND`, query         | 517 / 407 | 741 / 472     |               |
 
 At 11 actors each bundle reads 145 documents (204 KB) and returns 286 KB, in 25 encounter parts and 5 Character parts. `encounters/runs:create` reads 289 documents (1.06 MB) in 432 ms.
 
@@ -46,10 +46,10 @@ A near-cap retry used 12 Characters + 72 Creatures (84 actors). There, `runs:cre
 
 ## Comparison to budget
 
-| Threshold (acceptance "Performance contract", `live-sessions.md`) | Typical, 11 actors | Cap, 100 actors |
-| --- | --- | --- |
-| Rule-bound host p95 < 250 ms | **Missed.** Command p95 is 1,082–1,185 ms. The bundle query alone has p95 529–575 ms (twice the budget) and p50 about 450 ms. | Not reachable; the Run cannot be created. |
-| Authoritative gameplay command p95 ≤ 1,000 ms | **Missed**, at 1,082–1,185 ms. | Not reachable. |
+| Threshold (acceptance "Performance contract", `live-sessions.md`) | Typical, 11 actors                                                                                                            | Cap, 100 actors                           |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Rule-bound host p95 < 250 ms                                      | **Missed.** Command p95 is 1,082–1,185 ms. The bundle query alone has p95 529–575 ms (twice the budget) and p50 about 450 ms. | Not reachable; the Run cannot be created. |
+| Authoritative gameplay command p95 ≤ 1,000 ms                     | **Missed**, at 1,082–1,185 ms.                                                                                                | Not reachable.                            |
 
 ## Bottleneck observations
 

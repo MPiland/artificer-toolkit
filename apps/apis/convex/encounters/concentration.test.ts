@@ -274,7 +274,10 @@ it('cleans the exact concentration state on failure and preserves an independent
     await ctx.db.patch(state._id, { version: state.version + 1 })
     return state.version
   })
-  await expectRedactedRoomRefusal(executeInRoom(fixture.player.caller, command), /stale|unavailable/)
+  await expectRedactedRoomRefusal(
+    executeInRoom(fixture.player.caller, command),
+    /stale|unavailable/
+  )
   await fixture.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')

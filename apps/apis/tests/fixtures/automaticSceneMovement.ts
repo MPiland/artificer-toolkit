@@ -242,7 +242,10 @@ export async function setupReactionMovementScene<
  * plan's outcome with `publish` to commit it.
  */
 export async function useMovementReactions(
-  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'rootInput'>,
+  value: Pick<
+    Awaited<ReturnType<typeof setupReactionMovementScene>>,
+    'base' | 'owner' | 'rootInput'
+  >,
   maxUses = 10,
   /** A planned decision to continue from instead of the root movement. */
   start?: Awaited<ReturnType<typeof planMovementDecisionInRoom>>

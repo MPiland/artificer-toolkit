@@ -196,8 +196,8 @@ export async function recordEncounterInitiativeScoreBatch(input: {
 
   return {
     round: input.state.round,
-    participants: input.state.participants.map(
-      (participant) => participantById.get(participant.actorId)!
+    participants: input.state.participants.map((participant) =>
+      participantById.get(participant.actorId)!
     ),
     sides: input.state.sides.map((side) => sideById.get(side.sideId)!)
   }

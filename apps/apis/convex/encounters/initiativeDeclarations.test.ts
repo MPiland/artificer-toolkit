@@ -186,13 +186,9 @@ async function storedInitiative<T extends { t: Awaited<ReturnType<typeof fixture
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await (await readEncounterHistory(ctx))
-      .query('encounterRunCommands')
-      .collect(),
+    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await (await readEncounterHistory(ctx))
-      .query('encounterRuleReceipts')
-      .collect()
+    receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
   }))
 }
 
@@ -1197,9 +1193,7 @@ describe('native initiative declarations', () => {
         )
         .unique(),
       receipts: (
-        await (await readEncounterHistory(ctx))
-          .query('encounterRuleReceipts')
-          .collect()
+        await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
       ).filter((value) => value.encounterId === run.id),
       run: await ctx.db
         .query('encounterRuns')
@@ -1226,9 +1220,7 @@ describe('native initiative declarations', () => {
           )
           .unique(),
         receipts: (
-          await (await readEncounterHistory(ctx))
-            .query('encounterRuleReceipts')
-            .collect()
+          await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
         ).filter((value) => value.encounterId === run.id),
         run: await ctx.db
           .query('encounterRuns')

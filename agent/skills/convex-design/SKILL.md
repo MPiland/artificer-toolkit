@@ -1,6 +1,7 @@
 ---
 description: "Design and build reactive, type-safe, production-grade backends on Convex. Covers schema, queries/mutations/actions, indexes, auth, file storage, scheduling, real-time multiplayer, mobile backends, and LLM/agent workflows on Convex's one-platform stack."
 ---
+
 <!-- GENERATED from convex-agents content/capabilities/design.json — do not edit by hand. -->
 
 # design

@@ -411,7 +411,9 @@ describe('native personal Sheet command transactions', () => {
     )
     const corrupted = await readState()
     const corruptedStorage = await readReceiptStorage()
-    await expect(owner.caller.mutation(execute, request)).rejects.toThrow('history checksum mismatch')
+    await expect(owner.caller.mutation(execute, request)).rejects.toThrow(
+      'history checksum mismatch'
+    )
     expect(await readState()).toEqual(corrupted)
     expect(await readReceiptStorage()).toEqual(corruptedStorage)
   })

@@ -21,7 +21,10 @@ import {
   readAuthoredVersionCompilation,
   readAuthoredVersionCompilationRow
 } from '../../convex/content/documents'
-import { compilePublicationDocument, parsePublicationDocument } from '../../convex/content/publicationDocument'
+import {
+  compilePublicationDocument,
+  parsePublicationDocument
+} from '../../convex/content/publicationDocument'
 import schema from '../../convex/schema'
 
 process.env.SITE_URL = 'http://localhost:3000'

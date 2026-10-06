@@ -28,8 +28,10 @@ async function findAdmissionListing(ctx: QueryCtx, listingId: string) {
     .withIndex('by_publicId', (q) => q.eq('id', listingId.toLowerCase()))
     .unique()
   if (!row) return null
-  const deletion = await ctx.db.query('campaignDeletionJobs')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', row.campaignId)).unique()
+  const deletion = await ctx.db
+    .query('campaignDeletionJobs')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', row.campaignId))
+    .unique()
   if (deletion) return null
   const { _id, _creationTime, ...stored } = row
   const listing = await resolveListingSuspension(ctx, socialStoredListingSchema.parse(stored))

@@ -83,10 +83,7 @@ export const list = query({
       membership.role === 'OWNER'
         ? rows
         : rows.filter((q) =>
-            q.or(
-              q.eq(q.field('visibility'), 'SHARED'),
-              q.eq(q.field('authorUserId'), userId)
-            )
+            q.or(q.eq(q.field('visibility'), 'SHARED'), q.eq(q.field('authorUserId'), userId))
           )
     ).paginate({
       ...input.paginationOpts,
@@ -166,7 +163,8 @@ export const update = mutation({
       sortOrder: input.sortOrder ?? existing.sortOrder
     })
     if (merged.visibility === 'SHARED') requireCampaignAuthorUsername(actor.username)
-    if (merged.kind !== 'NOTE' && membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (merged.kind !== 'NOTE' && membership.role !== 'OWNER')
+      throw new Error('Campaign not found.')
     const patch = {
       ...merged,
       version: existing.version + 1,

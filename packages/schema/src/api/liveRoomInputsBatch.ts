@@ -13,7 +13,16 @@ export const MAX_ROOM_INPUT_RESPONSE_DOCUMENTS =
 
 type PagedResponse = Extract<
   LiveRoomInputsResponse,
-  { kind: 'AUTHORITY' | 'CHAT_METADATA' | 'RUN' | 'SCENE' | 'SCENE_DEFINITION' | 'CHARACTERS' | 'DEFINITIONS' }
+  {
+    kind:
+      | 'AUTHORITY'
+      | 'CHAT_METADATA'
+      | 'RUN'
+      | 'SCENE'
+      | 'SCENE_DEFINITION'
+      | 'CHARACTERS'
+      | 'DEFINITIONS'
+  }
 >
 
 const isPaged = (response: LiveRoomInputsResponse): response is PagedResponse =>
@@ -29,24 +38,32 @@ const documentsIn = (page: PagedResponse) =>
   page.kind === 'DEFINITIONS'
     ? page.definitions.length
     : page.kind === 'SCENE_DEFINITION'
-    ? page.entities.length
-    : page.kind !== 'CHARACTERS'
-    ? page.documents.length
-    : page.parts.reduce(
-        (total, part) => total + (part.status === 'ASSIGNED' ? part.documents.length : 0),
-        0
-      )
+      ? page.entities.length
+      : page.kind !== 'CHARACTERS'
+        ? page.documents.length
+        : page.parts.reduce(
+            (total, part) => total + (part.status === 'ASSIGNED' ? part.documents.length : 0),
+            0
+          )
 
 /** Refuses pages with changed Run versions or Scene source/version pins. */
 function append(batch: PagedResponse, next: PagedResponse): PagedResponse | null {
   if (batch.kind === 'DEFINITIONS' && next.kind === 'DEFINITIONS')
     return JSON.stringify(next.revisions) === JSON.stringify(batch.revisions)
-      ? { ...batch, definitions: [...batch.definitions, ...next.definitions], continueCursor: next.continueCursor }
+      ? {
+          ...batch,
+          definitions: [...batch.definitions, ...next.definitions],
+          continueCursor: next.continueCursor
+        }
       : null
   if (batch.kind === 'SCENE_DEFINITION' && next.kind === 'SCENE_DEFINITION')
     return JSON.stringify(next.header) === JSON.stringify(batch.header) &&
       JSON.stringify(next.source) === JSON.stringify(batch.source)
-      ? { ...batch, entities: [...batch.entities, ...next.entities], continueCursor: next.continueCursor }
+      ? {
+          ...batch,
+          entities: [...batch.entities, ...next.entities],
+          continueCursor: next.continueCursor
+        }
       : null
   if (batch.kind === 'CHAT_METADATA' && next.kind === 'CHAT_METADATA')
     return {
@@ -127,17 +144,17 @@ export async function readRoomInputsBatch(
           ? { ...scope, cursor: batch.continueCursor }
           : scope.kind === 'SCENE_DEFINITION' && batch.kind === 'SCENE_DEFINITION'
             ? { ...scope, cursor: batch.continueCursor }
-          : scope.kind === 'DEFINITIONS' && batch.kind === 'DEFINITIONS'
-            ? { ...scope, cursor: batch.continueCursor }
-          : scope.kind === 'RUN' && batch.kind === 'RUN'
-            ? { ...scope, cursor: batch.continueCursor }
-            : scope.kind === 'AUTHORITY' && batch.kind === 'AUTHORITY'
+            : scope.kind === 'DEFINITIONS' && batch.kind === 'DEFINITIONS'
               ? { ...scope, cursor: batch.continueCursor }
-              : scope.kind === 'CHAT_METADATA' && batch.kind === 'CHAT_METADATA'
+              : scope.kind === 'RUN' && batch.kind === 'RUN'
                 ? { ...scope, cursor: batch.continueCursor }
-                : scope.kind === 'CHARACTERS' && batch.kind === 'CHARACTERS'
+                : scope.kind === 'AUTHORITY' && batch.kind === 'AUTHORITY'
                   ? { ...scope, cursor: batch.continueCursor }
-                  : scope
+                  : scope.kind === 'CHAT_METADATA' && batch.kind === 'CHAT_METADATA'
+                    ? { ...scope, cursor: batch.continueCursor }
+                    : scope.kind === 'CHARACTERS' && batch.kind === 'CHARACTERS'
+                      ? { ...scope, cursor: batch.continueCursor }
+                      : scope
     }
     const next = await readPage(nextInput)
     if (!isPaged(next)) throw new Error('Room input page answered as another scope.')

@@ -35,7 +35,10 @@ function reactorOrder(planned: PlannedMovement) {
 
 describe('movement reactions', () => {
   /** FRIENDLY Wolves whose Bite is an opportunity attack, around a HOSTILE Wolf walking east. */
-  function reactionScenario(reactorIds: readonly string[], positions: Record<string, { x: number; y: number }>) {
+  function reactionScenario(
+    reactorIds: readonly string[],
+    positions: Record<string, { x: number; y: number }>
+  ) {
     const mover = srdCreatureActor({ id: MOVER_ID, creature: plainWolf })
     const reactors = reactorIds.map((id) =>
       srdCreatureActor({ id, creature: reactionWolf, disposition: 'FRIENDLY' })
@@ -136,9 +139,7 @@ describe('movement through a hostile creature', () => {
     const { result } = await scenario.start()
 
     expect(result.outcome.kind).toBe('PENDING')
-    expect(
-      passageChoices(result).map(({ ruleKind, economy }) => ({ ruleKind, economy }))
-    ).toEqual(
+    expect(passageChoices(result).map(({ ruleKind, economy }) => ({ ruleKind, economy }))).toEqual(
       expect.arrayContaining([
         { ruleKind: 'OVERRUN', economy: 'ACTION' },
         { ruleKind: 'OVERRUN', economy: 'BONUS_ACTION' },

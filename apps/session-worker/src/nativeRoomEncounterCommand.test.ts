@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
-import {
-  encounterCommandRefusal,
-  RoomAdmissionExpiredError
-} from './nativeRoomEncounterCommand.js'
+import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
 
 describe('encounterCommandRefusal', () => {
   it('offers a retry when Convex ran out of time and keeps STALE_STATE for real staleness (D47)', () => {

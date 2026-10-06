@@ -54,22 +54,12 @@ export function countDatabaseIo<T extends object>(db: T, totals: DatabaseIoTotal
         : [value]
     for (const document of documents)
       if (document !== null && typeof document === 'object' && '_id' in document)
-        add(
-          totals.reads,
-          table,
-          documentBytes(document),
-          String(document._id)
-        )
+        add(totals.reads, table, documentBytes(document), String(document._id))
   }
   const countWrite = (method: string, args: readonly unknown[]) => {
     const table = method === 'insert' && typeof args[0] === 'string' ? args[0] : method
     const value = method === 'insert' || method === 'replace' || method === 'patch' ? args[1] : null
-    add(
-      totals.writes,
-      table,
-      value === null ? 0 : documentBytes(value),
-      undefined
-    )
+    add(totals.writes, table, value === null ? 0 : documentBytes(value), undefined)
   }
   const wrap = <U extends object>(target: U, table: string): U =>
     new Proxy(target, {

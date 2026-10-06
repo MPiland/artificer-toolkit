@@ -129,8 +129,8 @@ describe('native movement target facts', () => {
       expectedEncounterVersion: fixture.run.version,
       targetActorIds: [actor.id]
     }
-    const custom = await fixture.owner.caller.run(
-      async (ctx) => (await readMovementTargets(ctx, input)).get(actor.id)!
+    const custom = await fixture.owner.caller.run(async (ctx) =>
+      (await readMovementTargets(ctx, input)).get(actor.id)!
     )
     expect(custom.defenses).toEqual([])
     expect(custom.baseScalarValues).toEqual({})
@@ -177,8 +177,8 @@ describe('native movement target facts', () => {
       })
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, creature)
     })
-    const creature = await fixture.owner.caller.run(
-      async (ctx) => (await readMovementTargets(ctx, input)).get(actor.id)!
+    const creature = await fixture.owner.caller.run(async (ctx) =>
+      (await readMovementTargets(ctx, input)).get(actor.id)!
     )
     expect(creature.baseScalarValues).toEqual({ [abilityId]: 12 })
     expect(creature.defenses).toEqual([{ kind: 'RESISTANCE', damageTypeId }])

@@ -119,7 +119,9 @@ describe('useCampaignPresentedScene', () => {
       wrapper: wrapper(client)
     })
 
-    await waitFor(() => expect(hook.result.current.error?.message).toBe('Presentation unavailable.'))
+    await waitFor(() =>
+      expect(hook.result.current.error?.message).toBe('Presentation unavailable.')
+    )
     expect(hook.result.current.sceneId).toBeNull()
   })
 })

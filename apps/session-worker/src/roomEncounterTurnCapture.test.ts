@@ -438,7 +438,14 @@ it.each([
       { kind: 'EFFECTS' as const, actorId: actor.id, afterEffectId: null }
     ])
       await expect(
-        readRoomEncounterTurnCapture(owner, inputs, transaction, { ...input, request }, observed, scene)
+        readRoomEncounterTurnCapture(
+          owner,
+          inputs,
+          transaction,
+          { ...input, request },
+          observed,
+          scene
+        )
       ).rejects.toMatchObject(refusal)
   })
 })

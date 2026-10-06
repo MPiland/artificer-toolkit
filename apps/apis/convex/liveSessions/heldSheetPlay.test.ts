@@ -128,9 +128,7 @@ describe('Sheet play on a held Character', () => {
     })
     expect(acknowledgement.streamVersion).toBe(committed.streamVersion)
     const { receipts } = await base.readState()
-    expect(receipts).toEqual([
-      expect.objectContaining({ commandId: command.command.commandId })
-    ])
+    expect(receipts).toEqual([expect.objectContaining({ commandId: command.command.commandId })])
 
     // The same command ID again returns the same acknowledgement and writes nothing.
     const settled = await base.readReceiptStorage()
@@ -182,10 +180,7 @@ describe('Sheet play on a held Character', () => {
 
     // A level-down while held clamps current HP to the lower maximum on the next room command.
     await base.builderEdit(atLevel(1, 'Held level one'))
-    await executeSheetInRoom(
-      base.player.caller,
-      base.adjust('DAMAGE', 1, healed.streamVersion + 1)
-    )
+    await executeSheetInRoom(base.player.caller, base.adjust('DAMAGE', 1, healed.streamVersion + 1))
     expect(await base.play()).toMatchObject({
       label: 'Held level one',
       maximumHitPoints: initial.maximumHitPoints,

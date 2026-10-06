@@ -57,9 +57,9 @@ describe('readNativeLiveMaintenanceSlot', () => {
   it('reads an empty slot with a single capture', async () => {
     const fake = captureFake(() => ({ kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: null }))
 
-    await expect(readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })).resolves.toEqual(
-      { state: null, dependents: [] }
-    )
+    await expect(
+      readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })
+    ).resolves.toEqual({ state: null, dependents: [] })
     expect(fake.requests).toEqual([
       { kind: 'MAINTENANCE_SLOT', actorId: CASTER_ID, definitionId: DEFINITION_ID }
     ])
@@ -121,26 +121,34 @@ describe('readNativeLiveMaintenanceSlot', () => {
         : {
             kind: 'MAINTENANCE_DEPENDENTS',
             ...captureEnvelope,
-            effects: request.kind === 'MAINTENANCE_DEPENDENTS' && request.ownerKind === 'ENCOUNTER_ACTOR' ? [stray] : [],
+            effects:
+              request.kind === 'MAINTENANCE_DEPENDENTS' && request.ownerKind === 'ENCOUNTER_ACTOR'
+                ? [stray]
+                : [],
             continueCursor: null
           }
     )
 
-    await expect(
-      readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })
-    ).rejects.toThrow('Maintenance dependent identity mismatch.')
+    await expect(readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })).rejects.toThrow(
+      'Maintenance dependent identity mismatch.'
+    )
   })
 
   it('refuses a repeated dependents cursor', async () => {
     const fake = captureFake((request) =>
       request.kind === 'MAINTENANCE_SLOT'
         ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState }
-        : { kind: 'MAINTENANCE_DEPENDENTS', ...captureEnvelope, effects: [], continueCursor: 'loop' }
+        : {
+            kind: 'MAINTENANCE_DEPENDENTS',
+            ...captureEnvelope,
+            effects: [],
+            continueCursor: 'loop'
+          }
     )
 
-    await expect(
-      readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })
-    ).rejects.toThrow('Maintenance capture cursor repeated.')
+    await expect(readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })).rejects.toThrow(
+      'Maintenance capture cursor repeated.'
+    )
   })
 
   it('refuses a slot state owned by another actor', async () => {
@@ -149,11 +157,15 @@ describe('readNativeLiveMaintenanceSlot', () => {
       ownerActorId: TARGET_ID,
       definitionId: DEFINITION_ID
     })
-    const fake = captureFake(() => ({ kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: foreign }))
+    const fake = captureFake(() => ({
+      kind: 'MAINTENANCE_SLOT',
+      ...captureEnvelope,
+      state: foreign
+    }))
 
-    await expect(
-      readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })
-    ).rejects.toThrow('Maintenance slot identity mismatch.')
+    await expect(readNativeLiveMaintenanceSlot({ ...slot, capture: fake.capture })).rejects.toThrow(
+      'Maintenance slot identity mismatch.'
+    )
   })
 })
 
@@ -168,7 +180,12 @@ describe('readNativeLiveMaintenanceOwners', () => {
     const kept = activeEffect({ id: testUuid(0x602), owner: actorOwner, createdOrdinal: 9 })
     const fake = captureFake((request) => {
       if (request.kind !== 'MAINTENANCE_OWNER') throw new Error(`Unexpected ${request.kind}`)
-      return { kind: 'MAINTENANCE_OWNER', ...captureEnvelope, owner: request.owner, character: null }
+      return {
+        kind: 'MAINTENANCE_OWNER',
+        ...captureEnvelope,
+        owner: request.owner,
+        character: null
+      }
     })
 
     const result = await readNativeLiveMaintenanceOwners({
@@ -179,7 +196,9 @@ describe('readNativeLiveMaintenanceOwners', () => {
       capture: fake.capture
     })
 
-    expect(result.owners).toEqual([{ owner: actorOwner, effects: [removed, kept], character: null }])
+    expect(result.owners).toEqual([
+      { owner: actorOwner, effects: [removed, kept], character: null }
+    ])
     expect(result.characterVersions).toEqual([])
     expect(fake.requests.map((request) => request.kind)).toEqual(['MAINTENANCE_OWNER'])
   })
@@ -195,7 +214,8 @@ describe('readNativeLiveMaintenanceOwners', () => {
     const fake = captureFake((request) => {
       if (request.kind === 'MAINTENANCE_OWNER')
         return { kind: 'MAINTENANCE_OWNER', ...captureEnvelope, owner, character: row }
-      if (request.kind !== 'MAINTENANCE_OWNER_EFFECTS') throw new Error(`Unexpected ${request.kind}`)
+      if (request.kind !== 'MAINTENANCE_OWNER_EFFECTS')
+        throw new Error(`Unexpected ${request.kind}`)
       return request.afterEffectId === null
         ? {
             kind: 'MAINTENANCE_OWNER_EFFECTS',
@@ -261,7 +281,9 @@ describe('readNativeLiveMaintenanceOwners', () => {
       capture: fake.capture,
       projection: {
         slots: new Map(),
-        owners: new Map([[checksumCanonicalJson(owner), { owner, effects: [effect], character: row }]])
+        owners: new Map([
+          [checksumCanonicalJson(owner), { owner, effects: [effect], character: row }]
+        ])
       }
     })
 
@@ -285,9 +307,13 @@ describe('readNativeLiveMaintenanceOwners', () => {
           kind: 'MAINTENANCE_OWNER',
           ...captureEnvelope,
           owner: request.owner,
-          character: request.owner.kind === 'CHARACTER' ? (rows.get(request.owner.characterId) ?? null) : null
+          character:
+            request.owner.kind === 'CHARACTER'
+              ? (rows.get(request.owner.characterId) ?? null)
+              : null
         }
-      if (request.kind !== 'MAINTENANCE_OWNER_EFFECTS') throw new Error(`Unexpected ${request.kind}`)
+      if (request.kind !== 'MAINTENANCE_OWNER_EFFECTS')
+        throw new Error(`Unexpected ${request.kind}`)
       return {
         kind: 'MAINTENANCE_OWNER_EFFECTS',
         ...captureEnvelope,
@@ -432,7 +458,10 @@ describe('readNativeLiveMovementConcentrationState', () => {
     const fake = captureFake(() => ({ kind: 'DEFINITION', ...captureEnvelope, definition: null }))
 
     await expect(
-      read(fake, { slots: new Map([[slotKey, { state: null, dependents: [] }]]), owners: new Map() })
+      read(fake, {
+        slots: new Map([[slotKey, { state: null, dependents: [] }]]),
+        owners: new Map()
+      })
     ).resolves.toBeNull()
     expect(fake.requests).toEqual([])
 
@@ -453,7 +482,11 @@ describe('readNativeLiveMovementConcentrationState', () => {
       ownerActorId: TARGET_ID,
       definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
     })
-    const fake = captureFake(() => ({ kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: foreign }))
+    const fake = captureFake(() => ({
+      kind: 'MAINTENANCE_SLOT',
+      ...captureEnvelope,
+      state: foreign
+    }))
 
     await expect(read(fake)).rejects.toThrow(
       'The concentration state does not match its Encounter owner.'
@@ -522,7 +555,11 @@ describe('readNativeLiveActorsAndEffects', () => {
     const firstPage = [0x801, 0x802, 0x803, 0x804].map((id) =>
       activeEffect({ id: testUuid(id), owner: owner(sortedFirst), createdOrdinal: 0x805 - id + 1 })
     )
-    const lastPage = activeEffect({ id: testUuid(0x805), owner: owner(sortedFirst), createdOrdinal: 1 })
+    const lastPage = activeEffect({
+      id: testUuid(0x805),
+      owner: owner(sortedFirst),
+      createdOrdinal: 1
+    })
     const fake = captureFake((request) => {
       if (request.kind === 'ACTOR')
         return {
@@ -573,9 +610,9 @@ describe('readNativeLiveActorsAndEffects', () => {
       continueAfter: null
     }))
 
-    await expect(
-      readNativeLiveActorsAndEffects({ state, capture: fake.capture })
-    ).rejects.toThrow('Encounter actor binding mismatch.')
+    await expect(readNativeLiveActorsAndEffects({ state, capture: fake.capture })).rejects.toThrow(
+      'Encounter actor binding mismatch.'
+    )
   })
 
   it('refuses two actors that read the same Character', async () => {
@@ -596,8 +633,8 @@ describe('readNativeLiveActorsAndEffects', () => {
       continueAfter: null
     }))
 
-    await expect(
-      readNativeLiveActorsAndEffects({ state, capture: fake.capture })
-    ).rejects.toThrow('Encounter Character source binding mismatch.')
+    await expect(readNativeLiveActorsAndEffects({ state, capture: fake.capture })).rejects.toThrow(
+      'Encounter Character source binding mismatch.'
+    )
   })
 })

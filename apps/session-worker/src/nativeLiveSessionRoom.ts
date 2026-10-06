@@ -2930,8 +2930,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       throw new LiveSessionRouteError(409)
     const before = cache.scene
     const authorization = await this.#authorizationBoundary(value)
-    if (!admitsRoomMember(authorization, admission))
-      throw new RoomAdmissionExpiredError()
+    if (!admitsRoomMember(authorization, admission)) throw new RoomAdmissionExpiredError()
     this.#roomStore.assertAuthorityHead({
       epoch: current.authorityEpoch,
       sequence: current.sequence,
@@ -3305,7 +3304,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             this.#cache.presentation?.expectedPresentationVersion !==
               presentation.expectedPresentationVersion
           )
-              throw new RoomAdmissionExpiredError()
+            throw new RoomAdmissionExpiredError()
           if (!receipt || !nextStateJson || entry.sequence !== sequence)
             throw new Error('Room binding sequence does not match its authority.')
           const committed = this.#journal.commitInTransaction({

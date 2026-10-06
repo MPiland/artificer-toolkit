@@ -68,146 +68,1179 @@
   ],
   "queue": ["VS-9", "VS-10"],
   "slices": [
-    { "id": "A35-S0", "stream": "A35", "state": "done", "title": "Decision gate: ADR 0035, amendments, room CPU, Durable Object cost and checkpoint size measured", "cases": [], "refs": [] },
-    { "id": "A35-S1", "stream": "A35", "state": "done", "title": "Encounter writers behind a store interface (package with no Convex runtime dependency)", "cases": ["R06"], "refs": [] },
-    { "id": "A35-S1b", "stream": "A35", "state": "done", "title": "Slim Encounter records: GM edit 47→9 KB, attack 59→21 KB; projection reads 691→218 KB at 100 actors; tied START 17.2→0.8 MB", "cases": ["V15"], "refs": ["Amendment 12"] },
-    { "id": "A35-S1c", "stream": "A35", "state": "done", "title": "Character play state split into a small record: a Sheet HP change writes 1.1 KB (was 8.2 KB)", "cases": ["P04", "V15"], "refs": ["Amendment 12"] },
-    { "id": "A35-S2", "stream": "A35", "state": "done", "title": "Room store: one row per command, crash-safe rehydrate, batched hydrate (≤10 calls)", "cases": ["R06"], "refs": [] },
-    { "id": "A35-S3a", "stream": "A35", "state": "done", "title": "Fenced delta checkpoints replace per-command publish", "cases": ["V05", "V07", "R06"], "refs": [] },
-    { "id": "A35-S3b", "stream": "A35", "state": "done", "title": "Recovery, clock and DAILY cleanup", "cases": ["P15"], "refs": [] },
-    { "id": "A35-S3c0", "stream": "A35", "state": "done", "title": "GM Scene editor through the room: token, light, barrier, darkness, annotation and measurement edits, fog and vision modes, fog painting (chunked upload) as room commands", "cases": ["R06", "V07"], "refs": ["D78", "D79"] },
-    { "id": "A35-S3c1", "stream": "A35", "state": "done", "title": "Delete the Convex Scene command path (writers, staging, undo, command-chunk reads) the room replaced", "cases": ["R06"], "refs": ["D77", "D79"] },
-    { "id": "A35-S3c2", "stream": "A35", "state": "done", "title": "Packed Scene history: Scene-scoped ledgers with indexed headers; room hydration, retention and Campaign deletion on them", "cases": ["V05", "V07"], "refs": ["D70", "D77", "D79"] },
-    { "id": "A35-S3c3", "stream": "A35", "state": "done", "title": "The room builds its Scene cache from its store (no Convex capture/hydrate Scene reads)", "cases": ["V05", "V07"], "refs": ["D78", "D79"] },
-    { "id": "A35-S4", "stream": "A35", "state": "done", "title": "Room authorization cache: 240 s lease, invalidation notices, eviction retries", "cases": ["V05", "V12"], "refs": [] },
-    { "id": "A35-S5", "stream": "A35", "state": "done", "title": "Room/Convex parity: a differential test over the same command sequence (the room already commits natively)", "cases": ["R06"], "refs": ["D77"] },
-    { "id": "A35-S6a", "stream": "A35", "state": "done", "title": "Room commands for geometry, doors, binding and undo; content inputs; Character holds (Codex source-first batch)", "cases": ["R06", "V03", "V07", "V14"], "refs": [] },
-    { "id": "A35-S6b", "stream": "A35", "state": "done", "title": "Retire the remaining Scene paths; author the movement and Sheet input fixtures", "cases": ["R06", "V07"], "refs": [] },
-    { "id": "A35-S6c1", "stream": "A35", "state": "done", "title": "The switch, part 1: every ACTIVE-Run Encounter command room-native (evidence and table rolls, held-Sheet actor commands, unowned decisions); checkpoint-backed test harness; Encounter tests migrated", "cases": ["R06", "V14"], "refs": ["D78"] },
-    { "id": "A35-S6c2", "stream": "A35", "state": "done", "title": "The switch, part 2: room movement harness; movement tests migrated off the Convex-first commit; actor-token binding as a room command, then fence actorTokenBindings.execute", "cases": ["R06", "V08"], "refs": ["D78"] },
-    { "id": "A35-S6c3", "stream": "A35", "state": "done", "title": "The switch, part 3: delete the per-command Convex path (routes, commit modules, external commit, parity test; the Scene cache hydrate moved to A35-S3c); docs and acceptance", "cases": ["R06", "V08", "V13", "V14"], "refs": ["D78"] },
-    { "id": "A35-S6d", "stream": "A35", "state": "done", "title": "The switch, part 4 (found in VS-8): every member reads the live Encounter (turn, pending decision, timeline) from the room, not Convex subscriptions that lag until the next checkpoint", "cases": ["V15"], "refs": ["Amendment 8", "adr-0035-implementation-plan S6", "D85"] },
-    { "id": "A35-S6e", "stream": "A35", "state": "done", "title": "The switch, part 5 (found in VS-8): turn action choices, evidence rolls and Scene bindings come from the room, not Convex reads keyed to a version the room has moved past", "cases": ["V15"], "refs": ["Amendment 8", "D85"] },
-    { "id": "A35-S7a", "stream": "A35", "state": "done", "title": "Sheet plays through the room while held: room push and departure reconcile", "cases": ["R06", "V14", "P04", "P08", "P15"], "refs": ["D73", "D74"] },
-    { "id": "A35-S7b", "stream": "A35", "state": "done", "title": "Account deletion removes held actors", "cases": ["F12"], "refs": ["D74"] },
-    { "id": "A35-S8a", "stream": "A35", "state": "done", "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)", "cases": ["P06", "P14", "V11"], "refs": ["D69", "D72", "D76"] },
-    { "id": "A35-S8b", "stream": "A35", "state": "superseded", "title": "Pages outside the room show checkpoint freshness (superseded by Amendment 28: pages read live state from room feeds, so no saved-at notice; checkpointedAt is routing metadata only)", "cases": [], "refs": ["Amendment 28", "REL-5"] },
-    { "id": "A35-S8c", "stream": "A35", "state": "superseded", "title": "Evidence rolls planned in the room, with no warm Convex calls (folded into A35-S6c1 by D78)", "cases": [], "refs": ["D41", "D72", "D78", "A35-S6c1"] },
-    { "id": "A35-S9", "stream": "A35", "state": "done", "title": "Budgets in gates, shadow harness deleted, architecture docs rewritten", "cases": ["V15", "R07"], "refs": [] },
-    { "id": "A35-S10a", "stream": "A35", "state": "done", "title": "Delta-sized flushes: per-section checkpoint I/O measured, then no Campaign-wide reads; lease renewal leaves the checkpoint", "cases": ["V15"], "refs": ["D86"] },
-    { "id": "A35-S10b", "stream": "A35", "state": "done", "title": "No forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires", "cases": ["V15"], "refs": ["D86"] },
-    { "id": "A35-S10c", "stream": "A35", "state": "done", "title": "Dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately", "cases": ["V15", "R06", "V14", "P04", "P08"], "refs": ["D86", "D87"] },
-    { "id": "A35-S10d", "stream": "A35", "state": "done", "title": "Encounter history stays in the room and is discarded at Run end; Run-scoped replay index; chat and rolls ride the flush", "cases": ["V11", "R06"], "refs": ["D85", "D86"] },
-    { "id": "A35-S11a", "stream": "A35", "state": "done", "title": "Save points replace the flush interval; a chat backlog save is the only other trigger", "cases": ["V15"], "refs": ["D90","Amendment 25"] },
-    { "id": "A35-S11b", "stream": "A35", "state": "done", "title": "Scene movement evidence and command receipts stay in the room", "cases": ["V15"], "refs": ["D90","Amendment 26"] },
-    { "id": "A35-S11c", "stream": "A35", "state": "done", "title": "Live readers use the room while a table runs", "cases": ["V15"], "refs": ["D90","Amendment 28"] },
-    { "id": "A35-S11e", "stream": "A35", "state": "done", "title": "Static actor snapshots in their own rows; whole-journal save pages", "cases": ["V15"], "refs": ["Amendment 29"] },
-    { "id": "A35-S11g", "stream": "A35", "state": "done", "title": "TanStack Start and Storybook upgrade", "cases": ["V15"], "refs": ["Fixes a53"] },
-    { "id": "A35-S11h", "stream": "A35", "state": "done", "title": "A completed Run keeps only its finished view", "cases": ["V15","R06"], "refs": ["Amendment 30"] },
-    { "id": "A35-S11i", "stream": "A35", "state": "done", "title": "A Scene plays only its ACTIVE Run; a PREPARED Run lends no controls or vision", "cases": ["V15"], "refs": ["Amendment 30"] },
-    { "id": "A35-S11j", "stream": "A35", "state": "done", "title": "One inline checkpoint per save, folded from the streamed journal", "cases": ["V15"], "refs": ["Amendment 31"] },
+    {
+      "id": "A35-S0",
+      "stream": "A35",
+      "state": "done",
+      "title": "Decision gate: ADR 0035, amendments, room CPU, Durable Object cost and checkpoint size measured",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "A35-S1",
+      "stream": "A35",
+      "state": "done",
+      "title": "Encounter writers behind a store interface (package with no Convex runtime dependency)",
+      "cases": ["R06"],
+      "refs": []
+    },
+    {
+      "id": "A35-S1b",
+      "stream": "A35",
+      "state": "done",
+      "title": "Slim Encounter records: GM edit 47→9 KB, attack 59→21 KB; projection reads 691→218 KB at 100 actors; tied START 17.2→0.8 MB",
+      "cases": ["V15"],
+      "refs": ["Amendment 12"]
+    },
+    {
+      "id": "A35-S1c",
+      "stream": "A35",
+      "state": "done",
+      "title": "Character play state split into a small record: a Sheet HP change writes 1.1 KB (was 8.2 KB)",
+      "cases": ["P04", "V15"],
+      "refs": ["Amendment 12"]
+    },
+    {
+      "id": "A35-S2",
+      "stream": "A35",
+      "state": "done",
+      "title": "Room store: one row per command, crash-safe rehydrate, batched hydrate (≤10 calls)",
+      "cases": ["R06"],
+      "refs": []
+    },
+    {
+      "id": "A35-S3a",
+      "stream": "A35",
+      "state": "done",
+      "title": "Fenced delta checkpoints replace per-command publish",
+      "cases": ["V05", "V07", "R06"],
+      "refs": []
+    },
+    {
+      "id": "A35-S3b",
+      "stream": "A35",
+      "state": "done",
+      "title": "Recovery, clock and DAILY cleanup",
+      "cases": ["P15"],
+      "refs": []
+    },
+    {
+      "id": "A35-S3c0",
+      "stream": "A35",
+      "state": "done",
+      "title": "GM Scene editor through the room: token, light, barrier, darkness, annotation and measurement edits, fog and vision modes, fog painting (chunked upload) as room commands",
+      "cases": ["R06", "V07"],
+      "refs": ["D78", "D79"]
+    },
+    {
+      "id": "A35-S3c1",
+      "stream": "A35",
+      "state": "done",
+      "title": "Delete the Convex Scene command path (writers, staging, undo, command-chunk reads) the room replaced",
+      "cases": ["R06"],
+      "refs": ["D77", "D79"]
+    },
+    {
+      "id": "A35-S3c2",
+      "stream": "A35",
+      "state": "done",
+      "title": "Packed Scene history: Scene-scoped ledgers with indexed headers; room hydration, retention and Campaign deletion on them",
+      "cases": ["V05", "V07"],
+      "refs": ["D70", "D77", "D79"]
+    },
+    {
+      "id": "A35-S3c3",
+      "stream": "A35",
+      "state": "done",
+      "title": "The room builds its Scene cache from its store (no Convex capture/hydrate Scene reads)",
+      "cases": ["V05", "V07"],
+      "refs": ["D78", "D79"]
+    },
+    {
+      "id": "A35-S4",
+      "stream": "A35",
+      "state": "done",
+      "title": "Room authorization cache: 240 s lease, invalidation notices, eviction retries",
+      "cases": ["V05", "V12"],
+      "refs": []
+    },
+    {
+      "id": "A35-S5",
+      "stream": "A35",
+      "state": "done",
+      "title": "Room/Convex parity: a differential test over the same command sequence (the room already commits natively)",
+      "cases": ["R06"],
+      "refs": ["D77"]
+    },
+    {
+      "id": "A35-S6a",
+      "stream": "A35",
+      "state": "done",
+      "title": "Room commands for geometry, doors, binding and undo; content inputs; Character holds (Codex source-first batch)",
+      "cases": ["R06", "V03", "V07", "V14"],
+      "refs": []
+    },
+    {
+      "id": "A35-S6b",
+      "stream": "A35",
+      "state": "done",
+      "title": "Retire the remaining Scene paths; author the movement and Sheet input fixtures",
+      "cases": ["R06", "V07"],
+      "refs": []
+    },
+    {
+      "id": "A35-S6c1",
+      "stream": "A35",
+      "state": "done",
+      "title": "The switch, part 1: every ACTIVE-Run Encounter command room-native (evidence and table rolls, held-Sheet actor commands, unowned decisions); checkpoint-backed test harness; Encounter tests migrated",
+      "cases": ["R06", "V14"],
+      "refs": ["D78"]
+    },
+    {
+      "id": "A35-S6c2",
+      "stream": "A35",
+      "state": "done",
+      "title": "The switch, part 2: room movement harness; movement tests migrated off the Convex-first commit; actor-token binding as a room command, then fence actorTokenBindings.execute",
+      "cases": ["R06", "V08"],
+      "refs": ["D78"]
+    },
+    {
+      "id": "A35-S6c3",
+      "stream": "A35",
+      "state": "done",
+      "title": "The switch, part 3: delete the per-command Convex path (routes, commit modules, external commit, parity test; the Scene cache hydrate moved to A35-S3c); docs and acceptance",
+      "cases": ["R06", "V08", "V13", "V14"],
+      "refs": ["D78"]
+    },
+    {
+      "id": "A35-S6d",
+      "stream": "A35",
+      "state": "done",
+      "title": "The switch, part 4 (found in VS-8): every member reads the live Encounter (turn, pending decision, timeline) from the room, not Convex subscriptions that lag until the next checkpoint",
+      "cases": ["V15"],
+      "refs": ["Amendment 8", "adr-0035-implementation-plan S6", "D85"]
+    },
+    {
+      "id": "A35-S6e",
+      "stream": "A35",
+      "state": "done",
+      "title": "The switch, part 5 (found in VS-8): turn action choices, evidence rolls and Scene bindings come from the room, not Convex reads keyed to a version the room has moved past",
+      "cases": ["V15"],
+      "refs": ["Amendment 8", "D85"]
+    },
+    {
+      "id": "A35-S7a",
+      "stream": "A35",
+      "state": "done",
+      "title": "Sheet plays through the room while held: room push and departure reconcile",
+      "cases": ["R06", "V14", "P04", "P08", "P15"],
+      "refs": ["D73", "D74"]
+    },
+    {
+      "id": "A35-S7b",
+      "stream": "A35",
+      "state": "done",
+      "title": "Account deletion removes held actors",
+      "cases": ["F12"],
+      "refs": ["D74"]
+    },
+    {
+      "id": "A35-S8a",
+      "stream": "A35",
+      "state": "done",
+      "title": "Chat and rolls through the room, with per-room limits (players 30/min, GM 60/min)",
+      "cases": ["P06", "P14", "V11"],
+      "refs": ["D69", "D72", "D76"]
+    },
+    {
+      "id": "A35-S8b",
+      "stream": "A35",
+      "state": "superseded",
+      "title": "Pages outside the room show checkpoint freshness (superseded by Amendment 28: pages read live state from room feeds, so no saved-at notice; checkpointedAt is routing metadata only)",
+      "cases": [],
+      "refs": ["Amendment 28", "REL-5"]
+    },
+    {
+      "id": "A35-S8c",
+      "stream": "A35",
+      "state": "superseded",
+      "title": "Evidence rolls planned in the room, with no warm Convex calls (folded into A35-S6c1 by D78)",
+      "cases": [],
+      "refs": ["D41", "D72", "D78", "A35-S6c1"]
+    },
+    {
+      "id": "A35-S9",
+      "stream": "A35",
+      "state": "done",
+      "title": "Budgets in gates, shadow harness deleted, architecture docs rewritten",
+      "cases": ["V15", "R07"],
+      "refs": []
+    },
+    {
+      "id": "A35-S10a",
+      "stream": "A35",
+      "state": "done",
+      "title": "Delta-sized flushes: per-section checkpoint I/O measured, then no Campaign-wide reads; lease renewal leaves the checkpoint",
+      "cases": ["V15"],
+      "refs": ["D86"]
+    },
+    {
+      "id": "A35-S10b",
+      "stream": "A35",
+      "state": "done",
+      "title": "No forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires",
+      "cases": ["V15"],
+      "refs": ["D86"]
+    },
+    {
+      "id": "A35-S10c",
+      "stream": "A35",
+      "state": "done",
+      "title": "Dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately",
+      "cases": ["V15", "R06", "V14", "P04", "P08"],
+      "refs": ["D86", "D87"]
+    },
+    {
+      "id": "A35-S10d",
+      "stream": "A35",
+      "state": "done",
+      "title": "Encounter history stays in the room and is discarded at Run end; Run-scoped replay index; chat and rolls ride the flush",
+      "cases": ["V11", "R06"],
+      "refs": ["D85", "D86"]
+    },
+    {
+      "id": "A35-S11a",
+      "stream": "A35",
+      "state": "done",
+      "title": "Save points replace the flush interval; a chat backlog save is the only other trigger",
+      "cases": ["V15"],
+      "refs": ["D90", "Amendment 25"]
+    },
+    {
+      "id": "A35-S11b",
+      "stream": "A35",
+      "state": "done",
+      "title": "Scene movement evidence and command receipts stay in the room",
+      "cases": ["V15"],
+      "refs": ["D90", "Amendment 26"]
+    },
+    {
+      "id": "A35-S11c",
+      "stream": "A35",
+      "state": "done",
+      "title": "Live readers use the room while a table runs",
+      "cases": ["V15"],
+      "refs": ["D90", "Amendment 28"]
+    },
+    {
+      "id": "A35-S11e",
+      "stream": "A35",
+      "state": "done",
+      "title": "Static actor snapshots in their own rows; whole-journal save pages",
+      "cases": ["V15"],
+      "refs": ["Amendment 29"]
+    },
+    {
+      "id": "A35-S11g",
+      "stream": "A35",
+      "state": "done",
+      "title": "TanStack Start and Storybook upgrade",
+      "cases": ["V15"],
+      "refs": ["Fixes a53"]
+    },
+    {
+      "id": "A35-S11h",
+      "stream": "A35",
+      "state": "done",
+      "title": "A completed Run keeps only its finished view",
+      "cases": ["V15", "R06"],
+      "refs": ["Amendment 30"]
+    },
+    {
+      "id": "A35-S11i",
+      "stream": "A35",
+      "state": "done",
+      "title": "A Scene plays only its ACTIVE Run; a PREPARED Run lends no controls or vision",
+      "cases": ["V15"],
+      "refs": ["Amendment 30"]
+    },
+    {
+      "id": "A35-S11j",
+      "stream": "A35",
+      "state": "done",
+      "title": "One inline checkpoint per save, folded from the streamed journal",
+      "cases": ["V15"],
+      "refs": ["Amendment 31"]
+    },
 
-    { "id": "A36-S1", "stream": "A36", "state": "done", "title": "Content snapshot format", "cases": [], "refs": [] },
-    { "id": "A36-S2", "stream": "A36", "state": "done", "title": "Snapshot build on publish (paged), R2 objects, cleanup", "cases": ["F14"], "refs": [] },
-    { "id": "A36-S3/S4", "stream": "A36", "state": "done", "title": "Snapshot delivery route with access token; visible-content manifest", "cases": ["C15"], "refs": [] },
-    { "id": "A36-S5", "stream": "A36", "state": "done", "title": "Builder evaluates from snapshots, parity with the server", "cases": ["P02"], "refs": [] },
-    { "id": "A36-S6", "stream": "A36", "state": "done", "title": "Builder runs in the browser (create and edit); private cache cleared on sign-out", "cases": ["P02"], "refs": [] },
-    { "id": "A36-S7", "stream": "A36", "state": "done", "title": "Commit reads only referenced content", "cases": ["P02"], "refs": [] },
-    { "id": "A36-S8/S9", "stream": "A36", "state": "done", "title": "Debounced autosave (7.8 KB per save); old server Builder deleted", "cases": ["P01", "P02"], "refs": [] },
-    { "id": "A36-S10", "stream": "A36", "state": "done", "title": "Room loads content from snapshots", "cases": ["R06", "V15"], "refs": [] },
-    { "id": "A36-F1", "stream": "A36", "state": "done", "title": "Builder follow-ups: \"opened elsewhere\" save state, open on the recommended step", "cases": [], "refs": [] },
+    {
+      "id": "A36-S1",
+      "stream": "A36",
+      "state": "done",
+      "title": "Content snapshot format",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "A36-S2",
+      "stream": "A36",
+      "state": "done",
+      "title": "Snapshot build on publish (paged), R2 objects, cleanup",
+      "cases": ["F14"],
+      "refs": []
+    },
+    {
+      "id": "A36-S3/S4",
+      "stream": "A36",
+      "state": "done",
+      "title": "Snapshot delivery route with access token; visible-content manifest",
+      "cases": ["C15"],
+      "refs": []
+    },
+    {
+      "id": "A36-S5",
+      "stream": "A36",
+      "state": "done",
+      "title": "Builder evaluates from snapshots, parity with the server",
+      "cases": ["P02"],
+      "refs": []
+    },
+    {
+      "id": "A36-S6",
+      "stream": "A36",
+      "state": "done",
+      "title": "Builder runs in the browser (create and edit); private cache cleared on sign-out",
+      "cases": ["P02"],
+      "refs": []
+    },
+    {
+      "id": "A36-S7",
+      "stream": "A36",
+      "state": "done",
+      "title": "Commit reads only referenced content",
+      "cases": ["P02"],
+      "refs": []
+    },
+    {
+      "id": "A36-S8/S9",
+      "stream": "A36",
+      "state": "done",
+      "title": "Debounced autosave (7.8 KB per save); old server Builder deleted",
+      "cases": ["P01", "P02"],
+      "refs": []
+    },
+    {
+      "id": "A36-S10",
+      "stream": "A36",
+      "state": "done",
+      "title": "Room loads content from snapshots",
+      "cases": ["R06", "V15"],
+      "refs": []
+    },
+    {
+      "id": "A36-F1",
+      "stream": "A36",
+      "state": "done",
+      "title": "Builder follow-ups: \"opened elsewhere\" save state, open on the recommended step",
+      "cases": [],
+      "refs": []
+    },
 
-    { "id": "CP-S0", "stream": "CP", "state": "done", "title": "Checkpoint Codex relocation", "cases": [], "refs": [] },
-    { "id": "CP-S1", "stream": "CP", "state": "done", "title": "Code-quality groundwork", "cases": [], "refs": [] },
-    { "id": "CP-S2", "stream": "CP", "state": "done", "title": "Rules continuation secret", "cases": ["C16"], "refs": [] },
-    { "id": "CP-S3", "stream": "CP", "state": "done", "title": "Campaign-owned play", "cases": ["V08", "V09", "P15"], "refs": ["ADR 0033"] },
-    { "id": "CP-S4A", "stream": "CP", "state": "done", "title": "Single Encounter command door", "cases": ["R06"], "refs": [] },
-    { "id": "CP-S4-a", "stream": "CP", "state": "done", "title": "Rule-pack removal, auto-roll everywhere, granted creatures' dice", "cases": ["V11", "R04"], "refs": [] },
-    { "id": "CP-S4-b", "stream": "CP", "state": "done", "title": "Room capture cache and one-read command bundle (2 round trips)", "cases": ["R06", "V15"], "refs": [] },
-    { "id": "CP-S4-c", "stream": "CP", "state": "done", "title": "Room-owned bound movement, remaining movement, GM Skip decision", "cases": ["V07", "R06"], "refs": ["D26", "D27", "D28", "D29", "D37"] },
-    { "id": "CP-S4-c2", "stream": "CP", "state": "done", "title": "Remaining movement, Dash, \"GM skipped\" in the drawer", "cases": ["V07", "V10"], "refs": [] },
-    { "id": "CP-S4-d", "stream": "CP", "state": "superseded", "title": "Delete Convex-side rules paths", "cases": [], "refs": ["A35-S6c3"] },
-    { "id": "CP-S4B", "stream": "CP", "state": "done", "title": "Room planners: Disarm, Cleaving, enemy actions, Legendary Resistance, spatial, Manual", "cases": ["V10", "R06"], "refs": [] },
-    { "id": "CP-S5", "stream": "CP", "state": "done", "title": "Security hardening (Convex and room)", "cases": ["V05", "V12"], "refs": [] },
-    { "id": "CP-S6a", "stream": "CP", "state": "done", "title": "GM preview privacy, shield-stow prompt, weapon grips, fog opt-in, roll visibility, doors", "cases": ["V03", "V10", "V12", "P06"], "refs": ["ADR 0034"] },
-    { "id": "CP-S6b", "stream": "CP", "state": "done", "title": "Player-controlled actors", "cases": ["V09", "V10"], "refs": ["ADR 0034"] },
-    { "id": "CP-S6c", "stream": "CP", "state": "done", "title": "Combat math correctness", "cases": ["V10"], "refs": [] },
-    { "id": "CP-S6d", "stream": "CP", "state": "done", "title": "Live Character state", "cases": ["P04"], "refs": [] },
-    { "id": "CP-S6e", "stream": "CP", "state": "done", "title": "Two modes, auto-roll, rejections, GM void", "cases": ["V08", "V11"], "refs": [] },
-    { "id": "CP-S6f", "stream": "CP", "state": "done", "title": "Soft enforcement and GM undo", "cases": ["V10"], "refs": [] },
-    { "id": "CP-S6g", "stream": "CP", "state": "done", "title": "Combat math follow-ups", "cases": ["V10", "C11"], "refs": ["D5"] },
-    { "id": "CP-S6h", "stream": "CP", "state": "done", "title": "Health display levels, \"Party can view\", roster portraits, room idle release", "cases": ["V12", "V05"], "refs": [] },
-    { "id": "CP-S6i", "stream": "CP", "state": "done", "title": "Chat cards for every automatic rule roll, with the Public/Private roll toggle", "cases": ["P06", "V11"], "refs": ["Q14"] },
+    {
+      "id": "CP-S0",
+      "stream": "CP",
+      "state": "done",
+      "title": "Checkpoint Codex relocation",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "CP-S1",
+      "stream": "CP",
+      "state": "done",
+      "title": "Code-quality groundwork",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "CP-S2",
+      "stream": "CP",
+      "state": "done",
+      "title": "Rules continuation secret",
+      "cases": ["C16"],
+      "refs": []
+    },
+    {
+      "id": "CP-S3",
+      "stream": "CP",
+      "state": "done",
+      "title": "Campaign-owned play",
+      "cases": ["V08", "V09", "P15"],
+      "refs": ["ADR 0033"]
+    },
+    {
+      "id": "CP-S4A",
+      "stream": "CP",
+      "state": "done",
+      "title": "Single Encounter command door",
+      "cases": ["R06"],
+      "refs": []
+    },
+    {
+      "id": "CP-S4-a",
+      "stream": "CP",
+      "state": "done",
+      "title": "Rule-pack removal, auto-roll everywhere, granted creatures' dice",
+      "cases": ["V11", "R04"],
+      "refs": []
+    },
+    {
+      "id": "CP-S4-b",
+      "stream": "CP",
+      "state": "done",
+      "title": "Room capture cache and one-read command bundle (2 round trips)",
+      "cases": ["R06", "V15"],
+      "refs": []
+    },
+    {
+      "id": "CP-S4-c",
+      "stream": "CP",
+      "state": "done",
+      "title": "Room-owned bound movement, remaining movement, GM Skip decision",
+      "cases": ["V07", "R06"],
+      "refs": ["D26", "D27", "D28", "D29", "D37"]
+    },
+    {
+      "id": "CP-S4-c2",
+      "stream": "CP",
+      "state": "done",
+      "title": "Remaining movement, Dash, \"GM skipped\" in the drawer",
+      "cases": ["V07", "V10"],
+      "refs": []
+    },
+    {
+      "id": "CP-S4-d",
+      "stream": "CP",
+      "state": "superseded",
+      "title": "Delete Convex-side rules paths",
+      "cases": [],
+      "refs": ["A35-S6c3"]
+    },
+    {
+      "id": "CP-S4B",
+      "stream": "CP",
+      "state": "done",
+      "title": "Room planners: Disarm, Cleaving, enemy actions, Legendary Resistance, spatial, Manual",
+      "cases": ["V10", "R06"],
+      "refs": []
+    },
+    {
+      "id": "CP-S5",
+      "stream": "CP",
+      "state": "done",
+      "title": "Security hardening (Convex and room)",
+      "cases": ["V05", "V12"],
+      "refs": []
+    },
+    {
+      "id": "CP-S6a",
+      "stream": "CP",
+      "state": "done",
+      "title": "GM preview privacy, shield-stow prompt, weapon grips, fog opt-in, roll visibility, doors",
+      "cases": ["V03", "V10", "V12", "P06"],
+      "refs": ["ADR 0034"]
+    },
+    {
+      "id": "CP-S6b",
+      "stream": "CP",
+      "state": "done",
+      "title": "Player-controlled actors",
+      "cases": ["V09", "V10"],
+      "refs": ["ADR 0034"]
+    },
+    {
+      "id": "CP-S6c",
+      "stream": "CP",
+      "state": "done",
+      "title": "Combat math correctness",
+      "cases": ["V10"],
+      "refs": []
+    },
+    {
+      "id": "CP-S6d",
+      "stream": "CP",
+      "state": "done",
+      "title": "Live Character state",
+      "cases": ["P04"],
+      "refs": []
+    },
+    {
+      "id": "CP-S6e",
+      "stream": "CP",
+      "state": "done",
+      "title": "Two modes, auto-roll, rejections, GM void",
+      "cases": ["V08", "V11"],
+      "refs": []
+    },
+    {
+      "id": "CP-S6f",
+      "stream": "CP",
+      "state": "done",
+      "title": "Soft enforcement and GM undo",
+      "cases": ["V10"],
+      "refs": []
+    },
+    {
+      "id": "CP-S6g",
+      "stream": "CP",
+      "state": "done",
+      "title": "Combat math follow-ups",
+      "cases": ["V10", "C11"],
+      "refs": ["D5"]
+    },
+    {
+      "id": "CP-S6h",
+      "stream": "CP",
+      "state": "done",
+      "title": "Health display levels, \"Party can view\", roster portraits, room idle release",
+      "cases": ["V12", "V05"],
+      "refs": []
+    },
+    {
+      "id": "CP-S6i",
+      "stream": "CP",
+      "state": "done",
+      "title": "Chat cards for every automatic rule roll, with the Public/Private roll toggle",
+      "cases": ["P06", "V11"],
+      "refs": ["Q14"]
+    },
 
-    { "id": "RUL-1", "stream": "RUL", "state": "done", "title": "Rules defects from fast tests and critical hits", "cases": ["V10"], "refs": ["D48", "D50", "D58"] },
-    { "id": "RUL-2", "stream": "RUL", "state": "done", "title": "Monster attacks: author attack bonuses, fail early, SRD-wide sweep test", "cases": ["C05", "V10"], "refs": ["D53"] },
-    { "id": "RUL-3", "stream": "RUL", "state": "done", "title": "Monster attacks: multi-part (SEQUENTIAL/CHOICE) attack shapes", "cases": ["C05", "V10"], "refs": [] },
-    { "id": "RUL-4", "stream": "RUL", "state": "done", "title": "Monster attacks: long range, outcome kinds, Equipment damage", "cases": ["C05", "V10"], "refs": ["M9"] },
-    { "id": "RUL-5", "stream": "RUL", "state": "done", "title": "Monster attacks: Legendary own actions, versatile weapons, missing content", "cases": ["C05", "V10"], "refs": ["D51B", "M7", "M8"] },
-    { "id": "RUL-6", "stream": "RUL", "state": "done", "title": "0 HP defeat", "cases": ["V10"], "refs": ["D63"] },
-    { "id": "RUL-7", "stream": "RUL", "state": "done", "title": "Basic combat actions: Dash, Disengage, Dodge, Help (with undo and SRD gaps)", "cases": ["V10"], "refs": [] },
-    { "id": "RUL-8", "stream": "RUL", "state": "done", "title": "Sheet shows HP maximum reductions; hidden attackers stay hidden; GM private rolls decided", "cases": ["V12", "P06"], "refs": ["D62", "Q14"] },
-    { "id": "RUL-9", "stream": "RUL", "state": "done", "title": "Pre-beta rules: audit gaps and slice them (grapple, conditions, death saves, area targeting, spellcasting, monsters); 11 slices proposed for Phase 8.3", "cases": [], "refs": ["docs/handoffs/rul-9-rules-audit.md"] },
+    {
+      "id": "RUL-1",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Rules defects from fast tests and critical hits",
+      "cases": ["V10"],
+      "refs": ["D48", "D50", "D58"]
+    },
+    {
+      "id": "RUL-2",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Monster attacks: author attack bonuses, fail early, SRD-wide sweep test",
+      "cases": ["C05", "V10"],
+      "refs": ["D53"]
+    },
+    {
+      "id": "RUL-3",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Monster attacks: multi-part (SEQUENTIAL/CHOICE) attack shapes",
+      "cases": ["C05", "V10"],
+      "refs": []
+    },
+    {
+      "id": "RUL-4",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Monster attacks: long range, outcome kinds, Equipment damage",
+      "cases": ["C05", "V10"],
+      "refs": ["M9"]
+    },
+    {
+      "id": "RUL-5",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Monster attacks: Legendary own actions, versatile weapons, missing content",
+      "cases": ["C05", "V10"],
+      "refs": ["D51B", "M7", "M8"]
+    },
+    {
+      "id": "RUL-6",
+      "stream": "RUL",
+      "state": "done",
+      "title": "0 HP defeat",
+      "cases": ["V10"],
+      "refs": ["D63"]
+    },
+    {
+      "id": "RUL-7",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Basic combat actions: Dash, Disengage, Dodge, Help (with undo and SRD gaps)",
+      "cases": ["V10"],
+      "refs": []
+    },
+    {
+      "id": "RUL-8",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Sheet shows HP maximum reductions; hidden attackers stay hidden; GM private rolls decided",
+      "cases": ["V12", "P06"],
+      "refs": ["D62", "Q14"]
+    },
+    {
+      "id": "RUL-9",
+      "stream": "RUL",
+      "state": "done",
+      "title": "Pre-beta rules: audit gaps and slice them (grapple, conditions, death saves, area targeting, spellcasting, monsters); 11 slices proposed for Phase 8.3",
+      "cases": [],
+      "refs": ["docs/handoffs/rul-9-rules-audit.md"]
+    },
 
-    { "id": "PRF-1", "stream": "PRF", "state": "done", "title": "Command speed: bundle and commit hotspots, 100-actor creation fix", "cases": ["V15"], "refs": [] },
-    { "id": "PRF-2", "stream": "PRF", "state": "done", "title": "Lazy schema construction: 56–83% less module load per Convex call", "cases": ["F02"], "refs": ["D59"] },
-    { "id": "PRF-3", "stream": "PRF", "state": "superseded", "title": "Reaction answer speed on the per-command path", "cases": [], "refs": ["D64", "A35-S6c3"] },
-    { "id": "PRF-4", "stream": "PRF", "state": "done", "title": "Inlined SHA-256 and parse-once: 21–60% less movement handler CPU", "cases": ["V15"], "refs": [] },
-    { "id": "PRF-5", "stream": "PRF", "state": "done", "title": "Memory-only previews, gesture-only at 10 Hz, no Convex call per sample", "cases": ["V06", "V15"], "refs": [] },
-    { "id": "PRF-6", "stream": "PRF", "state": "done", "title": "Bounded chat reads: 224→40 KB per message per reader, no 500-message cap", "cases": ["P14"], "refs": ["D69"] },
-    { "id": "PRF-7", "stream": "PRF", "state": "done", "title": "/spells fixed: spell summary 37 MB→1.5 MB, spell page 4.6 MB→0.48 MB; boundary audit covers encounter-persistence", "cases": ["C09"], "refs": [] },
-    { "id": "PRF-8", "stream": "PRF", "state": "done", "title": "Content list pages read cached snapshot files: 0 Convex reads per view beyond the manifest", "cases": ["C01"], "refs": ["ADR 0036"] },
+    {
+      "id": "PRF-1",
+      "stream": "PRF",
+      "state": "done",
+      "title": "Command speed: bundle and commit hotspots, 100-actor creation fix",
+      "cases": ["V15"],
+      "refs": []
+    },
+    {
+      "id": "PRF-2",
+      "stream": "PRF",
+      "state": "done",
+      "title": "Lazy schema construction: 56–83% less module load per Convex call",
+      "cases": ["F02"],
+      "refs": ["D59"]
+    },
+    {
+      "id": "PRF-3",
+      "stream": "PRF",
+      "state": "superseded",
+      "title": "Reaction answer speed on the per-command path",
+      "cases": [],
+      "refs": ["D64", "A35-S6c3"]
+    },
+    {
+      "id": "PRF-4",
+      "stream": "PRF",
+      "state": "done",
+      "title": "Inlined SHA-256 and parse-once: 21–60% less movement handler CPU",
+      "cases": ["V15"],
+      "refs": []
+    },
+    {
+      "id": "PRF-5",
+      "stream": "PRF",
+      "state": "done",
+      "title": "Memory-only previews, gesture-only at 10 Hz, no Convex call per sample",
+      "cases": ["V06", "V15"],
+      "refs": []
+    },
+    {
+      "id": "PRF-6",
+      "stream": "PRF",
+      "state": "done",
+      "title": "Bounded chat reads: 224→40 KB per message per reader, no 500-message cap",
+      "cases": ["P14"],
+      "refs": ["D69"]
+    },
+    {
+      "id": "PRF-7",
+      "stream": "PRF",
+      "state": "done",
+      "title": "/spells fixed: spell summary 37 MB→1.5 MB, spell page 4.6 MB→0.48 MB; boundary audit covers encounter-persistence",
+      "cases": ["C09"],
+      "refs": []
+    },
+    {
+      "id": "PRF-8",
+      "stream": "PRF",
+      "state": "done",
+      "title": "Content list pages read cached snapshot files: 0 Convex reads per view beyond the manifest",
+      "cases": ["C01"],
+      "refs": ["ADR 0036"]
+    },
 
-    { "id": "PLT-1", "stream": "PLT", "state": "done", "title": "\"My images\" picker, de-duplication, per-use crop, 2048 px content art", "cases": ["F14", "V04"], "refs": ["Q17"] },
-    { "id": "PLT-2", "stream": "PLT", "state": "done", "title": "New tiers and per-Campaign limits enforced", "cases": ["P19"], "refs": ["Q18"] },
-    { "id": "PLT-3", "stream": "PLT", "state": "done", "title": "Tier follow-ups: clear copy-limit message; Entries/Scenes usage in Campaign Settings", "cases": ["P19"], "refs": ["Q18"] },
-    { "id": "PLT-4", "stream": "PLT", "state": "done", "title": "Roll20-style ping: long press or P, fog-aware, no live cursors", "cases": ["V06"], "refs": ["Q19"] },
-    { "id": "PLT-5", "stream": "PLT", "state": "done", "title": "Web app on Cloudflare Workers: skeleton SSR for signed-in pages (Mantine Skeleton), focus refetch off, edge bot filtering; staging deploy needs approval", "cases": ["R05", "R09"], "refs": ["D65", "D75"] },
-    { "id": "PLT-6", "stream": "PLT", "state": "done", "title": "Player read gates (ACTIVE Encounter only; presented Scene only) and Campaign Files removed", "cases": ["V12"], "criteria": ["V12.9"], "refs": ["D87"] },
-    { "id": "PLT-7", "stream": "PLT", "state": "done", "title": "Private and shared notes for the GM and players (notebook and session notes); private by default; the GM reads all", "cases": ["P14", "P15"], "refs": ["D87"] },
-    { "id": "PLT-8", "stream": "PLT", "state": "done", "title": "Show to players: a Scene's map as a view-only image with its fog, without changing the played Scene", "cases": ["P14"], "refs": ["D87"] },
+    {
+      "id": "PLT-1",
+      "stream": "PLT",
+      "state": "done",
+      "title": "\"My images\" picker, de-duplication, per-use crop, 2048 px content art",
+      "cases": ["F14", "V04"],
+      "refs": ["Q17"]
+    },
+    {
+      "id": "PLT-2",
+      "stream": "PLT",
+      "state": "done",
+      "title": "New tiers and per-Campaign limits enforced",
+      "cases": ["P19"],
+      "refs": ["Q18"]
+    },
+    {
+      "id": "PLT-3",
+      "stream": "PLT",
+      "state": "done",
+      "title": "Tier follow-ups: clear copy-limit message; Entries/Scenes usage in Campaign Settings",
+      "cases": ["P19"],
+      "refs": ["Q18"]
+    },
+    {
+      "id": "PLT-4",
+      "stream": "PLT",
+      "state": "done",
+      "title": "Roll20-style ping: long press or P, fog-aware, no live cursors",
+      "cases": ["V06"],
+      "refs": ["Q19"]
+    },
+    {
+      "id": "PLT-5",
+      "stream": "PLT",
+      "state": "done",
+      "title": "Web app on Cloudflare Workers: skeleton SSR for signed-in pages (Mantine Skeleton), focus refetch off, edge bot filtering; staging deploy needs approval",
+      "cases": ["R05", "R09"],
+      "refs": ["D65", "D75"]
+    },
+    {
+      "id": "PLT-6",
+      "stream": "PLT",
+      "state": "done",
+      "title": "Player read gates (ACTIVE Encounter only; presented Scene only) and Campaign Files removed",
+      "cases": ["V12"],
+      "criteria": ["V12.9"],
+      "refs": ["D87"]
+    },
+    {
+      "id": "PLT-7",
+      "stream": "PLT",
+      "state": "done",
+      "title": "Private and shared notes for the GM and players (notebook and session notes); private by default; the GM reads all",
+      "cases": ["P14", "P15"],
+      "refs": ["D87"]
+    },
+    {
+      "id": "PLT-8",
+      "stream": "PLT",
+      "state": "done",
+      "title": "Show to players: a Scene's map as a view-only image with its fog, without changing the played Scene",
+      "cases": ["P14"],
+      "refs": ["D87"]
+    },
 
-    { "id": "TST-0", "stream": "TST", "state": "done", "title": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial", "cases": [], "refs": [] },
-    { "id": "TST-1", "stream": "TST", "state": "done", "title": "Pure tests: action warnings, target policy, action economy, saves, immunity", "cases": [], "refs": [] },
-    { "id": "TST-2", "stream": "TST", "state": "done", "title": "Pure tests: initiative, Concentration, turn effects, Legendary, Recharge, Disarm, movement targets", "cases": [], "refs": [] },
-    { "id": "TST-3", "stream": "TST", "state": "done", "title": "Pure tests: token movement, passage, vision, fog, Sheet notes/extras reducer", "cases": [], "refs": [] },
-    { "id": "TST-4", "stream": "TST", "state": "done", "title": "Pure tests: Character harness (builder, rest, record stats); extract inline Convex rest/extras cleanup", "cases": [], "refs": [] },
-    { "id": "TST-5", "stream": "TST", "state": "done", "title": "Worker tests with capture fakes: maintenance slots and owners, movement Concentration state reads, capture ordering (planner-level contact checks, passage contests and reaction order moved to TST-6)", "cases": [], "refs": [] },
-    { "id": "TST-6", "stream": "TST", "state": "done", "title": "Relocate 12 pure files out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)", "cases": [], "refs": [] },
-    { "id": "TST-7", "stream": "TST", "state": "done", "title": "Web tests reliable: test workers capped to physical cores; 3 full runs, 0 failures", "cases": [], "refs": [] },
-    { "id": "TST-8", "stream": "TST", "state": "done", "title": "Renamed apps/web/tests/convex to live-backend; the Convex hook no longer misfires", "cases": [], "refs": [] },
+    {
+      "id": "TST-0",
+      "stream": "TST",
+      "state": "done",
+      "title": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-1",
+      "stream": "TST",
+      "state": "done",
+      "title": "Pure tests: action warnings, target policy, action economy, saves, immunity",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-2",
+      "stream": "TST",
+      "state": "done",
+      "title": "Pure tests: initiative, Concentration, turn effects, Legendary, Recharge, Disarm, movement targets",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-3",
+      "stream": "TST",
+      "state": "done",
+      "title": "Pure tests: token movement, passage, vision, fog, Sheet notes/extras reducer",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-4",
+      "stream": "TST",
+      "state": "done",
+      "title": "Pure tests: Character harness (builder, rest, record stats); extract inline Convex rest/extras cleanup",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-5",
+      "stream": "TST",
+      "state": "done",
+      "title": "Worker tests with capture fakes: maintenance slots and owners, movement Concentration state reads, capture ordering (planner-level contact checks, passage contests and reaction order moved to TST-6)",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-6",
+      "stream": "TST",
+      "state": "done",
+      "title": "Relocate 12 pure files out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-7",
+      "stream": "TST",
+      "state": "done",
+      "title": "Web tests reliable: test workers capped to physical cores; 3 full runs, 0 failures",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "TST-8",
+      "stream": "TST",
+      "state": "done",
+      "title": "Renamed apps/web/tests/convex to live-backend; the Convex hook no longer misfires",
+      "cases": [],
+      "refs": []
+    },
 
-    { "id": "REL-1", "stream": "REL", "state": "done", "title": "Criteria-level acceptance ledger", "cases": [], "refs": [] },
-    { "id": "REL-2", "stream": "REL", "state": "done", "title": "Pre-staging gate port and room-driven proofs", "cases": ["R08"], "refs": ["CP-S7-prep"] },
-    { "id": "REL-3", "stream": "REL", "state": "done", "title": "R08 prep: drivers, fixtures, room Scene commands, V14.4 proof, binding through the room", "cases": ["R08", "V14"], "refs": [] },
-    { "id": "REL-4", "stream": "REL", "state": "done", "title": "Test-and-fix cycle: local reset, seed and codegen; affected then full suites; end-to-end journeys. Integrating slices become done here", "cases": ["R06", "V05", "V07", "V13", "V14", "F12", "P15"], "refs": [] },
-    { "id": "REL-5", "stream": "REL", "state": "done", "title": "V15 six-browser workload on the room-authoritative design within the Q16 budgets (save points replace the flush interval, D90)", "cases": ["V15"], "refs": ["Q16", "D90", "docs/validation/phase-08-2/v15-workload-2026-10-05.md"] },
-    { "id": "REL-8", "stream": "REL", "state": "active", "title": "Dependency refresh to latest, before the pre-staging lifecycle run (batches 0-9 done; 10-12 running; 13-16 left; zod held at 4.4.3 for convex-helpers#1019)", "cases": [], "refs": ["Agreed with the user during REL-5", "https://github.com/get-convex/convex-helpers/issues/1019"] },
-    { "id": "REL-6", "stream": "REL", "state": "remaining", "title": "Final proof: R01–R05 audit, yarn validate:pre-staging:local on the final source, fog save retention, docs", "cases": ["R01", "R02", "R03", "R04", "R05", "R07", "R08"], "refs": ["CP-S7", "Q4"] },
-    { "id": "REL-7", "stream": "REL", "state": "remaining", "title": "Staging and production promotion (needs approval)", "cases": ["R09", "R10"], "refs": [] },
-    { "id": "VS-1", "stream": "VS", "state": "done", "title": "Scene history: packed Scene-scoped ledgers, room-built Scene cache, room-path contention re-proof", "cases": ["V05", "V07", "V14"], "criteria": ["V05.1", "V05.2", "V05.3", "V05.4", "V05.5", "V07.1", "V14.2"], "includes": ["A35-S3a", "A35-S3c0", "A35-S3c1", "A35-S3c2", "A35-S3c3"], "refs": ["D70", "D77", "D78", "D79", "Hot path: hydration row and byte budget test", "Dev scripts stop reading Convex before checkpoint; Campaign deletion of Scene rows covered again"] },
-    { "id": "VS-2", "stream": "VS", "state": "done", "title": "Movement and passage through the room, with the maintained-effect owner fix", "cases": ["V03", "V07", "V08", "V09", "V13"], "criteria": ["V03.4", "V03.5", "V07.4", "V07.5", "V08.1", "V08.2", "V08.3", "V08.4", "V08.5", "V08.6", "V09.1", "V09.2", "V09.3", "V09.4", "V09.5", "V09.6", "V09.7", "V13.3"], "includes": ["A35-S6a", "A35-S6b", "A35-S6c2", "TST-5"], "refs": ["D78", "D81", "Hot path: checkpoint row and byte counts"] },
-    { "id": "VS-3", "stream": "VS", "state": "done", "title": "Encounter decisions and journeys through the room, with the tied-initiative base fix", "cases": ["R06", "V10", "V12", "V13", "V14"], "criteria": ["R06.1", "R06.2", "R06.4", "V10.5", "V10.6", "V10.7", "V10.8", "V10.9", "V10.10", "V10.11", "V12.4", "V12.5", "V12.6", "V12.7", "V12.8", "V13.1", "V13.2", "V14.1", "V14.3", "V14.4"], "includes": ["A35-S6c1", "A35-S6c3"], "refs": ["D78", "Hot path: checkpoint row and byte counts; the 100-actor write budget"] },
-    { "id": "VS-4", "stream": "VS", "state": "done", "title": "Held Sheet play, recovery and account deletion through the room", "cases": ["F12", "P15", "R06", "V14"], "criteria": ["F12.1", "F12.2", "F12.3", "F12.4", "F12.5", "P15.1", "P15.2", "P15.3", "P15.4", "R06.3", "V14.5"], "includes": ["A35-S7a", "A35-S3b", "A35-S7b", "TST-4"], "refs": ["Hot path: room hydration of held Characters"] },
-    { "id": "VS-5", "stream": "VS", "state": "done", "title": "Chat and rolls through the room, with chat cards for automatic rule rolls", "cases": ["P06", "P14", "V11"], "criteria": ["P06.4", "P06.5", "P14.5", "V11.4", "V11.5", "V11.6", "V11.7", "V11.8", "V11.9", "V11.10"], "includes": ["A35-S8a", "CP-S6i"], "refs": ["D72", "Check Q14 first"] },
-    { "id": "VS-6", "stream": "VS", "state": "done", "title": "Builder budgets on content snapshots, with the Builder follow-ups", "cases": ["P02"], "criteria": ["P02.3"], "includes": ["A36-S10", "A36-F1"], "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"] },
-    { "id": "VS-7", "stream": "VS", "state": "done", "title": "Web on Cloudflare Workers (code): skeleton SSR for signed-in pages, focus refetch off", "cases": ["R05"], "criteria": ["R05.1"], "includes": ["PLT-5"], "refs": ["D75", "D80", "Re-proves R05.1 on the Worker build; edge rules move to VS-10"] },
-    { "id": "VS-8", "stream": "VS", "state": "done", "title": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run", "cases": ["V15", "V14"], "criteria": ["V15.1", "V15.2", "V15.3", "V14.6"], "includes": ["TST-0", "TST-6", "A35-S6d", "A35-S6e", "A35-S9", "A35-S10a", "A35-S10b", "A35-S10c", "A35-S10d", "A35-S11a", "A35-S11b", "A35-S11c", "A35-S11e", "A35-S11g", "A35-S11h", "A35-S11i", "A35-S11j", "REL-4", "REL-5"], "refs": ["Re-verifies R07 after the architecture docs rewrite", "D86: A35-S10a-d run before REL-5 resumes"] },
-    { "id": "VS-11", "stream": "VS", "state": "done", "title": "Campaign content hidden from players until the GM reveals it (D87): read gates, Campaign Files removed, private and shared notes, Show to players", "cases": ["P14", "P15"], "criteria": ["P14.6", "P14.7", "P15.5"], "includes": ["PLT-6", "PLT-7", "PLT-8"], "refs": ["D87"] },
-    { "id": "VS-9", "stream": "VS", "state": "active", "title": "Final proof on one source: R08 lifecycle and the R01-R05 audits", "cases": ["R01", "R02", "R03", "R04", "R05", "R08"], "criteria": ["R01.1", "R01.2", "R02.1", "R02.2", "R03.1", "R03.2", "R04.1", "R04.2", "R05.2", "R08.1", "R08.2"], "includes": ["REL-8", "REL-6"], "refs": ["yarn validate:pre-staging:local"] },
-    { "id": "VS-10", "stream": "VS", "state": "remaining", "title": "Staging and production promotion, with the Cloudflare edge rules (needs approval)", "cases": ["R09", "R10", "V15"], "criteria": ["R09.1", "R09.2", "R10.1", "R10.2", "V15.4"], "includes": ["REL-7"], "refs": ["D75 edge rules: Bot Fight Mode, WAF scanner paths, rate limit, fail closed, 60% alert"] }
+    {
+      "id": "REL-1",
+      "stream": "REL",
+      "state": "done",
+      "title": "Criteria-level acceptance ledger",
+      "cases": [],
+      "refs": []
+    },
+    {
+      "id": "REL-2",
+      "stream": "REL",
+      "state": "done",
+      "title": "Pre-staging gate port and room-driven proofs",
+      "cases": ["R08"],
+      "refs": ["CP-S7-prep"]
+    },
+    {
+      "id": "REL-3",
+      "stream": "REL",
+      "state": "done",
+      "title": "R08 prep: drivers, fixtures, room Scene commands, V14.4 proof, binding through the room",
+      "cases": ["R08", "V14"],
+      "refs": []
+    },
+    {
+      "id": "REL-4",
+      "stream": "REL",
+      "state": "done",
+      "title": "Test-and-fix cycle: local reset, seed and codegen; affected then full suites; end-to-end journeys. Integrating slices become done here",
+      "cases": ["R06", "V05", "V07", "V13", "V14", "F12", "P15"],
+      "refs": []
+    },
+    {
+      "id": "REL-5",
+      "stream": "REL",
+      "state": "done",
+      "title": "V15 six-browser workload on the room-authoritative design within the Q16 budgets (save points replace the flush interval, D90)",
+      "cases": ["V15"],
+      "refs": ["Q16", "D90", "docs/validation/phase-08-2/v15-workload-2026-10-05.md"]
+    },
+    {
+      "id": "REL-8",
+      "stream": "REL",
+      "state": "active",
+      "title": "Dependency refresh to latest, before the pre-staging lifecycle run (batches 0-9 done; 10-12 running; 13-16 left; zod held at 4.4.3 for convex-helpers#1019)",
+      "cases": [],
+      "refs": [
+        "Agreed with the user during REL-5",
+        "https://github.com/get-convex/convex-helpers/issues/1019"
+      ]
+    },
+    {
+      "id": "REL-6",
+      "stream": "REL",
+      "state": "remaining",
+      "title": "Final proof: R01–R05 audit, yarn validate:pre-staging:local on the final source, fog save retention, docs",
+      "cases": ["R01", "R02", "R03", "R04", "R05", "R07", "R08"],
+      "refs": ["CP-S7", "Q4"]
+    },
+    {
+      "id": "REL-7",
+      "stream": "REL",
+      "state": "remaining",
+      "title": "Staging and production promotion (needs approval)",
+      "cases": ["R09", "R10"],
+      "refs": []
+    },
+    {
+      "id": "VS-1",
+      "stream": "VS",
+      "state": "done",
+      "title": "Scene history: packed Scene-scoped ledgers, room-built Scene cache, room-path contention re-proof",
+      "cases": ["V05", "V07", "V14"],
+      "criteria": ["V05.1", "V05.2", "V05.3", "V05.4", "V05.5", "V07.1", "V14.2"],
+      "includes": ["A35-S3a", "A35-S3c0", "A35-S3c1", "A35-S3c2", "A35-S3c3"],
+      "refs": [
+        "D70",
+        "D77",
+        "D78",
+        "D79",
+        "Hot path: hydration row and byte budget test",
+        "Dev scripts stop reading Convex before checkpoint; Campaign deletion of Scene rows covered again"
+      ]
+    },
+    {
+      "id": "VS-2",
+      "stream": "VS",
+      "state": "done",
+      "title": "Movement and passage through the room, with the maintained-effect owner fix",
+      "cases": ["V03", "V07", "V08", "V09", "V13"],
+      "criteria": [
+        "V03.4",
+        "V03.5",
+        "V07.4",
+        "V07.5",
+        "V08.1",
+        "V08.2",
+        "V08.3",
+        "V08.4",
+        "V08.5",
+        "V08.6",
+        "V09.1",
+        "V09.2",
+        "V09.3",
+        "V09.4",
+        "V09.5",
+        "V09.6",
+        "V09.7",
+        "V13.3"
+      ],
+      "includes": ["A35-S6a", "A35-S6b", "A35-S6c2", "TST-5"],
+      "refs": ["D78", "D81", "Hot path: checkpoint row and byte counts"]
+    },
+    {
+      "id": "VS-3",
+      "stream": "VS",
+      "state": "done",
+      "title": "Encounter decisions and journeys through the room, with the tied-initiative base fix",
+      "cases": ["R06", "V10", "V12", "V13", "V14"],
+      "criteria": [
+        "R06.1",
+        "R06.2",
+        "R06.4",
+        "V10.5",
+        "V10.6",
+        "V10.7",
+        "V10.8",
+        "V10.9",
+        "V10.10",
+        "V10.11",
+        "V12.4",
+        "V12.5",
+        "V12.6",
+        "V12.7",
+        "V12.8",
+        "V13.1",
+        "V13.2",
+        "V14.1",
+        "V14.3",
+        "V14.4"
+      ],
+      "includes": ["A35-S6c1", "A35-S6c3"],
+      "refs": ["D78", "Hot path: checkpoint row and byte counts; the 100-actor write budget"]
+    },
+    {
+      "id": "VS-4",
+      "stream": "VS",
+      "state": "done",
+      "title": "Held Sheet play, recovery and account deletion through the room",
+      "cases": ["F12", "P15", "R06", "V14"],
+      "criteria": [
+        "F12.1",
+        "F12.2",
+        "F12.3",
+        "F12.4",
+        "F12.5",
+        "P15.1",
+        "P15.2",
+        "P15.3",
+        "P15.4",
+        "R06.3",
+        "V14.5"
+      ],
+      "includes": ["A35-S7a", "A35-S3b", "A35-S7b", "TST-4"],
+      "refs": ["Hot path: room hydration of held Characters"]
+    },
+    {
+      "id": "VS-5",
+      "stream": "VS",
+      "state": "done",
+      "title": "Chat and rolls through the room, with chat cards for automatic rule rolls",
+      "cases": ["P06", "P14", "V11"],
+      "criteria": [
+        "P06.4",
+        "P06.5",
+        "P14.5",
+        "V11.4",
+        "V11.5",
+        "V11.6",
+        "V11.7",
+        "V11.8",
+        "V11.9",
+        "V11.10"
+      ],
+      "includes": ["A35-S8a", "CP-S6i"],
+      "refs": ["D72", "Check Q14 first"]
+    },
+    {
+      "id": "VS-6",
+      "stream": "VS",
+      "state": "done",
+      "title": "Builder budgets on content snapshots, with the Builder follow-ups",
+      "cases": ["P02"],
+      "criteria": ["P02.3"],
+      "includes": ["A36-S10", "A36-F1"],
+      "refs": ["ADR 0036", "Needs contentSnapshots/migrations:rebuild against the local R2 fixture"]
+    },
+    {
+      "id": "VS-7",
+      "stream": "VS",
+      "state": "done",
+      "title": "Web on Cloudflare Workers (code): skeleton SSR for signed-in pages, focus refetch off",
+      "cases": ["R05"],
+      "criteria": ["R05.1"],
+      "includes": ["PLT-5"],
+      "refs": ["D75", "D80", "Re-proves R05.1 on the Worker build; edge rules move to VS-10"]
+    },
+    {
+      "id": "VS-8",
+      "stream": "VS",
+      "state": "done",
+      "title": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run",
+      "cases": ["V15", "V14"],
+      "criteria": ["V15.1", "V15.2", "V15.3", "V14.6"],
+      "includes": [
+        "TST-0",
+        "TST-6",
+        "A35-S6d",
+        "A35-S6e",
+        "A35-S9",
+        "A35-S10a",
+        "A35-S10b",
+        "A35-S10c",
+        "A35-S10d",
+        "A35-S11a",
+        "A35-S11b",
+        "A35-S11c",
+        "A35-S11e",
+        "A35-S11g",
+        "A35-S11h",
+        "A35-S11i",
+        "A35-S11j",
+        "REL-4",
+        "REL-5"
+      ],
+      "refs": [
+        "Re-verifies R07 after the architecture docs rewrite",
+        "D86: A35-S10a-d run before REL-5 resumes"
+      ]
+    },
+    {
+      "id": "VS-11",
+      "stream": "VS",
+      "state": "done",
+      "title": "Campaign content hidden from players until the GM reveals it (D87): read gates, Campaign Files removed, private and shared notes, Show to players",
+      "cases": ["P14", "P15"],
+      "criteria": ["P14.6", "P14.7", "P15.5"],
+      "includes": ["PLT-6", "PLT-7", "PLT-8"],
+      "refs": ["D87"]
+    },
+    {
+      "id": "VS-9",
+      "stream": "VS",
+      "state": "active",
+      "title": "Final proof on one source: R08 lifecycle and the R01-R05 audits",
+      "cases": ["R01", "R02", "R03", "R04", "R05", "R08"],
+      "criteria": [
+        "R01.1",
+        "R01.2",
+        "R02.1",
+        "R02.2",
+        "R03.1",
+        "R03.2",
+        "R04.1",
+        "R04.2",
+        "R05.2",
+        "R08.1",
+        "R08.2"
+      ],
+      "includes": ["REL-8", "REL-6"],
+      "refs": ["yarn validate:pre-staging:local"]
+    },
+    {
+      "id": "VS-10",
+      "stream": "VS",
+      "state": "remaining",
+      "title": "Staging and production promotion, with the Cloudflare edge rules (needs approval)",
+      "cases": ["R09", "R10", "V15"],
+      "criteria": ["R09.1", "R09.2", "R10.1", "R10.2", "V15.4"],
+      "includes": ["REL-7"],
+      "refs": [
+        "D75 edge rules: Bot Fight Mode, WAF scanner paths, rate limit, fail closed, 60% alert"
+      ]
+    }
   ],
   "metrics": [
-    { "label": "SRD monster attacks that run", "value": "510 / 551", "from": "40 / 491", "goal": "all printed attacks (41 left)", "met": false },
+    {
+      "label": "SRD monster attacks that run",
+      "value": "510 / 551",
+      "from": "40 / 491",
+      "goal": "all printed attacks (41 left)",
+      "met": false
+    },
     { "label": "Fast rules tests (rules-runtime)", "value": "408+", "from": "53" },
-    { "label": "Monster stat-block errors left", "value": "24 listed", "from": "457 found", "goal": "each justified", "met": true },
-    { "label": "Command p95, old per-command path", "value": "0.79 s", "from": "2.8 s", "goal": "re-measure after A35-S6c3", "met": true },
-    { "label": "Other players see a change (p95)", "value": "104 ms", "from": "281 ms", "goal": "250 ms or less", "met": true },
-    { "label": "Convex I/O per combat command", "value": "~50 bytes", "from": "~1 MB", "goal": "near zero (ADR 0035)", "met": true },
-    { "label": "Convex I/O per modelled session", "value": "4.44 MB", "from": "~96 MB", "goal": "4.51 MB or less (Q16)", "met": true },
-    { "label": "Convex reads per Builder edit", "value": "0 (runs in browser)", "from": "~700 KB", "goal": "a few KB (ADR 0036)", "met": true },
-    { "label": "Convex reads per character save", "value": "145–257 KB", "from": "~1.1 MB", "goal": "300 KB or less", "met": true },
-    { "label": "Builder download (gzipped)", "value": "162 KB", "goal": "300 KB or less", "met": true },
+    {
+      "label": "Monster stat-block errors left",
+      "value": "24 listed",
+      "from": "457 found",
+      "goal": "each justified",
+      "met": true
+    },
+    {
+      "label": "Command p95, old per-command path",
+      "value": "0.79 s",
+      "from": "2.8 s",
+      "goal": "re-measure after A35-S6c3",
+      "met": true
+    },
+    {
+      "label": "Other players see a change (p95)",
+      "value": "104 ms",
+      "from": "281 ms",
+      "goal": "250 ms or less",
+      "met": true
+    },
+    {
+      "label": "Convex I/O per combat command",
+      "value": "~50 bytes",
+      "from": "~1 MB",
+      "goal": "near zero (ADR 0035)",
+      "met": true
+    },
+    {
+      "label": "Convex I/O per modelled session",
+      "value": "4.44 MB",
+      "from": "~96 MB",
+      "goal": "4.51 MB or less (Q16)",
+      "met": true
+    },
+    {
+      "label": "Convex reads per Builder edit",
+      "value": "0 (runs in browser)",
+      "from": "~700 KB",
+      "goal": "a few KB (ADR 0036)",
+      "met": true
+    },
+    {
+      "label": "Convex reads per character save",
+      "value": "145–257 KB",
+      "from": "~1.1 MB",
+      "goal": "300 KB or less",
+      "met": true
+    },
+    {
+      "label": "Builder download (gzipped)",
+      "value": "162 KB",
+      "goal": "300 KB or less",
+      "met": true
+    },
     { "label": "Convex tests passing", "value": "2,247" }
   ]
 }

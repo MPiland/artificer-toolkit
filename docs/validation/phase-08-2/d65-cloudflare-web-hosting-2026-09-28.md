@@ -57,15 +57,15 @@ fallback is to stop server-rendering the signed-in app (`ssr: false` on `_authed
 
 **Changes in `apps/web`:**
 
-| Area | Today | On Workers |
-| --- | --- | --- |
-| `vite.config.ts` | `netlify()` plugin; `loadServerOnlyEnv` copies `CONVEX_SITE_URL` and `AUTH_PROXY_SECRET` from the root `.env` into the Vite process | Replace with `cloudflare({ viteEnvironment: { name: 'ssr' } })`. SSR runs inside `workerd` in dev and preview, so the Vite process's `process.env` no longer reaches it: server variables come from `.dev.vars` or `.env` beside the Worker config, and the loader goes |
-| New `apps/web/wrangler.jsonc` | none (`netlify.toml`) | `main: "src/server.ts"` (the existing custom entry), a current `compatibility_date`, `observability.enabled`, `workers_dev: false` and `preview_urls` set deliberately, the production custom domain and a `staging` environment. No bindings are needed |
-| `src/server.ts` | `Sentry.wrapFetchWithSentry` from `@sentry/tanstackstart-react` | Wrap with `@sentry/cloudflare`'s `withSentry` per Sentry's Cloudflare guide (see section 2) |
-| `src/server/auth/convex.server.ts` | client IP from `getContext().ip` (`@netlify/functions`) | Read `CF-Connecting-IP`; fail closed when absent in production. Without this change every production auth request throws, because the Netlify context store is empty |
-| `src/start.ts` | `randomBytes` from `node:crypto` for the CSP nonce | Works under `nodejs_compat`, but `crypto.getRandomValues` removes the Node dependency |
-| `public/` | `mockServiceWorker.js`, `zod-csp-bootstrap.js`, icons | Add `_headers` (`/assets/*` immutable caching, `nosniff`); the Worker's `withSecurityHeaders` does not reach asset responses ([headers][cf-headers]) |
-| `package.json` | `@netlify/functions`, `@netlify/vite-plugin-tanstack-start` | Remove; add `@cloudflare/vite-plugin`, `@sentry/cloudflare` |
+| Area                               | Today                                                                                                                               | On Workers                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vite.config.ts`                   | `netlify()` plugin; `loadServerOnlyEnv` copies `CONVEX_SITE_URL` and `AUTH_PROXY_SECRET` from the root `.env` into the Vite process | Replace with `cloudflare({ viteEnvironment: { name: 'ssr' } })`. SSR runs inside `workerd` in dev and preview, so the Vite process's `process.env` no longer reaches it: server variables come from `.dev.vars` or `.env` beside the Worker config, and the loader goes |
+| New `apps/web/wrangler.jsonc`      | none (`netlify.toml`)                                                                                                               | `main: "src/server.ts"` (the existing custom entry), a current `compatibility_date`, `observability.enabled`, `workers_dev: false` and `preview_urls` set deliberately, the production custom domain and a `staging` environment. No bindings are needed                |
+| `src/server.ts`                    | `Sentry.wrapFetchWithSentry` from `@sentry/tanstackstart-react`                                                                     | Wrap with `@sentry/cloudflare`'s `withSentry` per Sentry's Cloudflare guide (see section 2)                                                                                                                                                                             |
+| `src/server/auth/convex.server.ts` | client IP from `getContext().ip` (`@netlify/functions`)                                                                             | Read `CF-Connecting-IP`; fail closed when absent in production. Without this change every production auth request throws, because the Netlify context store is empty                                                                                                    |
+| `src/start.ts`                     | `randomBytes` from `node:crypto` for the CSP nonce                                                                                  | Works under `nodejs_compat`, but `crypto.getRandomValues` removes the Node dependency                                                                                                                                                                                   |
+| `public/`                          | `mockServiceWorker.js`, `zod-csp-bootstrap.js`, icons                                                                               | Add `_headers` (`/assets/*` immutable caching, `nosniff`); the Worker's `withSecurityHeaders` does not reach asset responses ([headers][cf-headers])                                                                                                                    |
+| `package.json`                     | `@netlify/functions`, `@netlify/vite-plugin-tanstack-start`                                                                         | Remove; add `@cloudflare/vite-plugin`, `@sentry/cloudflare`                                                                                                                                                                                                             |
 
 **Netlify code to remove elsewhere** (pre-launch rule: no compatibility shims): `apps/web/netlify.toml`;
 `netlify/tests/viteStaticResponse.test.ts` and `netlify/tsconfig.json`; the root resolution and
@@ -86,19 +86,19 @@ describes retired Netlify functions.
 
 ## 2. SSR, auth, CSP and redirects on Workers
 
-| Piece | Verdict | Notes |
-| --- | --- | --- |
-| `/api/auth/*` proxy (`handleConvexAuthRequest`) | Works, after the IP change | Standard `Request`/`fetch`/`Headers`; `duplex: 'half'` streaming is accepted. The request is native on Workers, so the `NodeRequest` workaround comment no longer applies |
-| Signed proxy context (`signAuthProxyContext`) | Works | `jose` HS256 over WebCrypto |
-| Client IP for Convex rate limits | Needs change | Use `CF-Connecting-IP`. Cloudflare documents it as the connecting client's IP, but its [HTTP headers page][cf-headers-ref] does not say outright that a client-sent value is overwritten. Verify with a forged header in C2 |
-| SSR session read (`createAuthenticatedConvexClient`) | Works | Two `fetch` subrequests at most plus the `ConvexHttpClient` queries; well under Free's 50 external subrequests per request ([limits][cf-limits]) |
-| Better Auth cookies | Expected to work | Cookies are host-scoped; if the production hostname stays the same, existing sessions survive. Multiple `Set-Cookie` headers copied through `new Headers(...)`: verify in C1 that sign-in still sets every cookie |
-| Email links (`/api/auth/verify-email`, email change) | Works | They are navigations to `/api/auth/*`, which reach the Worker because no asset matches. Keep it that way: do not enable SPA `not_found_handling` without `run_worker_first` for `/api/auth/*` ([SPA routing][cf-spa]) |
-| CSP with per-request nonce (`start.ts`, `securityHeaders.ts`) | Works for SSR responses | **Risk:** `isDevelopment()` is `process.env.NODE_ENV !== 'production'`. If `NODE_ENV` is unset in the Worker, production CSP gains `'unsafe-eval'` and loopback sources, and the auth IP fallback path is taken. C1 must prove `NODE_ENV === 'production'` at runtime (build-time define or a Worker var) |
-| Redirects | Nothing to port | `netlify.toml` has no redirects or headers; all redirects are router `redirect()` calls in the Worker |
-| Server-side Sentry | **Not proven** | `@sentry/tanstackstart-react` 10.67.0 maps `workerd`/`worker` to `index.server.js`, which re-exports `@sentry/node` (checked in `node_modules`). Sentry issue [#20038][sentry-20038] reports that this breaks Workers ("Cannot initialize ExportedHandler") and was closed as not planned. Sentry's [TanStack Start on Cloudflare guide][sentry-cf-tss] nonetheless imports `wrapFetchWithSentry` from it. The documented workaround is `@sentry/cloudflare` on the server and client-only use of the TanStack package |
-| `node:module` `createRequire` | **Not proven** | The current SSR build emits `createRequire(import.meta.url)` in the `richText` chunk to `require('react')` from a CommonJS dependency. Once the plugin bundles everything this may disappear or may need `workerd` support; C1 covers it |
-| `node:async_hooks` | Works | `AsyncLocalStorage` is supported under `nodejs_compat` |
+| Piece                                                         | Verdict                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/auth/*` proxy (`handleConvexAuthRequest`)               | Works, after the IP change | Standard `Request`/`fetch`/`Headers`; `duplex: 'half'` streaming is accepted. The request is native on Workers, so the `NodeRequest` workaround comment no longer applies                                                                                                                                                                                                                                                                                                                                              |
+| Signed proxy context (`signAuthProxyContext`)                 | Works                      | `jose` HS256 over WebCrypto                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Client IP for Convex rate limits                              | Needs change               | Use `CF-Connecting-IP`. Cloudflare documents it as the connecting client's IP, but its [HTTP headers page][cf-headers-ref] does not say outright that a client-sent value is overwritten. Verify with a forged header in C2                                                                                                                                                                                                                                                                                            |
+| SSR session read (`createAuthenticatedConvexClient`)          | Works                      | Two `fetch` subrequests at most plus the `ConvexHttpClient` queries; well under Free's 50 external subrequests per request ([limits][cf-limits])                                                                                                                                                                                                                                                                                                                                                                       |
+| Better Auth cookies                                           | Expected to work           | Cookies are host-scoped; if the production hostname stays the same, existing sessions survive. Multiple `Set-Cookie` headers copied through `new Headers(...)`: verify in C1 that sign-in still sets every cookie                                                                                                                                                                                                                                                                                                      |
+| Email links (`/api/auth/verify-email`, email change)          | Works                      | They are navigations to `/api/auth/*`, which reach the Worker because no asset matches. Keep it that way: do not enable SPA `not_found_handling` without `run_worker_first` for `/api/auth/*` ([SPA routing][cf-spa])                                                                                                                                                                                                                                                                                                  |
+| CSP with per-request nonce (`start.ts`, `securityHeaders.ts`) | Works for SSR responses    | **Risk:** `isDevelopment()` is `process.env.NODE_ENV !== 'production'`. If `NODE_ENV` is unset in the Worker, production CSP gains `'unsafe-eval'` and loopback sources, and the auth IP fallback path is taken. C1 must prove `NODE_ENV === 'production'` at runtime (build-time define or a Worker var)                                                                                                                                                                                                              |
+| Redirects                                                     | Nothing to port            | `netlify.toml` has no redirects or headers; all redirects are router `redirect()` calls in the Worker                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Server-side Sentry                                            | **Not proven**             | `@sentry/tanstackstart-react` 10.67.0 maps `workerd`/`worker` to `index.server.js`, which re-exports `@sentry/node` (checked in `node_modules`). Sentry issue [#20038][sentry-20038] reports that this breaks Workers ("Cannot initialize ExportedHandler") and was closed as not planned. Sentry's [TanStack Start on Cloudflare guide][sentry-cf-tss] nonetheless imports `wrapFetchWithSentry` from it. The documented workaround is `@sentry/cloudflare` on the server and client-only use of the TanStack package |
+| `node:module` `createRequire`                                 | **Not proven**             | The current SSR build emits `createRequire(import.meta.url)` in the `richText` chunk to `require('react')` from a CommonJS dependency. Once the plugin bundles everything this may disappear or may need `workerd` support; C1 covers it                                                                                                                                                                                                                                                                               |
+| `node:async_hooks`                                            | Works                      | `AsyncLocalStorage` is supported under `nodejs_compat`                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## 3. CPU: will SSR fit 10 ms?
 
@@ -108,12 +108,12 @@ Global-scope startup has its own 1 s limit ([limits][cf-limits]).
 
 **Measured (Node 24, this desktop, anonymous pages, warm):**
 
-| Route | HTML | Warm CPU per request |
-| --- | --- | --- |
-| `/sign-up` | 25 KB | 0.8–2.0 ms |
-| `/sign-in` | 29 KB | 2.4–13.6 ms |
-| `/reset-password` | 28 KB | 1.0–8.5 ms |
-| `/` (landing) | 39 KB | 3.0–11.2 ms |
+| Route             | HTML  | Warm CPU per request |
+| ----------------- | ----- | -------------------- |
+| `/sign-up`        | 25 KB | 0.8–2.0 ms           |
+| `/sign-in`        | 29 KB | 2.4–13.6 ms          |
+| `/reset-password` | 28 KB | 1.0–8.5 ms           |
+| `/` (landing)     | 39 KB | 3.0–11.2 ms          |
 
 - The spread is run-to-run noise: `process.cpuUsage()` includes V8's background compiler and GC
   threads, and Windows timer granularity is about 15.6 ms. Treat anonymous pages as **roughly 2–8 ms**.
@@ -135,12 +135,12 @@ per-request CSP nonce; it would need hash-based CSP in `_headers`. It is not nee
 
 **If authenticated SSR does not fit, the options are:**
 
-| Option | Worker CPU | Cost | Trade-off |
-| --- | --- | --- | --- |
-| **A. `ssr: false` on `_authed`** (recommended fallback) | The Worker still renders the root shell and runs the root `beforeLoad` (one session read). That is comparable to `/sign-up`, about 1–2 ms | $0 | Signed-in pages render on the client after hydration. Competing tools are client-rendered apps: Foundry VTT, Owlbear Rodeo and the D&D Beyond builder and sheets. SEO does not apply behind sign-in. It also removes the server-side copies of loader queries (see the risk below) |
-| B. `ssr: 'data-only'` on heavy routes | Loaders and serialization stay on the server; only component rendering moves | $0 | Less CPU saved than A, keeps the duplicated Convex reads |
-| C. SPA mode with `not_found_handling: single-page-application` | Navigations are served the shell without invoking the Worker ([SPA routing][cf-spa]); the Worker handles only `/api/auth/*` and `/_serverFn/*` via `run_worker_first` | $0 | Loses SSR everywhere, including the landing page; the static shell needs hash-based CSP instead of nonces |
-| D. Workers Paid | 30 M CPU-ms a month included, up to 5 min per request | **$5 a month** minimum, with 10 M requests included ([pricing][cf-pricing]) | Keeps full SSR unchanged. Conflicts with the stay-free constraint until revenue, so it is the user's call |
+| Option                                                         | Worker CPU                                                                                                                                                            | Cost                                                                        | Trade-off                                                                                                                                                                                                                                                                          |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. `ssr: false` on `_authed`** (recommended fallback)        | The Worker still renders the root shell and runs the root `beforeLoad` (one session read). That is comparable to `/sign-up`, about 1–2 ms                             | $0                                                                          | Signed-in pages render on the client after hydration. Competing tools are client-rendered apps: Foundry VTT, Owlbear Rodeo and the D&D Beyond builder and sheets. SEO does not apply behind sign-in. It also removes the server-side copies of loader queries (see the risk below) |
+| B. `ssr: 'data-only'` on heavy routes                          | Loaders and serialization stay on the server; only component rendering moves                                                                                          | $0                                                                          | Less CPU saved than A, keeps the duplicated Convex reads                                                                                                                                                                                                                           |
+| C. SPA mode with `not_found_handling: single-page-application` | Navigations are served the shell without invoking the Worker ([SPA routing][cf-spa]); the Worker handles only `/api/auth/*` and `/_serverFn/*` via `run_worker_first` | $0                                                                          | Loses SSR everywhere, including the landing page; the static shell needs hash-based CSP instead of nonces                                                                                                                                                                          |
+| D. Workers Paid                                                | 30 M CPU-ms a month included, up to 5 min per request                                                                                                                 | **$5 a month** minimum, with 10 M requests included ([pricing][cf-pricing]) | Keeps full SSR unchanged. Conflicts with the stay-free constraint until revenue, so it is the user's call                                                                                                                                                                          |
 
 ## 4. Request budget
 
@@ -157,26 +157,27 @@ not stated there, so this estimate counts the S0 room figure against the Workers
 **Per active user, per day** (TanStack navigations after the first load are client-side and do not hit
 the Worker; data comes from Convex directly):
 
-| Source | Normal day | Session day (4 h) |
-| --- | --- | --- |
-| SSR document loads (first visit, reloads, new tabs, the tabletop window) | 5 | 3 |
-| `/api/auth/convex/token` at load and every 15 min (the `@convex-dev/better-auth` default JWT lifetime) | 5 + 6 | 3 + 16 |
-| `/api/auth/get-session`: at load, and on every tab refocus 5 s or more apart (Better Auth's `refetchOnWindowFocus` defaults to true; the app does not override it) | 5 + ~15 | 3 + ~60 |
-| **Total** | **~35–40** | **~85–120** |
+| Source                                                                                                                                                             | Normal day | Session day (4 h) |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ----------------- |
+| SSR document loads (first visit, reloads, new tabs, the tabletop window)                                                                                           | 5          | 3                 |
+| `/api/auth/convex/token` at load and every 15 min (the `@convex-dev/better-auth` default JWT lifetime)                                                             | 5 + 6      | 3 + 16            |
+| `/api/auth/get-session`: at load, and on every tab refocus 5 s or more apart (Better Auth's `refetchOnWindowFocus` defaults to true; the app does not override it) | 5 + ~15    | 3 + ~60           |
+| **Total**                                                                                                                                                          | **~35–40** | **~85–120**       |
 
 **At Q16** (100 users, 20 tables, 80 sessions a month, a 10-session peak day as in S0, 6 members a
 table):
 
-| | Average day (2.7 sessions) | Peak day (10 sessions) |
-| --- | --- | --- |
-| Web, sessions: sessions × 6 × 120 | 1,900 | 7,200 |
-| Web, other active users: 40 DAU × 40 | 1,600 | 1,600 |
-| Session Worker and room: sessions × 570 (S0 target design, no pointer previews) | 1,500 | 5,700 |
-| Content snapshots (ADR 0036): about 40 objects per first Builder load, cached by hash; 50 builds a month | < 100 | < 100 |
-| **Total** | **~5,100** | **~14,600** |
-| **With Q16's 50% headroom** | ~7,700 (8% of 100k) | ~22,000 (22% of 100k) |
+|                                                                                                          | Average day (2.7 sessions) | Peak day (10 sessions) |
+| -------------------------------------------------------------------------------------------------------- | -------------------------- | ---------------------- |
+| Web, sessions: sessions × 6 × 120                                                                        | 1,900                      | 7,200                  |
+| Web, other active users: 40 DAU × 40                                                                     | 1,600                      | 1,600                  |
+| Session Worker and room: sessions × 570 (S0 target design, no pointer previews)                          | 1,500                      | 5,700                  |
+| Content snapshots (ADR 0036): about 40 objects per first Builder load, cached by hash; 50 builds a month | < 100                      | < 100                  |
+| **Total**                                                                                                | **~5,100**                 | **~14,600**            |
+| **With Q16's 50% headroom**                                                                              | ~7,700 (8% of 100k)        | ~22,000 (22% of 100k)  |
 
 **Verdict: fits.** The risks are the unbounded sources, not the model:
+
 - **Crawlers and scanners.** Every unknown path and 404 is an SSR invocation, and the pool is shared
   with the live room. When the pool runs out, routes fail open or closed, and `run_worker_first`
   requests get 429 ([limits][cf-limits], [static asset billing][cf-assets-billing]). Either way,
@@ -220,14 +221,14 @@ touches a cloud account and needs the user's explicit approval each time.
 3. **Local gates.** Affected typecheck, the web unit tests that cover `convex.server.ts`,
    `securityHeaders.ts` and `start.ts`, and `yarn validate:pre-staging:local` with its Netlify stage
    replaced by a Worker build.
-4. **Staging Worker** *(approval)*. Deploy `artificer-web-staging` on a staging custom domain. Set its
+4. **Staging Worker** _(approval)_. Deploy `artificer-web-staging` on a staging custom domain. Set its
    secrets. Point the staging Convex `SITE_URL` and the session Worker's staging
    `LIVE_SESSION_ALLOWED_ORIGINS` at it. Use a stable hostname rather than per-version URLs, because
    Better Auth trusts exactly one origin (`trustedOrigins: [SITE_URL]`).
-5. **CPU and header gate on staging** *(approval)*. Run the staging smoke and V15 through it. Read
+5. **CPU and header gate on staging** _(approval)_. Run the staging smoke and V15 through it. Read
    per-invocation CPU and wall time in Workers Logs and the Query Builder ([CPU and wall time][cf-cpu-log]).
    Apply conditions C2–C3, and choose option A, B, C or D if C2 fails.
-6. **Production** *(approval)*. Record the Netlify deploy ID for rollback. Delete the DNS record that
+6. **Production** _(approval)_. Record the Netlify deploy ID for rollback. Delete the DNS record that
    points the web hostname at Netlify: a Custom Domain cannot be created on a hostname with an
    existing CNAME. Then attach the Custom Domain, and Cloudflare creates the DNS record and
    certificate. `www` and the apex are separate hostnames, so the one that is not canonical needs a
@@ -238,17 +239,18 @@ touches a cloud account and needs the user's explicit approval each time.
 7. **Rollback window.** Within Cloudflare: `wrangler rollback` or dashboard rollback to any of the last
    100 versions ([rollbacks][cf-rollbacks]). Back to Netlify: detach the custom domain and restore the
    DNS record, so keep the Netlify site and its environment until one release cycle passes.
-8. **Retire Netlify** *(approval)*. Delete the Netlify site, environment and build hook. Update the
+8. **Retire Netlify** _(approval)_. Delete the Netlify site, environment and build hook. Update the
    acceptance ledger and open-questions doc.
 
 **Environment variables:**
-- *Build time (client), unchanged:* `VITE_CONVEX_URL`, `VITE_LIVE_SESSION_WEBSOCKET_URL`,
+
+- _Build time (client), unchanged:_ `VITE_CONVEX_URL`, `VITE_LIVE_SESSION_WEBSOCKET_URL`,
   `VITE_MEDIA_STORAGE_ORIGIN`, `VITE_SENTRY_DSN`.
-- *Build-only secrets:* `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (source maps).
-- *Worker runtime:* `CONVEX_SITE_URL` (var) and `AUTH_PROXY_SECRET` (secret), plus `NODE_ENV=production`
+- _Build-only secrets:_ `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (source maps).
+- _Worker runtime:_ `CONVEX_SITE_URL` (var) and `AUTH_PROXY_SECRET` (secret), plus `NODE_ENV=production`
   unless the build defines it. `securityHeaders.ts` reads `process.env.VITE_*` first at runtime; that
   keeps working because vars populate `process.env`.
-- *Retired:* `SECRETS_SCAN_OMIT_KEYS` (Netlify-only).
+- _Retired:_ `SECRETS_SCAN_OMIT_KEYS` (Netlify-only).
 
 **Preview deploys.** Version URLs run against production resources, and Cloudflare says not to use them
 for branch testing ([compare workflows][cf-previews]). Here the Worker has no bindings, but auth still
@@ -265,6 +267,7 @@ native GoRules binding that forced Linux Netlify builds is retired. Linux CI sta
 release path.
 
 **What the user must do themselves:**
+
 - Approve each cloud step (4–8) and each staging smoke.
 - `wrangler login`, or create a scoped API token (Workers Scripts: Edit, and Zone: Workers Routes for
   the zone). Add it and the account ID as GitHub secrets.

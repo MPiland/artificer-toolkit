@@ -18,10 +18,18 @@ export const status = query({
   returns: zodToConvex(campaignDeletionStatusSchema),
   handler: async (ctx, { campaignId }) => {
     const { userId } = await requireIdentity(ctx)
-    const job = await ctx.db.query('campaignDeletionJobs')
-      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId)).unique()
+    const job = await ctx.db
+      .query('campaignDeletionJobs')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique()
     if (!job || job.ownerUserId !== userId) throw new Error('Campaign not found.')
-    return { campaignId, expectedVersion: job.expectedVersion, status: job.status, error: job.error, updatedAt: job.updatedAt }
+    return {
+      campaignId,
+      expectedVersion: job.expectedVersion,
+      status: job.status,
+      error: job.error,
+      updatedAt: job.updatedAt
+    }
   }
 })
 

@@ -1,6 +1,7 @@
 ---
-description: "Watch for the next dev/prod error or request in a Convex app and react to it."
+description: 'Watch for the next dev/prod error or request in a Convex app and react to it.'
 ---
+
 <!-- GENERATED from convex-agents content/capabilities/monitor.json — do not edit by hand. -->
 
 # Watch for the next thing to react to

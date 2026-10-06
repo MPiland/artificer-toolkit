@@ -119,30 +119,28 @@ export function deriveConditionCombatPerceptionContributions(input: {
     .flatMap((definition) =>
       (definition.document.perceptionContributions ?? [])
         .filter((contribution) => kinds.has(contribution.kind))
-        .map(
-          (contribution): CombatPerceptionContributionSource => ({
-            instanceId: conditionContributionInstanceId(
-              definition.conditionDefinitionId,
-              definition.definitionChecksum,
-              contribution.id
-            ),
-            source: {
-              kind: 'CONDITION_DEFINITION',
-              conditionDefinitionId: definition.conditionDefinitionId,
-              conditionDefinitionVersion: definition.definitionVersion,
-              conditionDefinitionChecksum: definition.definitionChecksum
-            },
-            sourceOrdinal: 0,
-            contribution:
-              contribution.kind === 'SENSE_GRANT'
-                ? {
-                    ...contribution,
-                    range: contribution.range
-                      ? lengthMeasurementInSceneUnits(contribution.range, input.sceneGrid)
-                      : null
-                  }
-                : contribution
-          })
-        )
+        .map((contribution): CombatPerceptionContributionSource => ({
+          instanceId: conditionContributionInstanceId(
+            definition.conditionDefinitionId,
+            definition.definitionChecksum,
+            contribution.id
+          ),
+          source: {
+            kind: 'CONDITION_DEFINITION',
+            conditionDefinitionId: definition.conditionDefinitionId,
+            conditionDefinitionVersion: definition.definitionVersion,
+            conditionDefinitionChecksum: definition.definitionChecksum
+          },
+          sourceOrdinal: 0,
+          contribution:
+            contribution.kind === 'SENSE_GRANT'
+              ? {
+                  ...contribution,
+                  range: contribution.range
+                    ? lengthMeasurementInSceneUnits(contribution.range, input.sceneGrid)
+                    : null
+                }
+              : contribution
+        }))
     )
 }

@@ -28,28 +28,28 @@ Convex retains ordinary product authority and server commit validation. During a
 
 **Acceptance state.** `node scripts/acceptanceProgress.mjs` exited 0 against the current JSON ledger:
 
-| Gate | Accepted cases | Accepted criteria |
-| --- | ---: | ---: |
-| Foundation, auth, operations | 14/15 | 46/51 |
-| Content and rules | 16/16 | 50/50 |
-| Characters, Campaigns, Social | 16/19 | 64/71 |
-| Scene, Encounter, VTT | 4/15 | 27/81 |
-| Cutover and release | 1/10 | 3/23 |
-| Total | **51/75** | **190/276** |
+| Gate                          | Accepted cases | Accepted criteria |
+| ----------------------------- | -------------: | ----------------: |
+| Foundation, auth, operations  |          14/15 |             46/51 |
+| Content and rules             |          16/16 |             50/50 |
+| Characters, Campaigns, Social |          16/19 |             64/71 |
+| Scene, Encounter, VTT         |           4/15 |             27/81 |
+| Cutover and release           |           1/10 |              3/23 |
+| Total                         |      **51/75** |       **190/276** |
 
 There are 24 open cases: 7 READY_FOR_ACCEPTANCE, 14 IN_PROGRESS and 3 NOT_STARTED. Of the criteria, 57 are ready, 17 in progress and 12 not started. Ready cases are P06, V03, V08, V09, V10, V11 and V12. The ledger has no BLOCKED entries, although implementation dependencies, local backend availability and promotion approvals gate progress. Counts are retained feature acceptance, not evidence that today's complete system passes. ADRs 0033–0036 reopened earlier proof without changing the 75-case denominator.
 
 **Implemented on the branch.**
 
-| Surface | Current evidence |
-| --- | --- |
-| Authoring/content foundation | All Gate 2 cases accepted; eight authored domains, publication, drafts, duplication, access and Rules Kernel behavior exist. |
-| Characters, Campaigns, Social | Most Gate 3 behavior accepted, including Sheet commands, inventory, Campaign lifecycle/collaboration, Social, notifications and capacity enforcement. Billing is future work. |
-| Campaign-owned play | ADR 0033 implemented: one Campaign room; Sessions no longer gate play; Runs survive Session finish. ADR 0034 player agency and privacy have extensive local implementation. |
-| ADR 0035 groundwork | S0 measurements, S1 Encounter persistence extraction, smaller Encounter records, S1c Character play-state split, S2 SQLite hydrate/rehydrate and S4 authorization cache are landed. |
+| Surface                       | Current evidence                                                                                                                                                                                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authoring/content foundation  | All Gate 2 cases accepted; eight authored domains, publication, drafts, duplication, access and Rules Kernel behavior exist.                                                                                                                                               |
+| Characters, Campaigns, Social | Most Gate 3 behavior accepted, including Sheet commands, inventory, Campaign lifecycle/collaboration, Social, notifications and capacity enforcement. Billing is future work.                                                                                              |
+| Campaign-owned play           | ADR 0033 implemented: one Campaign room; Sessions no longer gate play; Runs survive Session finish. ADR 0034 player agency and privacy have extensive local implementation.                                                                                                |
+| ADR 0035 groundwork           | S0 measurements, S1 Encounter persistence extraction, smaller Encounter records, S1c Character play-state split, S2 SQLite hydrate/rehydrate and S4 authorization cache are landed.                                                                                        |
 | ADR 0036 browser/content path | S1–S9 and S11 are landed: build/delivery/manifest, browser evaluation, referenced server commit, debounced saves, old server Builder removal and snapshot-backed authored lists. Local SRD list heads were rebuilt on September 29. S10 room snapshot consumption remains. |
-| Web hosting | ADR 0037 Netlify → Cloudflare runtime migration is implemented and validated locally. Managed hosting and browser/network proof remain. |
-| Other cost work | Bounded chat reads, media reuse/de-duplication, revised tier limits, memory-only previews and pings are implemented. Live chat checkpoint batching remains. |
+| Web hosting                   | ADR 0037 Netlify → Cloudflare runtime migration is implemented and validated locally. Managed hosting and browser/network proof remain.                                                                                                                                    |
+| Other cost work               | Bounded chat reads, media reuse/de-duplication, revised tier limits, memory-only previews and pings are implemented. Live chat checkpoint batching remains.                                                                                                                |
 
 The measured improvements explain why this work matters: referenced Fighter/Wizard commits read 145–257 KB rather than roughly 1.1 MB; the Builder worker is about 162 KB gzipped; measured draft saves use 7.8 KB for create and 14.4 KB for edit; a Sheet HP change writes about 1.1 KB rather than 8.2 KB. These are fixture/local measurements recorded in the plans, not new measurements by this review.
 

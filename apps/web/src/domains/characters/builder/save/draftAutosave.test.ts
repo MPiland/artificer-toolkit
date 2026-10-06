@@ -2,9 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthoringDraftSaveStatus } from '#forms/layout/AuthoringFormContext'
 import { createDraftAutosave } from './draftAutosave'
 
-function setup(
-  save = vi.fn(async (_value: string): Promise<'saved' | 'replaced'> => 'saved')
-) {
+function setup(save = vi.fn(async (_value: string): Promise<'saved' | 'replaced'> => 'saved')) {
   const statuses: AuthoringDraftSaveStatus[] = []
   const autosave = createDraftAutosave({ save, onStatus: (status) => statuses.push(status) })
   return { autosave, save, statuses }

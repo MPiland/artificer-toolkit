@@ -66,7 +66,9 @@ describe('Character Builder over an in-memory context', () => {
   ])('resolves a chosen-grant choice with $selected of 2 selections', async (scenario) => {
     const fixture = readyFighterFixture({ languageChoice: true })
     const character =
-      scenario.selected === 0 ? fixture.character : await selectLanguages(fixture, scenario.selected)
+      scenario.selected === 0
+        ? fixture.character
+        : await selectLanguages(fixture, scenario.selected)
     const { resolution } = await prepareFixtureBuilder({ ...fixture, character })
     expect(resolution.chosenGrantChoices).toHaveLength(1)
     expect(resolution.chosenGrantChoices[0]?.requiredCount).toBe(2)
@@ -131,7 +133,11 @@ describe('Character Builder over an in-memory context', () => {
       ...created,
       state: { ...created.state, hitpoints: { ...created.state.hitpoints, current: 3 } }
     }
-    const { character } = await prepareFixtureBuilder({ ...fixture, character: damaged, current: damaged })
+    const { character } = await prepareFixtureBuilder({
+      ...fixture,
+      character: damaged,
+      current: damaged
+    })
     expect(character.state.hitpoints.current).toBe(3)
   })
 })

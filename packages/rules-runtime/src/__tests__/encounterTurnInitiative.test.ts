@@ -14,7 +14,11 @@ import { planEncounterInitiativeAdvance } from '../encounterInitiativeStateSettl
 import { prepareEncounterTurnInitiative } from '../encounterTurnInitiative.js'
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
-import { createSrdRulesRuntime, srdCreatureActor, srdEncounterState } from '../testing/dnd5eSrdEncounter.js'
+import {
+  createSrdRulesRuntime,
+  srdCreatureActor,
+  srdEncounterState
+} from '../testing/dnd5eSrdEncounter.js'
 import {
   ACTOR_A,
   ACTOR_B,

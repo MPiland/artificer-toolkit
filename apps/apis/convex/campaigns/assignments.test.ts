@@ -161,10 +161,18 @@ describe('native Campaign Character assignments', () => {
     if (!record || !route) throw new Error('Character binding fixture is unavailable.')
     const { _id: recordId, _creationTime: _recordTime, ...recordDocument } = record
     const { _id: routeId, _creationTime: _routeTime, ...routeDocument } = route
-    const [build, play] = await base.t.run((ctx) => Promise.all([
-      ctx.db.query('characterBuildStates').withIndex('by_characterId', (q) => q.eq('characterId', base.character.id)).unique(),
-      ctx.db.query('characterPlayStates').withIndex('by_characterId', (q) => q.eq('characterId', base.character.id)).unique()
-    ]))
+    const [build, play] = await base.t.run((ctx) =>
+      Promise.all([
+        ctx.db
+          .query('characterBuildStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
+          .unique(),
+        ctx.db
+          .query('characterPlayStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', base.character.id))
+          .unique()
+      ])
+    )
     if (!build || !play) throw new Error('Character operational binding fixture is unavailable.')
     const { _id: buildId, _creationTime: _buildTime, ...buildDocument } = build
     const { _id: playId, _creationTime: _playTime, ...playDocument } = play

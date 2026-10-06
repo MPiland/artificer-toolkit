@@ -13,7 +13,7 @@ import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/enc
 import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
-  EncounterSummaryDto,
+  EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -375,9 +375,10 @@ describe('native Encounter current Character conditions', () => {
     await expect(player.caller.query(get, { encounterId: run.id })).rejects.toThrow(
       'Encounter is unavailable.'
     )
-    await expect(
-      readTimelineInRoom(owner.caller, run.id)
-    ).resolves.toMatchObject({ entries: expect.any(Array), nextCursor: null })
+    await expect(readTimelineInRoom(owner.caller, run.id)).resolves.toMatchObject({
+      entries: expect.any(Array),
+      nextCursor: null
+    })
 
     await expect(t.query(get, { encounterId: run.id })).rejects.toThrow('Unauthenticated')
     await t.run(async (ctx) => {

@@ -1,6 +1,7 @@
 ---
-description: "Get a barebones Convex + web template running from a one-sentence idea."
+description: 'Get a barebones Convex + web template running from a one-sentence idea.'
 ---
+
 <!-- GENERATED from convex-agents content/capabilities/quickstart.json — do not edit by hand. -->
 
 # Quickstart: a barebones Convex template, running

@@ -85,7 +85,7 @@ flowchart LR
      starts its own Worker and web app, after a failure and at the end. Their output goes to
      `local-session-worker.log` and `local-web-app.log` in the manifest folder.
    - Before the first proof stage the runner also runs `scripts/localConvexFixtures.ps1 -Action
-start`, which idempotently serves the R2 substitute (host `127.0.0.1:8026`) and the email sink
+     start`, which idempotently serves the R2 substitute (host `127.0.0.1:8026`) and the email sink
      (container-only) from the Convex container and leaves them running. The local deployment must
      set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
      [API README](../../apps/apis/README.md).

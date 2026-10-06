@@ -409,7 +409,7 @@ function toEquipmentCatalogRecords(
     const verified = new Set<string>()
     for (const entry of entries) {
       const chain = new Set<string>()
-      for (let current = entry; !verified.has(current.id); ) {
+      for (let current = entry; !verified.has(current.id);) {
         if (chain.has(current.id)) throw new Error('Equipment variant cycle detected.')
         chain.add(current.id)
         if (current.parentEquipmentId === null) break

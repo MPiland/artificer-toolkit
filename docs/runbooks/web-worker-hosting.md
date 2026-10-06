@@ -50,7 +50,7 @@ Agents never run these steps; each cloud step needs the user's explicit approval
      and `SENTRY_PROJECT`.
 3. **Worker secrets**, once per environment, typed at the prompt so no value reaches a shell history:
    `wrangler secret put AUTH_PROXY_SECRET --env staging` and `wrangler secret put CONVEX_SITE_URL
---env staging` (omit `--env` for production). `AUTH_PROXY_SECRET` must equal that Convex
+   --env staging` (omit `--env` for production). `AUTH_PROXY_SECRET` must equal that Convex
    deployment's value; `CONVEX_SITE_URL` is its `https://<deployment>.convex.site` origin.
 4. **Hostnames and DNS.** Choose the staging and production web hostnames and commit them to
    `apps/web/wrangler.jsonc` as `routes` with `"custom_domain": true` (as the session Worker does), so

@@ -52,7 +52,12 @@ async function serveCleanupRequest(
   }
   void browserRun.then(markFinished, markFinished)
   while (!finished) {
-    if (await readFile(`${signalPath}.requested`).then(() => true, () => false)) {
+    if (
+      await readFile(`${signalPath}.requested`).then(
+        () => true,
+        () => false
+      )
+    ) {
       try {
         await cleanup()
         return null

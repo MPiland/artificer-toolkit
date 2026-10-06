@@ -94,13 +94,11 @@ export function srdFeature(input: {
 }
 
 function raceFeatures(race: RaceAuthored | undefined, kind: 'RACE' | 'SUBRACE') {
-  return (race?.features ?? []).map(
-    (feature): SnapshotFeature => ({
-      featureId: feature.id,
-      source: kind === 'RACE' ? { kind, raceId: race!.id } : { kind, subraceId: race!.id },
-      timing: { kind: 'IMMEDIATE' }
-    })
-  )
+  return (race?.features ?? []).map((feature): SnapshotFeature => ({
+    featureId: feature.id,
+    source: kind === 'RACE' ? { kind, raceId: race!.id } : { kind, subraceId: race!.id },
+    timing: { kind: 'IMMEDIATE' }
+  }))
 }
 
 export type SrdCharacterInput = {

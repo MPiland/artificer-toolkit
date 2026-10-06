@@ -31,7 +31,12 @@ export async function syncCampaignClockWithCombat(db: MutationCtx['db'], campaig
   const at = new Date().toISOString()
   if (inCombat && clock.running) {
     const derived = deriveClock(clock, at).clock
-    await closeOpenClockSegment(db, campaignId, absoluteMinute(derived.day, derived.minuteOfDay), at)
+    await closeOpenClockSegment(
+      db,
+      campaignId,
+      absoluteMinute(derived.day, derived.minuteOfDay),
+      at
+    )
     await db.patch(
       _id,
       campaignClockDtoSchema.parse({

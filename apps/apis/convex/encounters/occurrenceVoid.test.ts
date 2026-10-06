@@ -146,9 +146,7 @@ describe('GM void command', () => {
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect()
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
       }))
     const before = await records()
 
@@ -224,7 +222,10 @@ describe('GM void command', () => {
     )
     expect(
       await rejectionReason(
-        executeInRoom(value.owner.caller, voidCommand({ encounterId: value.base.run.id, pending: next }))
+        executeInRoom(
+          value.owner.caller,
+          voidCommand({ encounterId: value.base.run.id, pending: next })
+        )
       )
     ).toBe('DECISION_NOT_PENDING')
     const stored = await value.base.t.run(async (ctx) => ({
@@ -234,7 +235,9 @@ describe('GM void command', () => {
         .query('encounterRuleOccurrences')
         .withIndex('by_publicId', (query) => query.eq('id', choice.occurrenceId))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
+      commands: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (query) => query.eq('encounterId', value.base.run.id))
         .collect()

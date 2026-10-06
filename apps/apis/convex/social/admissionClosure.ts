@@ -70,7 +70,9 @@ export async function reconcileListingAdmission(
     .withIndex('by_listingId_status', (q) =>
       q.eq('listingId', listing.id).eq('status', 'SUBMITTED')
     )
-  for await (const application of pageSize === undefined ? applications : await applications.take(pageSize)) {
+  for await (const application of pageSize === undefined
+    ? applications
+    : await applications.take(pageSize)) {
     processed++
     const { _id, _creationTime, ...stored } = application
     socialStoredApplicationSchema.parse(stored)
@@ -104,9 +106,7 @@ export async function reconcileListingAdmission(
   }
   const invites = ctx.db
     .query('campaignInvites')
-    .withIndex('by_listingId_status', (q) =>
-      q.eq('listingId', listing.id).eq('status', 'PENDING')
-    )
+    .withIndex('by_listingId_status', (q) => q.eq('listingId', listing.id).eq('status', 'PENDING'))
   for await (const invite of pageSize === undefined ? invites : await invites.take(pageSize)) {
     processed++
     const { _id, _creationTime, ...stored } = invite

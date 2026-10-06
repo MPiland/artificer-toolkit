@@ -197,7 +197,12 @@ describe('Sheet rest cleanup', () => {
   const itemUsage = (itemInstanceId: string) =>
     usage({ kind: 'ITEM_INSTANCE', itemInstanceId, chargeId: 'charge' })
   const companionUsage = (companionInstanceId: string) =>
-    usage({ kind: 'COMPANION_FEATURE', companionInstanceId, chargeId: 'charge', featureId: 'feature' })
+    usage({
+      kind: 'COMPANION_FEATURE',
+      companionInstanceId,
+      chargeId: 'charge',
+      featureId: 'feature'
+    })
 
   it('drops usage for recovered Resources, a removed Item and a removed companion only', async () => {
     const { resource } = await playedFighter({ resourceUsed: true })

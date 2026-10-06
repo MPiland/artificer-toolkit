@@ -19,12 +19,12 @@ All commands ran serially under `local-validation/.validation.lock`, with `GOMAX
 Full output, native exit codes and scoped source hashes are retained under
 `local-validation/phase82-checkpoint-prefix/`.
 
-| Order | Command | Result | Retained log |
-| --- | --- | --- | --- |
-| 1 | `yarn build:schema --concurrency=1 --env-mode=loose` | Exit 0; 3/3 tasks | `schema-build.log` |
-| 2 | `yarn vitest run --config vitest.config.ts apps/session-worker/src/roomEncounterStore.test.ts apps/session-worker/src/roomCheckpointRecords.test.ts --maxWorkers=1 --no-file-parallelism` | Exit 0; 58/58 tests | `unit-tests.log` |
-| 3 | `yarn workspace @artificer-toolkit/session-worker test test/nativeRoomEncounterStore.test.ts` | Exit 0; 10/10 tests on real workerd SQLite | `native-tests.log` |
-| 4 | `yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --concurrency=1 --env-mode=loose` | Exit 0; 7/7 tasks | `typecheck.log` |
+| Order | Command                                                                                                                                                                                   | Result                                     | Retained log       |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------ |
+| 1     | `yarn build:schema --concurrency=1 --env-mode=loose`                                                                                                                                      | Exit 0; 3/3 tasks                          | `schema-build.log` |
+| 2     | `yarn vitest run --config vitest.config.ts apps/session-worker/src/roomEncounterStore.test.ts apps/session-worker/src/roomCheckpointRecords.test.ts --maxWorkers=1 --no-file-parallelism` | Exit 0; 58/58 tests                        | `unit-tests.log`   |
+| 3     | `yarn workspace @artificer-toolkit/session-worker test test/nativeRoomEncounterStore.test.ts`                                                                                             | Exit 0; 10/10 tests on real workerd SQLite | `native-tests.log` |
+| 4     | `yarn turbo run typecheck --filter=@artificer-toolkit/session-worker --concurrency=1 --env-mode=loose`                                                                                    | Exit 0; 7/7 tasks                          | `typecheck.log`    |
 
 The native proof exercises 11 and 100 actors: acknowledge command 1 after commands 2 and 3,
 retain the suffix, evict, recover the exact current aggregate, continue with command 4, acknowledge

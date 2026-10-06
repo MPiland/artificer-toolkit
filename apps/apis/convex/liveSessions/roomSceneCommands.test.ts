@@ -23,10 +23,7 @@ import {
   planMovementDecisionInRoom,
   planMovementInRoom
 } from '../../tests/fixtures/liveSessionWorker'
-import {
-  createSceneDefinitionFixture,
-  publishScene
-} from '../../tests/fixtures/sceneDefinitions'
+import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
 
 const setPresentation = makeFunctionReference<
   'mutation',

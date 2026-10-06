@@ -41,22 +41,22 @@ measured at 64 actors, the largest size that starts.
 
 Each value is run 1 / run 2, in ms.
 
-| Measure | p50 | p95 | max |
-| --- | --- | --- | --- |
-| Room command wall-clock, all (n=48) | 689 / 695 | 752 / 777 | 760 / 965 |
-| `RESOLVE_ACTION` wall-clock (n=17) | 695 / 687 | 752 / 819 | |
-| `ADVANCE_TURN` wall-clock (n=31) | 689 / 697 | 753 / 770 | |
-| Sum of Convex HTTP actions per command | 654 / 659 | 715 / 719 | |
-| Bundle HTTP action (`encounter-bundle`) | 315 / 319 | 345 / 368 | |
-| Bundle query | 260 / 263 | 281 / 300 | |
-| Bundle query, JavaScript time only | 226 / 229 | 244 / 258 | |
-| Action commit HTTP action (`encounter-action`) | 336 / 336 | 391 / 365 | |
-| Action commit mutation | 244 / 251 | 287 / 276 | |
-| Turn commit HTTP action (`encounter-turn`) | 343 / 339 | 386 / 355 | |
-| Turn commit mutation | 254 / 255 | 285 / 272 | |
-| Worker/DO and transport outside Convex HTTP | 28 / 28 | 52 / 111 | |
-| Direct bundle, `TURN_COMMAND`, client (n=40) | 274 / 269 | 295 / 286 | |
-| Direct bundle, `ACTION_COMMAND`, client (n=40) | 267 / 267 | 283 / 295 | |
+| Measure                                        | p50       | p95       | max       |
+| ---------------------------------------------- | --------- | --------- | --------- |
+| Room command wall-clock, all (n=48)            | 689 / 695 | 752 / 777 | 760 / 965 |
+| `RESOLVE_ACTION` wall-clock (n=17)             | 695 / 687 | 752 / 819 |           |
+| `ADVANCE_TURN` wall-clock (n=31)               | 689 / 697 | 753 / 770 |           |
+| Sum of Convex HTTP actions per command         | 654 / 659 | 715 / 719 |           |
+| Bundle HTTP action (`encounter-bundle`)        | 315 / 319 | 345 / 368 |           |
+| Bundle query                                   | 260 / 263 | 281 / 300 |           |
+| Bundle query, JavaScript time only             | 226 / 229 | 244 / 258 |           |
+| Action commit HTTP action (`encounter-action`) | 336 / 336 | 391 / 365 |           |
+| Action commit mutation                         | 244 / 251 | 287 / 276 |           |
+| Turn commit HTTP action (`encounter-turn`)     | 343 / 339 | 386 / 355 |           |
+| Turn commit mutation                           | 254 / 255 | 285 / 272 |           |
+| Worker/DO and transport outside Convex HTTP    | 28 / 28   | 52 / 111  |           |
+| Direct bundle, `TURN_COMMAND`, client (n=40)   | 274 / 269 | 295 / 286 |           |
+| Direct bundle, `ACTION_COMMAND`, client (n=40) | 267 / 267 | 283 / 295 |           |
 
 Each command made exactly one bundle call and one commit call. No other route ran during the measured
 action or turn commands.
@@ -71,15 +71,15 @@ action or turn commands.
 
 These are single-run values in ms. 64 is the largest Run that can START; see "Cap".
 
-| Measure | p50 | p95 | max |
-| --- | --- | --- | --- |
-| Room command wall-clock, all (n=48) | 936 | 1,029 | 1,101 |
-| `RESOLVE_ACTION` (n=22) / `ADVANCE_TURN` (n=26) | 925 / 945 | 981 / 1,050 | |
-| Bundle HTTP action / query / JavaScript only | 487 / 427 / 345 | 569 / 492 / 394 | |
-| Turn commit HTTP action / mutation | 394 / 324 | 409 / 337 | |
-| Action commit HTTP action / mutation | 371 / 305 | 433 / 355 | |
-| Worker/DO and transport outside Convex HTTP | 61 | 86 | |
-| Direct bundle `TURN_COMMAND` / `ACTION_COMMAND`, client (n=20) | 448 / 420 | 500 / 456 | |
+| Measure                                                        | p50             | p95             | max   |
+| -------------------------------------------------------------- | --------------- | --------------- | ----- |
+| Room command wall-clock, all (n=48)                            | 936             | 1,029           | 1,101 |
+| `RESOLVE_ACTION` (n=22) / `ADVANCE_TURN` (n=26)                | 925 / 945       | 981 / 1,050     |       |
+| Bundle HTTP action / query / JavaScript only                   | 487 / 427 / 345 | 569 / 492 / 394 |       |
+| Turn commit HTTP action / mutation                             | 394 / 324       | 409 / 337       |       |
+| Action commit HTTP action / mutation                           | 371 / 305       | 433 / 355       |       |
+| Worker/DO and transport outside Convex HTTP                    | 61              | 86              |       |
+| Direct bundle `TURN_COMMAND` / `ACTION_COMMAND`, client (n=20) | 448 / 420       | 500 / 456       |       |
 
 - **Bundle size.** 306 documents / 949 KB read, returning 562 KB in 130 encounter parts and 12 Character parts.
 - **Commit size.** Turn commits read 333 documents / 1.6 MB; action commits read 205 documents / 1.26 MB.
@@ -104,16 +104,16 @@ These are single-run values in ms. 64 is the largest Run that can START; see "Ca
 
 ## Comparison
 
-| Threshold / measure | Previous (2026-09-25) | Now, 11 actors | Now, 64 actors | 100 actors |
-| --- | --- | --- | --- | --- |
-| Command p50 | 927 / 953 | 689 / 695 (−26%) | 936 | START fails |
-| Command p95 | 1,185 / 1,082 | 752 / 777 (−30 to −35%) | 1,029 | START fails |
-| Authoritative gameplay command p95 ≤ 1,000 ms | Missed | **Met** | **Missed** (by about 3%) | Not reachable |
-| Rule-bound host p95 < 250 ms | Missed (bundle alone 529–575) | **Missed**: Convex HTTP total p95 715–719; bundle query alone p50 about 260 | Missed | Not reachable |
-| Bundle query p50 | 448 / 463 | 260 / 263 (−43%) | 427 | |
-| Commit mutation p50 | 294 / 305 | 244–255 (−15%) | 305–324 | |
-| Worker/DO outside Convex p50 | 28 | 28 | 61 | |
-| `runs:create` at 100 actors | Fails (17.0 MB) | | | **Succeeds** (2.74 MB, 727 ms) |
+| Threshold / measure                           | Previous (2026-09-25)         | Now, 11 actors                                                              | Now, 64 actors           | 100 actors                     |
+| --------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------- | ------------------------ | ------------------------------ |
+| Command p50                                   | 927 / 953                     | 689 / 695 (−26%)                                                            | 936                      | START fails                    |
+| Command p95                                   | 1,185 / 1,082                 | 752 / 777 (−30 to −35%)                                                     | 1,029                    | START fails                    |
+| Authoritative gameplay command p95 ≤ 1,000 ms | Missed                        | **Met**                                                                     | **Missed** (by about 3%) | Not reachable                  |
+| Rule-bound host p95 < 250 ms                  | Missed (bundle alone 529–575) | **Missed**: Convex HTTP total p95 715–719; bundle query alone p50 about 260 | Missed                   | Not reachable                  |
+| Bundle query p50                              | 448 / 463                     | 260 / 263 (−43%)                                                            | 427                      |                                |
+| Commit mutation p50                           | 294 / 305                     | 244–255 (−15%)                                                              | 305–324                  |                                |
+| Worker/DO outside Convex p50                  | 28                            | 28                                                                          | 61                       |                                |
+| `runs:create` at 100 actors                   | Fails (17.0 MB)               |                                                                             |                          | **Succeeds** (2.74 MB, 727 ms) |
 
 ## Where the remaining time goes (typical, p50 of about 690 ms)
 

@@ -115,7 +115,7 @@ export function createSnapshotReaders(
     },
     readEquipmentParents: async (document) => {
       const ancestors = new Map<string, EquipmentAuthoredDto>([[document.id, document]])
-      for (let current = document; current.category === 'VARIANT'; ) {
+      for (let current = document; current.category === 'VARIANT';) {
         const parentId = current.parentEquipmentId
         if (ancestors.has(parentId)) throw new Error('Equipment variant cycle detected.')
         if (ancestors.size >= 500)

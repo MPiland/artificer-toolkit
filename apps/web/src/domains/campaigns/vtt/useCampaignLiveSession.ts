@@ -117,7 +117,10 @@ export function useCampaignLiveSession({
     let cachedToken: { expiresAtMs: number; value: string } | null = null
     const liveConnection = createLiveSessionConnection({
       getAccessToken: async () => {
-        if (cachedToken && cachedToken.expiresAtMs - Date.now() > LIVE_SESSION_REAUTHENTICATION_LEAD_MS) {
+        if (
+          cachedToken &&
+          cachedToken.expiresAtMs - Date.now() > LIVE_SESSION_REAUTHENTICATION_LEAD_MS
+        ) {
           return cachedToken.value
         }
         const result = await betterAuthClient.convex.token({ fetchOptions: { throw: false } })

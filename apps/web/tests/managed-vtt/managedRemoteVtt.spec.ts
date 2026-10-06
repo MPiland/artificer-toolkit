@@ -236,10 +236,17 @@ test('connects three users through the live room and recovers a reversible scene
 async function requestCampaignCleanup(signalPath: string): Promise<void> {
   await writeFile(`${signalPath}.requested`, '')
   await expect
-    .poll(() => readFile(`${signalPath}.done`).then(() => true, () => false), {
-      message: 'The driver did not finish deleting the fixture Campaign.',
-      timeout: cleanupHandshakeTimeoutMs
-    })
+    .poll(
+      () =>
+        readFile(`${signalPath}.done`).then(
+          () => true,
+          () => false
+        ),
+      {
+        message: 'The driver did not finish deleting the fixture Campaign.',
+        timeout: cleanupHandshakeTimeoutMs
+      }
+    )
     .toBe(true)
 }
 

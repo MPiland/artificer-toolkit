@@ -85,10 +85,7 @@ export const list = query({
       membership.role === 'OWNER'
         ? rows
         : rows.filter((q) =>
-            q.or(
-              q.eq(q.field('visibility'), 'SHARED'),
-              q.eq(q.field('authorUserId'), userId)
-            )
+            q.or(q.eq(q.field('visibility'), 'SHARED'), q.eq(q.field('authorUserId'), userId))
           )
     ).paginate({
       ...input.paginationOpts,

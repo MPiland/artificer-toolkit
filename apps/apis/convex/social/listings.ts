@@ -102,15 +102,19 @@ export const listOwned = query({
       })
     return socialListingPageSchema.parse({
       ...result,
-      page: (await Promise.all(
-        result.page.map(async (row) => {
-          const deletion = await ctx.db.query('campaignDeletionJobs')
-            .withIndex('by_campaignId', (q) => q.eq('campaignId', row.campaignId)).unique()
-          if (deletion) return null
-          const { listing, campaign } = await requireOwnedListing(ctx, row.id, actor.userId)
-          return presentListing(ctx, listing, campaign, actor.host, true)
-        })
-      )).filter((row) => row !== null)
+      page: (
+        await Promise.all(
+          result.page.map(async (row) => {
+            const deletion = await ctx.db
+              .query('campaignDeletionJobs')
+              .withIndex('by_campaignId', (q) => q.eq('campaignId', row.campaignId))
+              .unique()
+            if (deletion) return null
+            const { listing, campaign } = await requireOwnedListing(ctx, row.id, actor.userId)
+            return presentListing(ctx, listing, campaign, actor.host, true)
+          })
+        )
+      ).filter((row) => row !== null)
     })
   }
 })

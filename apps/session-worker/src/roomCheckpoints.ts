@@ -177,7 +177,7 @@ export class RoomCheckpoints {
         // normally publishes the whole unsaved journal at once and rows created and dropped within
         // it never reach Convex. The raw journal is read in bounded pages and streamed into one
         // fold, so the page size never cuts a checkpoint.
-        for (let limit = throughSequence; limit > base.sequence; ) {
+        for (let limit = throughSequence; limit > base.sequence;) {
           const { records, checksum } = this.#fold(base, limit)
           const recordsJson = canonicalizeJson(records)
           const bytes = new TextEncoder().encode(recordsJson).byteLength

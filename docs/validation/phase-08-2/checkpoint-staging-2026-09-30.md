@@ -22,17 +22,17 @@ runs matched source parity at 5,392 entries with no changed or added paths. Exac
 timestamps and full evidence are retained in ignored `local-validation/local-convex-proofs/` files
 linked below.
 
-| Check | Result | Retained evidence |
-| --- | --- | --- |
-| Build | 6 tasks passed | `local-validation/phase82-checkpoint-staging/build-v1.log` |
-| Typecheck | 14 tasks passed; Worker used dry-run only | `local-validation/phase82-checkpoint-staging/typecheck-v1.log` |
-| Transport tests, initial run | 2 fixture owner-UUID comparisons failed; corrected | `local-validation/phase82-checkpoint-staging/transport-tests-v1.log` |
-| Transport tests, corrected run | 33/33 across 5 files | `local-validation/phase82-checkpoint-staging/transport-tests-v2.log` |
-| API tests | 40/40 across 7 files | `local-validation/phase82-checkpoint-staging/api-tests-v1.log` |
-| Lint | Initial unused fixture metadata field fixed; rerun passed | `local-validation/phase82-checkpoint-staging/lint-v1.log`, `lint-v2.log` |
-| Convex codegen and focused local deployment | Pass | `local-validation/phase82-checkpoint-staging/codegen-v1.log`, `local-deploy-v1.log` |
-| Native staged upload proof | Pass; source parity matches | `local-validation/phase82-checkpoint-staging/native-proof-v1.log`; command, metadata, parity and summary under `local-validation/local-convex-proofs/phase82-checkpoint-staging-v1-20260930.*` |
-| Native inline retry proof | Pass; source parity matches | `local-validation/phase82-checkpoint-staging/inline-native-proof-v3.log`; command, metadata, parity and summary under `local-validation/local-convex-proofs/phase82-checkpoint-v3-20260930.*` |
+| Check                                       | Result                                                    | Retained evidence                                                                                                                                                                              |
+| ------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build                                       | 6 tasks passed                                            | `local-validation/phase82-checkpoint-staging/build-v1.log`                                                                                                                                     |
+| Typecheck                                   | 14 tasks passed; Worker used dry-run only                 | `local-validation/phase82-checkpoint-staging/typecheck-v1.log`                                                                                                                                 |
+| Transport tests, initial run                | 2 fixture owner-UUID comparisons failed; corrected        | `local-validation/phase82-checkpoint-staging/transport-tests-v1.log`                                                                                                                           |
+| Transport tests, corrected run              | 33/33 across 5 files                                      | `local-validation/phase82-checkpoint-staging/transport-tests-v2.log`                                                                                                                           |
+| API tests                                   | 40/40 across 7 files                                      | `local-validation/phase82-checkpoint-staging/api-tests-v1.log`                                                                                                                                 |
+| Lint                                        | Initial unused fixture metadata field fixed; rerun passed | `local-validation/phase82-checkpoint-staging/lint-v1.log`, `lint-v2.log`                                                                                                                       |
+| Convex codegen and focused local deployment | Pass                                                      | `local-validation/phase82-checkpoint-staging/codegen-v1.log`, `local-deploy-v1.log`                                                                                                            |
+| Native staged upload proof                  | Pass; source parity matches                               | `local-validation/phase82-checkpoint-staging/native-proof-v1.log`; command, metadata, parity and summary under `local-validation/local-convex-proofs/phase82-checkpoint-staging-v1-20260930.*` |
+| Native inline retry proof                   | Pass; source parity matches                               | `local-validation/phase82-checkpoint-staging/inline-native-proof-v3.log`; command, metadata, parity and summary under `local-validation/local-convex-proofs/phase82-checkpoint-v3-20260930.*`  |
 
 `native-stats-v1.json` records one successful staged commit at 217.15 ms total / 175.88 ms user,
 reading 3,287,046 bytes across 41 documents and writing 1,208,071 bytes across 81 documents. Its

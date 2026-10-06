@@ -30,7 +30,7 @@ export async function readScopeObjects(t: Pick<Test, 'query'>, ref: ContentSnaps
   for (const kind of contentSnapshotKindSchema.options) {
     const sources: ContentSnapshotListSource[] = []
     let cursor: string | null = null
-    for (let isDone = false; !isDone; ) {
+    for (let isDone = false; !isDone;) {
       const page: { sources: string[]; continueCursor: string; isDone: boolean } = await t.query(
         internal.contentSnapshots.heads.readScopeKind,
         { ...ref, kind, paginationOpts: { numItems: 100, cursor } }

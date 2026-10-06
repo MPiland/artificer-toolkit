@@ -1,6 +1,7 @@
 ---
-description: "Add an AI agent / RAG backend (@convex-dev/agent) to the Convex app."
+description: 'Add an AI agent / RAG backend (@convex-dev/agent) to the Convex app.'
 ---
+
 <!-- GENERATED from convex-agents content/capabilities/agent.json — do not edit by hand. -->
 
 # Add an AI agent / RAG backend

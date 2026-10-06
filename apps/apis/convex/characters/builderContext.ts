@@ -93,9 +93,7 @@ export async function loadCharacterBuilderContext(
       readClasses: async () =>
         (
           await Promise.all(
-            (
-              await readRoots('CLASS')
-            ).map(async (root) =>
+            (await readRoots('CLASS')).map(async (root) =>
               context.publications.has(root.id)
                 ? context.publications.get(root.id)
                 : await readCharacterPublication(

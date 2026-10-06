@@ -58,11 +58,11 @@ export async function readNativeLiveMovementInputs(input: {
       read = captures
         .encounterRules(liveSessionEncounterRulesInputSchema.parse({ ...scope, request }))
         .then((response) => {
-        if (response.kind !== request.kind) throw new Error('Movement capture kind mismatch.')
-        revisions = mergeNativeRulesRevisions(revisions, response.revisions)
-        dependencies.push({ request })
-        return response
-      })
+          if (response.kind !== request.kind) throw new Error('Movement capture kind mismatch.')
+          revisions = mergeNativeRulesRevisions(revisions, response.revisions)
+          dependencies.push({ request })
+          return response
+        })
       reads.set(key, read)
     }
     return read

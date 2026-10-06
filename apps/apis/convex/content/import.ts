@@ -583,7 +583,10 @@ export const readSubjects = internalQuery({
           parsed.subjectKind === 'CREATURE' ||
           parsed.subjectKind === 'VEHICLE'
         )
-          exact(await readAuthoredVersionCompilation(ctx, version), compilePublicationDocument(parsed))
+          exact(
+            await readAuthoredVersionCompilation(ctx, version),
+            compilePublicationDocument(parsed)
+          )
         if (parsed.subjectKind === 'CLASS') {
           exact(
             root.parentClassId,

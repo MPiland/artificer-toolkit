@@ -10,7 +10,7 @@ These products are references for capability research, not visual authorities or
 
 ### Alkemion Studio
 
-*Checked 2026-09-27 via [alkemion.com](https://alkemion.com/), [alkemion.com/faq](https://alkemion.com/faq), and the [Kickstarter page](https://www.kickstarter.com/projects/alkemion/alkemion-studio).*
+_Checked 2026-09-27 via [alkemion.com](https://alkemion.com/), [alkemion.com/faq](https://alkemion.com/faq), and the [Kickstarter page](https://www.kickstarter.com/projects/alkemion/alkemion-studio)._
 
 - Primary research area: Campaign preparation.
 - Review its visual planning board and the way places, NPCs, clues, scenes, and notes connect.
@@ -39,7 +39,7 @@ These products are references for capability research, not visual authorities or
 
 ### Myth Meister
 
-*Checked 2026-09-27 via [mythmeister.com](https://www.mythmeister.com/) and its feature/pricing pages ([campaign manager](https://www.mythmeister.com/dnd-campaign-manager), [homebrew manager](https://www.mythmeister.com/dnd-homebrew-manager)).*
+_Checked 2026-09-27 via [mythmeister.com](https://www.mythmeister.com/) and its feature/pricing pages ([campaign manager](https://www.mythmeister.com/dnd-campaign-manager), [homebrew manager](https://www.mythmeister.com/dnd-homebrew-manager))._
 
 - Primary research area: Campaign management.
 - Review its structured management of NPCs, cities and other locations, factions, relationships, and notes.
@@ -60,7 +60,7 @@ These products are references for capability research, not visual authorities or
 
 ## Implications for the Campaign node map
 
-*Research notes for the Q18-adjacent design work referenced in [future-enhancements.md](roadmap/future-enhancements.md#node-based-campaign-management-and-authoring-user-requested-2026-09-27); nothing here is a commitment.*
+_Research notes for the Q18-adjacent design work referenced in [future-enhancements.md](roadmap/future-enhancements.md#node-based-campaign-management-and-authoring-user-requested-2026-09-27); nothing here is a commitment._
 
 **Minimum entry kinds and relationship model to design before launch:**
 

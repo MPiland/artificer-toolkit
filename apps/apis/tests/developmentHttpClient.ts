@@ -811,10 +811,9 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     return this.#executeEncounterCommand(args[0]) as Promise<FunctionReturnType<Mutation>>
   }
 
-  override async query<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
-    query: Query,
-    ...args: OptionalRestArgs<Query>
-  ): Promise<FunctionReturnType<Query>> {
+  override async query<
+    Query extends FunctionReference<'query'> | FunctionReference_future<'query'>
+  >(query: Query, ...args: OptionalRestArgs<Query>): Promise<FunctionReturnType<Query>> {
     const held = await this.#readHeldRun(getFunctionName(query), args[0])
     return held === undefined ? super.query(query, ...args) : (held as FunctionReturnType<Query>)
   }

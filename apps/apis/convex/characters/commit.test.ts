@@ -96,12 +96,14 @@ describe('native Character commit', () => {
     if (!inventory || !currency) throw new Error('Missing materialized starting state')
     inventory.quantity = 9
     currency.amount = 7
-    await t.run((ctx) => writeCharacterRecord(ctx, active, {
-      document: authoritative,
-      portraitAssetId: 'f79f6425-a523-4e9e-8603-a3db03c176f1',
-      portraitRevision: 4,
-      updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
-    }))
+    await t.run((ctx) =>
+      writeCharacterRecord(ctx, active, {
+        document: authoritative,
+        portraitAssetId: 'f79f6425-a523-4e9e-8603-a3db03c176f1',
+        portraitRevision: 4,
+        updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+      })
+    )
     await t.run((ctx) => ctx.db.patch(active.play._id, { updatedAt: active.play.updatedAt }))
     const advanced = await t.run((ctx) => readCharacterRow(ctx, first.character.id))
     if (!advanced) throw new Error('Missing advanced active row')

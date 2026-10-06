@@ -14,7 +14,12 @@ import {
   planEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput
 } from '../encounterMechanicsBatchPlan.js'
-import { characterActor, creatureActor, ENCOUNTER_ID, TIMESTAMP } from '../testing/dnd5eSrdEncounter.js'
+import {
+  characterActor,
+  creatureActor,
+  ENCOUNTER_ID,
+  TIMESTAMP
+} from '../testing/dnd5eSrdEncounter.js'
 
 const ACTOR_ID = '00000000-0000-4000-8000-00000000e101'
 const CHARACTER_ID = '00000000-0000-4000-8000-00000000e102'

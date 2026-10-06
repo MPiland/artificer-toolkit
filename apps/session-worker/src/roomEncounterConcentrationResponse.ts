@@ -30,30 +30,26 @@ export async function executeRoomEncounterConcentrationResponse(input: {
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
-  const plan = await planNativeLiveConcentrationResponse(
-    scope,
-    input.command,
-    {
-      runtime: input.runtime,
-      random: input.random,
-      captures: {
-        encounterRules: (request) =>
-          readRoomEncounterTurnCapture(
-            ctx,
-            inputs,
-            transaction,
-            request,
-            observed.filter((revision) => revision.scope !== 'CHARACTER'),
-            {
-              readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
-              readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
-            }
-          ),
-        prepareCharacter: (characterScope) =>
-          prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
-      }
+  const plan = await planNativeLiveConcentrationResponse(scope, input.command, {
+    runtime: input.runtime,
+    random: input.random,
+    captures: {
+      encounterRules: (request) =>
+        readRoomEncounterTurnCapture(
+          ctx,
+          inputs,
+          transaction,
+          request,
+          observed.filter((revision) => revision.scope !== 'CHARACTER'),
+          {
+            readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
+            readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
+          }
+        ),
+      prepareCharacter: (characterScope) =>
+        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction)
     }
-  )
+  })
   if (plan.kind === 'REPLAY') return plan.result
   const run = await ctx.db
     .query('encounterRuns')

@@ -37,7 +37,8 @@ export function CampaignSessionNotes({
           Session notes
         </Title>
         <Text c='dimmed' size='sm'>
-          Notes start private. Share one to put it in front of the whole party. Notes autosave after about one second.
+          Notes start private. Share one to put it in front of the whole party. Notes autosave after
+          about one second.
         </Text>
       </div>
       <Select
@@ -99,7 +100,8 @@ export function CampaignSharedSessionNotes({
   )
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [visibility, setVisibility] = useState<CampaignSessionNoteSectionDto['visibility']>('PRIVATE')
+  const [visibility, setVisibility] =
+    useState<CampaignSessionNoteSectionDto['visibility']>('PRIVATE')
   const create = useMutation({
     mutationFn: () =>
       convex.mutation(convexApi.campaigns.sessionNotes.create, {

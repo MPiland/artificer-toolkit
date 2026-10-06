@@ -672,7 +672,11 @@ function StoryConvexFixture({
   client: ConvexReactClient
 }) {
   mocked(useConvex).mockReturnValue(client)
-  mocked(useAction).mockImplementation((reference) => (...args) => client.action(reference, ...args))
+  mocked(useAction).mockImplementation(
+    (reference) =>
+      (...args) =>
+        client.action(reference, ...args)
+  )
   useEffect(() => () => void client.close(), [client])
   return children
 }

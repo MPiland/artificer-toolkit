@@ -25,20 +25,16 @@ export function createEncounterMovementRuleTimeline(input: {
   passageCandidate?: EncounterMovementPassageContact | null
 }): readonly EncounterMovementRuleTimelineEntry[] {
   return [
-    ...input.spatialCandidates.map(
-      (candidate): EncounterMovementRuleTimelineEntry => ({
-        kind: 'SPATIAL',
-        pathDistance: candidate.pathDistance,
-        candidate
-      })
-    ),
-    ...input.reactionCandidates.map(
-      (candidate): EncounterMovementRuleTimelineEntry => ({
-        kind: 'REACTION',
-        pathDistance: candidate.pathDistance,
-        candidate
-      })
-    ),
+    ...input.spatialCandidates.map((candidate): EncounterMovementRuleTimelineEntry => ({
+      kind: 'SPATIAL',
+      pathDistance: candidate.pathDistance,
+      candidate
+    })),
+    ...input.reactionCandidates.map((candidate): EncounterMovementRuleTimelineEntry => ({
+      kind: 'REACTION',
+      pathDistance: candidate.pathDistance,
+      candidate
+    })),
     ...(input.passageCandidate
       ? [
           {

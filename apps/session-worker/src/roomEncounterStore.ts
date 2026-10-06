@@ -1044,7 +1044,7 @@ export class RoomEncounterStore {
     const records = new Map<string, RoomRecord>()
     const pageOf = new Map<string, number>()
     const pages = new Map<number, SnapshotPage>()
-    for (let index = 0; index < pageRows.length; ) {
+    for (let index = 0; index < pageRows.length;) {
       const first = pageRows[index]!
       const page = integer(first, 'page')
       const parts = integer(first, 'part_count')

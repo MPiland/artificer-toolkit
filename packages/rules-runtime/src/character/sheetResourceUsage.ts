@@ -76,7 +76,8 @@ export function pruneSheetResourceUsage(params: {
   return params.resourceUsage.filter(
     (usage) =>
       !recoveredOwnerKeys.has(createCharacterResourceOwnerKey(usage.owner)) &&
-      (usage.owner.kind !== 'ITEM_INSTANCE' || usage.owner.itemInstanceId !== params.removedItemId) &&
+      (usage.owner.kind !== 'ITEM_INSTANCE' ||
+        usage.owner.itemInstanceId !== params.removedItemId) &&
       (usage.owner.kind !== 'COMPANION_FEATURE' ||
         usage.owner.companionInstanceId !== params.removedCompanionId)
   )

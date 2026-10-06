@@ -176,14 +176,14 @@ Implemented locally (2026-09-29). Contract and behavior are in [persistence.md](
 
 ## Budgets (estimates to verify in the slices)
 
-| Action                                        | Convex I/O                                                           | Network                                                         |
-| --------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Edit                                          | 0                                                                    | 0 when cached                                                   |
-| Picker open                                   | 0                                                                    | Cache miss: one Worker request, 5–300 KB gzipped, once per hash |
-| Builder open                                  | Manifest ~10 KB, token ~5 KB, draft ~15 KB                           | Cold start about 1 MB gzipped (SRD), once                       |
-| Autosave (after 2 s idle, at most every 10 s) | Measured (S8): 7.8 KB create, 14.4 KB edit (level-5 Wizard draft)    | —                                                               |
-| Commit                                        | Measured (D84): Fighter 5 328 KB, Wizard 5 376 KB of reads          | —                                                               |
-| Whole build                                   | About 1.2–1.5 MB. 50 builds a month ≈ 75 MB                          | —                                                               |
+| Action                                        | Convex I/O                                                        | Network                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- |
+| Edit                                          | 0                                                                 | 0 when cached                                                   |
+| Picker open                                   | 0                                                                 | Cache miss: one Worker request, 5–300 KB gzipped, once per hash |
+| Builder open                                  | Manifest ~10 KB, token ~5 KB, draft ~15 KB                        | Cold start about 1 MB gzipped (SRD), once                       |
+| Autosave (after 2 s idle, at most every 10 s) | Measured (S8): 7.8 KB create, 14.4 KB edit (level-5 Wizard draft) | —                                                               |
+| Commit                                        | Measured (D84): Fighter 5 328 KB, Wizard 5 376 KB of reads        | —                                                               |
+| Whole build                                   | About 1.2–1.5 MB. 50 builds a month ≈ 75 MB                       | —                                                               |
 
 ### Local Builder budget proof (VS-6)
 

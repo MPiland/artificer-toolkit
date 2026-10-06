@@ -27,18 +27,16 @@ function useMobileViewport() {
   })
   vi.stubGlobal(
     'matchMedia',
-    vi.fn(
-      (query: string): MediaQueryList => ({
-        matches: query === '(max-width: 760px)' || query === '(max-width: 1120px)',
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(() => false)
-      })
-    )
+    vi.fn((query: string): MediaQueryList => ({
+      matches: query === '(max-width: 760px)' || query === '(max-width: 1120px)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => false)
+    }))
   )
 }
 

@@ -202,18 +202,29 @@ describe('native Campaign GM state reads', () => {
       if (!current) throw new Error('Missing Character fixture.')
       const id = crypto.randomUUID()
       const userId = crypto.randomUUID()
-      await insertActiveCharacterRecord(ctx, {
-        ...readCharacterRecord(current), status: current.status, id, userId: userId
-      }, {
-        createdAt: current.createdAt, updatedAt: current.updatedAt,
-        streamVersion: current.play.streamVersion,
-        maximumHitPoints: current.play.maximumHitPoints, walkingSpeed: current.play.walkingSpeed
-      })
+      await insertActiveCharacterRecord(
+        ctx,
+        {
+          ...readCharacterRecord(current),
+          status: current.status,
+          id,
+          userId: userId
+        },
+        {
+          createdAt: current.createdAt,
+          updatedAt: current.updatedAt,
+          streamVersion: current.play.streamVersion,
+          maximumHitPoints: current.play.maximumHitPoints,
+          walkingSpeed: current.play.walkingSpeed
+        }
+      )
       const clone = await readCharacterRow(ctx, id)
       if (!clone) throw new Error('Missing cloned Character fixture.')
       await writeCharacterRecord(ctx, clone, {
-        document: readCharacterRecord(clone), sheetState: readCharacterSheetState(current),
-        portraitAssetId: current.portraitAssetId, portraitRevision: current.portraitRevision
+        document: readCharacterRecord(clone),
+        sheetState: readCharacterSheetState(current),
+        portraitAssetId: current.portraitAssetId,
+        portraitRevision: current.portraitRevision
       })
       await ctx.db.patch(clone.play._id, { updatedAt: current.play.updatedAt })
       await ctx.db.insert('authoredRouteIds', {
