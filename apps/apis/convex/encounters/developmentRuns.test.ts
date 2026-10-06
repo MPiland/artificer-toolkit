@@ -3,10 +3,7 @@ import { writeReceiptRecord, readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference, type FunctionArgs } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { CreateEncounterInputDto } from '@artificer-toolkit/schema/api/encounters'
-import type {
-  BindEncounterToPresentedSceneInputDto,
-  EncounterActorTokenBindingCommandInputDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 import { campaignStoredEventSchema } from '@artificer-toolkit/schema/projections/campaignEventPersistence'
 import {
@@ -23,7 +20,11 @@ import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/p
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api, components } from '../_generated/api'
-import { createEncounterSceneFixture, createRun } from '../../tests/fixtures/encounterScene'
+import {
+  bindPresentedScene,
+  createEncounterSceneFixture,
+  createRun
+} from '../../tests/fixtures/encounterScene'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
 
@@ -56,9 +57,6 @@ const removeFixtureScenes = makeFunctionReference<
   { ownerUserId: string; campaignId: string },
   null
 >('scenes/developmentScene:removeFixtureState')
-const bindScene = makeFunctionReference<'mutation', BindEncounterToPresentedSceneInputDto, unknown>(
-  'encounters/sceneBindings:bind'
-)
 const bindToken = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },
@@ -199,11 +197,13 @@ async function bindRuns(
   runs: Awaited<ReturnType<typeof createRuns>>
 ) {
   for (const run of runs) {
-    await base.other.caller.mutation(bindScene, {
-      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-      commandId: crypto.randomUUID(),
-      encounterId: run.id
-    })
+    await base.other.caller.run((ctx) =>
+      bindPresentedScene(ctx, {
+        type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+        commandId: crypto.randomUUID(),
+        encounterId: run.id
+      })
+    )
     const actor = run.actors[0]
     const token = base.tokens[0]
     if (!actor || !token) throw new Error('Missing fixture actor or token.')

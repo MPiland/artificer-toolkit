@@ -45,14 +45,13 @@ export async function verifyEncounterTransactions({
   campaignId: string
   fixture: Awaited<ReturnType<typeof verifyEncounterLifecycle>>
   /**
-   * Forces Convex's own binding mutations to roll back. Absent when a live room holds the Run: its
-   * bindings are room commands and Convex fences its own path (D47), so the in-process run covers it.
+   * Forces Convex's own token-binding mutation to roll back. Absent when a live room holds the Run:
+   * its bindings are room commands and Convex fences its own path (D47), so the in-process run
+   * covers it.
    */
   rollback?: (input: {
     encounterId: string
-    operation:
-      | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
-      | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
+    operation: { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
   }) => Promise<unknown>
   concurrent: (
     actor: 'OWNER' | 'PLAYER',
@@ -108,14 +107,6 @@ export async function verifyEncounterTransactions({
     encounterId: prepared.id,
     commandId: crypto.randomUUID()
   }
-  if (rollback)
-    assert.deepEqual(
-      await rollback({
-        encounterId: prepared.id,
-        operation: { kind: 'SCENE_BINDING', input: bindingInput }
-      }),
-      { rolledBack: true }
-    )
   const previousPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
   assert.ok(previousPresentation)
   const competingBinding = { ...bindingInput, commandId: crypto.randomUUID() }

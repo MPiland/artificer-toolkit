@@ -4,7 +4,10 @@ import type {
   CampaignDetailDto,
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
-import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  BindEncounterToPresentedSceneInputDto,
+  SceneDefinitionDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import type {
   CreateEncounterInputDto,
   EncounterGmProjectionDto
@@ -19,6 +22,11 @@ import {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { bindEncounterToPresentedScene } from '@artificer-toolkit/encounter-persistence/sceneBindingPersistence'
+import type { MutationCtx } from '../../convex/_generated/server'
+import { requireCampaignAuthority } from '../../convex/campaigns/authority'
+import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
+import { requireIdentity } from '../../convex/lib/identity'
 import { readyCharacterFixture } from './readyCharacter'
 
 export const createCampaign = makeFunctionReference<
@@ -145,6 +153,49 @@ export async function createEncounterSceneFixture(
     )
   })
   return { ...base, campaign, blueprint, run, sceneId, saveId, tokens }
+}
+
+/**
+ * Runs the room's binding logic against Convex storage as the calling identity, fenced to the
+ * Campaign's current presentation, so a test can start from a bound Run. Product binding is
+ * room-only (D47).
+ */
+export async function bindPresentedScene(
+  ctx: MutationCtx,
+  input: BindEncounterToPresentedSceneInputDto
+) {
+  const readPresentation = (campaignId: string) =>
+    ctx.db
+      .query('campaignScenePresentations')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
+      .unique()
+  const encounter = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId.toLowerCase()))
+    .unique()
+  const presentation = encounter ? await readPresentation(encounter.campaignId) : null
+  return bindEncounterToPresentedScene(
+    {
+      db: createConvexEncounterStore(ctx),
+      ports: {
+        requireIdentity: () => requireIdentity(ctx),
+        requireCampaignAuthority: (id, userId) => requireCampaignAuthority(ctx, id, userId)
+      }
+    },
+    input,
+    {
+      sceneId: presentation?.sceneId ?? '',
+      expectedPresentationVersion: presentation?.version ?? 0
+    },
+    {
+      readPresentation,
+      readScene: (sceneId) =>
+        ctx.db
+          .query('campaignScenes')
+          .withIndex('by_publicId', (q) => q.eq('id', sceneId))
+          .unique()
+    }
+  )
 }
 
 /** Publishes the fixture Scene's source save, which a room needs to read the presented Scene. */

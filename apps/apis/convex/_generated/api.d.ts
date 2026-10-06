@@ -38736,36 +38736,27 @@ export declare const api: {
         {
           campaignId: string;
           encounterId: string;
-          operation:
-            | {
-                input: {
+          operation: {
+            input:
+              | {
+                  actorId: string;
                   commandId: string;
                   encounterId: string;
-                  type: "BIND_ENCOUNTER_TO_PRESENTED_SCENE";
+                  expectedEncounterVersion: number;
+                  sceneId: string;
+                  tokenId: string;
+                  type: "SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
+                }
+              | {
+                  actorId: string;
+                  commandId: string;
+                  encounterId: string;
+                  expectedEncounterVersion: number;
+                  sceneId: string;
+                  type: "REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
                 };
-                kind: "SCENE_BINDING";
-              }
-            | {
-                input:
-                  | {
-                      actorId: string;
-                      commandId: string;
-                      encounterId: string;
-                      expectedEncounterVersion: number;
-                      sceneId: string;
-                      tokenId: string;
-                      type: "SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
-                    }
-                  | {
-                      actorId: string;
-                      commandId: string;
-                      encounterId: string;
-                      expectedEncounterVersion: number;
-                      sceneId: string;
-                      type: "REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
-                    };
-                kind: "TOKEN_BINDING";
-              };
+            kind: "TOKEN_BINDING";
+          };
           ownerUserId: string;
         },
         { rolledBack: true }
@@ -39893,21 +39884,6 @@ export declare const api: {
       >;
     };
     sceneBindings: {
-      bind: FunctionReference<
-        "mutation",
-        "public",
-        {
-          commandId: string;
-          encounterId: string;
-          type: "BIND_ENCOUNTER_TO_PRESENTED_SCENE";
-        },
-        {
-          commandId: string;
-          encounterId: string;
-          replayed: boolean;
-          sceneId: string;
-        }
-      >;
       get: FunctionReference<
         "query",
         "public",
@@ -51554,36 +51530,27 @@ export declare const internal: {
         {
           campaignId: string;
           encounterId: string;
-          operation:
-            | {
-                input: {
+          operation: {
+            input:
+              | {
+                  actorId: string;
                   commandId: string;
                   encounterId: string;
-                  type: "BIND_ENCOUNTER_TO_PRESENTED_SCENE";
+                  expectedEncounterVersion: number;
+                  sceneId: string;
+                  tokenId: string;
+                  type: "SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
+                }
+              | {
+                  actorId: string;
+                  commandId: string;
+                  encounterId: string;
+                  expectedEncounterVersion: number;
+                  sceneId: string;
+                  type: "REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
                 };
-                kind: "SCENE_BINDING";
-              }
-            | {
-                input:
-                  | {
-                      actorId: string;
-                      commandId: string;
-                      encounterId: string;
-                      expectedEncounterVersion: number;
-                      sceneId: string;
-                      tokenId: string;
-                      type: "SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
-                    }
-                  | {
-                      actorId: string;
-                      commandId: string;
-                      encounterId: string;
-                      expectedEncounterVersion: number;
-                      sceneId: string;
-                      type: "REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING";
-                    };
-                kind: "TOKEN_BINDING";
-              };
+            kind: "TOKEN_BINDING";
+          };
           ownerUserId: string;
         },
         null

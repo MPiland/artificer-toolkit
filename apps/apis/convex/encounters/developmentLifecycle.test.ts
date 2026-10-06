@@ -1,19 +1,18 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type {
-  BindEncounterToPresentedSceneInputDto,
-  EncounterActorTokenBindingCommandInputDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { components } from '../_generated/api'
 import {
+  bindPresentedScene,
   createEncounterSceneFixture,
   publishSceneSource
 } from '../../tests/fixtures/encounterScene'
 
 type RollbackTarget = { ownerUserId: string; campaignId: string; encounterId: string }
-type RollbackOperation =
-  | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
-  | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
+type RollbackOperation = {
+  kind: 'TOKEN_BINDING'
+  input: EncounterActorTokenBindingCommandInputDto
+}
 type RollbackInput = RollbackTarget & { operation: RollbackOperation }
 
 const inspect = makeFunctionReference<'query', RollbackTarget, string>(
@@ -22,9 +21,11 @@ const inspect = makeFunctionReference<'query', RollbackTarget, string>(
 const verifyRollback = makeFunctionReference<'action', RollbackInput, { rolledBack: true }>(
   'encounters/developmentLifecycle:verifyRollback'
 )
-const bindScene = makeFunctionReference<'mutation', BindEncounterToPresentedSceneInputDto, unknown>(
-  'encounters/sceneBindings:bind'
-)
+const bindToken = makeFunctionReference<
+  'mutation',
+  { input: EncounterActorTokenBindingCommandInputDto },
+  unknown
+>('encounters/actorTokenBindings:execute')
 
 async function setup() {
   const base = await createEncounterSceneFixture()
@@ -69,65 +70,46 @@ async function verify(base: Awaited<ReturnType<typeof setup>>, operation: Rollba
   return base.other.caller.action(verifyRollback, { ...base.target, operation })
 }
 
-function sceneBindingOperation(base: Awaited<ReturnType<typeof setup>>) {
-  return {
-    kind: 'SCENE_BINDING',
-    input: {
-      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-      commandId: crypto.randomUUID(),
-      encounterId: base.run.id
-    }
-  } satisfies RollbackOperation
-}
-
-describe('development lifecycle rollback proof', () => {
-  it('rolls back a real Scene binding and preserves every inspected row', async () => {
-    const base = await setup()
-    const before = await read(base)
-    await expect(
-      verify(base, {
-        kind: 'SCENE_BINDING',
-        input: {
-          type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-          commandId: crypto.randomUUID(),
-          encounterId: base.run.id
-        }
-      })
-    ).resolves.toEqual({ rolledBack: true })
-    expect(await read(base)).toBe(before)
-  }, 30_000)
-
-  it('rolls back a real actor-token binding and preserves every inspected row', async () => {
-    const base = await setup()
-    await base.other.caller.mutation(bindScene, {
+function bindScene(base: Awaited<ReturnType<typeof setup>>) {
+  return base.other.caller.run((ctx) =>
+    bindPresentedScene(ctx, {
       type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
       commandId: crypto.randomUUID(),
       encounterId: base.run.id
     })
-    const actor = base.run.actors[0]
-    const token = base.tokens[0]
-    if (!actor || !token) throw new Error('Missing fixture actor or token.')
+  )
+}
+
+function tokenBindingOperation(base: Awaited<ReturnType<typeof setup>>): RollbackOperation {
+  const actor = base.run.actors[0]
+  const token = base.tokens[0]
+  if (!actor || !token) throw new Error('Missing fixture actor or token.')
+  return {
+    kind: 'TOKEN_BINDING',
+    input: {
+      type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
+      commandId: crypto.randomUUID(),
+      encounterId: base.run.id,
+      actorId: actor.id,
+      sceneId: base.sceneId,
+      tokenId: token.id,
+      expectedEncounterVersion: base.run.version
+    }
+  }
+}
+
+describe('development lifecycle rollback proof', () => {
+  it('rolls back a real actor-token binding and preserves every inspected row', async () => {
+    const base = await setup()
+    await bindScene(base)
     const before = await read(base)
-    await expect(
-      verify(base, {
-        kind: 'TOKEN_BINDING',
-        input: {
-          type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
-          commandId: crypto.randomUUID(),
-          encounterId: base.run.id,
-          actorId: actor.id,
-          sceneId: base.sceneId,
-          tokenId: token.id,
-          expectedEncounterVersion: base.run.version
-        }
-      })
-    ).resolves.toEqual({ rolledBack: true })
+    await expect(verify(base, tokenBindingOperation(base))).resolves.toEqual({ rolledBack: true })
     expect(await read(base)).toBe(before)
   }, 30_000)
 
   it('rejects anonymous, player, and nonfixture callers', async () => {
     const base = await setup()
-    const input: RollbackInput = { ...base.target, operation: sceneBindingOperation(base) }
+    const input: RollbackInput = { ...base.target, operation: tokenBindingOperation(base) }
     await expect(base.t.action(verifyRollback, input)).rejects.toThrow('Unauthenticated')
     await expect(base.owner.caller.action(verifyRollback, input)).rejects.toThrow(
       'Fixture owner does not match the caller.'
@@ -146,7 +128,7 @@ describe('development lifecycle rollback proof', () => {
         }
       })
     })
-    await expect(verify(base, sceneBindingOperation(base))).rejects.toThrow(
+    await expect(verify(base, tokenBindingOperation(base))).rejects.toThrow(
       'Fixture account is required.'
     )
   }, 30_000)
@@ -157,7 +139,7 @@ describe('development lifecycle rollback proof', () => {
     const originalOrigin = process.env.SITE_URL
     try {
       process.env.SITE_URL = 'https://example.com'
-      await expect(verify(base, sceneBindingOperation(base))).rejects.toThrow(
+      await expect(verify(base, tokenBindingOperation(base))).rejects.toThrow(
         'Fixture cleanup requires the development application origin.'
       )
     } finally {
@@ -169,8 +151,9 @@ describe('development lifecycle rollback proof', () => {
 
   it('refuses a replay no-op and an operation targeting another Run without writes', async () => {
     const base = await setup()
-    const operation = sceneBindingOperation(base)
-    await base.other.caller.mutation(bindScene, operation.input)
+    await bindScene(base)
+    const operation = tokenBindingOperation(base)
+    await base.other.caller.mutation(bindToken, { input: operation.input })
     const replayBefore = await read(base)
     await expect(verify(base, operation)).rejects.toThrow(
       'Fixture lifecycle operation did not change persisted state.'
@@ -178,12 +161,8 @@ describe('development lifecycle rollback proof', () => {
     expect(await read(base)).toBe(replayBefore)
 
     const mismatched: RollbackOperation = {
-      kind: 'SCENE_BINDING',
-      input: {
-        type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-        commandId: crypto.randomUUID(),
-        encounterId: crypto.randomUUID()
-      }
+      kind: 'TOKEN_BINDING',
+      input: { ...operation.input, encounterId: crypto.randomUUID() }
     }
     const mismatchBefore = await read(base)
     await expect(verify(base, mismatched)).rejects.toThrow(

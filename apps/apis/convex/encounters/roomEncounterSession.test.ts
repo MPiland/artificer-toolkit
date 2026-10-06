@@ -7,6 +7,7 @@ import {
   setActorControllers
 } from '../../tests/fixtures/playerControl'
 import {
+  bindPresentedScene,
   createEncounterSceneFixture,
   publishSceneSource
 } from '../../tests/fixtures/encounterScene'
@@ -194,11 +195,13 @@ describe('Room-pushed Encounter session', () => {
   it('answers the Scene binding like the Convex query, from the room Scene', async () => {
     const base = await createEncounterSceneFixture()
     await publishSceneSource(base)
-    await base.other.caller.mutation(api.encounters.sceneBindings.bind, {
-      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-      commandId: crypto.randomUUID(),
-      encounterId: base.run.id
-    })
+    await base.other.caller.run((ctx) =>
+      bindPresentedScene(ctx, {
+        type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+        commandId: crypto.randomUUID(),
+        encounterId: base.run.id
+      })
+    )
     // D87: a player reads only the ACTIVE Encounter.
     await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
     const input = { encounterId: base.run.id, sceneId: base.sceneId }

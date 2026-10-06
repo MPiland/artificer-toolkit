@@ -7,22 +7,16 @@ import type {
   SceneRecipientEncounterBindingsPage,
   SceneRecipientHeader
 } from '@artificer-toolkit/schema/api/sceneRecipient'
-import type {
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { sceneStoredDefinitionSaveSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
-import { createEncounterSceneFixture as setup } from '../../tests/fixtures/encounterScene'
+import {
+  bindPresentedScene,
+  createEncounterSceneFixture as setup
+} from '../../tests/fixtures/encounterScene'
 import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 
-const bindScene = makeFunctionReference<
-  'mutation',
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
 const getBinding = makeFunctionReference<
   'query',
   SceneEncounterBindingInput,
@@ -115,11 +109,13 @@ async function prepare(hiddenTokenIndex: number | null = null) {
   const base = await setup()
   await publishFixtureSceneSource(base)
   const tokenIds = await setTokens(base, hiddenTokenIndex)
-  await base.other.caller.mutation(bindScene, {
-    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-    commandId: crypto.randomUUID(),
-    encounterId: base.run.id
-  })
+  await base.other.caller.run((ctx) =>
+    bindPresentedScene(ctx, {
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+      commandId: crypto.randomUUID(),
+      encounterId: base.run.id
+    })
+  )
   // D87: a player reads only the ACTIVE Encounter.
   await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
   return { ...base, tokenIds }

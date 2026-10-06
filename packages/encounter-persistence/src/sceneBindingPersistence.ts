@@ -11,19 +11,18 @@ import { rejectDomain } from './domainRejections.js'
 import type { EncounterReadPorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
-/** Binds to the checked presentation; a room fence replaces the host's outside-room guard. */
+/** Binds to the presentation the room fence names; a moved presentation is stale (D47). */
 export async function bindEncounterToPresentedScene(
   ctx: EncounterWriteContext & {
     ports: Pick<EncounterReadPorts, 'requireIdentity' | 'requireCampaignAuthority'>
   },
   args: BindEncounterToPresentedSceneInputDto,
-  room: { sceneId: string; expectedPresentationVersion: number } | null,
+  room: { sceneId: string; expectedPresentationVersion: number },
   callbacks: {
     readPresentation(
       campaignId: string
     ): Promise<{ sceneId: string | null; version: number } | null>
     readScene(sceneId: string): Promise<Pick<SceneLiveStateHeader, 'id' | 'campaignId'> | null>
-    assertOutsideRoom?(campaignId: string, sceneId: string): Promise<void>
   }
 ): Promise<BindEncounterToPresentedSceneResultDto> {
   const input = bindEncounterToPresentedSceneInputDtoSchema.parse({
@@ -70,11 +69,7 @@ export async function bindEncounterToPresentedScene(
   const presentation = await callbacks.readPresentation(campaign.id)
   const sceneId = presentation?.sceneId
   if (!sceneId) rejectDomain('SCENE_NOT_PRESENTED', 'The Campaign is not presenting a Scene.')
-  if (!room) {
-    if (!callbacks.assertOutsideRoom)
-      throw new Error('Outside-room Scene ownership guard is unavailable.')
-    await callbacks.assertOutsideRoom(campaign.id, sceneId)
-  } else if (
+  if (
     sceneId !== room.sceneId.toLowerCase() ||
     presentation.version !== room.expectedPresentationVersion
   )

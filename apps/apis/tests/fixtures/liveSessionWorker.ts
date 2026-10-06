@@ -19,6 +19,7 @@ import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/ap
 import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
   encounterActorTokenBindingCommandInputDtoSchema,
+  type BindEncounterToPresentedSceneInputDto,
   type EncounterActorTokenBindingCommandInputDto,
   type SceneTokenMovementCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -37,6 +38,8 @@ import {
   type OptionalRestArgs
 } from 'convex/server'
 import { executeEncounterCommand, type DevelopmentClient } from '../developmentClient'
+import { bindScene } from '../developmentEncounterLifecycle'
+import { bindPresentedScene } from './encounterScene'
 import { api, internal } from '../../convex/_generated/api'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import { encounterWriteTransaction } from '../../convex/encounters/encounterPorts'
@@ -1199,8 +1202,8 @@ export function bindActorTokenInRoom(
 
 /**
  * A development proof client over a convex-test caller: Encounter commands go through the room and
- * fail as DevelopmentHttpClient reports the room's refusals; everything else runs in the caller's
- * transaction.
+ * fail as DevelopmentHttpClient reports the room's refusals; Scene bindings run the room's binding
+ * logic in the caller's transaction; everything else runs in the caller's transaction.
  */
 export function inProcessDevelopmentClient(caller: MemberCaller): DevelopmentClient {
   return {
@@ -1208,8 +1211,13 @@ export function inProcessDevelopmentClient(caller: MemberCaller): DevelopmentCli
     mutation: <Reference extends FunctionReference<'mutation'>>(
       reference: Reference,
       ...args: OptionalRestArgs<Reference>
-    ): Promise<FunctionReturnType<Reference>> =>
-      getFunctionName(reference) === getFunctionName(executeEncounterCommand)
+    ): Promise<FunctionReturnType<Reference>> => {
+      const name = getFunctionName(reference)
+      if (name === getFunctionName(bindScene))
+        return caller.run((ctx) =>
+          bindPresentedScene(ctx, args[0] as BindEncounterToPresentedSceneInputDto)
+        ) as Promise<FunctionReturnType<Reference>>
+      return name === getFunctionName(executeEncounterCommand)
         ? (executeInRoom(caller, encounterExecuteInputSchema.parse(args[0])).catch(
             (error: unknown) => {
               if (!(error instanceof RoomCommandRefusal)) throw error
@@ -1219,6 +1227,7 @@ export function inProcessDevelopmentClient(caller: MemberCaller): DevelopmentCli
             }
           ) as Promise<FunctionReturnType<Reference>>)
         : caller.run((ctx) => ctx.runMutation(reference, ...args))
+    }
   }
 }
 

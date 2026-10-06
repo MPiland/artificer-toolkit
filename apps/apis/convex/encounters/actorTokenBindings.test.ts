@@ -3,8 +3,6 @@ import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto,
   RemoveEncounterSceneActorTokenBindingInputDto,
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -13,6 +11,7 @@ import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/proj
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
+  bindPresentedScene,
   createEncounterSceneFixture as setup,
   createRun
 } from '../../tests/fixtures/encounterScene'
@@ -24,11 +23,6 @@ import {
 } from '../../tests/fixtures/liveSessionWorker'
 import { execute as registeredExecute } from './actorTokenBindings'
 
-const bindScene = makeFunctionReference<
-  'mutation',
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
 const execute = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },
@@ -49,11 +43,13 @@ it('exports object-form mutation arguments for Convex deployment packaging', () 
 
 it('removes a bound actor token atomically, versions the Run, and replays its receipt', async () => {
   const base = await setup()
-  await base.other.caller.mutation(bindScene, {
-    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-    commandId: crypto.randomUUID(),
-    encounterId: base.run.id
-  })
+  await base.other.caller.run((ctx) =>
+    bindPresentedScene(ctx, {
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+      commandId: crypto.randomUUID(),
+      encounterId: base.run.id
+    })
+  )
   const actorId = base.run.actors[0]?.id
   if (!actorId) throw new Error('Missing Encounter actor')
   const tokenId = crypto.randomUUID()
@@ -86,11 +82,13 @@ it('removes a bound actor token atomically, versions the Run, and replays its re
 
 async function boundFixture() {
   const base = await setup()
-  await base.other.caller.mutation(bindScene, {
-    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-    commandId: crypto.randomUUID(),
-    encounterId: base.run.id
-  })
+  await base.other.caller.run((ctx) =>
+    bindPresentedScene(ctx, {
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+      commandId: crypto.randomUUID(),
+      encounterId: base.run.id
+    })
+  )
   const input: EncounterActorTokenBindingCommandInputDto = {
     type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
     commandId: crypto.randomUUID(),
@@ -334,11 +332,13 @@ it('enforces token uniqueness within a Run and allows stable token identity acro
     blueprintId: base.blueprint.id,
     commandId: crypto.randomUUID()
   })
-  await base.other.caller.mutation(bindScene, {
-    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-    commandId: crypto.randomUUID(),
-    encounterId: second.id
-  })
+  await base.other.caller.run((ctx) =>
+    bindPresentedScene(ctx, {
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+      commandId: crypto.randomUUID(),
+      encounterId: second.id
+    })
+  )
   await base.other.caller.mutation(execute, {
     input: {
       ...base.input,

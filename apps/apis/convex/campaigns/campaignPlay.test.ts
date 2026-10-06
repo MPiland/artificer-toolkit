@@ -9,10 +9,6 @@ import type {
   DeletePreparedEncounterResultDto,
   EncounterSessionStateDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import type {
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
 import {
   createEncounterSceneFixture,
   publishSceneSource
@@ -42,12 +38,6 @@ const deletePrepared = makeFunctionReference<
   DeletePreparedEncounterInputDto,
   DeletePreparedEncounterResultDto
 >('encounters/runs:deletePrepared')
-const bindScene = makeFunctionReference<
-  'mutation',
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
-
 type SceneFixture = Awaited<ReturnType<typeof createEncounterSceneFixture>>
 
 function readPlayRows(base: SceneFixture) {
@@ -130,19 +120,6 @@ it('leaves live authority, presentation and an ACTIVE Run untouched when a Sessi
     }
   })
   expect(reminder.projection).toMatchObject({ id: base.run.id, version: base.run.version + 1 })
-})
-
-it('fences direct Scene binding while room authority is live', async () => {
-  const base = await createEncounterSceneFixture()
-  await publishSceneSource(base)
-  await base.owner.caller.mutation(claim, { campaignId: base.campaign.id })
-  await expect(
-    base.other.caller.mutation(bindScene, {
-      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-      commandId: crypto.randomUUID(),
-      encounterId: base.run.id
-    })
-  ).rejects.toThrow('currently owned by its Campaign live table')
 })
 
 it('fences prepared Run deletion while room authority is live', async () => {

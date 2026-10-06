@@ -17,11 +17,13 @@ import { api } from '../convex/_generated/api.js'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { createEncounterLifecycleScenes } from './developmentEncounterScenes'
 
+// Names the GM's Scene binding, which development clients bind through the room (D47). Not a
+// Convex function: both clients intercept this reference before any Convex call.
 export const bindScene = makeFunctionReference<
   'mutation',
   BindEncounterToPresentedSceneInputDto,
   BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
+>('room:encounterSceneBinding')
 export const bindToken = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },

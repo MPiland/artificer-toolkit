@@ -1,32 +1,20 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { z } from 'zod'
-import {
-  bindEncounterToPresentedSceneInputDtoSchema,
-  bindEncounterToPresentedSceneResultDtoSchema,
-  encounterSceneActorTokenBindingDtoSchema,
-  type BindEncounterToPresentedSceneInputDto,
-  type BindEncounterToPresentedSceneResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
+import { encounterSceneActorTokenBindingDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   sceneEncounterBindingInputSchema,
   sceneEncounterBindingSchema,
   sceneRecipientEncounterBindingsLookupInputSchema,
   type SceneEncounterBinding
 } from '@artificer-toolkit/schema/api/sceneRecipient'
-import { bindEncounterToPresentedScene as persistSceneBinding } from '@artificer-toolkit/encounter-persistence/sceneBindingPersistence'
 import {
   presentSceneEncounterBinding,
   readBoundEncounterScene
 } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { mutation } from '../lib/mutations'
-import { requireCampaignAuthority } from '../campaigns/authority'
-import { requireIdentity } from '../lib/identity'
-import type { MutationCtx, QueryCtx } from '../_generated/server'
+import type { QueryCtx } from '../_generated/server'
 import { internalQuery, query } from '../lib/queries'
 import { readRecipientContext } from '../scenes/recipientContext'
-import { assertConvexOwnsSceneLiveState } from '../liveSessions/authorityGuard'
-import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { encounterReadTransaction } from './encounterPorts'
 import { readMemberEncounter } from './readAccess'
 
@@ -107,48 +95,4 @@ export const forVisibleTokens = internalQuery({
     }
     return bindings
   }
-})
-
-/**
- * Binds an Encounter to its Campaign's presented Scene (GM only); the same command replays its
- * result. Convex must own the Scene's live state; a live room binds natively in its own storage.
- */
-async function bindEncounterToPresentedScene(
-  ctx: MutationCtx,
-  args: BindEncounterToPresentedSceneInputDto
-): Promise<BindEncounterToPresentedSceneResultDto> {
-  return persistSceneBinding(
-    {
-      db: createConvexEncounterStore(ctx),
-      ports: {
-        requireIdentity: () => requireIdentity(ctx),
-        requireCampaignAuthority: (campaignId, userId) =>
-          requireCampaignAuthority(ctx, campaignId, userId)
-      }
-    },
-    args,
-    null,
-    {
-      readPresentation: (campaignId) =>
-        ctx.db
-          .query('campaignScenePresentations')
-          .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
-          .unique(),
-      readScene: (sceneId) =>
-        ctx.db
-          .query('campaignScenes')
-          .withIndex('by_publicId', (q) => q.eq('id', sceneId))
-          .unique(),
-      assertOutsideRoom: (campaignId, sceneId) =>
-        assertConvexOwnsSceneLiveState(ctx, campaignId, sceneId)
-    }
-  )
-}
-
-/** Binds without a room; a live room owns its presented Scene, so the GM binds through it (D47). */
-export const bind = mutation({
-  args: zodToConvex(bindEncounterToPresentedSceneInputDtoSchema),
-  returns: zodToConvex(bindEncounterToPresentedSceneResultDtoSchema),
-  handler: (ctx, args): Promise<BindEncounterToPresentedSceneResultDto> =>
-    bindEncounterToPresentedScene(ctx, args)
 })

@@ -1,24 +1,17 @@
-import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
-import type {
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
-import type { LiveSessionAuthorityDto } from '@artificer-toolkit/schema/api/liveSessionState'
+import type { BindEncounterToPresentedSceneInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import type { MutationCtx } from '../_generated/server'
 import {
+  bindPresentedScene,
   createCampaign,
   createEncounterSceneFixture as setup
 } from '../../tests/fixtures/encounterScene'
 
-const bind = makeFunctionReference<
-  'mutation',
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
-const claim = makeFunctionReference<'mutation', { campaignId: string }, LiveSessionAuthorityDto>(
-  'liveSessions/authority:claim'
-)
+const bind = (
+  run: <Output>(func: (ctx: MutationCtx) => Promise<Output>) => Promise<Output>,
+  input: BindEncounterToPresentedSceneInputDto
+) => run((ctx) => bindPresentedScene(ctx, input))
 
 describe('native Encounter Scene bindings', () => {
   it('binds the presented Scene and replays the original result after presentation changes', async () => {
@@ -28,7 +21,7 @@ describe('native Encounter Scene bindings', () => {
       commandId: crypto.randomUUID(),
       encounterId: base.run.id
     }
-    const first = await base.other.caller.mutation(bind, input)
+    const first = await bind(base.other.caller.run, input)
     expect(first).toEqual({
       commandId: input.commandId,
       encounterId: input.encounterId,
@@ -44,7 +37,7 @@ describe('native Encounter Scene bindings', () => {
       await ctx.db.patch(presentation._id, { sceneId: null, version: 1 })
     })
     expect(
-      await base.other.caller.mutation(bind, {
+      await bind(base.other.caller.run, {
         ...input,
         commandId: input.commandId.toUpperCase(),
         encounterId: input.encounterId.toUpperCase()
@@ -83,12 +76,12 @@ describe('native Encounter Scene bindings', () => {
     }))
     if (!before.presentation || !before.scene) throw new Error('Missing Scene fixture')
     await base.t.run((ctx) => ctx.db.patch(before.presentation!._id, { sceneId: null }))
-    await expect(base.other.caller.mutation(bind, input)).rejects.toThrow('not presenting')
+    await expect(bind(base.other.caller.run, input)).rejects.toThrow('not presenting')
     await base.t.run((ctx) =>
       ctx.db.patch(before.presentation!._id, { sceneId: crypto.randomUUID() })
     )
     await expect(
-      base.other.caller.mutation(bind, { ...input, commandId: crypto.randomUUID() })
+      bind(base.other.caller.run, { ...input, commandId: crypto.randomUUID() })
     ).rejects.toThrow('unavailable')
     await base.t.run((ctx) => ctx.db.patch(before.presentation!._id, { sceneId: base.sceneId }))
     const foreignCampaign = await base.owner.caller.mutation(createCampaign, {
@@ -101,7 +94,7 @@ describe('native Encounter Scene bindings', () => {
     })
     await base.t.run((ctx) => ctx.db.patch(before.scene!._id, { campaignId: foreignCampaign.id }))
     await expect(
-      base.other.caller.mutation(bind, { ...input, commandId: crypto.randomUUID() })
+      bind(base.other.caller.run, { ...input, commandId: crypto.randomUUID() })
     ).rejects.toThrow('unavailable')
     await base.t.run((ctx) => ctx.db.patch(before.scene!._id, { campaignId: base.campaign.id }))
     expect(await base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())).toEqual([])
@@ -119,60 +112,6 @@ describe('native Encounter Scene bindings', () => {
     ).toEqual({ run: before.run, scene: before.scene })
   }, 30000)
 
-  it('rejects a new binding while the Campaign live table owns the presented Scene', async () => {
-    const base = await setup()
-    await base.other.caller.mutation(claim, { campaignId: base.campaign.id })
-
-    await expect(
-      base.other.caller.mutation(bind, {
-        type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-        commandId: crypto.randomUUID(),
-        encounterId: base.run.id
-      })
-    ).rejects.toThrow('owned by its Campaign live table')
-    await expect(
-      base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())
-    ).resolves.toEqual([])
-  })
-
-  it('rolls back a nested binding mutation without changing the Run or Scene', async () => {
-    const base = await setup()
-    const input: BindEncounterToPresentedSceneInputDto = {
-      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-      commandId: crypto.randomUUID(),
-      encounterId: base.run.id
-    }
-    const before = await base.t.run(async (ctx) => ({
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-        .unique(),
-      scene: await ctx.db
-        .query('campaignScenes')
-        .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
-        .unique()
-    }))
-    await expect(
-      base.other.caller.run(async (ctx) => {
-        await ctx.runMutation(bind, input)
-        throw new Error('Injected binding rollback')
-      })
-    ).rejects.toThrow('Injected binding rollback')
-    expect(await base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())).toEqual([])
-    expect(
-      await base.t.run(async (ctx) => ({
-        run: await ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-          .unique(),
-        scene: await ctx.db
-          .query('campaignScenes')
-          .withIndex('by_publicId', (q) => q.eq('id', base.sceneId))
-          .unique()
-      }))
-    ).toEqual(before)
-  }, 30000)
-
   it('rejects a competing binding and authorization or lifecycle failures without rows', async () => {
     const base = await setup()
     const input: BindEncounterToPresentedSceneInputDto = {
@@ -180,8 +119,8 @@ describe('native Encounter Scene bindings', () => {
       commandId: crypto.randomUUID(),
       encounterId: base.run.id
     }
-    await expect(base.t.mutation(bind, input)).rejects.toThrow('Unauthenticated')
-    await expect(base.owner.caller.mutation(bind, input)).rejects.toThrow('Campaign not found')
+    await expect(bind(base.t.run, input)).rejects.toThrow('Unauthenticated')
+    await expect(bind(base.owner.caller.run, input)).rejects.toThrow('Campaign not found')
     await base.t.run(async (ctx) => {
       const membership = await ctx.db
         .query('campaignMemberships')
@@ -192,7 +131,7 @@ describe('native Encounter Scene bindings', () => {
       if (!membership) throw new Error('Missing owner membership')
       await ctx.db.patch(membership._id, { status: 'LEFT' })
     })
-    await expect(base.other.caller.mutation(bind, input)).rejects.toThrow('Campaign not found')
+    await expect(bind(base.other.caller.run, input)).rejects.toThrow('Campaign not found')
     await expect(
       base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())
     ).resolves.toEqual([])
@@ -211,7 +150,7 @@ describe('native Encounter Scene bindings', () => {
       await ctx.db.patch(membership._id, { status: 'ACTIVE' })
       await ctx.db.patch(campaign._id, { status: 'ARCHIVED' })
     })
-    await expect(base.other.caller.mutation(bind, input)).rejects.toThrow('Archived')
+    await expect(bind(base.other.caller.run, input)).rejects.toThrow('Archived')
     await expect(
       base.t.run((ctx) => ctx.db.query('encounterSceneBindings').collect())
     ).resolves.toEqual([])
@@ -223,9 +162,9 @@ describe('native Encounter Scene bindings', () => {
       if (!campaign) throw new Error('Missing Campaign')
       await ctx.db.patch(campaign._id, { status: 'ACTIVE' })
     })
-    await base.other.caller.mutation(bind, input)
+    await bind(base.other.caller.run, input)
     await expect(
-      base.other.caller.mutation(bind, { ...input, commandId: crypto.randomUUID() })
+      bind(base.other.caller.run, { ...input, commandId: crypto.randomUUID() })
     ).rejects.toThrow('different Campaign Scene binding')
     await base.t.run(async (ctx) => {
       const binding = await ctx.db
@@ -235,7 +174,7 @@ describe('native Encounter Scene bindings', () => {
       if (!binding) throw new Error('Missing binding')
       await ctx.db.patch(binding._id, { campaignId: crypto.randomUUID() })
     })
-    await expect(base.other.caller.mutation(bind, input)).rejects.toThrow(
+    await expect(bind(base.other.caller.run, input)).rejects.toThrow(
       'Stored Encounter Scene binding belongs to another Campaign.'
     )
     expect(

@@ -2,7 +2,7 @@ import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { LiveSessionJoinOptionsDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import { createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
-import { assertConvexOwnsSceneLiveState } from './authorityGuard'
+import { readLiveCampaignAuthority } from './authorityGuard'
 
 afterEach(() => vi.useRealTimers())
 
@@ -186,8 +186,8 @@ it('expires an abandoned activation, reopens direct writes, and replaces the epo
   const original = await base.other.caller.mutation(claim, input)
   expect(original.activationExpiresAt).toBeGreaterThan(Date.now())
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
-  ).rejects.toThrow('currently owned')
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
+  ).resolves.not.toBeNull()
 
   await base.t.run(async (ctx) => {
     const row = await ctx.db
@@ -198,7 +198,7 @@ it('expires an abandoned activation, reopens direct writes, and replaces the epo
     await ctx.db.patch(row._id, { activationExpiresAt: Date.now() - 1 })
   })
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
   ).resolves.toBeNull()
   await expect(
     base.t.mutation(commitActivation, {
@@ -249,11 +249,11 @@ it('renews the same activation epoch without shortening its expiry', async () =>
   expect(renewed.activationExpiresAt).toBeGreaterThan(first.activationExpiresAt!)
   vi.setSystemTime(first.activationExpiresAt! + 1)
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
-  ).rejects.toThrow('currently owned')
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
+  ).resolves.not.toBeNull()
   vi.setSystemTime(renewed.activationExpiresAt! + 1)
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
   ).resolves.toBeNull()
 })
 
@@ -272,7 +272,7 @@ it('uses the updated time for a preexisting activation without an expiry', async
   vi.useFakeTimers()
   vi.setSystemTime(Date.parse(claimed.updatedAt) + 60_001)
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
   ).resolves.toBeNull()
 })
 
@@ -290,8 +290,8 @@ it('keeps active authority fenced after the activation deadline', async () => {
   expect(active.activationExpiresAt).toBeUndefined()
   vi.setSystemTime(claimed.activationExpiresAt! + 1)
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
-  ).rejects.toThrow('currently owned')
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
+  ).resolves.not.toBeNull()
   await expect(
     base.t.mutation(commitActivation, {
       ...input,
@@ -333,7 +333,7 @@ it('caps how far reissued tickets extend an unused activation reservation', asyn
   expect(reissued.activationExpiresAt).toBe(reservationEnd)
   vi.setSystemTime(reservationEnd)
   await expect(
-    base.t.run((ctx) => assertConvexOwnsSceneLiveState(ctx, input.campaignId, base.sceneId))
+    base.t.run((ctx) => readLiveCampaignAuthority(ctx, input.campaignId))
   ).resolves.toBeNull()
   await expect(
     base.t.mutation(commitActivation, {

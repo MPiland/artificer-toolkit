@@ -13,6 +13,7 @@
 - **Rhythm:** code, then the compile gate (`local-validation/codex-batch/gate.ps1 -Name <gateN>`), then focused proofs (Convex `vt.ps1`; worker `src` via root `yarn vitest run --config vitest.config.ts <file>`; native `nt.ps1`). Convex changes: deploy locally before live proofs (codegen does not deploy).
 - **V15 rerun:** `node local-validation/rel5/runV15.mjs <name> local-validation/rel5/<name>` under the validation lock (proof, then `scripts/v15Budgets.mjs`). Do not edit worker source during a run: wrangler dev hot-reloads it. Last passing run: a84 ([record](../validation/phase-08-2/v15-workload-2026-10-05.md)).
 - **User:** a PM, not an architect. Make architecture calls yourself, explain them plainly and recommend.
+- **Roles:** the main session is mostly the orchestrator and reviewer. It reads the cited decision and ADR, diagnoses only far enough to pick the layer and design, writes a bounded brief, reviews each report and diff (check the agent's numbers against the evidence), and does the boundary routine. Sonnet subagents (`model: "sonnet"`) do the edits, gates and proof runs. Use them where they save context or time, not for trivial edits. Every brief says: no nested subagents; Edit/Write only (no sed, heredocs, `node -e`, `python -c`); no sleep/poll loops and no Monitor; one background run at most (the gate or proof batch), never a hung command; serialize runs with `local-validation/.validation.lock`; a hard cap on proof reruns; stop all background tasks and list their IDs before reporting.
 
 ## Done in REL-4
 
@@ -31,7 +32,7 @@ Evidence: `local-validation/rel4/` (j2 full 49-proof run plus reruns; t10), `loc
 
 - D74 command-time paths: `roomSceneGeometryCommand` (`prepareCharacter` on token drag) and `roomEncounterTurnCapture` (ACTOR/EFFECTS) can still throw for a departed actor; apply the same frozen/unassigned rule as `roomSceneVision`.
 - Remove the unused `disarm-receipts` op in `apps/apis/tests/developmentCli.ts` and `developmentCliEntry.mjs`.
-- A separate task chip exists to remove the unused Convex `encounters/sceneBindings:bind` mutation.
+- The Convex `encounters/sceneBindings:bind` mutation is removed: Scene binding runs only through the room (D47). Convex tests bind through `bindPresentedScene` in `apps/apis/tests/fixtures/encounterScene.ts`; the proof drivers' `bindScene` is a room marker reference.
 
 **Known risks:** `campaign-collaboration-browser` and `campaign-membership-browser` are flaky under load (varied one-off failures: log-collector baseline, click interception, a 1 s local Convex function timeout, an 8.5 s `auth:onCreate` HTTP failure; `developmentCli` now records `httpStatus`). No single run had every journey green. Two FAILED fixture Campaign deletion jobs remain in the local backend; the VS-9 reset clears them. `local-validation/rel4/runProofs.mjs` and `journeys.ps1` are disposable drivers (ignored folder).
 

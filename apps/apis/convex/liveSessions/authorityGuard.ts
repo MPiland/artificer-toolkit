@@ -56,21 +56,6 @@ export async function assertConvexOwnsCharacterPlay(ctx: QueryCtx, characterId: 
     throw new Error('This Character is held by its live table; use the room for play commands.')
 }
 
-/** Direct Convex writes are fenced only for the presented Scene while the room owns it. */
-export async function assertConvexOwnsSceneLiveState(
-  ctx: QueryCtx,
-  campaignId: string,
-  sceneId: string
-) {
-  if (!(await readLiveCampaignAuthority(ctx, campaignId))) return
-  const presentation = await ctx.db
-    .query('campaignScenePresentations')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId.toLowerCase()))
-    .unique()
-  if (presentation?.sceneId === sceneId.toLowerCase())
-    throw new Error('This Scene is currently owned by its Campaign live table.')
-}
-
 export async function requireCampaignLiveAuthority(
   ctx: QueryCtx,
   input: { campaignId: string; epoch: string }

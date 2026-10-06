@@ -5,10 +5,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4'
 import { z } from 'zod'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import {
-  bindEncounterToPresentedSceneInputDtoSchema,
   encounterActorTokenBindingCommandInputDtoSchema,
-  type BindEncounterToPresentedSceneInputDto,
-  type BindEncounterToPresentedSceneResultDto,
   type EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { action, type MutationCtx, type QueryCtx } from '../_generated/server'
@@ -24,22 +21,16 @@ const fixtureRunSchema = z.object({
   campaignId: z.string(),
   encounterId: z.string()
 })
-const operationSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('SCENE_BINDING'),
-    input: bindEncounterToPresentedSceneInputDtoSchema
-  }),
-  z.object({
+const rollbackSchema = z.object({
+  ...fixtureRunSchema.shape,
+  operation: z.object({
     kind: z.literal('TOKEN_BINDING'),
     input: encounterActorTokenBindingCommandInputDtoSchema
   })
-])
-const rollbackSchema = z.object({ ...fixtureRunSchema.shape, operation: operationSchema })
+})
 type FixtureRunInput = z.infer<typeof fixtureRunSchema>
 type RollbackInput = FixtureRunInput & {
-  operation:
-    | { kind: 'SCENE_BINDING'; input: BindEncounterToPresentedSceneInputDto }
-    | { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
+  operation: { kind: 'TOKEN_BINDING'; input: EncounterActorTokenBindingCommandInputDto }
 }
 const rollbackValidator: Validator<RollbackInput, 'required', string> =
   zodToConvex<z.core.$ZodType<RollbackInput>>(rollbackSchema)
@@ -50,11 +41,6 @@ const inspectReference = makeFunctionReference<'query', FixtureRunInput, string>
 const forceRollbackReference = makeFunctionReference<'mutation', RollbackInput, null>(
   'encounters/developmentLifecycle:forceRollback'
 )
-const bindScene = makeFunctionReference<
-  'mutation',
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
 const bindToken = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },
@@ -193,9 +179,7 @@ export const forceRollback = internalMutation({
     const before = await ctx.runQuery(inspectReference, target)
     if (args.operation.input.encounterId.toLowerCase() !== args.encounterId.toLowerCase())
       throw new Error('Fixture lifecycle operation targets another Encounter Run.')
-    if (args.operation.kind === 'SCENE_BINDING')
-      await ctx.runMutation(bindScene, args.operation.input)
-    else await ctx.runMutation(bindToken, { input: args.operation.input })
+    await ctx.runMutation(bindToken, { input: args.operation.input })
     if (before === (await ctx.runQuery(inspectReference, target)))
       throw new Error('Fixture lifecycle operation did not change persisted state.')
     throw new ConvexError(ROLLBACK_MARKER)

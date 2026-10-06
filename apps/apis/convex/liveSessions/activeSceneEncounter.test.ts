@@ -4,19 +4,14 @@ import type {
   LiveSessionRoomAuthorizationInput,
   LiveSessionRoomAuthorizationResponse
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import type {
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
-} from '@artificer-toolkit/schema/api/vttScenes'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
-import { createEncounterSceneFixture, createRun } from '../../tests/fixtures/encounterScene'
+import {
+  bindPresentedScene,
+  createEncounterSceneFixture,
+  createRun
+} from '../../tests/fixtures/encounterScene'
 import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
-const bind = makeFunctionReference<
-  'mutation',
-  BindEncounterToPresentedSceneInputDto,
-  BindEncounterToPresentedSceneResultDto
->('encounters/sceneBindings:bind')
 const read = makeFunctionReference<
   'query',
   LiveSessionRoomAuthorizationInput,
@@ -31,11 +26,13 @@ it('plays only the ACTIVE Run bound to the Scene, though a PREPARED Run bound la
     commandId: crypto.randomUUID()
   })
   const bindRun = (encounterId: string) =>
-    base.other.caller.mutation(bind, {
-      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-      commandId: crypto.randomUUID(),
-      encounterId
-    })
+    base.other.caller.run((ctx) =>
+      bindPresentedScene(ctx, {
+        type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+        commandId: crypto.randomUUID(),
+        encounterId
+      })
+    )
   const epoch = crypto.randomUUID()
   const readPlay = async () => {
     const response = await base.t.query(read, {
@@ -92,11 +89,13 @@ it('plays nothing on a Scene its ACTIVE Run is not bound to', async () => {
     blueprintId: base.blueprint.id,
     commandId: crypto.randomUUID()
   })
-  await base.other.caller.mutation(bind, {
-    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
-    commandId: crypto.randomUUID(),
-    encounterId: prepared.id
-  })
+  await base.other.caller.run((ctx) =>
+    bindPresentedScene(ctx, {
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE',
+      commandId: crypto.randomUUID(),
+      encounterId: prepared.id
+    })
+  )
   await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
   const epoch = crypto.randomUUID()
   await base.t.run((ctx) =>
