@@ -82,10 +82,10 @@ export async function executeEncounterActorTokenBinding(
       throw new Error('Stored Encounter command receipt mismatch.')
     return replayEncounterCommandResult(ctx, state, prior)
   }
+  // A completed Run has no history to replay and no binding to change (ADR 0035 Amendment 30).
+  if (run.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (input.expectedEncounterVersion !== run.version)
     throw new Error('Encounter changed before its Scene binding could update.')
-  if (run.status === 'COMPLETED')
-    throw new Error('Completed Encounters cannot change Scene bindings.')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))

@@ -53,25 +53,32 @@ function validateFields(table: Table, fields: unknown) {
   return canonicalJsonRecordSchema.parse(structuredClone(fields))
 }
 
-function checkpointRecord(
-  table: Table,
-  fields: Record<string, JsonValue>
-): CheckpointRecord | null {
-  if (!isMutable(table) && !isHistory(table)) return null
+function checkpointKey(
+  table: LiveSessionCheckpointTable | LiveSessionCheckpointHistoryTable,
+  fields: Record<string, unknown>
+) {
   const keyFields = isMutable(table)
     ? liveSessionCheckpointKeyFields[table]
     : liveSessionCheckpointHistoryKeyFields[table]
-  const key = keyFields.map((field) => {
+  return keyFields.map((field) => {
     const value = fields[field]
     if (typeof value !== 'string' && typeof value !== 'number')
       throw new Error(`Missing checkpoint identity ${table}.${field}.`)
     return value
   })
-  const value = decodeCheckpointRecord(table, fields)
-  return { table, key, value }
 }
 
-const recordId = (record: CheckpointRecord) => `${record.table}:${canonicalizeJson(record.key)}`
+function checkpointRecord(
+  table: Table,
+  fields: Record<string, JsonValue>
+): CheckpointRecord | null {
+  if (!isMutable(table) && !isHistory(table)) return null
+  return { table, key: checkpointKey(table, fields), value: decodeCheckpointRecord(table, fields) }
+}
+
+const identityOf = (table: string, key: readonly (string | number)[]) =>
+  `${table}:${canonicalizeJson(key)}`
+const recordId = (record: CheckpointRecord) => identityOf(record.table, record.key)
 
 type SceneRecord = {
   table: LiveSessionCheckpointSceneTable
@@ -118,7 +125,12 @@ function sceneRecord(record: RoomRecord): SceneRecord {
   return { table, key: publicKey, value }
 }
 
-/** Replays committed writes from the persisted base and folds mutable rows by public identity. */
+/**
+ * Replays committed writes from the persisted base and folds mutable rows by public identity. The
+ * base is the store's acknowledged snapshot, which it validated when hydrating or replaying, so only
+ * the rows the entries touch are validated and decoded here: a build costs its range, not the Run's
+ * retained history. `entries` is consumed once, so a caller can stream a range page by page.
+ */
 export function buildRoomCheckpointRecords({
   documents,
   records,
@@ -130,7 +142,7 @@ export function buildRoomCheckpointRecords({
   records: readonly RoomRecord[]
   fromSequence: number
   fromChecksum: string
-  entries: readonly LiveSessionCheckpointJournalEntry[]
+  entries: Iterable<LiveSessionCheckpointJournalEntry>
 }): LiveSessionCheckpointRecords {
   if (!Number.isSafeInteger(fromSequence) || fromSequence < 0)
     throw new Error('Invalid checkpoint base sequence.')
@@ -142,7 +154,7 @@ export function buildRoomCheckpointRecords({
   const history: LiveSessionCheckpointRecords['history'] = []
   const privateRollState = new Map<string, string>()
   const retainedRolls = new Map<string, LiveSessionCheckpointRetainedRoll>()
-  const setPrivateRoll = (record: RoomRecord, baseline: boolean) => {
+  const setPrivateRoll = (record: RoomRecord) => {
     if (record.kind !== ROOM_PRIVATE_ROLL) return
     const value = liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(record.json))
     const key = canonicalizeJson([value.userId, value.record.id])
@@ -160,13 +172,21 @@ export function buildRoomCheckpointRecords({
       (pending && evidence(pending) !== evidence(value))
     )
       throw new Error('Private roll checkpoint evidence is immutable.')
-    if (baseline && previous) throw new Error('Private roll checkpoint identity is duplicated.')
     privateRollState.set(key, record.json)
-    if (!baseline) retainedRolls.set(key, value)
+    retainedRolls.set(key, value)
   }
   const sources = new Map<string, LiveSessionCheckpointSceneSource>()
+  const unreadScenes = new Map<string, RoomRecord>()
   const sceneBefore = new Map<string, SceneRecord>()
   const sceneAfter = new Map<string, SceneRecord>()
+  const readScene = (key: string) => {
+    const record = unreadScenes.get(key)
+    if (!record) return
+    unreadScenes.delete(key)
+    const row = sceneRecord(record)
+    sceneBefore.set(key, row)
+    sceneAfter.set(key, row)
+  }
   const setSceneRecord = (record: RoomRecord, baseline: boolean) => {
     if (!record.kind.startsWith('SCENE_CHECKPOINT_')) return
     if (record.revision !== null) throw new Error('Checkpoint Scene revision must be null.')
@@ -182,9 +202,13 @@ export function buildRoomCheckpointRecords({
     }
     if (record.kind !== 'SCENE_CHECKPOINT_ROW')
       throw new Error('Unknown checkpoint Scene record kind.')
+    if (baseline) {
+      if (unreadScenes.has(record.key)) throw new Error('Duplicate checkpoint Scene public key.')
+      unreadScenes.set(record.key, record)
+      return
+    }
     const row = sceneRecord(record)
-    if (baseline && sceneAfter.has(record.key))
-      throw new Error('Duplicate checkpoint Scene public key.')
+    readScene(record.key)
     const previous = sceneAfter.get(record.key) ?? sceneBefore.get(record.key)
     if (previous && previous.value.sceneId !== row.value.sceneId)
       throw new Error('Checkpoint Scene row scope cannot change.')
@@ -195,22 +219,56 @@ export function buildRoomCheckpointRecords({
     )
       throw new Error('Checkpoint Scene evidence is append-only.')
     sceneAfter.set(record.key, row)
-    if (baseline) sceneBefore.set(record.key, row)
   }
   for (const record of records) {
-    setSceneRecord(record, true)
-    setPrivateRoll(record, true)
+    if (record.kind !== ROOM_PRIVATE_ROLL) setSceneRecord(record, true)
+    else if (privateRollState.has(record.key))
+      throw new Error('Private roll checkpoint identity is duplicated.')
+    else privateRollState.set(record.key, record.json)
   }
 
-  const insert = (document: RoomDocument, evidence: boolean) => {
-    if (typeof document.id !== 'string' || !document.id || state.has(document.id))
+  const unread = new Map<string, RoomDocument>()
+  for (const document of documents) {
+    if (typeof document.id !== 'string' || !document.id || unread.has(document.id))
       throw new Error('Missing or duplicate storage id.')
+    unread.set(document.id, document)
+    const { table } = document
+    if (!isMutable(table) && !isHistory(table)) continue
+    const identity = identityOf(table, checkpointKey(table, document.fields))
+    if (owners.has(identity)) throw new Error(`Duplicate public key ${identity}.`)
+    owners.set(identity, document.id)
+  }
+  const validDocument = (document: RoomDocument) => {
     if (!Number.isFinite(document.creationTime) || document.creationTime < 0)
       throw new Error('Invalid document creation time.')
     if (!Object.hasOwn(encounterStoreSchemas, document.table))
       throw new Error(`Unknown room table ${document.table}.`)
     const table = document.table as Table
-    const fields = validateFields(table, document.fields)
+    return { table, fields: validateFields(table, document.fields) }
+  }
+  /** A held document, validated and decoded the first time the page touches it. */
+  const read = (id: string) => {
+    const document = unread.get(id)
+    if (!document) return state.get(id)
+    unread.delete(id)
+    const held = validDocument(document)
+    const record = checkpointRecord(held.table, held.fields)
+    if (record && isMutable(record.table)) {
+      before.set(recordId(record), record)
+      after.set(recordId(record), record)
+    }
+    state.set(id, held)
+    return held
+  }
+  const insert = (document: RoomDocument, evidence: boolean) => {
+    if (
+      typeof document.id !== 'string' ||
+      !document.id ||
+      state.has(document.id) ||
+      unread.has(document.id)
+    )
+      throw new Error('Missing or duplicate storage id.')
+    const { table, fields } = validDocument(document)
     const record = checkpointRecord(table, fields)
     if (record) {
       const identity = recordId(record)
@@ -226,8 +284,6 @@ export function buildRoomCheckpointRecords({
     }
     state.set(document.id, { table, fields })
   }
-  for (const document of documents) insert(document, false)
-  for (const [identity, record] of after) before.set(identity, record)
 
   let sequence = fromSequence
   let chain = fromChecksum
@@ -242,7 +298,7 @@ export function buildRoomCheckpointRecords({
     for (const write of writes) {
       if (write.op === 'RECORD_SET') {
         setSceneRecord(write.record, false)
-        setPrivateRoll(write.record, false)
+        setPrivateRoll(write.record)
         continue
       }
       if (write.op === 'RECORD_DELETE') {
@@ -254,6 +310,7 @@ export function buildRoomCheckpointRecords({
         if (write.kind === 'SCENE_CHECKPOINT_SOURCE')
           throw new Error('Checkpoint Scene source cannot be deleted.')
         if (write.kind === 'SCENE_CHECKPOINT_ROW') {
+          readScene(write.key)
           const row = sceneAfter.get(write.key)
           if (!row) throw new Error('Dangling checkpoint Scene row deletion.')
           if (!isMutableScene(row.table))
@@ -268,7 +325,7 @@ export function buildRoomCheckpointRecords({
         continue
       }
       if (write.op === 'RESTORE') {
-        const previous = state.get(write.id)
+        const previous = read(write.id)
         if (!previous) {
           const restored = checkpointRecord(write.table, validateFields(write.table, write.fields))
           if (restored && before.has(recordId(restored)))
@@ -300,7 +357,7 @@ export function buildRoomCheckpointRecords({
         state.set(write.id, { table: write.table, fields })
         continue
       }
-      const document = state.get(write.id)
+      const document = read(write.id)
       if (!document) throw new Error(`Dangling checkpoint write ${write.id}.`)
       if (isHistory(document.table)) throw new Error('Checkpoint history is append-only.')
       const previous = checkpointRecord(document.table, document.fields)
@@ -352,16 +409,18 @@ export function buildRoomCheckpointRecords({
     })
   }
   const sceneIdFor = (row: SceneRecord, rows: ReadonlyMap<string, SceneRecord>): string => {
-    const sceneId =
-      row.table === 'sceneFogChunks'
-        ? rows.get(canonicalizeJson(['sceneFogSaves', row.value.saveId]))?.value.sceneId
-        : row.value.sceneId
+    let sceneId: unknown = row.value.sceneId
+    if (row.table === 'sceneFogChunks') {
+      const save = canonicalizeJson(['sceneFogSaves', row.value.saveId])
+      readScene(save)
+      sceneId = rows.get(save)?.value.sceneId
+    }
     if (typeof sceneId !== 'string' || !sources.has(sceneId))
       throw new Error('Checkpoint Scene row has a missing source or fog save.')
     return sceneId
   }
-  for (const row of sceneBefore.values()) sceneIdFor(row, sceneBefore)
-  for (const row of sceneAfter.values()) sceneIdFor(row, sceneAfter)
+  for (const row of [...sceneBefore.values()]) sceneIdFor(row, sceneBefore)
+  for (const row of [...sceneAfter.values()]) sceneIdFor(row, sceneAfter)
   const grouped = new Map<string, LiveSessionCheckpointRecords['scenes'][number]['changes']>()
   for (const identity of [...new Set([...sceneBefore.keys(), ...sceneAfter.keys()])].sort()) {
     const previous = sceneBefore.get(identity)
@@ -385,6 +444,7 @@ export function buildRoomCheckpointRecords({
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([sceneId, sceneChanges]) => {
       const identity = canonicalizeJson(['sceneLiveStates', sceneId])
+      readScene(identity)
       const fromVersion = sceneBefore.get(identity)?.value.version ?? 0
       const toVersion = sceneAfter.get(identity)?.value.version ?? 0
       if (

@@ -10,11 +10,9 @@ import {
   bootstrapHttp,
   presentHttp,
   checkpointHttp,
-  checkpointStageHttp,
-  checkpointPartHttp,
-  checkpointCommitHttp,
   releaseHttp,
   roomAuthorizationHttp,
+  roomSceneCaptureHttp,
   roomInputsHttp
 } from './liveSessions/stateHttp'
 
@@ -27,14 +25,12 @@ authComponent.registerRoutesLazy(http, createAuth, {
 const liveSessionHandlers = {
   capture: captureHttp,
   roomAuthorization: roomAuthorizationHttp,
+  roomSceneCapture: roomSceneCaptureHttp,
   roomInputs: roomInputsHttp,
   bootstrap: bootstrapHttp,
   activate: activateHttp,
   recoverStorage: recoverStorageHttp,
   checkpoint: checkpointHttp,
-  checkpointStage: checkpointStageHttp,
-  checkpointPart: checkpointPartHttp,
-  checkpointCommit: checkpointCommitHttp,
   present: presentHttp,
   beginDrain: beginDrainHttp,
   release: releaseHttp

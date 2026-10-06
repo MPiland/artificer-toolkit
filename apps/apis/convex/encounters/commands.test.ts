@@ -1,4 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -430,9 +431,7 @@ function remove(
 
 async function receipts(t: Awaited<ReturnType<typeof setup>>['t']) {
   return t.run(async (ctx) =>
-    (await readEncounterHistory(ctx))
-      .query('encounterRunCommands')
-      .collect()
+    (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
   )
 }
 
@@ -455,7 +454,7 @@ async function replaceActorResources(
     await writeRunActor(
       { db: createConvexEncounterStore(ctx) },
       actor._id,
-      encounterRunActorStateSchema.parse({ ...JSON.parse(actor.stateJson), resources })
+      encounterRunActorStateSchema.parse({ ...(await readTestActor(ctx, actor)), resources })
     )
   })
 }
@@ -528,12 +527,8 @@ describe('native Encounter Run commands', () => {
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     await expect(executeInRoom(owner.caller, response)).rejects.toThrow(
       'Campaign already has an active Encounter.'
@@ -546,12 +541,8 @@ describe('native Encounter Run commands', () => {
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(after).toEqual(before)
     await executeInRoom(owner.caller, {
@@ -613,9 +604,7 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     await expect(
       executeInRoom(owner.caller, {
@@ -637,9 +626,7 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(afterBound).toEqual(beforeBound)
     await executeInRoom(owner.caller, {
@@ -681,12 +668,8 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect(),
-      ruleReceipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
+      ruleReceipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
     }))
     expect(JSON.parse(stored.actor!.stateJson)).toMatchObject({
       resources: { featureCharges: { [featureId]: 0 } }
@@ -887,9 +870,7 @@ describe('native Encounter Run commands', () => {
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         actor: await ctx.db.query('encounterRunActors').unique(),
         entries: await ctx.db.query('campaignConversationEntries').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect()
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
       }))
     ).toEqual({
       actor: stored.actor,
@@ -927,9 +908,7 @@ describe('native Encounter Run commands', () => {
       run: await ctx.db.query('encounterRuns').unique(),
       actor: await ctx.db.query('encounterRunActors').unique(),
       entries: await ctx.db.query('campaignConversationEntries').collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     await expect(
       executeInRoom(owner.caller, {
@@ -947,9 +926,7 @@ describe('native Encounter Run commands', () => {
         run: await ctx.db.query('encounterRuns').unique(),
         actor: await ctx.db.query('encounterRunActors').unique(),
         entries: await ctx.db.query('campaignConversationEntries').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect()
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
       }))
     ).toEqual(beforeExhausted)
   }, 30000)
@@ -1048,9 +1025,7 @@ describe('native Encounter Run commands', () => {
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run: await ctx.db.query('encounterRuns').unique(),
       actor: await ctx.db.query('encounterRunActors').unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     await expect(
       executeInRoom(prepared.owner.caller, {
@@ -1072,9 +1047,7 @@ describe('native Encounter Run commands', () => {
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         run: await ctx.db.query('encounterRuns').unique(),
         actor: await ctx.db.query('encounterRunActors').unique(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect()
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
       }))
     ).toEqual(beforeMalformed)
     const character = await setupCharacterAutomatic()
@@ -1172,9 +1145,7 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     await expect(
       executeInRoom(owner.caller, {
@@ -1201,9 +1172,7 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(after).toEqual(before)
     await replaceActorResources(t, run.id, actor.id, {
@@ -1220,9 +1189,7 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     await expect(
       executeInRoom(owner.caller, {
@@ -1249,9 +1216,7 @@ describe('native Encounter Run commands', () => {
         .query('encounterRunActors')
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(staleAfter).toEqual(staleBefore)
   }, 30000)
@@ -1321,12 +1286,8 @@ describe('native Encounter Run commands', () => {
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(pendingStored.rounds).toEqual([])
     expect(pendingStored.participants).toEqual([])
@@ -1377,12 +1338,8 @@ describe('native Encounter Run commands', () => {
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(continuedStored).toMatchObject({
       rounds: [],
@@ -1446,12 +1403,8 @@ describe('native Encounter Run commands', () => {
       round: await ctx.db.query('encounterInitiativeRounds').unique(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipt: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipt: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').unique(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(settledStored.round).toMatchObject({ status: 'ACTIVE', version: 1 })
     expect(settledStored.participants).toHaveLength(2)
@@ -1525,13 +1478,17 @@ describe('native Encounter Run commands', () => {
     expect(progressed.projection.currentActorId).not.toBe(settled.projection.currentActorId)
     const advancedStored = await t.run(async (ctx) => ({
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      receipt: await (await readEncounterHistory(ctx))
+      receipt: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) =>
           q.eq('encounterId', run.id).eq('commandId', firstAdvanceInput.command.commandId)
         )
         .unique(),
-      command: await (await readEncounterHistory(ctx))
+      command: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRunCommands')
         .withIndex('by_campaignId_commandId', (q) =>
           q.eq('campaignId', run.campaignId).eq('commandId', firstAdvanceInput.command.commandId)
@@ -1607,9 +1564,10 @@ describe('native Encounter Run commands', () => {
         .map((entry) => entry.commandType)
         .filter((type) => type === 'ADVANCE_TURN')
     ).toEqual(['ADVANCE_TURN', 'ADVANCE_TURN'])
-    await expect(
-      readTimelineInRoom(other.caller, run.id)
-    ).resolves.toEqual({ entries: [], nextCursor: null })
+    await expect(readTimelineInRoom(other.caller, run.id)).resolves.toEqual({
+      entries: [],
+      nextCursor: null
+    })
     const currentActorId = wrapped.projection.currentActorId
     if (!currentActorId) throw new Error('Expected a current actor.')
     const granted = await executeInRoom(owner.caller, {
@@ -1687,12 +1645,8 @@ describe('native Encounter Run commands', () => {
       round: await ctx.db.query('encounterInitiativeRounds').unique(),
       participant: await ctx.db.query('encounterInitiativeParticipants').unique(),
       occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipt: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .unique(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipt: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').unique(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(stored.round).toMatchObject({
       encounterId: run.id,
@@ -1947,13 +1901,9 @@ describe('native Encounter Run commands', () => {
         runs: await ctx.db.query('encounterRuns').collect(),
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await (await readEncounterHistory(ctx))
-          .query('encounterRuleReceipts')
-          .collect()
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
       }))
     try {
       let version = 0
@@ -2058,10 +2008,7 @@ describe('native Encounter Run commands', () => {
     })
     expect(advanced.projection).toMatchObject({ status: 'ACTIVE', round: 2 })
     const receipt = await t.run(async (ctx) =>
-      (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .order('desc')
-        .first()
+      (await readEncounterHistory(ctx)).query('encounterRuleReceipts').order('desc').first()
     )
     expect(JSON.parse(receipt?.resultJson ?? '')).toMatchObject({
       commandType: 'ADVANCE_TURN',
@@ -2080,13 +2027,9 @@ describe('native Encounter Run commands', () => {
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await (await readEncounterHistory(ctx))
-          .query('encounterRuleReceipts')
-          .collect()
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
       }))
     const originalTarget = (await capture()).rounds.find((row) => row.round === 2)!
     await executeInRoom(owner.caller, {
@@ -2173,13 +2116,9 @@ describe('native Encounter Run commands', () => {
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await (await readEncounterHistory(ctx))
-          .query('encounterRuleReceipts')
-          .collect()
+        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
       }))
     const before = await capture()
     await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual(pending)
@@ -2224,7 +2163,9 @@ describe('native Encounter Run commands', () => {
       run: await ctx.db.query('encounterRuns').unique(),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      receipt: await (await readEncounterHistory(ctx))
+      receipt: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRuleReceipts')
         .order('desc')
         .first()
@@ -2306,7 +2247,7 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique()
       if (!row) throw new Error('Missing Creature actor.')
-      const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const state = structuredClone(await readTestActor(ctx, row))
       const snapshot = state.snapshot as { sourceRevision: number }
       snapshot.sourceRevision += 1
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, state)
@@ -2368,7 +2309,7 @@ describe('native Encounter Run commands', () => {
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
         .unique()
       if (!row) throw new Error('Missing Character actor.')
-      const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const state = structuredClone(await readTestActor(ctx, row))
       const snapshot = state.snapshot as { id: string }
       snapshot.id = crypto.randomUUID()
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, state)
@@ -2470,12 +2411,12 @@ describe('native Encounter Run commands', () => {
       participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
       sides: await ctx.db.query('encounterInitiativeSides').collect(),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      ruleReceipts: await (await readEncounterHistory(ctx))
+      ruleReceipts: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRuleReceipts')
         .collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }))
     expect(stored.rounds).toHaveLength(1)
     expect(stored.rounds[0]).toMatchObject({
@@ -2592,15 +2533,13 @@ describe('native Encounter Run commands', () => {
       version: 4,
       currentActorId: null
     })
-    const completedStored = await t.run(async (ctx) => ({
-      round: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect()
-    }))
-    expect(completedStored.round[0]).toMatchObject({ status: 'COMPLETED' })
-    expect(completedStored.participants[0]).toMatchObject({
-      actorId,
-      status: 'ACTED'
-    })
+    // COMPLETE drops the initiative rows with the rest of the Run's children (Amendment 30).
+    expect(
+      await t.run(async (ctx) => ({
+        rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
+        participants: await ctx.db.query('encounterInitiativeParticipants').collect()
+      }))
+    ).toEqual({ rounds: [], participants: [] })
     await expect(replayInRoom(owner.caller, completeInput)).resolves.toEqual(completed)
 
     // The wire schema lowercases ids before the room sees them, so the retry arrives normalized.
@@ -2612,7 +2551,7 @@ describe('native Encounter Run commands', () => {
       executeInRoom(owner.caller, {
         command: { ...input.command, commandId: crypto.randomUUID() }
       })
-    ).rejects.toThrow('Encounter version is stale.')
+    ).rejects.toThrow('Completed Encounters are read-only.')
   })
 
   it('adds, edits, removes, and orders reminders while advancing once per command', async () => {

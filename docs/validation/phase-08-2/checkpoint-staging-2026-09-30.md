@@ -1,5 +1,8 @@
 # Oversized checkpoint staging — 2026-09-30
 
+> **Historical.** The staged route was removed in REL-5 (ADR 0035 Amendment 31): every checkpoint now
+> publishes inline, and the `checkpoint-large` proof replaces the staging proof.
+
 **Status:** focused local staging and inline-retry proofs passed. No acceptance changed: the ledger
 remains 51/75. Scene/fog publication, unified global room sequence, room alarms/final drain, S5/S6/S7,
 Q16 and the complete final-source lifecycle remain pending.

@@ -436,14 +436,10 @@ export async function verifyEncounterAutomation({
     }
     assert.deepEqual(await owner.mutation(api.encounters.runs.create, creation), projection)
     assert.deepEqual(await player.query(api.characters.sheet.get, { id: characterId }), sheet)
-    assert.deepEqual(await owner.mutation(bindScene, sceneBindingInput), {
-      ...sceneBinding,
-      replayed: true
-    })
-    assert.deepEqual(await owner.mutation(bindToken, { input: tokenBindingInput }), {
-      ...tokenBinding,
-      projection
-    })
+    // COMPLETE deletes the Scene binding with the Run's other rows, so a retry of either binding
+    // is refused rather than replayed (ADR 0035 Amendment 30).
+    await assert.rejects(owner.mutation(bindScene, sceneBindingInput), /Completed/)
+    await assert.rejects(owner.mutation(bindToken, { input: tokenBindingInput }), /Completed/)
     assert.deepEqual(
       await owner.query(api.scenes.definitionReads.get, { campaignId, sceneId: scene.sceneId }),
       originalHeader

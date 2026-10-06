@@ -523,7 +523,7 @@
               "proof": [
                 "apps/apis/convex/accountDeletion.test.ts › deletes every own session and linked credential while preserving another account",
                 "apps/apis/convex/accountDeletionHttp.test.ts › deletes only the signed-in account and expires exact session and Convex JWT cookies after commit",
-                "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
+                "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and leaves every Encounter row untouched: %s",
                 "apps/apis/convex/accountDeletion.test.ts › cleans current owned authored records through the native trigger: %s",
                 "apps/apis/convex/social/profiles.test.ts › fails closed on corrupt mature preference evidence and deletes only the departing account profile",
                 "apps/apis/convex/social/accountDeletion.test.ts › withdraws pending applicant history, deletes current identity, and presents retained evidence",
@@ -536,12 +536,12 @@
             },
             {
               "id": "F12.3",
-              "text": "Shared chat, rolls, the Session log, Campaign-owned Encounter Run history (ADR 0033), including held Runs (ADR 0035), survive with Deleted user attribution.",
+              "text": "Shared chat, rolls, the Session log and Campaign-owned Encounter Runs (ADR 0033), including held Runs (ADR 0035), survive with Deleted user attribution. A finished Run keeps its Run and actor records; its command history ends with the Run (D85, D88, ADR 0035 Amendment 30).",
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "apps/apis/convex/campaigns/deletedMemberHistory.test.ts › keeps the Session log and Encounter Run history attributed to the deleted account id (after auth onDelete and media purgeAccount: shared Session notes read Deleted user, RSVPs and the Run timeline keep the opaque account id)",
                 "apps/apis/convex/campaigns/chat.test.ts › masks a removed profile while retaining OOC, roleplay, and roll snapshots (chat and roll entries read Deleted user once the profile is gone)",
-                "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and preserves finished Encounter history: %s",
+                "apps/apis/convex/characters/accountDeletion.test.ts › removes complete private Character state and leaves every Encounter row untouched: %s",
                 "impl: apps/apis/convex/campaigns/authorLabels.ts (readCampaignAuthorLabels, shared by chat, rolls and Session notes), apps/apis/convex/campaigns/sessionNotes.ts, apps/apis/convex/lib/authTriggers.helper.ts",
                 "reworded, user-approved 2026-09-27 (ADR 0035): the entries above still prove the clause for Runs Convex owns; a Run held by the room is not covered",
                 "apps/apis/convex/liveSessions/roomInputs.test.ts › reads as DELETED once the Character no longer exists",
@@ -2168,7 +2168,7 @@
                 "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › keeps a new entry private to its author and the GM, and a hidden entry reads as missing by ID",
                 "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › lists a shared entry to every active member with its author, changeable only by the author, and lets the GM delete it",
                 "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › keeps a departed player’s entries, private ones readable only by the GM",
-                "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › removes a deleted account’s private entries in bounded batches and keeps its shared ones as Deleted user",
+                "apps/apis/convex/campaigns/notebooks.test.ts › native Campaign notebooks › keeps a deleted account’s entries as Deleted user, private ones readable only by the GM",
                 "apps/apis/convex/campaigns/copyJobs.test.ts › Campaign selected notebook copy jobs › copies only selected categories in bounded pages and leaves the source exact (copies only the owner's own entries)",
                 "impl: apps/apis/convex/campaigns/notebooks.ts, noteVisibility.ts, noteRemoval.ts, copyJobs.ts; packages/schema/src/api/campaignSessions.ts (campaignNoteVisibilitySchema); apps/web/src/domains/campaigns/components/CampaignNotebook.tsx, CampaignNoteVisibility.tsx"
               ]
@@ -2262,11 +2262,11 @@
                 "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › keeps a new note private to its author and the GM, and a hidden note reads as missing by ID",
                 "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › lists a shared note to every active member with its author, changeable only by the author, and lets the GM delete it",
                 "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › keeps a departed player’s notes, private ones readable only by the GM",
-                "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › removes a deleted account’s private notes in bounded batches and keeps its shared ones as Deleted user",
+                "apps/apis/convex/campaigns/sessionNotes.test.ts › native Session finish and notes › keeps a deleted account’s notes as Deleted user, private ones readable only by the GM",
                 "packages/schema/src/__tests__/campaign-contracts.test.ts › makes new notes private by default and keeps non-note Session sections private",
                 "apps/web/src/domains/campaigns/components/CampaignSessionNotes.test.tsx › SessionSectionEditor › shows a private note to the GM with its author, and to its author as an editable visibility choice",
                 "apps/web/src/domains/campaigns/components/CampaignSessionNotes.test.tsx › SessionSectionEditor › lets only an editable author change a note’s visibility",
-                "impl: apps/apis/convex/campaigns/sessionNotes.ts, noteVisibility.ts, noteRemoval.ts, accountDeparture.helper.ts; apps/web/src/domains/campaigns/components/CampaignSessionNotes.tsx, CampaignNoteVisibility.tsx"
+                "impl: apps/apis/convex/campaigns/sessionNotes.ts, noteVisibility.ts, authorLabels.ts; apps/web/src/domains/campaigns/components/CampaignSessionNotes.tsx, CampaignNoteVisibility.tsx"
               ]
             }
           ]
@@ -3527,37 +3527,37 @@
             {
               "id": "V15.1",
               "text": "The frozen local workload (one GM, five players, eleven actors, eight rounds, up to two actions and one reaction per actor turn) completes with same-aggregate conflicts, unrelated concurrency, replay, rollback and privacy, and makes zero Convex calls per command (ADR 0035).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
+                "docs/validation/phase-08-2/v15-workload-2026-10-05.md (run a84: the frozen six-browser workload exited 0 with the full driver assertions; 848 commands across two Runs)",
+                "scripts/v15Budgets.mjs a84 passed its strict window audit: no checkpoint and no other Convex call besides authorization refresh, sign-in and background jobs during combat",
                 "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 ".codex/validation/phase82-goal-20260923/v15-05-analysis/outcome.md (failed attempt V15-20260924-05, superseded)",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (browserless runs on the room architecture completed the full frozen schedule, then exited 1 on the command p95 assertion, before and after D52)",
                 "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (schedule shape and workload accounting only; commands are simulated)",
-                "partial: A35-S10b (D86 Amendments 17 and 23): binding, admission and round change no longer force a checkpoint; warm re-admission proves the token locally and calls no Convex route (nativeLiveSessionRoom.test.ts › re-admits an admitted socket on a locally proven token with no Convex route call); actor token bindings are read from the room (› answers actor token bindings only for the tokens the reader can see, with no Convex call)",
-                "missing: a local workload run that exits 0 with the full driver assertions",
-                "missing: a Convex call count of zero per command in the workload"
+                "partial: A35-S10b (D86 Amendments 17 and 23): binding, admission and round change no longer force a checkpoint; warm re-admission proves the token locally and calls no Convex route (nativeLiveSessionRoom.test.ts › re-admits an admitted socket on a locally proven token with no Convex route call); actor token bindings are read from the room (› answers actor token bindings only for the tokens the reader can see, with no Convex call)"
               ]
             },
             {
               "id": "V15.2",
               "text": "Local measurements meet ephemeral preview p95 of 150 ms or less, warm durable convergence p95 of 250 ms or less and p99 of 500 ms or less, and gameplay command p95 of one second or less, and Convex reads and writes per session stay within the Q16 budgets (ADR 0035 Decision 9).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
+                "docs/validation/phase-08-2/v15-workload-2026-10-05.md (run a84: command p95 187 ms; preview p95 8.6 ms; durable convergence p95 12.2 ms and p99 14.2 ms)",
+                "scripts/v15Budgets.mjs a84: 4.44 MB Convex I/O per modelled session against 4.51 MB (assumptions: 4 fights, 2,000 combat commands, 120 out-of-combat minutes)",
                 "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (after D52: gameplay command p95 1,089-1,090 ms, budget 1,000, missed; warm durable convergence p95 251-252 ms, budget 250, missed; p99 met; ephemeral preview not measured)",
-                "partial: A35-S10b removes the forced flushes on binding, admission and round change and the Convex capture on warm re-admission, cutting synchronous Convex writes per session; not yet measured",
-                "missing: command p95 at or under 1 s, durable convergence p95 at or under 250 ms, and a measured ephemeral preview p95",
-                "missing: measured Convex reads and writes per session against the Q16 budgets"
+                "partial: A35-S10b removes the forced flushes on binding, admission and round change and the Convex capture on warm re-admission, cutting synchronous Convex writes per session; not yet measured"
               ]
             },
             {
               "id": "V15.3",
               "text": "The workload includes player-issued commands for the actors players control (ADR 0034).",
-              "status": "IN_PROGRESS",
+              "status": "READY_FOR_ACCEPTANCE",
               "proof": [
+                "docs/validation/phase-08-2/v15-workload-2026-10-05.md (run a84: actors 2-11 commanded from PLAYER_1-PLAYER_5 room sockets)",
                 "partial: apps/apis/tests/developmentEncounterCutover.ts (scheduleEncounterCutoverWorkload assigns actors 2-11 to PLAYER_1-PLAYER_5; the V15 driver issues their commands from player room sockets, ad2811bce)",
-                "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (the schedule includes GM and PLAYER_1-PLAYER_5 participants)",
-                "missing: player command issuance is exercised only by the real-backend driver, whose runs have not passed (V15.1)"
+                "partial: apps/apis/convex/encounters/cutoverConcurrency.test.ts › runs one frozen eight-round schedule across two concurrent Encounters (the schedule includes GM and PLAYER_1-PLAYER_5 participants)"
               ]
             },
             {

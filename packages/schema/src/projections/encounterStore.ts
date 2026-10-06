@@ -8,7 +8,7 @@ import {
   encounterStoredPendingSnapshotPartSchema,
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRuleReceiptSchema,
-  encounterStoredActorProjectionFactsSchema,
+  encounterStoredActorSnapshotSchema,
   encounterStoredRunActorSchema,
   encounterStoredRunCommandSchema,
   encounterStoredSourceProjectionFactsSchema,
@@ -51,7 +51,7 @@ import {
 export const encounterStoreSchemas = {
   encounterRuns: encounterStoredRunSchema,
   encounterRunActors: encounterStoredRunActorSchema,
-  encounterActorProjectionFacts: encounterStoredActorProjectionFactsSchema,
+  encounterActorSnapshots: encounterStoredActorSnapshotSchema,
   encounterSourceProjectionFacts: encounterStoredSourceProjectionFactsSchema,
   encounterSceneBindings: encounterSceneBindingSchema,
   encounterActorTokenBindings: encounterActorTokenBindingSchema,
@@ -91,15 +91,21 @@ export const encounterStoreIndexes = {
   encounterRuns: {
     by_publicId: ['id'],
     by_campaignId_status: ['campaignId', 'status'],
-    by_campaignId_createdAt_id: ['campaignId', 'createdAt', 'id']
+    by_campaignId_createdAt_id: ['campaignId', 'createdAt', 'id'],
+    by_campaignId_createCommandId: ['campaignId', 'createCommandId']
   },
-  encounterRunActors: { by_encounterId_id: ['encounterId', 'id'] },
-  encounterActorProjectionFacts: {
+  encounterRunActors: {
     by_encounterId_id: ['encounterId', 'id'],
+    by_encounterId_snapshotChecksum: ['encounterId', 'snapshotChecksum'],
     by_encounterId_sourceFactsChecksum: ['encounterId', 'sourceFactsChecksum']
   },
-  encounterSourceProjectionFacts: { by_encounterId_checksum: ['encounterId', 'checksum'] },
-  encounterSceneBindings: { by_encounterId: ['encounterId'], by_sceneId: ['sceneId'] },
+  encounterActorSnapshots: {
+    by_encounterId_checksum: ['encounterId', 'checksum']
+  },
+  encounterSourceProjectionFacts: {
+    by_encounterId_checksum: ['encounterId', 'checksum']
+  },
+  encounterSceneBindings: { by_encounterId: ['encounterId'] },
   encounterActorTokenBindings: {
     by_encounterId_actorId: ['encounterId', 'actorId'],
     by_encounterId_tokenId: ['encounterId', 'tokenId'],
@@ -110,7 +116,9 @@ export const encounterStoreIndexes = {
     by_encounterId_round_actorId: ['encounterId', 'round', 'actorId'],
     by_encounterId_actorId_round: ['encounterId', 'actorId', 'round']
   },
-  encounterInitiativeSides: { by_encounterId_round_sideId: ['encounterId', 'round', 'sideId'] },
+  encounterInitiativeSides: {
+    by_encounterId_round_sideId: ['encounterId', 'round', 'sideId']
+  },
   encounterRunCommands: {
     by_campaignId_commandId: ['campaignId', 'commandId'],
     by_encounterId: ['encounterId'],
@@ -204,7 +212,10 @@ export const encounterStoreIndexes = {
     by_encounterId_sceneId_id: ['encounterId', 'sceneId', 'id'],
     by_encounterId_sceneId_createdOrdinal_id: ['encounterId', 'sceneId', 'createdOrdinal', 'id']
   },
-  campaigns: { by_publicId: ['id'], by_ownerUserId_status: ['ownerUserId', 'status'] },
+  campaigns: {
+    by_publicId: ['id'],
+    by_ownerUserId_status: ['ownerUserId', 'status']
+  },
   campaignMemberships: {
     by_campaignId_userId: ['campaignId', 'userId'],
     by_campaignId_status: ['campaignId', 'status'],

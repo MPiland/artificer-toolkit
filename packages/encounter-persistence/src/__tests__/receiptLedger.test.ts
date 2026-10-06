@@ -50,10 +50,7 @@ function historyEntry(
   })
 }
 
-function characterReceipt(
-  ordinal = 1,
-  history: JsonValue = { ordinal }
-): ReceiptLedgerEntry {
+function characterReceipt(ordinal = 1, history: JsonValue = { ordinal }): ReceiptLedgerEntry {
   return historyEntry('characterCommandReceipts', {
     id: uuid(100 + ordinal),
     characterId,
@@ -63,46 +60,6 @@ function characterReceipt(
     occurredAt: timestamp,
     historyJson: history,
     historyChecksum: checksumCanonicalJson(history)
-  })
-}
-
-const sceneId = uuid(6)
-
-function sceneCommandEntry(ordinal = 1, scene = sceneId): ReceiptLedgerEntry {
-  const commandId = uuid(300 + ordinal)
-  const value = {
-    sceneId: scene,
-    commandId,
-    actorUserId: uuid(3),
-    inputChecksum: checksum,
-    resultChecksum: checksum,
-    encoding: 'UNDO',
-    input: {
-      type: 'UNDO_LAST_SCENE_MOVE',
-      commandId,
-      expectedSceneVersion: 1,
-      sceneId: scene
-    },
-    result: {
-      commandId,
-      sceneId: scene,
-      version: 2,
-      replayed: false,
-      occurrence: null,
-      delta: {
-        kind: 'TOKEN_MOVE_UNDONE',
-        tokenId: uuid(7),
-        position: { x: 1, y: 2 },
-        undoneCommandId: uuid(8)
-      },
-      restoredFogOwners: []
-    }
-  }
-  return receiptLedgerEntrySchema.parse({
-    table: 'sceneLiveCommands',
-    key: [scene, commandId],
-    value,
-    checksum: checksumCanonicalJson(value)
   })
 }
 
@@ -212,54 +169,6 @@ describe('receipt ledger', () => {
         )
       ).toThrow(/checksum/)
     }
-  })
-
-  it('packs Scene command receipts and projects them to a scalar header', () => {
-    const entries = [sceneCommandEntry(1), sceneCommandEntry(2)]
-    const encoded = encodeReceiptLedgerPayload(entries)
-    expect(decodeReceiptLedgerPayload(encoded)).toEqual(entries)
-    const reference = pointer(entries[1]!, 1)
-    expect(projectReceiptHeader(entries[1]!, reference)).toEqual({
-      ...reference,
-      sceneId,
-      commandId: entries[1]!.value.commandId,
-      encoding: 'UNDO'
-    })
-    const invalid = {
-      ...entries[0]!,
-      value: { ...entries[0]!.value, encoding: 'INLINE' }
-    }
-    invalid.checksum = checksumCanonicalJson(invalid.value)
-    expect(() => encodeReceiptLedgerPayload([invalid])).toThrow()
-  })
-
-  it('binds Scene ledgers to their Scene and keeps scopes disjoint', () => {
-    const entry = sceneCommandEntry()
-    const encoded = encodeReceiptLedgerPayload([entry])
-    const entries = decodeReceiptLedgerPayload(encoded)
-    const sceneHead = {
-      ...head(encoded),
-      scope: 'SCENE' as const,
-      scopeId: sceneId
-    }
-    const expected = { table: 'sceneLiveCommands' as const, key: entry.key }
-    expect(readReceiptLedgerEntry(sceneHead, entries, pointer(entry), expected)).toEqual(entry)
-    expect(() =>
-      readReceiptLedgerEntry({ ...sceneHead, scopeId: uuid(99) }, entries, pointer(entry), expected)
-    ).toThrow(/scope/)
-    expect(() =>
-      readReceiptLedgerEntry({ ...sceneHead, scope: 'CAMPAIGN' }, entries, pointer(entry), expected)
-    ).toThrow(/scope/)
-    const receipt = characterReceipt()
-    const character = encodeReceiptLedgerPayload([receipt])
-    expect(() =>
-      readReceiptLedgerEntry(
-        { ...head(character), scope: 'SCENE', scopeId: sceneId },
-        decodeReceiptLedgerPayload(character),
-        pointer(receipt),
-        { table: 'characterCommandReceipts', key: receipt.key }
-      )
-    ).toThrow(/scope/)
   })
 
   it('refuses oversized ledgers and advertised allocation or part counts before decoding', () => {

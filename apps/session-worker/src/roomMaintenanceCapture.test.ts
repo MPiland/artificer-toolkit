@@ -1,5 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -22,10 +23,12 @@ import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import { storedRunDocuments } from './testing/storedRunFixture.js'
 
 it('pages both native dependent owner kinds through exhaustion and rejects cursors outside the selected scope', async () => {
   const campaignId = uuid(0xd00)
-  const systemId = uuid(0xd01)
+  // Creature actors are stored with the facts their System evaluated, so the System is installed.
+  const systemId = DND5E_SYSTEM_ID
   const epoch = uuid(0xd02)
   const gmId = uuid(0xd03)
   const encounterId = uuid(0xd04)
@@ -154,33 +157,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
   if (authority.kind !== 'AUTHORITY') throw new Error('Missing Campaign authority fixture.')
   const documents: RoomDocument[] = [
     ...authority.documents,
-    {
-      table: 'encounterRuns',
-      id: 'maintenance:run',
-      creationTime: 0,
-      fields: {
-        id: state.id,
-        campaignId,
-        gameSystemId: systemId,
-        status: state.status,
-        version: state.version,
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state),
-        createdAt: now,
-        updatedAt: now
-      }
-    },
-    ...actors.map((actor) => ({
-      table: 'encounterRunActors' as const,
-      id: `maintenance:actor:${actor.id}`,
-      creationTime: 0,
-      fields: {
-        id: actor.id,
-        encounterId,
-        stateJson: JSON.stringify(actor),
-        stateChecksum: checksumCanonicalJson(actor)
-      }
-    })),
+    ...(await storedRunDocuments(state, actors)),
     ...[stateId, otherStateId].map((id, index) => {
       const value = {
         ...descriptor,

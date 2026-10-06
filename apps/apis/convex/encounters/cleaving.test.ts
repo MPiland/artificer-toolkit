@@ -2,7 +2,8 @@ import {
   createConvexEncounterStore,
   createConvexEncounterStoreReader
 } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -402,7 +403,7 @@ async function setup(
       .unique()
     if (!source) throw new Error('Missing source.')
     const capability = discoverEncounterFeatureActionCapabilities({
-      actor: encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)),
+      actor: await readTestActor(ctx, source),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
     }).find((candidate) => candidate.ownerFeatureId === automaticChargedBiteFeatureId)
@@ -422,7 +423,7 @@ async function setup(
           .unique()
         if (!targetRow) throw new Error('Missing Cleaving target.')
         const targetState = encounterRunActorStateSchema.parse({
-          ...JSON.parse(targetRow.stateJson),
+          ...(await readTestActor(ctx, targetRow)),
           public: target.id === run.actors[2]!.id
         })
         await writeRunActor({ db: createConvexEncounterStore(ctx) }, targetRow._id, targetState)
@@ -614,11 +615,15 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    commands: await (await readEncounterHistory(ctx))
+    commands: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
@@ -697,10 +702,8 @@ describe('native Cleaving action settlement', () => {
     const command = base.command.command
     if (command.type !== 'RESOLVE_ACTION') throw new Error('Missing Cleaving action command.')
     const before = await records(base)
-    const committed = await executeInRoom(
-      base.owner.caller,
-      base.command,
-      (maximum) => (maximum === 20 ? 19 : 0)
+    const committed = await executeInRoom(base.owner.caller, base.command, (maximum) =>
+      maximum === 20 ? 19 : 0
     )
     const after = await records(base)
     expect(after.run?.version).toBe(before.run!.version + 1)
@@ -711,9 +714,9 @@ describe('native Cleaving action settlement', () => {
     ).toEqual(committed.projection)
     const rootReceipt = after.receipts.find((receipt) => receipt.commandId === command.commandId)
     if (!rootReceipt) throw new Error('Missing Cleaving root receipt.')
-    expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson)).status).toBe(
-      'COMPLETE'
-    )
+    expect(
+      storedRuleExecutionResultDtoSchema.parse(JSON.parse(rootReceipt.resultJson)).status
+    ).toBe('COMPLETE')
     const pending = after.occurrences.filter((occurrence) => occurrence.state === 'PENDING')
     expect(pending).toHaveLength(1)
     const snapshot = await base.t.run((ctx) =>
@@ -942,8 +945,8 @@ describe('native Cleaving action settlement', () => {
       })
       const character = characterAuthoredDtoSchema.parse(readCharacterRecord(after.character!))
       expect(character.state.conditions).toEqual([{ conditionTypeId: seeded.poisoned.id }])
-      const source = encounterRunActorStateSchema.parse(
-        JSON.parse(after.records.actors.find((actor) => actor.id === base.actor.id)!.stateJson)
+      const source = readStoredRunActor(
+        after.records.actors.find((actor) => actor.id === base.actor.id)!
       )
       expect(source).not.toHaveProperty('conditions')
       expect(after.effects.map((effect) => effect.id)).toEqual([seeded.independent.id])
@@ -961,15 +964,15 @@ describe('native Cleaving action settlement', () => {
       ).rejects.toMatchObject({ data: { reason: 'VERSION_STALE' } })
       expect(await current()).toEqual(after)
       const nextTargetId = next.options[0]!.targetActorId
-      const nextTargetBefore = encounterRunActorStateSchema.parse(
-        JSON.parse(after.records.actors.find((actor) => actor.id === nextTargetId)!.stateJson)
+      const nextTargetBefore = readStoredRunActor(
+        after.records.actors.find((actor) => actor.id === nextTargetId)!
       )
       await expect(room(base, base.owner, response(base, next))).resolves.toMatchObject({
         occurrence: { status: 'COMPLETE' }
       })
       const final = await records(base)
-      const nextTargetAfter = encounterRunActorStateSchema.parse(
-        JSON.parse(final.actors.find((actor) => actor.id === nextTargetId)!.stateJson)
+      const nextTargetAfter = readStoredRunActor(
+        final.actors.find((actor) => actor.id === nextTargetId)!
       )
       if (nextTargetBefore.kind === 'CHARACTER' || nextTargetAfter.kind === 'CHARACTER')
         throw new Error('Expected a non-Character Cleaving target.')
@@ -992,9 +995,7 @@ describe('native Cleaving action settlement', () => {
         const parent = await records(base)
         expect(
           featureChargeUsed(
-            encounterRunActorStateSchema.parse(
-              JSON.parse(parent.actors.find((actor) => actor.id === base.actor.id)!.stateJson)
-            ),
+            readStoredRunActor(parent.actors.find((actor) => actor.id === base.actor.id)!),
             automaticChargedBiteFeatureId
           )
         ).toBe(1)
@@ -1022,9 +1023,7 @@ describe('native Cleaving action settlement', () => {
         const final = await records(base)
         expect(
           featureChargeUsed(
-            encounterRunActorStateSchema.parse(
-              JSON.parse(final.actors.find((actor) => actor.id === base.actor.id)!.stateJson)
-            ),
+            readStoredRunActor(final.actors.find((actor) => actor.id === base.actor.id)!),
             automaticChargedBiteFeatureId
           )
         ).toBe(1)
@@ -1296,7 +1295,7 @@ describe('native Cleaving action settlement', () => {
             .unique()
           if (!row) throw new Error('Missing target.')
           const actor = encounterRunActorStateSchema.parse({
-            ...JSON.parse(row.stateJson),
+            ...(await readTestActor(ctx, row)),
             currentHitPoints: 10
           })
           await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
@@ -1331,7 +1330,7 @@ describe('native Cleaving action settlement', () => {
     for (const actorId of [base.actor.id, pending.options[0]!.targetActorId]) {
       await base.t.run(async (ctx) => {
         const row = before.actors.find((actor) => actor.id === actorId)!
-        const changed = { ...JSON.parse(row.stateJson), currentHitPoints: 1 }
+        const changed = { ...(await readTestActor(ctx, row)), currentHitPoints: 1 }
         await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, changed)
       })
       const stale = await records(base)

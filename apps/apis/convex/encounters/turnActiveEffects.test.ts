@@ -2,7 +2,7 @@ import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
 } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -18,7 +18,6 @@ import type {
   CampaignPlaySettingsDto,
   SaveCampaignPlaySettingsInput
 } from '@artificer-toolkit/schema/api/campaignSettings'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -111,11 +110,15 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .collect(),
-    commands: await (await readEncounterHistory(ctx))
+    commands: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
@@ -764,7 +767,7 @@ describe('native public turn active-effect journeys', () => {
         occurrence: { status: 'COMPLETE', pending: null }
       })
       const terminal = await stored(base)
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(terminal.actors[0]!.stateJson))
+      const actor = readStoredRunActor(terminal.actors[0]!)
       if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
       expect(actor.currentHitPoints).toBe(
         encounterGmProjectionDtoSchema.parse(spent.projection).actors[0]!.currentHitPoints - 3
@@ -893,7 +896,7 @@ describe('native public turn active-effect journeys', () => {
     await expect(executeInRoom(base.owner.caller, wrongRequest)).rejects.toThrow()
     expect(await stored(base)).toEqual(before)
     const actorRow = before.actors[0]!
-    const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+    const actor = readStoredRunActor(actorRow)
     if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
     const alteredActor = {
       ...actor,

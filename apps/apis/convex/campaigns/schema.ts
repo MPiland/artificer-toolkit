@@ -228,8 +228,7 @@ export const campaignTables = {
     .index('by_campaignId_id', ['campaignId', 'id']),
   campaignSessionNotes: defineTable(zodToConvexFields(campaignStoredSessionNoteSchema.shape))
     .index('by_campaignId_sessionId_id', ['campaignId', 'sessionId', 'id'])
-    .index('by_campaignId_sessionId_sortOrder_id', ['campaignId', 'sessionId', 'sortOrder', 'id'])
-    .index('by_campaignId_authorUserId_visibility', ['campaignId', 'authorUserId', 'visibility']),
+    .index('by_campaignId_sessionId_sortOrder_id', ['campaignId', 'sessionId', 'sortOrder', 'id']),
   campaignSessions: defineTable(zodToConvexFields(campaignSessionDtoSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_campaignId_id', ['campaignId', 'id'])
@@ -263,7 +262,6 @@ export const campaignTables = {
       'category',
       'id'
     ])
-    .index('by_campaignId_authorUserId_visibility', ['campaignId', 'authorUserId', 'visibility'])
     .index('by_campaignId_sortOrder_id', ['campaignId', 'sortOrder', 'id']),
   campaignConversations: defineTable(zodToConvexFields(campaignStoredConversationSchema.shape))
     .index('by_publicId', ['id'])

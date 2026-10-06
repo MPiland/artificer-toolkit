@@ -1,12 +1,11 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 // @vitest-environment node
 import { expect, it } from 'vitest'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { planMovementInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
 
@@ -32,11 +31,15 @@ async function records(value: Fixture) {
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
-    runCommands: await (await readEncounterHistory(ctx))
+    runCommands: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRunCommands')
       .withIndex('by_campaignId_commandId', (q) =>
         q.eq('campaignId', value.base.campaign.id).eq('commandId', value.rootInput.commandId)
@@ -153,8 +156,8 @@ it('commits a spatial prefix once before a choice pause', async () => {
   const beforeMover = before.actors.find((actor) => actor.id === value.base.mover.id)
   const afterMover = after.actors.find((actor) => actor.id === value.base.mover.id)
   if (!beforeMover || !afterMover) throw new Error('Spatial target actor is unavailable.')
-  const beforeMoverState = encounterRunActorStateSchema.parse(JSON.parse(beforeMover.stateJson))
-  const afterMoverState = encounterRunActorStateSchema.parse(JSON.parse(afterMover.stateJson))
+  const beforeMoverState = readStoredRunActor(beforeMover)
+  const afterMoverState = readStoredRunActor(afterMover)
   if (beforeMoverState.kind === 'CHARACTER' || afterMoverState.kind === 'CHARACTER')
     throw new Error('Expected a non-Character mover.')
   expect(afterMoverState.currentHitPoints).toBe(beforeMoverState.currentHitPoints - 1)

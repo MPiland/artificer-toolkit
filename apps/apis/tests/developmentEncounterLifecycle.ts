@@ -333,10 +333,9 @@ export async function verifyEncounterLifecycle({
       projection
     })
   }
-  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
-    ...tokenResult,
-    projection
-  })
+  // COMPLETE deletes the Scene binding with the rest of the Run's rows (ADR 0035 Amendment 30), so
+  // a token binding retry is a typed rejection; the room journal still answers command retries.
+  await assert.rejects(owner.mutation(bindToken, { input: tokenInput }), /Completed/)
   await assert.rejects(
     owner.mutation(executeEncounterCommand, {
       command: { ...start, expectedVersion: projection.version }

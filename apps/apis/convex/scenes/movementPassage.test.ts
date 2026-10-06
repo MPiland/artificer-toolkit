@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   PendingEncounterRuleOccurrenceSummaryDto,
@@ -37,7 +39,6 @@ import {
   readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
-import { readReceiptHeader } from '../lib/receiptLedgers'
 import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
@@ -242,7 +243,7 @@ async function exhaustFixtureReaction(value: Awaited<ReturnType<typeof setupPass
       )
       .unique()
     if (!actor) throw new Error('Passage fixture reactor is unavailable.')
-    const state = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+    const state = await readTestActor(ctx, actor)
     const exhausted = encounterRunActorStateSchema.parse({
       ...state,
       resources: withEncounterRuleUsageUsed(state, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 1)
@@ -496,9 +497,7 @@ describe('native Scene movement passage', () => {
           .unique()
       )
       if (!row) throw new Error('Passage helper is unavailable.')
-      return encounterBasicActionEffects(
-        encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-      )
+      return encounterBasicActionEffects(readStoredRunActor(row))
     }
     const { choice } = await issuePassage(value)
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
@@ -581,7 +580,6 @@ describe('native Scene movement passage', () => {
         runs: await ctx.db.query('encounterRuns').collect(),
         scenes: await ctx.db.query('sceneLiveStates').collect(),
         sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -591,11 +589,10 @@ describe('native Scene movement passage', () => {
       records.actors.reduce(
         (total, actor) =>
           total +
-          Object.values(
-            encounterRuleUsageSnapshot(
-              encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-            )
-          ).reduce((sum, usage) => sum + usage, 0),
+          Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
+            (sum, usage) => sum + usage,
+            0
+          ),
         0
       )
     const before = await rows()
@@ -627,7 +624,6 @@ describe('native Scene movement passage', () => {
         runs: await ctx.db.query('encounterRuns').collect(),
         scenes: await ctx.db.query('sceneLiveStates').collect(),
         sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -637,11 +633,10 @@ describe('native Scene movement passage', () => {
       actors.reduce(
         (total, actor) =>
           total +
-          Object.values(
-            encounterRuleUsageSnapshot(
-              encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-            )
-          ).reduce((sum, usage) => sum + usage, 0),
+          Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
+            (sum, usage) => sum + usage,
+            0
+          ),
         0
       )
     const spentBefore = await checksums()
@@ -701,29 +696,29 @@ describe('native Scene movement passage', () => {
       staged: ReturnType<typeof roomState>
       after: ReturnType<typeof roomState>
     }[] = []
-    const failing = vi
-      .spyOn(RoomEncounterStore.prototype, 'transact')
-      .mockImplementation(function (this: RoomEncounterStore, ...args) {
-        const [work, durable] = args
-        // Only the command's journaled transaction carries its durable commit.
-        if (!durable) return transact.apply(this, args)
-        const entry = { before: roomState(this) } as (typeof observed)[number]
-        return transact
-          .call(
-            this,
-            async (transaction) => {
-              const result = await work(transaction)
-              entry.staged = roomState(this)
-              throw new Error('Injected passage terminal failure')
-              return result
-            },
-            durable
-          )
-          .finally(() => {
-            entry.after = roomState(this)
-            observed.push(entry)
-          })
-      })
+    const failing = vi.spyOn(RoomEncounterStore.prototype, 'transact').mockImplementation(function (
+      this: RoomEncounterStore,
+      ...args
+    ) {
+      const [work, durable] = args
+      // Only the command's journaled transaction carries its durable commit.
+      if (!durable) return transact.apply(this, args)
+      const entry = { before: roomState(this) } as (typeof observed)[number]
+      return transact
+        .call(
+          this,
+          async (transaction) => {
+            await work(transaction)
+            entry.staged = roomState(this)
+            throw new Error('Injected passage terminal failure')
+          },
+          durable
+        )
+        .finally(() => {
+          entry.after = roomState(this)
+          observed.push(entry)
+        })
+    })
     await expect(planMovementDecisionInRoom(value.owner.caller, command)).rejects.toThrow(
       'Injected passage terminal failure'
     )
@@ -807,11 +802,10 @@ describe('native Scene movement passage', () => {
         actors.reduce(
           (total, actor) =>
             total +
-            Object.values(
-              encounterRuleUsageSnapshot(
-                encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-              )
-            ).reduce((sum, value) => sum + value, 0),
+            Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
+              (sum, value) => sum + value,
+              0
+            ),
           0
         )
       expect(usage(after)).toBe(usage(before) + 1)
@@ -962,7 +956,9 @@ describe('native Scene movement passage', () => {
       position: { x: 450, y: 50 }
     })
     const receipt = await value.base.t.run(async (ctx) => {
-      return await (await readEncounterHistory(ctx))
+      return await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) =>
           q.eq('encounterId', value.base.run.id).eq('commandId', response.command.commandId)

@@ -1,4 +1,3 @@
-import { readReceiptHeader } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'

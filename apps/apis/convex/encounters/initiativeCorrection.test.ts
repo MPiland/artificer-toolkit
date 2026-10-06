@@ -1,4 +1,3 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -258,11 +257,11 @@ describe('native initiative corrections', () => {
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .collect(),
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        ruleReceipts: await (await readEncounterHistory(ctx))
+        ruleReceipts: await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRuleReceipts')
           .collect()
       }))
@@ -466,9 +465,7 @@ describe('native initiative corrections', () => {
     const stored = await base.t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      commands: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect(),
+      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
       rounds: await ctx.db.query('encounterInitiativeRounds').collect()
     }))
     // COMPLETE drops the Run's room-held history.
@@ -484,7 +481,7 @@ describe('native initiative corrections', () => {
         })
       ])
     )
-    expect(stored.rounds).toHaveLength(2)
+    expect(stored.rounds).toEqual([])
     for (const command of corrections) {
       if (
         command.commandType !== 'SET_ROUND' &&

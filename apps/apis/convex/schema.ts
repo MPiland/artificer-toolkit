@@ -29,7 +29,6 @@ import { importTables } from './imports/schema'
 import { normalizedImageCropSchema } from '@artificer-toolkit/schema/api/media'
 import { contentSnapshotTables } from './contentSnapshots/schema'
 import { receiptLedgerTables } from './lib/receiptLedgerSchema'
-import { liveSessionCheckpointTables } from './liveSessions/checkpointSchema'
 import { mediaStoredAssetSchema } from '@artificer-toolkit/schema/api/mediaAssets'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
 
@@ -119,6 +118,5 @@ export default defineSchema({
   ...ruleEffectTables,
   ...importTables,
   ...contentSnapshotTables,
-  ...receiptLedgerTables,
-  ...liveSessionCheckpointTables
+  ...receiptLedgerTables
 })

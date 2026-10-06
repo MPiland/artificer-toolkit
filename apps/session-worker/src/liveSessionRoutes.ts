@@ -10,12 +10,6 @@ import {
   liveSessionCheckpointRequestSchema,
   liveSessionCheckpointResponseSchema
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
-import {
-  liveSessionCheckpointStageInputSchema,
-  liveSessionCheckpointPartInputSchema,
-  liveSessionCheckpointCommitInputSchema,
-  liveSessionCheckpointStageResponseSchema
-} from '@artificer-toolkit/schema/api/liveSessionCheckpointStaging'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
 import {
   liveSessionRoomAuthorizationInputSchema,
@@ -30,6 +24,8 @@ import {
   liveSessionDrainReleaseInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import {
+  liveSessionRoomSceneCaptureInputSchema,
+  liveSessionRoomSceneCaptureSchema,
   liveSessionTransientCaptureInputSchema,
   liveSessionTransientCaptureSchema
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
@@ -83,18 +79,6 @@ type Parser<T> = { parse(value: unknown): T }
 
 /** Every private Convex route the Worker calls, with the contracts both sides validate. */
 const liveSessionRoutes = {
-  checkpointStage: {
-    input: liveSessionCheckpointStageInputSchema,
-    output: liveSessionCheckpointStageResponseSchema
-  },
-  checkpointPart: {
-    input: liveSessionCheckpointPartInputSchema,
-    output: liveSessionCheckpointStageResponseSchema
-  },
-  checkpointCommit: {
-    input: liveSessionCheckpointCommitInputSchema,
-    output: liveSessionCheckpointResponseSchema
-  },
   checkpoint: {
     input: liveSessionCheckpointRequestSchema,
     output: liveSessionCheckpointResponseSchema
@@ -106,6 +90,10 @@ const liveSessionRoutes = {
   roomAuthorization: {
     input: liveSessionRoomAuthorizationInputSchema,
     output: liveSessionRoomAuthorizationResponseSchema
+  },
+  roomSceneCapture: {
+    input: liveSessionRoomSceneCaptureInputSchema,
+    output: liveSessionRoomSceneCaptureSchema
   },
   roomInputs: { input: liveRoomInputsInputSchema, output: liveRoomInputsResponseSchema },
   bootstrap: { input: liveSessionBootstrapInputSchema, output: liveSessionBootstrapResponseSchema },

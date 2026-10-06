@@ -9,7 +9,6 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterStore'
 import {
   receiptHeaderSchemas,
-  sceneCommandHeaderSchema,
   type ReceiptHeaderDocuments,
   type ReceiptHeaderTable
 } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
@@ -39,12 +38,12 @@ export type ReceiptHeaderRef = {
 }[ReceiptHeaderTable]
 
 export type InsertedReceiptHeader = {
-  [Table in ReceiptHeaderTable | 'sceneLiveCommands']: {
+  [Table in ReceiptHeaderTable]: {
     table: Table
     entryIndex: number
     id: Id<Table>
   }
-}[ReceiptHeaderTable | 'sceneLiveCommands']
+}[ReceiptHeaderTable]
 
 export type HydratedReceiptHeader<Table extends ReceiptHeaderTable> =
   EncounterStoreDocuments[Table] & { _id: Id<Table>; _creationTime: number }
@@ -146,7 +145,7 @@ async function loadReceiptLedger(ctx: QueryCtx, ledgerId: string): Promise<Decod
   if (parts.length !== metadata.partCount)
     throw new Error('Receipt ledger parts are missing or duplicated.')
   for (let index = 0; index < parts.length; index++) {
-    const { _id, _creationTime, bytes, ...fields } = parts[index]!
+    const { _id, _creationTime, bytes: _bytes, ...fields } = parts[index]!
     const part = receiptLedgerPartMetadataSchema.parse(fields)
     if (part.ledgerId !== metadata.id || part.index !== index)
       throw new Error('Receipt ledger parts are out of order or duplicated.')
@@ -250,21 +249,6 @@ async function insertHeader(
     entryChecksum: entry.checksum
   })
   switch (entry.table) {
-    case 'sceneLiveCommands': {
-      const fields = sceneCommandHeaderSchema.parse(header)
-      const collision = await ctx.db
-        .query(entry.table)
-        .withIndex('by_sceneId_commandId', (q) =>
-          q.eq('sceneId', fields.sceneId).eq('commandId', fields.commandId)
-        )
-        .take(1)
-      if (collision.length) throw new Error('Receipt header identity already exists.')
-      return {
-        table: entry.table,
-        entryIndex,
-        id: await ctx.db.insert(entry.table, fields)
-      }
-    }
     case 'characterCommandReceipts': {
       const fields = receiptHeaderSchemas.characterCommandReceipts.parse(header)
       const collision = await ctx.db
@@ -324,7 +308,7 @@ async function insertHeader(
 }
 
 /**
- * Runs inside the caller's mutation. Private Character, shared Encounter and Scene scopes stay separate;
+ * Runs inside the caller's mutation. Private Character and shared Campaign scopes stay separate;
  * the caller owns authority and any held Character association.
  */
 export async function createReceiptLedger(
@@ -351,10 +335,7 @@ export async function createReceiptLedger(
   if (collision.length || orphanParts.length)
     throw new Error('Receipt ledger identity already exists.')
   // Refuse orphan headers as well: publishing a new body must never adopt a corrupt old pointer.
-  for (const table of [
-    ...(Object.keys(receiptHeaderSchemas) as ReceiptHeaderTable[]),
-    'sceneLiveCommands' as const
-  ]) {
+  for (const table of Object.keys(receiptHeaderSchemas) as ReceiptHeaderTable[]) {
     const orphanHeaders = await ctx.db
       .query(table)
       .withIndex('by_ledgerId_entryIndex', (q) => q.eq('ledgerId', metadata.id))

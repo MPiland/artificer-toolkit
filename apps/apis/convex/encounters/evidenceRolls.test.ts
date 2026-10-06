@@ -1,5 +1,4 @@
 import { api } from '../_generated/api'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
@@ -15,7 +14,11 @@ import {
   storeRunAutomationMode,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import { executeInRoom, RoomCommandRefusal, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  RoomCommandRefusal,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
@@ -247,7 +250,9 @@ describe('Encounter roll prompts', () => {
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
           .collect(),
-        receipts: await (await readEncounterHistory(ctx))
+        receipts: await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
           .collect()

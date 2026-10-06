@@ -28,12 +28,15 @@ export function sceneNotPresentedRejection(): LiveSessionDomainRejectionError {
 
 /**
  * What a member is told when a private route refuses their Encounter command without a domain
- * reason: Convex redacts the cause, so only the route's status is shown.
+ * reason: Convex redacts the cause, so only the route's status is shown. A failure inside the room
+ * itself is logged, since the member is told nothing about it.
  */
 export function encounterCommandRefusal(error: unknown): {
   code: LiveSessionCommandRejectionCodeDto
   message: string
 } {
+  if (!(error instanceof LiveSessionRouteError))
+    console.error('Live Session Encounter command failed in the room.', error)
   const status = error instanceof LiveSessionRouteError ? error.status : 0
   if (status === 409)
     return {

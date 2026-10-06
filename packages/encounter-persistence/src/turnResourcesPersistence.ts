@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState,
@@ -104,7 +105,7 @@ export async function persistEncounterTurnResources(
       .unique()
     if (
       !row ||
-      row.stateChecksum !== checksumCanonicalJson(before) ||
+      row.stateChecksum !== checksumRunActorPlayState(before) ||
       after.id !== before.id ||
       after.encounterId !== before.encounterId ||
       after.systemId !== before.systemId ||

@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import type {
   EncounterExecuteInput,
   PendingEncounterRuleOccurrenceSummaryDto,
@@ -13,7 +14,6 @@ import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneM
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { api } from '../_generated/api'
 import {
   executeInRoom,
@@ -84,8 +84,8 @@ async function answer(
   }
 }
 
-function moverConditionIds(stateJson: string) {
-  const actor = encounterRunActorStateSchema.parse(JSON.parse(stateJson))
+function moverConditionIds(row: Parameters<typeof readStoredRunActor>[0]) {
+  const actor = readStoredRunActor(row)
   if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character movement target.')
   return readEncounterActorConditionState(actor.conditions).ids
 }
@@ -133,7 +133,7 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
     (entry) => entry.id === base.mover.id
   )
   if (!actor) throw new Error('Movement reaction target missing.')
-  expect(moverConditionIds(actor.stateJson)).not.toEqual([])
+  expect(moverConditionIds(actor)).not.toEqual([])
   expect(before.actors).not.toEqual((await reactionRecords(base.t, base.run.id)).actors)
 }, 30_000)
 
@@ -262,7 +262,7 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
         (actor) => actor.id === base.mover.id
       )
       if (!target) throw new Error('Expiry target actor missing.')
-      expect(moverConditionIds(target.stateJson)).toContain(frightened.id)
+      expect(moverConditionIds(target)).toContain(frightened.id)
     }
   }
   expect(targetTurns).toBe(2)
@@ -271,5 +271,5 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
     (actor) => actor.id === base.mover.id
   )
   if (!expiredTarget) throw new Error('Expired target actor missing.')
-  expect(moverConditionIds(expiredTarget.stateJson)).not.toContain(frightened.id)
+  expect(moverConditionIds(expiredTarget)).not.toContain(frightened.id)
 }, 30_000)

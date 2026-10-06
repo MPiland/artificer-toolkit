@@ -43,8 +43,8 @@ import {
   loadCampaignEncounterOptionalActionChoices
 } from '#app/data/campaigns/encounterActions'
 import { useCampaignPresentedScene } from '#app/data/campaigns/useCampaignPresentedScene'
+import { useVttMapDelivery } from '#app/data/media'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import { queryKeys } from '#app/lib/queryKeys'
 import { errorMessage } from '#app/lib/errorMessage'
 import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
@@ -263,21 +263,8 @@ export function CampaignVttStage({
     enabled: campaign.role === 'OWNER',
     staleTime: 30_000
   })
-  const presented = useCampaignPresentedScene(campaign.id, false)
+  const presented = useCampaignPresentedScene(campaign.id, live.recipientState)
   const scene = live.recipientState?.scene ?? undefined
-  useEffect(() => {
-    if (presented.recipientHeader && presented.presentationVersion !== null)
-      live.synchronizeScene(
-        presented.recipientHeader.id,
-        presented.recipientHeader.version,
-        presented.presentationVersion
-      )
-  }, [
-    live.synchronizeScene,
-    presented.presentationVersion,
-    presented.recipientHeader?.id,
-    presented.recipientHeader?.version
-  ])
   const sceneBindingInput =
     activeEncounter && scene ? { encounterId: activeEncounter.id, sceneId: scene.id } : null
   const roomSceneBinding = useRoomEncounterRead({
@@ -327,19 +314,11 @@ export function CampaignVttStage({
   const convexActorTokenBindings = useQuery({
     retry: (failureCount, error) =>
       failureCount < 2 && error.message.includes('Connection lost while action was in flight'),
-    enabled: Boolean(
-      !roomActorTokenBindings.routed && activeEncounterSceneBinding && presented.recipientHeader
-    ),
+    enabled: Boolean(!roomActorTokenBindings.routed && activeEncounterSceneBinding),
     gcTime: 0,
     queryFn: ({ signal }) => {
-      if (!activeEncounterSceneBinding || !presented.recipientHeader)
-        throw new Error('Encounter Scene binding is unavailable.')
-      return loadCampaignSceneEncounterBindings(
-        convex,
-        activeEncounterSceneBinding,
-        presented.recipientHeader,
-        signal
-      )
+      if (!activeEncounterSceneBinding) throw new Error('Encounter Scene binding is unavailable.')
+      return loadCampaignSceneEncounterBindings(convex, activeEncounterSceneBinding, signal)
     },
     queryKey: [
       'campaigns',
@@ -348,8 +327,7 @@ export function CampaignVttStage({
       scene?.id ?? null,
       'encounters',
       activeEncounter?.id ?? null,
-      activeEncounterSceneBinding?.encounterVersion ?? null,
-      presented.recipientHeader?.recipientRevision ?? null
+      activeEncounterSceneBinding?.encounterVersion ?? null
     ]
   })
   const actorTokenBindings = roomActorTokenBindings.routed
@@ -411,19 +389,9 @@ export function CampaignVttStage({
       />
     ) : null
 
-  const mapDelivery = useQuery({
-    enabled: Boolean(scene?.map.assetId),
-    queryFn: () =>
-      convex.action(convexApi.media.vttMapActions.getDelivery, {
-        assetId: scene!.map.assetId
-      }),
-    queryKey: queryKeys.media.vttMap(scene?.map.assetId ?? 'unavailable'),
-    refetchInterval: 4 * 60_000,
-    refetchIntervalInBackground: true,
-    refetchOnReconnect: 'always',
-    refetchOnWindowFocus: false,
-    staleTime: 4 * 60_000
-  })
+  const mapDelivery = useVttMapDelivery(scene?.map.assetId ?? null, (delivery) =>
+    renderer.current?.retryMap(delivery)
+  )
   const mapFailure =
     mapDelivery.error instanceof Error
       ? mapDelivery.error.message
@@ -604,7 +572,10 @@ export function CampaignVttStage({
     if (!host || !scene) return
     let disposed = false
     void createVttSceneRenderer(host, {
-      onMapLoadStatus: setMapLoadStatus,
+      onMapLoadStatus: (status) => {
+        setMapLoadStatus(status)
+        mapDelivery.onMapLoadStatus(status)
+      },
       onCreateAnnotation: (position) => {
         const current = sceneRef.current
         if (!current || campaign.role !== 'OWNER') return
@@ -723,9 +694,7 @@ export function CampaignVttStage({
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
-    void mapDelivery.refetch().then((result) => {
-      if (result.isSuccess) renderer.current?.retryMap(result.data)
-    })
+    mapDelivery.refresh()
   }
 
   function commitMeasurement(path: ScenePoint[]): void {
@@ -864,7 +833,7 @@ export function CampaignVttStage({
   if (
     (!room && storedSessionState.isPending) ||
     presented.isLoading ||
-    (Boolean(presented.recipientHeader) && !live.recipientState?.scene)
+    (Boolean(presented.sceneId) && !scene)
   ) {
     return <VttEmpty title='Loading live map…' />
   }
@@ -912,7 +881,6 @@ export function CampaignVttStage({
     <section
       className={styles.shell}
       aria-label={`Live scene: ${scene.name}`}
-      data-recipient-scene-version={presented.recipientHeader?.version}
     >
       <div className={styles.header}>
         <div className={styles.identity}>

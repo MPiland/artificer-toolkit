@@ -124,11 +124,11 @@ export const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTa
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
   },
   {
-    table: 'encounterActorProjectionFacts',
+    table: 'encounterActorSnapshots',
     query: (ctx, encounterId) =>
       ctx.db
-        .query('encounterActorProjectionFacts')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
+        .query('encounterActorSnapshots')
+        .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
   },
   {
     table: 'encounterSourceProjectionFacts',

@@ -36,7 +36,7 @@ export function getNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, enabl
       ? nodeRuntimeResolveRequestDtoSchema.parse(JSON.parse(JSON.stringify(input)))
       : 'skip'
   )
-  return queryOptions<NodeRuntimeCompactResolveResponseDto | NodeRuntimeResolveResponseDto>({
+  return queryOptions<NodeRuntimeCompactResolveResponseDto>({
     queryKey,
     enabled: enabled && Boolean(input.systemId),
     staleTime: Infinity
@@ -45,23 +45,13 @@ export function getNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, enabl
 
 export function useNodeRuntimeResolve(input: NodeRuntimeResolveRequestDto, enabled = true) {
   const resolveEnabled = enabled && Boolean(input.systemId)
-  return useQuery<
-    NodeRuntimeCompactResolveResponseDto | NodeRuntimeResolveResponseDto,
-    Error,
-    NodeRuntimeResolveResponseDto
-  >({
+  return useQuery<NodeRuntimeCompactResolveResponseDto, Error, NodeRuntimeResolveResponseDto>({
     ...getNodeRuntimeResolve(input, resolveEnabled),
     enabled: resolveEnabled,
     placeholderData: keepPreviousData,
-    select: selectNodeRuntimeResponse
+    // Stable identity lets React Query reuse decoded scopes across unrelated form rerenders.
+    select: expandNodeRuntimeResponse
   })
-}
-
-// Stable identity lets React Query reuse decoded scopes across unrelated form rerenders.
-function selectNodeRuntimeResponse(
-  result: NodeRuntimeCompactResolveResponseDto | NodeRuntimeResolveResponseDto
-): NodeRuntimeResolveResponseDto {
-  return 'models' in result ? expandNodeRuntimeResponse(result) : result
 }
 
 function stableStringify(value: unknown): string {

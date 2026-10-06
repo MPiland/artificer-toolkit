@@ -198,7 +198,7 @@ export async function prepareEncounterMovementFixture({
     characterId: playerCharacterId
   })
   const currentPresentation = await owner.query(api.scenes.presentations.get, { campaignId })
-  const presentation = await owner.action(api.scenes.presentations.setLive, {
+  await owner.action(api.scenes.presentations.setLive, {
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION',
     commandId: crypto.randomUUID(),
     campaignId,
@@ -310,7 +310,6 @@ export async function prepareEncounterMovementFixture({
   return {
     blueprint,
     mover: { actorId: mover.id, tokenId: moverTokenId },
-    presentation,
     reactor: {
       actorId: reactor.id,
       actionId: `${reactor.id}:FEATURE:${biteFeatureId}:EFFECT:${biteEffectId}`,

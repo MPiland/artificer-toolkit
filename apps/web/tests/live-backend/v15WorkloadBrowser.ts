@@ -16,7 +16,10 @@ type ReceivedPreview = Frame<Preview & { resolution: { accepted: boolean; path: 
 type BrowserProof = {
   versions: Record<number, number>
   paints: (Preview & { paintedAt: number })[]
+  longTasks: { startedAt: number; durationMs: number }[]
 }
+/** A durable frame on the Stage socket: when it arrived, its Scene version and its size. */
+type DurableFrame = { type: string; version: number | null; bytes: number; at: number }
 type Client = {
   page: Page
   errors: string[]
@@ -26,12 +29,17 @@ type Client = {
   received: ReceivedPreview[]
   receivedPings: Frame<Ping>[]
   receivedKinds: string[]
+  durableFrames: DurableFrame[]
+  /** Lifecycle and admission frames on every room socket of the page, in arrival order. */
+  socketEvents: { socketId: number; event: string; at: number }[]
   syncTokenIds: string[]
   syncTokens: (Preview['position'] & { id: string })[]
   syncVersion: number | null
   socketPath: string | null
   socket: WebSocket | null
   socketId: number
+  /** Whether the tracked socket has carried Scene traffic, so it is the Stage's. */
+  sceneSocket: boolean
   ready: boolean
 }
 
@@ -39,8 +47,12 @@ const origin = 'http://localhost:3000'
 const workerOrigin = 'ws://127.0.0.1:8787'
 const limits = { previewP95Ms: 150, durableP95Ms: 250, durableP99Ms: 500 }
 const proofInitScript = `(() => {
-  const proof = { versions: {}, paints: [] }
+  const proof = { versions: {}, paints: [], longTasks: [] }
   window.__v15Proof = proof
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries())
+      proof.longTasks.push({ startedAt: Math.round(performance.timeOrigin + entry.startTime), durationMs: Math.round(entry.duration) })
+  }).observe({ type: 'longtask', buffered: true })
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       if (entry.name !== 'artificer:vtt-token-preview-rendered') continue
@@ -53,23 +65,37 @@ const proofInitScript = `(() => {
     }
   }).observe({ type: 'mark', buffered: true })
 })()`
+// The page may remount the Scene region; a body-level check rebinds the text observer to the new one.
 const observeVersionScript = `(() => {
-  const region = document.querySelector('section[aria-label^="Live scene: "]')
-  if (!region) throw new Error('V15 live scene region is missing.')
+  const findRegion = () => document.querySelector('section[aria-label^="Live scene: "]')
+  if (!findRegion()) throw new Error('V15 live scene region is missing.')
   const proof = window.__v15Proof
+  let bound = null
   const capture = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-    const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT)
+    const region = findRegion()
+    if (!region) return
+    // React renders \`v{version}\` as two text nodes, so the label is matched on its leaf element.
+    const walker = document.createTreeWalker(region, NodeFilter.SHOW_ELEMENT)
     while (walker.nextNode()) {
-      const text = walker.currentNode.textContent?.trim() ?? ''
-      if (!/^v[0-9]+$/.test(text)) continue
-      const parent = walker.currentNode.parentElement
-      if (!parent || parent.getClientRects().length === 0) continue
+      const element = walker.currentNode
+      if (element.childElementCount !== 0) continue
+      const text = element.textContent?.trim() ?? ''
+      if (!/^v[0-9]+$/.test(text) || element.getClientRects().length === 0) continue
       const version = Number(text.slice(1))
       proof.versions[version] ??= Date.now()
     }
   }))
-  new MutationObserver(capture).observe(region, { subtree: true, childList: true, characterData: true })
-  capture()
+  const text = new MutationObserver(capture)
+  const bind = () => {
+    const region = findRegion()
+    if (!region || region === bound) return
+    bound = region
+    text.disconnect()
+    text.observe(region, { subtree: true, childList: true, characterData: true })
+    capture()
+  }
+  new MutationObserver(bind).observe(document.body, { subtree: true, childList: true })
+  bind()
 })()`
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -168,7 +194,9 @@ export async function openV15WorkloadBrowser(input: {
   tokenPosition: { x: number; y: number }
 }) {
   assert.equal(input.players.length, 5)
-  const browser = await chromium.launch({ headless: true })
+  // The full Chromium build renders WebGL on the machine's GPU like a member's browser; the default
+  // headless shell rasterizes the Scene in software (SwiftShader), which measures the test machine.
+  const browser = await chromium.launch({ headless: true, channel: 'chromium' })
   const clients: Client[] = []
   const previewMs: number[] = []
   const durableMs: number[] = []
@@ -179,25 +207,61 @@ export async function openV15WorkloadBrowser(input: {
     slowestPeerMs: number
     warmupMs: number
   }[] = []
-  const durableSamples: { version: number; perPeerMs: number[]; slowestPeerMs: number }[] = []
+  const durableSamples: {
+    version: number
+    committedAt: number
+    perPeerMs: number[]
+    slowestPeerMs: number
+  }[] = []
   const preflight: { sequence: number; tokenId: string; perPeerMs: number[]; warmupMs: number }[] =
     []
   const warmups: { sequence: number; durationMs: number }[] = []
+  // `V15_BROWSER_PROFILE=1` records the first player's main thread as a CPU profile.
+  let stopPeerProfile: (() => Promise<{ profile: unknown }>) | null = null
   const saveDiagnostics = async () => {
     if (!input.evidenceDirectory) return
     await mkdir(input.evidenceDirectory, { recursive: true })
+    if (stopPeerProfile) {
+      const { profile } = await stopPeerProfile()
+      stopPeerProfile = null
+      await writeFile(`${input.evidenceDirectory}/v15-peer.cpuprofile`, JSON.stringify(profile))
+    }
+    const longTasks = await Promise.all(
+      clients.map((client) =>
+        client.page
+          .evaluate(
+            () =>
+              (window as Window & { __v15Proof?: BrowserProof }).__v15Proof?.longTasks.slice(
+                -2000
+              ) ?? []
+          )
+          .catch(() => [])
+      )
+    )
+    const renderer = await clients[0]?.page
+      .evaluate(() => {
+        const gl = document.createElement('canvas').getContext('webgl2')
+        const info = gl?.getExtension('WEBGL_debug_renderer_info')
+        return gl && info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : null
+      })
+      .catch(() => null)
     await writeFile(
       `${input.evidenceDirectory}/v15-browser-diagnostics.json`,
       JSON.stringify(
         {
+          renderer,
           previewSamples,
           durableSamples,
           preflight,
           warmups,
-          clients: clients.map((client) => ({
+          clients: clients.map((client, index) => ({
             errors: client.errors,
+            durableFrames: client.durableFrames.slice(-400),
+            socketEvents: client.socketEvents.slice(-400),
+            longTasks: longTasks[index],
             socketId: client.socketId,
             socketPath: client.socketPath,
+            sceneSocket: client.sceneSocket,
             ready: client.ready,
             syncVersion: client.syncVersion,
             syncTokenIds: client.syncTokenIds,
@@ -223,6 +287,12 @@ export async function openV15WorkloadBrowser(input: {
       context.setDefaultTimeout(30_000)
       const page = await context.newPage()
       await page.addInitScript({ content: proofInitScript })
+      if (process.env.V15_BROWSER_PROFILE === '1' && clients.length === 1) {
+        const cdp = await context.newCDPSession(page)
+        await cdp.send('Profiler.enable')
+        await cdp.send('Profiler.start')
+        stopPeerProfile = () => cdp.send('Profiler.stop')
+      }
       const client: Client = {
         page,
         errors: [],
@@ -232,49 +302,89 @@ export async function openV15WorkloadBrowser(input: {
         received: [],
         receivedPings: [],
         receivedKinds: [],
+        durableFrames: [],
+        socketEvents: [],
         syncTokenIds: [],
         syncTokens: [],
         syncVersion: null,
         socketPath: null,
         socket: null,
         socketId: 0,
+        sceneSocket: false,
         ready: false
       }
       clients.push(client)
       page.on('pageerror', (error) => client.errors.push(error.message))
       page.on('console', (message) => {
-        if (message.type() === 'error') client.errors.push(message.text())
+        if (message.type() !== 'error') return
+        // Name the failing resource without its query, which can carry signed credentials.
+        const { url } = message.location()
+        // Six browsers share one IP, so Better Auth may throttle a sign-in; `signIn` waits out its
+        // `x-retry-after` and retries, and fails the run itself if that retry is refused.
+        if (
+          url &&
+          new URL(url).pathname === '/api/auth/sign-in/email' &&
+          message.text().includes('429')
+        )
+          return
+        const resource = url ? ` (${url.split('?')[0]})` : ''
+        client.errors.push(`${message.text()}${resource}`)
       })
+      let socketCount = 0
       page.on('websocket', (socket) => {
         if (new URL(socket.url()).origin !== workerOrigin) return
-        client.socket = socket
-        client.socketId += 1
-        client.ready = false
-        client.syncVersion = null
-        client.syncTokenIds = []
-        client.syncTokens = []
-        client.socketPath = new URL(socket.url()).pathname
+        // A page opens one room socket per live hook. The Stage's socket, the one that
+        // carries Scene traffic, is tracked once seen; until then the newest socket is.
+        socketCount += 1
+        const id = socketCount
+        let state: Pick<Client, 'ready' | 'syncVersion' | 'syncTokenIds' | 'syncTokens'> = {
+          ready: false,
+          syncVersion: null,
+          syncTokenIds: [],
+          syncTokens: []
+        }
+        const update = (next: Partial<typeof state>) => {
+          state = { ...state, ...next }
+          if (client.socket === socket) Object.assign(client, state)
+        }
+        const track = () => {
+          client.socket = socket
+          client.socketId = id
+          client.socketPath = new URL(socket.url()).pathname
+          Object.assign(client, state)
+        }
+        if (!client.sceneSocket) track()
+        const event = (name: string) =>
+          client.socketEvents.push({ socketId: id, event: name, at: Date.now() })
+        event('OPEN')
         const disconnected = () => {
-          if (client.socket !== socket) return
-          client.ready = false
-          client.syncVersion = null
-          client.syncTokenIds = []
-          client.syncTokens = []
+          event('CLOSE')
+          if (client.socket === socket) client.sceneSocket = false
+          update({ ready: false, syncVersion: null, syncTokenIds: [], syncTokens: [] })
         }
         socket.on('close', disconnected)
         socket.on('socketerror', disconnected)
         socket.on('framesent', ({ payload }) => {
-          if (client.socket !== socket) return
           const raw = payload.toString()
+          let frame: Record<string, unknown> | null = null
           try {
-            const frame = record(JSON.parse(raw) as unknown)
-            const envelope = record(frame?.envelope)
-            client.sentKinds.push(
-              `${String(frame?.type)}:${String(envelope?.kind)}:v${String(envelope?.baselineVersion)}`
-            )
+            frame = record(JSON.parse(raw) as unknown)
           } catch {
-            client.sentKinds.push('unparsed')
+            frame = null
           }
+          if (frame?.type === 'AUTHENTICATE' || frame?.type === 'RESUME')
+            event(`SENT:${frame.type}`)
+          if (frame?.type === 'TRANSIENT') {
+            if (client.socket !== socket) track()
+            client.sceneSocket = true
+          }
+          if (client.socket !== socket) return
+          const envelope = record(frame?.envelope)
+          client.sentKinds.push(
+            frame
+              ? `${String(frame.type)}:${String(envelope?.kind)}:v${String(envelope?.baselineVersion)}`
+              : 'unparsed'
+          )
           const preview = readPreview(raw, true)
           if (preview)
             client.sent.push({
@@ -293,36 +403,65 @@ export async function openV15WorkloadBrowser(input: {
             })
         })
         socket.on('framereceived', ({ payload }) => {
-          if (client.socket !== socket) return
           const raw = payload.toString()
           let resolution: ReceivedPreview['resolution'] = null
           try {
             const frame = record(JSON.parse(raw) as unknown)
             const message = record(frame?.message)
             const envelope = record(message?.envelope)
-            client.receivedKinds.push(`${String(frame?.type)}:${String(envelope?.kind)}`)
-            if (frame?.type === 'AUTHENTICATION_REQUIRED') client.ready = false
-            if (frame?.type === 'TRANSIENT_READY') client.ready = true
+            if (
+              frame?.type === 'AUTHENTICATION_REQUIRED' ||
+              frame?.type === 'TRANSIENT_READY' ||
+              (frame?.type === 'STATE_SYNC' && !record(record(frame.state)?.scene))
+            )
+              event(
+                `RECEIVED:${String(frame.type)}${frame.type === 'STATE_SYNC' ? ':NO_SCENE' : ''}`
+              )
+            if (frame?.type === 'AUTHENTICATION_REQUIRED') update({ ready: false })
+            if (frame?.type === 'TRANSIENT_READY') update({ ready: true })
             if (frame?.type === 'STATE_SYNC') {
               const scene = record(record(frame.state)?.scene)
-              client.syncVersion = typeof scene?.version === 'number' ? scene.version : null
-              client.syncTokenIds = Array.isArray(scene?.tokens)
-                ? scene.tokens.flatMap((token) => {
-                    const id = record(token)?.id
-                    return typeof id === 'string' ? [id] : []
-                  })
-                : []
-              client.syncTokens = Array.isArray(scene?.tokens)
-                ? scene.tokens.flatMap((token) => {
-                    const value = record(token)
-                    const position = record(value?.position)
-                    return typeof value?.id === 'string' &&
-                      typeof position?.x === 'number' &&
-                      typeof position.y === 'number'
-                      ? [{ id: value.id, x: position.x, y: position.y }]
-                      : []
-                  })
-                : []
+              const tokens = Array.isArray(scene?.tokens) ? scene.tokens.map(record) : []
+              update({
+                syncVersion: typeof scene?.version === 'number' ? scene.version : null,
+                syncTokenIds: tokens.flatMap((token) =>
+                  typeof token?.id === 'string' ? [token.id] : []
+                ),
+                syncTokens: tokens.flatMap((token) => {
+                  const position = record(token?.position)
+                  return typeof token?.id === 'string' &&
+                    typeof position?.x === 'number' &&
+                    typeof position.y === 'number'
+                    ? [{ id: token.id, x: position.x, y: position.y }]
+                    : []
+                })
+              })
+            }
+            // A Scene commit arrives as a delta, so the socket's Scene version advances without a resync.
+            const sceneDelta = record(frame?.delta)
+            const deltaVersion = record(sceneDelta?.result)?.version
+            if (
+              frame?.type === 'COMMAND_COMMITTED' &&
+              sceneDelta?.scope === 'SCENE' &&
+              typeof deltaVersion === 'number' &&
+              state.syncVersion !== null &&
+              deltaVersion > state.syncVersion
+            )
+              update({ syncVersion: deltaVersion })
+            if (client.socket !== socket) return
+            client.receivedKinds.push(`${String(frame?.type)}:${String(envelope?.kind)}`)
+            if (frame?.type === 'STATE_SYNC' || frame?.type === 'COMMAND_COMMITTED') {
+              const delta = record(frame.delta)
+              const version =
+                frame.type === 'STATE_SYNC'
+                  ? record(record(frame.state)?.scene)?.version
+                  : (record(delta?.result)?.version ?? delta?.version)
+              client.durableFrames.push({
+                type: frame.type,
+                version: typeof version === 'number' ? version : null,
+                bytes: raw.length,
+                at: Date.now()
+              })
             }
             if (envelope?.kind === 'TOKEN_DRAG_PREVIEW') {
               const parsedResolution = record(message?.tokenDragResolution)
@@ -352,7 +491,28 @@ export async function openV15WorkloadBrowser(input: {
         })
       })
       const session = watchAuthenticatedSession(page)
-      await signIn(page, account, session)
+      try {
+        await signIn(page, account, session)
+      } catch (error) {
+        const router = await page
+          .evaluate(() => {
+            const state = (
+              window as Window & {
+                __TSR_ROUTER__?: { state: { status: string; isLoading: boolean } }
+              }
+            ).__TSR_ROUTER__?.state
+            return state ? { status: state.status, isLoading: state.isLoading } : null
+          })
+          .catch(() => null)
+        client.errors.push(
+          `Sign-in stalled at ${new URL(page.url()).pathname}; router ${JSON.stringify(router)}.`
+        )
+        if (input.evidenceDirectory)
+          await page.screenshot({
+            path: `${input.evidenceDirectory}/v15-sign-in-failure-${clients.length}.png`
+          })
+        throw error
+      }
       await page.goto(
         `${origin}/tabletop/campaigns/${encodeURIComponent(input.campaignPublicId)}`,
         { waitUntil: 'domcontentloaded', timeout: 90_000 }
@@ -467,7 +627,7 @@ export async function openV15WorkloadBrowser(input: {
           if (input.evidenceDirectory)
             await gm.page.screenshot({ path: `${input.evidenceDirectory}/v15-warmup-failure.png` })
           throw new Error(
-            `V15 ping warmup failed; startedAt=${warmupStartedAt}, failedAt=${Date.now()}, socketIds=${clients.map((client) => client.socketId)}, ready=${clients.map((client) => client.ready)}, syncVersions=${clients.map((client) => client.syncVersion)}, tokenVisible=${clients.map((client) => client.syncTokenIds.includes(tokenId))}, GM pings=${JSON.stringify(gm.pings.slice(-8).map(({ sequence }) => sequence))}, peer pings=${JSON.stringify(peers.map((peer) => peer.receivedPings.slice(-8).map(({ sequence }) => sequence)))}.`,
+            `V15 ping warmup failed; startedAt=${warmupStartedAt}, failedAt=${Date.now()}, socketIds=${clients.map((client) => client.socketId)}, ready=${clients.map((client) => client.ready)}, syncVersions=${clients.map((client) => client.syncVersion)}, tokenVisible=${clients.map((client) => client.syncTokenIds.includes(tokenId))}, GM pings=${JSON.stringify(gm.pings.slice(-8).map(({ sequence }) => sequence))}, peer pings=${JSON.stringify(peers.map((peer) => peer.receivedPings.slice(-8).map(({ sequence }) => sequence)))}, GM socket events=${JSON.stringify(gm.socketEvents.slice(-8))}, GM sent=${JSON.stringify(gm.sentKinds.slice(-8))}, GM errors=${JSON.stringify(gm.errors.slice(-8))}.`,
             { cause: error }
           )
         }
@@ -636,7 +796,7 @@ export async function openV15WorkloadBrowser(input: {
         const perPeerMs = painted.map((value) => value - committedAt)
         const slowestPeerMs = Math.max(...perPeerMs)
         durableMs.push(slowestPeerMs)
-        durableSamples.push({ version, perPeerMs, slowestPeerMs })
+        durableSamples.push({ version, committedAt, perPeerMs, slowestPeerMs })
       },
       summary(expected: { previewSamples: number; durableSamples: number }) {
         assert.deepEqual(

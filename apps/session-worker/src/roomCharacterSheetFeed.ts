@@ -56,6 +56,7 @@ export class RoomCharacterSheetFeed {
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
+      remember: (socket: WebSocket) => void
     }
   ) {}
 
@@ -64,11 +65,22 @@ export class RoomCharacterSheetFeed {
   }
 
   subscribe(socket: WebSocket, characterId: string): void {
-    this.#subscriptions.set(socket, { characterId: characterId.toLowerCase(), pushedKey: null })
+    this.restore(socket, characterId.toLowerCase())
+    this.dependencies.remember(socket)
   }
 
   drop(socket: WebSocket): void {
-    this.#subscriptions.delete(socket)
+    if (this.#subscriptions.delete(socket)) this.dependencies.remember(socket)
+  }
+
+  /** The Character this socket subscribed to: all that survives hibernation. */
+  saved(socket: WebSocket): string | null {
+    return this.#subscriptions.get(socket)?.characterId ?? null
+  }
+
+  /** Resubscribes a woken socket; the next push sends its Sheet again. */
+  restore(socket: WebSocket, characterId: string): void {
+    this.#subscriptions.set(socket, { characterId, pushedKey: null })
   }
 
   /** Pushes every subscribed Sheet whose play stream version changed since its last push. */
@@ -91,7 +103,7 @@ export class RoomCharacterSheetFeed {
       const admitted =
         member && scope ? await this.#admit(scope, member, subscription.characterId) : null
       if (!member || !scope || !admitted) {
-        this.#subscriptions.delete(socket)
+        this.drop(socket)
         continue
       }
       const play = await store.store
@@ -99,7 +111,7 @@ export class RoomCharacterSheetFeed {
         .withIndex('by_characterId', (query) => query.eq('characterId', subscription.characterId))
         .unique()
       if (!play) {
-        this.#subscriptions.delete(socket)
+        this.drop(socket)
         continue
       }
       const pushedKey = `${play.streamVersion}:${roomCharacterInputsKey(admitted.authorization, subscription.characterId)}`
@@ -117,7 +129,14 @@ export class RoomCharacterSheetFeed {
       group.sockets.push(socket)
       stale.set(key, group)
     }
-    for (const { authorization, characterId, member, pushedKey, scope, sockets } of stale.values()) {
+    for (const {
+      authorization,
+      characterId,
+      member,
+      pushedKey,
+      scope,
+      sockets
+    } of stale.values()) {
       // No transaction: preparation is read-only for product state (reconciliation writes need one), so a push never writes outside a journaled transaction; the next command's transaction reconciles and a later push shows it.
       const facts = await prepareRoomLiveCharacterSheet(
         store,

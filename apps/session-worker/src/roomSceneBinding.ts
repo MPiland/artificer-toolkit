@@ -8,7 +8,10 @@ import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { readRoomEncounterPlayAuthorization } from './roomEncounterCommands.js'
 import { readRoomSceneHeader } from './roomSceneRead.js'
 
-/** Binding and current controllers join the caller's atomic room command commit. */
+/**
+ * Binding and current controllers join the caller's atomic room command commit. Only an ACTIVE Run
+ * plays on its Scene, so binding a PREPARED Run leaves the controls as they are (null `play`).
+ */
 export async function executeRoomSceneBinding(input: {
   store: RoomEncounterStore
   transaction: RoomTransaction
@@ -58,7 +61,11 @@ export async function executeRoomSceneBinding(input: {
       readScene: async (id) => readRoomSceneHeader(transaction, id)
     }
   )
-  const play = await readRoomEncounterPlayAuthorization(ctx, campaignId, authorization.play, result)
-  if (!play) throw new Error('Bound room Encounter controls are unavailable.')
+  const play = await readRoomEncounterPlayAuthorization(
+    ctx,
+    campaignId,
+    authorization.play,
+    sceneId
+  )
   return { result, play }
 }

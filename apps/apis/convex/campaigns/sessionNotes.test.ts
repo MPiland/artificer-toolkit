@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { z } from 'zod'
 import type {
   CampaignDetailDto,
@@ -438,7 +438,12 @@ describe('native Session finish and notes', () => {
 
   it('keeps a new note private to its author and the GM, and a hidden note reads as missing by ID', async () => {
     const { owner, other, third, campaign, session } = await setup()
-    const base = { campaignId: campaign.id, sessionId: session.id, content: '', kind: 'NOTE' } as const
+    const base = {
+      campaignId: campaign.id,
+      sessionId: session.id,
+      content: '',
+      kind: 'NOTE'
+    } as const
     const note = await other.caller.mutation(create, { ...base, title: 'Mine' })
     const gmNote = await owner.caller.mutation(create, { ...base, title: 'GM only' })
     expect(note).toMatchObject({
@@ -522,14 +527,8 @@ describe('native Session finish and notes', () => {
     ])
   })
 
-  it('removes a deleted account’s private notes in bounded batches and keeps its shared ones as Deleted user', async ({
-    onTestFinished
-  }) => {
-    vi.useFakeTimers()
-    onTestFinished(() => {
-      vi.useRealTimers()
-    })
-    const { t, other, third, campaign, session } = await setup()
+  it('keeps a deleted account’s notes as Deleted user, private ones readable only by the GM', async () => {
+    const { t, owner, other, third, campaign, session } = await setup()
     const [privateNote, sharedNote] = await Promise.all(
       (['PRIVATE', 'SHARED'] as const).map((visibility) =>
         other.caller.mutation(create, {
@@ -550,53 +549,15 @@ describe('native Session finish and notes', () => {
       if (!profile) throw new Error('Missing player profile.')
       return profile.authUserId
     })
-    // More private rows than two removal batches, so the purge must reschedule itself to finish.
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('campaignSessionNotes')
-        .withIndex('by_campaignId_authorUserId_visibility', (q) =>
-          q
-            .eq('campaignId', campaign.id)
-            .eq('authorUserId', other.userId)
-            .eq('visibility', 'PRIVATE')
-        )
-        .unique()
-      if (!row) throw new Error('Missing private row.')
-      const { _id, _creationTime, ...stored } = row
-      for (let index = 0; index < 100; index++)
-        await ctx.db.insert('campaignSessionNotes', {
-          ...stored,
-          id: crypto.randomUUID(),
-          title: `Bulk ${index}`
-        })
-    })
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await listAll(owner.caller, campaign.id, session.id)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: privateNote!.id, authorLabel: deletedCampaignAuthorLabel }),
+        expect.objectContaining({ id: sharedNote!.id, authorLabel: deletedCampaignAuthorLabel })
+      ])
+    )
     expect(await listAll(third.caller, campaign.id, session.id)).toEqual([
       expect.objectContaining({ id: sharedNote!.id, authorLabel: deletedCampaignAuthorLabel })
     ])
-    expect(
-      await t.run((ctx) =>
-        ctx.db
-          .query('campaignSessionNotes')
-          .withIndex('by_campaignId_sessionId_id', (q) =>
-            q.eq('campaignId', campaign.id).eq('sessionId', session.id).eq('id', privateNote!.id)
-          )
-          .unique()
-      )
-    ).toBeNull()
-    expect(
-      await t.run((ctx) =>
-        ctx.db
-          .query('campaignSessionNotes')
-          .withIndex('by_campaignId_authorUserId_visibility', (q) =>
-            q
-              .eq('campaignId', campaign.id)
-              .eq('authorUserId', other.userId)
-              .eq('visibility', 'PRIVATE')
-          )
-          .first()
-      )
-    ).toBeNull()
   })
 })

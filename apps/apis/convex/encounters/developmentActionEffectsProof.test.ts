@@ -160,7 +160,8 @@ it('persists one failed-save effect, leaves another Campaign unchanged, and retr
     campaignId: campaign.id,
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
-    creatureId: draft.subjectId
+    creatureId: draft.subjectId,
+    leaveLastRunActive: true
   })
   await verifyEncounterEffects({
     owner,
@@ -168,7 +169,8 @@ it('persists one failed-save effect, leaves another Campaign unchanged, and retr
     campaignId: preservedCampaign.id,
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
-    creatureId: draft.subjectId
+    creatureId: draft.subjectId,
+    leaveLastRunActive: true
   })
   const targetBefore = await effectSnapshot(base, campaign.id)
   const preservedBefore = await effectSnapshot(base, preservedCampaign.id)
@@ -206,7 +208,8 @@ it('rejects malformed stored action-effect ownership without changing fixture ro
     campaignId: campaign.id,
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
-    creatureId: draft.subjectId
+    creatureId: draft.subjectId,
+    leaveLastRunActive: true
   })
   const before = await effectSnapshot(base, campaign.id)
   const effect = effectRows(before)[0]

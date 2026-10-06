@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import { readTestActor } from './storedActors'
 import { ConvexError } from 'convex/values'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import type {
@@ -10,10 +11,7 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -225,7 +223,7 @@ export async function playerControlFixture(
       .unique()
     if (!actorRow) throw new Error('Missing player control companion.')
     return discoverEncounterFeatureActionCapabilities({
-      actor: encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson)),
+      actor: await readTestActor(ctx, actorRow),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
     }).find((candidate) => candidate.mechanicFacts.invocation.triggerCode === TRIGGER[bite])

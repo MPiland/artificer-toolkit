@@ -44,7 +44,7 @@ export class RoomWatch {
    * Looks up the Campaign, joins its room and subscribes to its Encounter session, keeping every
    * frame from the join on. The room checks Scene versions exactly and sends the Scene only once a
    * member has synchronized it, so the Scene version comes from the room's own frames, never from
-   * Convex. Resolves once the room has sent the held session and the synchronized Scene.
+   * Convex. Resolves once the room has sent the held session; see synchronizedScene.
    */
   static async join(
     client: DevelopmentHttpClient,
@@ -62,8 +62,12 @@ export class RoomWatch {
     client.onRoomFrame((frame) => watch.#accept(frame))
     client.subscribeEncounterSession(campaignId, false)
     await watch.until(() => watch.#session, 'its held Encounter session')
-    await watch.until(() => watch.#scene, 'the synchronized Scene')
     return watch
+  }
+
+  /** The room's Scene once some member's command has synchronized it, e.g. a token binding. */
+  synchronizedScene(): Promise<{ id: string; version: number }> {
+    return this.until(() => this.#scene, 'the synchronized Scene')
   }
 
   /** Resolves with the first non-null `read()`, re-checked on every frame; rejects after `timeoutMs`. */

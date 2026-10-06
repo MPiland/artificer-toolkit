@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { runActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
   LiveSessionCheckpointRequest,
@@ -27,10 +29,7 @@ import {
 } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { decodeCheckpointRecord } from '@artificer-toolkit/encounter-persistence/checkpointRecords'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -133,7 +132,7 @@ function frame(
     checksum: 'b'.repeat(64),
     payloadChecksum: checksumCanonicalJson(payload),
     knownAuthorization: null,
-    reason: 'DEADLINE',
+    reason: 'BACKLOG',
     records: payload
   }
 }
@@ -365,7 +364,7 @@ async function enemyHitPointChange(base: Fixture) {
       .unique()
     if (!row) throw new Error('Missing fixture enemy actor row.')
     const { _id, _creationTime, ...stored } = row
-    const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    const state = readStoredRunActor(row)
     if (state.kind === 'CHARACTER') throw new Error('Fixture enemy actor is a Character.')
     const nextState = {
       ...state,
@@ -375,7 +374,7 @@ async function enemyHitPointChange(base: Fixture) {
     const next = decodeCheckpointRecord('encounterRunActors', {
       ...stored,
       stateJson: canonicalizeJson(nextState),
-      stateChecksum: checksumCanonicalJson(nextState)
+      stateChecksum: checksumCanonicalJson(runActorPlayState(nextState))
     })
     return recordChange('encounterRunActors', [row.encounterId, row.id], before, next)
   })
@@ -392,7 +391,7 @@ async function characterActorChange(base: Fixture) {
       .unique()
     if (!row) throw new Error('Missing fixture Character actor row.')
     const { _id, _creationTime, ...stored } = row
-    const state = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    const state = readStoredRunActor(row)
     if (state.kind !== 'CHARACTER') throw new Error('Fixture actor is not a Character.')
     const before = decodeCheckpointRecord('encounterRunActors', stored)
     const key = [row.encounterId, row.id]
@@ -408,7 +407,7 @@ async function characterActorChange(base: Fixture) {
     const frozen = decodeCheckpointRecord('encounterRunActors', {
       ...stored,
       stateJson: canonicalizeJson(nextState),
-      stateChecksum: checksumCanonicalJson(nextState)
+      stateChecksum: checksumCanonicalJson(runActorPlayState(nextState))
     })
     return {
       freeze: recordChange('encounterRunActors', key, before, frozen),
@@ -529,12 +528,12 @@ it('reads the same bytes for a one-actor flush however many members and actors t
     const clones = Array.from({ length: extraActors }, () => crypto.randomUUID())
     for (const id of clones) {
       const { _id, _creationTime, ...fields } = template
-      const cloneState = { ...JSON.parse(template.stateJson), id }
+      const cloneState = { ...readStoredRunActor(template), id }
       await ctx.db.insert('encounterRunActors', {
         ...fields,
         id,
         stateJson: canonicalizeJson(cloneState),
-        stateChecksum: checksumCanonicalJson(cloneState)
+        stateChecksum: checksumCanonicalJson(runActorPlayState(cloneState))
       })
     }
     const nextState = encounterRunStateSchema.parse({
@@ -1090,7 +1089,10 @@ it('rolls back state, partial packed history and authority when a receipt collid
   const base = await setupCharacterRun()
   const authority = await activate(base)
   const existing = characterHistory(base)
-  const first = await base.t.mutation(publish, frame(authority, { changes: [], history: [existing] }))
+  const first = await base.t.mutation(
+    publish,
+    frame(authority, { changes: [], history: [existing] })
+  )
   const run = await runChange(base)
   const input = frame(first.authority, {
     changes: [run.change],

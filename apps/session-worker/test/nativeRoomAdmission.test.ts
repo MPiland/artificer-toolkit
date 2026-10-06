@@ -14,7 +14,9 @@ import {
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import {
+  liveSessionRoomSceneCaptureInputSchema,
   liveSessionTransientCaptureInputSchema,
+  type LiveSessionRoomSceneCapture,
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
@@ -116,16 +118,23 @@ async function room() {
         if (!member) return new Response('membership changed', { status: 409 })
         return Response.json({
           campaignId,
-          systemId,
-          observedCharacterRevisions: [],
           origin: { ...member, userId: body.expectedUserId },
           presentation: null,
-          recipients: [],
           sceneEncounterId: null,
-          originBoundTokenControl: [],
+          sceneHeader: null
+        } satisfies LiveSessionTransientCapture)
+      }
+      if (pathname === '/live-sessions/room-scene-capture') {
+        const body = liveSessionRoomSceneCaptureInputSchema.parse(await request.json())
+        return Response.json({
+          campaignId,
+          systemId,
+          observedCharacterRevisions: body.observedCharacterRevisions,
+          presentation: null,
+          sceneEncounterId: null,
           sceneHeader: null,
           visionFreshness: null
-        } satisfies LiveSessionTransientCapture)
+        } satisfies LiveSessionRoomSceneCapture)
       }
       if (pathname === '/live-sessions/bootstrap')
         return Response.json({
@@ -313,7 +322,7 @@ it('closes a socket whose role went stale on renewal and keeps the other members
     expect(player.messages).toContainEqual({
       authorityEpoch: base.authorityEpoch,
       sequence: 0,
-      state: { recipientRole: 'PLAYER', scene: null },
+      state: { recipientRole: 'PLAYER', presentationVersion: null, scene: null },
       type: 'STATE_SYNC'
     })
   )

@@ -1,5 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
+import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
@@ -106,7 +106,9 @@ describe('native actor maintained-effect cleanup', () => {
         currentHitPoints: fixture.actor.currentHitPoints
       })
       const result = await fixture.t.run(async (ctx) => {
-        const receipt = await (await readEncounterHistory(ctx))
+        const receipt = await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) =>
             q.eq('encounterId', state.id).eq('commandId', command.commandId)

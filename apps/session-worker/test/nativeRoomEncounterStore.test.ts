@@ -1,8 +1,13 @@
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
+import { LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import { DurableCommandJournal } from '../src/durableCommandJournal.js'
-import { RoomEncounterStore, RoomStoreCorruptError } from '../src/roomEncounterStore.js'
+import {
+  RoomEncounterStore,
+  RoomStoreCorruptError,
+  SCENE_EVIDENCE_ROW
+} from '../src/roomEncounterStore.js'
 import { aggregate, command, encounterId, uuid } from '../src/testing/roomAggregateFixture.js'
 
 /**
@@ -28,10 +33,12 @@ function snapshotOf(room: RoomEncounterStore) {
 
 function durableCommandRows(storage: DurableObjectStorage) {
   return {
-    snapshots: storage.sql
+    snapshotHead: storage.sql
+      .exec('SELECT epoch, sequence, chain, counters FROM room_snapshot_head')
+      .toArray(),
+    snapshotPages: storage.sql
       .exec(
-        `SELECT generation, part, part_count, epoch, sequence, chain, content_checksum, content
-       FROM room_snapshot_chunks ORDER BY generation, part`
+        'SELECT page, part, part_count, checksum, content FROM room_snapshot_pages ORDER BY page, part'
       )
       .toArray(),
     writes: storage.sql
@@ -463,7 +470,7 @@ describe.each([11, 100])('room store on Durable Object SQLite, %i actors', (acto
         fromChecksum: room.checksum,
         toSequence: 3,
         maxEntries: 100,
-        maxBytes: 4 * 1024 * 1024
+        maxBytes: LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES
       }
       for (let ordinal = 1; ordinal <= 3; ordinal++) await command(room, ordinal)
       const before = room.usage.rowsWritten
@@ -545,7 +552,7 @@ describe.each([11, 100])('room store on Durable Object SQLite, %i actors', (acto
     expect(after.rebuilt).toEqual(before)
     expect(after.corruption).toBeNull()
     expect(after.next).toBe(13)
-    // Snapshot chunks plus 12 log rows, never a scan of anything else.
+    // The snapshot head and page parts plus 12 log rows, never a scan of anything else.
     expect(after.rowsRead).toBeLessThan(actorCount + 20)
   })
 
@@ -589,7 +596,7 @@ describe.each([11, 100])('room store on Durable Object SQLite, %i actors', (acto
       return { before, compactionRows: room.usage.rowsWritten - rowsBefore, logRows: room.logRows }
     })
     expect(outcome.logRows).toBe(0)
-    // New chunks, the deleted old chunks and the 40 folded log rows.
+    // The touched pages' old and new parts, the head and the 40 folded log rows.
     expect(outcome.compactionRows).toBeLessThan(2 * actorCount + 60)
     await evictDurableObject(stub)
     const after = await runInDurableObject(stub, (_instance, state) =>
@@ -632,6 +639,69 @@ describe.each([11, 100])('room store on Durable Object SQLite, %i actors', (acto
     await evictDurableObject(stub)
     await runInDurableObject(stub, (_instance, state) => {
       expect(snapshotOf(new RoomEncounterStore(state.storage))).toEqual(after)
+    })
+  })
+
+  it('counts the unsaved chat entries as the log grows and shrinks, and again after eviction (Amendment 25)', async () => {
+    const stub = stubFor()
+    const chat = (room: RoomEncounterStore, ordinal: number) =>
+      room.transact(async () => {
+        await room.store.insert('campaignConversationEntries', {
+          id: uuid(0x900 + ordinal),
+          campaignId: uuid(2),
+          conversationId: uuid(0x800),
+          authorUserId: uuid(0x801),
+          createdAt: '2026-09-01T00:00:00.000Z',
+          clientNonce: uuid(0xa00 + ordinal),
+          kind: 'CHAT',
+          rollNonceFingerprint: null
+        })
+      })
+    await runInDurableObject(stub, async (_instance, state) => {
+      const room = new RoomEncounterStore(state.storage)
+      room.hydrate({ epoch: EPOCH, ...aggregate(actorCount) })
+      expect(room.unsavedChatEntries).toBe(0)
+      await chat(room, 1)
+      const acknowledged = { epoch: EPOCH, sequence: room.sequence, checksum: room.checksum }
+      await command(room, 1)
+      await chat(room, 2)
+      await chat(room, 3)
+      expect(room.unsavedChatEntries).toBe(3)
+      room.compact(acknowledged)
+      expect(room.logRows).toBe(3)
+      expect(room.unsavedChatEntries).toBe(2)
+    })
+    await evictDurableObject(stub)
+    await runInDurableObject(stub, (_instance, state) => {
+      const room = new RoomEncounterStore(state.storage)
+      expect(room.unsavedChatEntries).toBe(2)
+      room.compact({ epoch: EPOCH, sequence: room.sequence, checksum: room.checksum })
+      expect(room.unsavedChatEntries).toBe(0)
+    })
+  })
+
+  it('does not count commands or Scene command evidence as unsaved chat entries (Amendment 26)', async () => {
+    const stub = stubFor()
+    await runInDurableObject(stub, async (_instance, state) => {
+      const room = new RoomEncounterStore(state.storage)
+      room.hydrate({ epoch: EPOCH, ...aggregate(actorCount) })
+      await command(room, 1)
+      await room.transact(async (transaction) => {
+        transaction.setRecord({
+          kind: SCENE_EVIDENCE_ROW,
+          key: JSON.stringify(['sceneLiveCommands', uuid(1), uuid(2)]),
+          revision: String(Date.now()),
+          json: JSON.stringify({ padding: 'x'.repeat(5_000) })
+        })
+      })
+      expect(room.unsavedChatEntries).toBe(0)
+      expect(room.records(SCENE_EVIDENCE_ROW)).toHaveLength(1)
+    })
+    await evictDurableObject(stub)
+    await runInDurableObject(stub, (_instance, state) => {
+      const room = new RoomEncounterStore(state.storage)
+      expect(room.unsavedChatEntries).toBe(0)
+      expect(room.records(SCENE_EVIDENCE_ROW)).toHaveLength(1)
     })
   })
 })

@@ -3,6 +3,11 @@ import { z, lazySchema } from '../zod.js'
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 
 export const LIVE_SESSION_PATH_PREFIX = '/live-session'
+/**
+ * How long before its access token expires a socket must re-authenticate. The room challenges at this
+ * lead, and clients reuse a token only while it has more than this left.
+ */
+export const LIVE_SESSION_REAUTHENTICATION_LEAD_MS = 60_000
 export const LIVE_SESSION_TICKET_AUDIENCE = 'artificer-live-session'
 export const LIVE_SESSION_TICKET_ISSUER = 'artificer-convex'
 export const LIVE_SESSION_TICKET_PROTOCOL_PREFIX = 'artificer.ticket.'

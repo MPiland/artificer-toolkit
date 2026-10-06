@@ -1,39 +1,37 @@
 import {
-  encounterActorProjectionFactsSchema,
   encounterSourceProjectionFactsSchema,
+  encounterStoredRunActorStateSchema,
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import { projectEncounterActorFacts } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import {
+  runActorPlayState,
+  splitRunActorState
+} from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveOnce } from './transactionReads.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /**
- * One actor's projection facts with its rules evaluated as a projection built from the actor alone
- * would: each actor's rules depend only on that actor (ADR 0035 Amendment 12).
+ * One actor split into its stored record and shared rows, with its rules evaluated as a projection
+ * built from the actor alone would: each actor's rules depend only on that actor (ADR 0035
+ * Amendments 12 and 29).
  */
-function evaluateActorProjectionFacts(actor: EncounterRunActorState) {
-  if (actor.kind === 'CHARACTER') return projectEncounterActorFacts(actor, { actors: [] })
+export function splitActorForStorage(actor: EncounterRunActorState) {
+  if (actor.kind === 'CHARACTER') return splitRunActorState(actor, { actors: [] })
   if (actor.systemId === null) throw new Error('Encounter actor System is unavailable.')
   const facts = buildEncounterActorRuleFacts({ actors: [actor] })
-  return projectEncounterActorFacts(
+  return splitRunActorState(
     actor,
     reconcileEncounterActorRuleOutput(
       evaluateInstalledEncounterActors({ gameSystemId: actor.systemId, facts }),
       facts
     )
   )
-}
-
-function readFactsRow(ctx: EncounterReadContext, encounterId: string, actorId: string) {
-  return ctx.db
-    .query('encounterActorProjectionFacts')
-    .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', actorId))
-    .unique()
 }
 
 function readSourceRow(ctx: EncounterReadContext, encounterId: string, checksum: string) {
@@ -45,14 +43,29 @@ function readSourceRow(ctx: EncounterReadContext, encounterId: string, checksum:
     .unique()
 }
 
+/** Stores a Creature source's facts once; identical Creatures in the Run share the row. */
+export async function ensureSourceFacts(
+  ctx: EncounterWriteContext,
+  encounterId: string,
+  checksum: string,
+  source: NonNullable<ReturnType<typeof splitActorForStorage>['source']>
+) {
+  if (await readSourceRow(ctx, encounterId, checksum)) return
+  await ctx.db.insert('encounterSourceProjectionFacts', {
+    encounterId,
+    checksum,
+    factsJson: JSON.stringify(source)
+  })
+}
+
 /** Deletes a source's facts once no actor of the Run names them. */
-async function releaseSourceFacts(
+export async function releaseSourceFacts(
   ctx: EncounterWriteContext,
   encounterId: string,
   checksum: string
 ) {
   const named = await ctx.db
-    .query('encounterActorProjectionFacts')
+    .query('encounterRunActors')
     .withIndex('by_encounterId_sourceFactsChecksum', (q) =>
       q.eq('encounterId', encounterId).eq('sourceFactsChecksum', checksum)
     )
@@ -62,65 +75,25 @@ async function releaseSourceFacts(
   if (source) await ctx.db.delete(source._id)
 }
 
+function parseStoredActor(row: EncounterDocument<'encounterRunActors'>) {
+  const stored = encounterStoredRunActorStateSchema.parse(JSON.parse(row.stateJson))
+  if (
+    stored.id !== row.id ||
+    stored.encounterId !== row.encounterId ||
+    stored.snapshotChecksum !== row.snapshotChecksum ||
+    (stored.kind === 'CHARACTER' ? null : stored.sourceFactsChecksum) !== row.sourceFactsChecksum ||
+    checksumCanonicalJson(runActorPlayState(stored)) !== row.stateChecksum
+  )
+    throw new Error('Encounter actor state checksum mismatch.')
+  return stored
+}
+
 /**
- * Writes `actor`'s projection facts beside it. Every actor insert and update calls this in the same
- * transaction (through `insertRunActor` and `writeRunActor`), so the facts never lag the actor.
+ * An actor's verified stored record: its play state, the reference to its snapshot, and the
+ * projection facts evaluated when it was written. Shared and frozen where reads are memoized.
  */
-export async function writeActorProjectionFacts(
-  ctx: EncounterWriteContext,
-  actor: EncounterRunActorState
-) {
-  const { facts, source } = evaluateActorProjectionFacts(actor)
-  const sourceFactsChecksum = facts.kind === 'CHARACTER' ? null : facts.sourceFactsChecksum
-  if (
-    source &&
-    sourceFactsChecksum &&
-    !(await readSourceRow(ctx, actor.encounterId, sourceFactsChecksum))
-  )
-    await ctx.db.insert('encounterSourceProjectionFacts', {
-      encounterId: actor.encounterId,
-      checksum: sourceFactsChecksum,
-      factsJson: JSON.stringify(source)
-    })
-  const factsJson = JSON.stringify(facts)
-  const row = await readFactsRow(ctx, actor.encounterId, actor.id)
-  if (!row) {
-    await ctx.db.insert('encounterActorProjectionFacts', {
-      id: actor.id,
-      encounterId: actor.encounterId,
-      factsJson,
-      sourceFactsChecksum
-    })
-    return
-  }
-  if (row.factsJson === factsJson && row.sourceFactsChecksum === sourceFactsChecksum) return
-  await ctx.db.patch(row._id, { factsJson, sourceFactsChecksum })
-  if (row.sourceFactsChecksum !== null && row.sourceFactsChecksum !== sourceFactsChecksum)
-    await releaseSourceFacts(ctx, actor.encounterId, row.sourceFactsChecksum)
-}
-
-/** Deletes an actor's projection facts with the actor. */
-export async function deleteActorProjectionFacts(
-  ctx: EncounterWriteContext,
-  encounterId: string,
-  actorId: string
-) {
-  const row = await readFactsRow(ctx, encounterId, actorId)
-  if (!row) throw new Error('Encounter actor projection facts are unavailable.')
-  await ctx.db.delete(row._id)
-  if (row.sourceFactsChecksum !== null)
-    await releaseSourceFacts(ctx, encounterId, row.sourceFactsChecksum)
-}
-
-function parseFactsRow(row: EncounterDocument<'encounterActorProjectionFacts'>) {
-  const facts = encounterActorProjectionFactsSchema.parse(JSON.parse(row.factsJson))
-  if (
-    facts.id !== row.id ||
-    facts.encounterId !== row.encounterId ||
-    (facts.kind === 'CHARACTER' ? null : facts.sourceFactsChecksum) !== row.sourceFactsChecksum
-  )
-    throw new Error('Encounter actor projection facts mismatch.')
-  return facts
+export function readStoredRunActor(row: EncounterDocument<'encounterRunActors'>) {
+  return deriveOnce(row, parseStoredActor)
 }
 
 function parseSourceRow(row: EncounterDocument<'encounterSourceProjectionFacts'>) {
@@ -128,25 +101,25 @@ function parseSourceRow(row: EncounterDocument<'encounterSourceProjectionFacts'>
 }
 
 /**
- * A Run's actor projection facts in actor ID order, and the source facts they name by checksum. A
- * projection reads these instead of the actor documents and their source snapshots.
+ * A Run's stored actor records in actor ID order, and the source facts they name by checksum. A
+ * projection, including the finished Encounter's, reads these instead of the actors' snapshots.
  */
 export async function readRunProjectionFacts(ctx: EncounterReadContext, state: EncounterRunState) {
   const rows = await ctx.db
-    .query('encounterActorProjectionFacts')
+    .query('encounterRunActors')
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id))
     .take(MAX_ENCOUNTER_ACTORS + 1)
   if (rows.length > MAX_ENCOUNTER_ACTORS)
     throw new Error('Encounter actors exceed the supported bound.')
-  const actors = rows
-    .map((row) => deriveOnce(row, parseFactsRow))
-    .sort((left, right) => left.id.localeCompare(right.id))
+  const actors = rows.map(readStoredRunActor).sort((left, right) => left.id.localeCompare(right.id))
   const expectedActorIds = [...state.actorIds].sort((left, right) => left.localeCompare(right))
   if (
     actors.length !== expectedActorIds.length ||
     actors.some(
       (actor, index) =>
-        actor.id !== expectedActorIds[index] || actor.systemId !== state.gameSystemId
+        actor.id !== expectedActorIds[index] ||
+        actor.encounterId !== state.id ||
+        actor.systemId !== state.gameSystemId
     )
   )
     throw new Error('Encounter actor projection facts do not match the Run.')

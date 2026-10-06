@@ -7,11 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import { admitsRoomMember, roomCharacterInputsKey } from './roomAuthorization.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
-import {
-  heldCharacterIds,
-  type FeedMember,
-  type FeedScope
-} from './roomCharacterSheetFeed.js'
+import { heldCharacterIds, type FeedMember, type FeedScope } from './roomCharacterSheetFeed.js'
 import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
@@ -45,6 +41,7 @@ export class RoomCampaignSummaryFeed {
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
+      remember: (socket: WebSocket) => void
     }
   ) {}
 
@@ -53,11 +50,22 @@ export class RoomCampaignSummaryFeed {
   }
 
   subscribe(socket: WebSocket): void {
-    this.#subscriptions.set(socket, { inputsKey: null, sent: null })
+    this.restore(socket)
+    this.dependencies.remember(socket)
   }
 
   drop(socket: WebSocket): void {
-    this.#subscriptions.delete(socket)
+    if (this.#subscriptions.delete(socket)) this.dependencies.remember(socket)
+  }
+
+  /** Whether this socket subscribed: all that survives hibernation. */
+  saved(socket: WebSocket): boolean {
+    return this.#subscriptions.has(socket)
+  }
+
+  /** Resubscribes a woken socket; the next push sends its summary again. */
+  restore(socket: WebSocket): void {
+    this.#subscriptions.set(socket, { inputsKey: null, sent: null })
   }
 
   /** Sends each subscribed socket its summary when it differs from the last one sent. */
@@ -72,7 +80,7 @@ export class RoomCampaignSummaryFeed {
       const scope = this.dependencies.scope(socket)
       const authorization = member && scope ? await this.dependencies.authorize(scope) : null
       if (!member || !scope || !authorization || !admitsRoomMember(authorization, member)) {
-        this.#subscriptions.delete(socket)
+        this.drop(socket)
         continue
       }
       const heldIds = await memo(held, scope.campaignId, () =>
@@ -216,7 +224,12 @@ export class RoomCampaignSummaryFeed {
       member.userId
     )
     const run = await presentEncounterRun(transaction, row, campaign, membership)
-    return { encounterId: run.id, status: 'ACTIVE', round: run.round, currentActorId: run.currentActorId }
+    return {
+      encounterId: run.id,
+      status: 'ACTIVE',
+      round: run.round,
+      currentActorId: run.currentActorId
+    }
   }
 }
 

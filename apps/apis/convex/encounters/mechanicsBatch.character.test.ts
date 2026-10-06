@@ -1,7 +1,7 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { describe, expect, it, vi } from 'vitest'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
@@ -449,7 +449,7 @@ describe('applyEncounterMechanicsBatch Character persistence', () => {
         )
         .unique()
       if (!row) throw new Error('Missing Character actor.')
-      return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      return await readTestActor(ctx, row)
     })
     const input = command(fixture.run, fixture.actor, fixture.characterStreamVersion)
     const result = await fixture.owner.caller.run((ctx) =>

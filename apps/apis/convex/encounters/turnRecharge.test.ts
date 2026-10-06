@@ -2,7 +2,7 @@ import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
 } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -33,7 +33,6 @@ import {
   createDnd5eRechargeLifecycleDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/encounterLifecyclePolicy'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { fixture } from '../../tests/fixtures/characters'
@@ -129,14 +128,10 @@ async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterI
       (row) => row.encounterId === encounterId
     ),
     receipts: (
-      await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect()
+      await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
     ).filter((row) => row.encounterId === encounterId),
     commands: (
-      await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     ).filter((row) => row.encounterId === encounterId)
   }))
 }
@@ -794,7 +789,7 @@ describe('native Encounter turn Recharge', () => {
         )
         .unique()
       if (!actor) throw new Error('Missing Recharge actor.')
-      const state = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+      const state = structuredClone(await readTestActor(ctx, actor))
       const snapshot = state.snapshot as { payload: { features: unknown[] } }
       snapshot.payload.features = []
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, actor._id, state)

@@ -4,12 +4,14 @@ import type {
   LiveSessionRoomAuthorizationResponse
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
+  adoptRevisions,
   admitsRoomMember,
   RoomAuthorization,
   roomBoundTokenControl,
   roomVisionCurrent
 } from './roomAuthorization.js'
 import { ROOM_LIMITS } from './roomLimits.js'
+import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 
 const id = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`
 const epoch = id(1)
@@ -119,7 +121,8 @@ function cacheWith(...responses: Response[]) {
     if (!response) throw new Error('Unexpected authorization read.')
     return response
   })
-  return { cache: new RoomAuthorization(load), known, load }
+  const { storage } = createNodeSqliteRoomStorage()
+  return { cache: new RoomAuthorization(load, storage.sql), known, load, storage }
 }
 
 /** An unchanged read: the current revisions and no sections. */
@@ -161,7 +164,7 @@ describe('room authorization cache', () => {
       .mockResolvedValueOnce(first)
       .mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
       .mockResolvedValueOnce(unchanged(first))
-    const cache = new RoomAuthorization(load)
+    const cache = new RoomAuthorization(load, createNodeSqliteRoomStorage().storage.sql)
     await cache.refresh(epoch)
 
     cache.invalidate()
@@ -234,17 +237,45 @@ describe('room authorization cache', () => {
 
   it('adopts nothing when the cache is not the one the checkpoint was sent with', async () => {
     const first = fullResponse()
-    const { cache } = cacheWith(first, { revisions: { ...first.revisions }, characters: [] })
+    const outside = { ...first.revisions, campaign: id(101) }
+    const { cache } = cacheWith(first, { revisions: outside, characters: [] })
     await cache.refresh(epoch)
     const adopted = { play: id(201), characters: [{ characterId, revision: id(310) }] }
 
-    cache.adopt(epoch, null, adopted)
     cache.adopt(id(99), cache.current(epoch)!.revisions, adopted)
     const stale = cache.current(epoch)!.revisions
     await cache.refresh(epoch)
     cache.adopt(epoch, stale, adopted)
 
-    expect(cache.current(epoch)!.revisions).toEqual(first.revisions)
+    expect(cache.current(epoch)!.revisions).toEqual(outside)
+  })
+
+  it('adopts the checkpoint sent with revisions equal to the cached ones, not only the same object', async () => {
+    const first = fullResponse()
+    const { cache } = cacheWith(first)
+    await cache.refresh(epoch)
+
+    cache.adopt(epoch, structuredClone(first.revisions), { play: id(201), characters: [] })
+
+    expect(cache.current(epoch)!.revisions).toEqual({ ...first.revisions, play: id(201) })
+  })
+
+  it('advances revisions page by page with adoptRevisions', () => {
+    const { revisions } = fullResponse()
+    expect(adoptRevisions(revisions, { characters: [] })).toEqual(revisions)
+    expect(
+      adoptRevisions(revisions, {
+        play: id(201),
+        characters: [{ characterId: otherCharacterId, revision: id(311) }]
+      })
+    ).toEqual({
+      ...revisions,
+      play: id(201),
+      characters: [
+        { characterId, revision: id(300) },
+        { characterId: otherCharacterId, revision: id(311) }
+      ]
+    })
   })
 
   it('keeps a revision the checkpoint did not adopt, so the next read fetches that section', async () => {
@@ -475,7 +506,7 @@ describe('room authorization cache', () => {
       .mockResolvedValueOnce(first)
       .mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
       .mockResolvedValueOnce({ ...stale, revisions: { ...stale.revisions, play: id(202) } })
-    const cache = new RoomAuthorization(load)
+    const cache = new RoomAuthorization(load, createNodeSqliteRoomStorage().storage.sql)
     await cache.refresh(epoch)
     const racing = cache.refresh(epoch)
     expect(cache.refresh(epoch)).toBe(racing)
@@ -596,5 +627,55 @@ describe('room authorization cache', () => {
     expect(roomVisionCurrent(current, [{ characterId, revision: id(300) }])).toBe(true)
     expect(roomVisionCurrent(current, [{ characterId, revision: id(399) }])).toBe(false)
     expect(roomVisionCurrent(current, [{ characterId: id(97), revision: null }])).toBe(false)
+  })
+
+  describe('across hibernation', () => {
+    const woken = (storage: ReturnType<typeof createNodeSqliteRoomStorage>['storage']) =>
+      new RoomAuthorization(async () => {
+        throw new Error('A woken room within its lease reads nothing.')
+      }, storage.sql)
+
+    it('trusts the restored cache for the rest of its lease', async () => {
+      const first = fullResponse()
+      const { cache, storage } = cacheWith(first)
+      const loaded = await cache.refresh(epoch)
+
+      const restored = woken(storage)
+
+      expect(restored.current(epoch)).toEqual(loaded)
+      expect(restored.current(epoch, Date.now() + ROOM_LIMITS.authorizationLeaseMs)).toBeNull()
+    })
+
+    it('keeps an invalidation made before sleep', async () => {
+      const first = fullResponse()
+      const { cache, storage } = cacheWith(first)
+      await cache.refresh(epoch)
+      cache.invalidate()
+      cache.invalidatePlay()
+
+      const restored = woken(storage)
+
+      expect(restored.current(epoch)).toBeNull()
+      expect(restored.currentPlay(epoch)).toBeNull()
+    })
+
+    it('keeps party visibility applied before sleep', async () => {
+      const first = fullResponse()
+      const { cache, storage } = cacheWith(first)
+      await cache.refresh(epoch)
+      cache.applyCharacters(epoch, [])
+
+      expect(woken(storage).current(epoch)?.characters).toEqual([])
+    })
+
+    it('starts empty when the stored row is corrupt', async () => {
+      const first = fullResponse()
+      const { cache, storage } = cacheWith(first)
+      await cache.refresh(epoch)
+      storage.sql.exec('UPDATE room_authorization SET state = \'{"held":42}\'')
+
+      expect(woken(storage).current(epoch)).toBeNull()
+      expect(storage.sql.exec('SELECT state FROM room_authorization').toArray()).toEqual([])
+    })
   })
 })

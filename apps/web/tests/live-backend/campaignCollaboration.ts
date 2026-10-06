@@ -315,14 +315,21 @@ async function rollManualDice(page: Page, destination: 'PRIVATE' | 'TABLE'): Pro
   await page.keyboard.press('Escape')
 }
 
+/**
+ * Waits until the router has no load in flight. `state.status` is not used: TanStack Router sets it
+ * back to idle from a mounted Transitioner, so a navigation that finishes during hydration can leave
+ * it `pending` on a fully loaded page.
+ */
 export async function waitForRouterIdle(page: Page): Promise<void> {
   await page.waitForFunction(() => {
-    const router = (
+    const state = (
       window as Window & {
-        __TSR_ROUTER__?: { state: { status: string; isLoading: boolean } }
+        __TSR_ROUTER__?: {
+          state: { isLoading: boolean; matches: { status: string }[] }
+        }
       }
-    ).__TSR_ROUTER__
-    return router?.state.status === 'idle' && !router.state.isLoading
+    ).__TSR_ROUTER__?.state
+    return !!state && !state.isLoading && state.matches.every((match) => match.status !== 'pending')
   })
 }
 

@@ -10,12 +10,15 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { sceneLiveStateHeaderSchema } from '@artificer-toolkit/schema/api/sceneLiveState'
 import {
+  liveSessionRoomSceneCaptureInputSchema,
   liveSessionTransientCaptureInputSchema,
-  type LiveSessionTransientCapture,
-  type LiveSessionTransientCaptureInput
+  type LiveSessionRoomSceneCapture,
+  type LiveSessionRoomSceneCaptureInput,
+  type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
@@ -26,6 +29,7 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import { ROOM_LIMITS } from '../src/roomLimits.js'
+import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 import { characterSheetInputsFixture, darkvisionDefinition } from './characterSheetInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import {
@@ -48,11 +52,14 @@ const tokenId = '00000000-0000-4000-8000-000000000107'
 const sockets: WebSocket[] = []
 /** Every Convex route path the room requested through `installFetch`, in order. */
 const backendPaths: string[] = []
+/** The `Authorization` header of each room Scene capture, which must carry no user token. */
+const sceneCaptureAuthorizations: (string | null)[] = []
 const realNow = Date.now
 
 afterEach(() => {
   for (const socket of sockets.splice(0)) socket.close()
   backendPaths.length = 0
+  sceneCaptureAuthorizations.length = 0
   vi.restoreAllMocks()
 })
 
@@ -79,7 +86,13 @@ function header(fogLayerCount = 0) {
   return sceneLiveStateHeaderSchema.parse({
     ambientIllumination: 'DIM',
     campaignId,
-    counts: { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 1 },
+    counts: {
+      annotations: 0,
+      barriers: 0,
+      darknessZones: 0,
+      lights: 0,
+      tokens: 1
+    },
     currentCounts: {
       annotations: 0,
       barriers: 0,
@@ -134,21 +147,25 @@ const token = {
   width: 5
 }
 
-function captureFor(
-  originUserId: string,
-  role: 'OWNER' | 'PLAYER',
-  recipients: readonly ReturnType<typeof member>[],
-  epoch?: string
-): LiveSessionTransientCapture {
+function memberCapture(origin: ReturnType<typeof member>): LiveSessionTransientCapture {
+  return {
+    campaignId,
+    origin,
+    presentation: { campaignId, sceneId, version: 1 },
+    sceneEncounterId: null,
+    sceneHeader: header()
+  }
+}
+
+function roomSceneCapture(
+  observedCharacterRevisions: LiveSessionRoomSceneCapture['observedCharacterRevisions']
+): LiveSessionRoomSceneCapture {
   return {
     campaignId,
     systemId: '00000000-0000-4000-8000-000000000111',
-    observedCharacterRevisions: [],
-    origin: member(originUserId, role, epoch),
+    observedCharacterRevisions,
     presentation: { campaignId, sceneId, version: 1 },
-    recipients: [...recipients],
     sceneEncounterId: null,
-    originBoundTokenControl: [],
     sceneHeader: header(),
     visionFreshness: { campaign: null, play: null, system: null }
   }
@@ -182,11 +199,12 @@ type RoomAuthorizationState = {
 
 function installFetch(
   members: readonly ReturnType<typeof member>[],
+  /** Answers the room's Scene captures, numbered from 1; cold admission captures are not counted. */
   mutate?: (
     call: number,
-    capture: LiveSessionTransientCapture,
-    input: LiveSessionTransientCaptureInput
-  ) => LiveSessionTransientCapture | Response | Promise<LiveSessionTransientCapture | Response>,
+    capture: LiveSessionRoomSceneCapture,
+    input: LiveSessionRoomSceneCaptureInput
+  ) => LiveSessionRoomSceneCapture | Response | Promise<LiveSessionRoomSceneCapture | Response>,
   entity: typeof token = token,
   fogLayers: readonly SceneFogLayer[] = [],
   authorization: RoomAuthorizationState = {}
@@ -244,12 +262,13 @@ function installFetch(
       const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
       const origin = members.find((candidate) => candidate.userId === body.expectedUserId)
       if (!origin || origin.role !== body.expectedRole) return new Response(null, { status: 409 })
+      return Response.json(memberCapture(origin))
+    }
+    if (pathname === '/live-sessions/room-scene-capture') {
+      const body = liveSessionRoomSceneCaptureInputSchema.parse(await request.json())
+      sceneCaptureAuthorizations.push(request.headers.get('authorization'))
       const capture = {
-        ...captureFor(
-          origin.userId,
-          origin.role,
-          members.filter((candidate) => candidate.userId !== origin.userId)
-        ),
+        ...roomSceneCapture(body.observedCharacterRevisions),
         sceneHeader: header(fogLayers.length)
       }
       const result = (await mutate?.(++captures, capture, body)) ?? capture
@@ -318,7 +337,7 @@ async function noTransient(messages: readonly LiveSessionWebSocketServerMessageD
 }
 
 function captureCount() {
-  return backendPaths.filter((path) => path === '/live-sessions/capture').length
+  return backendPaths.filter((path) => path === '/live-sessions/room-scene-capture').length
 }
 
 function tokenPreview(sequence: number, position = { x: 20, y: 10 }) {
@@ -358,17 +377,10 @@ function sendPreview(
   client.socket.send(JSON.stringify({ type: 'TRANSIENT', envelope }))
 }
 
-/** Synchronizes the room's Scene cache as the tabletop does when it opens the presented Scene. */
+/** Asks the room for its state, which carries the Scene the room built on admission. */
 async function synchronize(client: Awaited<ReturnType<typeof connect>>) {
   client.messages.length = 0
-  client.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: 1,
-      sceneId,
-      type: 'SYNCHRONIZE_SCENE',
-      version: 1
-    })
-  )
+  client.socket.send(JSON.stringify({ lastAppliedSequence: 0, type: 'RESUME' }))
   await vi.waitFor(() =>
     expect(
       client.messages.some(
@@ -391,7 +403,7 @@ it('fans out token previews from room memory with no backend call or SQLite acce
     vi.spyOn(state.storage.sql, 'exec')
   )
   await synchronize(owner)
-  // The synchronization itself reads the journal, so the spy sees the room's storage.
+  // The state request itself reads the journal, so the spy sees the room's storage.
   expect(sql).toHaveBeenCalled()
   sql.mockClear()
   backendPaths.length = 0
@@ -406,6 +418,33 @@ it('fans out token previews from room memory with no backend call or SQLite acce
   })
   expect(backendPaths).toEqual([])
   expect(sql).not.toHaveBeenCalled()
+})
+
+it('keeps fanning previews out after a hibernated room wakes within its lease, with no backend call', async () => {
+  const stub = newRoom()
+  await runInDurableObject(stub, () =>
+    installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')])
+  )
+  const [owner, player] = await Promise.all([
+    connect(stub, ownerId, 'OWNER'),
+    connect(stub, playerId, 'PLAYER')
+  ])
+  await synchronize(owner)
+  await evictDurableObject(stub)
+  backendPaths.length = 0
+  owner.messages.length = 0
+  player.messages.length = 0
+
+  // The first sample after the wake is not dropped, and no socket is challenged.
+  sendPreview(player, tokenPreview(1, { x: 15, y: 10 }))
+  await vi.waitFor(() => expect(transient(owner.messages)).toHaveLength(1))
+  expect(owner.messages).not.toContainEqual({
+    type: 'AUTHENTICATION_REQUIRED'
+  })
+  expect(player.messages).not.toContainEqual({
+    type: 'AUTHENTICATION_REQUIRED'
+  })
+  expect(backendPaths).toEqual([])
 })
 
 const encounterId = '00000000-0000-4000-8000-000000000120'
@@ -459,7 +498,10 @@ async function boundRoom(
 function invalidate(stub: DurableObjectStub, scopes: ('CAMPAIGN' | 'CHARACTER')[]) {
   return stub.fetch(
     new Request(`https://session.test${LIVE_SESSION_CONTROL_PATH}`, {
-      body: JSON.stringify({ campaignId, operation: { type: 'INVALIDATE_INPUTS', scopes } }),
+      body: JSON.stringify({
+        campaignId,
+        operation: { type: 'INVALIDATE_INPUTS', scopes }
+      }),
       method: 'POST'
     })
   )
@@ -490,15 +532,15 @@ it.each([
       await noTransient(owner!.messages)
       await noTransient(player!.messages)
     }
-    // No Convex call per sample, including long past the old 30 s preview lease.
-    advance(60_000)
+    // No Convex call per sample within the authorization lease.
+    advance(ROOM_LIMITS.authorizationLeaseMs / 4)
     sendPreview(player!, tokenPreview(4, { x: 35, y: 10 }))
     if (controlled) await vi.waitFor(() => expect(transient(owner!.messages)).toHaveLength(4))
     else await noTransient(owner!.messages)
     expect(backendPaths).toEqual([])
 
     // Past the authorization lease the sample is refused and one read renews the cache.
-    advance(ROOM_LIMITS.authorizationLeaseMs - 60_000)
+    advance((ROOM_LIMITS.authorizationLeaseMs * 3) / 4)
     sendPreview(player!, tokenPreview(5, { x: 40, y: 10 }))
     await vi.waitFor(() => expect(backendPaths).toEqual([ROOM_AUTHORIZATION_PATH]))
     if (!controlled) return
@@ -528,7 +570,9 @@ it('moves bound-token control to the new assignee on a Campaign Character assign
   await vi.waitFor(() => expect(transient(owner!.messages)).toHaveLength(1))
 
   authorization.assignments = [{ characterId, userId: otherPlayerId }]
-  expect(await (await invalidate(stub, ['CAMPAIGN'])).json()).toEqual({ invalidated: true })
+  expect(await (await invalidate(stub, ['CAMPAIGN'])).json()).toEqual({
+    invalidated: true
+  })
   await vi.waitFor(() => expect(backendPaths).toEqual([ROOM_AUTHORIZATION_PATH]))
   owner!.messages.length = 0
   let sequence = 0
@@ -550,7 +594,10 @@ it("keeps a hidden bound token's drag preview from every player", async () => {
     clients: [owner, player, other]
   } = await boundRoom(
     [member(ownerId, 'OWNER'), member(playerId, 'PLAYER'), member(otherPlayerId, 'PLAYER')],
-    { assignments: [{ characterId, userId: playerId }], play: boundEncounter() },
+    {
+      assignments: [{ characterId, userId: playerId }],
+      play: boundEncounter()
+    },
     { ...token, hidden: true }
   )
   sendPreview(owner!, tokenPreview(1))
@@ -623,6 +670,7 @@ it('stops previews to an evicted member and rebuilds the dropped Scene cache onc
   )
   expect(await evicted.json()).toEqual({ closed: 1 })
   backendPaths.length = 0
+  sceneCaptureAuthorizations.length = 0
   player.messages.length = 0
   other.messages.length = 0
 
@@ -636,6 +684,7 @@ it('stops previews to an evicted member and rebuilds the dropped Scene cache onc
   expect(sequence).toBeGreaterThan(1)
   // One rebuild: its capture and the confirming capture, not one per sample.
   expect(captureCount()).toBe(2)
+  expect(sceneCaptureAuthorizations).toEqual([null, null])
   expect(transient(other.messages)).toEqual([])
 })
 
@@ -745,7 +794,15 @@ it.each([
 function otherPlayerFog(): SceneFogLayer {
   const { grid, map } = header(1)
   const patch = createSceneFogAreaPatch(
-    { barriers: [], doorStates: {}, fogLayers: [], fogMode: 'PER_PLAYER', grid, map, tokens: [] },
+    {
+      barriers: [],
+      doorStates: {},
+      fogLayers: [],
+      fogMode: 'PER_PLAYER',
+      grid,
+      map,
+      tokens: []
+    },
     {
       explored: true,
       ownerUserId: otherPlayerId,
@@ -783,7 +840,10 @@ it.each([
     sendPreview(player!, ping(1, { position }))
     await vi.waitFor(() =>
       expect(transient(owner!.messages)).toEqual([
-        { message: { envelope: ping(1, { position }), userId: playerId }, type: 'TRANSIENT' }
+        {
+          message: { envelope: ping(1, { position }), userId: playerId },
+          type: 'TRANSIENT'
+        }
       ])
     )
     if (otherSees) await vi.waitFor(() => expect(transient(other!.messages)).toHaveLength(1))
@@ -881,7 +941,9 @@ it.each(['origin', 'recipient'] as const)(
     if (expired === 'origin') {
       sendPreview(owner, tokenPreview(1))
       await vi.waitFor(() =>
-        expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+        expect(owner.messages).toContainEqual({
+          type: 'AUTHENTICATION_REQUIRED'
+        })
       )
       await noTransient(owner.messages)
       await noTransient(player.messages)
@@ -904,7 +966,9 @@ it.each(['origin', 'recipient'] as const)(
       expect(transient(player.messages).length).toBeGreaterThan(0)
     })
     await vi.waitFor(() =>
-      expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+      expect(owner.messages).toContainEqual({
+        type: 'AUTHENTICATION_REQUIRED'
+      })
     )
     await noTransient(owner.messages)
   }
@@ -949,14 +1013,6 @@ it('keeps preview stream sequences and paths in memory only', async () => {
   // Hibernation loses the streams: the next sample starts again from the token's position.
   await evictDurableObject(stub)
   owner.messages.length = 0
-  owner.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
-  await vi.waitFor(() => expect(owner.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' }))
-  owner.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: owner.accessToken }))
-  await vi.waitFor(() =>
-    expect(owner.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
-  )
-  await synchronize(owner)
-  owner.messages.length = 0
   sendPreview(owner, tokenPreview(5, { x: 20, y: 20 }))
   await vi.waitFor(() =>
     expect(transient(owner.messages)[0]?.message.tokenDragResolution).toEqual({
@@ -975,8 +1031,8 @@ it('retries one Scene capture conflict in the background, then serves previews',
   await runInDurableObject(stub, () =>
     installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')], (call, capture, input) => {
       captureCalls = call
-      if (call === 4) expect(input.observedCharacterRevisions).toEqual([])
-      return call === 3 ? new Response(null, { status: 409 }) : capture
+      if (call === 2) expect(input.observedCharacterRevisions).toEqual([])
+      return call === 1 ? new Response(null, { status: 409 }) : capture
     })
   )
   const [owner, player] = await Promise.all([
@@ -989,31 +1045,50 @@ it('retries one Scene capture conflict in the background, then serves previews',
     sendPreview(owner, tokenPreview(sequence))
     expect(transient(player.messages).length).toBeGreaterThan(0)
   })
-  expect(captureCalls).toBe(5)
-  expect(owner.messages).not.toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+  expect(captureCalls).toBe(3)
+  expect(owner.messages).not.toContainEqual({
+    type: 'AUTHENTICATION_REQUIRED'
+  })
 })
+
+/** Wakes the room with admitted sockets but no Scene cache, as after a failed restore. */
+async function dropSavedSceneCache(stub: DurableObjectStub) {
+  await runInDurableObject(stub, (_instance, state) => {
+    state.storage.sql.exec('DELETE FROM room_scene_cache')
+  })
+  await evictDurableObject(stub)
+}
 
 it('drops previews without a third capture when the fresh capture also conflicts', async () => {
   const stub = newRoom()
   let captureCalls = 0
+  let admittedCalls: number | null = null
   await runInDurableObject(stub, () =>
     installFetch([member(ownerId, 'OWNER'), member(playerId, 'PLAYER')], (call, capture) => {
       captureCalls = call
-      return call === 3 || call === 5 ? new Response(null, { status: 409 }) : capture
+      if (admittedCalls === null) return capture
+      const sincePreview = call - admittedCalls
+      return sincePreview === 1 || sincePreview === 3
+        ? new Response(null, { status: 409 })
+        : capture
     })
   )
   const [owner, player] = await Promise.all([
     connect(stub, ownerId, 'OWNER'),
     connect(stub, playerId, 'PLAYER')
   ])
+  // Admission builds the Scene cache; the conflicts start with the rebuild of a woken room that kept none.
+  await dropSavedSceneCache(stub)
+  const admitted = captureCalls
+  admittedCalls = admitted
   sendPreview(owner, tokenPreview(1))
-  await vi.waitFor(() => expect(captureCalls).toBe(5))
+  await vi.waitFor(() => expect(captureCalls).toBe(admitted + 3))
   // Inside the retry window, later samples start no new rebuild.
   sendPreview(owner, tokenPreview(2))
   sendPreview(owner, tokenPreview(3))
   await noTransient(owner.messages)
   await noTransient(player.messages)
-  expect(captureCalls).toBe(5)
+  expect(captureCalls).toBe(admitted + 3)
 })
 
 /**
@@ -1023,23 +1098,38 @@ it('drops previews without a third capture when the fresh capture also conflicts
 async function characterVisionRoom() {
   const members = [member(ownerId, 'OWNER'), member(playerId, 'PLAYER')]
   const characterId = '00000000-0000-4000-8000-000000000112'
-  const bound = { campaignId, characterId, ownerUserId: playerId, scene: { sceneId, tokenId } }
-  const revisionA = await characterSheetInputsFixture({ ...bound, darkvision: true })
+  const bound = {
+    campaignId,
+    characterId,
+    ownerUserId: playerId,
+    scene: { sceneId, tokenId }
+  }
+  const revisionA = await characterSheetInputsFixture({
+    ...bound,
+    darkvision: true
+  })
   const revisionB = await characterSheetInputsFixture(bound)
   const { systemId, encounterId, actorId } = revisionA
   const room = {
+    encounterId,
+    actorId,
+    encounterVersion: revisionA.characterInputs.run.encounterVersion,
     revisionA: revisionA.characterRevision,
     revisionB: revisionB.characterRevision,
     /** The Character's current CHARACTER revision in Convex. */
     revision: revisionA.characterRevision,
-    captures: [] as LiveSessionTransientCaptureInput[],
+    captures: [] as LiveSessionRoomSceneCaptureInput[],
     /** The CHARACTER revision of each Character page the room read. */
     characterReads: [] as string[],
     authorizationReads: 0,
     /** Captures refused because they observed a superseded Character revision. */
     staleCaptures: 0,
     /** Set to make the authorization read fail. */
-    authorizationUnavailable: false
+    authorizationUnavailable: false,
+    /** The Encounter Convex reports as bound to the presented Scene. */
+    sceneEncounterId: encounterId as string | null,
+    /** Whether the Run is still open: a COMPLETEd Run is gone from Convex's Scene authorization. */
+    runOpen: true
   }
   const sceneFixture: RoomSceneFixture = {
     header: header(),
@@ -1066,7 +1156,10 @@ async function characterVisionRoom() {
             ownerUserId: ownerId,
             members,
             assignments: [{ characterId, userId: playerId }],
-            characterInputs: { ...revisionA.characterInputs, parts: current.characterInputs.parts },
+            characterInputs: {
+              ...revisionA.characterInputs,
+              parts: current.characterInputs.parts
+            },
             definitions: [darkvisionDefinition]
           })
         )
@@ -1101,30 +1194,36 @@ async function characterVisionRoom() {
             assignments: [{ characterId, userId: playerId }],
             characterRevisions: [{ characterId, revision: room.revision }],
             play: {
-              encounter: {
-                encounterId,
-                sceneId,
-                healthDisplayDefault: 'HIDDEN',
-                actors: [
-                  {
-                    id: actorId,
-                    kind: 'CHARACTER',
-                    sourceId: characterId,
-                    controllerUserIds: [],
-                    healthDisplay: null
+              encounter: room.runOpen
+                ? {
+                    encounterId,
+                    sceneId,
+                    healthDisplayDefault: 'HIDDEN',
+                    actors: [
+                      {
+                        id: actorId,
+                        kind: 'CHARACTER',
+                        sourceId: characterId,
+                        controllerUserIds: [],
+                        healthDisplay: null
+                      }
+                    ],
+                    tokens: [{ tokenId, actorId }]
                   }
-                ],
-                tokens: [{ tokenId, actorId }]
-              }
+                : null
             }
           })
         )
       }
       if (pathname === '/live-sessions/capture') {
         const body = liveSessionTransientCaptureInputSchema.parse(await request.json())
-        room.captures.push(body)
         const origin = members.find((candidate) => candidate.userId === body.expectedUserId)
         if (!origin || origin.role !== body.expectedRole) return new Response(null, { status: 409 })
+        return Response.json(memberCapture(origin))
+      }
+      if (pathname === '/live-sessions/room-scene-capture') {
+        const body = liveSessionRoomSceneCaptureInputSchema.parse(await request.json())
+        room.captures.push(body)
         if (
           body.observedCharacterRevisions.some((observed) => observed.revision !== room.revision)
         ) {
@@ -1132,13 +1231,28 @@ async function characterVisionRoom() {
           return new Response(null, { status: 409 })
         }
         return Response.json({
-          ...captureFor(
-            origin.userId,
-            origin.role,
-            members.filter((candidate) => candidate.userId !== origin.userId)
-          ),
+          ...roomSceneCapture(body.observedCharacterRevisions),
           systemId,
-          sceneEncounterId: encounterId
+          sceneEncounterId: room.sceneEncounterId
+        })
+      }
+      if (pathname === '/live-sessions/checkpoint') {
+        const body = liveSessionCheckpointRequestSchema.parse(await request.json())
+        const now = new Date().toISOString()
+        return Response.json({
+          status: 'COMMITTED',
+          authority: {
+            activationFingerprint,
+            campaignId,
+            createdAt: now,
+            epoch: body.epoch,
+            persistedSequence: body.sequence,
+            persistedStateChecksum: body.checksum,
+            phase: 'DO_ACTIVE',
+            updatedAt: now
+          },
+          adopted: { characters: [] },
+          io: NO_CHECKPOINT_IO
         })
       }
       throw new Error(`Unexpected backend request: ${pathname}`)
@@ -1161,8 +1275,8 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
   const capturesAfterSync = room.captures.length
   const readsAfterSync = room.authorizationReads
 
-  // GM and player previews use the cached revisions with no read, even past the old 30 s lease.
-  advance(60_000)
+  // GM and player previews use the cached revisions with no read within the authorization lease.
+  advance(ROOM_LIMITS.authorizationLeaseMs / 4)
   sendPreview(owner, tokenPreview(1))
   sendPreview(player, tokenPreview(1))
   await vi.waitFor(() => {
@@ -1171,7 +1285,10 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
   })
   expect(transient(player.messages)).toContainEqual(
     expect.objectContaining({
-      message: expect.objectContaining({ userId: playerId, visionLayers: [expect.anything()] })
+      message: expect.objectContaining({
+        userId: playerId,
+        visionLayers: [expect.anything()]
+      })
     })
   )
   expect(room.authorizationReads).toBe(readsAfterSync)
@@ -1185,7 +1302,9 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
   await vi.waitFor(() => {
     sequence += 1
     sendPreview(player, tokenPreview(sequence, { x: 20 + sequence, y: 10 }))
-    expect(transient(player.messages).at(-1)).toMatchObject({ message: { visionLayers: [] } })
+    expect(transient(player.messages).at(-1)).toMatchObject({
+      message: { visionLayers: [] }
+    })
   })
   expect(room.characterReads).toEqual([room.revisionA, room.revisionB])
   expect(room.staleCaptures).toBe(1)
@@ -1195,6 +1314,88 @@ it('rehydrates Character vision after a CHARACTER notice, with no read per sampl
     expect(transient(player.messages).at(-1)?.message.envelope.sequence).toBe(sequence + 1)
   )
   expect(room.authorizationReads).toBe(readsAfterRebuild)
+})
+
+it('composes Scene vision without a Run that COMPLETEd, so the next Scene command still commits', async () => {
+  const { room, owner, player } = await characterVisionRoom()
+  sendPreview(player, tokenPreview(1))
+  await vi.waitFor(() =>
+    expect(transient(player.messages).at(-1)).toMatchObject({
+      message: { visionLayers: [expect.anything()] }
+    })
+  )
+
+  const encounterCommand = async (
+    expectedSessionSequence: number,
+    command: Record<string, unknown>
+  ) => {
+    const commandId = crypto.randomUUID()
+    owner.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence,
+        command: {
+          scope: 'ENCOUNTER',
+          command: { ...command, encounterId: room.encounterId, commandId }
+        }
+      })
+    )
+    await vi.waitFor(() =>
+      expect(owner.messages).toContainEqual(
+        expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId })
+      )
+    )
+  }
+  await encounterCommand(0, {
+    type: 'SET_CURRENT_ACTOR',
+    expectedVersion: room.encounterVersion,
+    actorId: room.actorId
+  })
+  await encounterCommand(1, {
+    type: 'COMPLETE',
+    expectedVersion: room.encounterVersion + 1
+  })
+  // COMPLETE deleted the Run's rows and Scene binding; Convex's Scene authorization agrees.
+  room.runOpen = false
+  room.sceneEncounterId = null
+
+  const moveId = crypto.randomUUID()
+  owner.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 2,
+      command: {
+        scope: 'SCENE',
+        command: {
+          type: 'MOVE_SCENE_TOKEN',
+          commandId: moveId,
+          correlationId: null,
+          expectedEncounterVersion: null,
+          expectedSceneVersion: 1,
+          movementKind: 'VOLUNTARY',
+          path: [token.position, { x: 20, y: 10 }],
+          sceneId,
+          tokenId
+        }
+      }
+    })
+  )
+  await vi.waitFor(() =>
+    expect(owner.messages).toContainEqual(
+      expect.objectContaining({ type: 'COMMAND_COMMITTED', commandId: moveId })
+    )
+  )
+  // The finished Run no longer lends the token Character vision.
+  player.messages.length = 0
+  sendPreview(player, {
+    ...tokenPreview(2, { x: 25, y: 10 }),
+    baselineVersion: 2
+  })
+  await vi.waitFor(() =>
+    expect(transient(player.messages).at(-1)).toMatchObject({
+      message: { visionLayers: [] }
+    })
+  )
 })
 
 it('refuses previews and pings while the authorization cache cannot be renewed', async () => {

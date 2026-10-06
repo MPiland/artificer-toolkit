@@ -10,8 +10,7 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
-  useRouter,
-  useRouterState
+  useRouter
 } from '@tanstack/react-router'
 import { Suspense, lazy, useEffect, type ReactNode } from 'react'
 import { useConvexAuth, useQuery } from 'convex/react'
@@ -106,9 +105,6 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function SessionConvergence() {
   const router = useRouter()
-  const isNavigating = useRouterState({
-    select: (state) => state.isLoading || state.status === 'pending'
-  })
   const { user, queryClient } = Route.useRouteContext()
   const { isLoading } = useConvexAuth()
   const snapshot = useQuery(api.account.session, isLoading ? 'skip' : {})
@@ -121,15 +117,20 @@ function SessionConvergence() {
       queryClient.clear()
       void clearPrivateContentSnapshots()
     }
-    // Concurrent invalidation can clear a still-rendered pending match's load promise.
-    // Route state retriggers convergence after navigation; identity caches clear immediately.
-    if (
-      !isNavigating &&
-      (identityChanged || snapshot.user?.authoringExperience !== user?.authoringExperience)
-    ) {
+    if (!identityChanged && snapshot.user?.authoringExperience === user?.authoringExperience) return
+    // Concurrent invalidation can clear a still-rendered pending match's load promise and leave the
+    // router pending, so a running load (hydration after sign-in) resolves first. Rendered route
+    // state can lag a load that just started; the live router state decides.
+    if (!router.state.isLoading && router.state.status !== 'pending') {
       void router.invalidate()
+      return
     }
-  }, [snapshot, user, queryClient, router, isNavigating])
+    const unsubscribe = router.subscribe('onResolved', () => {
+      unsubscribe()
+      void router.invalidate()
+    })
+    return unsubscribe
+  }, [snapshot, user, queryClient, router])
 
   return null
 }

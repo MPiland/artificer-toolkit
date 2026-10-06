@@ -19,16 +19,12 @@ export const developmentCheckpointScopeSchema = lazySchema(() =>
 export const developmentCheckpointRollbackInputSchema = lazySchema(() =>
   z.strictObject({
     scope: developmentCheckpointScopeSchema,
-    checkpoint: liveSessionCheckpointRequestSchema,
-    staged: z._default(z.boolean(), false)
+    checkpoint: liveSessionCheckpointRequestSchema
   })
 )
 
 export const developmentCheckpointPreparationInputSchema = lazySchema(() =>
-  z.extend(developmentCheckpointScopeSchema, { staged: z._default(z.boolean(), false) })
-)
-export const developmentCheckpointDiscardUploadInputSchema = lazySchema(() =>
-  z.strictObject({ scope: developmentCheckpointScopeSchema, checkpointId: postgresUuidSchema })
+  z.extend(developmentCheckpointScopeSchema, { large: z._default(z.boolean(), false) })
 )
 
 export const DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER = 'CHECKPOINT_PROOF_ROLLBACK_AFTER_PUBLICATION'
@@ -42,8 +38,6 @@ export const developmentCheckpointInspectionSchema = lazySchema(() =>
     playChecksum: projectionChecksumSchema,
     sharedHeaderCount: z.number().check(z.int()).check(z.nonnegative()),
     privateHeaderCount: z.number().check(z.int()).check(z.nonnegative()),
-    stagedUploadCount: z.number().check(z.int()).check(z.nonnegative()),
-    stagedPartCount: z.number().check(z.int()).check(z.nonnegative()),
     ledgers: z.array(receiptLedgerMetadataSchema)
   })
 )
@@ -77,7 +71,4 @@ export type DevelopmentCheckpointRollbackInput = z.infer<
 >
 export type DevelopmentCheckpointPreparationInput = z.infer<
   typeof developmentCheckpointPreparationInputSchema
->
-export type DevelopmentCheckpointDiscardUploadInput = z.infer<
-  typeof developmentCheckpointDiscardUploadInputSchema
 >

@@ -30,7 +30,9 @@ describe('checkpoint record decoding', () => {
       id: characterId,
       encounterId: userId,
       stateJson: '{ "z": { "b": 2, "a": 1 }, "streamVersion": 7, "a": null }',
-      stateChecksum: checksum
+      stateChecksum: checksum,
+      snapshotChecksum: checksum,
+      sourceFactsChecksum: null
     }
     const original = structuredClone(fields)
     const decoded = decodeCheckpointRecord('encounterRunActors', fields)
@@ -38,9 +40,18 @@ describe('checkpoint record decoding', () => {
       id: characterId,
       encounterId: userId,
       stateJson: { a: null, streamVersion: 7, z: { a: 1, b: 2 } },
-      stateChecksum: checksum
+      stateChecksum: checksum,
+      snapshotChecksum: checksum,
+      sourceFactsChecksum: null
     })
-    expect(Object.keys(decoded)).toEqual(['encounterId', 'id', 'stateChecksum', 'stateJson'])
+    expect(Object.keys(decoded)).toEqual([
+      'encounterId',
+      'id',
+      'snapshotChecksum',
+      'sourceFactsChecksum',
+      'stateChecksum',
+      'stateJson'
+    ])
     expect(JSON.stringify(decoded.stateJson)).toBe('{"a":null,"streamVersion":7,"z":{"a":1,"b":2}}')
     expect(
       decodeCheckpointRecord('encounterRunActors', {
@@ -90,13 +101,12 @@ describe('checkpoint record decoding', () => {
     expect(Object.hasOwn(decoded, 'portraitAssetId')).toBe(false)
     expect(decoded.label).toBe('Character')
     expect(
-      decodeCheckpointRecord('encounterActorProjectionFacts', {
-        id: characterId,
+      decodeCheckpointRecord('encounterActorSnapshots', {
         encounterId: userId,
-        factsJson: 'null',
-        sourceFactsChecksum: null
+        checksum,
+        snapshotJson: 'null'
       })
-    ).toEqual({ id: characterId, encounterId: userId, factsJson: null, sourceFactsChecksum: null })
+    ).toEqual({ encounterId: userId, checksum, snapshotJson: null })
   })
 
   it('rejects invalid stored rows and malformed or non-finite decoded JSON', () => {

@@ -1,12 +1,12 @@
 import { ActionIcon, Alert, Button, Group, Switch, Text, Tooltip } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useAction, useConvex } from 'convex/react'
-import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useConvex } from 'convex/react'
 import { Crosshair, Eye, RotateCcw, Save, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { saveSceneDefinition } from '#app/data/campaigns/scenes'
+import { useVttMapDelivery } from '#app/data/media'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createEditorSceneState, updateSceneEditorDraft } from './CampaignSceneEditor.model'
 import {
@@ -46,7 +46,6 @@ export function CampaignSceneEditor({
 }) {
   const queryClient = useQueryClient()
   const convex = useConvex()
-  const getMapDelivery = useAction(convexApi.media.vttMapActions.getDelivery)
   const saveCommandId = useRef<string | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
@@ -72,15 +71,9 @@ export function CampaignSceneEditor({
     setTool('SELECT')
   }, [scene.id, scene.version])
 
-  const mapDelivery = useQuery({
-    queryFn: () => getMapDelivery({ assetId: draft.map.assetId }),
-    queryKey: queryKeys.media.vttMap(draft.map.assetId),
-    refetchInterval: 4 * 60_000,
-    refetchIntervalInBackground: true,
-    refetchOnReconnect: 'always',
-    refetchOnWindowFocus: false,
-    staleTime: 4 * 60_000
-  })
+  const mapDelivery = useVttMapDelivery(draft.map.assetId, (delivery) =>
+    renderer.current?.retryMap(delivery)
+  )
   const mapFailure =
     mapDelivery.error instanceof Error
       ? mapDelivery.error.message
@@ -112,7 +105,10 @@ export function CampaignSceneEditor({
     if (!host) return
     let disposed = false
     void createVttSceneRenderer(host, {
-      onMapLoadStatus: setMapLoadStatus,
+      onMapLoadStatus: (status) => {
+        setMapLoadStatus(status)
+        mapDelivery.onMapLoadStatus(status)
+      },
       onCreateAnnotation: (position) => {
         if (previewRef.current) return
         changeDraft((current) => ({
@@ -209,9 +205,7 @@ export function CampaignSceneEditor({
 
   function retryMap(): void {
     setMapLoadStatus('LOADING')
-    void mapDelivery.refetch().then((result) => {
-      if (result.isSuccess) renderer.current?.retryMap(result.data)
-    })
+    mapDelivery.refresh()
   }
 
   const save = useMutation({

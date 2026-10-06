@@ -12,7 +12,7 @@ import {
 import { CONTENT_SNAPSHOT_PATH_PREFIX } from '@artificer-toolkit/schema/api/contentSnapshots'
 
 import { serveContentSnapshot } from './contentSnapshots.js'
-import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
+import { allowedOrigins, isLocalDevelopment, type SessionWorkerEnvironment } from './environment.js'
 import { NativeLiveSessionRoom as LiveSessionRoom } from './nativeLiveSessionRoom.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 
@@ -90,7 +90,7 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
       const secret = environment.LIVE_SESSION_WORKER_SECRET
       if (
         request.method !== route.method ||
-        environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN !== 'http://127.0.0.1:8026' ||
+        !isLocalDevelopment(environment) ||
         !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
       )
         return new Response('Not found.', { status: 404 })
@@ -113,20 +113,20 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
     const ticket = liveSessionTicket(request)
     if (!ticket) return new Response('Live-session ticket is missing.', { status: 401 })
 
-    try {
-      const claims = await verifyLiveSessionTicket(ticket, environment.LIVE_SESSION_TICKET_SECRET)
-      if (claims.campaignId !== path[1]) {
-        return new Response('Live-session ticket does not match the requested room.', {
-          status: 403
-        })
-      }
-      const headers = new Headers(request.headers)
-      headers.set(INTERNAL_TICKET_HEADER, ticket)
-      const objectId = environment.LIVE_SESSION_ROOMS.idFromName(claims.campaignId)
-      return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(new Request(request, { headers }))
-    } catch {
-      return new Response('Live-session ticket is invalid.', { status: 401 })
+    const claims = await verifyLiveSessionTicket(
+      ticket,
+      environment.LIVE_SESSION_TICKET_SECRET
+    ).catch(() => null)
+    if (!claims) return new Response('Live-session ticket is invalid.', { status: 401 })
+    if (claims.campaignId !== path[1]) {
+      return new Response('Live-session ticket does not match the requested room.', {
+        status: 403
+      })
     }
+    const headers = new Headers(request.headers)
+    headers.set(INTERNAL_TICKET_HEADER, ticket)
+    const objectId = environment.LIVE_SESSION_ROOMS.idFromName(claims.campaignId)
+    return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(new Request(request, { headers }))
   }
 }
 

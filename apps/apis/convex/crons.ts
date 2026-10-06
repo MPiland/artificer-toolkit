@@ -9,12 +9,6 @@ crons.interval(
   {}
 )
 crons.daily(
-  'purge expired Scene command receipts',
-  { hourUTC: 9, minuteUTC: 0 },
-  internal.scenes.commandRetention.purge,
-  {}
-)
-crons.daily(
   'delete superseded content snapshots',
   { hourUTC: 9, minuteUTC: 30 },
   internal.contentSnapshots.actions.deleteSupersededObjects,

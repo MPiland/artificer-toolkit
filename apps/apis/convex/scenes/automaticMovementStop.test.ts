@@ -30,14 +30,17 @@ it.each([false, true])(
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
+        runCommands: await (
+          await readEncounterHistory(ctx)
+        )
+          .query('encounterRunCommands')
+          .collect(),
         liveStates: await ctx.db.query('sceneLiveStates').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-        entities: await ctx.db.query('sceneLiveEntities').collect(),
-        commands: await ctx.db.query('sceneLiveCommands').collect()
+        entities: await ctx.db.query('sceneLiveEntities').collect()
       }))
     const before = await snapshot()
     const beforeCharacter = before.characters.find((row) => row.id === value.base.character.id)

@@ -1,5 +1,6 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 // @vitest-environment node
 import { expect, it } from 'vitest'
 import {
@@ -360,11 +361,15 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', base.run.id))
       .take(16),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(32),
-    commands: await (await readEncounterHistory(ctx))
+    commands: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .take(32),
@@ -411,7 +416,7 @@ async function resetActionAllowance(base: Awaited<ReturnType<typeof setup>>) {
       )
       .unique()
     if (!row) throw new Error('Maintained action source is unavailable.')
-    const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    const actor = await readTestActor(ctx, row)
     const reset = encounterRunActorStateSchema.parse({
       ...actor,
       resources: withEncounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 0)
@@ -524,7 +529,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
       .unique()
     if (!row) throw new Error('Maintained condition owner is unavailable.')
     const actor = encounterRunActorStateSchema.parse({
-      ...JSON.parse(row.stateJson),
+      ...(await readTestActor(ctx, row)),
       conditions: [frightened.id, poisoned.id, blinded.id]
     })
     await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
@@ -1039,7 +1044,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
       .unique()
     if (!row) throw new Error('Projected maintenance actor is unavailable.')
     const actor = encounterRunActorStateSchema.parse({
-      ...JSON.parse(row.stateJson),
+      ...(await readTestActor(ctx, row)),
       conditions: [frightened.id, poisoned.id, blinded.id]
     })
     await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
@@ -1060,7 +1065,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
   )
   const updatedActor = committed.actors.find((actor) => actor.id === base.actor.id)
   if (!updatedActor) throw new Error('Projected maintenance actor write is unavailable.')
-  const updatedState = encounterRunActorStateSchema.parse(JSON.parse(updatedActor.stateJson))
+  const updatedState = readStoredRunActor(updatedActor)
   if (updatedState.kind === 'CHARACTER') throw new Error('Expected a Creature maintenance actor.')
   const updatedConditions = updatedState.conditions
   expect(updatedConditions).toEqual(expect.arrayContaining([frightened.id, poisoned.id]))

@@ -35,8 +35,7 @@ it.each(['DECLINE', 'OPTION'] as const)(
         receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
         commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
         scenes: await ctx.db.query('campaignScenes').collect(),
-        entities: await ctx.db.query('sceneLiveEntities').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
+        entities: await ctx.db.query('sceneLiveEntities').collect()
       }))
     const root = await planMovementInRoom(value.owner.caller, value.rootInput)
     const initial = await root.publish()

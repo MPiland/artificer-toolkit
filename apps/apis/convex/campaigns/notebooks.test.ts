@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { z } from 'zod'
 import type {
   CampaignDetailDto,
@@ -433,14 +433,8 @@ describe('native Campaign notebooks', () => {
     ])
   })
 
-  it('removes a deleted account’s private entries in bounded batches and keeps its shared ones as Deleted user', async ({
-    onTestFinished
-  }) => {
-    vi.useFakeTimers()
-    onTestFinished(() => {
-      vi.useRealTimers()
-    })
-    const { t, other, third, campaign } = await setup()
+  it('keeps a deleted account’s entries as Deleted user, private ones readable only by the GM', async () => {
+    const { t, owner, other, third, campaign } = await setup()
     const [privateEntry, sharedEntry] = await Promise.all(
       (['PRIVATE', 'SHARED'] as const).map((visibility) =>
         other.caller.mutation(create, {
@@ -459,53 +453,15 @@ describe('native Campaign notebooks', () => {
       if (!profile) throw new Error('Missing player profile.')
       return profile.authUserId
     })
-    // More private rows than two removal batches, so the purge must reschedule itself to finish.
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('campaignNotebookSections')
-        .withIndex('by_campaignId_authorUserId_visibility', (q) =>
-          q
-            .eq('campaignId', campaign.id)
-            .eq('authorUserId', other.userId)
-            .eq('visibility', 'PRIVATE')
-        )
-        .unique()
-      if (!row) throw new Error('Missing private row.')
-      const { _id, _creationTime, ...stored } = row
-      for (let index = 0; index < 100; index++)
-        await ctx.db.insert('campaignNotebookSections', {
-          ...stored,
-          id: crypto.randomUUID(),
-          title: `Bulk ${index}`
-        })
-    })
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await listAll(owner.caller, campaign.id)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: privateEntry!.id, authorLabel: deletedCampaignAuthorLabel }),
+        expect.objectContaining({ id: sharedEntry!.id, authorLabel: deletedCampaignAuthorLabel })
+      ])
+    )
     expect(await listAll(third.caller, campaign.id)).toEqual([
       expect.objectContaining({ id: sharedEntry!.id, authorLabel: deletedCampaignAuthorLabel })
     ])
-    expect(
-      await t.run((ctx) =>
-        ctx.db
-          .query('campaignNotebookSections')
-          .withIndex('by_campaignId_id', (q) =>
-            q.eq('campaignId', campaign.id).eq('id', privateEntry!.id)
-          )
-          .unique()
-      )
-    ).toBeNull()
-    expect(
-      await t.run((ctx) =>
-        ctx.db
-          .query('campaignNotebookSections')
-          .withIndex('by_campaignId_authorUserId_visibility', (q) =>
-            q
-              .eq('campaignId', campaign.id)
-              .eq('authorUserId', other.userId)
-              .eq('visibility', 'PRIVATE')
-          )
-          .first()
-      )
-    ).toBeNull()
   })
 })

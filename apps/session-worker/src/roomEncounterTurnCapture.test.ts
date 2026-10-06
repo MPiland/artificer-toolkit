@@ -8,6 +8,7 @@ import {
 import { encounterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
@@ -16,10 +17,12 @@ import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import { storedRunDocuments } from './testing/storedRunFixture.js'
 
 it('admits native turn scopes and pages the selected actor effects without a backend read', async () => {
   const campaignId = uuid(0xe00)
-  const systemId = uuid(0xe01)
+  // Creature actors are stored with the facts their System evaluated, so the System is installed.
+  const systemId = DND5E_SYSTEM_ID
   const epoch = uuid(0xe02)
   const gmId = uuid(0xe03)
   const playerId = uuid(0xe04)
@@ -145,33 +148,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
   ]
   const documents: RoomDocument[] = [
     ...authority.documents,
-    {
-      table: 'encounterRuns',
-      id: 'turn:run',
-      creationTime: 0,
-      fields: {
-        id: state.id,
-        campaignId,
-        gameSystemId: systemId,
-        status: state.status,
-        version: state.version,
-        stateJson: JSON.stringify(state),
-        stateChecksum: checksumCanonicalJson(state),
-        createdAt: now,
-        updatedAt: now
-      }
-    },
-    ...[actor, otherActor].map((value) => ({
-      table: 'encounterRunActors' as const,
-      id: `turn:actor:${value.id}`,
-      creationTime: 0,
-      fields: {
-        id: value.id,
-        encounterId,
-        stateJson: JSON.stringify(value),
-        stateChecksum: checksumCanonicalJson(value)
-      }
-    })),
+    ...(await storedRunDocuments(state, [actor, otherActor])),
     ...[5, 1, 4, 0, 3, 2, 6].map((index) => ({
       table: 'encounterActiveRuleEffects' as const,
       id: `turn:effect:${index}`,

@@ -16,8 +16,8 @@ import {
   sceneDoorChangeFailure,
   sceneTokenMovementFailure
 } from '@artificer-toolkit/shared/vtt'
-import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { z } from 'zod'
+import type { BoundTokenControl } from './roomAuthorization.js'
 
 /**
  * Whether a member may drag-preview a token: the GM always; a player never for hidden tokens; an
@@ -28,7 +28,7 @@ export function canPreviewSceneTokenDrag(input: {
   token: CampaignSceneStateDto['tokens'][number]
   role: 'OWNER' | 'PLAYER'
   userId: string
-  originBoundTokenControl: LiveSessionTransientCapture['originBoundTokenControl'] | null
+  originBoundTokenControl: BoundTokenControl | null
 }): boolean {
   const { token } = input
   if (token.locked) return false

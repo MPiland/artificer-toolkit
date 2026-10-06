@@ -185,6 +185,8 @@ export async function createVttSceneRenderer(
   await app.init({
     antialias: true,
     autoDensity: true,
+    // The Stage renders on demand (`requestRender`), not every frame.
+    autoStart: false,
     background: '#101315',
     preference: 'webgl',
     resizeTo: host,
@@ -336,12 +338,19 @@ export async function createVttSceneRenderer(
   let fogRenderCount = 0
   let doorVisualCreateCount = 0
 
+  /**
+   * Renders the next frame. Every change to the display tree must request one; the ticker then runs
+   * only while previews or pings animate, so an unchanged Scene costs no frames.
+   */
+  const requestRender = () => app.ticker.start()
   const onTickerUpdate = () => {
     const elapsedMs = app.ticker.deltaMS
+    let animating = false
     for (const preview of remoteTokenDragPreviews.values()) {
       if (!tokenVisuals.has(preview.tokenId)) continue
       interpolateScenePoint(preview.current, preview.target, elapsedMs)
       positionRemoteTokenDragPreview(preview.graphic, preview.current)
+      if (!pointsEqual(preview.current, preview.target)) animating = true
     }
     for (const [userId, entry] of pings) {
       const frame = vttPingRingFrame(performance.now() - entry.startedAt, reducedMotion.matches)
@@ -358,6 +367,8 @@ export async function createVttSceneRenderer(
         .circle(0, 0, frame.radius / scale)
         .stroke({ alpha: frame.alpha, color: colors.ping, width: 3 / scale })
     }
+    // Stopping here still renders this frame: Pixi's render listener runs after this one.
+    if (!animating && pings.size === 0) app.ticker.stop()
   }
   app.ticker.add(onTickerUpdate)
   const previewRenderObserver = {
@@ -413,6 +424,7 @@ export async function createVttSceneRenderer(
     graphic.position.set(point.x, point.y)
     transientLayer.addChild(graphic)
     pings.set(userId, { graphic, startedAt: performance.now() })
+    requestRender()
   }
 
   function clearPing(userId: string): void {
@@ -432,6 +444,7 @@ export async function createVttSceneRenderer(
       (app.screen.width - width * world.scale.x) / 2,
       (app.screen.height - height * world.scale.y) / 2
     )
+    requestRender()
   }
 
   function focusPoint(point: ScenePoint): void {
@@ -439,6 +452,7 @@ export async function createVttSceneRenderer(
       app.screen.width / 2 - point.x * world.scale.x,
       app.screen.height / 2 - point.y * world.scale.y
     )
+    requestRender()
   }
 
   function zoomAt(factor: number, point: ScenePoint): void {
@@ -448,6 +462,7 @@ export async function createVttSceneRenderer(
     const after = world.toGlobal(before)
     world.position.x += point.x - after.x
     world.position.y += point.y - after.y
+    requestRender()
   }
 
   function zoomAtCanvasCenter(factor: number): void {
@@ -536,6 +551,7 @@ export async function createVttSceneRenderer(
         loadedMapParts.set(partId, { url })
         loadedMapUrls.add(url)
         addSprite(texture)
+        requestRender()
         if ([...mapExpectedPartIds].every((expectedPartId) => loadedMapParts.has(expectedPartId))) {
           mapLoadComplete = true
           emitMapLoadStatus('READY')
@@ -1002,6 +1018,7 @@ export async function createVttSceneRenderer(
           art.width = Math.max(1, token.width - 8)
           visual.addChildAt(art, 1)
           label.visible = false
+          requestRender()
         })
         .catch(() => {
           label.visible = true
@@ -1138,6 +1155,7 @@ export async function createVttSceneRenderer(
   }
 
   function draw(next: VttSceneRendererUpdate): void {
+    requestRender()
     if (
       current &&
       wallChainStart &&
@@ -1314,6 +1332,7 @@ export async function createVttSceneRenderer(
   }
 
   app.stage.on('pointerdown', (event) => {
+    requestRender()
     if (!current) return
     const point = worldPoint(event)
     if (current.tool === 'PAN' || event.button === 1) {
@@ -1366,6 +1385,7 @@ export async function createVttSceneRenderer(
 
   app.stage.on('globalpointermove', (event) => {
     pingPress.move({ x: event.global.x, y: event.global.y })
+    if (panStart || drag || gestureStart) requestRender()
     if (panStart) {
       world.position.set(
         panStart.world.x + event.global.x - panStart.pointer.x,
@@ -1401,6 +1421,7 @@ export async function createVttSceneRenderer(
   })
 
   app.stage.on('pointerup', (event) => {
+    requestRender()
     pingPress.end()
     panStart = null
     if (drag) {
@@ -1451,6 +1472,7 @@ export async function createVttSceneRenderer(
       return
     }
     if (!current || current.tool !== 'WALL' || !wallChainStart) return
+    requestRender()
     if (event.key === 'Escape') {
       event.preventDefault()
       wallChainStart = null
@@ -1474,6 +1496,7 @@ export async function createVttSceneRenderer(
     wallChainStart = null
     gestureStart = null
     destroyChildren(measurementLayer)
+    requestRender()
   }
   app.canvas.addEventListener('keydown', onKeyDown)
   app.canvas.addEventListener('contextmenu', onContextMenu)
@@ -1510,6 +1533,14 @@ export async function createVttSceneRenderer(
     if (touchPointers.size < 2) pinchDistance = null
   }
 
+  // Pixi hit-tests against transforms it computes when it renders, so a press first renders a pending
+  // frame, or it could miss a token rebuilt since the last one. The host's capture listener runs before
+  // Pixi's own on the canvas.
+  const onPointerDownCapture = () => {
+    if (app.ticker.started) app.render()
+  }
+
+  host.addEventListener('pointerdown', onPointerDownCapture, { capture: true })
   app.canvas.addEventListener('pointerdown', onTouchPointerDown)
   app.canvas.addEventListener('pointermove', onTouchPointerMove, { passive: false })
   app.canvas.addEventListener('pointerup', onTouchPointerEnd)
@@ -1518,6 +1549,7 @@ export async function createVttSceneRenderer(
 
   return {
     applyTransient(message) {
+      requestRender()
       // A ping is one message about a map point, so it stays valid across Scene versions.
       if (message.envelope.kind === 'PING') {
         if (current?.scene.id === message.envelope.sceneId)
@@ -1650,6 +1682,7 @@ export async function createVttSceneRenderer(
       app.canvas.removeEventListener('wheel', onWheel)
       app.canvas.removeEventListener('keydown', onKeyDown)
       app.canvas.removeEventListener('contextmenu', onContextMenu)
+      host.removeEventListener('pointerdown', onPointerDownCapture, { capture: true })
       app.canvas.removeEventListener('pointerdown', onTouchPointerDown)
       app.canvas.removeEventListener('pointermove', onTouchPointerMove)
       app.canvas.removeEventListener('pointerup', onTouchPointerEnd)
@@ -1687,6 +1720,7 @@ export async function createVttSceneRenderer(
     previewDoorState(barrierId, state) {
       const entry = doorVisuals.get(barrierId)
       if (!entry) return
+      requestRender()
       if (state) {
         doorPreviews.set(barrierId, state)
         setDoorVisualState(entry.visuals, state)
@@ -1724,9 +1758,11 @@ export async function createVttSceneRenderer(
     transientVisuals.delete(key)
     if (clearedFogPreview || clearedVisionPreview) drawFogWithRemotePreviews()
     if (clearedVisionReveal) drawVisionReveals()
+    requestRender()
   }
 
   function cancelActiveInteraction(): void {
+    requestRender()
     pingPress.end()
     panStart = null
     gestureStart = null

@@ -1,4 +1,5 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -11,11 +12,9 @@ import type {
   CreateEncounterBlueprintInputDto,
   EncounterBlueprintDto
 } from '@artificer-toolkit/schema/api/encounters'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
@@ -162,11 +161,11 @@ describe('native Encounter Run creation', () => {
         .collect()
       expect(actors).toHaveLength(2)
       for (const actor of actors) {
-        const decoded = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+        const decoded = await readTestActor(ctx, actor)
         expect(decoded.encounterId).toBe(result.id)
         expect(state.actorIds).toContain(decoded.id)
         expect(state.sides.map((side) => side.id)).toContain(decoded.sideId)
-        expect(checksumCanonicalJson(decoded)).toBe(actor.stateChecksum)
+        expect(checksumRunActorPlayState(decoded)).toBe(actor.stateChecksum)
         if (decoded.kind === 'CHARACTER') {
           expect(decoded.sourceId).toBe(character.id)
           expect(decoded).not.toHaveProperty('currentHitPoints')
@@ -230,9 +229,14 @@ describe('native Encounter Run creation', () => {
     expect(unassigned.actors.map((actor) => actor.kind)).toEqual(['CUSTOM'])
   }, 30000)
 
-  it.each(['campaignId', 'gameSystemId'] as const)(
+  // A Run moved to another Campaign no longer matches its creation key, so the surviving command
+  // header reads as a reused ID.
+  it.each([
+    ['campaignId', '"reason":"COMMAND_ID_REUSED"'],
+    ['gameSystemId', 'Encounter is unavailable.']
+  ] as const)(
     'rejects replay when the stored Run has a different %s',
-    async (field) => {
+    async (field, message) => {
       const { t, other, input } = await setup()
       const result = await other.caller.mutation(createRun, input)
       await t.run(async (ctx) => {
@@ -243,9 +247,7 @@ describe('native Encounter Run creation', () => {
         if (!row) throw new Error('Missing Run')
         await ctx.db.patch(row._id, { [field]: crypto.randomUUID() })
       })
-      await expect(other.caller.mutation(createRun, input)).rejects.toThrow(
-        'Encounter is unavailable.'
-      )
+      await expect(other.caller.mutation(createRun, input)).rejects.toThrow(message)
       expect(
         await t.run((ctx) =>
           ctx.db

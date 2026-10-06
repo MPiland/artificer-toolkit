@@ -1,4 +1,3 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
@@ -13,7 +12,11 @@ import { seedConcentration } from '../../tests/fixtures/concentration'
 import { turnConcentrationFixture } from '../../tests/fixtures/turnConcentration'
 import { seedTurnSaveEffect } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { executeInRoom, replayInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  replayInRoom,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof turnConcentrationFixture>>
 
@@ -51,7 +54,9 @@ async function records(base: Fixture) {
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (query) => query.eq('encounterId', base.run.id))
       .collect(),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', base.run.id))
       .collect()

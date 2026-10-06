@@ -1,5 +1,6 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -105,14 +106,10 @@ async function stored(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: 
       (row) => row.encounterId === encounterId
     ),
     receipts: (
-      await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .collect()
+      await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
     ).filter((row) => row.encounterId === encounterId),
     commands: (
-      await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     ).filter((row) => row.encounterId === encounterId)
   }))
 }
@@ -149,7 +146,7 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
       .collect()) {
-      let actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+      let actor = await readTestActor(ctx, actorRow)
       for (const definitionId of allowanceIds)
         actor = encounterRunActorStateSchema.parse({
           ...actor,
@@ -638,10 +635,8 @@ describe('native Encounter turn Legendary Actions', () => {
       expect(terminal.receipts).toHaveLength(before.receipts.length + 1)
       expect(terminal.commands).toHaveLength(before.commands.length + 1)
       // The Legendary attack hit its target, not its owner (D51 option B).
-      const hit = encounterRunActorStateSchema.parse(
-        JSON.parse(
-          terminal.actors.find((row) => row.id === legendaryOption(choice).targetActorId)!.stateJson
-        )
+      const hit = readStoredRunActor(
+        terminal.actors.find((row) => row.id === legendaryOption(choice).targetActorId)!
       )
       if (hit.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
       expect(hit.currentHitPoints).toBe(10)
@@ -738,7 +733,7 @@ describe('native Encounter turn Legendary Actions', () => {
       )
     })
     for (const row of terminal.actors) {
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const actor = readStoredRunActor(row)
       if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
       expect(actor.currentHitPoints).toBe(row.id === expectedOwners[1] ? 10 : 11)
       expect(actor.resources).toMatchObject({
@@ -876,17 +871,13 @@ describe('native Encounter turn Legendary Actions', () => {
         })
       )
     })
-    const hitActor = encounterRunActorStateSchema.parse(
-      JSON.parse(
-        terminal.actors.find((row) => row.id === legendaryOption(first).targetActorId)!.stateJson
-      )
+    const hitActor = readStoredRunActor(
+      terminal.actors.find((row) => row.id === legendaryOption(first).targetActorId)!
     )
     if (hitActor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
     expect(hitActor.currentHitPoints).toBe(10)
-    const enteringActor = encounterRunActorStateSchema.parse(
-      JSON.parse(
-        terminal.actors.find((row) => row.id === result.projection.currentActorId)!.stateJson
-      )
+    const enteringActor = readStoredRunActor(
+      terminal.actors.find((row) => row.id === result.projection.currentActorId)!
     )
     expect(enteringActor.resources).toMatchObject({
       featureCharges: { [automaticChargedBiteFeatureId]: 0, [rechargeFeatureId]: 0 },
@@ -1015,21 +1006,19 @@ describe('native Encounter turn Legendary Actions', () => {
     const original = (await stored(base.t, base.run.id)).actors.find(
       (row) => row.id === first.ownerActorId
     )!
+    const originalActor = await base.t.run((ctx) => readTestActor(ctx, original))
     await base.t.run(async (ctx) => {
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(original.stateJson))
-      const snapshot = actor.snapshot as { payload: { features: unknown[] } }
-      snapshot.payload.features = []
-      await writeRunActor({ db: createConvexEncounterStore(ctx) }, original._id, actor)
+      const snapshot = originalActor.snapshot as { payload: object }
+      await writeRunActor({ db: createConvexEncounterStore(ctx) }, original._id, {
+        ...originalActor,
+        snapshot: { ...snapshot, payload: { ...snapshot.payload, features: [] } }
+      })
     })
     const changedSource = await stored(base.t, base.run.id)
     await expect(executeInRoom(base.owner.caller, remaining)).rejects.toThrow()
     expect(await stored(base.t, base.run.id)).toEqual(changedSource)
     await base.t.run((ctx) =>
-      writeRunActor(
-        { db: createConvexEncounterStore(ctx) },
-        original._id,
-        encounterRunActorStateSchema.parse(JSON.parse(original.stateJson))
-      )
+      writeRunActor({ db: createConvexEncounterStore(ctx) }, original._id, originalActor)
     )
     await base.t.run(async (ctx) => {
       const definition = await ctx.db

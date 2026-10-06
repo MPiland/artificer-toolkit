@@ -7,7 +7,6 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import type { CampaignSessionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
 import { CampaignSessionCloseoutView } from './components/session-workspace/CampaignSessionCloseoutView'
-import { CampaignLiveCheckpointNotice } from './components/session-workspace/CampaignLiveCheckpointNotice'
 import { CampaignSessionHeader } from './components/session-workspace/CampaignSessionHeader'
 import { CampaignSessionPrepareView } from './components/session-workspace/CampaignSessionPrepareView'
 import { CampaignSessionRunView } from './components/session-workspace/CampaignSessionRunView'
@@ -65,7 +64,6 @@ export function CampaignSessionWorkspace({
         session={session}
         onUpdated={updateSession}
       />
-      <CampaignLiveCheckpointNotice campaignId={campaign.id} />
       {views.length > 1 ? (
         <Select
           className={styles.campaignSectionSelect}

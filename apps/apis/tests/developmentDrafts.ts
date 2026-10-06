@@ -113,7 +113,7 @@ const proveInvitationRedemptionRace =
 assert.equal(process.env.CONVEX_DEPLOY_KEY, undefined, 'Use the selected development CLI identity.')
 if (
   process.argv.includes('--checkpoint') ||
-  process.argv.includes('--checkpoint-staging') ||
+  process.argv.includes('--checkpoint-large') ||
   process.argv.includes('--encounter-disarm') ||
   process.argv.includes('--encounter-disarm-browser')
 ) {
@@ -1073,7 +1073,7 @@ try {
     (await publicClient.query(api.application.featureFlags, {})).publicSignUpEnabled,
     false
   )
-  if (process.argv.includes('--checkpoint') || process.argv.includes('--checkpoint-staging')) {
+  if (process.argv.includes('--checkpoint') || process.argv.includes('--checkpoint-large')) {
     const owner = await createAuthor()
     const player = await createAuthor()
     const characterId = crypto.randomUUID()
@@ -1092,7 +1092,7 @@ try {
       owner,
       player,
       characterId,
-      staged: process.argv.includes('--checkpoint-staging')
+      large: process.argv.includes('--checkpoint-large')
     })
   } else if (
     process.argv.includes('--scene-authoring-browser') ||
@@ -3200,23 +3200,22 @@ try {
           return { header, fogLayers }
         }
         const readMovementState = async () => {
-          const [ownerToken, playerToken, ownerFog, playerFog, run, character] =
-            await Promise.all([
-              readAuthoritativeSceneToken(owner.client, {
-                sceneId: fixture.scene.liveSceneId,
-                tokenId: fixture.mover.tokenId
-              }),
-              readAuthoritativeSceneToken(player.client, {
-                sceneId: fixture.scene.liveSceneId,
-                tokenId: fixture.mover.tokenId
-              }),
-              readFog(owner.client),
-              readFog(player.client),
-              owner.client.query(api.encounters.projectionReads.get, {
-                encounterId: fixture.run.id
-              }),
-              player.client.query(api.characters.sheet.get, { id: characterId })
-            ])
+          const [ownerToken, playerToken, ownerFog, playerFog, run, character] = await Promise.all([
+            readAuthoritativeSceneToken(owner.client, {
+              sceneId: fixture.scene.liveSceneId,
+              tokenId: fixture.mover.tokenId
+            }),
+            readAuthoritativeSceneToken(player.client, {
+              sceneId: fixture.scene.liveSceneId,
+              tokenId: fixture.mover.tokenId
+            }),
+            readFog(owner.client),
+            readFog(player.client),
+            owner.client.query(api.encounters.projectionReads.get, {
+              encounterId: fixture.run.id
+            }),
+            player.client.query(api.characters.sheet.get, { id: characterId })
+          ])
           return {
             ownerToken,
             playerToken,
@@ -3269,7 +3268,6 @@ try {
             const before = await readMovementState()
             const { result: replay } = await player.client.executeSceneCommand(
               frame.command,
-              { expectedPresentationVersion: fixture.presentation.version },
               frame.expectedSessionSequence
             )
             // The room answers an exact retry with its stored receipt.
@@ -3284,7 +3282,6 @@ try {
             const before = await readMovementState()
             const { result: replay } = await owner.client.executeSceneCommand(
               submission.command.command,
-              { expectedPresentationVersion: fixture.presentation.version },
               submission.command.expectedSessionSequence
             )
             assert.deepEqual(replay, submission.result)
@@ -3352,7 +3349,7 @@ try {
                 readFog(owner.client),
                 owner.client.query(api.encounters.projectionReads.get, {
                   encounterId: fixture.run.id
-                }),
+                })
               ])
               assert.deepEqual(ownerToken.token, completedMovement.ownerToken.token)
               assert.deepEqual(ownerFog.fogLayers, completedMovement.ownerFog.fogLayers)

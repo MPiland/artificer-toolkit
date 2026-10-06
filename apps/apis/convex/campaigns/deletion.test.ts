@@ -28,7 +28,6 @@ import * as accountUsage from '../lib/accountUsage'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { makePublishedRootOwned } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { insertSceneCommandLedger, undoSceneCommand } from '../../tests/fixtures/receiptRecords'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene
@@ -434,18 +433,12 @@ describe('native Campaign deletion', () => {
         }
       })
       await base.t.run(async (ctx) => {
-        await insertSceneCommandLedger(ctx, [
-          undoSceneCommand(baseScene.sceneId, base.owner.userId)
-        ])
         await ctx.db.insert('campaignSceneShowings', {
           campaignId: base.campaign.id,
           sceneId: baseScene.sceneId,
           shownBy: base.owner.userId,
           shownAt: new Date().toISOString()
         })
-        await insertSceneCommandLedger(ctx, [
-          undoSceneCommand(otherScene.sceneId, base.other.userId)
-        ])
       })
       const currentCampaign =
         status === 'ARCHIVED'
@@ -471,11 +464,9 @@ describe('native Campaign deletion', () => {
         'sceneDefinitionEntities',
         'sceneLiveStates',
         'sceneLiveEntities',
-        'sceneLiveCommands',
         'sceneFogSaves',
         'sceneFogLayers',
         'sceneFogChunks',
-        'sceneGeometrySaves',
         'campaignScenePresentations',
         'campaignSceneShowings',
         'campaignContentUsage'
@@ -491,10 +482,6 @@ describe('native Campaign deletion', () => {
         )
       }
       const maps = await base.t.run((ctx) => ctx.db.query('mediaAssets').collect())
-      const ledgers = await base.t.run((ctx) => ctx.db.query('receiptLedgers').collect())
-      expect(ledgers.map((ledger) => ledger.scopeId)).toEqual([otherScene.sceneId])
-      // Single-entry ledgers are stored inline, so no parts exist for either Scene.
-      expect(await base.t.run((ctx) => ctx.db.query('receiptLedgerParts').collect())).toEqual([])
       const detached = maps.find((row) => row.id === base.input.settings.map.assetId)
       if (!detached || detached.profileClass !== 'VTT_MAP') throw new Error('Missing retained map.')
       expect(detached).toMatchObject({

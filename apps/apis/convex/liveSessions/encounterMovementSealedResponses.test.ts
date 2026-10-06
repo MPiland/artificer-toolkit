@@ -1,8 +1,7 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
@@ -43,11 +42,15 @@ it('settles sealed movement responses through the room without replaying the cro
           q.eq('encounterId', value.base.run.id).eq('sceneId', value.sceneId)
         )
         .collect(),
-      receipts: await (await readEncounterHistory(ctx))
+      receipts: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
         .collect(),
-      commands: await (await readEncounterHistory(ctx))
+      commands: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRunCommands')
         .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', value.base.campaign.id))
         .collect()
@@ -78,7 +81,7 @@ it('settles sealed movement responses through the room without replaying the cro
   )
   const baselineMover = baseline.actors.find((actor) => actor.id === value.base.mover.id)
   if (!appliedEffect || !baselineMover) throw new Error('Crossed movement effect is unavailable.')
-  const baselineMoverState = encounterRunActorStateSchema.parse(JSON.parse(baselineMover.stateJson))
+  const baselineMoverState = readStoredRunActor(baselineMover)
   if (baselineMoverState.kind === 'CHARACTER') throw new Error('Expected a non-Character mover.')
   expect(baselineMoverState.currentHitPoints).toBe(
     appliedEffect.targetTransition.after.currentHitPoints
@@ -126,7 +129,7 @@ it('settles sealed movement responses through the room without replaying the cro
   const moverHitPoints = (actors: typeof after.actors) => {
     const mover = actors.find((actor) => actor.id === value.base.mover.id)
     if (!mover) throw new Error('Movement target actor is unavailable.')
-    const state = encounterRunActorStateSchema.parse(JSON.parse(mover.stateJson))
+    const state = readStoredRunActor(mover)
     if (state.kind === 'CHARACTER') throw new Error('Expected a non-Character mover.')
     return state.currentHitPoints
   }

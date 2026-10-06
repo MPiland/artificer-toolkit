@@ -184,6 +184,7 @@ export const liveSessionControlInputSchema = lazySchema(() =>
         membershipEpoch: z.iso.datetime({ offset: true })
       }),
       z.strictObject({ type: z.literal('CLOSE_ROOM') }),
+      z.strictObject({ type: z.literal('DELETE_ROOM') }),
       z.strictObject({
         type: z.literal('INVALIDATE_INPUTS'),
         scopes: z
@@ -226,12 +227,6 @@ export const liveSessionWebSocketClientMessageDtoSchema = lazySchema(() =>
     z.strictObject({
       accessToken: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(16_384)),
       type: z.literal('AUTHENTICATE')
-    }),
-    z.strictObject({
-      expectedPresentationVersion: versionSchema,
-      sceneId: uuidSchema,
-      type: z.literal('SYNCHRONIZE_SCENE'),
-      version: versionSchema
     }),
     z.strictObject({ envelope: sceneTransientEnvelopeDtoSchema, type: z.literal('TRANSIENT') }),
     z.strictObject({

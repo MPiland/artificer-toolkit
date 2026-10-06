@@ -1,4 +1,5 @@
 import { importedSubject } from '../../tests/fixtures/publication'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -18,7 +19,6 @@ import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
@@ -536,8 +536,6 @@ async function gameplayRows(value: Awaited<ReturnType<typeof setup>>) {
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
     liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
     sceneEntities: await ctx.db.query('sceneDefinitionEntities').collect(),
-    sceneSaves: await ctx.db.query('sceneGeometrySaves').collect(),
-    sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     fogSaves: await ctx.db.query('sceneFogSaves').collect(),
     fogLayers: await ctx.db.query('sceneFogLayers').collect()
   }))
@@ -554,7 +552,6 @@ async function reactionMechanics(value: Awaited<ReturnType<typeof setup>>) {
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
     commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-    sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
     fog: await ctx.db.query('sceneFogLayers').collect()
   }))
 }
@@ -665,9 +662,7 @@ describe('native Character movement-decision authority', () => {
       }
       const source = completed.actors.find((actor) => actor.id === choice.choice.reactorActorId)
       if (!source) throw new Error('Expected selected Character reactor.')
-      expect(
-        encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)).resources
-      ).toMatchObject({
+      expect(readStoredRunActor(source).resources).toMatchObject({
         ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
       })
       await expect(

@@ -219,16 +219,13 @@ export async function verifySceneAuthoring(input: {
     }
     let liveHead = await owner.client.query(api.scenes.liveReads.header, { sceneId: liveScene.id })
     const execute = async (token: SceneToken) => {
-      const commit = await owner.client.executeSceneCommand(
-        {
-          type: 'UPSERT_SCENE_TOKEN',
-          sceneId: liveScene.id,
-          expectedSceneVersion: liveHead.version,
-          commandId: crypto.randomUUID(),
-          token
-        },
-        { expectedPresentationVersion: presentation.version }
-      )
+      const commit = await owner.client.executeSceneCommand({
+        type: 'UPSERT_SCENE_TOKEN',
+        sceneId: liveScene.id,
+        expectedSceneVersion: liveHead.version,
+        commandId: crypto.randomUUID(),
+        token
+      })
       assert.equal(commit.version, liveHead.version + 1)
       liveHead = { ...liveHead, version: commit.version }
     }

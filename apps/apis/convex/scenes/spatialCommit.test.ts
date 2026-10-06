@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { readEncounterHistory, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { makeFunctionReference } from 'convex/server'
 import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-
 
 beforeEach(() => vi.stubEnv('BETTER_AUTH_SECRET', 'spatial-commit-test-secret-at-least-32-bytes'))
 afterEach(() => vi.unstubAllEnvs())
@@ -43,13 +41,14 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
         .withIndex('by_encounterId_state', (q) => q.eq('encounterId', state.id))
         .collect(),
       receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (await readEncounterHistory(ctx))
+      commands: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRunCommands')
         .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
         .collect(),
       liveStates: await ctx.db.query('sceneLiveStates').collect(),
       liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
-      liveCommands: await ctx.db.query('sceneLiveCommands').collect(),
       fogSaves: await ctx.db.query('sceneFogSaves').collect(),
       fogChunks: await ctx.db.query('sceneFogChunks').collect(),
       fogLayers: await ctx.db.query('sceneFogLayers').collect()
@@ -89,7 +88,6 @@ it('publishes a terminal movement once with its Scene move, Run receipt and time
       value: { entity: { position: outcome.result.terminalPosition } }
     }
   ])
-  expect(after.liveCommands).toHaveLength(1)
   const occurrences = after.occurrences.filter(
     (occurrence) => occurrence.id === outcome.result.occurrenceId
   )
@@ -142,7 +140,6 @@ it('publishes a stationary terminal without moving the token or advancing the Sc
   expect(after.effects).toEqual([])
   expect(after.liveEntities).toEqual(before.liveEntities)
   expect(after.liveStates).toEqual(before.liveStates)
-  expect(after.liveCommands).toHaveLength(before.liveCommands.length + 1)
   expect(after.fogSaves).toEqual(before.fogSaves)
   expect(after.fogChunks).toEqual(before.fogChunks)
   expect(after.fogLayers).toEqual(before.fogLayers)

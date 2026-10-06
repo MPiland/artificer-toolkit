@@ -2,10 +2,7 @@ import {
   publishSceneUndo,
   type SceneUndoPublicationCallbacks
 } from '@artificer-toolkit/encounter-persistence/sceneUndoPublication'
-import {
-  parseGeometryCommand,
-  parseGeometrySave
-} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
+import { parseGeometryCommand } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { normalizeSceneGeometryEntity } from '@artificer-toolkit/encounter-persistence/sceneGeometryValues'
 import {
   sceneUndoExecuteInputSchema,
@@ -27,9 +24,13 @@ import {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { RoomTransaction } from './roomEncounterStore.js'
+import { SCENE_EVIDENCE_ROW, type RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene, readRoomSceneFogLayer, readRoomSceneHeader } from './roomSceneRead.js'
-import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
+import {
+  readCommandGeometrySaves,
+  readRoomSceneRow,
+  writeRoomSceneRow
+} from './roomSceneRecords.js'
 
 /** The Scene has no committed token move left to undo; retrying cannot succeed. */
 export class NoSceneMoveToUndoError extends Error {
@@ -89,7 +90,7 @@ export async function publishRoomSceneUndo(input: {
     throw new Error('Scene version is stale.')
   // ponytail: retained Scene history is scanned; use a keyed index if the frozen workload misses its budget.
   const commands = transaction
-    .records('SCENE_CHECKPOINT_ROW')
+    .records(SCENE_EVIDENCE_ROW)
     .filter((record) =>
       record.key.startsWith(canonicalizeJson(['sceneLiveCommands', header.id]).slice(0, -1) + ',')
     )
@@ -127,11 +128,7 @@ export async function publishRoomSceneUndo(input: {
       return undoForMove(commandId)
     },
     readGeometrySave: async (sceneId, commandId) => {
-      const saves = transaction
-        .records('SCENE_CHECKPOINT_ROW')
-        .filter((record) => record.key.startsWith('["sceneGeometrySaves",'))
-        .map((record) => parseGeometrySave(JSON.parse(record.json)))
-        .filter((save) => save.sceneId === sceneId && save.commandId === commandId)
+      const saves = readCommandGeometrySaves(transaction, sceneId, commandId)
       if (saves.length > 1) throw new Error('Stored Scene geometry save is inconsistent.')
       return saves[0] ?? null
     },

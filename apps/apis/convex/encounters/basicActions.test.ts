@@ -1,18 +1,15 @@
 import { makeFunctionReference } from 'convex/server'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { describe, expect, it } from 'vitest'
 import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import type {
-  EncounterSessionStateDto,
-  EncounterTimelineDto
-} from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   ResolveRuleOccurrenceInputDto,
   UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
@@ -29,9 +26,7 @@ import {
   setActorControllers,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import { executeInRoom,
-  readTimelineInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 
@@ -91,7 +86,7 @@ async function actorState(base: PlayerControlFixture, actorId: string) {
       .unique()
   )
   if (!row) throw new Error('Missing Encounter actor.')
-  return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+  return readStoredRunActor(row)
 }
 
 async function setCurrentActor(base: PlayerControlFixture, actorId: string) {

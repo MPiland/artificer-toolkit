@@ -489,22 +489,19 @@ describe('native Campaign custody deletion', () => {
         const job = await deletionJob(base.t, target.id)
         await base.t.action(runDeletionPage, { jobId: job._id, revision: job.revision })
       }
-      for (let page = 0; (await deletionJob(base.t, target.id)).phase < 20; page++) {
-        if (page > 30) throw new Error('Campaign event cleanup phase was not reached.')
-        const job = await deletionJob(base.t, target.id)
-        await base.t.action(runDeletionPage, { jobId: job._id, revision: job.revision })
-      }
       const beforePage = await snapshot(base.t)
       const job = await deletionJob(base.t, target.id)
       const eventsBeforePage = beforePage.tables.campaignEvents.filter(
         (row) => rowString(row, 'campaignId') === target.id
       ).length
       expect(eventsBeforePage).toBeGreaterThan(0)
+      // One step pages through several phases; failing at the event phase rolls back all of them.
       const original = deletionState.removeCampaignState
       const fault = vi
         .spyOn(deletionState, 'removeCampaignState')
-        .mockImplementationOnce(async (ctx, captured) => {
-          await original(ctx, captured)
+        .mockImplementation(async (ctx, captured) => {
+          const progress = await original(ctx, captured)
+          if (captured.phase !== 20) return progress
           const eventsAfterWrite = await ctx.db
             .query('campaignEvents')
             .withIndex('by_campaignId_id', (q) => q.eq('campaignId', target.id))

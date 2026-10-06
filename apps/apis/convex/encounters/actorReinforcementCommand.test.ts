@@ -1,4 +1,3 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
 import { api } from '../_generated/api'
 import type {
@@ -7,7 +6,11 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { reinforceEncounterActors } from '@artificer-toolkit/encounter-persistence/actorReinforcementCommand'
-import { executeInRoom, RoomCommandRefusal, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  RoomCommandRefusal,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 
 async function manualFixture() {
@@ -55,9 +58,7 @@ async function capture(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await (await readEncounterHistory(ctx))
-      .query('encounterRunCommands')
-      .collect(),
+    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect()

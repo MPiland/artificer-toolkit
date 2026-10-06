@@ -292,7 +292,6 @@ export class DurableCommandJournal {
         sequence INTEGER NOT NULL UNIQUE CHECK (sequence > 0),
         state_checksum TEXT NOT NULL,
         receipt_json TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
         checkpoint_before_ack INTEGER NOT NULL DEFAULT 0 CHECK (checkpoint_before_ack IN (0, 1))
       );
       CREATE TABLE IF NOT EXISTS durable_command_outbox (
@@ -312,13 +311,9 @@ export class DurableCommandJournal {
     const receiptColumns = storage.sql
       .exec<{ name: string }>("SELECT name FROM pragma_table_info('durable_command_receipts')")
       .toArray()
-    if (!receiptColumns.some((column) => column.name === 'created_at'))
-      storage.transactionSync(() => {
-        storage.sql.exec(
-          'ALTER TABLE durable_command_receipts ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0'
-        )
-        storage.sql.exec('UPDATE durable_command_receipts SET created_at = ?', Date.now())
-      })
+    // Only the retired interval flush read the receipt time (ADR 0035 Amendment 25).
+    if (receiptColumns.some((column) => column.name === 'created_at'))
+      storage.sql.exec('ALTER TABLE durable_command_receipts DROP COLUMN created_at')
     if (!receiptColumns.some((column) => column.name === 'checkpoint_before_ack'))
       storage.transactionSync(() => {
         storage.sql.exec(
@@ -509,15 +504,14 @@ export class DurableCommandJournal {
     this.storage.sql.exec(
       `INSERT INTO durable_command_receipts (
           command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json,
-          created_at, checkpoint_before_ack
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          checkpoint_before_ack
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       input.commandId,
       input.actorId,
       input.fingerprint,
       sequence,
       input.nextStateChecksum,
       input.receiptJson,
-      Date.now(),
       checkpointBeforeAcknowledgement ? 1 : 0
     )
     if (input.outboxPayloadJson !== undefined)
@@ -535,22 +529,6 @@ export class DurableCommandJournal {
       receipt: receiptFromRow(receipt),
       state: this.#requiredState()
     }
-  }
-
-  /** The unchanged start of the oldest unpublished command's checkpoint deadline; none before activation. */
-  oldestUnpublishedCommandTime(): number | null {
-    const current = this.readCurrent()
-    if (!current) return null
-    const createdAt = this.storage.sql
-      .exec<{ created_at: number | null }>(
-        'SELECT MIN(created_at) AS created_at FROM durable_command_receipts WHERE sequence > ?',
-        current.publishedSequence
-      )
-      .one().created_at
-    if (createdAt === null) return null
-    if (typeof createdAt !== 'number' || !Number.isSafeInteger(createdAt) || createdAt <= 0)
-      fail('CORRUPT_JOURNAL', 'The unpublished command timestamp is invalid.')
-    return createdAt
   }
 
   listPending(limit: number): DurableCommandOutboxEntry[] {

@@ -6,7 +6,6 @@ import { requireCampaignAuthority } from './authority'
 import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { removeEncounterActorController } from '../encounters/actorControllerRemoval'
 import { removeCampaignSharesAndReconcile } from './contentShareRemoval'
-import { internal } from '../_generated/api'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
 
@@ -120,11 +119,6 @@ export async function removeAccountCampaignMemberships(ctx: MutationCtx, userId:
           membershipAccessStartedAt: membership.accessStartedAt
         })
       })
-    // Private notes are purged in bounded, self-rescheduling batches (D87); shared ones stay.
-    await ctx.scheduler.runAfter(0, internal.campaigns.noteRemoval.purgeAuthorPrivateNotes, {
-      campaignId: freshCampaign.id,
-      authorUserId: userId
-    })
     if (membership.status === 'ACTIVE') {
       await removeEncounterActorController(ctx, freshCampaign, userId)
       await ctx.db.patch(membership._id, { status: 'LEFT', leftAt: new Date().toISOString() })

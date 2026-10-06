@@ -1,21 +1,23 @@
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
+  liveSessionRoomSceneCaptureInputSchema,
+  liveSessionRoomSceneCaptureSchema,
   liveSessionTransientCaptureInputSchema,
   liveSessionTransientCaptureSchema,
+  type LiveSessionRoomSceneCapture,
   type LiveSessionTransientCapture,
   type LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { internalQuery } from '../lib/queries'
-import { readEncounterControlledActorIds } from '@artificer-toolkit/encounter-persistence/actorController'
-import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { readLiveScene } from '../scenes/liveDocuments'
+import { readLiveSceneForUser } from '../scenes/liveDocuments'
 import { assertSceneVisionCharacters, readSceneVisionFreshness } from '../scenes/visionFreshness'
-import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 
 function activeMember(
   membership: Doc<'campaignMemberships'>,
@@ -33,38 +35,39 @@ function activeMember(
   }
 }
 
-/** Each Encounter-bound token and whether this player controls its bound actor. */
-async function readBoundTokenControl(
-  ctx: QueryCtx,
-  input: {
-    campaign: Doc<'campaigns'>
-    membership: Doc<'campaignMemberships'>
-    sceneBinding: Doc<'encounterSceneBindings'>
-  }
-) {
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', input.sceneBinding.encounterId))
+/** The presented Scene as `userId` reads it, with its presentation and the ACTIVE Encounter bound to it. */
+async function readPresentedScene(ctx: QueryCtx, campaign: Doc<'campaigns'>, userId: string) {
+  const presentation = await ctx.db
+    .query('campaignScenePresentations')
+    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
     .unique()
-  if (!run || run.campaignId !== input.campaign.id)
-    throw new Error('The Scene Encounter binding is stale.')
-  const [bindings, actors] = await Promise.all([
-    ctx.db
-      .query('encounterActorTokenBindings')
-      .withIndex('by_encounterId_tokenId', (q) => q.eq('encounterId', run.id))
-      .collect(),
-    readRunActors({ db: createConvexEncounterStoreReader(ctx) }, readRunState(run))
-  ])
-  const controlled = await readEncounterControlledActorIds(encounterReadTransaction(ctx), {
-    ...input,
-    actors
-  })
-  return bindings.map((binding) => ({
-    tokenId: binding.tokenId,
-    controlled: controlled.has(binding.actorId)
-  }))
+  const scene =
+    presentation?.sceneId === null || presentation === null
+      ? null
+      : await readLiveSceneForUser(ctx, presentation.sceneId, 'MEMBER', userId)
+  if (scene && scene.campaign.id !== campaign.id)
+    throw new Error('Live Session presentation Scene belongs to another Campaign.')
+  const active = scene
+    ? await readActiveSceneEncounter(
+        { db: createConvexEncounterStoreReader(ctx) },
+        { campaignId: campaign.id, sceneId: scene.header.id }
+      )
+    : null
+  return {
+    campaignId: campaign.id,
+    presentation: presentation
+      ? {
+          campaignId: campaign.id,
+          sceneId: presentation.sceneId,
+          version: presentation.version
+        }
+      : null,
+    sceneEncounterId: active?.run.id ?? null,
+    sceneHeader: scene?.header ?? null
+  }
 }
 
+/** Cold admission: the presenting user's identity and membership, and the presented Scene. */
 export const capture = internalQuery({
   args: zodToConvexFields(liveSessionTransientCaptureInputSchema.shape),
   returns: zodToConvex(liveSessionTransientCaptureSchema),
@@ -75,63 +78,44 @@ export const capture = internalQuery({
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (userId !== input.expectedUserId || membership.role !== input.expectedRole)
       throw new Error('Live Session socket identity no longer matches its admission.')
-
-    const fullCapture = input.mode !== 'AUTHORITY'
-    if (fullCapture) await assertSceneVisionCharacters(ctx, input.observedCharacterRevisions)
-
-    const presentation = await ctx.db
-      .query('campaignScenePresentations')
-      .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
-      .unique()
-    const scene =
-      presentation?.sceneId === null || presentation === null
-        ? null
-        : await readLiveScene(ctx, presentation.sceneId, 'MEMBER')
-    if (scene && scene.campaign.id !== campaign.id)
-      throw new Error('Live Session presentation Scene belongs to another Campaign.')
-    const sceneBinding = scene
-      ? await ctx.db
-          .query('encounterSceneBindings')
-          .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.header.id))
-          .first()
-      : null
     const origin = activeMember(membership, campaign.ownerUserId)
     if (!origin) throw new Error('Stored Campaign membership authority mismatch.')
-    const recipients = await Promise.all(
-      input.recipientUserIds.map(async (recipientUserId) => {
-        const recipient = await ctx.db
-          .query('campaignMemberships')
-          .withIndex('by_campaignId_userId', (q) =>
-            q.eq('campaignId', campaign.id).eq('userId', recipientUserId)
-          )
-          .unique()
-        return recipient ? activeMember(recipient, campaign.ownerUserId) : null
-      })
-    )
     return liveSessionTransientCaptureSchema.parse({
-      campaignId: campaign.id,
+      ...(await readPresentedScene(ctx, campaign, userId)),
+      origin
+    })
+  }
+})
+
+/**
+ * The room's Scene cache refresh, authorized by the Worker secret and the room's `DO_ACTIVE` epoch
+ * rather than a member's token. The Scene is read as the Campaign owner, who reads every presented
+ * Scene; the cache is shared by every member.
+ */
+export const roomScene = internalQuery({
+  args: zodToConvexFields(liveSessionRoomSceneCaptureInputSchema.shape),
+  returns: zodToConvex(liveSessionRoomSceneCaptureSchema),
+  handler: async (ctx, args): Promise<LiveSessionRoomSceneCapture> => {
+    const input = liveSessionRoomSceneCaptureInputSchema.parse(args)
+    await requireActiveCampaignLiveAuthority(ctx, input)
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', input.campaignId.toLowerCase()))
+      .unique()
+    if (!campaign) throw new Error('Campaign not found.')
+    if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+    await assertSceneVisionCharacters(ctx, input.observedCharacterRevisions)
+    const presented = await readPresentedScene(ctx, campaign, campaign.ownerUserId)
+    return liveSessionRoomSceneCaptureSchema.parse({
+      ...presented,
       systemId: campaign.gameSystemId,
       observedCharacterRevisions: input.observedCharacterRevisions,
-      origin,
-      presentation: presentation
-        ? { campaignId: campaign.id, sceneId: presentation.sceneId, version: presentation.version }
-        : null,
-      recipients: recipients.filter(
-        (recipient): recipient is LiveSessionTransientMember => recipient !== null
-      ),
-      sceneEncounterId: sceneBinding?.encounterId ?? null,
-      originBoundTokenControl:
-        sceneBinding && membership.role === 'PLAYER'
-          ? await readBoundTokenControl(ctx, { campaign, membership, sceneBinding })
-          : [],
-      sceneHeader: scene?.header ?? null,
-      visionFreshness:
-        fullCapture && scene
-          ? await readSceneVisionFreshness(ctx, {
-              campaignId: campaign.id,
-              systemId: campaign.gameSystemId
-            })
-          : null
+      visionFreshness: presented.sceneHeader
+        ? await readSceneVisionFreshness(ctx, {
+            campaignId: campaign.id,
+            systemId: campaign.gameSystemId
+          })
+        : null
     })
   }
 })

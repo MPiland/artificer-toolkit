@@ -1,5 +1,5 @@
 import type { GmCampaignRollDto, RollRevealModeDto } from '@artificer-toolkit/schema/api/rolls'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from './actorProjectionFacts.js'
 import type { EncounterReadContext } from './store.js'
 
 /**
@@ -52,6 +52,6 @@ export async function readRollNoticeCreatureLabel(
     )
     .unique()
   if (!row) return null
-  const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+  const actor = readStoredRunActor(row)
   return actor.public ? actor.label : null
 }

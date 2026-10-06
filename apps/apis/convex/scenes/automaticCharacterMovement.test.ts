@@ -11,7 +11,6 @@ import {
   readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
-import { readReceiptHeader, readReceiptHeaders } from '../lib/receiptLedgers'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
 
@@ -41,12 +40,15 @@ it.each(['ROOT', 'RESPONSE'] as const)(
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+        receiptHeaders: await (
+          await readEncounterHistory(ctx)
+        )
+          .query('encounterRuleReceipts')
+          .collect(),
         receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
         scenes: await ctx.db.query('campaignScenes').collect(),
         liveStates: await ctx.db.query('sceneLiveStates').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect()
       }))
     let commandId = value.rootInput.commandId
@@ -113,7 +115,9 @@ it('replays player movement with the original private projection before and afte
   const initial = await move.publish()
   expect(initial.occurrence).toMatchObject({ status: 'PENDING', pending: null })
   const receipt = await value.owner.caller.run(async (ctx) => {
-    const header = await (await readEncounterHistory(ctx))
+    const header = await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) =>
         q.eq('encounterId', value.base.run.id).eq('commandId', rootInput.commandId)
@@ -128,7 +132,8 @@ it('replays player movement with the original private projection before and afte
   const pending = retained.occurrence.pending
   if (!pending || pending.kind !== 'MOVEMENT_REACTION')
     throw new Error('Expected private GM reaction choice.')
-  const replayMove = async () => (await planMovementInRoom(value.player.caller, rootInput)).publish()
+  const replayMove = async () =>
+    (await planMovementInRoom(value.player.caller, rootInput)).publish()
   await expect(replayMove()).resolves.toEqual({ ...initial, replayed: true })
   const responseRequest = await planMovementDecisionInRoom(value.owner.caller, {
     type: 'RESOLVE_RULE_OCCURRENCE',
@@ -154,13 +159,15 @@ it('replays player movement with the original private projection before and afte
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
+      receiptHeaders: await (
+        await readEncounterHistory(ctx)
+      )
+        .query('encounterRuleReceipts')
+        .collect(),
       receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
       scenes: await ctx.db.query('campaignScenes').collect(),
       liveStates: await ctx.db.query('sceneLiveStates').collect(),
       entities: await ctx.db.query('sceneLiveEntities').collect(),
-      sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
-      geometrySaves: await ctx.db.query('sceneGeometrySaves').collect(),
       fog: await ctx.db.query('sceneFogLayers').collect()
     }))
   const beforeReplay = await snapshot()

@@ -78,7 +78,10 @@ flowchart LR
      (refusing a port that is already in use), with its ticket, Worker and rules continuation
      secrets read in memory from the local Convex deployment. Before the first browser proof it
      starts the web app on `localhost:3000` the same way, with the local application environment
-     and without the admin key. It stops both process trees before the VTT browser proof, which
+     and without the admin key. The web app is the production bundle, built with `vite build --mode
+     proof` and served by `vite preview --mode proof`: the dev server's React development runtime
+     and devtools load the browser enough to skew the V15 timings. The `proof` mode reads no `.env`
+     files, so the bundle carries only the local environment the runner checked. It stops both process trees before the VTT browser proof, which
      starts its own Worker and web app, after a failure and at the end. Their output goes to
      `local-session-worker.log` and `local-web-app.log` in the manifest folder.
    - Before the first proof stage the runner also runs `scripts/localConvexFixtures.ps1 -Action

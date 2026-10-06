@@ -345,7 +345,7 @@ describe('native Character action resource persistence', () => {
       })
     })
     const input = command(fixture)
-    const result = await fixture.owner.caller.run((ctx) =>
+    await fixture.owner.caller.run((ctx) =>
       applyEncounterMechanicsBatch(ctx, {
         ...input,
         applications: [],

@@ -22,6 +22,9 @@ export const encounterStoredRunSchema = lazySchema(() =>
     version: z.number().check(z.int()).check(z.nonnegative()),
     stateJson: z.string(),
     stateChecksum: projectionChecksumSchema,
+    /** The create command that made the Run: a retry finds it here after the history is gone. */
+    createCommandId: postgresUuidSchema,
+    createCommandFingerprint: projectionChecksumSchema,
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime()
   })
@@ -40,31 +43,39 @@ export const encounterStoredReplayReceiptSchema = lazySchema(() =>
 )
 export type EncounterStoredReplayReceipt = z.infer<typeof encounterStoredReplayReceiptSchema>
 
+/**
+ * One actor's stored state (`encounterStoredRunActorStateSchema` JSON) with the checksum of its
+ * play state: the actor without its source snapshot and without the facts derived from it (ADR 0035
+ * Amendment 29). `snapshotChecksum` and `sourceFactsChecksum` repeat the stored state's references
+ * so the Run can find the shared rows no actor names any more.
+ */
 export const encounterStoredRunActorSchema = lazySchema(() =>
   z.strictObject({
     id: postgresUuidSchema,
     encounterId: postgresUuidSchema,
     stateJson: z.string(),
-    stateChecksum: projectionChecksumSchema
-  })
-)
-
-/**
- * One actor's projection facts (`encounterActorProjectionFactsSchema` JSON), written with its actor
- * in the same transaction. Projections read these instead of the actor documents.
- */
-export const encounterStoredActorProjectionFactsSchema = lazySchema(() =>
-  z.strictObject({
-    id: postgresUuidSchema,
-    encounterId: postgresUuidSchema,
-    factsJson: z.string(),
+    stateChecksum: projectionChecksumSchema,
+    snapshotChecksum: projectionChecksumSchema,
     sourceFactsChecksum: z.nullable(projectionChecksumSchema)
   })
 )
 
 /**
+ * One actor source snapshot (`EncounterRunActorState.snapshot` JSON), shared by the Run's actors
+ * whose stored state names its checksum. Rows are immutable: a command that changes an actor's
+ * snapshot writes a new row and repoints the actor. Deleted with its last actor.
+ */
+export const encounterStoredActorSnapshotSchema = lazySchema(() =>
+  z.strictObject({
+    encounterId: postgresUuidSchema,
+    checksum: projectionChecksumSchema,
+    snapshotJson: z.string()
+  })
+)
+
+/**
  * One Creature source's projected stat block and Features (`encounterSourceProjectionFactsSchema`
- * JSON), shared by the Run's actors whose facts name its checksum. Deleted with its last actor.
+ * JSON), shared by the Run's actors whose stored state names its checksum. Deleted with its last actor.
  */
 export const encounterStoredSourceProjectionFactsSchema = lazySchema(() =>
   z.strictObject({

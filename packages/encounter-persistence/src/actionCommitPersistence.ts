@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -292,7 +293,7 @@ export async function persistEncounterActionCommit(
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', source.id))
       .unique()
-    if (!row || row.stateChecksum !== checksumCanonicalJson(beforeSource))
+    if (!row || row.stateChecksum !== checksumRunActorPlayState(beforeSource))
       throw new Error('Encounter action source changed before settlement.')
     await writeRunActor(ctx, row._id, settledSource)
   }

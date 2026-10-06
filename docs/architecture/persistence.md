@@ -47,15 +47,44 @@ and room epoch (D81); direct Convex play, preference and rest writers reject a h
 central Character writer preserves the held play row across structural edits. Holds are reconciled when a
 checkpoint changes Runs or actors and are deleted at final authority release.
 
-**Checkpoint upload.** A checkpoint is staged in `liveSessionCheckpointUploads` and
-`liveSessionCheckpointUploadParts` (`liveSessions/checkpointStaging.ts`: `begin`, `part`, `commit`, parts of
-`JSON_PAYLOAD_CHUNK_MAX_BYTES`, 240 KiB). An upload expires after 24 hours, and `stageCheckpoint` schedules
-the internal `cleanup` mutation at the expiry time, which reschedules itself until the row is removable.
-`checkpoint.ts` validates the payload against `LIVE_SESSION_CHECKPOINT_MAX_BYTES` (4 MiB) and its checksum.
+**Checkpoint request.** A checkpoint reaches Convex in one request, whatever its size: Convex accepts
+function arguments up to 16 MiB, and nothing is staged (ADR 0035 Amendment 31). `checkpoint.ts` validates
+the payload against `LIVE_SESSION_CHECKPOINT_MAX_BYTES` (1 MiB) and its checksum.
 
-**Trigger and metrics (D85).** The transport request (`liveSessionCheckpointRequestSchema`, and `reason`
-on the staged commit) carries a required `reason` naming what triggered the send. It is measurement only:
-Convex discards it before the fence and the staged-frame comparison, and the room's retained retry input
+**Checkpoint size (REL-5).** Convex validates and applies one checkpoint in one mutation under its 1 s
+user-code limit, and that work grows with the payload. Geometry saves once cost the most per byte, because
+the commit re-read their retained movement evidence: about 720 KB of them timed out locally. Movement
+evidence now stays in the room, and the commit reads each record once before it writes (ADR 0035
+Amendments 26 and 27). The room folds commands into one checkpoint up to the 1 MiB bound
+(`roomCheckpoints.ts`). Commands that approach it alone are fog-heavy: a
+fog layer has one cell per map pixel, up to 512 on the long side, so a full layer is 256 chunks and a
+per-player vision move rewrites one layer and save per player (about 110 KB each). The room refuses a
+command whose write set exceeds three quarters of the bound (`RoomWriteSetTooLargeError`), which leaves
+room for record keys and checksums. Journal reads for a checkpoint use separate 4 MiB pages
+(`LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES`), because write sets hold whole documents that fold into
+much smaller deltas (about 16:1 in REL-5 combat, about 35 KB of write set per command). The room
+streams consecutive pages into one fold, so a page bounds memory for one read, never a checkpoint: a
+checkpoint is the longest prefix whose folded records fit 1 MiB, so a save folds the whole unsaved
+journal in one checkpoint wherever the folded records fit, and rows a Run creates and drops within it
+never reach Convex (ADR 0035 Amendments 29 and 31). The room builds a checkpoint synchronously, so
+`buildRoomCheckpointRecords` validates and decodes only the base rows a page touches: the base is the
+store's acknowledged snapshot, validated at hydration or replay and checksummed at rest, and it grows
+with the Run's retained history. Revalidating all of it per page took about as long as the page itself
+and stalled previews in REL-5.
+
+**When the room saves (ADR 0035 Amendment 25).** No timer saves it. The room checkpoints at save points
+(a Run's START and COMPLETE, removing a Character actor, a Scene presentation, a departure reconcile that
+removes Characters, admission, drain and close; see [live-sessions.md](live-sessions.md), "Timing") and at
+a backlog bound: when the unsaved log holds as many chat entries and roll cards as the chat push window
+(`LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT`, 200). `RoomEncounterStore.unsavedChatEntries` keeps that as a
+running count, so the check costs no storage read. The bound exists so Convex chat paging never has a
+gap. There is no bytes bound: a checkpoint splits into pages, so one save never exceeds a page however
+large the backlog, and a raw sum of write sets overcounts the coalesced state a checkpoint carries
+(about 5:1 in REL-5 combat), which fired about every 8 combat commands and recreated an interval.
+
+**Trigger and metrics (D85).** The transport request (`liveSessionCheckpointRequestSchema`) carries a required
+`reason` naming what triggered the send. It is measurement only: Convex discards it before the fence,
+and the room's retained retry input
 never stores it. The response carries `io`, the mutation's own `ctx.meta.getTransactionMetrics()`
 (bytes and documents read and written), split by section with `liveSessions/checkpointIo.ts`
 (`fence`, `records`, `scopes`, `holds`, `scenes`, `history`, `privateRolls`, `remainder`). See [live-sessions.md](live-sessions.md#checkpoint-triggers-and-the-room-meter-d85).
@@ -84,18 +113,28 @@ pass `finalSequence`. It applies the records and patches the authority row in th
   `receiptLedgers` row per Character per checkpoint. Encounter history never reaches Convex by checkpoint
   (ADR 0035 Amendment 22, D88; see [Encounter Run storage](#encounter-run-storage)); the contract rejects it.
 - `encounterReplayIndex` rows are insert-only `changes`, one per room Encounter command. A checkpoint that
-  completes a Run deletes that Run's index rows and any Convex-held Encounter history
-  (`encounters/campaignDeletion.ts` `removeEncounterRunTimeline`).
-- Scene rows (`sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogLayers`, `sceneFogSaves`,
-  `sceneFogChunks`, `sceneGeometrySaves`) are written only by the checkpoint, plus Scene definition,
-  presentation, deletion and retention flows. Scene receipts pack into scope `SCENE` ledgers (D77).
+  completes a Run deletes that Run's index rows, any Convex-held Encounter history and every other Run
+  child row a finished Run no longer reads (`encounters/campaignDeletion.ts` `removeFinishedRunRows`;
+  ADR 0035 Amendment 30). A Run that completes in the same
+  page as its commands writes no index rows at all: `buildRoomCheckpointRecords` folds an insert and its
+  later delete in one page to no change. A save before COMPLETE (a backlog, Scene presentation or
+  departure save) still inserts the rows, and COMPLETE then deletes them.
+- Scene rows (`sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`, `sceneFogSaves`, `sceneFogChunks`)
+  are written only by the checkpoint, plus Scene definition, presentation and deletion flows. Scene command
+  receipts and geometry saves are not Convex rows: the room keeps them (below).
+- **No post-write re-reads (ADR 0035 Amendment 27).** `checkpointScenes.ts` and `checkpointRecords.ts` read
+  each record once before they write it, for the checksum fence (Amendment 18) and append-only checks, and
+  never read it back afterwards. Invariants that used to run on the stored row run on the incoming `next`
+  value before the write: ordinal uniqueness is checked on the final state (a claim set within the batch plus a
+  holder check that ignores rows the batch rewrites), and fog saves and chunks written in the same checkpoint
+  are validated from the batch, with only earlier-checkpoint rows read from the database.
 - `retainedRolls` merge into the Campaign owner's `userRollHistory`.
 
 **Receipt ledgers** (D70, D71; `lib/receiptLedgers.ts`, `lib/receiptLedgerSchema.ts`,
 `packages/schema/src/projections/receiptLedgerPersistence.ts`). Immutable history payloads are packed once
 per checkpoint; small indexed per-command headers keep the command-ID collision checks, public UUID cursors
 and replay, and point into the ledger as `{ledgerId, entryIndex, entryChecksum}`. `receiptLedgers` holds the
-metadata (scope `CAMPAIGN`, `CHARACTER` or `SCENE`; `scopeId`; `epoch` and `checkpointId`, both null or both
+metadata (scope `CAMPAIGN` or `CHARACTER`; `scopeId`; `epoch` and `checkpointId`, both null or both
 set; `createdAt`; `entryCount`; `byteLength`; `checksum`; `partCount`) and an inline `payload` or, above the
 inline size, `receiptLedgerParts`. A ledger is at most 4 MiB, 16,000 entries and 18 parts. Cleanup tombstones
 selected entries without renumbering and deletes the body when the last header goes. Each Character's private
@@ -103,8 +142,15 @@ receipts are packed separately from shared Campaign and Encounter receipts, so a
 shared history. On account deletion the Character state and private receipt headers are deleted with a durable
 `characterReceiptPurgeJobs` row, and unreachable private payloads are purged in bounded retryable mutations
 (D71). Receipt pages validate summed distinct-ledger bytes against the 4 MiB read budget before hydrating.
-Scene receipts are retained for 30 days (`scenes/commandRetention`, daily): the ledger is the retention unit,
-then orphaned headers are removed oldest first with their geometry save.
+
+**Scene command evidence (ADR 0035 Amendment 26).** Scene command receipts and geometry saves live only in
+the room's SQLite, as opaque `SCENE_EVIDENCE_ROW` records (`sceneLiveCommands`, `sceneGeometrySaves`) stamped
+with their write time in `revision`. They survive reloads, release and new epochs: `RoomInputs.hydrate` carries
+them across like the held Encounter history, across every Scene. Undo and replay by command ID read only this
+copy. The room enforces the 30 day retention (`SCENE_COMMAND_RETENTION_MS`) without an alarm: a hydrate drops
+evidence older than the cutoff, so the purge happens at the next load. `buildRoomCheckpointRecords` ignores the
+kind, so no checkpoint, journal delta or Convex row carries it, and it is never a chat entry, so it never counts toward the backlog bound. A fog save keeps
+`geometrySaveId` as an opaque back-reference to a save the room may have dropped; Convex never resolves it.
 
 ## Encounter persistence package
 
@@ -112,7 +158,17 @@ then orphaned headers are removed oldest first with their geometry save.
 room run the same code. It depends on `packages/schema`, `packages/shared` and `packages/rules-runtime` and
 only takes the `IndexRange` type from `convex`. Its README documents the store surface. Convex binds it
 through `encounters/encounterPorts.ts` and `lib/convexEncounterStore.ts`; the room store is `RoomEncounterStore`
-(`apps/session-worker/src/durableCommandJournal.ts`). `rejectDomain` throws `EncounterDomainRejection`, which
+(`apps/session-worker/src/roomEncounterStore.ts`).
+Document derivations (Zod parse plus checksum verification) go through `deriveOnce` (`transactionReads.ts`).
+A Convex query caches them per transaction through `memoizeTransactionReads`. The room's in-memory store is
+created with `sharedReads`: it serves its stored documents deeply frozen instead of copying them, and never
+changes one in place, so a derivation lasts as long as the document is unchanged across commands and pushes.
+The room's records follow the same rule: `recordValue` parses a record's JSON once per stored record and serves
+it frozen, so a Scene row's derivations (`readRoomSceneRow`, `parseGeometrySave` and the movement evidence it
+verifies) are not repeated on every movement admission and publication.
+Derivations shared by identity are dropped at every commit to bound them. Callers never mutate a read document
+or a derived value. Without this the room re-parsed every document on every read, which saturated its CPU
+under the V15 workload (REL-5). `rejectDomain` throws `EncounterDomainRejection`, which
 `lib/domainRejectionTransport.ts` rethrows as a `ConvexError` with the same data for the builders in
 `lib/queries.ts` and `lib/mutations.ts`. `characterRulesCapture` (`liveSessions/roomInputs.ts`), `actionChoices`
 and the action-preparation helpers stay in Convex because they assemble Character and System content the room
@@ -132,10 +188,21 @@ drift; Convex keeps authorization, receipt-ledger loading and read budgets.
   the only writer and rewrites only the record whose checksum changed, so a play change never writes the
   document. See [Character play state](character.md#character-play-state-adr-0035-amendment-12--local-implementation).
 - **No stored projection.** `encounterRuns` holds Run state only. Projections are built on read
-  (`readEncounterGmProjection` in `nativeProjection.ts`) from the Run, the actors' `encounterActorProjectionFacts`,
-  the current initiative round and each Character. Creature stat blocks shared by identical Creatures are held
-  once per checksum in `encounterSourceProjectionFacts`. Every actor write goes through `insertRunActor`,
-  `writeRunActor` or `deleteRunActor`, which rewrite the facts in the same transaction.
+  (`readEncounterGmProjection` in `nativeProjection.ts`) from the Run, the actors' stored records
+  (`readRunProjectionFacts`), the current initiative round and each Character. Creature stat blocks shared by
+  identical Creatures are held once per checksum in `encounterSourceProjectionFacts`.
+- **Actor storage (ADR 0035 Amendment 29).** An actor's source `snapshot` is static, so it is stored apart from
+  its play state. `encounterRunActors.stateJson` holds the play state, the projection facts evaluated when the
+  actor was written, and `snapshotChecksum`, which names an immutable, content-addressed
+  `encounterActorSnapshots` row of the Run (`encounterId` + `checksum`). `stateChecksum` covers the actor
+  without its snapshot, so a guard never hashes the snapshot. A snapshot row is written once when an actor
+  names it, deleted with the last actor that names it, and never mutated: a command that changes a snapshot
+  (equipment replacement, disarm) writes a new row and repoints the actor. The one function that rebuilds the
+  full actor is `composeRunActorState` (`rules-runtime/encounterActorStorage`); `readRunActors` and
+  `readRunActorWithRow` call it. Every actor write goes through `insertRunActor`, `writeRunActor` or
+  `deleteRunActor`, which keep the snapshot and source rows in step in the same transaction. Convex validates
+  an actor change from the stored record and does not read the snapshot row. The finished-Encounter GM view
+  reads only the actor rows' stored records and the source rows.
 - **Character actors** keep no hit point or condition copy. Reads load the current Character while it is assigned
   to the Campaign; `frozenState` holds hit points and conditions for a Character the Run stops reading (the
   COMPLETE command and assignment removal freeze it).
@@ -173,8 +240,21 @@ state), `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterIniti
   current projection and no roll (the roll card stays in chat); a reused ID with other input is refused.
   Undo of earlier actions is refused, and the timeline restarts. Open decisions stay resolvable or voidable,
   and COMPLETE still needs them settled.
-- **Run end:** COMPLETE deletes the Run's history and index rows in the room, and its checkpoint deletes
-  them in Convex. Run deletion and Campaign deletion delete index rows too.
+- **Run end (ADR 0035 Amendment 30):** COMPLETE keeps only `encounterRuns`, `encounterRunActors` and the
+  `encounterSourceProjectionFacts` rows those actors name, which is all the finished GM view reads
+  (stored actor records, Character `frozenState`, Run state). It deletes every other child row in the
+  same save, in the room and, through the checkpoint, in Convex: snapshots, Scene and token bindings,
+  initiative rounds, participants and sides, rule occurrences, pending snapshot parts, replay index,
+  turn movements, decision skips, effect and maintained-effect rows, spatial effects, and the command,
+  rule receipt and evidence histories (`removeFinishedRunRowsPage` in `packages/encounter-persistence`).
+  A completed Run has no Scene binding, so bind commands on it are refused with `ENCOUNTER_NOT_ACTIVE`
+  and lookups by Scene never resolve it. Several PREPARED or ACTIVE Runs may bind one Scene, so the
+  binding table has no Scene index and no lookup ranks Runs: the fight played on a Scene is the
+  Campaign's single ACTIVE Run (`by_campaignId_status`) when its binding names that Scene
+  (`readActiveSceneEncounter`, `packages/encounter-persistence`); a PREPARED Run never plays or lends
+  Scene vision. `encounterRuns` carries the creation key (`createCommandId`,
+  `createCommandFingerprint`, index `by_campaignId_createCommandId`) so a `runs.create` retry returns
+  the same Run after COMPLETE. Run deletion and Campaign deletion delete the remaining rows too.
 - **No Convex timeline:** the timeline and latest evidence roll are read only from the room. Encounter
   commands write no Character receipts, and the Character history API is removed.
 
@@ -201,10 +281,9 @@ map reference but not the selection.
 Live Scene rows (see [Live room and checkpoints](#live-room-and-checkpoints)) are checkpoint-written.
 `sceneLiveStates` holds the version, settings (including the versioned `fogMode` of `OFF`, `SHARED_PARTY` or
 `PER_PLAYER`, ADR 0034), counts and ordinals; `sceneLiveEntities` holds collection-qualified overrides and
-tombstones over the immutable base; `sceneLiveCommands` holds `INLINE`, `FOG_PATCH` and `GEOMETRY` receipt
-headers. Fog layers reference immutable `sceneFogChunks` through `sceneFogSaves` manifests; superseded chunks
-are retained because command history references them. Staging uploads for fog never reach Convex.
-`sceneGeometrySaves` owns the canonical geometry command, actor, captured version and child references. Recipient
+tombstones over the immutable base. Fog layers reference immutable `sceneFogChunks` through `sceneFogSaves`
+manifests; superseded chunks are retained because layers reference them. Staging uploads for fog never reach
+Convex. The room's Scene command receipts and geometry saves are described under Scene command evidence. Recipient
 reads (`scenes/recipientReads`, `recipientActions`) and `fogReads` page current entities and fog pinned to one
 Scene version and filter to the viewer's layers.
 
@@ -499,16 +578,14 @@ Session notes; new notes are `PRIVATE`. There is no GM-only notebook gate any mo
 - **Version contention** is unchanged: exact `expectedVersion`, and a stale writer gets a conflict.
 - **Departure:** a leaving member's notes stay. Private ones are then readable only by the GM, and shared ones
   stay shared.
-- **Account deletion** (`removeAccountCampaignMemberships`, `noteRemoval.ts`): the account's private entries and
-  Session notes are removed by a scheduled `purgeAuthorPrivateNotes` run per Campaign membership, one bounded
-  batch of 48 per table per run, rescheduling itself until the index is empty (entries go through the pin
-  cascade; reruns converge, F12.5). Until it runs, the GM can still read them. Shared ones survive with
-  Deleted-user attribution. Entries count against the Campaign owner's `campaignEntriesPerCampaign` cap.
+- **Account deletion** (`removeAccountCampaignMemberships`; D91 amends D87): notes the GM can read are Campaign
+  history, so private and shared entries and Session notes all stay, attributed to `Deleted user` by the same
+  label resolver. Nothing is purged. The GM still reads the private ones; players never do. Entries count
+  against the Campaign owner's `campaignEntriesPerCampaign` cap.
 - **Copy:** a Campaign copy carries only the copying owner's own entries, keeping their visibility
   (`by_campaignId_authorUserId_category_id`). Other members' entries are never copied.
 - **Live room:** there is no live-room path for notebook or Session notes; the Session Durable Object neither
   reads nor writes them, so no room-side filter exists.
-- **Indexes:** `by_campaignId_authorUserId_visibility` on both tables serves the account-deletion sweep.
 
 ### Conversations and chat
 
@@ -612,8 +689,10 @@ version; one transaction validates ownership, ACTIVE OWNER membership and modera
 captured room first drains its outbox and releases authority; only publication from that exact room and epoch may
 pass the fence. The job then reconciles Characters (CAMPAIGN_DELETED, assigned Characters in UUID order,
 retaining personal data) and admission, removes the root and purges descendants (including `liveCharacterHolds`)
-in bounded idempotent steps. A scheduled mutation reschedules a stalled Deleting job even if the initiating
-account is gone. Failed cleanup stays inaccessible and retryable. Personal Characters, authored roots, versions
+in bounded idempotent steps. The job sends the room a distinct `DELETE_ROOM` control operation, which closes the
+room and then deletes its alarm and all its storage (Scene command evidence and Encounter history included);
+`CLOSE_ROOM`, which archive also sends, keeps storage. `DELETE_ROOM` is idempotent. A scheduled mutation
+reschedules a stalled Deleting job even if the initiating account is gone. Failed cleanup stays inaccessible and retryable. Personal Characters, authored roots, versions
 and drafts, owned Blueprints and immutable Social invalidation events remain.
 
 ## Accounts
@@ -733,21 +812,21 @@ cleanup and account purges. Each job rechecks its grant or fence and is safe to 
 
 Every table in `apps/apis/convex/schema.ts` belongs to a section above.
 
-| Area                                                  | Tables                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Account (inline in `schema.ts`)                       | `accountEntitlements`, `userProfiles`, `accountUsageEntries`, `notificationFeedItems`, `notificationDeliveryIntents`, `userRollHistory`, `mediaAssets`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Authored content (`content/schema.ts`)                | `systemVocabularySnapshots`, `authoredImportRefs`, `authoredImageSlots`, `systems`, `contentSources`, `rulesCatalogues`, `authoredRoots`, `authoredSpellClasses`, `authoredCatalogueCounts`, `authoredCatalogueOwnerCounts`, `authoredDrafts`, `authoredDraftPayloads`, `authoredDraftPayloadChunks`, `authoredRouteIds`, `authoredRouteSequence`, `authoredVersions`, `authoredVersionCompilations`, `authoredVersionPayloadChunks`, `reusableDefinitions`, `reusableDefinitionDrafts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Content snapshots                                     | `contentSnapshotHeads`, `contentSnapshotObjects`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| Imports (`imports/schema.ts`)                         | `importUploadClaims`, `importPreviewSessions`, `importJobs`, `importJobStages`, `importJobResults`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Characters (`characters/schema.ts`)                   | `characters`, `characterPlayStates`, `characterBuildStates`, `characterInventoryItems`, `characterCurrencyGroups`, `characterClassSpellStates`, `characterSpellCustomizations`, `characterCreatureInstances`, `characterVehicleInstances`, `characterNotes`, `characterNoteGroups`, `characterExtraEquipment`, `characterDrafts`, `characterDraftPayloads`, `characterDraftPayloadChunks`, `characterCommandReceipts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Area                                                  | Tables                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account (inline in `schema.ts`)                       | `accountEntitlements`, `userProfiles`, `accountUsageEntries`, `notificationFeedItems`, `notificationDeliveryIntents`, `userRollHistory`, `mediaAssets`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Authored content (`content/schema.ts`)                | `systemVocabularySnapshots`, `authoredImportRefs`, `authoredImageSlots`, `systems`, `contentSources`, `rulesCatalogues`, `authoredRoots`, `authoredSpellClasses`, `authoredCatalogueCounts`, `authoredCatalogueOwnerCounts`, `authoredDrafts`, `authoredDraftPayloads`, `authoredDraftPayloadChunks`, `authoredRouteIds`, `authoredRouteSequence`, `authoredVersions`, `authoredVersionCompilations`, `authoredVersionPayloadChunks`, `reusableDefinitions`, `reusableDefinitionDrafts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Content snapshots                                     | `contentSnapshotHeads`, `contentSnapshotObjects`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Imports (`imports/schema.ts`)                         | `importUploadClaims`, `importPreviewSessions`, `importJobs`, `importJobStages`, `importJobResults`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Characters (`characters/schema.ts`)                   | `characters`, `characterPlayStates`, `characterBuildStates`, `characterInventoryItems`, `characterCurrencyGroups`, `characterClassSpellStates`, `characterSpellCustomizations`, `characterCreatureInstances`, `characterVehicleInstances`, `characterNotes`, `characterNoteGroups`, `characterExtraEquipment`, `characterDrafts`, `characterDraftPayloads`, `characterDraftPayloadChunks`, `characterCommandReceipts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Campaigns (`campaigns/schema.ts`)                     | `campaigns`, `campaignMemberships`, `campaignCharacterAssignments`, `campaignPlaySettings`, `campaignInvites`, `campaignOwnershipTransfers`, `campaignDeletionJobs`, `campaignCopyJobs`, `campaignContentUsage`, `campaignContentShares`, `campaignVehicles`, `campaignCurrencySystems`, `campaignCurrencyDenominations`, `campaignPartyInventories`, `campaignPartyItems`, `campaignPartyCurrencyGroups`, `campaignPartyCurrencies`, `campaignEvents`, `campaignCharacterStates`, `campaignCommands`, `campaignClocks`, `campaignClockSegments`, `campaignClockRecoveries`, `campaignClockRecoveryPrompts`, `campaignSessions`, `campaignSessionAttendance`, `campaignSessionRsvps`, `campaignSessionNotes`, `campaignSessionReferences`, `campaignNotebookSections`, `campaignConversations`, `campaignConversationMembers`, `campaignConversationEntries`, `campaignConversationEntryPayloads`, `campaignAnnouncements`, `liveCharacterHolds`, `campaignLiveAuthorities` |
-| Vehicle cleanup (`campaigns/vehicleCleanupSchema.ts`) | `campaignVehicleCleanupJobs`, `campaignVehicleCleanupTotals`, `campaignVehicleCleanupSegments`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Encounters (`encounters/schema.ts`)                   | `encounterRuns`, `encounterRunActors`, `encounterActorProjectionFacts`, `encounterSourceProjectionFacts`, `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterInitiativeRounds`, `encounterInitiativeParticipants`, `encounterInitiativeSides`, `encounterRunCommands`, `encounterRuleOccurrences`, `encounterPendingSnapshotParts`, `encounterRuleReceipts`, `encounterEvidenceRolls`, `encounterTurnMovements`, `encounterDecisionSkips`, `encounterBlueprints`, `encounterBlueprintUpdates`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Rule effects (`rules/schema.ts`)                      | `characterActiveRuleEffects`, `encounterActiveRuleEffects`, `encounterMaintainedEffectStates`, `encounterSpatialRuleEffects`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| Scenes (`scenes/schema.ts`)                           | `sceneDefinitions`, `sceneDefinitionSaves`, `sceneDefinitionEntities`, `campaignScenes`, `campaignScenePresentations`, `sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`, `sceneFogLayers`, `sceneFogSaves`, `sceneFogChunks`, `sceneGeometrySaves`, `sceneVisionRevisions`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Receipt ledgers (`lib/receiptLedgerSchema.ts`)        | `receiptLedgers`, `receiptLedgerParts`, `characterReceiptPurgeJobs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| Checkpoints (`liveSessions/checkpointSchema.ts`)      | `liveSessionCheckpointUploads`, `liveSessionCheckpointUploadParts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Social (`social/schema.ts`)                           | `socialProfiles`, `socialListings`, `socialApplications`, `socialBlocks`, `socialReports`, `socialModerationActions`, `socialProfileInvalidations`, `socialListingInvalidations`, `socialBlockInvalidations`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Vehicle cleanup (`campaigns/vehicleCleanupSchema.ts`) | `campaignVehicleCleanupJobs`, `campaignVehicleCleanupTotals`, `campaignVehicleCleanupSegments`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Encounters (`encounters/schema.ts`)                   | `encounterRuns`, `encounterRunActors`, `encounterActorSnapshots`, `encounterSourceProjectionFacts`, `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterInitiativeRounds`, `encounterInitiativeParticipants`, `encounterInitiativeSides`, `encounterRunCommands`, `encounterRuleOccurrences`, `encounterPendingSnapshotParts`, `encounterRuleReceipts`, `encounterEvidenceRolls`, `encounterTurnMovements`, `encounterDecisionSkips`, `encounterBlueprints`, `encounterBlueprintUpdates`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Rule effects (`rules/schema.ts`)                      | `characterActiveRuleEffects`, `encounterActiveRuleEffects`, `encounterMaintainedEffectStates`, `encounterSpatialRuleEffects`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Scenes (`scenes/schema.ts`)                           | `sceneDefinitions`, `sceneDefinitionSaves`, `sceneDefinitionEntities`, `campaignScenes`, `campaignScenePresentations`, `sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`, `sceneFogSaves`, `sceneFogChunks`, `sceneVisionRevisions`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Receipt ledgers (`lib/receiptLedgerSchema.ts`)        | `receiptLedgers`, `receiptLedgerParts`, `characterReceiptPurgeJobs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Checkpoints (`liveSessions/checkpointSchema.ts`)      | `liveSessionCheckpointUploads`, `liveSessionCheckpointUploadParts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Social (`social/schema.ts`)                           | `socialProfiles`, `socialListings`, `socialApplications`, `socialBlocks`, `socialReports`, `socialModerationActions`, `socialProfileInvalidations`, `socialListingInvalidations`, `socialBlockInvalidations`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Better Auth tables belong to the component schema (`apps/apis/convex/betterAuth/schema.ts`), not this guide.
 

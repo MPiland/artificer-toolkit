@@ -57,7 +57,6 @@ export interface LiveSessionConnection {
    * socket is not ready or drops first.
    */
   readEncounter: (read: EncounterReadDto) => Promise<LiveSessionEncounterReadReply>
-  synchronizeScene: (sceneId: string, version: number, expectedPresentationVersion: number) => void
 }
 
 export type LiveSessionCommandCommit = Extract<
@@ -130,14 +129,12 @@ type LiveSessionClientMessage = Extract<
       | 'SUBSCRIBE_CAMPAIGN_SUMMARY'
       | 'SUBSCRIBE_CHARACTER_SHEET'
       | 'SUBSCRIBE_ENCOUNTER_SESSION'
-      | 'SYNCHRONIZE_SCENE'
       | 'TRANSIENT'
       | 'UNSUBSCRIBE_CAMPAIGN_SUMMARY'
       | 'UNSUBSCRIBE_CHARACTER_SHEET'
       | 'UNSUBSCRIBE_ENCOUNTER_SESSION'
   }
 >
-type SceneSynchronizationMessage = Extract<LiveSessionClientMessage, { type: 'SYNCHRONIZE_SCENE' }>
 type SceneFogStagingMessage = Extract<
   LiveSessionClientMessage,
   { type: 'SCENE_FOG_APPEND' | 'SCENE_FOG_BEGIN' }
@@ -266,11 +263,9 @@ export function createLiveSessionConnection(
       resolve: (reply: LiveSessionEncounterReadReply) => void
     }
   >()
-  let requestedScene: SceneSynchronizationMessage | null = null
   let requestedSheetCharacterId: string | null = null
   let requestedEncounterSession: { timeline: boolean } | null = null
   let requestedCampaignSummary = false
-  let synchronizedScene: SceneSynchronizationMessage | null = null
   const previewSentAt = new Map<string, number>()
 
   const send = (message: LiveSessionClientMessage): boolean => {
@@ -333,20 +328,6 @@ export function createLiveSessionConnection(
     if (ready && requestedCampaignSummary) send({ type: 'SUBSCRIBE_CAMPAIGN_SUMMARY' })
   }
 
-  const synchronizeRequestedScene = () => {
-    if (
-      !ready ||
-      !requestedScene ||
-      (requestedScene.sceneId === synchronizedScene?.sceneId &&
-        requestedScene.version === synchronizedScene.version &&
-        requestedScene.expectedPresentationVersion ===
-          synchronizedScene.expectedPresentationVersion)
-    ) {
-      return
-    }
-    if (send(requestedScene)) synchronizedScene = requestedScene
-  }
-
   const scheduleReconnect = () => {
     if (stopped || reconnectTimer) return
     const delay = reconnectDelay(attempt)
@@ -372,7 +353,6 @@ export function createLiveSessionConnection(
       ready = false
       commandReady = false
       emitDurableState()
-      synchronizedScene = null
       let authentication: Promise<void> | null = null
 
       const sendAuthentication = () => {
@@ -432,7 +412,6 @@ export function createLiveSessionConnection(
         if (message.type === 'TRANSIENT_READY') {
           attempt = 0
           ready = true
-          synchronizeRequestedScene()
           requestSheet()
           requestEncounterSession()
           requestCampaignSummary()
@@ -443,7 +422,6 @@ export function createLiveSessionConnection(
           commandReady = false
           emitDurableState()
           rejectReads(new Error('Live play must authenticate again.'))
-          synchronizedScene = null
           for (const pending of pendingCommands.values()) pending.lastSentSequence = null
           options.onStatus('RECONNECTING')
           sendAuthentication()
@@ -474,23 +452,18 @@ export function createLiveSessionConnection(
         } else if (message.type === 'STATE_SYNC') {
           sequence = message.sequence
           recipientState = message.state
-          commandReady =
-            !requestedScene ||
-            (message.state.scene?.id === requestedScene.sceneId &&
-              message.state.scene.version >= requestedScene.version)
+          commandReady = true
           emitDurableState()
-          if (commandReady) {
-            for (const pending of pendingCommands.values()) {
-              if (pending.lastSentSequence === message.sequence) continue
-              if (
-                send({
-                  command: pending.command,
-                  expectedSessionSequence: pending.expectedSessionSequence,
-                  type: 'COMMAND'
-                })
-              )
-                pending.lastSentSequence = message.sequence
-            }
+          for (const pending of pendingCommands.values()) {
+            if (pending.lastSentSequence === message.sequence) continue
+            if (
+              send({
+                command: pending.command,
+                expectedSessionSequence: pending.expectedSessionSequence,
+                type: 'COMMAND'
+              })
+            )
+              pending.lastSentSequence = message.sequence
           }
         } else if (message.type === 'COMMAND_COMMITTED') {
           // Geometry notifications and private-history-free fanout advance the shared sequence,
@@ -571,7 +544,6 @@ export function createLiveSessionConnection(
         ready = false
         commandReady = false
         emitDurableState()
-        synchronizedScene = null
         for (const pending of pendingCommands.values()) pending.lastSentSequence = null
         // Staged batches survive in the room; a retried upload resumes from its begin.
         rejectFogSteps(new Error('Live play disconnected during a fog change.'))
@@ -736,15 +708,6 @@ export function createLiveSessionConnection(
           reject(new Error('Live play is not connected.'))
         }
       })
-    },
-    synchronizeScene(sceneId, version, expectedPresentationVersion) {
-      requestedScene = {
-        expectedPresentationVersion,
-        sceneId,
-        type: 'SYNCHRONIZE_SCENE',
-        version
-      }
-      synchronizeRequestedScene()
     }
   }
 }

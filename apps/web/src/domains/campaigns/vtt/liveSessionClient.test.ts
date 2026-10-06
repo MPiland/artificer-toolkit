@@ -57,6 +57,7 @@ const sceneState = {
 } satisfies CampaignSceneStateDto
 
 const recipientState = {
+  presentationVersion: 11,
   recipientRole: 'PLAYER',
   scene: null
 }
@@ -128,7 +129,7 @@ afterEach(() => {
 })
 
 describe('live-session browser connection', () => {
-  it('authenticates, retains the initial Scene synchronization, and exchanges transients', async () => {
+  it('authenticates once the host is ready and exchanges transients', async () => {
     const statuses: string[] = []
     const transients: LiveSessionTransientBroadcastDto[] = []
     const connection = createLiveSessionConnection({
@@ -155,30 +156,13 @@ describe('live-session browser connection', () => {
       expect(socket.sent).toEqual(['{"accessToken":"access-token","type":"AUTHENTICATE"}'])
     )
     expect(statuses).not.toContain('CONNECTED')
-    connection.synchronizeScene(sceneId, 7, 11)
-    expect(socket.sent).toHaveLength(1)
     expect(connection.sendTransient(envelope)).toBe(false)
     expect(socket.sent).toHaveLength(1)
 
     socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     expect(statuses.at(-1)).toBe('CONNECTED')
-    expect(JSON.parse(socket.sent[1]!) as unknown).toEqual({
-      expectedPresentationVersion: 11,
-      sceneId,
-      type: 'SYNCHRONIZE_SCENE',
-      version: 7
-    })
-    connection.synchronizeScene(sceneId, 7, 11)
-    expect(socket.sent).toHaveLength(2)
-    connection.synchronizeScene(sceneId, 7, 12)
-    expect(JSON.parse(socket.sent[2]!) as unknown).toEqual({
-      expectedPresentationVersion: 12,
-      sceneId,
-      type: 'SYNCHRONIZE_SCENE',
-      version: 7
-    })
     expect(connection.sendTransient(envelope)).toBe(true)
-    expect(JSON.parse(socket.sent[3]!) as unknown).toEqual({ envelope, type: 'TRANSIENT' })
+    expect(JSON.parse(socket.sent[1]!) as unknown).toEqual({ envelope, type: 'TRANSIENT' })
 
     const broadcast = { envelope, userId }
     socket.receive({ message: broadcast, type: 'TRANSIENT' })
@@ -887,7 +871,7 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
-  it('waits for the requested Scene before resending a pending command', async () => {
+  it('resends a pending command once per sequence after the room re-admits the socket', async () => {
     const durableStates: unknown[] = []
     const connection = createLiveSessionConnection({
       createSocket: (url, protocols) => new FakeSocket(url, protocols),
@@ -906,7 +890,6 @@ describe('live-session browser connection', () => {
     const socket = FakeSocket.instances[0]!
     socket.open()
     await vi.waitFor(() => expect(socket.sent).toHaveLength(1))
-    connection.synchronizeScene(sceneId, sceneState.version, 11)
     socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     socket.receive({
       authorityEpoch,
@@ -946,11 +929,6 @@ describe('live-session browser connection', () => {
     socket.receive({ campaignId, type: 'TRANSIENT_READY' })
     expect(connection.sendTransient(envelope)).toBe(true)
     expect(JSON.parse(socket.sent.at(-1)!) as unknown).toEqual({ envelope, type: 'TRANSIENT' })
-    const beforeUnsynchronizedState = socket.sent.length
-
-    socket.receive({ authorityEpoch, sequence: 4, state: recipientState, type: 'STATE_SYNC' })
-    expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 4 })
-    expect(socket.sent).toHaveLength(beforeUnsynchronizedState)
 
     const newerSceneState = { ...sceneState, version: 5 }
     socket.receive({
@@ -965,7 +943,7 @@ describe('live-session browser connection', () => {
       expectedSessionSequence: 4,
       type: 'COMMAND'
     })
-    const afterSynchronizedState = socket.sent.length
+    const afterResend = socket.sent.length
 
     socket.receive({
       authorityEpoch,
@@ -973,7 +951,7 @@ describe('live-session browser connection', () => {
       state: { ...recipientState, recipientRole: 'OWNER', scene: newerSceneState },
       type: 'STATE_SYNC'
     })
-    expect(socket.sent).toHaveLength(afterSynchronizedState)
+    expect(socket.sent).toHaveLength(afterResend)
 
     socket.receive({
       commandId: doorCommand.command.commandId,
@@ -1101,34 +1079,6 @@ describe('live-session browser connection', () => {
     expect(durableStates.at(-1)).toMatchObject({ commandReady: false, sequence: 6 })
     connection.close()
   })
-  it('validates strict Scene synchronization messages', () => {
-    expect(
-      liveSessionWebSocketClientMessageDtoSchema.safeParse({
-        expectedPresentationVersion: 2,
-        sceneId,
-        type: 'SYNCHRONIZE_SCENE',
-        version: 0
-      }).success
-    ).toBe(true)
-    expect(
-      liveSessionWebSocketClientMessageDtoSchema.safeParse({
-        expectedPresentationVersion: 2,
-        sceneId,
-        type: 'SYNCHRONIZE_SCENE',
-        version: -1
-      }).success
-    ).toBe(false)
-    expect(
-      liveSessionWebSocketClientMessageDtoSchema.safeParse({
-        expectedPresentationVersion: 2,
-        extra: true,
-        sceneId,
-        type: 'SYNCHRONIZE_SCENE',
-        version: 1.5
-      }).success
-    ).toBe(false)
-  })
-
   it('fetches a new token when authentication is requested', async () => {
     const getAccessToken = vi
       .fn<() => Promise<string>>()

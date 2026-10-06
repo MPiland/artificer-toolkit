@@ -38730,26 +38730,6 @@ export declare const api: {
       >;
     };
     developmentLifecycle: {
-      movementReactionDamage: FunctionReference<
-        "query",
-        "public",
-        {
-          campaignId: string;
-          encounterId: string;
-          rootCommandId: string;
-          terminalCommandId: string;
-        },
-        {
-          afterHitPoints: number;
-          appliedAmount: number;
-          beforeHitPoints: number;
-          occurrenceId: string;
-          requestedAmounts: Array<number>;
-          resultPath: string;
-          sourceActorId: string;
-          targetActorId: string;
-        }
-      >;
       verifyRollback: FunctionReference<
         "action",
         "public",
@@ -45435,7 +45415,6 @@ export declare const internal: {
             fogSaveIds: Array<string>;
             listingIds: Array<string>;
             sceneIds: Array<string>;
-            sceneLedgerIds: Array<string>;
             sessionIds: Array<string>;
           };
           fixture: {
@@ -45468,7 +45447,6 @@ export declare const internal: {
             fogSaveIds: Array<string>;
             listingIds: Array<string>;
             sceneIds: Array<string>;
-            sceneLedgerIds: Array<string>;
             sessionIds: Array<string>;
           };
           personalStateJson: string;
@@ -45617,14 +45595,6 @@ export declare const internal: {
         { eventId: string }
       >;
     };
-    noteRemoval: {
-      purgeAuthorPrivateNotes: FunctionReference<
-        "mutation",
-        "internal",
-        { authorUserId: string; campaignId: string },
-        null
-      >;
-    };
     partyInventoryPages: {
       currencies: FunctionReference<
         "query",
@@ -45741,20 +45711,6 @@ export declare const internal: {
         any
       >;
       fogSaves: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          batchSize?: number;
-          cursor?: string | null;
-          dryRun?: boolean;
-          fn?: string;
-          next?: Array<string>;
-          oneBatchOnly?: boolean;
-          reset?: boolean;
-        },
-        any
-      >;
-      geometrySaves: FunctionReference<
         "mutation",
         "internal",
         {
@@ -52686,116 +52642,6 @@ export declare const internal: {
         }
       >;
     };
-    checkpointStaging: {
-      begin: FunctionReference<
-        "mutation",
-        "internal",
-        any,
-        { status: "STAGED" | "REPLAYED" }
-      >;
-      cleanup: FunctionReference<
-        "mutation",
-        "internal",
-        { checkpointId: string },
-        null
-      >;
-      commit: FunctionReference<
-        "mutation",
-        "internal",
-        any,
-        {
-          adopted: {
-            characters: Array<{ characterId: string; revision: string | null }>;
-            play?: string;
-          };
-          authority: {
-            activationExpiresAt?: number;
-            activationFingerprint: string;
-            campaignId: string;
-            checkpointedAt?: string;
-            createdAt: string;
-            epoch: string;
-            finalSequence?: number;
-            finalStateChecksum?: string;
-            lastCheckpoint?: {
-              checkpointId: string;
-              checksum: string;
-              fromChecksum: string;
-              fromSequence: number;
-              payloadChecksum: string;
-              sequence: number;
-            };
-            persistedSequence: number;
-            persistedStateChecksum: string;
-            phase: "ACTIVATING" | "DO_ACTIVE" | "DRAINING";
-            updatedAt: string;
-          };
-          io: {
-            bytesRead: number;
-            bytesWritten: number;
-            documentsRead: number;
-            documentsWritten: number;
-            sections: {
-              fence: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              history: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              holds: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              privateRolls: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              records: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              remainder: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              scenes: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-              scopes: {
-                bytesRead: number;
-                bytesWritten: number;
-                documentsRead: number;
-                documentsWritten: number;
-              };
-            };
-          };
-          status: "COMMITTED" | "REPLAYED";
-        }
-      >;
-      part: FunctionReference<
-        "mutation",
-        "internal",
-        any,
-        { status: "STAGED" | "REPLAYED" }
-      >;
-    };
     control: {
       evictUser: FunctionReference<
         "action",
@@ -52838,6 +52684,7 @@ export declare const internal: {
           operation:
             | { membershipEpoch: string; type: "EVICT_USER"; userId: string }
             | { type: "CLOSE_ROOM" }
+            | { type: "DELETE_ROOM" }
             | {
                 scopes: Array<
                   "CAMPAIGN" | "PLAY" | "CHARACTER" | "PREFERENCES"
@@ -52861,7 +52708,6 @@ export declare const internal: {
       >;
     };
     developmentCheckpoint: {
-      discardUpload: FunctionReference<"mutation", "internal", any, null>;
       inspect: FunctionReference<
         "query",
         "internal",
@@ -52905,7 +52751,7 @@ export declare const internal: {
             epoch: string | null;
             id: string;
             partCount: number;
-            scope: "CAMPAIGN" | "CHARACTER" | "SCENE";
+            scope: "CAMPAIGN" | "CHARACTER";
             scopeId: string;
           }>;
           playChecksum: string;
@@ -52914,8 +52760,6 @@ export declare const internal: {
           runChecksum: string;
           runVersion: number;
           sharedHeaderCount: number;
-          stagedPartCount: number;
-          stagedUploadCount: number;
         }
       >;
       prepare: FunctionReference<"mutation", "internal", any, any>;
@@ -53100,12 +52944,81 @@ export declare const internal: {
           campaignId: string;
           expectedRole: "OWNER" | "PLAYER";
           expectedUserId: string;
-          mode?: "AUTHORITY" | "FULL";
+        },
+        {
+          campaignId: string;
+          origin: {
+            membershipEpoch: string;
+            role: "OWNER" | "PLAYER";
+            userId: string;
+          };
+          presentation: {
+            campaignId: string;
+            sceneId: string | null;
+            version: number;
+          } | null;
+          sceneEncounterId: string | null;
+          sceneHeader: {
+            ambientIllumination:
+              "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
+            campaignId: string;
+            counts: {
+              annotations: number;
+              barriers: number;
+              darknessZones: number;
+              lights: number;
+              tokens: number;
+            };
+            currentCounts: {
+              annotations: number;
+              barriers: number;
+              darknessZones: number;
+              lights: number;
+              measurements: number;
+              tokens: number;
+            };
+            definitionId: string;
+            definitionSaveId: string;
+            definitionVersion: number;
+            fogLayerCount: number;
+            fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
+            grid:
+              | {
+                  cellSize: number;
+                  diagonalPolicy: "EQUAL" | "ALTERNATING" | "EUCLIDEAN";
+                  distancePerCell: number;
+                  kind: "SQUARE";
+                  origin: { x: number; y: number };
+                  unit: "FEET" | "METERS" | "SQUARES";
+                }
+              | {
+                  kind: "GRIDLESS";
+                  pixelsPerUnit: number;
+                  unit: "FEET" | "METERS" | "SQUARES";
+                };
+            id: string;
+            map: {
+              assetId: string;
+              height: number;
+              tileManifestAssetId: string | null;
+              width: number;
+            };
+            name: string;
+            version: number;
+            visionRevealMode?: "ON_DRAG" | "ON_DROP";
+          } | null;
+        }
+      >;
+      roomScene: FunctionReference<
+        "query",
+        "internal",
+        {
+          campaignId: string;
+          epoch: string;
           observedCharacterRevisions: Array<{
             characterId: string;
             revision: string | null;
           }>;
-          recipientUserIds: Array<string>;
         },
         {
           campaignId: string;
@@ -53113,25 +53026,11 @@ export declare const internal: {
             characterId: string;
             revision: string | null;
           }>;
-          origin: {
-            membershipEpoch: string;
-            role: "OWNER" | "PLAYER";
-            userId: string;
-          };
-          originBoundTokenControl: Array<{
-            controlled: boolean;
-            tokenId: string;
-          }>;
           presentation: {
             campaignId: string;
             sceneId: string | null;
             version: number;
           } | null;
-          recipients: Array<{
-            membershipEpoch: string;
-            role: "OWNER" | "PLAYER";
-            userId: string;
-          }>;
           sceneEncounterId: string | null;
           sceneHeader: {
             ambientIllumination:
@@ -54545,9 +54444,6 @@ export declare const internal: {
     };
   };
   scenes: {
-    commandRetention: {
-      purge: FunctionReference<"mutation", "internal", {}, null>;
-    };
     definitions: {
       cleanup: FunctionReference<
         "mutation",

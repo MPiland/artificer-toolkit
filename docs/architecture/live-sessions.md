@@ -59,8 +59,11 @@ Lifecycle of one epoch:
    remaining checkpoint through the final sequence (`#checkpointThrough`), `release`, then drop the
    released journal state (`journal.release`) and clear its rate buckets and fog staging. The next
    join claims a fresh epoch.
-5. **Close from Convex.** The Campaign archive and delete lifecycle sends `CLOSE_ROOM` through the
-   control route (below). If the final checkpoint or release fails, the room answers 503 and keeps
+5. **Close or delete from Convex.** Campaign archive sends `CLOSE_ROOM`, and the Campaign deletion job
+   sends `DELETE_ROOM`, through the control route (below). `DELETE_ROOM` runs `#closeRoom` and then deletes the
+   room's alarm and all its storage, so nothing the room retained (Scene command evidence, held Encounter
+   history) outlives the Campaign. It is idempotent: after it the room answers further control calls with
+   `{ closed: 0 }` and everything else with 410, and a repeat succeeds. If the final checkpoint or release fails, the room answers 503 and keeps
    its drain fence and unpublished checkpoint; Convex `deliver` retries the close, and the room's
    alarm retries an idle release the same way.
 
@@ -93,7 +96,7 @@ sequenceDiagram
   SQLite-->>Room: Sequence and write-set chain checksum
   Room-->>Client: COMMAND_COMMITTED or exact replay
   Room-->>Peers: Recipient-filtered committed projection
-  Room->>Convex: Checkpoint of the committed prefix (inline or staged)
+  Room->>Convex: Checkpoint of the committed prefix
   Convex-->>Room: Acknowledgement and changed authorization sections
   Room->>SQLite: Compact prefix and acknowledge journal in one transaction
   Convex-->>Peers: Reactive durable-state update
@@ -174,6 +177,13 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   or `START`) happen in Convex, and the departure reconcile (D81) flushes in the room's own departure
   path. Token bind and unbind and round changes ride the next flush. `REVERT_LAST_ACTION` is not a
   command.
+- `COMPLETE` also deletes, in the same save, every Run child row except the Run, its actors and the
+  source facts they name (ADR 0035 Amendment 30), including the Scene binding. The room refuses
+  further commands on a completed Run ("Completed Encounters are read-only."), the Play authorization
+  section and transient capture no longer resolve it, and a retry of an earlier command is still
+  answered from the room's command journal. The Run played on a Scene is the Campaign's ACTIVE Run when its binding names that
+  Scene (`readActiveSceneEncounter`, shared by Convex and the room); a PREPARED Run bound to the same
+  Scene never plays, and no lookup ranks Runs by recency.
 - `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused (`LEGENDARY_WINDOW_ONLY`).
 - Steps play cannot continue without (initiative, saves, Recharge, Legendary dice, dice during a move)
   refuse a GM void with `DECISION_REQUIRES_ANSWER`. Other voids cancel the occurrence
@@ -282,11 +292,11 @@ version with an unsequenced `ENCOUNTER_READ_RESULT { requestId, version, result 
   current authorization, then applies the same checks as the Convex query (Campaign authority, actor
   control, visibility). A domain refusal is `DOMAIN_REJECTED` with its reason and message.
 - `ACTOR_TOKEN_BINDINGS { encounterId, sceneId }` returns the held `encounterActorTokenBindings` rows for
-  that Scene, only for tokens the reader sees in the room's synchronized Scene
+  that Scene, only for tokens the reader sees in the room's presented Scene
   (`projectNativeLiveSessionState`), so a player never learns which actor stands behind a hidden token.
   Binding and unbinding no longer checkpoint, so Convex's `scenes/recipientActions:encounterBindings` trails
   the room; the web view (`CampaignVttStage`) reads this while routed and re-asks when the viewer's token
-  set changes. It keeps the Convex action for an unrouted read. A Scene the room has not synchronized is
+  set changes. It keeps the Convex action for an unrouted read. A Scene the room does not present is
   `UNAVAILABLE`.
 - The readers are shared with the Convex queries
   ([actionChoiceReads](../../packages/encounter-persistence/src/actionChoiceReads.ts),
@@ -393,7 +403,7 @@ sequenceDiagram
   Room->>Room: Verify signature, room identity, expiry, and unused ticket ID
   Browser->>Room: AUTHENTICATE with Better Auth Convex JWT
   Room->>Convex: POST /live-sessions/capture with JWT and Worker secret
-  Convex-->>Room: Current member, role, Scene and recipient authority
+  Convex-->>Room: Current member, role and presented Scene
   Room->>Convex: Bootstrap or verify the active authority epoch
   Convex-->>Room: Activation fingerprint, persisted sequence, and checksum
   Room->>Convex: POST /live-sessions/room-authorization with the Worker secret and epoch
@@ -411,8 +421,10 @@ authorization cache and is refused when that cache does not admit the captured m
 **Proactive re-challenge (ADR 0035 Amendment 23, current).** The room does not wait for a request to
 find an expired token. Through its single coalesced alarm it sends `AUTHENTICATION_REQUIRED` to each
 admitted socket at `Admission.deadline` minus `reauthenticationLeadMs` (60 s). The browser's
-`liveSessionClient` answers every challenge with a freshly fetched token, so a passive socket re-admits
-before expiry. A socket that has not been re-admitted at its deadline is closed with the reason
+`liveSessionClient` answers every challenge with an access token, so a passive socket re-admits before
+expiry. `useCampaignLiveSession` reuses its token while more than `LIVE_SESSION_REAUTHENTICATION_LEAD_MS`
+(the same 60 s, in `liveSessionIdentity.ts`) remains before its `exp`, and fetches a new one otherwise, so a
+repeated challenge costs no token fetch and the room's same-token check absorbs a duplicate answer. A socket that has not been re-admitted at its deadline is closed with the reason
 "Live-session sign-in expired." (1008). A revoked session cannot obtain a token, so an unanswered
 challenge ends the socket at expiry rather than by notice. The challenge drops the socket's feed
 subscriptions as any `AUTHENTICATION_REQUIRED` does, and the re-admission resends the state sync.
@@ -429,15 +441,16 @@ lease is not renewed. A proven `sub` that differs closes the socket ("Live-sessi
 Any token the room cannot prove (a JWKS fetch failure, an unknown key, a bad signature, an expired
 token), a lapsed lease or a first admission goes the cold path, where Convex decides: it flushes,
 captures, ensures authority and refreshes the lease. An idle socket therefore re-admits warm only
-while the 240 s authorization lease is current. `LIVE_SESSION_WORKER_SECRET` authenticates the
+while the 60 s (2N) authorization lease is current. `LIVE_SESSION_WORKER_SECRET` authenticates the
 Worker's HTTP calls to Convex and Convex's control calls to the Worker.
 
 **Control route.** Convex reaches a room through `POST /internal/live-sessions/control`
 (`LIVE_SESSION_CONTROL_PATH`), authenticated by the Worker secret header and routed to the room object by
 Campaign ID. Operations: `EVICT_USER` (a membership generation or user), `INVALIDATE_INPUTS { scopes }`,
-`SET_SCENE_PRESENTATION` and `CLOSE_ROOM`. Producers: Campaign leave and removal evict the membership
+`SET_SCENE_PRESENTATION`, `CLOSE_ROOM` and `DELETE_ROOM`. Producers: Campaign leave and removal evict the membership
 generation; account deletion, auth-account suspension and administrative auth-session revocation evict the
-user; Campaign archive and delete close the room; finishing a Campaign Session does not affect live play.
+user; Campaign archive closes the room and Campaign deletion deletes it (`DELETE_ROOM`; account deletion
+reaches it only through the Campaign deletion job, because an owned Campaign blocks account deletion); finishing a Campaign Session does not affect live play.
 Sign-out and security actions close the browser's own socket.
 
 `liveSessions/control.ts` `deliver` is fire-and-forget from the producing mutation and reschedules on a
@@ -452,20 +465,20 @@ immediately. Presentation control is synchronous and does not retry.
 The room caches the authorization inputs of its Campaign (`apps/session-worker/src/roomAuthorization.ts`,
 contract `packages/schema/src/api/liveSessionRoomAuthorization.ts`):
 
-| Section      | Contents                                                                                   | Changes with                         |
-| ------------ | ------------------------------------------------------------------------------------------ | ------------------------------------ |
-| System stamp | Canonical revision for the held System inputs; no separate authorization section payload   | SYSTEM revision                      |
-| Campaign     | Owner, ACTIVE members (role, membership epoch), Campaign Character assignments             | CAMPAIGN revision                    |
-| Characters   | Each assigned Character's owner and party visibility ("Party can view" and health display) | That Character's CHARACTER revision  |
-| Preferences  | Each member's "Roll my dice automatically" and canonical username                          | A digest of the members' preferences |
-| Play         | The presented Scene's bound Encounter: token bindings, actor control and health display    | PLAY revision                        |
+| Section      | Contents                                                                                       | Changes with                         |
+| ------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------ |
+| System stamp | Canonical revision for the held System inputs; no separate authorization section payload       | SYSTEM revision                      |
+| Campaign     | Owner, ACTIVE members (role, membership epoch), Campaign Character assignments                 | CAMPAIGN revision                    |
+| Characters   | Each assigned Character's owner and party visibility ("Party can view" and health display)     | That Character's CHARACTER revision  |
+| Preferences  | Each member's "Roll my dice automatically" and canonical username                              | A digest of the members' preferences |
+| Play         | The presented Scene's ACTIVE bound Encounter: token bindings, actor control and health display | PLAY revision                        |
 
 **Loading.** `liveSessions/roomAuthorization:read`, behind the Worker-secret route
 `/live-sessions/room-authorization`, is authorized by the room's `DO_ACTIVE` epoch, not a member's token.
 The room sends the revisions it holds (`known`); Convex reads the revisions and returns only the sections
 whose revision differs.
 
-**Lease.** The cache is trusted for `ROOM_LIMITS.authorizationLeaseMs` (240 s) from the start of the read
+**Lease.** The cache is trusted for `ROOM_LIMITS.authorizationLeaseMs` (60 s, 2N) from the start of the read
 that loaded it. Each socket's authentication, including its renewal at token expiry, renews it. A
 checkpoint never renews it and Convex reads no authorization for it (Amendment 18). Instead
 `#renewAuthorizationIfDue` starts one background `/room-authorization` read once half the lease has passed
@@ -480,6 +493,14 @@ revisions before applying, and the response's `adopted` carries each post-write 
 pre-write one equalled what the room sent. `RoomAuthorization.adopt` applies it while the cache still holds
 the revisions the checkpoint was sent with. Anything not adopted keeps its old revision, so the next read
 fetches that section. The held PLAY stays the room's own, which `applyPlay` keeps current.
+`RoomInputs.adopt` restamps the cached input records read at the sent PLAY and Character revisions, so
+the room's own checkpoint does not reload them: a held part never carries what a checkpoint writes (the
+Campaign part has no play data, and a Character part's play state, effects and sheet state are replaced by
+the room's own on every read). The restamp is memory only and ignored once its record is rewritten, so
+an outside edit, which advances a revision the room did not adopt, still misses and reads, and a room
+woken from hibernation reads once. A multi-page flush adopts per page: each page is sent the revisions
+after the previous page's adoption (`adoptRevisions`), and `RoomCheckpoints` reports every page's response
+through `onPublished`; a retained pending checkpoint retries with its own persisted revisions.
 
 **Invalidation.** `INVALIDATE_INPUTS { scopes }` marks the cache stale; nothing is trusted until the next
 read. The tracked mutation builders in `apps/apis/convex/lib/mutations.ts` collect, per transaction:
@@ -507,8 +528,13 @@ sockets, and other notices reload before their next use.
 
 **Use.**
 
-- A command, and `SYNCHRONIZE_SCENE`, first reloads a stale or expired cache; a failed read refuses the
-  command with `UNAVAILABLE`.
+- A command first reloads a stale or expired cache; a failed read refuses the command with `UNAVAILABLE`.
+- Every admission, including the first after a wake or an eviction, builds the presented-Scene cache
+  before the socket's first `STATE_SYNC` when the room holds none, so a sync always carries the presented
+  Scene. `STATE_SYNC` also carries `presentationVersion`, the Campaign's presentation version as the room
+  holds it (`null` until a Scene was ever presented). A `RESUME` answers only the asking socket, so a
+  table rejoining at once costs N state syncs, not N². A present (`SET_SCENE_PRESENTATION`) drops the
+  cache and challenges every socket; each re-admission rebuilds it for the new Scene and version.
 - Every read closes each socket whose member left, changed role or started a new membership epoch
   ("Campaign access ended."), so a removed member's queued commands never run.
 - Broadcasts are refused while the cache is stale or past its lease: a preview or ping is dropped and one
@@ -534,10 +560,13 @@ against memory and SQLite is the durable copy. Beside it, `DurableCommandJournal
 
 | Table                    | Rows                                                                             |
 | ------------------------ | -------------------------------------------------------------------------------- |
-| `room_snapshot_chunks`   | The aggregate as of the last snapshot, in bounded chunks under one `generation`  |
+| `room_snapshot_head`     | One row: the snapshot's epoch, sequence, chain, id counters and page count       |
+| `room_snapshot_pages`    | The aggregate as of the last snapshot, in pages of about 96 KB (see Compaction)  |
 | `room_writeset_log`      | One row per command: its write set, the counters, and the chained state checksum |
 | `room_scene_fog_uploads` | Staged fog patches (not Scene state, never checkpointed)                         |
 | `room_idle_release`      | The idle-release deadline                                                        |
+| `room_authorization`     | One row: the authorization lease, kept across hibernation (see Hibernation)      |
+| `room_scene_cache`       | One row: the map cache's identity, kept across hibernation (see Hibernation)     |
 
 **Write path.** `transact` gives each command an all-or-nothing overlay: writes reach the in-memory index
 through a journal, and only when the callback resolves does one `INSERT` into `room_writeset_log` make
@@ -556,10 +585,20 @@ separate. Raw rows are what checkpoints carry; vision is recomputed. Native stor
 `roomSceneRecords.ts`.
 
 **Compaction.** `compact({ epoch, sequence, checksum })` requires the checkpoint acknowledgement from
-Convex, verifies the epoch, prefix checksum and retained journal, writes a new snapshot generation and
-deletes only rows through that sequence in one `transactionSync`. Commands committed after the
-acknowledged prefix stay in the journal and in memory. Snapshots retain the id counters, so replay after
-eviction preserves consumed identities. Hydrating a new epoch replaces every old log row.
+Convex, verifies the epoch, prefix checksum and the journal rows through that sequence, and applies
+that prefix's write sets to an in-memory acknowledged base. It then rewrites only the snapshot pages those
+writes touched, updates the head and deletes the log rows through that sequence in one `transactionSync`;
+a failed transaction rolls the base back. A page holds one table's documents, or the room records, in
+insertion order; new entities fill the newest page, an oversized page splits and an emptied page is
+deleted. A page's text is stored in parts of at most 96,000 characters with its SHA-256 on each part.
+Compaction cost therefore follows what the prefix changed, not the Run's history: a whole-snapshot
+rewrite stalled the room for up to a second per checkpoint once history reached several megabytes, and
+rewrote every row each time (REL-5). The page size keeps the rows read on wake to the snapshot size
+divided by 96 KB, instead of one per document. Later rows are verified when they are acknowledged or
+rehydrated, so draining a backlog in several checkpoints stays linear in its size. Commands committed
+after the acknowledged prefix stay in the journal and in memory. The head retains the id counters, so
+replay after eviction preserves consumed identities. Hydrating a new epoch writes every page afresh and
+replaces every old log row.
 
 **Journal reads for checkpoints.** `committedWriteSets` reads a bounded consecutive prefix
 (`packages/schema/src/api/liveSessionCheckpointJournal.ts`), verifying epoch, starting
@@ -596,10 +635,10 @@ call is one subrequest however many query pages it spans. A page is at most 1024
   records and one inventory marker; stale SYSTEM/CAMPAIGN pins reload the whole inventory).
 - `AUTHORITY`: the native Campaign document, memberships of all statuses and assignments.
 - `CHAT_METADATA`: conversations, members and entry headers, excluding text and roll bodies.
-- `SCENE`: all seven native Scene families (`sceneLiveStates`, `sceneLiveEntities`, `sceneLiveCommands`,
-  `sceneFogLayers`, `sceneFogSaves`, `sceneGeometrySaves`, `sceneFogChunks`) behind immutable definition,
-  presentation and Scene-version pins. A page with changed pins is left for the next batch so the Worker
-  retries the whole read. `sceneLiveCommands` pages the SCENE receipt ledgers, one ledger per page.
+- `SCENE`: the five native Scene families (`sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`,
+  `sceneFogSaves`, `sceneFogChunks`) behind immutable definition, presentation and Scene-version pins. A page
+  with changed pins is left for the next batch so the Worker retries the whole read. Scene command receipts
+  and geometry saves are not hydrated: the room already holds them, and `hydrate` carries them across (below).
 
 Every response carries its revision vector. `RoomInputs.hydrate` reads these scopes, verifies content
 snapshots and Scene evidence, and replaces the store in one transaction; with no Run it still loads the
@@ -633,12 +672,11 @@ Campaign history and separately packed private Character history) and the Scene/
 - **Fix and retain.** [RoomCheckpoints](../../apps/session-worker/src/roomCheckpoints.ts) fixes a committed
   prefix and stores its canonical input in SQLite chunks of at most 72,000 bytes. A retry, including
   after eviction, uses the same checkpoint ID, source pins, range and payload digest.
-- **Publish.** `roomCheckpointPublication.ts` sends requests up to 240 KiB inline to
-  `/live-sessions/checkpoint` (`liveSessions/checkpoint:publish`). Larger payloads are staged in 240 KiB
-  parts: `checkpoint-stage` binds byte counts to the epoch and fence, `checkpoint-part` accepts indexed
-  base64 bytes, and `checkpoint-commit` (`liveSessions/checkpointStaging:commit`) validates all parts and
-  applies the same publication transaction. A backlog publishes as consecutive prefixes. Abandoned
-  uploads expire after 24 hours and scheduled cleanup removes them.
+- **Publish.** `roomCheckpointPublication.ts` sends every checkpoint in one request to
+  `/live-sessions/checkpoint` (`liveSessions/checkpoint:publish`); Convex accepts arguments up to 16 MiB.
+  A page is the longest journal prefix whose folded records fit the 1 MiB bound, so a save normally
+  publishes the whole unsaved journal at once and rows created and dropped within it never reach Convex
+  (ADR 0035 Amendment 31; see [persistence.md](persistence.md), "Checkpoint size").
 - **Fence.** `api/liveSessionCheckpointFence` owns the epoch, range, state and payload digest stored on
   `campaignLiveAuthorities`. Only a contiguous newer batch applies; an exact retry returns `REPLAYED`; an
   altered retry, foreign epoch, stale base or exceeded drain fence applies nothing.
@@ -647,25 +685,34 @@ Campaign history and separately packed private Character history) and the Scene/
   changes, history and the authority acknowledgement commit atomically. Character play deltas carry the
   room's `streamVersion`, accepted only when strictly greater than the stored version. Builder structure
   is excluded. Scene rows are written only by the room checkpoint
-  (`liveSessions/checkpointScenes.ts`); Scene command history is packed per Scene into SCENE receipt
-  ledgers, with `sceneLiveCommands` as a header table.
+  (`liveSessions/checkpointScenes.ts`), and they read each record once, before the write (ADR 0035
+  Amendment 27). Scene command receipts and geometry saves never reach Convex (Amendment 26).
 - **Acknowledge.** The response carries the adopted revisions (see "Own writes"), not authorization
   sections, and does not renew the lease. The room compacts the snapshot and calls `acknowledgeCheckpointInTransaction` in one SQLite transaction.
   Commands committed while publication is in flight remain as a suffix.
-- **Timing (current, ADR 0035 Amendment 17).** The earliest unpublished receipt's timestamp fixes the
-  flush deadline (`flushIntervalMs`, N, 120 s until REL-5 sets it between 30 and 120 s); later commands
-  do not extend it. A due flush rides the next incoming message (`#flushIfDue`, beside the lease
-  renewal), so a burst of commands inside N costs one flush and an idle or ping-only room calls nothing.
-  The message reads the deadline from memory, the value the alarm was last scheduled from, so it
-  touches no storage.
-  The alarm is the backstop for a quiet room and fires `flushQuietGraceMs` (15 s) after the deadline.
-  Admission, Scene presentation, drain and `checkpointBeforeAcknowledgement` commands flush a
-  checkpoint before their boundary (a cold admission flushes; a warm one does not).
+- **Timing (current, ADR 0035 Amendment 25).** There is no flush interval and no deadline alarm: a
+  room that nobody saves for calls Convex only to renew its authorization lease. It checkpoints at
+  save points: a Run's START and COMPLETE and removing a Character actor
+  (`checkpointBeforeAcknowledgement`, flushed before the command is acknowledged), a Scene
+  presentation, a departure reconcile that removes Characters, a cold admission (a warm one does not),
+  recovery and reload, drain, idle release and close. The alarm keeps only idle release, the
+  authorization window, retries and lease renewal.
+  The backlog bound adds one more save. After a command commits, the room reads
+  `RoomEncounterStore.unsavedChatEntries`, a running count kept as write sets are logged, replayed,
+  compacted and discarded, so it reads no storage. When the unsaved chat entries and roll cards reach
+  `LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT` (200, the chat push window), it flushes with reason `BACKLOG`
+  in the background (`#saveBacklogIfFull`). The journal's size is not a trigger (persistence.md,
+  "When the room saves"). A failed backlog save is logged and not retried for `alarmRetryMs`.
+  Backlog and admission flushes run beside the command chain, not on it, so commands never wait on a
+  publish. A command holds its store transaction across Convex reads, so the flush prepares each send
+  and compacts each acknowledgement through `RoomEncounterStore.whenClosed`, between transactions
+  (REL-5). Each preparation is a synchronous block that delays preview fan-out, so it costs its
+  journal page, not the retained snapshot (persistence.md, "Checkpoint size").
 
 ### Checkpoint triggers and the room meter (D85)
 
 Every checkpoint send names one trigger, `LIVE_SESSION_CHECKPOINT_REASONS` in
-`api/liveSessionCheckpoint`: `DEADLINE` (an incoming message or the quiet alarm, N after the earliest unpublished receipt),
+`api/liveSessionCheckpoint`: `BACKLOG` (the unsaved chat entries reached the chat push window),
 `ADMISSION` (a socket authenticates, or a background retry after admission), `ACTIVATION` (bootstrap
 recovery and the first publication after activation), `RELOAD` (the room aggregate must reload from
 Convex before a command), `ACKNOWLEDGEMENT` (a command with `checkpointBeforeAcknowledgement`),
@@ -684,41 +731,53 @@ found after a hibernation wake, so outgoing frames are counted by `send()`. It r
 admissions and the peak concurrent sockets per member (the case for merging a client's sockets),
 command wall time, and checkpoints by reason with payload bytes, Worker-to-Convex request count, wall
 time and the Convex-reported `io`, in total and per section (fence, records, scopes, holds, scenes,
-history, privateRolls, remainder). Staged checkpoints report the commit mutation's `io` only. Each
+history, privateRolls, remainder). Each
 checkpoint logs one `[room-meter]` JSON line and release logs the epoch summary. The totals are
 readable only in development, through `GET /internal/live-sessions/meter/<campaignId>` on the Worker. The
 meter and barrier routes require the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker, a loopback host and the
 worker secret header.
 
 `scripts/v15Budgets.mjs <proofName>` judges the `v15-workload` proof and `validatePreStagingLocal` runs it
-after that stage. The driver (`developmentEncounterCutover.ts`) brackets two measured windows, combat and
-paced out-of-combat Scene moves, with the development-only no-op mutations
+after that stage. The driver (`developmentEncounterCutover.ts`) brackets measured windows: each Run's
+START (`start`, one window per aggregate, in its preparation), combat, the COMPLETE of every Run
+(`save`, the save that holds what combat left) and paced out-of-combat Scene moves, with the
+development-only no-op mutations
 `liveSessions/developmentMeasurement:openWindow` and `closeWindow`, reads each window's state from room
 frames (never from Convex), and writes `v15-room-evidence.json` into the proof's evidence directory: the
-meter before and after each window, the barrier results, and the size of every document a checkpoint
-writes (`checkpointDocumentSizes`). The script reads the native Convex log between the markers: in combat
-only checkpoint ingestion, authorization refresh and sign-in token refresh may reach Convex (no command
-does); the out-of-combat window has the same rule unless real browsers ran. It also checks the largest
-checkpoint document against the Convex document limit with Q16 headroom, that a paced window longer than
-120 s saw a `DEADLINE` checkpoint, and the Convex I/O and Durable Object use per session against Q16's
-allowances. It reports unit costs (per combat command, per out-of-combat minute, per checkpoint reason).
-The session estimate is made only when the user sets its assumptions, `V15_ESTIMATE_COMBAT_COMMANDS` and
-`V15_ESTIMATE_OOC_MINUTES` (and optionally `V15_ESTIMATE_SESSION_HOURS`, default 4): they describe how a
-table plays and are not measured. The out-of-combat pace is likewise a user-set assumption
-(`V15_OOC_STEPS_PER_MINUTE`, `V15_OOC_MINUTES`; defaults 6 and 4).
+meter before and after each window, the COMPLETE results, and the size of every document a checkpoint
+writes (`checkpointDocumentSizes`, read from the completed Run). The script reads the native Convex log between the markers: in combat
+and save only checkpoint ingestion, authorization refresh, sign-in token refresh and background jobs may
+reach Convex (no command does); the start window only costs its checkpoint ingestion, because opening
+the room reaches Convex besides the START save; the out-of-combat window has the same rule unless real browsers ran. A
+paced out-of-combat window has no save point, so it must make no checkpoint and no checkpoint call may
+reach Convex in it (ADR 0035 Amendment 25). The script also checks the largest checkpoint document
+against the Convex document limit with Q16 headroom, and the Convex I/O and Durable Object use per
+session against Q16's allowances. It reports unit costs (per combat command, per save, per out-of-combat
+minute, per checkpoint reason). A save is one Run's START or COMPLETE, counted from the aggregates the
+driver measured, not from checkpoint pages. The session estimate is `lifecycle + fights * (START save +
+COMPLETE save) + commands * combat + minutes * out-of-combat`; the close save is not measured. The
+model (`SESSION_MODEL`) and its overrides (`V15_ESTIMATE_FIGHTS`, `V15_ESTIMATE_COMBAT_COMMANDS`,
+`V15_ESTIMATE_OOC_MINUTES`, `V15_ESTIMATE_SESSION_HOURS`) describe how a table plays and are not
+measured. The out-of-combat pace is likewise a user-set assumption (`V15_OOC_STEPS_PER_MINUTE`,
+`V15_OOC_MINUTES`; defaults 6 and 4).
 
-Convex retains Scene command receipts for 30 days: `scenes/commandRetention:purge` runs daily at 09:00 UTC
-(`convex/crons.ts`), so replay by command ID and undo reach back at most 30 days. Open follow-up:
-derived fog saves keep a `geometrySaveId` that can point at a pruned geometry save, and superseded fog
+The room retains Scene command evidence (geometry saves and command receipts) for 30 days
+(`SCENE_COMMAND_RETENTION_MS`, ADR 0035 Amendment 26), so replay by command ID and undo reach back at most
+30 days and read only the room's copy. It is stored as `SCENE_EVIDENCE_ROW` records stamped with the write
+time in `revision`. It survives reloads, release and new epochs because `RoomInputs.hydrate` carries it
+across, like the held Encounter history, and a hydrate drops evidence past the cutoff, so there is no alarm
+and no delete write set. It is excluded from checkpoints, and it is a record, never a chat entry, so it never
+triggers a backlog save. Campaign deletion removes it with the rest of the room's storage (`DELETE_ROOM`). Open follow-up: a fog
+save's `geometrySaveId` is an opaque back-reference that can point at a dropped save, and superseded fog
 saves and chunks are not yet garbage-collected.
 
 ## Drain, release, alarm and recovery
 
 **Alarm.** One Durable Object alarm (`alarm()`, `#scheduleAlarm`) serves every pending deadline: the
-10-second authentication window of unauthenticated sockets, the idle release, the checkpoint deadline and
-the expired fog staging sweep (`RoomSceneFogUploads.expire`). A failed checkpoint or release in the alarm
-logs and retries after `alarmRetryMs` (30 s); the unpublished checkpoint and drain fence persist, so a later
-alarm resumes them.
+10-second authentication window of unauthenticated sockets, the idle release, the lease renewal and
+the expired fog staging sweep (`RoomSceneFogUploads.expire`). It holds no checkpoint deadline
+(Amendment 25). A failed release in the alarm logs and retries after `alarmRetryMs` (30 s); the
+unpublished checkpoint and drain fence persist, so a later alarm resumes them.
 
 **Drain and release.** See "Ownership and lifecycle". Convex side: `begin-drain` moves the authority to
 `DRAINING` with the final sequence and checksum; final publication uses its separately fenced internal
@@ -726,8 +785,8 @@ scope so Campaign deletion can checkpoint committed state; `release` reconciles 
 (`reconcileOpenRunsAtRelease`, `liveSessions/releaseReconcile.ts`) and deletes the authority row.
 `CLOSE_ROOM` answers 503 when the final checkpoint or release fails.
 
-**Recovery.** The constructor loads the newest complete snapshot generation and replays the log rows after
-it. Any invalid row, missing snapshot chunk, broken chain or sequence gap leaves the store empty and sets
+**Recovery.** The constructor loads the snapshot head and pages and replays the log rows after it. Any
+invalid row, missing or altered page part, page count that differs from the head's, duplicate entity, broken chain or sequence gap leaves the store empty and sets
 `corruption`; durable rows are retained, never silently discarded. `assertAuthorityHead` compares the
 recovered epoch, sequence and chain with the head committed beside each command. Corruption refuses
 ordinary hydration. Recovery then calls the Worker-secret route `/live-sessions/recover-storage` with the
@@ -739,15 +798,33 @@ abandoned suffix is published. Missing storage with a nonzero checkpoint follows
 reconnect with fresh tickets and the replacement serves commands only after it hydrates the acknowledged
 Convex inputs.
 
-**Hibernation.** Hibernatable socket attachments retain connection identity and membership epoch.
-Transient state (sequence high-water marks, drag paths, background-refresh flags) lives in memory and is
+**Hibernation (ADR 0035 Amendment 24, D89).** Hibernation is transparent: what the room trusts while
+awake is stored when it changes and restored when the room wakes.
+
+- **Socket attachment:** connection identity, membership epoch, the admission's token expiry
+  (`admissionDeadline`, never the token) and the socket's feed subscriptions (`feeds`, including the
+  player's last shown pending decision). `#admit` writes them; any challenge or close clears them, so
+  only a socket admitted when the room slept is restored.
+- **`room_authorization`:** the authorization lease, written after every change to it.
+- **`room_scene_cache`:** the map cache's identity: presented Scene header, presentation version,
+  bound Encounter and cache key. The map itself is rebuilt from the room's own Scene rows and
+  journal state.
+
+A woken room restores each live admission and its feeds and handles the message that woke it. Within
+the lease this costs no sign-in round and no Convex call; past it, one Worker-secret authorization
+read. A socket whose token expired while the room slept, or that was challenged before it slept, is
+challenged on wake. The room rebuilds its map cache with `POST /live-sessions/room-scene-capture`
+(Worker secret and active epoch, `roomScene` in `transientCapture.ts`), so no player's token is ever
+needed after admission. Cold re-admissions stay single-flight: the first that cannot admit warm runs
+the one cold admission, and each other member socket with a locally proven token waits for it and
+then admits warm against the renewed lease. Transient state (sequence high-water marks, drag paths, background-refresh flags) lives in memory and is
 lost on hibernation, restart or eviction; that is safe because the next sample starts from the token's
 position and a hibernating room has received no samples.
 
 ## Transient previews
 
 The WebSocket protocol separates command and transient traffic. Browser messages include `AUTHENTICATE`,
-`COMMAND`, `TRANSIENT`, `RESUME`, `SYNCHRONIZE_SCENE`, the fog upload steps, the Sheet and Encounter
+`COMMAND`, `TRANSIENT`, `RESUME`, the fog upload steps, the Sheet and Encounter
 session subscriptions and `ENCOUNTER_READ`; server messages include `AUTHENTICATION_REQUIRED`,
 `TRANSIENT_READY`, `COMMAND_COMMITTED`, `COMMAND_REJECTED`, `TRANSIENT`, `ENCOUNTER_READ_RESULT` and
 `ENCOUNTER_READ_REJECTED` ([liveSessions.ts](../../packages/schema/src/api/liveSessions.ts)).
@@ -811,9 +888,30 @@ metadata (Campaign, epoch, phase, held Run IDs, `checkpointedAt`); `campaigns/qu
 returns any member the live epoch and nullable `checkpointedAt`, which chat routing uses. Scene
 publications and all other durable product state converge in Convex.
 
-An open tabletop subscribes to the authorized presentation and recipient header for Scene identity and
-version with `includeSnapshot:false` and renders the room's recipient Scene. Ordered command deltas update
-individual tokens or door states; Pixi retains unchanged graphics.
+Nothing reads a running table's state from Convex (ADR 0035 A28): Convex copies are stale between save
+points by design, so a page never shows one as current. HP, conditions, round and turn come from the
+Campaign summary feed, a held Character's Sheet from the Sheet feed, the Run from the Encounter session
+feed, and the Scene from the room's recipient Scene. The Encounter list between START and COMPLETE and
+private roll history are not room-owned and stay on Convex. The Session workspace therefore has no
+"saved at" notice: the data it still reads from Convex does not lag, and `checkpointedAt` is routing
+metadata only.
+
+While the room holds authority, an open tabletop renders the room's recipient Scene from `STATE_SYNC` and
+takes the presentation version the GM's present control sends (`expectedPresentationVersion`) from the
+same frame. It does not subscribe to `scenes/presentations:get`, the small Convex pointer, and never to
+the Scene header or recipient reads: the room alone writes a presented Scene, so Convex trails it between
+save points. Only while no room state has reached the page does `useCampaignPresentedScene` read the
+pointer (`CampaignVttStage.tsx` still shows no Scene until the room sends one). A Run the room does not hold reads its Scene bindings from Convex with a one-shot header
+read, not a subscription. Ordered command deltas update
+individual tokens or door states; Pixi retains unchanged graphics. The Stage renders on demand
+(`vttSceneRenderer.ts`, `autoStart: false`): every display-tree change requests a frame, and the ticker
+runs only while previews or pings animate, so an unchanged Scene costs no frames. Continuous rendering
+saturated V15's headless browsers and inflated durable-paint latency. Pixi hit-tests against transforms
+it computes when it renders, so a press first renders any pending frame.
+
+A woken room restores its admitted sockets, and any admission after the wake builds the presented-Scene
+cache before it syncs, so no sync is sent without the presented Scene. The page keeps the last recipient
+state across a reconnect, so a wake does not rebuild the renderer.
 
 While the room holds an Encounter the web reads it from the room, not Convex (see
 [Held Encounter session](#held-encounter-session)). The tabletop, the Encounter workspace, chat and the
@@ -841,7 +939,7 @@ unbounded Convex work:
 
 - **Message size:** a message over 64 KB of UTF-8 closes the socket (1008).
 - **Message budgets:** a token bucket per message class per socket; exceeding one closes the socket (1008).
-  `AUTHENTICATE` 10 then 1 per 2 s; `COMMAND` 20 then 5/s; `RESUME`, `SYNCHRONIZE_SCENE` and the Sheet
+  `AUTHENTICATE` 10 then 1 per 2 s; `COMMAND` 20 then 5/s; `RESUME` and the Sheet
   subscriptions together 20 then 2/s; `ENCOUNTER_READ` 20 then 5/s; `TRANSIENT` 200 then 100/s; `SCENE_FOG_BEGIN` and `SCENE_FOG_APPEND`
   together 40 then 20/s (one full 256-chunk fog patch in a burst); unparseable messages 5 then 1 per 2 s.
 - **Sockets:** at most 4 per user and 64 per room. An upgrade over either cap is refused (429 or 503)
@@ -852,8 +950,9 @@ unbounded Convex work:
   admission window defers it. At the deadline the room runs `#closeRoom`.
 - **Queues:** at most 8 pending commands per socket and 64 per room; a command beyond either is rejected
   with `UNAVAILABLE` and the socket stays open. Previews are not queued.
-- **Admission freshness:** an admission lasts until its access token expires; renewing it recaptures
-  membership and role from Convex and renews the authorization cache.
+- **Admission freshness:** an admission lasts until its access token expires, across hibernation
+  (Amendment 24). Renewing it admits warm against a current lease, or otherwise recaptures membership
+  and role from Convex and renews the authorization cache.
 
 Rate-limit rejections throw `ConvexError` data matching `rateLimitedErrorDataSchema`
 (`packages/schema/src/api/rateLimits.ts`); the web reads it through `apps/web/src/lib/errorMessage.ts`.
@@ -876,10 +975,10 @@ Rule warnings (ADR 0034 decision 2) are the one rejection with a payload: reason
 `COMMAND_REJECTED` carries them in `warnings`. The web action drawer shows them and resends the command
 with `acknowledgedWarnings` on "Do it anyway".
 
-**Worker-boundary validators.** The private checkpoint functions
-(`liveSessions/{checkpoint,checkpointStaging}.ts`) are internal functions reached only through the
-Worker-secret HTTP routes. They declare `args: v.any()` with no `returns` validator; each handler takes
-`unknown` and parses it with its shared Zod contract before any read, and the Worker parses every response
+**Worker-boundary validators.** The private checkpoint function
+(`liveSessions/checkpoint.ts`) is an internal function reached only through the
+Worker-secret HTTP route. It declares `args: v.any()` with no `returns` validator; its handler takes
+`unknown` and parses it with its shared Zod contract before any read, and the Worker parses the response
 with the same contracts. Duplicating large unions as Convex validators pushed modules past the 64 MB
 module-load budget. Public functions keep generated Convex argument validators.
 

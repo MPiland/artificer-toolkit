@@ -1,4 +1,6 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, vi } from 'vitest'
@@ -562,7 +564,7 @@ async function setup({
       .unique()
     if (!row) throw new Error('Missing native action fixture actor.')
     const capability = discoverEncounterFeatureActionCapabilities({
-      actor: encounterRunActorStateSchema.parse(JSON.parse(row.stateJson)),
+      actor: await readTestActor(ctx, row),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
         id: ability.id,
@@ -823,8 +825,8 @@ function command(
   }
 }
 
-function creatureActorState(stateJson: string) {
-  const actor = encounterRunActorStateSchema.parse(JSON.parse(stateJson))
+function creatureActorState(row: Parameters<typeof readStoredRunActor>[0]) {
+  const actor = readStoredRunActor(row)
   if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character actor.')
   return actor
 }
@@ -849,11 +851,15 @@ async function records(
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', encounterId))
       .collect(),
-    receipts: await (await readEncounterHistory(ctx, campaignId))
+    receipts: await (
+      await readEncounterHistory(ctx, campaignId)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
       .collect(),
-    commands: await (await readEncounterHistory(ctx, campaignId))
+    commands: await (
+      await readEncounterHistory(ctx, campaignId)
+    )
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
       .collect(),
@@ -1012,12 +1018,10 @@ describe('native encounter actions', () => {
       (feature) => feature.label === 'Bite'
     )?.id
     if (!featureId) throw new Error('Missing action Feature.')
-    const sourceState = encounterRunActorStateSchema.parse(JSON.parse(source.stateJson))
+    const sourceState = readStoredRunActor(source)
     expect(featureChargeUsed(sourceState, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(sourceState, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
-    expect(creatureActorState(target.stateJson).currentHitPoints).toBeLessThan(
-      base.target.currentHitPoints!
-    )
+    expect(creatureActorState(target).currentHitPoints).toBeLessThan(base.target.currentHitPoints!)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
     // The root replays its own pending result over the settled projection.
     await expect(
@@ -1149,7 +1153,7 @@ describe('native encounter actions', () => {
     expect(settled.run?.version).toBe(1)
     const target = settled.actors.find((actor) => actor.id === base.target.id)
     if (!target) throw new Error('Missing settled target.')
-    expect(creatureActorState(target.stateJson).currentHitPoints).toBeLessThan(100)
+    expect(creatureActorState(target).currentHitPoints).toBeLessThan(100)
     expect(settled.occurrences).toHaveLength(before.occurrences.length + 1)
     expect(settled.receipts).toHaveLength(before.receipts.length + 1)
     expect(settled.commands).toHaveLength(before.commands.length + 1)
@@ -1206,7 +1210,7 @@ describe('native encounter actions', () => {
       expect(settled.run?.version).toBe(base.run.version + 1)
       expect(settled.commands).toHaveLength(before.commands.length + 1)
       const target = creatureActorState(
-        settled.actors.find((actor) => actor.id === base.target.id)!.stateJson
+        settled.actors.find((actor) => actor.id === base.target.id)!
       )
       expect(target.currentHitPoints).toBeLessThan(base.target.currentHitPoints)
       // The seeded Bite's second hit path knocks the target prone.
@@ -1291,13 +1295,19 @@ describe('native encounter actions', () => {
         targetTokenId: wrongBinding.tokens[0]!.id
       }
     })
-    const beforeWrongBinding = await records(wrongBinding.t, wrongBinding.run.id, wrongBinding.campaign.id)
+    const beforeWrongBinding = await records(
+      wrongBinding.t,
+      wrongBinding.run.id,
+      wrongBinding.campaign.id
+    )
     await expect(
       executeInRoom(wrongBinding.owner.caller, {
         command: wrongBindingInput
       })
     ).rejects.toThrow()
-    expect(await records(wrongBinding.t, wrongBinding.run.id, wrongBinding.campaign.id)).toEqual(beforeWrongBinding)
+    expect(await records(wrongBinding.t, wrongBinding.run.id, wrongBinding.campaign.id)).toEqual(
+      beforeWrongBinding
+    )
 
     const outOfRange = await distanceSetup()
     await outOfRange.t.run(async (ctx) => {
@@ -1332,7 +1342,9 @@ describe('native encounter actions', () => {
         command: outOfRangeInput
       })
     ).rejects.toThrow()
-    expect(await records(outOfRange.t, outOfRange.run.id, outOfRange.campaign.id)).toEqual(beforeOutOfRange)
+    expect(await records(outOfRange.t, outOfRange.run.id, outOfRange.campaign.id)).toEqual(
+      beforeOutOfRange
+    )
 
     const stale = await distanceSetup()
     const staleInput = command({
@@ -1562,8 +1574,8 @@ describe('native encounter actions', () => {
     const target = settled.actors.find((actor) => actor.id === base.target.id)
     const receipt = settled.receipts.find((entry) => entry.commandId === input.commandId)
     if (!source || !target || !receipt) throw new Error('Missing phased native action settlement.')
-    const sourceState = encounterRunActorStateSchema.parse(JSON.parse(source.stateJson))
-    const targetState = creatureActorState(target.stateJson)
+    const sourceState = readStoredRunActor(source)
+    const targetState = creatureActorState(target)
     const featureId = nativeCreature(true, false, false, true).features?.find(
       (feature) => feature.label === 'Bite'
     )?.id
@@ -1602,7 +1614,7 @@ describe('native encounter actions', () => {
     const before = await records(base.t, base.run.id, base.campaign.id)
     const sourceBefore = before.actors.find((actor) => actor.id === base.actor.id)
     if (!sourceBefore) throw new Error('Missing self-action source actor.')
-    const initial = creatureActorState(sourceBefore.stateJson)
+    const initial = creatureActorState(sourceBefore)
     const input = command({
       encounterId: base.run.id,
       actorId: base.actor.id,
@@ -1615,7 +1627,7 @@ describe('native encounter actions', () => {
     const after = await records(base.t, base.run.id, base.campaign.id)
     const sourceAfter = after.actors.find((actor) => actor.id === base.actor.id)
     if (!sourceAfter) throw new Error('Missing settled self-action source actor.')
-    const settled = creatureActorState(sourceAfter.stateJson)
+    const settled = creatureActorState(sourceAfter)
     expect(settled.currentHitPoints).toBe(initial.currentHitPoints - 1)
     const featureId = nativeCreature(true, true).features?.find(
       (feature) => feature.label === 'Bite'
@@ -1664,7 +1676,7 @@ describe('native encounter actions', () => {
         )
         .unique()
       if (!row) throw new Error('Missing charged source actor.')
-      return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      return await readTestActor(ctx, row)
     })
     const featureId = nativeCreature(true).features?.find((feature) => feature.label === 'Bite')?.id
     if (!featureId) throw new Error('Missing charged Feature fixture.')
@@ -1683,7 +1695,7 @@ describe('native encounter actions', () => {
         )
         .unique()
       if (!row) throw new Error('Missing charged source actor.')
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const actor = await readTestActor(ctx, row)
       const exhausted = encounterRunActorStateSchema.parse({
         ...actor,
         resources: withEncounterRuleUsageUsed(
@@ -1727,7 +1739,9 @@ describe('native encounter actions', () => {
             q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
           )
           .unique()
-        const receipt = await (await readEncounterHistory(ctx))
+        const receipt = await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) =>
             q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
@@ -1808,9 +1822,13 @@ describe('native encounter actions', () => {
         command: response
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
-      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(effects)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(
+        effects
+      )
       await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
-      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(effects)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(
+        effects
+      )
     },
     30000
   )
@@ -1884,15 +1902,13 @@ function sourceActorState(base: Awaited<ReturnType<typeof setup>>) {
       )
       .unique()
     if (!row) throw new Error('Missing source actor.')
-    return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    return await readTestActor(ctx, row)
   })
 }
 
 function actorsWithoutCounters(value: Awaited<ReturnType<typeof records>>) {
   return value.actors.map((row) => {
-    const { resources: _resources, ...actor } = encounterRunActorStateSchema.parse(
-      JSON.parse(row.stateJson)
-    )
+    const { resources: _resources, ...actor } = readStoredRunActor(row)
     return actor
   })
 }
@@ -1954,13 +1970,17 @@ describe('Assisted soft enforcement', () => {
     expect(featureChargeUsed(source, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(2)
     const stored = await base.t.run(async (ctx) => ({
-      runCommand: await (await readEncounterHistory(ctx))
+      runCommand: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRunCommands')
         .withIndex('by_encounterId_version', (q) =>
           q.eq('encounterId', base.run.id).eq('version', 2)
         )
         .unique(),
-      receipt: await (await readEncounterHistory(ctx))
+      receipt: await (
+        await readEncounterHistory(ctx)
+      )
         .query('encounterRuleReceipts')
         .withIndex('by_encounterId_encounterVersion', (q) =>
           q.eq('encounterId', base.run.id).eq('encounterVersion', 2)
@@ -2147,7 +2167,7 @@ describe('GM undo of the last action', () => {
     await executeInRoom(base.owner.caller, { command: action })
     const settled = await records(base.t, base.run.id, base.campaign.id)
     const targetState = (value: Awaited<ReturnType<typeof records>>) =>
-      creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!.stateJson)
+      creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!)
     expect(targetState(settled).currentHitPoints).toBeLessThan(targetState(before).currentHitPoints)
 
     await expect(revert(base, 1, base.other.caller)).rejects.toThrow(RoomCommandRefusal)

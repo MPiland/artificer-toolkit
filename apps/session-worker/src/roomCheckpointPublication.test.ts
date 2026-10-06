@@ -5,18 +5,9 @@ import {
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { LIVE_SESSION_CHECKPOINT_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
-import {
-  liveSessionCheckpointCommitInputSchema,
-  liveSessionCheckpointPartInputSchema,
-  liveSessionCheckpointStageInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionCheckpointStaging'
 import { LIVE_SESSION_ROUTE_PATHS } from '@artificer-toolkit/schema/api/liveSessionRoutePaths'
-import { decodeBase64 } from '@artificer-toolkit/shared/base64'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  decodeUtf8PayloadChunks,
-  JSON_PAYLOAD_CHUNK_MAX_BYTES
-} from '@artificer-toolkit/shared/jsonPayloadChunks'
+import { JSON_PAYLOAD_CHUNK_MAX_BYTES } from '@artificer-toolkit/shared/jsonPayloadChunks'
 import { NO_CHECKPOINT_IO } from '../test/checkpointIoFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
@@ -80,10 +71,7 @@ function response(input: LiveSessionCheckpointInput): LiveSessionCheckpointRespo
   }
 }
 
-function mockRoutes(
-  input: LiveSessionCheckpointInput,
-  options: { replayed?: boolean; failPart?: number } = {}
-) {
+function mockRoutes(input: LiveSessionCheckpointInput) {
   const calls: { path: string; body: string }[] = []
   const expectedResponse = response(input)
   const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
@@ -94,16 +82,7 @@ function mockRoutes(
     expect(new Headers(init.headers).get('x-artificer-live-session-secret')).toBe(
       environment.LIVE_SESSION_WORKER_SECRET
     )
-    if (path === LIVE_SESSION_ROUTE_PATHS.checkpointPart) {
-      const part = liveSessionCheckpointPartInputSchema.parse(JSON.parse(init.body))
-      if (part.index === options.failPart) throw new Error('Interrupted upload.')
-    }
-    return Response.json(
-      path === LIVE_SESSION_ROUTE_PATHS.checkpoint ||
-        path === LIVE_SESSION_ROUTE_PATHS.checkpointCommit
-        ? expectedResponse
-        : { status: options.replayed ? 'REPLAYED' : 'STAGED' }
-    )
+    return Response.json(expectedResponse)
   })
   vi.stubGlobal('fetch', fetchMock)
   return { calls, fetchMock, expectedResponse }
@@ -129,8 +108,9 @@ describe('room checkpoint publication', () => {
     })
   })
 
-  it('stages canonical UTF-8 records in order, then commits the same fence', async () => {
-    const input = checkpoint('🎲'.repeat(JSON_PAYLOAD_CHUNK_MAX_BYTES / 2))
+  it('publishes a multibyte checkpoint over 240 KiB inline in one request', async () => {
+    // Four-byte characters beyond one chunk, so the payload is multibyte and over 240 KiB.
+    const input = checkpoint('🎲'.repeat(62_000))
     const head = {
       sceneId: id(5),
       version: 2,
@@ -180,79 +160,32 @@ describe('room checkpoint publication', () => {
     const { calls } = mockRoutes(input)
     const published = await publishRoomCheckpoint(environment, input, 'ADMISSION')
 
-    const { records, knownAuthorization, ...frame } = input
-    const recordsJson = canonicalizeJson(records)
-    const byteLength = new TextEncoder().encode(recordsJson).byteLength
-    const partCount = Math.ceil(byteLength / JSON_PAYLOAD_CHUNK_MAX_BYTES)
-    expect(calls.map(({ path }) => path)).toEqual([
-      LIVE_SESSION_ROUTE_PATHS.checkpointStage,
-      ...Array.from({ length: partCount }, () => LIVE_SESSION_ROUTE_PATHS.checkpointPart),
-      LIVE_SESSION_ROUTE_PATHS.checkpointCommit
-    ])
-    expect(liveSessionCheckpointStageInputSchema.parse(JSON.parse(calls[0].body))).toEqual({
-      ...frame,
-      byteLength,
-      partCount
-    })
-    const parts = calls
-      .slice(1, -1)
-      .map(({ body }) => liveSessionCheckpointPartInputSchema.parse(JSON.parse(body)))
-    expect(parts.map(({ index }) => index)).toEqual(Array.from({ length: partCount }, (_, i) => i))
-    const reconstructed = decodeUtf8PayloadChunks(
-      parts.map(({ data }) => decodeBase64(data).slice().buffer),
-      byteLength
-    )
-    expect(reconstructed).toBe(recordsJson)
-    expect(checksumCanonicalJson(JSON.parse(reconstructed))).toBe(input.payloadChecksum)
-    expect(liveSessionCheckpointCommitInputSchema.parse(JSON.parse(calls.at(-1)!.body))).toEqual({
-      ...frame,
-      knownAuthorization,
+    const byteLength = new TextEncoder().encode(canonicalizeJson(input.records)).byteLength
+    expect(byteLength).toBeGreaterThan(JSON_PAYLOAD_CHUNK_MAX_BYTES)
+    expect(byteLength).toBeLessThanOrEqual(LIVE_SESSION_CHECKPOINT_MAX_BYTES)
+    expect(calls.map(({ path }) => path)).toEqual([LIVE_SESSION_ROUTE_PATHS.checkpoint])
+    expect(liveSessionCheckpointRequestSchema.parse(JSON.parse(calls[0].body))).toEqual({
+      ...input,
       reason: 'ADMISSION'
     })
-    expect(published.requests).toBe(partCount + 2)
+    expect(published.requests).toBe(1)
     expect(published.payloadBytes).toBe(byteLength)
-  })
-
-  it('skips uploads on a replayed begin and still fetches the commit response', async () => {
-    const input = checkpoint('x'.repeat(JSON_PAYLOAD_CHUNK_MAX_BYTES))
-    const { calls, expectedResponse } = mockRoutes(input, { replayed: true })
-    const published = await publishRoomCheckpoint(environment, input, 'DEADLINE')
-    expect(published.response).toEqual(expectedResponse)
-    expect(published.requests).toBe(2)
-    expect(calls.map(({ path }) => path)).toEqual([
-      LIVE_SESSION_ROUTE_PATHS.checkpointStage,
-      LIVE_SESSION_ROUTE_PATHS.checkpointCommit
-    ])
-  })
-
-  it('retries an interrupted upload with identical metadata and part bytes', async () => {
-    const input = checkpoint('x'.repeat(JSON_PAYLOAD_CHUNK_MAX_BYTES * 2))
-    const interrupted = mockRoutes(input, { failPart: 1 })
-    await expect(publishRoomCheckpoint(environment, input, 'DEADLINE')).rejects.toThrow()
-    expect(interrupted.calls.map(({ path }) => path)).toEqual([
-      LIVE_SESSION_ROUTE_PATHS.checkpointStage,
-      LIVE_SESSION_ROUTE_PATHS.checkpointPart,
-      LIVE_SESSION_ROUTE_PATHS.checkpointPart
-    ])
-    const retry = mockRoutes(input)
-    await publishRoomCheckpoint(environment, input, 'DEADLINE')
-    expect(retry.calls.slice(0, interrupted.calls.length)).toEqual(interrupted.calls)
   })
 
   it('rejects invalid contracts, checksums, and oversized records before any request', async () => {
     const input = checkpoint()
     const { fetchMock } = mockRoutes(input)
     await expect(
-      publishRoomCheckpoint(environment, { ...input, sequence: -1 }, 'DEADLINE')
+      publishRoomCheckpoint(environment, { ...input, sequence: -1 }, 'BACKLOG')
     ).rejects.toThrow()
     await expect(
-      publishRoomCheckpoint(environment, { ...input, payloadChecksum: 'f'.repeat(64) }, 'DEADLINE')
+      publishRoomCheckpoint(environment, { ...input, payloadChecksum: 'f'.repeat(64) }, 'BACKLOG')
     ).rejects.toThrow('checksum')
     await expect(
       publishRoomCheckpoint(
         environment,
         checkpoint('x'.repeat(LIVE_SESSION_CHECKPOINT_MAX_BYTES)),
-        'DEADLINE'
+        'BACKLOG'
       )
     ).rejects.toThrow('byte limit')
     expect(fetchMock).not.toHaveBeenCalled()

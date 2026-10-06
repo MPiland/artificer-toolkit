@@ -17,9 +17,6 @@
   mechanics graph. `api/liveSessionCheckpoint` composes checkpoint deltas/history and the current
   authorization response. Actor identities include their Encounter UUID; play checkpoints exclude
   the Convex-only stream clock.
-- `api/liveSessionCheckpointStaging` defines immutable upload metadata, canonical base64 part
-  transport and fenced commit. `projections/liveSessionCheckpointStaging` keeps scalar database
-  metadata independent of mechanics; one payload retains the existing 4 MiB journal page bound.
 - `api/liveSessionCheckpointScenes` defines Scene source/presentation pins and normalized live
   deltas with native public keys. Complete fog save/chunk/receipt references share checkpoint
   publication; source definitions remain authored inputs. Pending evidence may preserve the Scene

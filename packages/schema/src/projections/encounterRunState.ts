@@ -94,10 +94,26 @@ const encounterActorProjectionFactsBaseSchema = lazySchema(() =>
 )
 
 /**
- * What a Run's projections show of one actor, kept beside the actor and rewritten with it (ADR 0035
- * Amendment 12): the actor state without its source snapshot, with the actor rules already evaluated
- * into each Feature's resource. A Creature's stat block and Feature references are shared by
- * identical Creatures in the Run (`encounterSourceProjectionFactsSchema`, by checksum).
+ * What a Creature or custom actor's projection shows beyond its state: the actor rules already
+ * evaluated into each Feature's resource, and the checksum of the stat block and Feature references
+ * its source shares with identical Creatures (`encounterSourceProjectionFactsSchema`).
+ */
+const encounterActorFeatureFactsShape = lazySchemaParts(() => ({
+  sourceFactsChecksum: z.nullable(projectionChecksumSchema),
+  /** The resource of each Feature that has one, by Feature ID. */
+  featureResources: z.array(
+    z.extend(encounterFeatureResourceDtoSchema, {
+      featureId: z.string().check(z.minLength(1))
+    })
+  )
+}))
+
+/**
+ * What a Run's projections show of one actor (ADR 0035 Amendment 12): the actor state without its
+ * source snapshot, with the actor rules already evaluated into each Feature's resource. A Creature's
+ * stat block and Feature references are shared by identical Creatures in the Run
+ * (`encounterSourceProjectionFactsSchema`, by checksum). The Run stores these inside the actor's own
+ * record (`encounterStoredRunActorStateSchema`), never as a second copy.
  */
 export const encounterActorProjectionFactsSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -112,13 +128,39 @@ export const encounterActorProjectionFactsSchema = lazySchema(() =>
       sourceId: z.nullable(postgresUuidSchema),
       sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
       ...encounterRunActorHealthShape(),
-      sourceFactsChecksum: z.nullable(projectionChecksumSchema),
-      /** The resource of each Feature that has one, by Feature ID. */
-      featureResources: z.array(
-        z.extend(encounterFeatureResourceDtoSchema, {
-          featureId: z.string().check(z.minLength(1))
-        })
-      )
+      ...encounterActorFeatureFactsShape()
+    })
+  ])
+)
+
+const encounterStoredRunActorStateBaseSchema = lazySchema(() =>
+  z.extend(z.omit(encounterRunActorStateBaseSchema, { snapshot: true }), {
+    /** The immutable source snapshot's checksum, in `encounterStoredActorSnapshotSchema`. */
+    snapshotChecksum: projectionChecksumSchema
+  })
+)
+
+/**
+ * One actor's stored state (ADR 0035 Amendment 29): its mutable play state, the reference to its
+ * source snapshot, which the Run stores once per distinct snapshot, and for a Creature or custom
+ * actor the projection facts derived from both. The actor rules are evaluated when the actor is
+ * written, so a projection reads this record alone. `composeRunActorState` restores the full
+ * actor.
+ */
+export const encounterStoredRunActorStateSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.extend(encounterStoredRunActorStateBaseSchema, {
+      kind: z.literal('CHARACTER'),
+      sourceId: postgresUuidSchema,
+      frozenState: encounterCharacterFrozenStateSchema,
+      outOfInitiative: z.boolean()
+    }),
+    z.extend(encounterStoredRunActorStateBaseSchema, {
+      kind: z.enum(['CREATURE', 'CUSTOM']),
+      sourceId: z.nullable(postgresUuidSchema),
+      sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
+      ...encounterRunActorHealthShape(),
+      ...encounterActorFeatureFactsShape()
     })
   ])
 )
@@ -129,6 +171,7 @@ export const encounterSourceProjectionFactsSchema = lazySchema(() =>
 )
 
 export type EncounterActorProjectionFacts = z.infer<typeof encounterActorProjectionFactsSchema>
+export type EncounterStoredRunActorState = z.infer<typeof encounterStoredRunActorStateSchema>
 export type EncounterSourceProjectionFacts = z.infer<typeof encounterSourceProjectionFactsSchema>
 
 export const encounterRunStateSchema = lazySchema(() =>

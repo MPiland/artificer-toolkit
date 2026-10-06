@@ -5,45 +5,40 @@ import { jsonDeltaSchema } from '../shared/jsonDelta.js'
 import { sceneLiveCollectionSchema } from './sceneLiveState.js'
 import {
   sceneStoredLiveStateSchema,
-  sceneStoredLiveEntitySchema,
-  sceneStoredLiveCommandSchema
+  sceneStoredLiveEntitySchema
 } from '../projections/sceneLivePersistence.js'
 import {
   sceneStoredFogLayerSchema,
   sceneStoredFogSaveSchema,
   sceneStoredFogChunkSchema
 } from '../projections/sceneFogPersistence.js'
-import { sceneStoredGeometrySaveSchema } from '../projections/sceneGeometryPersistence.js'
 
-/** Scene authoring and materialization remain outside the room's mutable publication boundary. */
+/**
+ * Scene authoring and materialization remain outside the room's mutable publication boundary.
+ * Command receipts and geometry saves are not here: they stay in the room (ADR 0035 Amendment 26).
+ */
 export const liveSessionCheckpointSceneSchemas = {
   sceneLiveStates: sceneStoredLiveStateSchema,
   sceneLiveEntities: sceneStoredLiveEntitySchema,
-  sceneLiveCommands: sceneStoredLiveCommandSchema,
   sceneFogLayers: sceneStoredFogLayerSchema,
   sceneFogSaves: sceneStoredFogSaveSchema,
-  sceneFogChunks: sceneStoredFogChunkSchema,
-  sceneGeometrySaves: sceneStoredGeometrySaveSchema
+  sceneFogChunks: sceneStoredFogChunkSchema
 }
 
 export const liveSessionCheckpointSceneKeys = {
   sceneLiveStates: ['sceneId'],
   sceneLiveEntities: ['sceneId', 'collection', 'entityId'],
-  sceneLiveCommands: ['sceneId', 'commandId'],
   sceneFogLayers: ['sceneId', 'ownerUserId'],
   sceneFogSaves: ['id'],
-  sceneFogChunks: ['saveId', 'ordinal'],
-  sceneGeometrySaves: ['id']
+  sceneFogChunks: ['saveId', 'ordinal']
 } as const
 
 export const liveSessionCheckpointSceneIndexes = {
   sceneLiveStates: 'by_sceneId',
   sceneLiveEntities: 'by_sceneId_collection_entityId',
-  sceneLiveCommands: 'by_sceneId_commandId',
   sceneFogLayers: 'by_sceneId_ownerUserId',
   sceneFogSaves: 'by_publicId',
-  sceneFogChunks: 'by_saveId_ordinal',
-  sceneGeometrySaves: 'by_publicId'
+  sceneFogChunks: 'by_saveId_ordinal'
 } as const
 
 export const liveSessionCheckpointSceneChangeSchema = lazySchema(() =>

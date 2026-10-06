@@ -1,4 +1,4 @@
-import { SELF, runInDurableObject } from 'cloudflare:test'
+import { SELF, evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import { LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import {
   liveSessionActivationInputSchema,
   liveSessionBootstrapInputSchema
@@ -18,15 +19,18 @@ import {
 import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import { liveRoomInputsInputSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import {
+  liveSessionRoomSceneCaptureInputSchema,
   liveSessionTransientCaptureInputSchema,
+  type LiveSessionRoomSceneCapture,
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
+import { publishPending } from './publishPendingFixture.js'
 import { characterSheetInputsFixture, darkvisionDefinition } from './characterSheetInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { ROOM_INPUTS_PATH, roomInputsResponse } from './roomInputsFixture.js'
@@ -109,15 +113,10 @@ async function sheetRoom(
   )
   const capture: LiveSessionTransientCapture = {
     campaignId,
-    systemId: inputs.systemId,
-    observedCharacterRevisions: [],
     origin: { membershipEpoch, role: 'OWNER', userId: gmId },
     presentation: null,
-    recipients: [],
     sceneEncounterId: null,
-    originBoundTokenControl: [],
-    sceneHeader: null,
-    visionFreshness: null
+    sceneHeader: null
   }
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
   let currentEpoch = authorityEpoch
@@ -213,6 +212,19 @@ async function sheetRoom(
           ...capture,
           origin: { membershipEpoch, role: body.expectedRole, userId: body.expectedUserId }
         })
+      }
+      if (pathname === '/live-sessions/room-scene-capture') {
+        const body = liveSessionRoomSceneCaptureInputSchema.parse(await request.json())
+        expect(request.headers.get('authorization')).toBeNull()
+        return Response.json({
+          campaignId,
+          systemId: inputs.systemId,
+          observedCharacterRevisions: body.observedCharacterRevisions,
+          presentation: null,
+          sceneEncounterId: null,
+          sceneHeader: null,
+          visionFreshness: null
+        } satisfies LiveSessionRoomSceneCapture)
       }
       if (pathname === '/live-sessions/bootstrap') {
         const body = liveSessionBootstrapInputSchema.parse(await request.json())
@@ -511,7 +523,7 @@ it('keeps a GM-removed Character in the held Run, out of initiative, and still p
     runInDurableObject(room.stub, (_instance, state) => {
       const store = new RoomEncounterStore(state.storage)
       const row = store.documents('encounterRunActors').find(({ id }) => id === room.actorId)
-      return row ? encounterRunActorStateSchema.parse(JSON.parse(row.stateJson)) : null
+      return row ? readStoredRunActor(row) : null
     })
   const removeId = crypto.randomUUID()
   gmCommand({ type: 'REMOVE_ACTOR', expectedVersion: 1, actorId: room.actorId }, removeId)
@@ -768,17 +780,8 @@ it('commits chat and to-GM rolls in the room to their recipients, replays exact 
   // Nothing reached Convex while the commands ran; the next checkpoint carries both entries.
   expect(fetchSpy.mock.calls.map(([input]) => new Request(input).url)).toEqual([])
   expect(room.checkpoints).toHaveLength(0)
-  await runInDurableObject(room.stub, async (instance) => {
-    const clock = vi
-      .spyOn(Date, 'now')
-      .mockReturnValue(Date.now() + ROOM_LIMITS.flushIntervalMs + 1)
-    try {
-      await instance.alarm()
-    } finally {
-      clock.mockRestore()
-    }
-  })
-  await vi.waitFor(() => expect(room.checkpoints).not.toHaveLength(0))
+  await publishPending(room.stub)
+  expect(room.checkpoints).not.toHaveLength(0)
   const published = room.checkpoints.flatMap(({ records }) => records.changes)
   for (const table of ['campaignConversationEntries', 'campaignConversationEntryPayloads'])
     expect(
@@ -1046,6 +1049,31 @@ it("pushes a held Character's hit points to its owner and the GM as the Campaign
   })
 })
 
+it('keeps pushing the Campaign summary to sockets that subscribed before the room hibernated', async () => {
+  const room = await sheetRoom()
+  subscribeSummary(room.owner)
+  subscribeSummary(room.gm)
+  await vi.waitFor(() => {
+    expect(summariesOf(room.owner)).toHaveLength(1)
+    expect(summariesOf(room.gm)).toHaveLength(1)
+  })
+  await evictDurableObject(room.stub)
+
+  const [committed] = await room.play(
+    room.owner,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  expect(committed).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  const hitPoints = (frames: ReturnType<typeof summariesOf>) =>
+    frames.at(-1)?.summary.characters[0]?.currentHitPoints
+  await vi.waitFor(() => {
+    expect(hitPoints(summariesOf(room.owner))).toBe(8)
+    expect(hitPoints(summariesOf(room.gm))).toBe(8)
+  })
+})
+
 it("never shows a player another member's Character unless its Sheet is party-visible (D87)", async () => {
   const room = await sheetRoom()
   subscribeSummary(room.stranger)
@@ -1210,7 +1238,7 @@ it('makes no Convex call for an idle member, however long the quiet (Amendment 1
   const room = await sheetRoom()
   const callsAfterConnect = room.calls.length
   const readsAfterConnect = authorizationReads(room)
-  await advanceRoomClock(room, ROOM_LIMITS.flushIntervalMs * 3)
+  await advanceRoomClock(room, ROOM_LIMITS.authorizationLeaseMs * 1.5)
   room.owner.socket.send(JSON.stringify({ type: 'RESUME' }))
   await vi.waitFor(() =>
     expect(room.owner.messages.filter((message) => message.type === 'STATE_SYNC')).not.toHaveLength(
@@ -1224,7 +1252,7 @@ it('makes no Convex call for an idle member, however long the quiet (Amendment 1
   expect(authorizationReads(room) - readsAfterConnect).toBeLessThanOrEqual(1)
 })
 
-it('flushes a burst of commands once, carried by the next incoming message after the interval (Amendment 17)', async () => {
+it('saves a burst of commands only at a save point, however long the quiet (Amendment 25)', async () => {
   const room = await sheetRoom()
   for (const [index, amount] of [1, 1, 1].entries()) {
     const [committed] = await room.play(
@@ -1237,32 +1265,64 @@ it('flushes a burst of commands once, carried by the next incoming message after
   }
   expect(room.checkpoints).toHaveLength(0)
 
-  await advanceRoomClock(room, ROOM_LIMITS.flushIntervalMs + 1)
+  await advanceRoomClock(room, ROOM_LIMITS.authorizationLeaseMs * 10)
   subscribeSummary(room.owner)
-  await vi.waitFor(() => expect(room.checkpoints).toHaveLength(1))
   subscribeSummary(room.gm)
   await vi.waitFor(() => expect(summariesOf(room.gm)).toHaveLength(1))
+  expect(room.checkpoints).toHaveLength(0)
+
+  await publishPending(room.stub)
   expect(room.checkpoints).toHaveLength(1)
 })
 
-it('flushes a due burst from the alarm after the quiet grace when no message carries it (Amendment 17)', async () => {
+/**
+ * The GM sends table chat until `stop` holds or `limit` is sent, and answers how many were sent.
+ * Chat is rate limited per account and socket; each minute of the room's clock refills both.
+ */
+async function sendTableChats(
+  room: SheetRoom,
+  body: string,
+  limit: number,
+  stop: () => boolean = () => false
+) {
+  let sent = 0
+  while (sent < limit && !stop()) {
+    if (sent % 20 === 0) await advanceRoomClock(room, 60_000)
+    const commandId = crypto.randomUUID()
+    room.gm.socket.send(chatFrame(tableChat(room, commandId, body)))
+    await vi.waitFor(() => expect(repliesTo(room.gm, commandId)).toHaveLength(1), { interval: 2 })
+    expect(repliesTo(room.gm, commandId)[0]).toMatchObject({ type: 'COMMAND_COMMITTED' })
+    sent += 1
+  }
+  return sent
+}
+
+it('saves in the background once the unsaved chat entries reach the chat push window (Amendment 25)', async () => {
   const room = await sheetRoom()
-  await room.play(
-    room.owner,
-    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 1 },
-    crypto.randomUUID(),
-    1
-  )
-  const { alarmAt, committedAt } = await runInDurableObject(room.stub, (_instance, state) => ({
-    alarmAt: state.storage.getAlarm(),
-    committedAt: state.storage.sql
-      .exec<{ created_at: number }>('SELECT created_at FROM durable_command_receipts')
-      .one().created_at
-  }))
-  expect(await alarmAt).toBe(
-    committedAt + ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs
-  )
-  await advanceRoomClock(room, ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs)
-  await runInDurableObject(room.stub, (instance) => instance.alarm())
+  await sendTableChats(room, 'Hello table', LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT - 1)
+  expect(room.checkpoints).toHaveLength(0)
+
+  await sendTableChats(room, 'Hello table', 1)
   await vi.waitFor(() => expect(room.checkpoints).toHaveLength(1))
+  expect(room.checkpoints[0]?.reason).toBe('BACKLOG')
+  const entries = room.checkpoints[0]?.records.changes.filter(
+    (change) => change.table === 'campaignConversationEntries' && change.delta !== null
+  )
+  expect(entries).toHaveLength(LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT)
+
+  // The save emptied the backlog, so the next entry starts a fresh count.
+  await sendTableChats(room, 'Hello table', 1)
+  expect(room.checkpoints).toHaveLength(1)
+})
+
+it('does not save in the background for journal size alone, only for unsaved chat entries (Amendment 25)', async () => {
+  const room = await sheetRoom()
+  const sent = await sendTableChats(
+    room,
+    'x'.repeat(2_000),
+    LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT - 1
+  )
+  expect(sent).toBe(LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT - 1)
+  // The journal now holds far more than one checkpoint page of raw write sets.
+  expect(room.checkpoints).toHaveLength(0)
 })

@@ -17,10 +17,10 @@ const queryClient = new QueryClient()
 queryClient.setQueryDefaults(getEquipment(parentEquipment.id).queryKey, {
   queryFn: async () => authoredRouteStoryEquipmentParentResponse
 })
-queryClient.setQueryData(getEquipment(parentEquipment.id).queryKey, {
-  ...authoredRouteStoryEquipmentParentResponse,
-  item: parentEquipment
-})
+queryClient.setQueryData(
+  getEquipment(parentEquipment.id).queryKey,
+  authoredRouteStoryEquipmentParentResponse
+)
 
 const meta = {
   title: 'Forms/Previews/EquipmentParentPreview',

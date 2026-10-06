@@ -114,6 +114,24 @@ export function deriveOnce<Document extends object, Value>(
 }
 
 /**
+ * Derivations for a store that never changes a document in place: each document it serves is
+ * deeply frozen, and `deriveOnce` derives it once for as long as the store keeps that object.
+ * Derivations shared by identity last until `renew`, which bounds them.
+ */
+export function createDerivationScope() {
+  let scope: DerivationScope = new Map()
+  return {
+    serve<Document extends object>(document: Document): Document {
+      scopes.set(document, scope)
+      return deepFreeze(document)
+    },
+    renew() {
+      scope = new Map()
+    }
+  }
+}
+
+/**
  * One query transaction's reader that serves each identical read once: the same `get`, or the same
  * table, index range, order and terminal call. Reads in one query see one snapshot, so a repeat
  * returns what a fresh read would. Results are deeply frozen and shared, so no caller can change

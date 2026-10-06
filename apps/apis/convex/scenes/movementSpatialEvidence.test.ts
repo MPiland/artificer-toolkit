@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   setupAutomaticSceneMovement,
   useMovementReactions
@@ -43,8 +43,7 @@ async function mechanics(value: Awaited<ReturnType<typeof setupAutomaticSceneMov
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-    commands: await ctx.db.query('encounterRunCommands').collect(),
-    sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
+    commands: await ctx.db.query('encounterRunCommands').collect()
   }))
 }
 
@@ -146,8 +145,8 @@ it('publishes two assisted spatial save contacts before both retained reactions'
   const complete = await mechanics(value)
   const target = complete.actors.find((actor) => actor.id === value.base.mover.id)
   if (!target) throw new Error('Expected completed mover state.')
-  const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
-  const beforeTargetState = encounterRunActorStateSchema.parse(JSON.parse(beforeTarget.stateJson))
+  const targetState = readStoredRunActor(target)
+  const beforeTargetState = readStoredRunActor(beforeTarget)
   if (targetState.kind === 'CHARACTER' || beforeTargetState.kind === 'CHARACTER')
     throw new Error('Expected a non-Character mover.')
   expect(targetState.currentHitPoints).toBe(beforeTargetState.currentHitPoints - 2)
@@ -260,8 +259,8 @@ it('retains entered prefix dice through reactions and consumes the suffix save o
   const complete = await mechanics(value)
   const target = complete.actors.find((actor) => actor.id === value.base.mover.id)
   if (!target) throw new Error('Expected completed mover state.')
-  const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
-  const beforeTargetState = encounterRunActorStateSchema.parse(JSON.parse(beforeTarget.stateJson))
+  const targetState = readStoredRunActor(target)
+  const beforeTargetState = readStoredRunActor(beforeTarget)
   if (targetState.kind === 'CHARACTER' || beforeTargetState.kind === 'CHARACTER')
     throw new Error('Expected a non-Character mover.')
   expect(targetState.currentHitPoints).toBe(beforeTargetState.currentHitPoints - 2)

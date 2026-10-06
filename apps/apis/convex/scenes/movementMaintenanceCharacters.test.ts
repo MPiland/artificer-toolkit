@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { expect, it, vi } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
@@ -35,7 +37,10 @@ import {
   setupReactionMovementScene,
   useMovementReactions
 } from '../../tests/fixtures/automaticSceneMovement'
-import { planMovementDecisionInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
@@ -45,7 +50,6 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
@@ -239,7 +243,7 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
         )
         .unique()
       if (!row) throw new Error('Missing reactor.')
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const actor = await readTestActor(ctx, row)
       const available = encounterRunActorStateSchema.parse({
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 0)
@@ -291,12 +295,17 @@ async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
     characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-    receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.run.id))
-        .collect(),
-    commands: await ctx.db.query('sceneLiveCommands').collect(),
+    receiptHeaders: await (
+      await readEncounterHistory(ctx)
+    )
+      .query('encounterRuleReceipts')
+      .collect(),
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.run.id))
+      .collect(),
     scenes: await ctx.db.query('sceneLiveStates').collect()
   }))
 }
@@ -480,7 +489,7 @@ it('settles present and detached Character maintenance once per used automatic c
     readCharacterRecord(presentBefore).state.hitpoints.current - 2
   )
   const actor = after.actors.find((row) => row.id === value.mover.id)!
-  const actorState = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+  const actorState = readStoredRunActor(actor)
   expect(actorState).toMatchObject({ kind: 'CHARACTER', sourceId: value.character.id })
   expect(actorState).not.toHaveProperty('conditions')
   const receipt = after.receipts.find((row) => row.commandId === lastUse.commandId)

@@ -68,7 +68,10 @@ function workerBundleGuard(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const webEnv = loadServerOnlyEnv(mode)
+  // `proof` builds the production bundle for local browser proofs from the process environment
+  // alone, which the proof lifecycle checks is local; `.env` files may carry deployed values.
+  const localProof = mode === 'proof'
+  const webEnv: Record<string, string> = localProof ? {} : loadServerOnlyEnv(mode)
   const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN ?? webEnv.SENTRY_AUTH_TOKEN
   const sentryOrg = process.env.SENTRY_ORG ?? webEnv.SENTRY_ORG
   const sentryProject = process.env.SENTRY_PROJECT ?? webEnv.SENTRY_PROJECT
@@ -84,7 +87,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     cacheDir: 'node_modules/.vite/app',
-    envDir: repoRoot,
+    envDir: localProof ? false : repoRoot,
     optimizeDeps: {
       include: [
         'better-auth/react',

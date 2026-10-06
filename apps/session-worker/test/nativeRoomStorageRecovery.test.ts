@@ -10,7 +10,8 @@ import { aggregate, encounterId, uuid } from '../src/testing/roomAggregateFixtur
 const OLD_EPOCH = uuid(0xa10)
 const NEW_EPOCH = uuid(0xa11)
 const TABLES = [
-  'room_snapshot_chunks',
+  'room_snapshot_head',
+  'room_snapshot_pages',
   'room_writeset_log',
   'durable_session_authority',
   'durable_command_receipts',
@@ -89,7 +90,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
           epoch: OLD_EPOCH,
           knownAuthorization: null
         },
-        'DEADLINE'
+        'BACKLOG'
       )
     ).rejects.toThrow('Checkpoint upload interrupted.')
     expect(publish).toHaveBeenCalledOnce()
@@ -97,7 +98,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
       expect(count, table).toBeGreaterThan(0)
     }
 
-    storage.sql.exec("UPDATE room_snapshot_chunks SET content = 'corrupt snapshot'")
+    storage.sql.exec("UPDATE room_snapshot_pages SET content = 'corrupt snapshot'")
     storage.sql.exec("UPDATE durable_session_authority SET state_json = 'corrupt journal'")
     const corrupt = new RoomEncounterStore(storage)
     const recoveredJournal = new DurableCommandJournal(storage)
@@ -110,7 +111,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
       counts: rowCounts(storage),
       snapshot: storage.sql
         .exec(
-          'SELECT generation, epoch, sequence, chain, content FROM room_snapshot_chunks ORDER BY part'
+          'SELECT page, part, part_count, checksum, content FROM room_snapshot_pages ORDER BY page, part'
         )
         .toArray(),
       authority: storage.sql
@@ -152,7 +153,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
       counts: rowCounts(storage),
       snapshot: storage.sql
         .exec(
-          'SELECT generation, epoch, sequence, chain, content FROM room_snapshot_chunks ORDER BY part'
+          'SELECT page, part, part_count, checksum, content FROM room_snapshot_pages ORDER BY page, part'
         )
         .toArray(),
       authority: storage.sql
@@ -175,17 +176,21 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
       documents: [],
       records: []
     })
-    const [snapshot] = storage.sql
-      .exec<{ content_checksum: string; chain: string }>(
-        'SELECT content_checksum, chain FROM room_snapshot_chunks'
-      )
+    const [head] = storage.sql
+      .exec<{ chain: string; counters: string }>('SELECT chain, counters FROM room_snapshot_head')
       .toArray()
-    expect(corrupt.checksum).toBe(sha256Hex(`room-store:genesis:${snapshot!.content_checksum}`))
-    expect(snapshot!.chain).toBe(corrupt.checksum)
+    // The genesis chain hashes the canonical full content, here an empty aggregate.
+    const emptyContent = JSON.stringify({
+      counters: JSON.parse(head!.counters),
+      documents: {},
+      records: []
+    })
+    expect(corrupt.checksum).toBe(sha256Hex(`room-store:genesis:${sha256Hex(emptyContent)}`))
+    expect(head!.chain).toBe(corrupt.checksum)
     expect(rowCounts(storage)).toEqual(
       TABLES.map((table) => ({
         table,
-        count: table === 'room_snapshot_chunks' ? 1 : 0
+        count: table === 'room_snapshot_head' ? 1 : 0
       }))
     )
     expect(recoveredJournal.authorityEpoch).toBeNull()
@@ -215,7 +220,7 @@ it('replaces a fenced corrupt snapshot and clears its journal and pending upload
           epoch: NEW_EPOCH,
           knownAuthorization: null
         },
-        'DEADLINE'
+        'BACKLOG'
       )
     ).toBeNull()
     expect(publish).not.toHaveBeenCalled()

@@ -1,3 +1,4 @@
+import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { readMovementResponseAuthority } from '@artificer-toolkit/encounter-persistence/movementResolutionDocuments'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { isEncounterMovementContext } from '@artificer-toolkit/encounter-persistence/occurrenceOwner'
@@ -30,7 +31,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
-import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
+import {
+  readCommandGeometrySaves,
+  readRoomSceneRow,
+  writeRoomSceneRow
+} from './roomSceneRecords.js'
 import { readRoomSessionVisionScope } from './roomSceneGeometryRead.js'
 
 /** Receiving evidence exists only inside the command transaction; rollback discards the whole save. */
@@ -107,11 +112,7 @@ export async function stageRoomSceneGeometry(input: {
         ? metadata.sceneId
         : (pending?.root.sceneId ?? null)
     if (sceneId !== header.id) throw new Error('Movement response Scene binding is stale.')
-    const saves = transaction
-      .records('SCENE_CHECKPOINT_ROW')
-      .filter((record) => record.key.startsWith('["sceneGeometrySaves",'))
-      .map((record) => parseGeometrySave(JSON.parse(record.json)))
-      .filter((save) => save.sceneId === sceneId && save.commandId === responseCommand.commandId)
+    const saves = readCommandGeometrySaves(transaction, sceneId, responseCommand.commandId)
     if (saves.length > 1) throw new Error('Scene geometry command was already used.')
     priorResponseSave = saves[0] ?? null
     if (priorResponseSave) {
@@ -174,10 +175,10 @@ export async function stageRoomSceneGeometry(input: {
   }
   const normalized = normalizeGeometryInput(command)
   const target = geometryTarget(normalized)
-  const binding = await ctx.db
-    .query('encounterSceneBindings')
-    .withIndex('by_sceneId', (q) => q.eq('sceneId', header.id))
-    .first()
+  const active = await readActiveSceneEncounter(ctx, {
+    campaignId: header.campaignId,
+    sceneId: header.id
+  })
   if (normalized.sceneId !== header.id || normalized.expectedSceneVersion > header.version)
     throw new Error('Scene version is ahead of the authoritative state.')
   const inputChecksum = checksumCanonicalJson(normalized)
@@ -201,20 +202,16 @@ export async function stageRoomSceneGeometry(input: {
       result: { ...prior.result, replayed: true }
     })
   }
-  const priorSaves = transaction
-    .records('SCENE_CHECKPOINT_ROW')
-    .filter((record) => record.key.startsWith('["sceneGeometrySaves",'))
-    .map((record) => parseGeometrySave(JSON.parse(record.json)))
-    .filter((save) => save.sceneId === header.id && save.commandId === normalized.commandId)
-  if (priorSaves.length) throw new Error('Scene geometry command was already used.')
+  if (readCommandGeometrySaves(transaction, header.id, normalized.commandId).length)
+    throw new Error('Scene geometry command was already used.')
   const bound =
     normalized.type === 'MOVE_SCENE_TOKEN' && normalized.expectedEncounterVersion !== null
   if (bound && !resolution) {
-    if (!binding) throw new Error('Bound Scene movement requires an Encounter binding.')
+    if (!active) throw new Error('Bound Scene movement requires an Encounter binding.')
     await requireBoundTokenMoveControl(ctx, {
       campaign,
       membership,
-      encounterId: binding.encounterId,
+      encounterId: active.run.id,
       tokenId: normalized.tokenId
     })
   }
@@ -296,9 +293,11 @@ export async function stageRoomSceneGeometry(input: {
     saveId: save.id,
     input: save.input,
     header,
-    encounterId: binding?.encounterId ?? null,
+    encounterId: active?.run.id ?? null,
     ...(resolution
-      ? { movementStartDistance: readMovementResolution(save)!.root.pathStartDistance }
+      ? {
+          movementStartDistance: readMovementResolution(save)!.root.pathStartDistance
+        }
       : {}),
     sessionVision
   })

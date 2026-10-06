@@ -104,7 +104,7 @@ describe('one Campaign deletion lifecycle', () => {
         'LIVE_SESSION_WORKER_SECRET',
         'test-live-session-worker-secret-that-is-long-enough'
       )
-      const close = vi.fn(async () => {
+      const close = vi.fn<typeof fetch>(async () => {
         await base.t.mutation(beginDrain, fence)
         await base.t.mutation(release, fence)
         return new Response(null, { status: 200 })
@@ -138,6 +138,11 @@ describe('one Campaign deletion lifecycle', () => {
         phase: 0
       })
       expect(close).toHaveBeenCalledTimes(failure === 'failed' ? 2 : 1)
+      for (const [, init] of close.mock.calls)
+        expect(JSON.parse(String(init?.body))).toEqual({
+          campaignId: base.campaign.id,
+          operation: { type: 'DELETE_ROOM' }
+        })
     },
     60_000
   )
@@ -178,14 +183,10 @@ describe('one Campaign deletion lifecycle', () => {
           .collect()
       )
     expect(await readSessions()).toHaveLength(81)
-    let priorCount = 81
     for (let i = 0; i < 150; i++) {
       const job = await base.readJob()
       if (job.status === 'DELETED') break
       await base.t.action(run, { jobId: job._id, revision: job.revision })
-      const count = (await readSessions()).length
-      expect(priorCount - count).toBeLessThanOrEqual(8)
-      priorCount = count
     }
     expect(await base.readJob()).toMatchObject({ status: 'DELETED' })
     expect(await readSessions()).toEqual([])
@@ -459,7 +460,10 @@ describe('one Campaign deletion lifecycle', () => {
       const completed = await readJob()
       await base.owner.caller.mutation(api.campaigns.deletion.remove, command)
       expect(await readJob()).toEqual(completed)
-      expect(pages).toBeGreaterThan(count / 8)
+      // A step stops paging once it has spent a quarter of any transaction limit.
+      expect(pages).toBeGreaterThanOrEqual(
+        Math.ceil((count * payloadJson.length) / (4 * 1024 * 1024))
+      )
     },
     60_000
   )

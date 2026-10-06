@@ -49,6 +49,7 @@ export class RoomEncounterSessionFeed {
       admission: (socket: WebSocket) => FeedMember | null
       scope: (socket: WebSocket) => FeedScope | null
       send: (socket: WebSocket, message: LiveSessionWebSocketServerMessageDto) => void
+      remember: (socket: WebSocket) => void
     }
   ) {}
 
@@ -57,11 +58,23 @@ export class RoomEncounterSessionFeed {
   }
 
   subscribe(socket: WebSocket, timeline: boolean): void {
-    this.#subscriptions.set(socket, { timeline, sent: null, shown: null })
+    this.restore(socket, { timeline, shown: null })
+    this.dependencies.remember(socket)
   }
 
   drop(socket: WebSocket): void {
-    this.#subscriptions.delete(socket)
+    if (this.#subscriptions.delete(socket)) this.dependencies.remember(socket)
+  }
+
+  /** What survives hibernation: the timeline flag and the decision last shown, which later settles. */
+  saved(socket: WebSocket): Pick<Subscription, 'timeline' | 'shown'> | null {
+    const subscription = this.#subscriptions.get(socket)
+    return subscription ? { timeline: subscription.timeline, shown: subscription.shown } : null
+  }
+
+  /** Resubscribes a woken socket; the next push sends its session again. */
+  restore(socket: WebSocket, saved: Pick<Subscription, 'timeline' | 'shown'>): void {
+    this.#subscriptions.set(socket, { ...saved, sent: null })
   }
 
   /** Sends each subscribed socket its session when it differs from the last one sent. */
@@ -81,7 +94,7 @@ export class RoomEncounterSessionFeed {
       const scope = this.dependencies.scope(socket)
       const authorization = member && scope ? await this.dependencies.authorize(scope) : null
       if (!member || !scope || !authorization || !admitsRoomMember(authorization, member)) {
-        this.#subscriptions.delete(socket)
+        this.drop(socket)
         continue
       }
       // The member decides the projection and the timeline flag its content, so one build serves a group.
@@ -105,7 +118,14 @@ export class RoomEncounterSessionFeed {
         const session = frame.held
           ? {
               ...frame,
-              settlement: await this.#settle(authorization, member, scope, subscription, frame)
+              settlement: await this.#settle(
+                authorization,
+                member,
+                scope,
+                socket,
+                subscription,
+                frame
+              )
             }
           : frame
         const serialized = JSON.stringify(session)
@@ -210,30 +230,31 @@ export class RoomEncounterSessionFeed {
     authorization: LiveSessionRoomAuthorization,
     member: FeedMember,
     scope: FeedScope,
+    socket: WebSocket,
     subscription: Subscription,
     frame: Omit<HeldFrame, 'settlement'>
   ): Promise<HeldFrame['settlement']> {
     const { encounter, pending } = frame.state
     if (member.role === 'OWNER' || !encounter) return null
     if (pending) {
-      subscription.shown = {
+      this.#show(socket, subscription, {
         encounterId: encounter.id,
         occurrenceId: pending.occurrenceId,
         occurrenceVersion: pending.occurrenceVersion
-      }
+      })
       return null
     }
     const { shown } = subscription
     if (!shown) return null
     if (shown.encounterId !== encounter.id) {
-      subscription.shown = null
+      this.#show(socket, subscription, null)
       return null
     }
     const outcome = await readEncounterDecisionSettlement(
       await this.#transaction(authorization, member, scope),
       shown
     )
-    if (outcome === 'ANSWER') subscription.shown = null
+    if (outcome === 'ANSWER') this.#show(socket, subscription, null)
     return (
       outcome && {
         occurrenceId: shown.occurrenceId,
@@ -241,5 +262,18 @@ export class RoomEncounterSessionFeed {
         outcome
       }
     )
+  }
+
+  /** Sets the decision last shown, and has the room remember it only when it changed. */
+  #show(socket: WebSocket, subscription: Subscription, shown: Subscription['shown']): void {
+    const current = subscription.shown
+    if (
+      current?.encounterId === shown?.encounterId &&
+      current?.occurrenceId === shown?.occurrenceId &&
+      current?.occurrenceVersion === shown?.occurrenceVersion
+    )
+      return
+    subscription.shown = shown
+    this.dependencies.remember(socket)
   }
 }

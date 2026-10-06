@@ -1,6 +1,6 @@
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 
 import {
   DurableCommandJournal,
@@ -51,122 +51,32 @@ function largeUnicodeJson(label: string): string {
   return JSON.stringify({ label, scene: `a${'🧙'.repeat(550_000)}` })
 }
 
-it('has no checkpoint deadline before the authority is activated', async () => {
+it('drops the retired receipt timestamp once and keeps the receipt replayable', async () => {
   const test = fixture()
-  await runInDurableObject(test.stub, (_instance, state) => {
-    const journal = new DurableCommandJournal(state.storage)
-    expect(journal.readCurrent()).toBeNull()
-    expect(journal.oldestUnpublishedCommandTime()).toBeNull()
-  })
-})
-
-it('keeps the oldest unpublished receipt time through partial checkpoints and eviction', async () => {
-  const test = fixture()
-  const firstAt = 1_800_000_000_000
-  const secondAt = firstAt + 30_000
-  await runInDurableObject(test.stub, (_instance, state) => {
-    const journal = new DurableCommandJournal(state.storage)
-    test.activate(journal)
-    expect(journal.oldestUnpublishedCommandTime()).toBeNull()
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(firstAt)
-    try {
-      test.commit(journal, 1, { outboxPayloadJson: undefined })
-      expect(journal.oldestUnpublishedCommandTime()).toBe(firstAt)
-      clock.mockReturnValue(secondAt)
-      test.commit(journal, 2, { outboxPayloadJson: undefined })
-      test.commit(journal, 1, { outboxPayloadJson: undefined })
-      expect(journal.oldestUnpublishedCommandTime()).toBe(firstAt)
-      journal.acknowledgeCheckpoint({
-        authorityEpoch: test.authorityEpoch,
-        throughSequence: 1,
-        stateChecksum: 'checksum-1'
-      })
-      expect(journal.oldestUnpublishedCommandTime()).toBe(secondAt)
-      clock.mockReturnValue(secondAt + 30_000)
-      test.commit(journal, 3, { outboxPayloadJson: undefined })
-      expect(journal.oldestUnpublishedCommandTime()).toBe(secondAt)
-    } finally {
-      clock.mockRestore()
-    }
-  })
-  await evictDurableObject(test.stub)
-  await runInDurableObject(test.stub, (_instance, state) => {
-    const journal = new DurableCommandJournal(state.storage)
-    expect(journal.oldestUnpublishedCommandTime()).toBe(secondAt)
-    journal.acknowledgeCheckpoint({
-      authorityEpoch: test.authorityEpoch,
-      throughSequence: 3,
-      stateChecksum: 'checksum-3'
-    })
-    expect(journal.oldestUnpublishedCommandTime()).toBeNull()
-  })
-})
-
-it('migrates receipt timestamps once and retains the recovered deadline', async () => {
-  const test = fixture()
-  const createdAt = 1_800_000_000_000
   await runInDurableObject(test.stub, (_instance, state) => {
     const journal = new DurableCommandJournal(state.storage)
     test.activate(journal)
     const committed = test.commit(journal, 1, { outboxPayloadJson: undefined })
-    expect(committed.receipt.checkpointBeforeAcknowledgement).toBe(false)
-    state.storage.transactionSync(() => {
-      state.storage.sql.exec(`
-        ALTER TABLE durable_command_receipts RENAME TO receipts_before_timestamp;
-        CREATE TABLE durable_command_receipts (
-          command_id TEXT PRIMARY KEY,
-          actor_id TEXT NOT NULL,
-          fingerprint TEXT NOT NULL,
-          sequence INTEGER NOT NULL UNIQUE CHECK (sequence > 0),
-          state_checksum TEXT NOT NULL,
-          receipt_json TEXT NOT NULL
-        );
-        INSERT INTO durable_command_receipts
-          SELECT command_id, actor_id, fingerprint, sequence, state_checksum, receipt_json
-          FROM receipts_before_timestamp;
-        DROP TABLE receipts_before_timestamp;
-      `)
-    })
-    const clock = vi.spyOn(Date, 'now').mockReturnValue(createdAt)
-    try {
-      const migrated = new DurableCommandJournal(state.storage)
-      expect(migrated.oldestUnpublishedCommandTime()).toBe(createdAt)
-      expect(
-        migrated.lookupCommand({
-          actorId: test.actorId,
-          commandId: 'command-1',
-          fingerprint: 'fingerprint-1'
-        })
-      ).toEqual({ kind: 'REPLAY', receipt: committed.receipt })
-      clock.mockReturnValue(createdAt + 60_000)
-      expect(new DurableCommandJournal(state.storage).oldestUnpublishedCommandTime()).toBe(
-        createdAt
-      )
-    } finally {
-      clock.mockRestore()
-    }
-  })
-  await evictDurableObject(test.stub)
-  await runInDurableObject(test.stub, (_instance, state) => {
-    expect(new DurableCommandJournal(state.storage).oldestUnpublishedCommandTime()).toBe(createdAt)
+    state.storage.sql.exec(
+      'ALTER TABLE durable_command_receipts ADD COLUMN created_at INTEGER NOT NULL DEFAULT 1'
+    )
+    const migrated = new DurableCommandJournal(state.storage)
+    const columns = () =>
+      state.storage.sql
+        .exec<{ name: string }>("SELECT name FROM pragma_table_info('durable_command_receipts')")
+        .toArray()
+        .map(({ name }) => name)
+    expect(columns()).not.toContain('created_at')
+    expect(
+      migrated.lookupCommand({
+        actorId: test.actorId,
+        commandId: 'command-1',
+        fingerprint: 'fingerprint-1'
+      })
+    ).toEqual({ kind: 'REPLAY', receipt: committed.receipt })
+    expect(() => new DurableCommandJournal(state.storage)).not.toThrow()
   })
 })
-
-it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
-  'refuses invalid unpublished timestamp %s',
-  async (createdAt) => {
-    const test = fixture()
-    await runInDurableObject(test.stub, (_instance, state) => {
-      const journal = new DurableCommandJournal(state.storage)
-      test.activate(journal)
-      test.commit(journal, 1, { outboxPayloadJson: undefined })
-      state.storage.sql.exec('UPDATE durable_command_receipts SET created_at = ?', createdAt)
-      expect(() => journal.oldestUnpublishedCommandTime()).toThrow(
-        'The unpublished command timestamp is invalid.'
-      )
-    })
-  }
-)
 
 it('commits without an outbox and rolls back an omitted-outbox commit with its outer SQLite transaction', async () => {
   const test = fixture()
@@ -346,7 +256,6 @@ it('retires transitional outbox rows only through the accepted checkpoint receip
     for (let sequence = 1; sequence <= 3; sequence++) test.commit(journal, sequence)
     const before = journal.readCurrent()
     const outbox = journal.listPending(3)
-    const oldest = journal.oldestUnpublishedCommandTime()
     expect(() =>
       state.storage.transactionSync(() => {
         journal.acknowledgeCheckpointInTransaction({
@@ -361,7 +270,6 @@ it('retires transitional outbox rows only through the accepted checkpoint receip
     ).toThrow('Injected failure after checkpoint acknowledgement.')
     expect(journal.readCurrent()).toEqual(before)
     expect(journal.listPending(3)).toEqual(outbox)
-    expect(journal.oldestUnpublishedCommandTime()).toBe(oldest)
     expect(
       journal.acknowledgeCheckpoint({
         authorityEpoch: test.authorityEpoch,

@@ -2,46 +2,32 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { useConvex } from 'convex/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import { sceneRecipientHeaderSchema } from '@artificer-toolkit/schema/api/sceneRecipient'
 import { setCampaignLiveScenePresentationResultDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
-import { queryKeys } from '#app/lib/queryKeys'
-import { loadCampaignLiveScene } from './liveScenes'
 
-export function useCampaignPresentedScene(campaignId: string, hydrateScene = true) {
+/**
+ * Which Scene the Campaign presents, and the presentation version a present asks Convex to match.
+ * While the room holds authority (`roomState`), the room's own Scene and version are the answer and
+ * Convex's pointer is not read (ADR 0035 A28, D79): it trails the room between save points. Without
+ * the room the small pointer subscription is the only source; the Scene itself always comes from
+ * the room.
+ */
+export function useCampaignPresentedScene(
+  campaignId: string,
+  roomState: { presentationVersion: number | null; scene: { id: string } | null } | null
+) {
   const client = useConvex()
-  const presentation = useQuery(convexQuery(api.scenes.presentations.get, { campaignId }))
-  const sceneId = presentation.error ? null : presentation.data?.sceneId
-  const header = useQuery(
-    convexQuery(
-      api.scenes.recipientReads.header,
-      sceneId ? (hydrateScene ? { sceneId } : { sceneId, includeSnapshot: false }) : 'skip'
-    )
+  const pointer = useQuery(
+    convexQuery(api.scenes.presentations.get, roomState ? 'skip' : { campaignId })
   )
-  const captured =
-    header.data && !header.error ? sceneRecipientHeaderSchema.parse(header.data) : null
-  const headerIdentityError =
-    captured && (captured.id !== sceneId || captured.campaignId !== campaignId)
-      ? new Error('Presented Scene identity is inconsistent.')
-      : null
-  const compactScene = captured?.snapshot ?? null
-  const hydrated = useQuery({
-    queryKey: [...queryKeys.campaigns.liveScenes(campaignId), sceneId, captured?.recipientRevision],
-    enabled: Boolean(hydrateScene && sceneId && captured && !headerIdentityError && !compactScene),
-    queryFn: ({ signal }) => {
-      if (!captured || captured.id !== sceneId || captured.campaignId !== campaignId)
-        throw new Error('Presented Scene identity is inconsistent.')
-      return loadCampaignLiveScene(client, captured, signal)
-    },
-    retry: (failureCount, error) =>
-      failureCount < 2 && error.message.includes('Connection lost while action was in flight'),
-    gcTime: 0
-  })
+  const presentationVersion = roomState
+    ? roomState.presentationVersion
+    : (pointer.data?.version ?? null)
   const present = useMutation({
     mutationFn: async (nextSceneId: string | null) =>
       setCampaignLiveScenePresentationResultDtoSchema.parse(
         await client.action(api.scenes.presentations.setLive, {
           commandId: crypto.randomUUID(),
-          expectedPresentationVersion: presentation.data?.version ?? null,
+          expectedPresentationVersion: presentationVersion,
           campaignId,
           sceneId: nextSceneId,
           type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
@@ -49,24 +35,15 @@ export function useCampaignPresentedScene(campaignId: string, hydrateScene = tru
       )
   })
   return {
-    scene:
-      hydrateScene && sceneId && captured && !headerIdentityError && !hydrated.error
-        ? (compactScene ?? hydrated.data)
-        : undefined,
-    error:
-      presentation.error ??
-      header.error ??
-      headerIdentityError ??
-      (hydrateScene ? hydrated.error : null),
+    sceneId: roomState
+      ? (roomState.scene?.id ?? null)
+      : pointer.error
+        ? null
+        : (pointer.data?.sceneId ?? null),
+    error: roomState ? null : pointer.error,
     presentationError: present.error,
-    presentationVersion: presentation.data?.version ?? null,
-    recipientHeader: headerIdentityError ? null : captured,
-    isLoading:
-      presentation.isPending ||
-      Boolean(
-        sceneId && (header.isPending || (hydrateScene && !compactScene && hydrated.isPending))
-      ),
-    canPresent: presentation.isSuccess && !present.isPending,
+    isLoading: !roomState && pointer.isPending,
+    canPresent: (roomState !== null || pointer.isSuccess) && !present.isPending,
     present: present.mutate
   }
 }

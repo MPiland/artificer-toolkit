@@ -10,7 +10,7 @@ import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schem
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { RoomDocument } from '../roomEncounterStore.js'
+import { memoryRoomDocuments } from './storedRunFixture.js'
 
 const NOW = '2026-09-30T00:00:00.000Z'
 
@@ -24,7 +24,8 @@ export async function encounterRunFixture({
   systemId,
   actors: entries,
   scene,
-  status = 'ACTIVE'
+  status = 'ACTIVE',
+  memory = createMemoryEncounterStore({ idPrefix: 'sheet-fixture' })
 }: {
   campaignId: string
   systemId: string
@@ -40,6 +41,8 @@ export async function encounterRunFixture({
   scene?: { sceneId: string; tokenId: string }
   /** A PREPARED Run has not started: round 0, no initiative round. */
   status?: 'ACTIVE' | 'PREPARED'
+  /** Holds the Run beside the Runs already in this store, which `documents` then lists too. */
+  memory?: ReturnType<typeof createMemoryEncounterStore>
 }) {
   const encounterId = crypto.randomUUID()
   const sideId = crypto.randomUUID()
@@ -104,8 +107,7 @@ export async function encounterRunFixture({
     createdAt: NOW,
     updatedAt: NOW
   })
-  const native = createMemoryEncounterStore({ idPrefix: 'sheet-fixture' })
-  await native.store.insert(
+  await memory.store.insert(
     'encounterRuns',
     encounterStoredRunSchema.parse({
       id: encounterId,
@@ -115,11 +117,13 @@ export async function encounterRunFixture({
       version: state.version,
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state),
+      createCommandId: crypto.randomUUID(),
+      createCommandFingerprint: checksumCanonicalJson(state),
       createdAt: NOW,
       updatedAt: NOW
     })
   )
-  for (const actor of actors) await insertRunActor({ db: native.store }, actor)
+  for (const actor of actors) await insertRunActor({ db: memory.store }, actor)
   // An ACTIVE Run projects from its normalized initiative round.
   const initiative = encounterInitiativeRoundStateDtoSchema.parse({
     round: {
@@ -160,19 +164,19 @@ export async function encounterRunFixture({
     }))
   })
   if (status === 'ACTIVE') {
-    await native.store.insert('encounterInitiativeRounds', initiative.round)
+    await memory.store.insert('encounterInitiativeRounds', initiative.round)
     for (const participant of initiative.participants)
-      await native.store.insert('encounterInitiativeParticipants', participant)
+      await memory.store.insert('encounterInitiativeParticipants', participant)
   }
   if (scene) {
-    await native.store.insert('encounterActorTokenBindings', {
+    await memory.store.insert('encounterActorTokenBindings', {
       encounterId,
       actorId: actors[0]!.id,
       tokenId: scene.tokenId,
       sceneId: scene.sceneId
     })
     const commandId = crypto.randomUUID()
-    await native.store.insert(
+    await memory.store.insert(
       'encounterSceneBindings',
       encounterSceneBindingSchema.parse({
         encounterId,
@@ -184,24 +188,19 @@ export async function encounterRunFixture({
       })
     )
   }
-  const documents: RoomDocument[] = []
-  for (const table of [
-    'encounterRuns',
-    'encounterRunActors',
-    'encounterActorProjectionFacts',
-    'encounterSourceProjectionFacts',
-    'encounterInitiativeRounds',
-    'encounterInitiativeParticipants',
-    'encounterActorTokenBindings',
-    'encounterSceneBindings'
-  ] as const) {
-    for (const { _id, _creationTime, ...fields } of native.documents(table))
-      documents.push({ table, id: _id, creationTime: _creationTime, fields })
-  }
   return {
     encounterId,
     actorIds: actors.map(({ id }) => id),
-    documents,
+    documents: memoryRoomDocuments(memory, [
+      'encounterRuns',
+      'encounterRunActors',
+      'encounterActorSnapshots',
+      'encounterSourceProjectionFacts',
+      'encounterInitiativeRounds',
+      'encounterInitiativeParticipants',
+      'encounterActorTokenBindings',
+      'encounterSceneBindings'
+    ]),
     version: state.version
   }
 }

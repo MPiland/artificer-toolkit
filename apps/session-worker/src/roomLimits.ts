@@ -1,3 +1,4 @@
+import { LIVE_SESSION_REAUTHENTICATION_LEAD_MS } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { LiveSessionWebSocketClientMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
 
@@ -8,7 +9,7 @@ export const ROOM_LIMITS = {
   maxSocketsPerRoom: 64,
   authenticationTimeoutMs: 10_000,
   /** The room challenges an admitted socket this long before its access token expires (ADR 0035 Amendment 23). */
-  reauthenticationLeadMs: 60_000,
+  reauthenticationLeadMs: LIVE_SESSION_REAUTHENTICATION_LEAD_MS,
   /** With no admitted socket for this long, the room drains and releases its authority (ADR 0033). */
   idleReleaseMs: 5 * 60_000,
   maxPendingCommandsPerSocket: 8,
@@ -16,19 +17,12 @@ export const ROOM_LIMITS = {
   /** A player's Encounter commands run one at a time across all of their sockets. */
   maxInFlightEncounterCommandsPerPlayer: 1,
   /**
-   * The room trusts its authorization cache for this long (2N, ADR 0035 Amendment 14). Each
-   * socket's re-authentication renews it, and a connected room renews it with one read once half
-   * has passed (ADR 0035 Amendment 18).
+   * The room trusts its authorization cache for this long (ADR 0035 Amendment 14). It bounds
+   * revocation, not saving (Amendment 25). Each socket's re-authentication renews it, and a
+   * connected room renews it with one read once half has passed (ADR 0035 Amendment 18).
    */
-  authorizationLeaseMs: 240_000,
-  /**
-   * N (ADR 0035 Amendment 17): a dirty room flushes no later than this after its first unflushed
-   * command. REL-5 sets the final value, between 30 and 120 s.
-   */
-  flushIntervalMs: 120_000,
-  /** The alarm flushes only once a due flush has gone this long without an incoming message to carry it. */
-  flushQuietGraceMs: 15_000,
-  /** A failed checkpoint or release in the alarm retries after this delay instead of at its past deadline. */
+  authorizationLeaseMs: 60_000,
+  /** A failed release in the alarm, or a failed backlog save, retries after this delay instead of at once. */
   alarmRetryMs: 30_000,
   /** A background preview refresh starts at most once per input in this window. */
   previewRetryMs: 5_000,
@@ -71,7 +65,10 @@ type MessageClass =
 // token when it fans out; faster pings are dropped without closing the socket. FOG_UPLOAD admits one
 // full 256-chunk fog layer (a begin and 32 batches of 8) in a burst. READ admits the turn reads a
 // client makes when the session version changes (up to four per version) without starving SYNC.
-const BUDGETS: Record<MessageClass | 'PING', { capacity: number; refillPerSecond: number }> = {
+export const SOCKET_MESSAGE_BUDGETS: Record<
+  MessageClass | 'PING',
+  { capacity: number; refillPerSecond: number }
+> = {
   AUTHENTICATE: { capacity: 10, refillPerSecond: 0.5 },
   COMMAND: { capacity: 20, refillPerSecond: 5 },
   FOG_UPLOAD: { capacity: 40, refillPerSecond: 20 },
@@ -86,7 +83,6 @@ export function messageClass(message: LiveSessionWebSocketClientMessageDto | nul
   if (!message) return 'INVALID'
   if (
     message.type === 'RESUME' ||
-    message.type === 'SYNCHRONIZE_SCENE' ||
     message.type === 'SUBSCRIBE_CHARACTER_SHEET' ||
     message.type === 'UNSUBSCRIBE_CHARACTER_SHEET' ||
     message.type === 'SUBSCRIBE_ENCOUNTER_SESSION' ||
@@ -110,10 +106,13 @@ export function exceedsMessageBytes(raw: string): boolean {
 
 /** Token buckets per message class for one socket. */
 export class SocketMessageBudget {
-  readonly #buckets = new Map<keyof typeof BUDGETS, { tokens: number; updatedAt: number }>()
+  readonly #buckets = new Map<
+    keyof typeof SOCKET_MESSAGE_BUDGETS,
+    { tokens: number; updatedAt: number }
+  >()
 
-  take(kind: keyof typeof BUDGETS, now = Date.now()): boolean {
-    const { capacity, refillPerSecond } = BUDGETS[kind]
+  take(kind: keyof typeof SOCKET_MESSAGE_BUDGETS, now = Date.now()): boolean {
+    const { capacity, refillPerSecond } = SOCKET_MESSAGE_BUDGETS[kind]
     const bucket = this.#buckets.get(kind) ?? { tokens: capacity, updatedAt: now }
     const tokens = Math.min(
       capacity,

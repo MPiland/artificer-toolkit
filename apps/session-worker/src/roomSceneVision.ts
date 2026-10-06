@@ -1,4 +1,5 @@
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { deriveCharacterSceneVision } from '@artificer-toolkit/rules-runtime/character/characterSceneVision'
 import {
   sceneSessionVisionCompositionSchema,
@@ -15,7 +16,11 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 import { readRoomSceneHeader } from './roomSceneRead.js'
 
-/** Resolves current Character vision for the raw Scene without persisting presentation overrides. */
+/**
+ * Resolves current Character vision for the raw Scene without persisting presentation overrides.
+ * Only the ACTIVE Run bound to the Scene contributes, read from the room's current state, so a
+ * completed or unbound Run is never composed.
+ */
 export async function composeRoomSceneVision(input: {
   store: RoomEncounterStore
   transaction: RoomTransaction
@@ -24,7 +29,6 @@ export async function composeRoomSceneVision(input: {
   campaignId: string
   epoch: string
   scene: CampaignSceneStateDto
-  encounterIds: readonly string[]
 }): Promise<{
   scene: CampaignSceneStateDto
   characterRevisions: SceneSessionVisionComposition['characterRevisions']
@@ -65,26 +69,17 @@ export async function composeRoomSceneVision(input: {
     SceneSessionVisionComposition['context']['encounterCharacterBindings'][number]
   >()
   if (selectedTokens.size) {
-    for (const encounterId of new Set(input.encounterIds.map((id) => id.toLowerCase()))) {
-      await inputs.encounter(encounterId, transaction)
-      const run = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (query) => query.eq('id', encounterId))
-        .unique()
-      if (
-        !run ||
-        run.id !== encounterId ||
-        run.campaignId !== campaign.id ||
-        run.gameSystemId !== campaign.gameSystemId
-      )
+    const held = authorization.play.encounter
+    if (held?.sceneId === scene.id) await inputs.encounter(held.encounterId, transaction)
+    const active = await readActiveSceneEncounter(ctx, {
+      campaignId: campaign.id,
+      sceneId: scene.id
+    })
+    if (active) {
+      const { run } = active
+      if (run.gameSystemId !== campaign.gameSystemId)
         throw new Error('Scene vision Encounter identity or version is stale.')
       const state = readRunState(run)
-      const sceneBinding = await ctx.db
-        .query('encounterSceneBindings')
-        .withIndex('by_encounterId', (query) => query.eq('encounterId', run.id))
-        .unique()
-      if (sceneBinding?.campaignId !== campaign.id || sceneBinding.sceneId !== scene.id)
-        throw new Error('Scene vision Encounter binding is unavailable.')
       const tokenBindings = await ctx.db
         .query('encounterActorTokenBindings')
         .withIndex('by_encounterId_actorId', (query) => query.eq('encounterId', run.id))
@@ -108,15 +103,12 @@ export async function composeRoomSceneVision(input: {
         )
           throw new Error('Scene vision Character identity is inconsistent.')
         if (!selectedTokens.has(tokenBinding.tokenId)) continue
-        const binding = {
+        bindings.set(tokenBinding.tokenId, {
           encounterId: run.id,
           actorId: actor.id,
           characterId: character.id,
           tokenId: tokenBinding.tokenId
-        }
-        const previous = bindings.get(binding.tokenId)
-        if (!previous || binding.encounterId.localeCompare(previous.encounterId) >= 0)
-          bindings.set(binding.tokenId, binding)
+        })
       }
     }
   }

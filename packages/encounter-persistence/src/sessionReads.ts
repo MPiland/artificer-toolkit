@@ -11,7 +11,7 @@ import {
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readCampaignRunState, readRunActors } from './documents.js'
+import { readCampaignRunState } from './documents.js'
 import { readEncounterHealthViewer } from './healthViewer.js'
 import { projectEncounterFacts } from './nativeProjection.js'
 import { readEncounterWaitingOn, readPendingRunDecision } from './pendingReads.js'
@@ -175,7 +175,7 @@ export async function readEncounterActorSides(
   campaign: Campaign
 ): Promise<EncounterActorSidesDto> {
   const state = readCampaignRunState(row, campaign)
-  const actors = await readRunActors(ctx, state)
+  const { actors } = await readRunProjectionFacts(ctx, state)
   if (actors.some((actor) => !state.sides.some((side) => side.id === actor.sideId)))
     throw new Error('Encounter actor side is unavailable.')
   return encounterActorSidesDtoSchema.parse({

@@ -146,7 +146,7 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     sceneFixture: result
   })
   expect(automated).toHaveLength(4)
-  const rollbackRun = await verifyEncounterTransactions({
+  await verifyEncounterTransactions({
     owner: clients.owner,
     player: clients.player,
     ownerUserId: owner.userId,
@@ -163,37 +163,14 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
       return owner.caller.action(reference, args)
     }
   })
-  const retainedBindings = await t.run(async (ctx) => ({
-    scenes: await ctx.db.query('encounterSceneBindings').take(7),
-    actors: await ctx.db.query('encounterActorTokenBindings').take(6)
-  }))
-  expect(retainedBindings.scenes).toHaveLength(6)
-  expect(retainedBindings.actors).toHaveLength(5)
-  for (const run of automated) {
-    expect(
-      retainedBindings.scenes.filter((binding) => binding.encounterId === run.id)
-    ).toHaveLength(1)
-    expect(retainedBindings.actors.filter((binding) => binding.encounterId === run.id)).toEqual([
-      expect.objectContaining({
-        encounterId: run.id,
-        actorId: run.actors.find((actor) => actor.kind === 'CHARACTER')!.id,
-        sceneId: result.scenes[0].liveSceneId,
-        tokenId: result.scenes[0].tokenIds[0]
-      })
-    ])
-  }
+  // Every Run in the proof is COMPLETED, and COMPLETE deletes its Scene and token bindings
+  // (ADR 0035 Amendment 30).
   expect(
-    retainedBindings.scenes.filter((binding) => binding.encounterId === rollbackRun.projection.id)
-  ).toEqual([expect.objectContaining({ sceneId: rollbackRun.sceneId })])
-  expect(
-    retainedBindings.actors.filter((binding) => binding.encounterId === rollbackRun.projection.id)
-  ).toEqual([
-    expect.objectContaining({
-      sceneId: rollbackRun.sceneId,
-      actorId: rollbackRun.actorId,
-      tokenId: rollbackRun.tokenId
-    })
-  ])
+    await t.run(async (ctx) => ({
+      scenes: await ctx.db.query('encounterSceneBindings').take(1),
+      actors: await ctx.db.query('encounterActorTokenBindings').take(1)
+    }))
+  ).toEqual({ scenes: [], actors: [] })
   expect(server.objects.size).toBeGreaterThan(0)
   const tiedRolls = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(0)
   const cutoverFixture = await prepareEncounterCutoverFixture({

@@ -446,6 +446,31 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Convex-side Encounter writes stay** (Run creation, departure and account reconciles while no room holds the Run). They are rare and small; the room merges them in at hydrate.
   - **Cost of the rare storage loss** (D85 accepts it): the timeline restarts, undo of earlier actions is refused, and a retry of an earlier command returns "applied" plus the current state.
 
+* **D89** (2026-10-05) A room woken from hibernation keeps its players (REL-5, ADR 0035 Amendment 24). Decided by the product owner.
+  - **Finding:** Cloudflare hibernates a room after about 10 s idle. Every wake asked every socket to sign in again, dropped the message that woke it, emptied the map cache and cost Convex calls. That failed the V15 browser percentiles. Keeping the room awake instead would bill wall-clock time for every session and still not cover deploys or evictions.
+  - **Decision:** a sleeping room keeps who is admitted, each socket's feed subscriptions, its authorization lease and its map cache's identity in its own storage, and rebuilds the map from its own rows. A wake within the lease costs no sign-in round and no Convex call. No token is stored. The room's map reads use the Worker secret and the active epoch, not a player's token.
+  - **Unchanged:** token expiry and the proactive re-challenge (Amendment 23), Campaign removal, `INVALIDATE_INPUTS` and Scene presentation changes.
+
+* **D90** (2026-10-05) Convex receives a running table at save points, not every 30 s (REL-5, ADR 0035 Amendments 25–28). Decided by the product owner.
+  - **Finding:** the passing six-browser V15 run a76 measured the 30 s checkpoints. Modelled on the session plan (2,000 combat commands and 120 minutes out of combat), they cost about 96 MB of Convex I/O per session against the Q16 budget of 4.3 MB. The model scales a76's per-command costs; it was not measured at real pace.
+  - **Where the cost came from:**
+    - Scene movement evidence: about 15 KB per move, re-read twice by the commit.
+    - Whole actor documents rewritten.
+    - The room reloading its own inputs after each of its own checkpoints.
+    - Convex Scene reads re-running after every checkpoint.
+  - **Decision:**
+    - The room saves at save points only: Encounter START and COMPLETE, the other hold-changing moments, a Scene presentation change, table close, and a backlog bound for chat and roll cards.
+    - Scene undo and replay evidence stays in the room, as Encounter history does (D88).
+    - Commits stop re-reading what they wrote.
+    - Nothing reads a running table's state from Convex.
+  - **Why:** the room is the source of truth while the table runs; Convex is the record once it stops. Amendment 19 had already moved live readers to the room. The interval copy only guarded against losing the room's storage, a software-defect risk that applies equally to Convex.
+  - **Cost of the rare storage loss:** changes since the last save point are lost, at most the current fight, and undo of earlier Scene moves is refused. This replaces D85's "about one round".
+
+* **D91** (2026-10-05) Account deletion keeps the notes the GM can read, as Deleted user (PLT-7). Amends D87's Notes and Q10. Decided by the product owner.
+  - **Rule:** content only its author could read is personal and is erased with the account. Content anyone else could read (the GM or the party) is Campaign history and stays, attributed to "Deleted user" the way chat and shared notes are.
+  - **Effect:** a private note is visible to its author and the GM (D87), so private notebook entries and private Session notes are Campaign history. Account deletion keeps them, and leaving a Campaign already did. The purge (`purgeAuthorPrivateNotes`) is removed. Players still never see another member's private notes; the GM reads them under "Deleted user".
+  - **Unchanged:** the account's profile, homebrew, drafts and Characters are still deleted (D74, D81).
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
@@ -609,6 +634,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
     - New notes are private by default.
     - A private note is visible to its author and the GM. As in Foundry, the GM can read every
       note.
+    - D91 amends this: account deletion keeps private notes the GM can read, as Deleted user.
     - A shared note is visible to the whole Campaign.
     - Today the notebook is GM-only and a player's session notes are always public. Both change.
   - **Work:** slices PLT-6 (read gates and Campaign Files removal), PLT-7 (private and shared
@@ -816,6 +842,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   [2026-09-30 validation record](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md).
   Final integration, the complete local lifecycle and Q16 remain pending. See
   [ADR 0035 D71](../adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30).
+  *Amendment (2026-10-05, A35-S11h):* "Shared Encounter history is retained" no longer holds for
+  finished Runs. D85 and D88 (ADR 0035 Amendment 22) keep Encounter history in the room for the Run only,
+  and ADR 0035 Amendment 30 deletes every Run child row at COMPLETE except the Run, its actors and their
+  source facts. Account and Character deletion still leave all Encounter rows untouched; what they leave
+  is now only that finished view.
 
 ## Resolved
 
@@ -882,7 +913,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - It ships as its own slice before closed beta.
 * **Local backend secret (2026-09-26).** The local instance secret exposed in an agent transcript was rotated. The stored secret file was removed and the container restarted, which generated a new secret inside the container that was never printed. The container also dropped from about 6.6 GiB to 196 MiB of memory.
 * **Q9 (2026-09-25).** V05.4 reworded: renewal keeps valid users and keeps room authority serving the remaining current members (ADR 0033).
-* **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged.
+* **Q10 (2026-09-25).** Shared Session notes show their author and handouts their uploader, resolved on the server. Both read "Deleted user" after account deletion, through the same function chat uses. The Encounter timeline keeps naming actors. F12.3's wording is unchanged. D91 applies the same label to the private notes the GM can read, which account deletion now keeps.
 * **Q8 (2026-09-25).** Keep 100 as the Encounter safety cap. One convex-test case proves the room's capture stays within Convex limits at the cap; speed targets (V15) use the typical 11-actor table.
 * **Q6 (2026-09-25).** V11.4 reworded: in Assisted mode a player's save-forcing action pauses on the creature's save for its controller (the GM) unless that controller's auto-roll is on, in which case the save is rolled and the action continues. Manual mode raises no rules prompts. There is no separate Automatic mode since the modes redesign; the per-person auto-roll preference fills that role. Spell-specific proof becomes a Phase 8.3 spell-casting criterion.
 * **Q7 (2026-09-25).** V09.7 reworded to 'development data is migrated or reset under the standing local-reset approval', matching the actual process.

@@ -1,4 +1,3 @@
-import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 import { insertRunCommand } from '@artificer-toolkit/encounter-persistence/timelineEntries'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import type { Validator } from 'convex/values'
@@ -67,23 +66,27 @@ export async function createEncounterRun(
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
 
   const commandFingerprint = checksumCanonicalJson(input)
-  const prior = await ctx.db
-    .query('encounterRunCommands')
-    .withIndex('by_campaignId_commandId', (q) =>
-      q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
-    )
-    .unique()
-  if (prior) {
-    if (prior.commandType !== 'CREATE' || prior.commandFingerprint !== commandFingerprint)
-      rejectDomain('COMMAND_ID_REUSED')
-    const row = await ctx.db
+  // The Run row carries the create key, so a retry finds it after COMPLETE deletes the history.
+  const [created, priorCommand] = await Promise.all([
+    ctx.db
       .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', prior.encounterId))
+      .withIndex('by_campaignId_createCommandId', (q) =>
+        q.eq('campaignId', campaign.id).eq('createCommandId', input.commandId)
+      )
+      .unique(),
+    ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_campaignId_commandId', (q) =>
+        q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
+      )
       .unique()
-    if (!row || row.campaignId !== campaign.id || row.gameSystemId !== campaign.gameSystemId)
-      throw new Error('Encounter is unavailable.')
-    return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(row))
+  ])
+  if (created) {
+    if (created.createCommandFingerprint !== commandFingerprint) rejectDomain('COMMAND_ID_REUSED')
+    if (created.gameSystemId !== campaign.gameSystemId) throw new Error('Encounter is unavailable.')
+    return readEncounterGmProjection(encounterReadTransaction(ctx), readRunState(created))
   }
+  if (priorCommand) rejectDomain('COMMAND_ID_REUSED')
   const blueprintRow = await ctx.db
     .query('encounterBlueprints')
     .withIndex('by_publicId', (q) => q.eq('id', input.blueprintId))
@@ -229,6 +232,8 @@ export async function createEncounterRun(
       version: state.version,
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state),
+      createCommandId: input.commandId,
+      createCommandFingerprint: commandFingerprint,
       createdAt: now,
       updatedAt: now
     })
@@ -301,35 +306,13 @@ export const deletePrepared = mutation({
     readRunState(run)
     if (await isRoomHeldRun(ctx, run))
       throw new Error('This Encounter is currently owned by its Campaign live table.')
-    const [commands, receipts, occurrences] = await Promise.all([
-      ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
-        .collect(),
-      ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', run.id))
-        .collect(),
-      ctx.db
-        .query('encounterRuleOccurrences')
-        .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id))
-        .collect()
-    ])
-    if (occurrences.some((occurrence) => occurrence.state === 'PENDING'))
-      throw new Error('Resolve the pending Encounter occurrence before deleting it.')
+    const pending = await ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
+      .first()
+    if (pending) throw new Error('Resolve the pending Encounter occurrence before deleting it.')
     let removed = false
     while (!removed) removed = await removeEncounterRunChildren(ctx, run.id)
-    await deleteReceiptHeaders(ctx, [
-      ...commands.map((header) => ({
-        table: 'encounterRunCommands' as const,
-        header
-      })),
-      ...receipts.map((header) => ({
-        table: 'encounterRuleReceipts' as const,
-        header
-      }))
-    ])
-    for (const row of occurrences) await ctx.db.delete(row._id)
     await ctx.db.delete(run._id)
     const result = deletePreparedEncounterResultDtoSchema.parse({
       campaignId: campaign.id,

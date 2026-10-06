@@ -1,4 +1,5 @@
 import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
+import { readTestActor } from './storedActors'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -117,7 +118,7 @@ export async function grantFixtureActorControl(
     .unique()
   if (!actorRow) throw new Error('Fixture Run actor missing')
   const actor = encounterRunActorStateSchema.parse({
-    ...JSON.parse(actorRow.stateJson),
+    ...(await readTestActor(ctx, actorRow)),
     controllerUserIds: input.controllerUserIds
   })
   await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, actor)

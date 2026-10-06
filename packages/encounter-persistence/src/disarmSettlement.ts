@@ -9,7 +9,7 @@ import {
   disarmSourceWins,
   planEncounterDisarmSuccess
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import { writeRunActor } from './documents.js'
@@ -42,7 +42,7 @@ export async function settleDisarm(
         q.eq('encounterId', target.encounterId).eq('id', target.id)
       )
       .unique()
-    if (!targetRow || targetRow.stateChecksum !== checksumCanonicalJson(target))
+    if (!targetRow || targetRow.stateChecksum !== checksumRunActorPlayState(target))
       throw new Error('Disarm target changed before settlement.')
     const active =
       target.kind === 'CHARACTER' ? await ctx.ports.readCharacterRow(target.sourceId) : null

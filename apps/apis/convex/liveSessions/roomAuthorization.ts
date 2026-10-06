@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
@@ -16,26 +17,21 @@ import { readSceneVisionRevision } from '../scenes/visionFreshness'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
 import { readAuthUsers } from '../lib/authUserReads'
 
-/** The Encounter bound to the presented Scene: its actor control and health display. */
+/** The ACTIVE Encounter bound to the presented Scene: its actor control and health display. */
 async function readPlayAuthorization(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
   const presentation = await ctx.db
     .query('campaignScenePresentations')
     .withIndex('by_campaignId', (q) => q.eq('campaignId', campaign.id))
     .unique()
   const sceneId = presentation?.sceneId ?? null
-  const binding = sceneId
-    ? await ctx.db
-        .query('encounterSceneBindings')
-        .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId))
-        .first()
+  const active = sceneId
+    ? await readActiveSceneEncounter(
+        { db: createConvexEncounterStoreReader(ctx) },
+        { campaignId: campaign.id, sceneId }
+      )
     : null
-  if (!binding) return { encounter: null }
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', binding.encounterId))
-    .unique()
-  if (!run || run.campaignId !== campaign.id)
-    throw new Error('The Scene Encounter binding is stale.')
+  if (!active) return { encounter: null }
+  const { run, binding } = active
   const state = readRunState(run)
   const [actors, tokens] = await Promise.all([
     readRunActors({ db: createConvexEncounterStoreReader(ctx) }, state),

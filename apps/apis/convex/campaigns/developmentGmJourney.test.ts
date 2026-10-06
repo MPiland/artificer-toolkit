@@ -116,7 +116,6 @@ it('proves native GM overlays through public Campaign handlers', async () => {
           sceneIds: [],
           definitionSaveIds: [],
           fogSaveIds: [],
-          sceneLedgerIds: [],
           conversationIds: [],
           entryIds: [],
           listingIds: [],

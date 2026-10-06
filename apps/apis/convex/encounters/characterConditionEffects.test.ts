@@ -1,4 +1,3 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { expect, it } from 'vitest'
 import {
   encounterCommandResultDtoSchema,
@@ -311,7 +310,9 @@ async function stored(base: Awaited<ReturnType<typeof setup>>) {
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', base.character.id))
       .take(3),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
       .take(10),

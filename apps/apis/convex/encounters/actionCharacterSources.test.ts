@@ -1,5 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { readReceiptHeaders, readReceiptHeader } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -330,11 +330,15 @@ async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', fixture.run.id))
       .take(16),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', fixture.run.id))
       .take(32),
-    commands: await (await readEncounterHistory(ctx))
+    commands: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
       .take(32),
@@ -374,7 +378,7 @@ async function resetActionAllowance(fixture: Awaited<ReturnType<typeof setup>>) 
       )
       .unique()
     if (!row) throw new Error('Character action source is unavailable.')
-    const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+    const actor = await readTestActor(ctx, row)
     const reset = encounterRunActorStateSchema.parse({
       ...actor,
       resources: withEncounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 0)

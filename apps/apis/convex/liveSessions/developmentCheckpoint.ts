@@ -5,7 +5,6 @@ import {
   developmentCheckpointInspectionSchema,
   developmentCheckpointRollbackInputSchema,
   developmentCheckpointPreparationInputSchema,
-  developmentCheckpointDiscardUploadInputSchema,
   DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER,
   type DevelopmentCheckpointScope
 } from '@artificer-toolkit/schema/api/developmentCheckpoint'
@@ -20,7 +19,6 @@ import { decodeCheckpointRecord } from '@artificer-toolkit/encounter-persistence
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { encodeBase64 } from '@artificer-toolkit/shared/base64'
 import type { QueryCtx } from '../_generated/server'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { untrackedInternalMutation, withSceneVisionTracking } from '../lib/mutations'
@@ -32,7 +30,6 @@ import {
 } from './authority'
 import { readCampaignLiveAuthority } from './authorityGuard'
 import { publishCheckpoint } from './checkpoint'
-import { commitStagedCheckpoint } from './checkpointStaging'
 
 async function readCheckpointFixture(ctx: QueryCtx, scope: DevelopmentCheckpointScope) {
   await requireFixtureAccount(ctx, scope.ownerUserId)
@@ -104,13 +101,13 @@ function history(table: LiveSessionCheckpointHistoryTable, fields: Record<string
   }
 }
 
-/** No existing room authority may be adopted; the staged fixture stays within normal note limits. */
+/** No existing room authority may be adopted; the large fixture stays within normal note limits. */
 export const prepare = untrackedInternalMutation({
   args: v.any(),
   returns: v.any(),
   handler: async (rawCtx, args) => {
     const ctx = withSceneVisionTracking(rawCtx)
-    const { staged, ...scope } = developmentCheckpointPreparationInputSchema.parse(args)
+    const { large, ...scope } = developmentCheckpointPreparationInputSchema.parse(args)
     const { run, play } = await readCheckpointFixture(ctx, scope)
     if (await readCampaignLiveAuthority(ctx, scope.campaignId))
       throw new Error('Fixture Campaign already has live authority.')
@@ -127,14 +124,14 @@ export const prepare = untrackedInternalMutation({
     })
     const now = new Date().toISOString()
     const state = readRunState(run)
-    const reminders = Array.from({ length: staged ? 64 : 2 }, (_, order) => ({
+    const reminders = Array.from({ length: large ? 64 : 2 }, (_, order) => ({
       id: crypto.randomUUID(),
       label: `Checkpoint native proof ${order}`,
       timing: 'ROUND_START' as const,
       round: null,
       actorId: null,
       public: false,
-      notes: staged ? '🎲'.repeat(2000) : null,
+      notes: large ? '🎲'.repeat(2000) : null,
       order
     }))
     const nextState = {
@@ -200,9 +197,9 @@ export const prepare = untrackedInternalMutation({
       history: entries,
       scenes: []
     }
-    // The fixture stands in for the room's deadline-alarm checkpoint.
+    // The fixture stands in for a room backlog-bound checkpoint.
     return liveSessionCheckpointRequestSchema.parse({
-      reason: 'DEADLINE',
+      reason: 'BACKLOG',
       campaignId: scope.campaignId,
       epoch: authority.epoch,
       checkpointId: crypto.randomUUID(),
@@ -222,40 +219,12 @@ export const rollback = untrackedInternalMutation({
   args: v.any(),
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { scope, checkpoint, staged } = developmentCheckpointRollbackInputSchema.parse(args)
+    const { scope, checkpoint } = developmentCheckpointRollbackInputSchema.parse(args)
     await readCheckpointFixture(ctx, scope)
     if (checkpoint.campaignId !== scope.campaignId)
       throw new Error('Fixture checkpoint Campaign does not match.')
-    if (staged) {
-      const { records: _records, ...commit } = checkpoint
-      await commitStagedCheckpoint(ctx, commit)
-    } else await publishCheckpoint(ctx, checkpoint)
+    await publishCheckpoint(ctx, checkpoint)
     throw new ConvexError(DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER)
-  }
-})
-
-/** Failed proof cleanup may discard only the exact reserved fixture's uncommitted upload. */
-export const discardUpload = untrackedInternalMutation({
-  args: v.any(),
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const { scope, checkpointId } = developmentCheckpointDiscardUploadInputSchema.parse(args)
-    await readCheckpointFixture(ctx, scope)
-    const row = await ctx.db
-      .query('liveSessionCheckpointUploads')
-      .withIndex('by_checkpointId', (q) => q.eq('checkpointId', checkpointId))
-      .unique()
-    if (!row) return null
-    if (row.campaignId !== scope.campaignId)
-      throw new Error('Fixture upload belongs to another Campaign.')
-    const parts = await ctx.db
-      .query('liveSessionCheckpointUploadParts')
-      .withIndex('by_checkpointId_index', (q) => q.eq('checkpointId', checkpointId))
-      .take(19)
-    if (parts.length > 18) throw new Error('Fixture upload exceeds its part bound.')
-    for (const part of parts) await ctx.db.delete(part._id)
-    await ctx.db.delete(row._id)
-    return null
   }
 })
 
@@ -274,8 +243,7 @@ export const inspect = internalQuery({
       characterLedgers,
       campaignRevision,
       playRevision,
-      characterRevision,
-      uploads
+      characterRevision
     ] = await Promise.all([
       readCampaignLiveAuthority(ctx, scope.campaignId),
       ctx.db
@@ -309,32 +277,13 @@ export const inspect = internalQuery({
       ctx.db
         .query('sceneVisionRevisions')
         .withIndex('by_scope_id', (q) => q.eq('scope', 'CHARACTER').eq('id', scope.characterId))
-        .unique(),
-      ctx.db
-        .query('liveSessionCheckpointUploads')
-        .withIndex('by_campaignId', (q) => q.eq('campaignId', scope.campaignId))
-        .take(2)
+        .unique()
     ])
     if (
       commands.length >= 145 ||
-      uploads.length > 1 ||
       [characterReceipts, campaignLedgers, characterLedgers].some((rows) => rows.length >= 20)
     )
       throw new Error('Checkpoint proof fixture exceeds its inspection bound.')
-    const uploadParts = await Promise.all(
-      uploads.map(async (upload) => {
-        const rows = await ctx.db
-          .query('liveSessionCheckpointUploadParts')
-          .withIndex('by_checkpointId_index', (q) => q.eq('checkpointId', upload.checkpointId))
-          .take(19)
-        if (rows.length > 18) throw new Error('Fixture upload exceeds its part bound.')
-        return rows.map(({ bytes, ...part }) => ({
-          ...part,
-          byteLength: bytes.byteLength,
-          checksum: checksumCanonicalJson(encodeBase64(new Uint8Array(bytes)))
-        }))
-      })
-    )
     const ledgers = [...campaignLedgers, ...characterLedgers].map(({ payload, ...row }) => ({
       ...row,
       payloadByteLength: payload?.byteLength ?? null
@@ -360,9 +309,7 @@ export const inspect = internalQuery({
         parts,
         campaignRevision,
         playRevision,
-        characterRevision,
-        uploads,
-        uploadParts
+        characterRevision
       }),
       runVersion: fixture.run.version,
       authority: authority ? presentCampaignLiveAuthority(authority) : null,
@@ -371,8 +318,6 @@ export const inspect = internalQuery({
       playChecksum: fixture.play.checksum,
       sharedHeaderCount: commands.length,
       privateHeaderCount: characterReceipts.length,
-      stagedUploadCount: uploads.length,
-      stagedPartCount: uploadParts.reduce((sum, parts) => sum + parts.length, 0),
       ledgers: ledgers.map(
         ({ _id, _creationTime, payloadByteLength: _payloadByteLength, ...metadata }) =>
           receiptLedgerMetadataSchema.parse(metadata)

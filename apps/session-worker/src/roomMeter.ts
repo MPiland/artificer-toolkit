@@ -1,8 +1,13 @@
 import {
   LIVE_SESSION_CHECKPOINT_IO_SECTIONS,
+  LIVE_SESSION_CHECKPOINT_REASONS,
+  liveSessionCheckpointIoSchema,
   type LiveSessionCheckpointIo,
   type LiveSessionCheckpointReason
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
+import { z } from 'zod'
+
+import type { RoomStorage } from './roomEncounterStore.js'
 
 /** How Cloudflare bills an incoming request; WebSocket messages count 20:1 (ADR 0035 Decision 9). */
 export type RoomRequestKind = 'WEBSOCKET_MESSAGE' | 'HTTP' | 'ALARM'
@@ -45,6 +50,77 @@ export interface CheckpointSample {
   requests: number
   wallMs: number
   io: LiveSessionCheckpointIo
+}
+
+/** Where a room keeps its meter across hibernation; development only, so it is never metered itself. */
+export interface RoomMeterStore {
+  read(): string | null
+  write(state: string): void
+  clear(): void
+}
+
+const countsSchema = z.record(z.string(), z.number())
+
+const totalsSchema = z.strictObject({
+  epoch: z.nullable(z.string()),
+  startedAt: z.number(),
+  endedAt: z.nullable(z.number()),
+  requests: z.strictObject({ WEBSOCKET_MESSAGE: z.number(), HTTP: z.number(), ALARM: z.number() }),
+  messagesByType: countsSchema,
+  framesByType: countsSchema,
+  admissions: z.number(),
+  peakSocketsPerMember: z.array(z.number()),
+  sql: z.strictObject({ rowsRead: z.number(), rowsWritten: z.number() }),
+  commands: z.strictObject({ count: z.number(), wallMs: z.number(), maxMs: z.number() }),
+  checkpoints: z.partialRecord(
+    z.enum(LIVE_SESSION_CHECKPOINT_REASONS),
+    z.strictObject({
+      count: z.number(),
+      requests: z.number(),
+      payloadBytes: z.number(),
+      wallMs: z.number(),
+      convex: liveSessionCheckpointIoSchema
+    })
+  )
+})
+
+const persistedMeterSchema = z.strictObject({
+  totals: totalsSchema,
+  released: z.array(totalsSchema),
+  peaks: z.array(z.tuple([z.string(), z.number()]))
+})
+
+/** Keeps the meter in one row of the room's own SQLite, written through the raw, unmetered storage. */
+export function sqlRoomMeterStore(sql: RoomStorage['sql']): RoomMeterStore {
+  sql.exec(`
+    CREATE TABLE IF NOT EXISTS room_meter (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      state TEXT NOT NULL
+    )
+  `)
+  return {
+    read: () => {
+      const row = sql.exec('SELECT state FROM room_meter WHERE id = 1').toArray()[0]
+      return row ? String(row.state) : null
+    },
+    write: (state) => {
+      sql.exec(
+        'INSERT INTO room_meter (id, state) VALUES (1, ?) ON CONFLICT (id) DO UPDATE SET state = excluded.state',
+        state
+      )
+    },
+    clear: () => {
+      sql.exec('DELETE FROM room_meter WHERE id = 1')
+    }
+  }
+}
+
+function readPersistedMeter(state: string) {
+  try {
+    return persistedMeterSchema.parse(JSON.parse(state))
+  } catch {
+    return null
+  }
 }
 
 const MAX_RELEASED_TOTALS = 16
@@ -99,27 +175,51 @@ function increment(counts: Record<string, number>, key: string) {
   counts[key] = (counts[key] ?? 0) + 1
 }
 
-/** One room's counters. Measurement only: nothing here is read back by room behaviour. */
+/**
+ * One room's counters. Measurement only: nothing here is read back by room behaviour. With a
+ * `store` the counters survive hibernation, which would otherwise reset them mid-measurement.
+ */
 export class RoomMeter {
   #totals = emptyTotals(Date.now())
   readonly #released: RoomMeterTotals[] = []
   readonly #peaks = new Map<string, number>()
+  readonly #store: RoomMeterStore | undefined
+  #saving = false
+
+  constructor(store?: RoomMeterStore) {
+    this.#store = store
+    if (!store) return
+    const state = store.read()
+    if (state === null) return
+    const restored = readPersistedMeter(state)
+    if (!restored) {
+      store.clear()
+      return
+    }
+    this.#totals = restored.totals
+    this.#released.push(...restored.released)
+    for (const [userId, peak] of restored.peaks) this.#peaks.set(userId, peak)
+  }
 
   /** Labels the running totals; a room that has not yet claimed an epoch stays unlabelled. */
   epoch(epoch: string): void {
     this.#totals.epoch = epoch
+    this.#changed()
   }
 
   request(kind: RoomRequestKind): void {
     this.#totals.requests[kind] += 1
+    this.#changed()
   }
 
   message(type: string): void {
     increment(this.#totals.messagesByType, type)
+    this.#changed()
   }
 
   frame(type: string): void {
     increment(this.#totals.framesByType, type)
+    this.#changed()
   }
 
   /** Makes `meterFrame` count this socket's outgoing frames for this room. */
@@ -131,11 +231,13 @@ export class RoomMeter {
   admitted(userId: string, concurrent: number): void {
     this.#totals.admissions += 1
     this.#peaks.set(userId, Math.max(this.#peaks.get(userId) ?? 0, concurrent))
+    this.#changed()
   }
 
   rows(read: number, written: number): void {
     this.#totals.sql.rowsRead += read
     this.#totals.sql.rowsWritten += written
+    this.#changed()
   }
 
   /** Runs one room command and counts its wall time, whether it settles or throws. */
@@ -149,6 +251,7 @@ export class RoomMeter {
       commands.count += 1
       commands.wallMs += elapsed
       commands.maxMs = Math.max(commands.maxMs, elapsed)
+      this.#changed()
     }
   }
 
@@ -168,6 +271,7 @@ export class RoomMeter {
     addCounters(totals.convex, sample.io)
     for (const section of LIVE_SESSION_CHECKPOINT_IO_SECTIONS)
       addCounters(totals.convex.sections[section], sample.io.sections[section])
+    this.#changed()
     console.log(
       `[room-meter] ${JSON.stringify({ event: 'checkpoint', epoch: this.#totals.epoch, ...sample })}`
     )
@@ -182,10 +286,31 @@ export class RoomMeter {
     console.log(`[room-meter] ${JSON.stringify({ event: 'release', totals: closed })}`)
     this.#totals = emptyTotals(closed.endedAt)
     this.#peaks.clear()
+    this.#changed()
   }
 
   read(): { current: RoomMeterTotals; released: RoomMeterTotals[] } {
     return { current: this.#snapshot(), released: this.#released }
+  }
+
+  /** Saves once per event turn, before the room can hibernate; at most one write however many changes. */
+  #changed(): void {
+    if (!this.#store || this.#saving) return
+    this.#saving = true
+    queueMicrotask(() => {
+      this.#saving = false
+      try {
+        this.#store?.write(
+          JSON.stringify({
+            totals: this.#totals,
+            released: this.#released,
+            peaks: [...this.#peaks]
+          })
+        )
+      } catch (error) {
+        console.error('Room meter save failed.', error)
+      }
+    })
   }
 
   #snapshot(): RoomMeterTotals {

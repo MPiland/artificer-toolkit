@@ -2,11 +2,6 @@ import {
   sceneStoredFogSaveSchema,
   sceneStoredFogLayerSchema
 } from '@artificer-toolkit/schema/projections/sceneFogPersistence'
-import {
-  sceneStoredFogCommandSchema,
-  type sceneStoredLiveCommandSchema
-} from '@artificer-toolkit/schema/projections/sceneLivePersistence'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readLiveScene } from './liveDocuments'
@@ -37,30 +32,6 @@ export async function readFogSave(ctx: QueryCtx, saveId: string) {
 
 export function parseFogLayer(row: Doc<'sceneFogLayers'>, version: number) {
   return parseSceneFogLayer(stored(row), version)
-}
-
-export function parseFogCommand(
-  value: ReturnType<typeof sceneStoredLiveCommandSchema.parse>,
-  version: number
-) {
-  if (value.encoding !== 'FOG_PATCH') throw new Error('Scene command is not a paged fog patch.')
-  const command = sceneStoredFogCommandSchema.parse(value)
-  if (
-    command.inputChecksum !== checksumCanonicalJson(command.input) ||
-    command.resultChecksum !== checksumCanonicalJson(command.result) ||
-    command.input.sceneId !== command.sceneId ||
-    command.input.commandId !== command.commandId ||
-    command.result.sceneId !== command.sceneId ||
-    command.result.commandId !== command.commandId ||
-    command.result.replayed ||
-    command.result.version > version ||
-    command.result.patch.chunkCount !== command.input.chunkManifest.length ||
-    command.result.patch.ownerUserId !== command.input.layer.ownerUserId ||
-    command.result.patch.width !== command.input.layer.width ||
-    command.result.patch.height !== command.input.layer.height
-  )
-    throw new Error('Stored Scene fog command is inconsistent.')
-  return command
 }
 
 export async function readFogChunk(

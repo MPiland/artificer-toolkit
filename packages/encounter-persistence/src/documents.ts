@@ -1,12 +1,22 @@
 import {
-  encounterRunActorStateSchema,
   encounterRunStateSchema,
   type EncounterRunActorState,
-  type EncounterRunState
+  type EncounterRunState,
+  type EncounterStoredRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
+import {
+  checksumRunActorPlayState,
+  composeRunActorState
+} from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { deleteActorProjectionFacts, writeActorProjectionFacts } from './actorProjectionFacts.js'
+import {
+  ensureSourceFacts,
+  readStoredRunActor,
+  releaseSourceFacts,
+  splitActorForStorage
+} from './actorProjectionFacts.js'
+import { ensureActorSnapshot, readActorSnapshot, releaseActorSnapshot } from './actorSnapshots.js'
 import { deriveOnce } from './transactionReads.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
@@ -34,7 +44,12 @@ export function readCampaignRunState(
   return readRunState(row)
 }
 
+/** The Run's verified state; shared and frozen where reads are memoized, so callers never mutate it. */
 export function readRunState(row: EncounterDocument<'encounterRuns'>) {
+  return deriveOnce(row, parseRunState)
+}
+
+function parseRunState(row: EncounterDocument<'encounterRuns'>) {
   const state = encounterRunStateSchema.parse(JSON.parse(row.stateJson))
   if (
     state.id !== row.id ||
@@ -55,6 +70,28 @@ export function readRunState(row: EncounterDocument<'encounterRuns'>) {
   return state
 }
 
+const composedActors = new WeakMap<object, WeakMap<object, EncounterRunActorState>>()
+
+/** One composed actor per stored record and snapshot, so reads memoized by actor identity keep hitting. */
+function composeActor(
+  stored: EncounterStoredRunActorState,
+  snapshot: EncounterRunActorState['snapshot']
+) {
+  if (typeof snapshot !== 'object' || snapshot === null)
+    return Object.freeze(composeRunActorState(stored, snapshot))
+  let bySnapshot = composedActors.get(stored)
+  if (!bySnapshot) {
+    bySnapshot = new WeakMap()
+    composedActors.set(stored, bySnapshot)
+  }
+  let actor = bySnapshot.get(snapshot)
+  if (!actor) {
+    actor = Object.freeze(composeRunActorState(stored, snapshot))
+    bySnapshot.set(snapshot, actor)
+  }
+  return actor
+}
+
 export async function readRunActors(ctx: EncounterReadContext, state: EncounterRunState) {
   const rows = await ctx.db
     .query('encounterRunActors')
@@ -62,8 +99,15 @@ export async function readRunActors(ctx: EncounterReadContext, state: EncounterR
     .take(MAX_ENCOUNTER_ACTORS + 1)
   if (rows.length > MAX_ENCOUNTER_ACTORS)
     throw new Error('Encounter actors exceed the supported bound.')
+  const snapshots = new Map(
+    await Promise.all(
+      [...new Set(rows.map((row) => row.snapshotChecksum))].map(
+        async (checksum) => [checksum, await readActorSnapshot(ctx, state.id, checksum)] as const
+      )
+    )
+  )
   const actors = rows
-    .map((row) => parseRunActor(row, state))
+    .map((row) => parseRunActor(row, state, snapshots.get(row.snapshotChecksum)!))
     .sort((left, right) => left.id.localeCompare(right.id))
   const expectedActorIds = [...state.actorIds].sort((left, right) => left.localeCompare(right))
   if (
@@ -79,15 +123,12 @@ export async function readRunActors(ctx: EncounterReadContext, state: EncounterR
   return actors
 }
 
-function readRunActorDocument(row: EncounterDocument<'encounterRunActors'>) {
-  const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-  if (actor.id !== row.id || checksumCanonicalJson(actor) !== row.stateChecksum)
-    throw new Error('Encounter actor state checksum mismatch.')
-  return actor
-}
-
-function parseRunActor(row: EncounterDocument<'encounterRunActors'>, state: EncounterRunState) {
-  const actor = deriveOnce(row, readRunActorDocument)
+function parseRunActor(
+  row: EncounterDocument<'encounterRunActors'>,
+  state: EncounterRunState,
+  snapshot: EncounterRunActorState['snapshot']
+) {
+  const actor = composeActor(readStoredRunActor(row), snapshot)
   if (actor.encounterId !== state.id) throw new Error('Encounter actor state checksum mismatch.')
   return actor
 }
@@ -106,7 +147,7 @@ export async function replaceRunActor(
     .unique()
   if (
     !row ||
-    row.stateChecksum !== checksumCanonicalJson(before) ||
+    row.stateChecksum !== checksumRunActorPlayState(before) ||
     after.id !== before.id ||
     after.encounterId !== before.encounterId
   )
@@ -116,29 +157,55 @@ export async function replaceRunActor(
 
 /**
  * Every actor write goes through `insertRunActor`, `writeRunActor` or `deleteRunActor`, which keep
- * the actor's projection facts in step in the same transaction (ADR 0035 Amendment 12).
+ * the actor's snapshot and source facts rows in step in the same transaction (ADR 0035
+ * Amendments 12 and 29). The actor's row holds its play state and projection facts and names its
+ * snapshot by checksum; `stateChecksum` covers the actor without its snapshot.
  */
 export async function insertRunActor(ctx: EncounterWriteContext, actor: EncounterRunActorState) {
+  const split = splitActorForStorage(actor)
+  await ensureActorSnapshot(ctx, actor.encounterId, split.snapshotChecksum, split.snapshot)
+  if (split.source && split.sourceFactsChecksum)
+    await ensureSourceFacts(ctx, actor.encounterId, split.sourceFactsChecksum, split.source)
   await ctx.db.insert('encounterRunActors', {
     id: actor.id,
     encounterId: actor.encounterId,
-    stateJson: JSON.stringify(actor),
-    stateChecksum: checksumCanonicalJson(actor)
+    stateJson: JSON.stringify(split.stored),
+    stateChecksum: checksumRunActorPlayState(actor),
+    snapshotChecksum: split.snapshotChecksum,
+    sourceFactsChecksum: split.sourceFactsChecksum
   })
-  await writeActorProjectionFacts(ctx, actor)
 }
 
-/** Rewrites a stored actor row the caller has already checked. */
+/**
+ * Rewrites a stored actor row the caller has already checked. A snapshot or source the actor newly
+ * names is written first; one it stops naming is released after the row points elsewhere.
+ */
 export async function writeRunActor(
   ctx: EncounterWriteContext,
   rowId: EncounterDocument<'encounterRunActors'>['_id'],
   actor: EncounterRunActorState
 ) {
+  const row = await ctx.db.get(rowId)
+  if (!row) throw new Error('Encounter actor was not found.')
+  const split = splitActorForStorage(actor)
+  if (row.snapshotChecksum !== split.snapshotChecksum)
+    await ensureActorSnapshot(ctx, actor.encounterId, split.snapshotChecksum, split.snapshot)
+  if (
+    split.source &&
+    split.sourceFactsChecksum &&
+    row.sourceFactsChecksum !== split.sourceFactsChecksum
+  )
+    await ensureSourceFacts(ctx, actor.encounterId, split.sourceFactsChecksum, split.source)
   await ctx.db.patch(rowId, {
-    stateJson: JSON.stringify(actor),
-    stateChecksum: checksumCanonicalJson(actor)
+    stateJson: JSON.stringify(split.stored),
+    stateChecksum: checksumRunActorPlayState(actor),
+    snapshotChecksum: split.snapshotChecksum,
+    sourceFactsChecksum: split.sourceFactsChecksum
   })
-  await writeActorProjectionFacts(ctx, actor)
+  if (row.snapshotChecksum !== split.snapshotChecksum)
+    await releaseActorSnapshot(ctx, row.encounterId, row.snapshotChecksum)
+  if (row.sourceFactsChecksum !== null && row.sourceFactsChecksum !== split.sourceFactsChecksum)
+    await releaseSourceFacts(ctx, row.encounterId, row.sourceFactsChecksum)
 }
 
 export async function deleteRunActor(
@@ -146,11 +213,13 @@ export async function deleteRunActor(
   row: EncounterDocument<'encounterRunActors'>
 ) {
   await ctx.db.delete(row._id)
-  await deleteActorProjectionFacts(ctx, row.encounterId, row.id)
+  await releaseActorSnapshot(ctx, row.encounterId, row.snapshotChecksum)
+  if (row.sourceFactsChecksum !== null)
+    await releaseSourceFacts(ctx, row.encounterId, row.sourceFactsChecksum)
 }
 
-/** Read one actor without hydrating unrelated actor snapshots. */
-export async function readRunActor(
+/** Read one actor with its row, without hydrating unrelated actor snapshots. */
+export async function readRunActorWithRow(
   ctx: EncounterReadContext,
   state: EncounterRunState,
   actorId: string
@@ -161,11 +230,23 @@ export async function readRunActor(
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', actorId))
     .unique()
   if (!row) throw new Error('Encounter actor was not found.')
-  const actor = parseRunActor(row, state)
+  const actor = parseRunActor(
+    row,
+    state,
+    await readActorSnapshot(ctx, state.id, row.snapshotChecksum)
+  )
   if (
     actor.systemId !== state.gameSystemId ||
     !state.sides.some((side) => side.id === actor.sideId)
   )
     throw new Error('Encounter actor state does not match the Run.')
-  return actor
+  return { row, actor }
+}
+
+export async function readRunActor(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  actorId: string
+) {
+  return (await readRunActorWithRow(ctx, state, actorId)).actor
 }

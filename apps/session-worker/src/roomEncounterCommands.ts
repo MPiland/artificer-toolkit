@@ -1,5 +1,7 @@
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
@@ -20,13 +22,12 @@ import type { RoomInputs } from './roomInputs.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { executeRoomEncounterTurn } from './roomEncounterTurns.js'
-import { recordRoomEncounterReplay, removeRoomEncounterTimeline } from './roomEncounterReplayIndex.js'
+import { recordRoomEncounterReplay, removeRoomFinishedRunRows } from './roomEncounterReplayIndex.js'
 import {
   readRoomEncounterResponseRoute,
   refuseUnroutedEncounterDecision,
@@ -115,7 +116,12 @@ export async function executeRoomEncounterCommand(input: {
           campaignId,
           epoch,
           userId: caller,
-          command: { scope: 'CHARACTER_SHEET', characterId, encounterId, command: sheetCommand }
+          command: {
+            scope: 'CHARACTER_SHEET',
+            characterId,
+            encounterId,
+            command: sheetCommand
+          }
         })
         const { streamVersion } = executed.acknowledgement
         const { overview } = projectRoomCharacterSheet(
@@ -141,6 +147,8 @@ export async function executeRoomEncounterCommand(input: {
     .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
     .unique()
   if (!beforeRun) throw new Error('Encounter is unavailable.')
+  // A completed Run keeps no snapshots, rounds or history to run a command against (Amendment 30).
+  if (beforeRun.status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (command.type === 'RESOLVE_RULE_OCCURRENCE' || command.type === 'VOID_RULE_OCCURRENCE') {
     const route = await readRoomEncounterResponseRoute(store, command)
     const routed =
@@ -155,7 +163,10 @@ export async function executeRoomEncounterCommand(input: {
     // A recorded command is a retry: its planner's admission replays or refuses it on its receipt,
     // a Run command or a rule receipt (an action's evidence answer records only the latter).
     if (command.type === 'RESOLVE_RULE_OCCURRENCE') {
-      const key = { campaignId: beforeRun.campaignId, commandId: command.commandId.toLowerCase() }
+      const key = {
+        campaignId: beforeRun.campaignId,
+        commandId: command.commandId.toLowerCase()
+      }
       const recorded = await Promise.all([
         context.db
           .query('encounterRunCommands')
@@ -247,8 +258,7 @@ export async function executeRoomEncounterCommand(input: {
     ? parsedGm.data
     : await readEncounterGmProjection(context, readRunState(currentRun))
   const result = { ...rawResult, projection }
-  if (beforeRun.status !== 'COMPLETED' && currentRun.status === 'COMPLETED')
-    await removeRoomEncounterTimeline(context.db, currentRun.id)
+  if (currentRun.status === 'COMPLETED') await removeRoomFinishedRunRows(context.db, currentRun.id)
   else
     await recordRoomEncounterReplay(context.db, {
       campaignId,
@@ -267,8 +277,7 @@ export async function executeRoomEncounterCommand(input: {
   const checkpointBeforeAcknowledgement =
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
-    (removed !== null &&
-      encounterRunActorStateSchema.parse(JSON.parse(removed.stateJson)).kind === 'CHARACTER')
+    (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
   const recipients = new Map<string, EncounterCommandResultDto>()
   for (const recipient of new Set([userId, ...input.recipientUserIds])) {
     const { campaign, membership } = await context.ports.requireCampaignAuthority(
@@ -284,7 +293,12 @@ export async function executeRoomEncounterCommand(input: {
       })
     )
   }
-  const play = await readRoomEncounterPlayAuthorization(context, campaignId, authorization.play)
+  const play = await readRoomEncounterPlayAuthorization(
+    context,
+    campaignId,
+    authorization.play,
+    input.presentedSceneId ?? null
+  )
   return {
     recipients,
     play,
@@ -457,24 +471,28 @@ export async function executeRoomEncounterCommand(input: {
   }
 }
 
-/** Rebuilds room-owned controls from committed native facts, including after memory eviction. */
+/**
+ * Rebuilds room-owned controls from committed native facts, including after memory eviction: the
+ * ACTIVE Run bound to the presented Scene plays, and no other Run's actors do. Null leaves the held
+ * controls as they are, when this store never loaded the Run that holds them.
+ */
 export async function readRoomEncounterPlayAuthorization(
   ctx: EncounterReadContext,
   campaignId: string,
   held: LiveSessionRoomAuthorization['play'],
-  binding?: Pick<
-    NonNullable<LiveSessionRoomAuthorization['play']['encounter']>,
-    'encounterId' | 'sceneId'
-  >
+  sceneId: string | null
 ): Promise<LiveSessionRoomAuthorization['play'] | null> {
-  const bound = binding ?? held.encounter
-  if (!bound) return null
-  const row = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', bound.encounterId))
-    .unique()
-  if (!row) return null
-  if (row.campaignId !== campaignId) throw new Error('Room Encounter Campaign mismatch.')
+  const active = sceneId ? await readActiveSceneEncounter(ctx, { campaignId, sceneId }) : null
+  if (!active) {
+    const heldRun = held.encounter
+      ? await ctx.db
+          .query('encounterRuns')
+          .withIndex('by_publicId', (q) => q.eq('id', held.encounter!.encounterId))
+          .unique()
+      : null
+    return heldRun ? liveSessionRoomPlayAuthorizationSchema.parse({ encounter: null }) : null
+  }
+  const { run: row, binding: bound } = active
   const state = readRunState(row)
   const actors = await readRunActors(ctx, state)
   const bindings = await ctx.db
@@ -520,7 +538,8 @@ export async function replayRoomEncounterCommand(input: {
 }) {
   const { store, inputs, authorization, userId, replayed } = input
   const recorded = replayed.kind === 'RECORDED' ? replayed.result : null
-  const encounterId = replayed.kind === 'RECORDED' ? replayed.result.projection.id : replayed.encounterId
+  const encounterId =
+    replayed.kind === 'RECORDED' ? replayed.result.projection.id : replayed.encounterId
   const recordedVersion =
     replayed.kind === 'RECORDED' ? replayed.result.projection.version : replayed.version
   const epoch = store.epoch
@@ -562,16 +581,18 @@ export async function replayRoomEncounterCommand(input: {
     userId,
     observed: inputs.revisions(row.campaignId, authorization.revisions)
   })
-  const { campaign, membership } = await ctx.ports.requireCampaignAuthority(
-    row.campaignId,
-    userId
-  )
+  const { campaign, membership } = await ctx.ports.requireCampaignAuthority(row.campaignId, userId)
   return presentEncounterResultForMember(ctx, {
     campaign,
     membership,
     result:
       replayed.kind === 'RECORDED'
         ? { ...replayed.result, projection }
-        : { projection, roll: replayed.roll, occurrence: null, evidenceRoll: null }
+        : {
+            projection,
+            roll: replayed.roll,
+            occurrence: null,
+            evidenceRoll: null
+          }
   })
 }

@@ -16,6 +16,7 @@ import {
   type LiveSessionCheckpointSceneTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { sceneFogPatchInputSchema } from '@artificer-toolkit/schema/api/sceneFog'
+import { LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import {
   sceneStoredLiveStateSchema,
   sceneStoredUndoCommandSchema
@@ -37,7 +38,7 @@ import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shar
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
 import { buildRoomCheckpointRecords } from './roomCheckpointRecords.js'
-import { RoomEncounterStore, type RoomRecord } from './roomEncounterStore.js'
+import { RoomEncounterStore, SCENE_EVIDENCE_ROW, type RoomRecord } from './roomEncounterStore.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { ROOM_SCENE_DEFINITION_HEADER } from './roomSceneDefinition.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
@@ -187,8 +188,15 @@ function fixture(overrides = true) {
       ...(overrides ? [entity('tokens'), entity('barriers')] : [])
     ]
   })
-  const read = (table: LiveSessionCheckpointSceneTable, key: unknown[]) => {
-    const retained = room.record('SCENE_CHECKPOINT_ROW', canonicalizeJson([table, ...key]))
+  const read = (
+    table: LiveSessionCheckpointSceneTable | 'sceneLiveCommands' | 'sceneGeometrySaves',
+    key: unknown[]
+  ) => {
+    const kind =
+      table === 'sceneLiveCommands' || table === 'sceneGeometrySaves'
+        ? SCENE_EVIDENCE_ROW
+        : 'SCENE_CHECKPOINT_ROW'
+    const retained = room.record(kind, canonicalizeJson([table, ...key]))
     if (!retained) throw new Error('Missing fixture row.')
     return canonicalJsonRecordSchema.parse(JSON.parse(retained.json))
   }
@@ -339,7 +347,7 @@ describe('room Scene command persistence', () => {
       fromChecksum: snapshot.checksum,
       toSequence: base.room.sequence,
       maxEntries: 10,
-      maxBytes: 4 * 1024 * 1024
+      maxBytes: LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES
     }).entries
     const checkpoint = buildRoomCheckpointRecords({
       documents: snapshot.documents,
@@ -350,12 +358,11 @@ describe('room Scene command persistence', () => {
     })
     expect(checkpoint.scenes).toHaveLength(1)
     expect(checkpoint.scenes[0]).toMatchObject({ sceneId, fromVersion: 1, toVersion: 4 })
-    expect(
-      checkpoint.scenes[0]?.changes.filter((change) => change.table === 'sceneGeometrySaves')
-    ).toHaveLength(2)
-    expect(
-      checkpoint.scenes[0]?.changes.filter((change) => change.table === 'sceneLiveCommands')
-    ).toHaveLength(3)
+    // Saves and receipts stay in the room (ADR 0035 Amendment 26): two saves and three receipts.
+    expect(base.room.records(SCENE_EVIDENCE_ROW)).toHaveLength(5)
+    expect(checkpoint.scenes[0]?.changes.map(({ table }) => table)).not.toContain(
+      'sceneLiveCommands'
+    )
   })
 
   it('uses the immutable base ordinal when no override exists', async () => {
@@ -519,7 +526,8 @@ describe('room Scene command persistence', () => {
     const before = {
       sequence: base.room.sequence,
       checksum: base.room.checksum,
-      records: base.room.records('SCENE_CHECKPOINT_ROW')
+      records: base.room.records('SCENE_CHECKPOINT_ROW'),
+      evidence: base.room.records(SCENE_EVIDENCE_ROW)
     }
     // Restored chunk validation runs after the undo stages its layer, token, head and receipt.
     await expect(base.undo(undoScene, undoCommand)).rejects.toThrow('fog chunk is inconsistent')
@@ -527,11 +535,12 @@ describe('room Scene command persistence', () => {
     expect({
       sequence: recovered.sequence,
       checksum: recovered.checksum,
-      records: recovered.records('SCENE_CHECKPOINT_ROW')
+      records: recovered.records('SCENE_CHECKPOINT_ROW'),
+      evidence: recovered.records(SCENE_EVIDENCE_ROW)
     }).toEqual(before)
     expect(
       recovered.record(
-        'SCENE_CHECKPOINT_ROW',
+        SCENE_EVIDENCE_ROW,
         canonicalizeJson(['sceneLiveCommands', sceneId, uuid(33)])
       )
     ).toBeNull()

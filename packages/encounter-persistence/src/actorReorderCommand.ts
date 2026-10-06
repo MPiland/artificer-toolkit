@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   encounterCommandInputDtoSchema,
   encounterCommandResultDtoSchema,
@@ -205,7 +206,7 @@ export async function reorderEncounterActors(
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', row.id).eq('id', actor.id))
       .unique()
-    if (!stored || stored.stateChecksum !== checksumCanonicalJson(actor))
+    if (!stored || stored.stateChecksum !== checksumRunActorPlayState(actor))
       throw new Error('Encounter actor changed before reorder.')
     const next = encounterRunActorStateSchema.parse({
       ...actor,

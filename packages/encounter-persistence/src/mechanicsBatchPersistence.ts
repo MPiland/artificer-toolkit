@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type {
   ReceiptApplications,
@@ -191,7 +192,7 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
       sourceContext: prepared.sourceContext
     })
   }
-  if (checksumCanonicalJson(plan.updatedActor) !== actorRow.stateChecksum)
+  if (checksumRunActorPlayState(plan.updatedActor) !== actorRow.stateChecksum)
     await writeRunActor(ctx, actorRow._id, plan.updatedActor)
   return {
     updatedActor: plan.updatedActor,

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { applyJsonDelta } from '@artificer-toolkit/encounter-persistence/jsonDelta'
-import type { LiveSessionCheckpointJournalEntry } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
+import {
+  LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES,
+  type LiveSessionCheckpointJournalEntry
+} from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import {
   liveSessionCheckpointSceneKeys,
   type LiveSessionCheckpointSceneTable
@@ -9,7 +12,12 @@ import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/json
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { buildRoomCheckpointRecords } from './roomCheckpointRecords.js'
-import { RoomEncounterStore, type RoomDocument, type RoomRecord } from './roomEncounterStore.js'
+import {
+  RoomEncounterStore,
+  SCENE_EVIDENCE_ROW,
+  type RoomDocument,
+  type RoomRecord
+} from './roomEncounterStore.js'
 import { aggregate, encounterId, uuid } from './testing/roomAggregateFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 
@@ -27,7 +35,9 @@ const actor = (): RoomDocument => ({
       effects: [],
       padding: 'x'.repeat(20_000)
     }),
-    stateChecksum: sha256Hex('actor')
+    stateChecksum: sha256Hex('actor'),
+    snapshotChecksum: sha256Hex('snapshot'),
+    sourceFactsChecksum: null
   }
 })
 const receipt = (ordinal: number): RoomDocument => ({
@@ -231,78 +241,15 @@ function fogRecords(): RoomRecord[] {
 }
 
 describe('room checkpoint Scene records', () => {
-  it.each([0, 1])(
-    'retains pending movement saves and receipts without a Scene delta at version %s',
-    (version) => {
-      const commandId = uuid(0x510)
-      const input = {
-        type: 'MOVE_SCENE_TOKEN',
-        sceneId,
-        commandId,
-        expectedSceneVersion: version,
-        expectedEncounterVersion: 1,
-        correlationId: null,
-        movementKind: 'VOLUNTARY',
-        tokenId: uuid(0x502),
-        path: [
-          { x: 0, y: 0 },
-          { x: 5, y: 0 }
-        ]
-      }
-      const result = {
-        sceneId,
-        commandId,
-        version,
-        replayed: false,
-        delta: null,
-        fogPatches: [],
-        occurrence: {
-          occurrenceId: uuid(0x511),
-          occurrenceVersion: 1,
-          status: 'PENDING',
-          outcome: null,
-          pending: null
-        }
-      }
-      const save = sceneRow('sceneGeometrySaves', {
-        id: uuid(0x512),
-        sceneId,
-        commandId,
-        actorUserId: uuid(4),
-        input,
-        inputChecksum: checksumCanonicalJson(input),
-        snapshotVersion: version,
-        status: 'PUBLISHED',
-        expiresAt: 1,
-        fogSaves: []
-      })
-      const receipt = sceneRow('sceneLiveCommands', {
-        sceneId,
-        commandId,
-        actorUserId: uuid(4),
-        encoding: 'GEOMETRY',
-        input,
-        result,
-        inputChecksum: checksumCanonicalJson(input),
-        resultChecksum: checksumCanonicalJson(result)
-      })
-      const baseline = [sceneSource(), ...(version ? [sceneHead(version)] : [])]
-      const checkpoint = build([], [[setRecord(save), setRecord(receipt)]], baseline)
-      expect(checkpoint.scenes).toHaveLength(1)
-      expect(checkpoint.scenes[0]).toMatchObject({ fromVersion: version, toVersion: version })
-      expect(checkpoint.scenes[0]!.changes.map(({ table }) => table)).toEqual([
-        'sceneGeometrySaves',
-        'sceneLiveCommands'
-      ])
-      for (const change of checkpoint.scenes[0]!.changes) {
-        expect(change.previousChecksum).toBeNull()
-        expect(change.delta).toHaveProperty('set')
-      }
-      expect(
-        build([], [[setRecord(save), setRecord(receipt)]], [...baseline, save, receipt]).scenes
-      ).toEqual([])
+  it('keeps Scene command evidence in the room: it never reaches a checkpoint', () => {
+    const evidence = {
+      kind: SCENE_EVIDENCE_ROW,
+      key: canonicalizeJson(['sceneLiveCommands', sceneId, uuid(0x510)]),
+      revision: String(Date.now()),
+      json: canonicalizeJson({ sceneId, commandId: uuid(0x510) })
     }
-  )
+    expect(build([], [[setRecord(evidence)]], [sceneSource()]).scenes).toEqual([])
+  })
 
   it('rejects evidence updates and deletions, including reuse within the same checkpoint', () => {
     const save = fogRecords()[0]!
@@ -426,7 +373,7 @@ describe('room checkpoint Scene records', () => {
     expect(() => build([], [], [source, sceneHead(1), sceneHead(1)])).toThrow('public key')
   })
 
-  it('rejects reserved kind, key, revision, canonical JSON and complete-row violations', () => {
+  it('rejects reserved kind, key, revision, canonical JSON and complete-row violations a page touches', () => {
     const row = sceneHead(1)
     for (const invalid of [
       { ...row, kind: 'SCENE_CHECKPOINT_UNKNOWN' },
@@ -437,7 +384,13 @@ describe('room checkpoint Scene records', () => {
       { ...row, json: canonicalizeJson({ sceneId, version: 1 }) },
       { ...sceneSource(), key: uuid(0x509) }
     ])
-      expect(() => build([], [], [sceneSource(), invalid])).toThrow()
+      expect(() =>
+        build(
+          [],
+          [[{ op: 'RECORD_DELETE', kind: invalid.kind, key: invalid.key }]],
+          [sceneSource(), invalid]
+        )
+      ).toThrow()
   })
 
   it('rejects changed Scene scope, nested foreign scope, missing pins and missing fog saves', () => {
@@ -601,10 +554,40 @@ describe('room checkpoint records', () => {
       creationTime: 3,
       fields: { ...base, commandId: uuid(0x402), version: 1, rollCardId: null }
     }
-    const result = build([], [[insert(command), insert(ruleReceipt), insert(index), insert(receipt(1))]])
+    const result = build(
+      [],
+      [[insert(command), insert(ruleReceipt), insert(index), insert(receipt(1))]]
+    )
     expect(result.history.map(({ table }) => table)).toEqual(['characterCommandReceipts'])
     expect(result.changes.map(({ table, key }) => [table, key])).toEqual([
       ['encounterReplayIndex', [uuid(2), uuid(0x402)]]
+    ])
+  })
+
+  it('writes no replay index row for a Run that completes in the same save', () => {
+    const index = (ordinal: number): RoomDocument => ({
+      table: 'encounterReplayIndex',
+      id: `room:index:${ordinal}`,
+      creationTime: ordinal,
+      fields: {
+        campaignId: uuid(2),
+        encounterId,
+        commandId: uuid(0x400 + ordinal),
+        commandFingerprint: sha256Hex('command'),
+        actorUserId: uuid(4),
+        version: ordinal,
+        rollCardId: null
+      }
+    })
+    // The Run's commands each index their replay; COMPLETE removes the whole timeline.
+    const commands = [1, 2, 3].map((ordinal) => [insert(index(ordinal))])
+    const complete = [1, 2, 3].map((ordinal) => ({ op: 'DELETE', id: index(ordinal).id }))
+    expect(build([], [...commands, complete]).changes).toEqual([])
+    // A save that ends before COMPLETE still carries the index, which the next save removes.
+    expect(build([], commands).changes.map(({ table }) => table)).toEqual([
+      'encounterReplayIndex',
+      'encounterReplayIndex',
+      'encounterReplayIndex'
     ])
   })
 
@@ -728,23 +711,24 @@ describe('room checkpoint records', () => {
     ).toEqual({ changes: [], history: [], scenes: [] })
   })
 
-  it.each(['encounterRunActors', 'encounterActorProjectionFacts'] as const)(
-    'keeps identical actor IDs in different Encounters distinct for %s',
+  it.each(['encounterRunActors', 'encounterActorSnapshots'] as const)(
+    'keeps identical actor and snapshot identities in different Encounters distinct for %s',
     (table) => {
+      const snapshotChecksum = 'a'.repeat(64)
       const first: RoomDocument =
         table === 'encounterRunActors'
           ? actor()
           : {
               table,
-              id: 'private:facts',
+              id: 'private:snapshot',
               creationTime: 1,
               fields: {
-                id: uuid(0x100),
                 encounterId,
-                factsJson: '{"label":"Actor"}',
-                sourceFactsChecksum: null
+                checksum: snapshotChecksum,
+                snapshotJson: '{"label":"Actor"}'
               }
             }
+      const identity = table === 'encounterRunActors' ? uuid(0x100) : snapshotChecksum
       const second = {
         ...first,
         id: `${first.id}:other-encounter`,
@@ -752,8 +736,8 @@ describe('room checkpoint records', () => {
       }
       const result = build([], [[insert(second), insert(first)]])
       expect(result.changes.map(({ table: changedTable, key }) => [changedTable, key])).toEqual([
-        [table, [encounterId, uuid(0x100)]],
-        [table, [uuid(2), uuid(0x100)]]
+        [table, [encounterId, identity]],
+        [table, [uuid(2), identity]]
       ])
     }
   )
@@ -822,7 +806,7 @@ describe('room checkpoint records', () => {
     }
   })
 
-  it('rejects duplicate/missing storage IDs, duplicate public keys, unknown tables and invalid rows', () => {
+  it('rejects duplicate/missing storage IDs, duplicate public keys, and unknown tables or invalid rows a page touches', () => {
     const document = actor()
     for (const documents of [
       [document, document],
@@ -837,7 +821,9 @@ describe('room checkpoint records', () => {
       ],
       [{ ...document, creationTime: NaN }]
     ])
-      expect(() => build(documents, [])).toThrow()
+      expect(() => build(documents, [[patch(document.id, {})]])).toThrow()
+    // The base is the store's validated snapshot, so rows the page does not touch are not reread.
+    expect(() => build([{ ...document, creationTime: NaN }], [])).not.toThrow()
     expect(() => build([document], [[insert(document)]])).toThrow('storage id')
     expect(() => build([document], [[insert({ ...document, id: 'other' })]])).toThrow('public key')
     expect(() => build([receipt(1)], [[insert({ ...receipt(1), id: 'other' })]])).toThrow(
@@ -961,7 +947,10 @@ describe('room checkpoint records', () => {
     expect(() => build([], [[{ op: 'INVALID' }]])).toThrow()
     for (const stateJson of ['broken', '{"hp":1e400}']) {
       expect(() =>
-        build([{ ...document, fields: { ...document.fields, stateJson } }], [])
+        build(
+          [{ ...document, fields: { ...document.fields, stateJson } }],
+          [[patch(document.id, {})]]
+        )
       ).toThrow()
       expect(() => build([document], [[patch(document.id, { stateJson })]])).toThrow()
     }
@@ -1004,7 +993,7 @@ describe('room checkpoint records', () => {
         fromChecksum: snapshot.checksum,
         toSequence: recovered.sequence,
         maxEntries: 100,
-        maxBytes: 4 * 1024 * 1024
+        maxBytes: LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES
       }).entries
       expect(JSON.parse(entries[0]!.writeSetJson).map((write: { op: string }) => write.op)).toEqual(
         ['RESTORE', 'PATCH', 'RESTORE']
@@ -1080,7 +1069,7 @@ describe('room checkpoint records', () => {
         fromChecksum: snapshot.checksum,
         toSequence: room.sequence,
         maxEntries: 100,
-        maxBytes: 4 * 1024 * 1024
+        maxBytes: LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES
       }).entries
       const result = buildRoomCheckpointRecords({
         documents: snapshot.documents,

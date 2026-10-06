@@ -1,6 +1,5 @@
 import { defineTable } from 'convex/server'
-import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
-import { sceneStoredGeometrySaveSchema } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
+import { zodToConvexFields } from 'convex-helpers/server/zod4'
 import { sceneVisionRevisionSchema } from '@artificer-toolkit/schema/projections/sceneVisionRevisions'
 import {
   sceneStoredFogSaveSchema,
@@ -11,7 +10,6 @@ import {
   sceneStoredLiveStateSchema,
   sceneStoredLiveEntitySchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
-import { sceneCommandHeaderSchema } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import {
   sceneStoredDefinitionSchema,
   sceneStoredDefinitionSaveSchema,
@@ -26,9 +24,6 @@ export const sceneTables = {
     'by_scope_id',
     ['scope', 'id']
   ),
-  sceneGeometrySaves: defineTable(zodToConvexFields(sceneStoredGeometrySaveSchema.shape))
-    .index('by_publicId', ['id'])
-    .index('by_sceneId_commandId', ['sceneId', 'commandId']),
   sceneFogSaves: defineTable(zodToConvexFields(sceneStoredFogSaveSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_sceneId_commandId', ['sceneId', 'commandId']),
@@ -46,9 +41,6 @@ export const sceneTables = {
   sceneLiveEntities: defineTable(zodToConvexFields(sceneStoredLiveEntitySchema.shape))
     .index('by_sceneId_collection_entityId', ['sceneId', 'collection', 'entityId'])
     .index('by_sceneId_collection_ordinal', ['sceneId', 'collection', 'ordinal']),
-  sceneLiveCommands: defineTable(zodToConvex(sceneCommandHeaderSchema))
-    .index('by_sceneId_commandId', ['sceneId', 'commandId'])
-    .index('by_ledgerId_entryIndex', ['ledgerId', 'entryIndex']),
   campaignScenePresentations: defineTable(zodToConvexFields(sceneStoredPresentationSchema.shape))
     .index('by_campaignId', ['campaignId'])
     .index('by_campaignId_activeMapAssetId', ['campaignId', 'activeMapAssetId']),

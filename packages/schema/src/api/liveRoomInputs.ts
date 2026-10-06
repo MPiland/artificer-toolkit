@@ -43,11 +43,11 @@ const roomInputsCursorSchema = lazySchema(() =>
   )
 )
 
-/** The seven Scene families, with a saved fog body's native chunk cursor when needed. */
+/** The five Scene families, with a saved fog body's native chunk cursor when needed. */
 export const liveRoomSceneInputsCursorSchema = lazySchema(() =>
   z.nullable(
     z.strictObject({
-      position: z.number().check(z.int()).check(z.nonnegative()).check(z.lte(6)),
+      position: z.number().check(z.int()).check(z.nonnegative()).check(z.lte(4)),
       paginationCursor: z.nullable(z.string().check(z.maxLength(8192))),
       fogSave: z.nullable(
         z.strictObject({
@@ -231,7 +231,8 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
       kind: z.literal('SCENE_DEFINITION'),
       source: liveSessionCheckpointSceneSourceSchema,
       header: sceneLiveStateHeaderSchema,
-      entities: z.array(sceneStoredDefinitionEntitySchema)
+      entities: z
+        .array(sceneStoredDefinitionEntitySchema)
         .check(z.maxLength(MAX_ROOM_INPUT_RESPONSE_DOCUMENTS)),
       continueCursor: roomInputsCursorSchema
     }),
@@ -244,7 +245,8 @@ export const liveRoomInputsResponseSchema = lazySchema(() =>
       kind: z.literal('DEFINITIONS'),
       /** Content and owner access change independently of room-owned PLAY. */
       revisions: liveRoomAuthorityRevisionsSchema,
-      definitions: z.array(liveRoomDefinitionSchema)
+      definitions: z
+        .array(liveRoomDefinitionSchema)
         .check(z.maxLength(MAX_ROOM_INPUT_RESPONSE_DOCUMENTS)),
       continueCursor: roomInputsCursorSchema
     }),

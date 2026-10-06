@@ -25,29 +25,33 @@ export function aggregate(actorCount: number) {
     version: 1,
     stateJson: JSON.stringify({ padding: 'x'.repeat(30_000) }),
     stateChecksum: checksum('run'),
+    createCommandId: uuid(4),
+    createCommandFingerprint: checksum('create'),
     createdAt: '2026-09-01T00:00:00.000Z',
     updatedAt: '2026-09-01T00:00:00.000Z'
   })
-  for (let source = 0; source < Math.ceil(actorCount / 5); source++)
+  const sources = Math.ceil(actorCount / 5)
+  for (let source = 0; source < sources; source++) {
     add('encounterSourceProjectionFacts', `convex:source:${source}`, {
       encounterId,
       checksum: checksum(`source:${source}`),
       factsJson: JSON.stringify({ statBlock: 'é'.repeat(40_000) })
     })
-  for (let actor = 0; actor < actorCount; actor++) {
+    add('encounterActorSnapshots', `convex:snapshot:${source}`, {
+      encounterId,
+      checksum: checksum(`snapshot:${source}`),
+      snapshotJson: JSON.stringify({ payload: 's'.repeat(6_000) })
+    })
+  }
+  for (let actor = 0; actor < actorCount; actor++)
     add('encounterRunActors', `convex:actor:${actor}`, {
       id: uuid(0x100 + actor),
       encounterId,
-      stateJson: JSON.stringify({ hitPoints: 10 + actor, padding: 'a'.repeat(6_000) }),
-      stateChecksum: checksum(`actor:${actor}`)
+      stateJson: JSON.stringify({ hitPoints: 10 + actor, padding: 'a'.repeat(1_500) }),
+      stateChecksum: checksum(`actor:${actor}`),
+      snapshotChecksum: checksum(`snapshot:${actor % sources}`),
+      sourceFactsChecksum: checksum(`source:${actor % sources}`)
     })
-    add('encounterActorProjectionFacts', `convex:facts:${actor}`, {
-      id: uuid(0x100 + actor),
-      encounterId,
-      factsJson: JSON.stringify({ padding: 'f'.repeat(4_000) }),
-      sourceFactsChecksum: checksum(`source:${actor % Math.ceil(actorCount / 5)}`)
-    })
-  }
   const records: RoomRecord[] = Array.from({ length: Math.min(actorCount, 6) }, (_, index) => ({
     ...playState(index),
     revision: null,

@@ -2,10 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { projectionChecksumSchema } from '../projections/identity.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { canonicalJsonRecordSchema, jsonDeltaSchema } from '../shared/jsonDelta.js'
-import {
-  liveSessionCheckpointSceneKeys,
-  liveSessionCheckpointSceneSchema
-} from './liveSessionCheckpointScenes.js'
+import { liveSessionCheckpointSceneSchema } from './liveSessionCheckpointScenes.js'
 import { gmCampaignRollDtoSchema, rollRecordDtoSchema } from './rolls.js'
 import {
   encounterStoreSchemas,
@@ -16,7 +13,7 @@ import {
 export const liveSessionCheckpointKeyFields = {
   encounterRuns: ['id'],
   encounterRunActors: ['encounterId', 'id'],
-  encounterActorProjectionFacts: ['encounterId', 'id'],
+  encounterActorSnapshots: ['encounterId', 'checksum'],
   encounterSourceProjectionFacts: ['encounterId', 'checksum'],
   encounterSceneBindings: ['encounterId'],
   encounterActorTokenBindings: ['encounterId', 'actorId'],
@@ -53,16 +50,12 @@ export const liveSessionCheckpointHistoryKeyFields = {
     string)[]
 }>
 
-/**
- * Receipt ledgers also pack Scene command receipts, which reach Convex as Scene deltas, and the
- * Encounter history Convex-side writers record.
- */
+/** Receipt ledgers pack Sheet command receipts and the Encounter history Convex-side writers record. */
 export const receiptLedgerEntryKeyFields = {
   encounterRunCommands: ['campaignId', 'commandId'],
   encounterRuleReceipts: ['campaignId', 'commandId'],
   encounterEvidenceRolls: ['id'],
-  ...liveSessionCheckpointHistoryKeyFields,
-  sceneLiveCommands: liveSessionCheckpointSceneKeys.sceneLiveCommands
+  ...liveSessionCheckpointHistoryKeyFields
 } as const
 
 export const liveSessionCheckpointTableSchema = lazySchema(() =>

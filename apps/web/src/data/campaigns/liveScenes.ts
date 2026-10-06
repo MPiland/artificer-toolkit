@@ -5,10 +5,8 @@ import {
   sceneRecipientHeaderSchema,
   sceneRecipientEncounterBindingsInputSchema,
   sceneRecipientEncounterBindingsPageSchema,
-  sceneRecipientPageSchema,
   type SceneRecipientHeader,
-  type SceneRecipientEncounterBindingsPage,
-  type SceneRecipientPage
+  type SceneRecipientEncounterBindingsPage
 } from '@artificer-toolkit/schema/api/sceneRecipient'
 import {
   sceneFogChunksPageSchema,
@@ -21,29 +19,26 @@ import {
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 
-const collections = [
-  'annotations',
-  'barriers',
-  'darknessZones',
-  'lights',
-  'tokens',
-  'measurements'
-] as const satisfies SceneRecipientPage['collection'][]
-
 function aborted(signal?: AbortSignal) {
   signal?.throwIfAborted()
 }
 
+/**
+ * Convex's Encounter bindings for a Run the room does not hold, so Convex owns them. The Scene header
+ * is read once, only for the version and revision the pages fence on; it is not subscribed.
+ */
 export async function loadCampaignSceneEncounterBindings(
   client: ConvexReactClient,
   rawBinding: unknown,
-  rawHeader: SceneRecipientHeader,
   signal?: AbortSignal
 ) {
   const binding = sceneEncounterBindingSchema.parse(rawBinding)
-  const header = sceneRecipientHeaderSchema.parse(rawHeader)
-  if (binding.sceneId !== header.id)
-    throw new Error('Encounter Scene binding does not match the presented Scene.')
+  const header = sceneRecipientHeaderSchema.parse(
+    await client.query(api.scenes.recipientReads.header, {
+      sceneId: binding.sceneId,
+      includeSnapshot: false
+    })
+  )
   const bindings: SceneRecipientEncounterBindingsPage['page'] = []
   const actorIds = new Set<string>()
   const tokenIds = new Set<string>()
@@ -119,51 +114,6 @@ export async function loadCampaignSceneEncounterBindings(
   )
     throw new Error('Encounter Scene binding authority changed before hydration completed.')
   return bindings
-}
-
-async function loadEntities(
-  client: ConvexReactClient,
-  header: SceneRecipientHeader,
-  collection: SceneRecipientPage['collection'],
-  signal?: AbortSignal
-) {
-  const entities: SceneRecipientPage['page'] = []
-  const ids = new Set<string>()
-  const cursors = new Set<string | null>()
-  let afterEntityId: string | null = null
-  for (;;) {
-    aborted(signal)
-    if (cursors.has(afterEntityId))
-      throw new Error('Scene recipient entity pagination did not advance.')
-    cursors.add(afterEntityId)
-    const page = sceneRecipientPageSchema.parse(
-      await client.action(api.scenes.recipientActions.entities, {
-        sceneId: header.id,
-        expectedVersion: header.version,
-        expectedRecipientRevision: header.recipientRevision,
-        collection,
-        afterEntityId,
-        numItems: 8
-      })
-    )
-    aborted(signal)
-    if (
-      page.version !== header.version ||
-      page.recipientRevision !== header.recipientRevision ||
-      page.collection !== collection
-    )
-      throw new Error('Scene recipient entity page is inconsistent.')
-    for (const row of page.page) {
-      if (row.value.collection !== collection || ids.has(row.value.entity.id))
-        throw new Error('Scene recipient entity page is inconsistent.')
-      ids.add(row.value.entity.id)
-      entities.push(row)
-    }
-    if (page.next === null) return entities
-    if (page.next === afterEntityId)
-      throw new Error('Scene recipient entity pagination did not advance.')
-    afterEntityId = page.next
-  }
 }
 
 async function loadFogLayers(
@@ -248,56 +198,6 @@ async function loadFogLayer(
     }
     offset = page.nextOffset
   }
-}
-
-export async function loadCampaignLiveScene(
-  client: ConvexReactClient,
-  rawHeader: SceneRecipientHeader,
-  signal?: AbortSignal
-): Promise<CampaignSceneStateDto> {
-  const header = sceneRecipientHeaderSchema.parse(rawHeader)
-  if (header.snapshot) return campaignSceneStateDtoSchema.parse(header.snapshot)
-  aborted(signal)
-  const pages = await Promise.all(
-    collections.map((collection) => loadEntities(client, header, collection, signal))
-  )
-  const fogLayers = await loadFogLayers(client, header, signal)
-  const entityPages = new Map(collections.map((collection, index) => [collection, pages[index]!]))
-  const barriers = entityPages.get('barriers')!
-  const doorStates: CampaignSceneStateDto['doorStates'] = {}
-  for (const row of barriers) {
-    if (row.value.collection === 'barriers' && row.value.entity.kind === 'DOOR') {
-      if (row.doorState === null) throw new Error('Scene recipient door state is inconsistent.')
-      doorStates[row.value.entity.id] = row.doorState
-    }
-  }
-  aborted(signal)
-  const finalHeader = sceneRecipientHeaderSchema.parse(
-    await client.query(api.scenes.recipientReads.header, {
-      sceneId: header.id,
-      includeSnapshot: false
-    })
-  )
-  aborted(signal)
-  if (
-    finalHeader.id !== header.id ||
-    finalHeader.campaignId !== header.campaignId ||
-    finalHeader.version !== header.version ||
-    finalHeader.recipientRevision !== header.recipientRevision
-  )
-    throw new Error('Scene recipient authority changed before hydration completed.')
-  const { recipientRevision: _recipientRevision, snapshot: _snapshot, ...scene } = header
-  return campaignSceneStateDtoSchema.parse({
-    ...scene,
-    annotations: entityPages.get('annotations')!.map((row) => row.value.entity),
-    barriers: barriers.map((row) => row.value.entity),
-    darknessZones: entityPages.get('darknessZones')!.map((row) => row.value.entity),
-    lights: entityPages.get('lights')!.map((row) => row.value.entity),
-    tokens: entityPages.get('tokens')!.map((row) => row.value.entity),
-    measurements: entityPages.get('measurements')!.map((row) => row.value.entity),
-    doorStates,
-    fogLayers
-  })
 }
 
 /**

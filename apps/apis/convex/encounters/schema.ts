@@ -7,7 +7,7 @@ import {
 import {
   encounterStoredRunSchema,
   encounterStoredRunActorSchema,
-  encounterStoredActorProjectionFactsSchema,
+  encounterStoredActorSnapshotSchema,
   encounterStoredSourceProjectionFactsSchema,
   encounterSceneBindingSchema,
   encounterActorTokenBindingSchema,
@@ -32,22 +32,22 @@ export const encounterTables = {
   encounterRuns: defineTable(zodToConvexFields(encounterStoredRunSchema.shape))
     .index('by_publicId', ['id'])
     .index('by_campaignId_status', ['campaignId', 'status'])
-    .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id']),
-  encounterRunActors: defineTable(zodToConvexFields(encounterStoredRunActorSchema.shape)).index(
-    'by_encounterId_id',
-    ['encounterId', 'id']
-  ),
-  encounterActorProjectionFacts: defineTable(
-    zodToConvexFields(encounterStoredActorProjectionFactsSchema.shape)
-  )
+    .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id'])
+    .index('by_campaignId_createCommandId', ['campaignId', 'createCommandId']),
+  encounterRunActors: defineTable(zodToConvexFields(encounterStoredRunActorSchema.shape))
     .index('by_encounterId_id', ['encounterId', 'id'])
+    .index('by_encounterId_snapshotChecksum', ['encounterId', 'snapshotChecksum'])
     .index('by_encounterId_sourceFactsChecksum', ['encounterId', 'sourceFactsChecksum']),
+  encounterActorSnapshots: defineTable(
+    zodToConvexFields(encounterStoredActorSnapshotSchema.shape)
+  ).index('by_encounterId_checksum', ['encounterId', 'checksum']),
   encounterSourceProjectionFacts: defineTable(
     zodToConvexFields(encounterStoredSourceProjectionFactsSchema.shape)
   ).index('by_encounterId_checksum', ['encounterId', 'checksum']),
-  encounterSceneBindings: defineTable(zodToConvexFields(encounterSceneBindingSchema.shape))
-    .index('by_encounterId', ['encounterId'])
-    .index('by_sceneId', ['sceneId']),
+  encounterSceneBindings: defineTable(zodToConvexFields(encounterSceneBindingSchema.shape)).index(
+    'by_encounterId',
+    ['encounterId']
+  ),
   encounterActorTokenBindings: defineTable(
     zodToConvexFields(encounterActorTokenBindingSchema.shape)
   )

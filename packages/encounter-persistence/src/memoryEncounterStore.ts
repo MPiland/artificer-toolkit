@@ -7,6 +7,7 @@ import type {
   EncounterTableName
 } from './store.js'
 import { encounterStoreIndexes, encounterStoreSchemas } from './storeTables.js'
+import { createDerivationScope } from './transactionReads.js'
 
 type StoredDocument = Record<string, unknown> & { _id: string; _creationTime: number }
 type Bound = { field: string; operator: 'eq' | 'gt' | 'gte' | 'lt' | 'lte'; value: unknown }
@@ -133,7 +134,18 @@ export type EncounterStoreWrite =
  * `abort` (which undoes them, including the identities and creation times they consumed); `apply`
  * replays recorded writes. The room's durable store journals each command's writes this way.
  */
-export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?: string } = {}) {
+/**
+ * `sharedReads` serves the stored documents themselves, deeply frozen, instead of copies, so their
+ * `deriveOnce` derivations last for as long as each document is unchanged. Callers must not
+ * mutate what it reads.
+ */
+export function createMemoryEncounterStore({
+  idPrefix = 'memory',
+  sharedReads = false
+}: { idPrefix?: string; sharedReads?: boolean } = {}) {
+  const derivations = sharedReads ? createDerivationScope() : null
+  const served = (document: StoredDocument) =>
+    derivations ? derivations.serve(document) : structuredClone(document)
   const tables = new Map<EncounterTableName, Map<string, StoredDocument>>()
   const tableById = new Map<string, EncounterTableName>()
   let clock = 0
@@ -221,7 +233,7 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
   const inCreationOrder = (table: EncounterTableName) =>
     [...rowsOf(table).values()]
       .sort((left, right) => left._creationTime - right._creationTime)
-      .map((document) => structuredClone(document))
+      .map(served)
   const indexed = (table: EncounterTableName, index: string, bounds: Bound[]) => {
     const indexes: Readonly<Record<string, readonly string[]>> = encounterStoreIndexes[table]
     const fields = indexes[index]
@@ -238,14 +250,14 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
         }
         return 0
       })
-      .map((document) => structuredClone(document))
+      .map(served)
   }
 
   const store = {
     async get(id: string) {
       const table = tableById.get(id)
       const document = table && tables.get(table)?.get(id)
-      return document ? structuredClone(document) : null
+      return document ? served(document) : null
     },
     query(table: EncounterTableName) {
       return {
@@ -304,6 +316,11 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
     /** Every stored document of a table, in creation order. */
     documents<Table extends EncounterTableName>(table: Table) {
       return inCreationOrder(table) as unknown as EncounterDocument<Table>[]
+    },
+    /** The stored document with this identity, or null, without copying. Callers must not mutate it. */
+    document(id: string) {
+      const table = tableById.get(id)
+      return (table && tables.get(table)?.get(id)) || null
     },
     /**
      * Restores documents with their stored identities and creation times. `validate: false` skips
@@ -377,6 +394,7 @@ export function createMemoryEncounterStore({ idPrefix = 'memory' }: { idPrefix?:
         if (!recording) throw new Error('No store transaction is open.')
         const { writes } = recording
         recording = null
+        derivations?.renew()
         return writes
       },
       /** Ends the transaction and undoes its writes, its identities and its creation times. */

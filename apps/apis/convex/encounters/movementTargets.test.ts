@@ -1,4 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -144,7 +145,7 @@ describe('native movement target facts', () => {
         )
         .unique()
       if (!row) throw new Error('Fixture actor missing')
-      const stored = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const stored = await readTestActor(ctx, row)
       const sourceId = crypto.randomUUID()
       const creature = encounterRunActorStateSchema.parse({
         ...stored,

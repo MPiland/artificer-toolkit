@@ -1,11 +1,10 @@
-import { readReceiptHeader } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { describe, expect, it } from 'vitest'
 import type {
   EncounterCommandResultDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -289,7 +288,7 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
         )
         .unique()
       if (!row) throw new Error('The Legendary fixture dragon is missing.')
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const actor = await readTestActor(ctx, row)
       const legendary = encounterLegendaryActionFeatureIds(actor)
       return discoverEncounterFeatureActionCapabilities({
         actor,

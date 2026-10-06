@@ -1,15 +1,9 @@
 import { v } from 'convex/values'
-import { liveSessionCheckpointSceneSchemas } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { campaignLiveScenePresentationReceiptDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { internalMutation } from '../lib/mutations'
-import { readReceiptLedger } from '../lib/receiptLedgers'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
 import { refreshMapReferenceFlag } from '../media/vttMapDocuments'
 import { parseFogSave, parseFogLayer } from './fogDocuments'
-import {
-  parseGeometryCommand,
-  parseGeometrySave
-} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 
 const FIXTURE_CAMPAIGN_NAME = 'Encounter execution fixture'
 
@@ -75,15 +69,24 @@ export const removeFixtureState = internalMutation({
     )
       throw new Error('Fixture Scene bounds or ownership mismatch.')
 
+    const runs = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_campaignId_createdAt_id', (q) => q.eq('campaignId', campaign.id))
+      .take(17)
+    if (runs.length > 16) throw new Error('Fixture Scene Encounter bounds exceeded.')
     const bindings = await Promise.all(
-      liveScenes.map((scene) =>
+      runs.map((run) =>
         ctx.db
           .query('encounterSceneBindings')
-          .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.id))
-          .first()
+          .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
+          .unique()
       )
     )
-    if (bindings.some((binding) => binding !== null))
+    if (
+      bindings.some(
+        (binding) => binding && liveScenes.some((scene) => scene.id === binding.sceneId)
+      )
+    )
       throw new Error('Fixture Scene has retained Encounter bindings.')
 
     const saveDependencies = await Promise.all(
@@ -192,7 +195,7 @@ export const removeFixtureState = internalMutation({
     }
     const liveChildren = await Promise.all(
       liveScenes.map(async (scene) => {
-        const [head, entities, headers, ledgerRows] = await Promise.all([
+        const [head, entities] = await Promise.all([
           ctx.db
             .query('sceneLiveStates')
             .withIndex('by_sceneId', (q) => q.eq('sceneId', scene.id))
@@ -200,61 +203,15 @@ export const removeFixtureState = internalMutation({
           ctx.db
             .query('sceneLiveEntities')
             .withIndex('by_sceneId_collection_entityId', (q) => q.eq('sceneId', scene.id))
-            .take(17),
-          ctx.db
-            .query('sceneLiveCommands')
-            .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
-            .take(17),
-          ctx.db
-            .query('receiptLedgers')
-            .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', scene.id))
             .take(17)
         ])
-        if (ledgerRows.length > 16)
-          throw new Error('Fixture live Scene command bounds or ownership mismatch.')
-        const ledgers = await Promise.all(ledgerRows.map((row) => readReceiptLedger(ctx, row.id)))
-        const commands = ledgers.flatMap(({ entries }) =>
-          entries.flatMap((entry) =>
-            entry?.table === 'sceneLiveCommands'
-              ? [liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(entry.value)]
-              : []
-          )
-        )
-        const advancingVersions = commands
-          .filter(
-            (command) =>
-              command.encoding !== 'GEOMETRY' ||
-              command.result.delta !== null ||
-              command.result.fogPatches.length > 0
-          )
-          .map((command) => command.result.version)
-          .sort((left, right) => left - right)
-        if (
-          entities.length > 16 ||
-          commands.length > 16 ||
-          headers.length !== commands.length ||
-          (head?.version ?? 0) !== advancingVersions.length ||
-          advancingVersions.some((version, index) => version !== index + 1)
-        )
-          throw new Error('Fixture live Scene command bounds or ownership mismatch.')
-        for (const command of commands) {
-          if (command.actorUserId === ownerUserId) continue
-          if (
-            command.input.type !== 'UPSERT_SCENE_MEASUREMENT' &&
-            command.input.type !== 'REMOVE_SCENE_MEASUREMENT' &&
-            command.input.type !== 'MOVE_SCENE_TOKEN'
-          )
-            throw new Error('Fixture live Scene command ownership mismatch.')
-          await requireFixtureCampaignPlayer(command.actorUserId)
-        }
-        return { scene, head, entities, commands, headers, ledgers }
+        if (entities.length > 16) throw new Error('Fixture live Scene entity bounds exceeded.')
+        return { scene, head, entities }
       })
     )
-    if (liveChildren.reduce((count, children) => count + children.commands.length, 0) > 16)
-      throw new Error('Fixture live Scene command bounds exceeded.')
     const fogChildren = await Promise.all(
       liveScenes.map(async (scene) => {
-        const [saves, layers, geometrySaves] = await Promise.all([
+        const [saves, layers] = await Promise.all([
           ctx.db
             .query('sceneFogSaves')
             .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
@@ -262,13 +219,9 @@ export const removeFixtureState = internalMutation({
           ctx.db
             .query('sceneFogLayers')
             .withIndex('by_sceneId_ownerUserId', (q) => q.eq('sceneId', scene.id))
-            .take(17),
-          ctx.db
-            .query('sceneGeometrySaves')
-            .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
             .take(17)
         ])
-        return { scene, saves, layers, geometrySaves }
+        return { scene, saves, layers }
       })
     )
     if (
@@ -276,120 +229,17 @@ export const removeFixtureState = internalMutation({
       fogChildren.reduce((count, child) => count + child.layers.length, 0) > 16
     )
       throw new Error('Fixture Scene fog bounds exceeded.')
-    if (fogChildren.reduce((count, child) => count + child.geometrySaves.length, 0) > 16)
-      throw new Error('Fixture Scene geometry bounds exceeded.')
-    const geometryParents = new Map<string, ReturnType<typeof parseGeometrySave>>()
-    const geometryParentsByCommand = new Map<string, ReturnType<typeof parseGeometrySave>>()
-    for (const child of fogChildren) {
-      for (const row of child.geometrySaves) {
-        const save = parseGeometrySave(row)
-        if (
-          save.sceneId !== child.scene.id ||
-          (save.actorUserId !== ownerUserId && save.input.type !== 'MOVE_SCENE_TOKEN')
-        )
-          throw new Error('Fixture Scene geometry ownership mismatch.')
-        await requireFixtureCampaignPlayer(save.actorUserId)
-        geometryParents.set(save.id, save)
-        geometryParentsByCommand.set(`${save.sceneId}:${save.commandId}`, save)
-      }
-    }
-    const geometryReceipts = new Map<string, ReturnType<typeof parseGeometryCommand>>()
-    for (const child of liveChildren) {
-      for (const row of child.commands) {
-        if (row.encoding !== 'GEOMETRY') continue
-        const receipt = parseGeometryCommand(row, child.head?.version ?? 0)
-        if (
-          receipt.sceneId !== child.scene.id ||
-          (receipt.actorUserId !== ownerUserId && receipt.input.type !== 'MOVE_SCENE_TOKEN')
-        )
-          throw new Error('Fixture Scene geometry receipt ownership mismatch.')
-        await requireFixtureCampaignPlayer(receipt.actorUserId)
-        geometryReceipts.set(`${receipt.sceneId}:${receipt.commandId}`, receipt)
-      }
-    }
-    for (const receipt of geometryReceipts.values()) {
-      const parent = geometryParentsByCommand.get(`${receipt.sceneId}:${receipt.commandId}`)
-      if (!parent || parent.status !== 'PUBLISHED' || parent.sceneId !== receipt.sceneId)
-        throw new Error('Fixture Scene geometry receipt mismatch.')
-    }
     const fogChunkRows = []
     for (const [index, child] of fogChildren.entries()) {
       const saves = new Map(
         child.saves.map((row) => {
           const save = parseFogSave(row)
-          if (
-            save.sceneId !== child.scene.id ||
-            (save.actorUserId !== ownerUserId &&
-              (!save.geometrySaveId ||
-                geometryParents.get(save.geometrySaveId)?.actorUserId !== save.actorUserId))
-          )
+          if (save.sceneId !== child.scene.id)
             throw new Error('Fixture Scene fog ownership mismatch.')
           return [save.id, save]
         })
       )
-      for (const save of saves.values()) {
-        if (!save.geometrySaveId) continue
-        const parent = geometryParents.get(save.geometrySaveId)
-        if (!parent) {
-          if (save.status === 'PUBLISHED')
-            throw new Error('Fixture Scene published geometry fog parent is missing.')
-          continue
-        }
-        if (
-          parent.sceneId !== save.sceneId ||
-          parent.actorUserId !== save.actorUserId ||
-          !parent.fogSaves.some(
-            (reference) =>
-              reference.saveId === save.id && reference.ownerUserId === save.input.layer.ownerUserId
-          )
-        )
-          throw new Error('Fixture Scene geometry fog reference mismatch.')
-        if (save.status === 'PUBLISHED' && parent.status !== 'PUBLISHED')
-          throw new Error('Fixture Scene published geometry fog parent mismatch.')
-      }
-      for (const parent of child.geometrySaves.map(parseGeometrySave)) {
-        const receipt = geometryReceipts.get(`${parent.sceneId}:${parent.commandId}`)
-        if (receipt) {
-          if (
-            receipt.inputChecksum !== parent.inputChecksum ||
-            receipt.actorUserId !== parent.actorUserId ||
-            receipt.result.version !==
-              parent.snapshotVersion +
-                (receipt.result.delta !== null || receipt.result.fogPatches.length > 0 ? 1 : 0)
-          )
-            throw new Error('Fixture Scene geometry receipt mismatch.')
-        }
-        if (parent.status === 'PUBLISHED' && !receipt)
-          throw new Error('Fixture Scene geometry receipt mismatch.')
-        for (const reference of parent.fogSaves) {
-          const save = saves.get(reference.saveId)
-          if (
-            !save ||
-            save.geometrySaveId !== parent.id ||
-            save.input.expectedSceneVersion !== parent.snapshotVersion ||
-            (parent.status === 'PUBLISHED' && save.status !== 'PUBLISHED') ||
-            (parent.status !== 'PUBLISHED' && save.status === 'PUBLISHED')
-          )
-            throw new Error('Fixture Scene geometry fog reference mismatch.')
-          if (
-            parent.status === 'PUBLISHED' &&
-            !receipt?.result.fogPatches.some(
-              (patch) =>
-                patch.saveId === save.id &&
-                patch.ownerUserId === reference.ownerUserId &&
-                patch.width === save.input.layer.width &&
-                patch.height === save.input.layer.height &&
-                patch.chunkCount === save.input.chunkManifest.length
-            )
-          )
-            throw new Error('Fixture Scene geometry receipt mismatch.')
-        }
-        if (
-          parent.status === 'PUBLISHED' &&
-          receipt?.result.fogPatches.length !== parent.fogSaves.length
-        )
-          throw new Error('Fixture Scene geometry receipt mismatch.')
-      }
+      for (const save of saves.values()) await requireFixtureCampaignPlayer(save.actorUserId)
       for (const row of child.layers) {
         const layer = parseFogLayer(row, liveChildren[index]!.head?.version ?? 0)
         if (
@@ -421,15 +271,9 @@ export const removeFixtureState = internalMutation({
     for (const child of fogChildren) {
       for (const layer of child.layers) await ctx.db.delete(layer._id)
       for (const save of child.saves) await ctx.db.delete(save._id)
-      for (const geometrySave of child.geometrySaves) await ctx.db.delete(geometrySave._id)
     }
-    for (const { head, entities, headers, ledgers } of liveChildren) {
+    for (const { head, entities } of liveChildren) {
       for (const entity of entities) await ctx.db.delete(entity._id)
-      for (const header of headers) await ctx.db.delete(header._id)
-      for (const ledger of ledgers) {
-        for (const part of ledger.parts) await ctx.db.delete(part._id)
-        await ctx.db.delete(ledger.head._id)
-      }
       if (head) await ctx.db.delete(head._id)
     }
     for (const receipt of receipts) await ctx.db.delete(receipt._id)

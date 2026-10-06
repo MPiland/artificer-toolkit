@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { describe, expect, it } from 'vitest'
 import type {
   PendingEncounterRuleOccurrenceSummaryDto,
@@ -8,7 +9,6 @@ import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   sceneStoredDefinitionEntitySchema,
   sceneStoredDefinitionSaveSchema,
@@ -19,7 +19,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { api } from '../_generated/api'
 import {
   executeInRoom,
   expectRedactedRoomRefusal,
@@ -244,8 +243,7 @@ describe('room movement response publication', () => {
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       // Preparing a decision stages in the room only: Convex holds no new receipt.
       receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect(),
-      sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
+      commands: await ctx.db.query('encounterRunCommands').collect()
     }))
     let lastCommand = selected
     let plan = await planMovementDecisionInRoom(value.base.owner.caller, selected)
@@ -257,8 +255,7 @@ describe('room movement response publication', () => {
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
+        commands: await ctx.db.query('encounterRunCommands').collect()
       }))
     ).toEqual(beforePreparation)
     let result = await plan.publish()
@@ -326,7 +323,6 @@ describe('room movement response publication', () => {
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
       commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-      sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
       fog: await ctx.db.query('sceneFogLayers').collect()
     }))
     expect(completed.runs[0]?.version).toBe(beforeCompletion.version + 2)
@@ -336,13 +332,11 @@ describe('room movement response publication', () => {
     const target = completed.actors.find((actor) => actor.id === value.base.mover.id)
     const priorTarget = beforePreparation.actors.find((actor) => actor.id === value.base.mover.id)
     if (!source || !target || !priorTarget) throw new Error('Expected selected reaction actors.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(source.stateJson)).resources
-    ).toMatchObject({
+    expect(readStoredRunActor(source).resources).toMatchObject({
       ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
     })
-    const targetState = encounterRunActorStateSchema.parse(JSON.parse(target.stateJson))
-    const priorTargetState = encounterRunActorStateSchema.parse(JSON.parse(priorTarget.stateJson))
+    const targetState = readStoredRunActor(target)
+    const priorTargetState = readStoredRunActor(priorTarget)
     if (targetState.kind === 'CHARACTER' || priorTargetState.kind === 'CHARACTER')
       throw new Error('Expected a Creature reaction target.')
     expect(targetState.currentHitPoints).toBeLessThan(priorTargetState.currentHitPoints)
@@ -363,7 +357,6 @@ describe('room movement response publication', () => {
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
         commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         fog: await ctx.db.query('sceneFogLayers').collect()
       }))
     ).toEqual(completed)
@@ -381,8 +374,7 @@ describe('room movement response publication', () => {
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect()
+        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
       }))
     const reactionStart = await stored()
     const losers: string[] = []
@@ -460,9 +452,7 @@ describe('room movement response publication', () => {
       throw new Error('Expected the issued reaction choice.')
     const reactor = final.actors.find((actor) => actor.id === choice.choice.reactorActorId)
     if (!reactor) throw new Error('Expected the selected reactor.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(reactor.stateJson)).resources
-    ).toMatchObject({
+    expect(readStoredRunActor(reactor).resources).toMatchObject({
       ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
     })
     // A stale loser leaves no command, receipt, occurrence or Scene trace.
@@ -543,7 +533,6 @@ describe('room movement response publication', () => {
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
       runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-      sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
       fogRows: await ctx.db.query('sceneFogLayers').collect()
     }))
     await expect(
@@ -560,8 +549,11 @@ describe('room movement response publication', () => {
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-        runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
+        runCommands: await (
+          await readEncounterHistory(ctx)
+        )
+          .query('encounterRunCommands')
+          .collect(),
         fogRows: await ctx.db.query('sceneFogLayers').collect()
       }))
     ).toEqual(retryState)

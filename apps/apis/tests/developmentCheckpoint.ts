@@ -11,7 +11,6 @@ import {
   developmentCheckpointInspectionSchema,
   type DevelopmentCheckpointScope,
   type DevelopmentCheckpointPreparationInput,
-  type DevelopmentCheckpointDiscardUploadInput,
   type DevelopmentCheckpointRollbackInput,
   type DevelopmentCheckpointInspection
 } from '@artificer-toolkit/schema/api/developmentCheckpoint'
@@ -21,23 +20,12 @@ import {
   type LiveSessionCheckpointRequest,
   type LiveSessionCheckpointResponse
 } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
-import {
-  liveSessionCheckpointStageResponseSchema,
-  type LiveSessionCheckpointCommitInput,
-  type LiveSessionCheckpointPartInput,
-  type LiveSessionCheckpointStageInput,
-  type LiveSessionCheckpointStageResponse
-} from '@artificer-toolkit/schema/api/liveSessionCheckpointStaging'
 import type {
   LiveSessionAuthorityDto,
   LiveSessionDrainReleaseInput
 } from '@artificer-toolkit/schema/api/liveSessionState'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { encodeBase64 } from '@artificer-toolkit/shared/base64'
-import {
-  encodeUtf8PayloadChunks,
-  JSON_PAYLOAD_CHUNK_MAX_BYTES
-} from '@artificer-toolkit/shared/jsonPayloadChunks'
+import { JSON_PAYLOAD_CHUNK_MAX_BYTES } from '@artificer-toolkit/shared/jsonPayloadChunks'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
@@ -59,31 +47,11 @@ const inspect = makeFunctionReference<
 const rollback = makeFunctionReference<'mutation', DevelopmentCheckpointRollbackInput, null>(
   'liveSessions/developmentCheckpoint:rollback'
 )
-const discardUpload = makeFunctionReference<
-  'mutation',
-  DevelopmentCheckpointDiscardUploadInput,
-  null
->('liveSessions/developmentCheckpoint:discardUpload')
 const publish = makeFunctionReference<
   'mutation',
   LiveSessionCheckpointRequest,
   LiveSessionCheckpointResponse
 >('liveSessions/checkpoint:publish')
-const beginUpload = makeFunctionReference<
-  'mutation',
-  LiveSessionCheckpointStageInput,
-  LiveSessionCheckpointStageResponse
->('liveSessions/checkpointStaging:begin')
-const uploadPart = makeFunctionReference<
-  'mutation',
-  LiveSessionCheckpointPartInput,
-  LiveSessionCheckpointStageResponse
->('liveSessions/checkpointStaging:part')
-const commitUpload = makeFunctionReference<
-  'mutation',
-  LiveSessionCheckpointCommitInput,
-  LiveSessionCheckpointResponse
->('liveSessions/checkpointStaging:commit')
 const beginDrain = makeFunctionReference<
   'mutation',
   LiveSessionDrainReleaseInput,
@@ -124,7 +92,7 @@ export async function verifyDevelopmentCheckpoint({
   owner,
   player,
   characterId,
-  staged = false
+  large = false
 }: {
   owner: {
     client: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
@@ -135,7 +103,7 @@ export async function verifyDevelopmentCheckpoint({
     identity: { userId: string }
   }
   characterId: string
-  staged?: boolean
+  large?: boolean
 }) {
   const target = developmentTarget(process.env)
   assert.equal(target.mode, 'local', 'Checkpoint proof requires the isolated local backend.')
@@ -209,124 +177,38 @@ export async function verifyDevelopmentCheckpoint({
     assert.equal(run.status, 'PREPARED')
     scope = { ...fixture, campaignId, encounterId: run.id }
     checkpoint = liveSessionCheckpointRequestSchema.parse(
-      await invoke(prepare, undefined, { ...scope, staged })
+      await invoke(prepare, undefined, { ...scope, large })
     )
     const before = developmentCheckpointInspectionSchema.parse(
       await invoke(inspect, undefined, scope)
     )
-    const { records: _records, ...commit } = checkpoint
-    let upload: LiveSessionCheckpointStageInput | undefined
     const badChecksum =
       checkpoint.payloadChecksum === '0'.repeat(64) ? '1'.repeat(64) : '0'.repeat(64)
-    if (staged) {
+    if (large) {
       const json = canonicalizeJson(checkpoint.records)
-      const parts = encodeUtf8PayloadChunks(json)
-      const { knownAuthorization: _knownAuthorization, reason: _reason, ...frame } = commit
-      upload = {
-        ...frame,
-        byteLength: new TextEncoder().encode(json).byteLength,
-        partCount: parts.length
-      }
-      assert.ok(upload.byteLength > JSON_PAYLOAD_CHUNK_MAX_BYTES)
-      assert.ok(upload.byteLength > json.length, 'Fixture must contain multibyte UTF-8.')
-      assert.ok(parts.length > 1)
-      assert.equal(
-        liveSessionCheckpointStageResponseSchema.parse(await invoke(beginUpload, undefined, upload))
-          .status,
-        'STAGED'
-      )
-      const begun = await invoke(inspect, undefined, scope)
-      assert.equal(begun.stagedUploadCount, before.stagedUploadCount + 1)
-      assert.equal(begun.stagedPartCount, before.stagedPartCount)
-      assert.equal(
-        liveSessionCheckpointStageResponseSchema.parse(await invoke(beginUpload, undefined, upload))
-          .status,
-        'STAGED'
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), begun)
-      const firstBytes = new Uint8Array(parts[0]!)
-      const firstPart: LiveSessionCheckpointPartInput = {
-        campaignId,
-        epoch: checkpoint.epoch,
-        checkpointId: checkpoint.checkpointId,
-        index: 0,
-        data: encodeBase64(firstBytes)
-      }
-      assert.equal(
-        liveSessionCheckpointStageResponseSchema.parse(
-          await invoke(uploadPart, undefined, firstPart)
-        ).status,
-        'STAGED'
-      )
-      const firstUploaded = await invoke(inspect, undefined, scope)
-      assert.equal(firstUploaded.stagedPartCount, before.stagedPartCount + 1)
-      assert.equal(
-        liveSessionCheckpointStageResponseSchema.parse(
-          await invoke(uploadPart, undefined, firstPart)
-        ).status,
-        'STAGED'
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), firstUploaded)
-      const differentBytes = firstBytes.slice()
-      differentBytes[0] = differentBytes[0]! ^ 1
-      await assert.rejects(
-        invoke(uploadPart, undefined, { ...firstPart, data: encodeBase64(differentBytes) }),
-        /already uploaded with different bytes/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), firstUploaded)
-      await assert.rejects(invoke(commitUpload, undefined, commit), /upload is incomplete/)
-      assert.deepEqual(await invoke(inspect, undefined, scope), firstUploaded)
-      for (let index = 1; index < parts.length; index++) {
-        assert.equal(
-          liveSessionCheckpointStageResponseSchema.parse(
-            await invoke(uploadPart, undefined, {
-              ...firstPart,
-              index,
-              data: encodeBase64(new Uint8Array(parts[index]!))
-            })
-          ).status,
-          'STAGED'
-        )
-      }
-      const uploaded = await invoke(inspect, undefined, scope)
-      assert.equal(uploaded.stagedPartCount, before.stagedPartCount + parts.length)
-      await assert.rejects(
-        invoke(rollback, undefined, { scope, checkpoint, staged }),
-        new RegExp(DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER)
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), uploaded)
-      await assert.rejects(
-        invoke(commitUpload, undefined, { ...commit, payloadChecksum: badChecksum }),
-        /upload fence does not match/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), uploaded)
-      await assert.rejects(
-        invoke(commitUpload, undefined, { ...commit, epoch: crypto.randomUUID() }),
-        /authority is stale/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), uploaded)
-    } else {
-      await assert.rejects(
-        invoke(rollback, undefined, { scope, checkpoint, staged }),
-        new RegExp(DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER)
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), before)
-      await assert.rejects(
-        invoke(publish, undefined, { ...checkpoint, payloadChecksum: badChecksum }),
-        /payload checksum/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), before)
-      await assert.rejects(
-        invoke(publish, undefined, { ...checkpoint, epoch: crypto.randomUUID() }),
-        /authority is stale/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), before)
+      const byteLength = new TextEncoder().encode(json).byteLength
+      assert.ok(byteLength > JSON_PAYLOAD_CHUNK_MAX_BYTES)
+      assert.ok(byteLength > json.length, 'Fixture must contain multibyte UTF-8.')
     }
+    await assert.rejects(
+      invoke(rollback, undefined, { scope, checkpoint }),
+      new RegExp(DEVELOPMENT_CHECKPOINT_ROLLBACK_MARKER)
+    )
+    assert.deepEqual(await invoke(inspect, undefined, scope), before)
+    await assert.rejects(
+      invoke(publish, undefined, { ...checkpoint, payloadChecksum: badChecksum }),
+      /payload checksum/
+    )
+    assert.deepEqual(await invoke(inspect, undefined, scope), before)
+    await assert.rejects(
+      invoke(publish, undefined, { ...checkpoint, epoch: crypto.randomUUID() }),
+      /authority is stale/
+    )
+    assert.deepEqual(await invoke(inspect, undefined, scope), before)
 
-    const publication = staged
-      ? await invoke(commitUpload, undefined, commit)
-      : await invoke(publish, undefined, checkpoint)
-    const committed = liveSessionCheckpointResponseSchema.parse(publication)
+    const committed = liveSessionCheckpointResponseSchema.parse(
+      await invoke(publish, undefined, checkpoint)
+    )
     assert.equal(committed.status, 'COMMITTED')
     assert.equal(committed.authority.epoch, checkpoint.epoch)
     assert.equal(committed.authority.persistedSequence, checkpoint.sequence)
@@ -334,7 +216,7 @@ export async function verifyDevelopmentCheckpoint({
     const after = developmentCheckpointInspectionSchema.parse(
       await invoke(inspect, undefined, scope)
     )
-    const sharedEntryCount = staged ? 64 : 2
+    const sharedEntryCount = large ? 64 : 2
     assert.equal(after.runVersion, before.runVersion + sharedEntryCount)
     assert.equal(after.playStreamVersion, before.playStreamVersion + 1)
     assert.equal(after.sharedHeaderCount, before.sharedHeaderCount + sharedEntryCount)
@@ -357,56 +239,27 @@ export async function verifyDevelopmentCheckpoint({
         { scope: 'CHARACTER', scopeId: characterId, epoch: checkpoint.epoch, entryCount: 1 }
       ]
     )
-    if (upload) {
-      assert.equal(after.stagedUploadCount, 0)
-      assert.equal(after.stagedPartCount, 0)
-      assert.equal(
-        liveSessionCheckpointStageResponseSchema.parse(await invoke(beginUpload, undefined, upload))
-          .status,
-        'REPLAYED'
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), after)
-    }
     const replayed = liveSessionCheckpointResponseSchema.parse(
-      staged
-        ? await invoke(commitUpload, undefined, commit)
-        : await invoke(publish, undefined, checkpoint)
+      await invoke(publish, undefined, checkpoint)
     )
     assert.equal(replayed.status, 'REPLAYED')
     assert.deepEqual(replayed.authority, committed.authority)
     assert.deepEqual(await invoke(inspect, undefined, scope), after)
-    if (upload) {
-      await assert.rejects(
-        invoke(beginUpload, undefined, { ...upload, payloadChecksum: badChecksum }),
-        /retry differs from the acknowledged payload/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), after)
-      await assert.rejects(
-        invoke(commitUpload, undefined, { ...commit, payloadChecksum: badChecksum }),
-        /retry differs from the acknowledged payload/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), after)
-      await assert.rejects(
-        invoke(beginUpload, undefined, { ...upload, epoch: crypto.randomUUID() }),
-        /authority is stale/
-      )
-    } else {
-      const records = { ...checkpoint.records, history: [...checkpoint.records.history].reverse() }
-      assert.notEqual(checksumCanonicalJson(records), checkpoint.payloadChecksum)
-      await assert.rejects(
-        invoke(publish, undefined, {
-          ...checkpoint,
-          records,
-          payloadChecksum: checksumCanonicalJson(records)
-        }),
-        /retry differs from the acknowledged payload/
-      )
-      assert.deepEqual(await invoke(inspect, undefined, scope), after)
-      await assert.rejects(
-        invoke(publish, undefined, { ...checkpoint, checkpointId: crypto.randomUUID() }),
-        /retry differs from the acknowledged payload/
-      )
-    }
+    const records = { ...checkpoint.records, history: [...checkpoint.records.history].reverse() }
+    assert.notEqual(checksumCanonicalJson(records), checkpoint.payloadChecksum)
+    await assert.rejects(
+      invoke(publish, undefined, {
+        ...checkpoint,
+        records,
+        payloadChecksum: checksumCanonicalJson(records)
+      }),
+      /retry differs from the acknowledged payload/
+    )
+    assert.deepEqual(await invoke(inspect, undefined, scope), after)
+    await assert.rejects(
+      invoke(publish, undefined, { ...checkpoint, checkpointId: crypto.randomUUID() }),
+      /retry differs from the acknowledged payload/
+    )
     assert.deepEqual(await invoke(inspect, undefined, scope), after)
     const drain = {
       campaignId,
@@ -421,9 +274,6 @@ export async function verifyDevelopmentCheckpoint({
     assert.equal(await invoke(held, undefined, { campaignId }), false)
     proof = { before, after }
   } finally {
-    if (staged && checkpoint && scope) {
-      await invoke(discardUpload, undefined, { scope, checkpointId: checkpoint.checkpointId })
-    }
     if (checkpoint && scope && !released) {
       // A lost publication response may already have committed; drain the observed native fence.
       const current = await invoke(inspect, undefined, scope)
@@ -495,8 +345,8 @@ export async function verifyDevelopmentCheckpoint({
   assert.ok(proof)
   console.log(
     JSON.stringify({
-      proof: staged
-        ? 'Native staged checkpoint upload, rollback, replay, receipt partition and clocks'
+      proof: large
+        ? 'Native large inline checkpoint rollback, replay, receipt partition and clocks'
         : 'Native checkpoint rollback, replay, receipt partition and clocks',
       campaignId,
       characterId,
@@ -508,15 +358,6 @@ export async function verifyDevelopmentCheckpoint({
       foreignEpoch: 'PASS',
       exactReplay: 'PASS',
       alteredReplay: 'PASS',
-      ...(staged
-        ? {
-            idempotentBegin: 'PASS',
-            partReplay: 'PASS',
-            alteredPart: 'PASS',
-            incompleteUpload: 'PASS',
-            uploadDeletion: 'PASS'
-          }
-        : {}),
       privateLedgerPartition: 'PASS',
       authorityRelease: 'PASS',
       cleanup: 'PASS',

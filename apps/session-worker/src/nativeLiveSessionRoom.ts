@@ -13,13 +13,21 @@ import {
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionCheckpointReason } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
-import type { LiveSessionTransientCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import type { LiveSessionCheckpointJournalEntry } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
+import type { LiveSessionRoomSceneCapture } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { LiveSessionScenePublicationDto } from '@artificer-toolkit/schema/api/liveSessionState'
-import type { SceneBaseOrdinals } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneLiveStateHeader } from '@artificer-toolkit/schema/api/sceneLiveState'
+import {
+  scenePresentationFenceSchema,
+  type SceneBaseOrdinals
+} from '@artificer-toolkit/schema/api/sceneGeometry'
+import {
+  sceneLiveStateHeaderSchema,
+  type SceneLiveStateHeader
+} from '@artificer-toolkit/schema/api/sceneLiveState'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
+  LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT,
   LIVE_SESSION_TRY_AGAIN_MESSAGE,
   type LiveSessionCommandDto
 } from '@artificer-toolkit/schema/api/liveSessionCommands'
@@ -61,7 +69,7 @@ import { decodeJwt } from 'jose'
 import { z } from 'zod'
 
 import { DurableCommandJournal, DurableCommandJournalError } from './durableCommandJournal.js'
-import type { SessionWorkerEnvironment } from './environment.js'
+import { isLocalDevelopment, type SessionWorkerEnvironment } from './environment.js'
 import {
   createNativeLiveSessionState,
   hydrateNativeLiveSessionState,
@@ -89,7 +97,7 @@ import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
-import { meterFrame, meterStorage, RoomMeter } from './roomMeter.js'
+import { meterFrame, meterStorage, RoomMeter, sqlRoomMeterStore } from './roomMeter.js'
 import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
 import { executeRoomSceneGeometry } from './roomSceneGeometryCommand.js'
 import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
@@ -133,7 +141,8 @@ import {
   admitsRoomMember,
   RoomAuthorization,
   roomBoundTokenControl,
-  roomVisionCurrent
+  roomVisionCurrent,
+  type BoundTokenControl
 } from './roomAuthorization.js'
 import {
   exceedsMessageBytes,
@@ -147,11 +156,35 @@ import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
 
+/**
+ * What survives hibernation about a socket. `admissionDeadline` (the admission's token expiry) and
+ * `feeds` are set only while the socket is admitted and cleared when it is challenged or closed, so
+ * a woken room restores an admission only for a socket that held one. No token is ever stored.
+ */
 const socketAttachmentSchema = z.strictObject({
   acceptedAt: z.number().int().positive(),
+  admissionDeadline: z.nullable(z.number().int().positive()),
   authSubject: z.string().min(1),
   authorityEpoch: z.string().uuid(),
   campaignId: z.string().uuid(),
+  feeds: z.nullable(
+    z.strictObject({
+      characterSheet: z.nullable(z.string().uuid()),
+      encounterSession: z.nullable(
+        z.strictObject({
+          timeline: z.boolean(),
+          shown: z.nullable(
+            z.strictObject({
+              encounterId: z.string().uuid(),
+              occurrenceId: z.string().uuid(),
+              occurrenceVersion: z.number().int().nonnegative()
+            })
+          )
+        })
+      ),
+      campaignSummary: z.boolean()
+    })
+  ),
   membershipEpoch: z.nullable(z.iso.datetime({ offset: true })),
   role: z.enum(['OWNER', 'PLAYER']),
   socketId: z.string().uuid(),
@@ -161,7 +194,6 @@ const socketAttachmentSchema = z.strictObject({
 type SocketAttachment = z.infer<typeof socketAttachmentSchema>
 
 interface Admission {
-  accessToken: string
   deadline: number
   generation: number
   membershipEpoch: string
@@ -175,8 +207,7 @@ interface Admission {
  */
 interface TransientCache {
   baseOrdinals: SceneBaseOrdinals
-  characterRevisions: LiveSessionTransientCapture['observedCharacterRevisions']
-  visionEncounterIds: string[]
+  characterRevisions: LiveSessionRoomSceneCapture['observedCharacterRevisions']
   encounterId: string | null
   key: string
   scene: CampaignSceneStateDto | null
@@ -184,8 +215,15 @@ interface TransientCache {
   uncomposedScene: CampaignSceneStateDto | null
   sceneHeader: SceneLiveStateHeader | null
   presentation: LiveSessionScenePublicationDto['presentation'] | null
-  synchronized: boolean
 }
+
+/** The part of the cache a woken room cannot derive from its own rows; the rest is rebuilt from them. */
+const persistedSceneCacheSchema = z.strictObject({
+  key: z.string(),
+  sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
+  encounterId: z.nullable(z.string()),
+  presentation: z.nullable(scenePresentationFenceSchema)
+})
 
 /**
  * A preview stream's latest accepted sample and, for a token drag, its resolved path. Memory only
@@ -209,7 +247,10 @@ function attachment(socket: WebSocket): SocketAttachment | null {
 }
 
 function viewer(value: Pick<Admission, 'role' | 'userId'>): SceneViewer {
-  return { role: value.role === 'OWNER' ? 'GM' : 'PLAYER', userId: value.userId }
+  return {
+    role: value.role === 'OWNER' ? 'GM' : 'PLAYER',
+    userId: value.userId
+  }
 }
 
 function send(socket: WebSocket, message: LiveSessionWebSocketServerMessageDto): void {
@@ -228,9 +269,15 @@ function replayReceipt(receiptJson: string): LiveSessionWebSocketServerMessageDt
     throw new Error('Live Session command receipt is invalid.')
   const { delta } = receipt
   if (delta?.scope === 'SCENE')
-    return { ...receipt, delta: { ...delta, result: { ...delta.result, replayed: true } } }
+    return {
+      ...receipt,
+      delta: { ...delta, result: { ...delta.result, replayed: true } }
+    }
   if (delta?.scope === 'ENCOUNTER_BINDING')
-    return { ...receipt, delta: { ...delta, result: { ...delta.result, replayed: true } } }
+    return {
+      ...receipt,
+      delta: { ...delta, result: { ...delta.result, replayed: true } }
+    }
   return receipt
 }
 
@@ -241,13 +288,11 @@ function streamKey(envelope: SceneTransientEnvelopeDto): string {
   return envelope.kind
 }
 
-function cacheKey(capture: LiveSessionTransientCapture): string {
+function cacheKey(capture: LiveSessionRoomSceneCapture): string {
   return JSON.stringify({
     campaignId: capture.campaignId,
-    origin: capture.origin,
     presentation: capture.presentation,
     sceneEncounterId: capture.sceneEncounterId,
-    originBoundTokenControl: capture.originBoundTokenControl,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
     visionFreshness: capture.visionFreshness,
@@ -255,14 +300,10 @@ function cacheKey(capture: LiveSessionTransientCapture): string {
   })
 }
 
-function authorityFingerprint(capture: LiveSessionTransientCapture): unknown {
+function authorityFingerprint(capture: LiveSessionRoomSceneCapture): unknown {
   return {
     campaignId: capture.campaignId,
-    origin: capture.origin,
     presentation: capture.presentation,
-    recipients: [...capture.recipients].sort((left, right) =>
-      left.userId.localeCompare(right.userId)
-    ),
     sceneEncounterId: capture.sceneEncounterId,
     sceneHeader: capture.sceneHeader,
     systemId: capture.systemId,
@@ -291,8 +332,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
   #reloadQueued = false
-  /** The checkpoint deadline the alarm was last scheduled from; undefined until read in this instance. */
-  #flushDueAt: number | null | undefined
+  /** A failed backlog save is not retried before this time. */
+  #backlogRetryAt = 0
   readonly #admissions = new Map<WebSocket, Admission>()
   readonly #authenticating = new Map<
     WebSocket,
@@ -309,12 +350,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     { barriers: CampaignSceneStateDto['barriers']; index: SceneBarrierIndex }
   >()
   #activation: Promise<void> | null = null
+  /** Set once Campaign deletion emptied the storage; this instance then answers nothing else. */
+  #storageDeleted = false
+  /**
+   * The cold admission in flight, settled (never rejected) when it ends. A woken room re-admits its
+   * surviving sockets at once; they wait for this one cold admission and then admit warm.
+   */
+  #coldAdmission: Promise<void> | null = null
   readonly #previewStreams = new Map<WebSocket, Map<string, PreviewStream>>()
-  readonly #authorization = new RoomAuthorization(({ epoch, known }) => {
-    const campaignId = this.#roomCampaignId()
-    if (!campaignId) throw new Error('Live Session room identity is missing.')
-    return callLiveSessionRoute(this.env, null, 'roomAuthorization', { campaignId, epoch, known })
-  })
+  readonly #authorization: RoomAuthorization
   /** A background authorization read runs at most once; after a failure, not before this time. */
   #authorizationRefreshing = false
   #authorizationRetryAt = 0
@@ -327,7 +371,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   )
   /** Players with an Encounter command queued or running; see `roomLimits.ts`. */
   readonly #playerEncounterCommands = new Map<string, number>()
-  #cache: TransientCache | null = null
+  #cacheValue: TransientCache | null = null
+  /** The persisted part of the cache as last written, serialized; null while no row exists. */
+  #savedCache: string | null = null
   #cacheGeneration = 0
   #presentationChanging = false
   readonly #meter: RoomMeter
@@ -336,19 +382,37 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   #outboxFlush: Promise<void> | null = null
   #storageRecovery: Promise<void> | null = null
   #rulesRuntime: Promise<RulesRuntimeService> | null = null
-  #sceneSync: Promise<void> | null = null
 
   constructor(ctx: DurableObjectState, env: SessionWorkerEnvironment) {
     super(ctx, env)
-    this.#meter = new RoomMeter()
+    // Persisted through the raw storage, so the meter never counts its own rows; development only.
+    this.#meter = new RoomMeter(
+      isLocalDevelopment(env) ? sqlRoomMeterStore(ctx.storage.sql) : undefined
+    )
     // Sockets that survived hibernation are counted from this wake; later ones at their upgrade.
     for (const socket of ctx.getWebSockets()) this.#meter.watch(socket)
     const storage = meterStorage(ctx.storage, this.#meter)
     this.#storage = storage
     this.#journal = new DurableCommandJournal(storage)
     this.#buckets = new RoomAccountBuckets(storage.sql)
+    this.#authorization = new RoomAuthorization(({ epoch, known }) => {
+      const campaignId = this.#roomCampaignId()
+      if (!campaignId) throw new Error('Live Session room identity is missing.')
+      return callLiveSessionRoute(this.env, null, 'roomAuthorization', {
+        campaignId,
+        epoch,
+        known
+      })
+    }, storage.sql)
     this.#fogUploads = new RoomSceneFogUploads(storage.sql)
-    this.#roomStore = new RoomEncounterStore(storage, () => this.#queuePostCommit())
+    this.#roomStore = new RoomEncounterStore(
+      storage,
+      () => {
+        this.#queuePostCommit()
+        this.#saveBacklogIfFull()
+      },
+      (entry) => this.#journalInputReload(entry)
+    )
     this.#checkpoints = new RoomCheckpoints(
       this.#roomStore,
       storage,
@@ -370,6 +434,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           throughSequence: ack.sequence,
           stateChecksum: ack.checksum
         })
+      },
+      ({ campaignId, epoch, knownAuthorization: sent }, { adopted }) => {
+        if (!sent) return
+        this.#authorization.adopt(epoch, sent, adopted)
+        this.#roomInputs.adopt(campaignId, sent, adopted)
       }
     )
     this.#roomInputs = new RoomInputs(
@@ -377,7 +446,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       (epoch, scope) => {
         const campaignId = this.#roomCampaignId()
         if (!campaignId) throw new Error('Live Session room identity is missing.')
-        return callLiveSessionRoute(this.env, null, 'roomInputs', { campaignId, epoch, scope })
+        return callLiveSessionRoute(this.env, null, 'roomInputs', {
+          campaignId,
+          epoch,
+          scope
+        })
       },
       (manifest) => {
         const campaignId = this.#roomCampaignId()
@@ -393,10 +466,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       scope: (socket: WebSocket) => {
         const value = attachment(socket)
         return value && this.#journal.readCurrent()?.authorityEpoch === value.authorityEpoch
-          ? { authorityEpoch: value.authorityEpoch, campaignId: value.campaignId }
+          ? {
+              authorityEpoch: value.authorityEpoch,
+              campaignId: value.campaignId
+            }
           : null
       },
-      send
+      send,
+      remember: (socket: WebSocket) => this.#rememberFeeds(socket)
     }
     this.#sheetFeed = new RoomCharacterSheetFeed(feedDependencies)
     this.#encounterFeed = new RoomEncounterSessionFeed(feedDependencies)
@@ -407,11 +484,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       presentedSceneId: () => this.#cache?.scene?.id ?? null,
       visibleTokenIds: (socket, sceneId) => {
         const admission = this.#liveAdmission(socket)
-        const scene = this.#cache?.synchronized ? this.#cache.scene : null
+        const scene = this.#cache?.scene
         return admission && scene?.id === sceneId
-          ? new Set(
-              projectNativeLiveSessionState({ scene }, admission).scene?.tokens.map(({ id }) => id)
-            )
+          ? new Set(projectSceneForViewer(scene, viewer(admission)).tokens.map(({ id }) => id))
           : null
       }
     })
@@ -429,12 +504,132 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           id INTEGER PRIMARY KEY CHECK (id = 1),
           release_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS room_scene_cache (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          state TEXT NOT NULL
+        );
       `)
+      await this.#restoreSceneCache()
     })
+    // Hibernation must be transparent: whatever is valid while awake is persisted when it changes
+    // and restored here. A socket that held an admission keeps it (its attachment records the token
+    // expiry, never the token) with its feed subscriptions, and the authorization lease and Scene
+    // cache are restored from SQLite, so a wake costs no sign-in round. A socket that was challenged,
+    // never admitted, or whose token expired asleep authenticates again.
+    for (const socket of ctx.getWebSockets()) this.#wake(socket)
+  }
+
+  /** Restores one surviving socket's admission and feeds from its attachment, else challenges it. */
+  #wake(socket: WebSocket): void {
+    const value = attachment(socket)
+    if (
+      !value ||
+      value.membershipEpoch === null ||
+      value.admissionDeadline === null ||
+      value.admissionDeadline <= Date.now()
+    )
+      return this.#challenge(socket)
+    // A restore is not an admission event, so the meter does not count it.
+    this.#generations.set(socket, 0)
+    this.#admissions.set(socket, {
+      deadline: value.admissionDeadline,
+      generation: 0,
+      membershipEpoch: value.membershipEpoch,
+      role: value.role,
+      userId: value.userId
+    })
+    this.#trackExpiry(socket, value.admissionDeadline)
+    if (value.feeds?.characterSheet) this.#sheetFeed.restore(socket, value.feeds.characterSheet)
+    if (value.feeds?.encounterSession)
+      this.#encounterFeed.restore(socket, value.feeds.encounterSession)
+    if (value.feeds?.campaignSummary) this.#summaryFeed.restore(socket)
+  }
+
+  /** A token already inside the re-authentication window is not challenged again; it runs to expiry. */
+  #trackExpiry(socket: WebSocket, deadline: number): void {
+    if (deadline - ROOM_LIMITS.reauthenticationLeadMs > Date.now()) this.#expiring.delete(socket)
+    else this.#expiring.set(socket, deadline)
+  }
+
+  /** Writes the socket's feed subscriptions into its attachment, so a woken room restores them. */
+  #rememberFeeds(socket: WebSocket): void {
+    const value = socket.readyState === WebSocket.OPEN ? attachment(socket) : null
+    if (!value) return
+    const characterSheet = this.#sheetFeed.saved(socket)
+    const encounterSession = this.#encounterFeed.saved(socket)
+    const campaignSummary = this.#summaryFeed.saved(socket)
+    const feeds =
+      characterSheet || encounterSession || campaignSummary
+        ? { characterSheet, encounterSession, campaignSummary }
+        : null
+    if (JSON.stringify(feeds) !== JSON.stringify(value.feeds))
+      socket.serializeAttachment({ ...value, feeds })
+  }
+
+  /** An accessor so every assignment keeps the copy a woken room restores from current. */
+  get #cache(): TransientCache | null {
+    return this.#cacheValue
+  }
+
+  set #cache(value: TransientCache | null) {
+    this.#cacheValue = value
+    const saved =
+      value &&
+      JSON.stringify({
+        key: value.key,
+        sceneHeader: value.sceneHeader,
+        encounterId: value.encounterId,
+        presentation: value.presentation
+      } satisfies z.infer<typeof persistedSceneCacheSchema>)
+    if (saved === this.#savedCache) return
+    if (saved === null) this.#storage.sql.exec('DELETE FROM room_scene_cache WHERE id = 1')
+    else
+      this.#storage.sql.exec(
+        `INSERT INTO room_scene_cache (id, state) VALUES (1, ?)
+         ON CONFLICT (id) DO UPDATE SET state = excluded.state`,
+        saved
+      )
+    this.#savedCache = saved
+  }
+
+  /**
+   * Rebuilds the Scene cache of a room that slept, from its own SQLite and the persisted part: the
+   * Scene rows are the room's, so no member's token is needed. A failure leaves no cache, and the
+   * next admission or preview rebuilds it from Convex.
+   */
+  async #restoreSceneCache(): Promise<void> {
+    const row = this.#storage.sql
+      .exec<{ state: string }>('SELECT state FROM room_scene_cache WHERE id = 1')
+      .toArray()[0]
+    if (!row) return
+    this.#savedCache = row.state
+    const current = this.#journal.readCurrent()
+    const campaignId = this.#roomCampaignId()
+    try {
+      const saved = persistedSceneCacheSchema.parse(JSON.parse(row.state))
+      if (current?.status !== 'ACTIVE' || !campaignId) {
+        this.#cache = null
+        return
+      }
+      const rebuilt = await this.#buildSceneCache(
+        { authorityEpoch: current.authorityEpoch, campaignId },
+        saved
+      )
+      this.#cache = { ...rebuilt, ...saved }
+      if (saved.sceneHeader) this.#overlayDurableSceneCache(saved.sceneHeader.id)
+    } catch (error) {
+      console.error('Live Session Scene cache restore failed.', error)
+      this.#cache = null
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
+    // A deleted room's tables are gone; only a repeated control request is still meaningful.
+    if (this.#storageDeleted)
+      return request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH
+        ? Response.json({ closed: 0 })
+        : new Response('The Campaign live table was deleted.', { status: 410 })
     this.#meter.request('HTTP')
     // Reachable only through the development-guarded Worker route; production never forwards it.
     if (request.method === 'GET' && url.pathname === LIVE_SESSION_METER_PATH)
@@ -452,16 +647,22 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           ? new Response('The room holds no live authority.', { status: 409 })
           : Response.json({ publishedSequence })
       } catch {
-        return new Response('The room barrier checkpoint failed.', { status: 500 })
+        return new Response('The room barrier checkpoint failed.', {
+          status: 500
+        })
       }
     }
     if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
       const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
       if (!parsed.success)
-        return new Response('Invalid live-session control request.', { status: 400 })
+        return new Response('Invalid live-session control request.', {
+          status: 400
+        })
       const roomCampaignId = this.#roomCampaignId()
       if (roomCampaignId && roomCampaignId !== parsed.data.campaignId)
-        return new Response('Live-session room identity does not match.', { status: 409 })
+        return new Response('Live-session room identity does not match.', {
+          status: 409
+        })
       if (parsed.data.operation.type === 'EVICT_USER') {
         const closed = this.#closeSockets(parsed.data.operation)
         this.#buckets.deleteUser(parsed.data.operation.userId)
@@ -489,15 +690,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         try {
           return Response.json(await next)
         } catch {
-          return new Response('Live Scene presentation is unavailable.', { status: 409 })
+          return new Response('Live Scene presentation is unavailable.', {
+            status: 409
+          })
         }
       }
       try {
-        return Response.json({ closed: await this.#closeRoom(parsed.data.campaignId) })
+        const closed = await this.#closeRoom(parsed.data.campaignId)
+        if (parsed.data.operation.type === 'DELETE_ROOM') await this.#deleteRoomStorage()
+        return Response.json({ closed })
       } catch (error) {
         // The drain fence and unpublished checkpoint persist; Convex retries a transient status.
         console.error('Live Session room close failed; retrying.', error)
-        return new Response('Live Session room close is unavailable.', { status: 503 })
+        return new Response('Live Session room close is unavailable.', {
+          status: 503
+        })
       }
     }
     if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket')
@@ -513,7 +720,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     const roomCampaignId = this.#roomCampaignId()
     if (roomCampaignId && roomCampaignId !== claims.campaignId)
-      return new Response('Live-session room identity does not match.', { status: 403 })
+      return new Response('Live-session room identity does not match.', {
+        status: 403
+      })
     if (!roomCampaignId)
       this.#storage.sql.exec(
         'INSERT INTO native_room_identity (id, campaign_id) VALUES (1, ?)',
@@ -522,7 +731,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // Refusing (rather than replacing an older socket) cannot make a user's tabs evict each other
     // in a reconnect loop. Both checks precede ticket use, so a refused attempt consumes nothing.
     if (this.ctx.getWebSockets(claims.sub).length >= ROOM_LIMITS.maxSocketsPerUser)
-      return new Response('Too many live-session connections for this user.', { status: 429 })
+      return new Response('Too many live-session connections for this user.', {
+        status: 429
+      })
     if (this.ctx.getWebSockets().length >= ROOM_LIMITS.maxSocketsPerRoom)
       return new Response('Live-session room is full.', { status: 503 })
     const nowSeconds = Math.floor(Date.now() / 1_000)
@@ -534,7 +745,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         claims.exp
       )
     } catch {
-      return new Response('Live-session ticket was already used.', { status: 409 })
+      return new Response('Live-session ticket was already used.', {
+        status: 409
+      })
     }
 
     const pair = new WebSocketPair()
@@ -542,9 +755,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const acceptedAt = Date.now()
     server.serializeAttachment({
       acceptedAt,
+      admissionDeadline: null,
       authSubject: claims.authSubject,
       authorityEpoch: claims.authorityEpoch,
       campaignId: claims.campaignId,
+      feeds: null,
       membershipEpoch: null,
       role: claims.role,
       socketId: crypto.randomUUID(),
@@ -575,8 +790,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       budget = new SocketMessageBudget()
       this.#budgets.set(socket, budget)
     }
-    if (!budget.take(messageClass(parsed.success ? parsed.data : null))) {
-      this.#closeSocket(socket, 'Too many live-session messages.')
+    const kind = messageClass(parsed.success ? parsed.data : null)
+    if (!budget.take(kind)) {
+      this.#closeSocket(socket, `Too many live-session ${kind} messages.`)
       return
     }
     if (!parsed.success) {
@@ -594,8 +810,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     this.#renewAuthorizationIfDue()
-    this.#flushIfDue()
     if (parsed.data.type === 'RESUME') {
+      const value = attachment(socket)
+      if (!value) return this.#challenge(socket)
+      await this.#ensureSceneCache(value)
       this.#sendStateSync(socket, admission)
       return
     }
@@ -707,20 +925,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       await next
       return
     }
-    if (parsed.data.type === 'SYNCHRONIZE_SCENE') {
-      const message = parsed.data
-      const next = this.#commandChain.then(() =>
-        this.#synchronizeScene(
-          socket,
-          message.sceneId,
-          message.version,
-          message.expectedPresentationVersion
-        )
-      )
-      this.#commandChain = next.catch(() => this.#challenge(socket, admission.generation))
-      await this.#commandChain
-      return
-    }
     try {
       this.#broadcastTransient(socket, admission, parsed.data.envelope)
     } catch {
@@ -760,16 +964,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#fogUploads.expire(now)
     this.#renewAuthorizationIfDue()
     try {
-      const checkpointAt = this.#checkpointAt()
-      if (checkpointAt !== null && checkpointAt <= now) await this.#flushOutbox('DEADLINE')
       const releaseAt = this.#idleReleaseAt()
       const campaignId = this.#roomCampaignId()
       // A socket still inside its admission window may be a reconnect, so release waits for it.
       if (releaseAt !== null && releaseAt <= now && campaignId && this.#openSockets().length === 0)
         await this.#closeRoom(campaignId)
     } catch (error) {
-      // The unpublished checkpoint and drain fence persist, so a later alarm resumes them. A past
-      // deadline would spin, so the retry is bounded.
+      // The unpublished checkpoint and drain fence persist, so a later alarm resumes the release. A
+      // past deadline would spin, so the retry is bounded.
       console.error('Live Session alarm failed; retrying.', error)
       await this.ctx.storage.setAlarm(Date.now() + ROOM_LIMITS.alarmRetryMs)
       return
@@ -787,8 +989,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     for (const socket of this.#openSockets()) {
       const expiresAt = this.#expiring.get(socket)
       if (expiresAt !== undefined) {
-        if (expiresAt <= now && !this.#admissions.has(socket))
-          this.#closeSocket(socket, 'Live-session sign-in expired.')
+        if (expiresAt <= now) this.#closeSocket(socket, 'Live-session sign-in expired.')
         continue
       }
       const admission = this.#admissions.get(socket)
@@ -816,14 +1017,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     await this.#scheduleAlarm(leaving)
   }
 
-  /** The room's one alarm serves every pending admission window, the idle release, the checkpoint and fog staging expiry. */
+  /** The room's one alarm serves every pending admission window, the idle release and fog staging expiry. */
   async #scheduleAlarm(leaving?: WebSocket): Promise<void> {
     const open = this.#openSockets(leaving)
     const deadlines = open.flatMap((socket) => {
       const value = attachment(socket)
       const admission = this.#admissions.get(socket)
       const expiresAt = this.#expiring.get(socket)
-      if (expiresAt !== undefined) return admission ? [] : [expiresAt]
+      if (expiresAt !== undefined) return [expiresAt]
       if (admission) return [admission.deadline - ROOM_LIMITS.reauthenticationLeadMs]
       return value && value.membershipEpoch === null
         ? [value.acceptedAt + ROOM_LIMITS.authenticationTimeoutMs]
@@ -831,10 +1032,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
     const releaseAt = this.#idleReleaseAt()
     if (releaseAt !== null && open.length === 0) deadlines.push(releaseAt)
-    const checkpointAt = this.#checkpointAt()
-    this.#flushDueAt = checkpointAt
-    // A due flush rides the next incoming message; the alarm flushes only a room that stayed quiet.
-    if (checkpointAt !== null) deadlines.push(checkpointAt + ROOM_LIMITS.flushQuietGraceMs)
     const fogExpiresAt = this.#fogUploads.nextExpiry()
     if (fogExpiresAt !== null) deadlines.push(fogExpiresAt)
     if (deadlines.length === 0) await this.ctx.storage.deleteAlarm()
@@ -847,11 +1044,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         .exec<{ release_at: number }>('SELECT release_at FROM room_idle_release WHERE id = 1')
         .toArray()[0]?.release_at ?? null
     )
-  }
-
-  #checkpointAt(): number | null {
-    const first = this.#journal.oldestUnpublishedCommandTime()
-    return first === null ? null : first + ROOM_LIMITS.flushIntervalMs
   }
 
   #openSockets(except?: WebSocket): WebSocket[] {
@@ -874,7 +1066,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     const generation = this.#invalidate(socket)
     if (this.#presentationChanging) return
-    const cacheGeneration = this.#cacheGeneration
+    let cacheGeneration = this.#cacheGeneration
     let expiration: number
     try {
       const exp = decodeJwt(accessToken).exp
@@ -891,6 +1083,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     const deadline = expiration * 1_000
     this.#authenticating.set(socket, { accessToken, deadline, generation })
+    let endColdAdmission: (() => void) | null = null
     try {
       // Warm admission (Amendment 18): an already-admitted socket's fresh token is proven locally
       // against the Convex site keys and its membership comes from the room's current lease, so it
@@ -906,6 +1099,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           this.#closeIfCurrent(socket, generation, 'Live-session identity changed.')
           return
         }
+        if (
+          subject !== null &&
+          this.#coldAdmission &&
+          !this.#authorization.current(value.authorityEpoch)
+        ) {
+          await this.#coldAdmission
+          if (generation !== this.#generations.get(socket)) return
+          cacheGeneration = this.#cacheGeneration
+        }
         const authorization =
           subject === null ? null : this.#authorization.current(value.authorityEpoch)
         if (
@@ -916,11 +1118,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             userId: value.userId
           })
         ) {
-          if (this.#presentationChanging || cacheGeneration !== this.#cacheGeneration)
+          await this.#ensureSceneCache(value)
+          if (
+            !this.#cache ||
+            this.#presentationChanging ||
+            cacheGeneration !== this.#cacheGeneration
+          )
             this.#challenge(socket, generation)
           else
             await this.#admit(socket, value, {
-              accessToken,
               deadline,
               generation,
               membershipEpoch: value.membershipEpoch,
@@ -930,6 +1136,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           return
         }
       }
+      if (!this.#coldAdmission) {
+        let settle!: () => void
+        const cold = new Promise<void>((resolve) => (settle = resolve))
+        this.#coldAdmission = cold
+        endColdAdmission = () => {
+          if (this.#coldAdmission === cold) this.#coldAdmission = null
+          settle()
+        }
+      }
       if (await this.#recoverStorageIfNeeded(value.authorityEpoch)) return
       this.#meter.epoch(value.authorityEpoch)
       // Reconnect reads the acknowledged product state after the room's pending prefix is saved.
@@ -937,10 +1152,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const capture = await callLiveSessionRoute(this.env, accessToken, 'capture', {
         campaignId: value.campaignId,
         expectedRole: value.role,
-        expectedUserId: value.userId,
-        mode: 'AUTHORITY',
-        observedCharacterRevisions: [],
-        recipientUserIds: this.#recipientUserIds()
+        expectedUserId: value.userId
       })
       if (
         capture.origin.userId !== value.userId ||
@@ -983,12 +1195,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         else
           this.#cache = {
             ...this.#cache,
-            presentation: { expectedPresentationVersion: capture.presentation.version }
+            presentation: {
+              expectedPresentationVersion: capture.presentation.version
+            }
           }
+      }
+      await this.#ensureSceneCache(value)
+      if (!this.#cache || this.#presentationChanging || cacheGeneration !== this.#cacheGeneration) {
+        this.#challenge(socket, generation)
+        return
       }
       if (
         await this.#admit(socket, value, {
-          accessToken,
           deadline,
           generation,
           membershipEpoch: capture.origin.membershipEpoch,
@@ -1006,9 +1224,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return
       }
       // A challenge makes the client authenticate again at once, so a failure that does not change
-      // between attempts would loop. Closing hands the retry to the client's backoff instead.
+      // between attempts would loop. Closing hands the retry to the client's backoff instead. The
+      // close reason names no cause, so the cause is logged.
+      console.error('Live Session activation failed.', error)
       this.#closeIfCurrent(socket, generation, 'Live-session activation failed.')
     } finally {
+      endColdAdmission?.()
       if (this.#authenticating.get(socket)?.generation === generation)
         this.#authenticating.delete(socket)
     }
@@ -1035,12 +1256,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#challenge(socket, generation)
       return false
     }
-    if (latest.membershipEpoch === null)
-      socket.serializeAttachment({ ...latest, membershipEpoch: admitted.membershipEpoch })
     if (socket.readyState !== WebSocket.OPEN || this.#generations.get(socket) !== generation)
       return false
+    socket.serializeAttachment({
+      ...latest,
+      admissionDeadline: admitted.deadline,
+      membershipEpoch: admitted.membershipEpoch
+    })
     this.#admissions.set(socket, admitted)
-    this.#expiring.delete(socket)
+    this.#trackExpiry(socket, admitted.deadline)
     this.#meter.admitted(
       admitted.userId,
       [...this.#admissions].filter(
@@ -1132,7 +1356,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         )
           throw new Error('Live Session publication checksum is inconsistent.')
         await this.#flushOutbox('ACTIVATION')
-        await this.#loadRoomAggregate(sceneId)
       })()
       this.#activation = work
       void work.catch(() => {
@@ -1143,7 +1366,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const current = this.#journal.readCurrent()
     if (!current || current.authorityEpoch !== value.authorityEpoch || current.status !== 'ACTIVE')
       throw new Error('Live Session authority changed.')
-    await this.#loadRoomAggregate(sceneId)
+    // The room store runs one operation at a time: a hydrate racing a command would rewind the store
+    // behind the journal, so admissions load behind the running commands.
+    const load = this.#commandChain.then(() => this.#loadRoomAggregate(sceneId))
+    this.#commandChain = load.then(
+      () => undefined,
+      () => undefined
+    )
+    await load
   }
 
   /** Corrupt SQLite or a missing unpublished prefix can only resume under a new Convex fence. */
@@ -1214,7 +1444,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         epoch: replacement.epoch,
         documents: [],
         records: [],
-        checkpoint: { epoch: replacement.epoch, sequence: 0, checksum: initial.stateChecksum },
+        checkpoint: {
+          epoch: replacement.epoch,
+          sequence: 0,
+          checksum: initial.stateChecksum
+        },
         commitDurable: () => {
           this.#journal.discardFencedAuthorityInTransaction(epoch)
           this.#checkpoints.discardFencedCheckpointInTransaction()
@@ -1244,19 +1478,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    * Convex now holds. A command whose stale path found `#aggregateNeedsReload` and an eager reload
    * share it.
    */
-  async #reloadRoomAggregate(value: SocketAttachment, admission: Admission): Promise<void> {
+  async #reloadRoomAggregate(value: SocketAttachment): Promise<void> {
     await this.#flushOutbox('RELOAD')
-    const candidates = this.#admittedCandidates()
-    await this.#refreshSceneCache(value, admission, candidates)
+    await this.#refreshSceneCache(value)
     await this.#loadRoomAggregate(this.#cache?.scene?.id ?? null)
-    if (this.#cache?.scene) this.#cache = { ...this.#cache, synchronized: true }
-  }
-
-  #admittedCandidates(): { admission: Admission; socket: WebSocket }[] {
-    return this.ctx.getWebSockets().flatMap((socket) => {
-      const admission = this.#liveAdmission(socket)
-      return admission ? [{ admission, socket }] : []
-    })
   }
 
   /**
@@ -1272,18 +1497,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#reloadQueued = false
       const current = this.#journal.readCurrent()
       if (!current || current.status !== 'ACTIVE') return
-      const candidates = this.#admittedCandidates()
-      const origin = candidates[0]
-      const value = origin ? attachment(origin.socket) : null
-      if (!origin || !value) return
+      const origin = this.ctx.getWebSockets().find((socket) => this.#liveAdmission(socket))
+      const value = origin ? attachment(origin) : null
+      if (!value) return
       try {
         const authorization = await this.#refreshAuthorization()
-        if (this.#aggregateNeedsReload) await this.#reloadRoomAggregate(value, origin.admission)
+        if (this.#aggregateNeedsReload) await this.#reloadRoomAggregate(value)
         else if (this.#cache && !roomVisionCurrent(authorization, this.#cache.characterRevisions)) {
-          const { synchronized } = this.#cache
-          await this.#refreshSceneCache(value, origin.admission, candidates)
-          if (synchronized && this.#cache?.scene)
-            this.#cache = { ...this.#cache, synchronized: true }
+          await this.#refreshSceneCache(value)
           this.#broadcastStateSync()
         }
       } catch (error) {
@@ -1291,6 +1512,49 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
       this.#queuePostCommit()
     })
+  }
+
+  /**
+   * A read that reloads stale Convex inputs writes the store outside any command. It is journaled
+   * like a command with no receipt, so the store and journal heads stay equal and the room's
+   * unpublished commands remain publishable. A store already behind a Convex-first command is left
+   * for its next boundary reload.
+   */
+  #journalInputReload(entry: LiveSessionCheckpointJournalEntry): undefined {
+    const current = this.#journal.readCurrent()
+    if (
+      !current ||
+      current.status !== 'ACTIVE' ||
+      this.#roomStore.epoch !== current.authorityEpoch ||
+      this.#roomStore.sequence !== current.sequence ||
+      this.#roomStore.checksum !== current.stateChecksum
+    )
+      return undefined
+    const commandId = crypto.randomUUID()
+    const committed = this.#journal.commitInTransaction({
+      actorId: current.authorityEpoch,
+      authorityEpoch: current.authorityEpoch,
+      commandId,
+      fingerprint: checksumCanonicalJson({
+        type: 'RELOAD_ROOM_INPUTS',
+        writeSetChecksum: entry.writeSetChecksum
+      }),
+      expectedSequence: current.sequence,
+      expectedStateChecksum: current.stateChecksum,
+      nextStateChecksum: entry.chainChecksum,
+      nextStateJson: current.stateJson,
+      receiptJson: JSON.stringify(
+        liveSessionWebSocketServerMessageDtoSchema.parse({
+          type: 'COMMAND_COMMITTED',
+          commandId,
+          delta: null,
+          sequence: entry.sequence
+        })
+      )
+    })
+    if (committed.kind !== 'COMMITTED')
+      throw new Error('Room input reload unexpectedly replayed inside its transaction.')
+    return undefined
   }
 
   /** Transitional Convex-first commands reload only after their acknowledged product commit. */
@@ -1309,14 +1573,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       (sceneId === null || this.#roomStore.record('SCENE_CHECKPOINT_SOURCE', sceneId))
     )
       return
-    if (current.sequence !== current.publishedSequence)
+    if (current.sequence !== current.publishedSequence) {
       this.#roomStore.assertAuthorityHead({
         epoch: current.authorityEpoch,
         sequence: current.sequence,
         checksum: current.stateChecksum
       })
-    if (current.sequence !== current.publishedSequence)
-      throw new Error('Room hydration requires an acknowledged authority state.')
+      // Hydration reads Convex, so the room's unpublished commands are checkpointed first.
+      await this.#checkpointThrough(current.authorityEpoch, current.sequence, 'RELOAD')
+      return this.#loadRoomAggregate(sceneId)
+    }
     const authorization =
       this.#authorization.currentPlay(current.authorityEpoch) ??
       (await this.#authorization.refresh(current.authorityEpoch))
@@ -1347,10 +1613,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       authorityEpoch: current.authorityEpoch,
       sequence: current.sequence,
       state: projectNativeLiveSessionState(
-        {
-          scene: this.#cache?.synchronized ? this.#cache.scene : null
-        },
-        admission
+        { scene: this.#cache?.scene ?? null },
+        admission,
+        this.#cache?.presentation?.expectedPresentationVersion ?? null
       ),
       type: 'STATE_SYNC'
     })
@@ -1440,16 +1705,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const command = sceneCommand.data
     if (this.#aggregateNeedsReload) {
       try {
-        await this.#reloadRoomAggregate(value, admission)
+        await this.#reloadRoomAggregate(value)
       } catch {
         this.#rejectCommand(socket, commandId, 'UNAVAILABLE', LIVE_SESSION_TRY_AGAIN_MESSAGE)
         return
       }
     }
-    const synchronized = this.#cache?.synchronized ? this.#cache : null
-    const scene = synchronized?.scene ?? null
+    const cached = this.#cache
+    const scene = cached?.scene ?? null
     const correction = (): LiveSessionCorrectionDto | undefined =>
-      scene ? { scope: 'SCENE', state: projectSceneForViewer(scene, viewer(admission)) } : undefined
+      scene
+        ? {
+            scope: 'SCENE',
+            state: projectSceneForViewer(scene, viewer(admission))
+          }
+        : undefined
     if (!this.#buckets.admits(this.#bucket('SCENE', value, admission))) {
       this.#rejectCommand(
         socket,
@@ -1483,17 +1753,12 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       )
       return
     }
-    if (
-      !synchronized?.scene ||
-      !synchronized.presentation ||
-      synchronized.scene.id !== scene.id ||
-      synchronized.scene.version !== scene.version
-    ) {
+    if (!cached?.presentation) {
       this.#rejectCommand(
         socket,
         commandId,
         'UNAVAILABLE',
-        'Scene synchronization is required before changing the live Scene.',
+        'The presented Scene is not available yet; try again.',
         current.sequence,
         correction()
       )
@@ -1521,7 +1786,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return
     }
     if (command.type === 'PUBLISH_SCENE_FOG_PATCH') {
-      const uploader = { epoch: value.authorityEpoch, userId: admission.userId }
+      const uploader = {
+        epoch: value.authorityEpoch,
+        userId: admission.userId
+      }
       try {
         await this.#commitRoomSceneEdit(
           socket,
@@ -1546,8 +1814,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     // A pending movement decision holds token moves, undo, door changes and token or barrier
     // edits on its Scene (D26).
     if (
-      synchronized.encounterId !== null &&
-      (await readMovementDecisionPending({ db: this.#roomStore.store }, synchronized.encounterId))
+      cached.encounterId !== null &&
+      (await readMovementDecisionPending({ db: this.#roomStore.store }, cached.encounterId))
     ) {
       this.#rejectCommand(
         socket,
@@ -1603,7 +1871,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     const plan = planLiveSceneCommand({
       actor: admission,
       command,
-      encounterId: synchronized.encounterId,
+      encounterId: cached.encounterId,
       scene
     })
     if (plan.kind === 'REJECTED') {
@@ -1631,9 +1899,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     let nextUncomposedScene: CampaignSceneStateDto
     try {
       nextScene = applySceneDelta(scene, delta, scene.version + 1)
-      if (!synchronized.uncomposedScene || !synchronized.sceneHeader)
+      if (!cached.uncomposedScene || !cached.sceneHeader)
         throw new Error('Native Scene persistence inputs are unavailable.')
-      nextUncomposedScene = applySceneDelta(synchronized.uncomposedScene, delta, scene.version + 1)
+      nextUncomposedScene = applySceneDelta(cached.uncomposedScene, delta, scene.version + 1)
     } catch (error) {
       this.#rejectCommand(
         socket,
@@ -1668,8 +1936,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       checksum: current.stateChecksum
     })
     const saveId = crypto.randomUUID()
-    const header = synchronized.sceneHeader!
-    const rawScene = synchronized.uncomposedScene!
+    const header = cached.sceneHeader!
+    const rawScene = cached.uncomposedScene!
     const state = await this.#roomStore.transact(
       (transaction) =>
         Promise.resolve(
@@ -1677,11 +1945,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             transaction,
             header,
             scene: rawScene,
-            baseOrdinals: synchronized.baseOrdinals,
+            baseOrdinals: cached.baseOrdinals,
             command,
             actorUserId: admission.userId,
             result: expectedSceneResult,
-            presentationVersion: synchronized.presentation!.expectedPresentationVersion,
+            presentationVersion: cached.presentation!.expectedPresentationVersion,
             saveId,
             now: Date.now()
           })
@@ -1713,7 +1981,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       }
     )
     this.#cache = {
-      ...synchronized,
+      ...cached,
       scene: nextScene,
       uncomposedScene: nextUncomposedScene,
       sceneHeader: {
@@ -1721,8 +1989,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         version: state.version,
         currentCounts: state.counts,
         fogLayerCount: state.fogLayerCount
-      },
-      synchronized: true
+      }
     }
     this.#broadcastSceneCommitted(committed, scene, nextScene, expectedSceneResult, null)
     await this.#scheduleAlarm()
@@ -2065,13 +2332,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                 authorization,
                 campaignId: value.campaignId,
                 epoch: value.authorityEpoch,
-                scene: sceneCache.uncomposedScene,
-                encounterIds: [
-                  ...new Set([
-                    ...sceneCache.visionEncounterIds,
-                    ...(sceneCache.encounterId ? [sceneCache.encounterId] : [])
-                  ])
-                ]
+                scene: sceneCache.uncomposedScene
               })
             : null
           if (composition) nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
@@ -2079,7 +2340,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             type: 'COMMAND_COMMITTED',
             commandId,
             sequence: current.sequence + 1,
-            delta: { scope: 'CHARACTER_SHEET', result: executed.acknowledgement }
+            delta: {
+              scope: 'CHARACTER_SHEET',
+              result: executed.acknowledgement
+            }
           })
           return { ...executed, composition }
         },
@@ -2118,7 +2382,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         value.authorityEpoch,
         authorization.characters.map((entry) =>
           entry.characterId === character.characterId
-            ? { ...entry, partyVisibility: result.facts.sheetState.partyVisibility }
+            ? {
+                ...entry,
+                partyVisibility: result.facts.sheetState.partyVisibility
+              }
             : entry
         )
       )
@@ -2184,7 +2451,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   ): Promise<void> {
     const commandId = command.command.commandId
     const fingerprint = checksumCanonicalJson(command)
-    const prior = this.#journal.lookupCommand({ actorId: admission.userId, commandId, fingerprint })
+    const prior = this.#journal.lookupCommand({
+      actorId: admission.userId,
+      commandId,
+      fingerprint
+    })
     if (prior.kind === 'MISMATCHED_REUSE') {
       this.#rejectCommand(
         socket,
@@ -2238,7 +2509,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             type: 'COMMAND_COMMITTED',
             commandId,
             sequence: current.sequence + 1,
-            delta: { scope: 'CAMPAIGN_CHAT', entry: posted.entry, privateRoll: posted.privateRoll }
+            delta: {
+              scope: 'CAMPAIGN_CHAT',
+              entry: posted.entry,
+              privateRoll: posted.privateRoll
+            }
           })
           return posted
         },
@@ -2284,7 +2559,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                   type: 'COMMAND_COMMITTED',
                   commandId,
                   sequence: current.sequence + 1,
-                  delta: { scope: 'CAMPAIGN_CHAT', entry: executed.entry, privateRoll: null }
+                  delta: {
+                    scope: 'CAMPAIGN_CHAT',
+                    entry: executed.entry,
+                    privateRoll: null
+                  }
                 }
             : {
                 type: 'COMMAND_COMMITTED',
@@ -2393,13 +2672,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                 authorization,
                 campaignId: value.campaignId,
                 epoch: value.authorityEpoch,
-                scene: sceneCache.uncomposedScene,
-                encounterIds: [
-                  ...new Set([
-                    ...sceneCache.visionEncounterIds,
-                    ...(sceneCache.encounterId ? [sceneCache.encounterId] : [])
-                  ])
-                ]
+                scene: sceneCache.uncomposedScene
               })
             : null
           if (composition)
@@ -2439,6 +2712,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (result.composition && sceneCache) {
         this.#cache = {
           ...sceneCache,
+          ...(result.play ? { encounterId: result.play.encounter?.encounterId ?? null } : {}),
           scene: result.composition.scene,
           characterRevisions: result.composition.characterRevisions
         }
@@ -2518,7 +2792,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
     fingerprint: string
   ): Promise<EncounterCommandResultDto> {
-    if (this.#cache?.synchronized && this.#cache.encounterId !== command.encounterId.toLowerCase())
+    if (this.#cache && this.#cache.encounterId !== command.encounterId.toLowerCase())
       throw sceneNotPresentedRejection()
     const { encounter } = await this.#commitRoomGeometry(
       socket,
@@ -2576,7 +2850,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return
       }
       const { input } = message
-      const scene = this.#cache?.synchronized ? this.#cache.scene : null
+      const scene = this.#cache?.scene ?? null
       if (!scene || scene.id !== input.sceneId || input.expectedSceneVersion > scene.version) {
         this.#rejectCommand(
           socket,
@@ -2585,7 +2859,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           'Scene changed; the current state has been restored.',
           current.sequence,
           scene
-            ? { scope: 'SCENE', state: projectSceneForViewer(scene, viewer(admission)) }
+            ? {
+                scope: 'SCENE',
+                state: projectSceneForViewer(scene, viewer(admission))
+              }
             : undefined
         )
         return
@@ -2636,7 +2913,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   ): Promise<void> {
     if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
     await this.#loadRoomAggregate(command.sceneId)
-    const cache = this.#cache?.synchronized ? this.#cache : null
+    const cache = this.#cache
     const current = this.#journal.readCurrent()
     if (
       !cache?.scene ||
@@ -2672,13 +2949,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           authorization,
           campaignId: value.campaignId,
           epoch: value.authorityEpoch,
-          scene: edited.scene,
-          encounterIds: [
-            ...new Set([
-              ...cache.visionEncounterIds,
-              ...(cache.encounterId ? [cache.encounterId] : [])
-            ])
-          ]
+          scene: edited.scene
         })
         nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
         receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
@@ -2824,13 +3095,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           authorization,
           campaignId: value.campaignId,
           epoch: value.authorityEpoch,
-          scene: uncomposedScene,
-          encounterIds: [
-            ...new Set([
-              ...cache.visionEncounterIds,
-              ...(cache.encounterId ? [cache.encounterId] : [])
-            ])
-          ]
+          scene: uncomposedScene
         })
         nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
         return {
@@ -2843,7 +3108,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           play: await readRoomEncounterPlayAuthorization(
             { db: this.#roomStore.store },
             value.campaignId,
-            authorization.play
+            authorization.play,
+            before.id
           )
         }
       },
@@ -2900,18 +3166,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return committed
   }
 
-  /**
-   * The room's synchronized presented Scene that geometry commands plan against; null until the
-   * Scene is synchronized.
-   */
+  /** The room's presented Scene that geometry commands plan against; null while none is presented. */
   #stagedSceneContext(): StagedSceneContext | null {
-    const synchronized = this.#cache?.synchronized ? this.#cache : null
-    if (!synchronized?.scene || !synchronized.presentation) return null
+    const cached = this.#cache
+    if (!cached?.scene || !cached.presentation) return null
     return {
-      scene: synchronized.scene,
-      baseOrdinals: synchronized.baseOrdinals,
-      characterRevisions: synchronized.characterRevisions,
-      presentation: synchronized.presentation
+      scene: cached.scene,
+      baseOrdinals: cached.baseOrdinals,
+      characterRevisions: cached.characterRevisions,
+      presentation: cached.presentation
     }
   }
 
@@ -2923,8 +3186,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     command: BindEncounterToPresentedSceneInputDto
   ): Promise<void> {
     const commandId = command.commandId
-    const fingerprint = checksumCanonicalJson({ command, scope: 'ENCOUNTER_BINDING' })
-    const prior = this.#journal.lookupCommand({ actorId: admission.userId, commandId, fingerprint })
+    const fingerprint = checksumCanonicalJson({
+      command,
+      scope: 'ENCOUNTER_BINDING'
+    })
+    const prior = this.#journal.lookupCommand({
+      actorId: admission.userId,
+      commandId,
+      fingerprint
+    })
     if (prior.kind === 'MISMATCHED_REUSE') {
       this.#rejectCommand(
         socket,
@@ -2950,18 +3220,18 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       })
       return
     }
-    const synchronized = this.#cache?.synchronized ? this.#cache : null
-    if (!synchronized?.scene || !synchronized.presentation) {
+    const cached = this.#cache
+    if (!cached?.scene || !cached.presentation) {
       this.#rejectCommand(
         socket,
         commandId,
         'UNAVAILABLE',
-        'Scene synchronization is required before changing the live Scene.'
+        'The presented Scene is not available yet; try again.'
       )
       return
     }
-    const sceneId = synchronized.scene.id
-    const { presentation } = synchronized
+    const sceneId = cached.scene.id
+    const { presentation } = cached
     try {
       if (this.#aggregateNeedsReload) await this.#flushOutbox('RELOAD')
       await this.#loadRoomAggregate(sceneId)
@@ -2970,7 +3240,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         throw new LiveSessionRouteError(409)
       const authorization = await this.#authorizationBoundary(value)
       if (
-        !synchronized.uncomposedScene ||
+        !cached.uncomposedScene ||
         this.#liveAdmission(socket)?.generation !== admission.generation ||
         !admitsRoomMember(authorization, admission)
       )
@@ -2997,11 +3267,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             expectedPresentationVersion: presentation.expectedPresentationVersion,
             command
           })
-          const encounterId =
-            bound.result.sceneId === sceneId ? bound.result.encounterId : synchronized.encounterId
-          const encounterIds = [
-            ...new Set([...synchronized.visionEncounterIds, ...(encounterId ? [encounterId] : [])])
-          ]
+          const encounterId = bound.play
+            ? (bound.play.encounter?.encounterId ?? null)
+            : cached.encounterId
           const composition = await composeRoomSceneVision({
             store: this.#roomStore,
             transaction,
@@ -3009,8 +3277,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             authorization,
             campaignId: value.campaignId,
             epoch: value.authorityEpoch,
-            scene: synchronized.uncomposedScene!,
-            encounterIds
+            scene: cached.uncomposedScene!
           })
           nextStateJson = createNativeLiveSessionState(composition.scene).stateJson
           receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
@@ -3019,7 +3286,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             sequence,
             type: 'COMMAND_COMMITTED'
           })
-          return { ...bound, encounterId, encounterIds, composition }
+          return { ...bound, encounterId, composition }
         },
         (entry) => {
           const latest = this.#authorization.current(value.authorityEpoch)
@@ -3051,12 +3318,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             throw new Error('Room binding unexpectedly replayed inside its transaction.')
         }
       )
-      if (result.result.sceneId === sceneId)
-        this.#authorization.applyPlay(value.authorityEpoch, result.play)
+      if (result.play) this.#authorization.applyPlay(value.authorityEpoch, result.play)
       this.#cache = {
-        ...synchronized,
+        ...cached,
         encounterId: result.encounterId,
-        visionEncounterIds: result.encounterIds,
         scene: result.composition.scene,
         characterRevisions: result.composition.characterRevisions
       }
@@ -3126,10 +3391,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     )
   }
 
-  /** Whether a member's command requires geometry planning on the synchronized Scene. */
+  /** Whether a member's command requires geometry planning on the presented Scene. */
   #isStagedCommand(command: unknown): boolean {
     const parsed = liveSessionSceneCommandInputSchema.safeParse(command)
-    const cached = this.#cache?.synchronized ? this.#cache : null
+    const cached = this.#cache
     return (
       parsed.success &&
       !!cached?.scene &&
@@ -3325,19 +3590,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#cache?.scene?.id ??
       hydrateNativeLiveSessionState(head.stateJson).scene?.id ??
       authorization.play.encounter?.sceneId
-    const binding = sceneId
-      ? await this.#roomStore.store
-          .query('encounterSceneBindings')
-          .withIndex('by_sceneId', (query) => query.eq('sceneId', sceneId))
-          .first()
-      : null
-    if (binding && binding.campaignId !== campaignId)
-      throw new Error('Room Encounter Scene binding Campaign mismatch.')
     const play = await readRoomEncounterPlayAuthorization(
       { db: this.#roomStore.store },
       campaignId,
       authorization.play,
-      binding ?? undefined
+      sceneId ?? null
     )
     const nativeCharacters = new Map(
       this.#roomStore.documents('characterPlayStates').map((row) => [row.characterId, row])
@@ -3347,7 +3604,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (!local) return character
       if (local.userId !== character.ownerUserId)
         throw new Error('Room Character visibility owner mismatch.')
-      return { ...character, partyVisibility: readCharacterPlay(local).partyVisibility }
+      return {
+        ...character,
+        partyVisibility: readCharacterPlay(local).partyVisibility
+      }
     })
     this.#authorization.applyCharacters(head.authorityEpoch, characters)
     if (play) this.#authorization.applyPlay(head.authorityEpoch, play)
@@ -3382,7 +3642,11 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         delta: delta
           ? { scope: 'SCENE', result: { ...result, delta, occurrence } }
           : after.version !== before.version
-            ? { scope: 'SCENE_VERSION', sceneId: result.sceneId, version: result.version }
+            ? {
+                scope: 'SCENE_VERSION',
+                sceneId: result.sceneId,
+                version: result.version
+              }
             : occurrence
               ? { scope: 'SCENE', result: { ...result, occurrence } }
               : null,
@@ -3410,7 +3674,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     })
   }
 
-  /** Admissions and drains retry a retained checkpoint; commands use the deadline alarm. */
+  /** Admissions and drains retry a retained checkpoint; commands save at save points and at the backlog bound. */
   #publishInBackground(): void {
     this.ctx.waitUntil(this.#flushOutbox('ADMISSION').catch(() => undefined))
   }
@@ -3460,25 +3724,31 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   }
 
   async #publishPending(reason: LiveSessionCheckpointReason): Promise<void> {
-    const current = this.#journal.readCurrent()
-    const campaignId = this.#roomCampaignId()
-    if (!current || !campaignId || current.status === 'RELEASED') return
-    if (this.#roomStore.epoch !== current.authorityEpoch) {
-      if (current.sequence !== current.publishedSequence)
-        throw new Error('The pending checkpoint has no matching room aggregate.')
-      return
-    }
-    if (
-      current.sequence === current.publishedSequence &&
-      (this.#roomStore.sequence !== current.sequence ||
-        this.#roomStore.checksum !== current.stateChecksum)
-    )
-      return // An acknowledged Convex-first command reloads its aggregate at the next boundary.
-    this.#roomStore.assertAuthorityHead({
-      epoch: current.authorityEpoch,
-      sequence: current.sequence,
-      checksum: current.stateChecksum
+    // Backlog and admission flushes run beside the command chain, so the head is read between commands.
+    const scope = await this.#roomStore.whenClosed(() => {
+      const current = this.#journal.readCurrent()
+      const campaignId = this.#roomCampaignId()
+      if (!current || !campaignId || current.status === 'RELEASED') return null
+      if (this.#roomStore.epoch !== current.authorityEpoch) {
+        if (current.sequence !== current.publishedSequence)
+          throw new Error('The pending checkpoint has no matching room aggregate.')
+        return null
+      }
+      if (
+        current.sequence === current.publishedSequence &&
+        (this.#roomStore.sequence !== current.sequence ||
+          this.#roomStore.checksum !== current.stateChecksum)
+      )
+        return null // An acknowledged Convex-first command reloads its aggregate at the next boundary.
+      this.#roomStore.assertAuthorityHead({
+        epoch: current.authorityEpoch,
+        sequence: current.sequence,
+        checksum: current.stateChecksum
+      })
+      return { current, campaignId }
     })
+    if (!scope) return
+    const { current, campaignId } = scope
     const sent = this.#authorization.current(current.authorityEpoch)?.revisions ?? null
     const response = await this.#checkpoints.flush(
       { campaignId, epoch: current.authorityEpoch, knownAuthorization: sent },
@@ -3488,7 +3758,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const head = this.#journal.readCurrent()
       if (head && head.sequence === head.publishedSequence)
         this.#authorization.acknowledgePlay(current.authorityEpoch)
-      this.#authorization.adopt(current.authorityEpoch, sent, response.adopted)
     }
     await this.#scheduleAlarm()
   }
@@ -3524,15 +3793,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       return admitsRoomMember(authorization, candidate) ? [{ admission: candidate, socket }] : []
     })
     const cached = this.#cache
-    if (!cached) return this.#refreshPreviewScene(originAttachment, originAdmission, candidates)
+    if (!cached) return this.#refreshPreviewScene(originAttachment)
     const scene = cached.scene
     if (!scene || scene.id !== envelope.sceneId || scene.version !== envelope.baselineVersion)
       return
-    let boundTokenControl: LiveSessionTransientCapture['originBoundTokenControl'] | null = null
+    let boundTokenControl: BoundTokenControl | null = null
     if (envelope.kind === 'TOKEN_DRAG_PREVIEW') {
       // A changed Character's vision rebuilds the Scene before drags preview it again (D33).
       if (!roomVisionCurrent(authorization, cached.characterRevisions))
-        return this.#refreshPreviewVision(originAttachment, originAdmission, candidates)
+        return this.#refreshPreviewVision(originAttachment)
       // A player's preview on an Encounter-bound Scene needs their bound-actor control (D25).
       if (originAdmission.role === 'PLAYER' && cached.encounterId !== null) {
         const play = this.#authorization.currentPlay(originAttachment.authorityEpoch)
@@ -3575,14 +3844,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     )
   }
 
-  /** Rebuilds a missing or stale Scene cache in the background, as `SYNCHRONIZE_SCENE` does. */
-  #refreshPreviewScene(
-    value: SocketAttachment,
-    admission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[]
-  ): void {
+  /** Rebuilds a missing or stale Scene cache in the background. */
+  #refreshPreviewScene(value: SocketAttachment): void {
     this.#refreshPreviewInBackground('scene', async () => {
-      await this.#refreshSceneCache(value, admission, candidates, true)
+      await this.#refreshSceneCache(value, true)
       const sceneId = this.#cache?.scene?.id
       if (sceneId) this.#overlayDurableSceneCache(sceneId)
     })
@@ -3592,33 +3857,30 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    * The Scene vision was built from Character revisions the authorization cache no longer holds
    * (D33). The cache reloads first; a Character that really changed rebuilds the Scene's vision.
    */
-  #refreshPreviewVision(
-    value: SocketAttachment,
-    admission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[]
-  ): void {
+  #refreshPreviewVision(value: SocketAttachment): void {
     this.#refreshPreviewInBackground('scene', async () => {
       const authorization = await this.#refreshAuthorization()
       if (!roomVisionCurrent(authorization, this.#cache?.characterRevisions ?? []))
-        await this.#refreshSceneCache(value, admission, candidates, true)
+        await this.#refreshSceneCache(value, true)
     })
   }
 
   /**
-   * A flush that came due rides the next incoming message instead of waiting for the alarm (ADR 0035
-   * Amendment 17), so an idle or ping-only room makes no call of its own. The deadline is the one
-   * the alarm was scheduled from, so a message reads no storage; every commit and flush reschedules
-   * the alarm, which keeps it current.
+   * The only save that is not a lifecycle moment (ADR 0035 Amendment 25): when the unsaved log holds
+   * a chat push window of new chat entries and roll cards, the room saves in the background, so
+   * Convex chat paging never has a gap. The journal's size is not a trigger: a checkpoint pages
+   * itself, so one save stays one page however large the backlog. It runs after the commit, so it
+   * never delays an acknowledgement. A flush already running carries the log, and a failed one waits
+   * `alarmRetryMs` because the bound stays crossed.
    */
-  #flushIfDue(): void {
-    if (this.#flushDueAt === undefined) this.#flushDueAt = this.#checkpointAt()
-    if (this.#flushDueAt === null || this.#flushDueAt > Date.now()) return
-    // One flush per deadline; rescheduling the alarm after it sets the next one.
-    this.#flushDueAt = null
+  #saveBacklogIfFull(): void {
+    if (this.#roomStore.unsavedChatEntries < LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT) return
+    if (this.#outboxFlush || Date.now() < this.#backlogRetryAt) return
     this.ctx.waitUntil(
-      this.#flushOutbox('DEADLINE')
-        .catch((error) => console.error('Live Session deadline flush failed.', error))
-        .then(() => this.#scheduleAlarm())
+      this.#flushOutbox('BACKLOG').catch((error) => {
+        this.#backlogRetryAt = Date.now() + ROOM_LIMITS.alarmRetryMs
+        console.error('Live Session backlog save failed.', error)
+      })
     )
   }
 
@@ -3660,58 +3922,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       this.#cache = { ...this.#cache, scene: durableScene }
   }
 
-  #matchesSceneSynchronization(
-    sceneId: string,
-    version: number,
-    expectedPresentationVersion: number
-  ): boolean {
-    return (
-      this.#cache?.scene?.id === sceneId &&
-      this.#cache.scene.version >= version &&
-      this.#cache.presentation?.expectedPresentationVersion === expectedPresentationVersion
-    )
-  }
-
-  async #synchronizeScene(
-    socket: WebSocket,
-    sceneId: string,
-    version: number,
-    expectedPresentationVersion: number
-  ): Promise<void> {
-    const value = attachment(socket)
-    const admission = this.#liveAdmission(socket)
-    if (!value || !admission) return this.#challenge(socket)
-    // Synchronizing broadcasts every member's state, so the authorization cache must be current.
-    await this.#authorizationBoundary(value)
-    if (this.#liveAdmission(socket)?.generation !== admission.generation) return
-    this.#overlayDurableSceneCache(sceneId)
-    if (this.#matchesSceneSynchronization(sceneId, version, expectedPresentationVersion)) {
-      if (!this.#cache) throw new Error('Synchronized Scene cache is missing.')
-      this.#cache = { ...this.#cache, synchronized: true }
-      this.#broadcastStateSync()
-      return
-    }
-
-    const candidates = this.ctx.getWebSockets().flatMap((candidateSocket) => {
-      const candidate = this.#liveAdmission(candidateSocket)
-      return candidate ? [{ admission: candidate, socket: candidateSocket }] : []
-    })
-    const sync = this.#refreshSceneCache(value, admission, candidates).then(() => undefined)
-    this.#sceneSync = sync
-    try {
-      await sync
-      this.#overlayDurableSceneCache(sceneId)
-      if (this.#matchesSceneSynchronization(sceneId, version, expectedPresentationVersion)) {
-        if (!this.#cache) throw new Error('Synchronized Scene cache is missing.')
-        this.#cache = { ...this.#cache, synchronized: true }
-        this.#broadcastStateSync()
-      }
-    } catch {
-      this.#cache = null
-      this.#challenge(socket, admission.generation)
-    } finally {
-      if (this.#sceneSync === sync) this.#sceneSync = null
-    }
+  /**
+   * Builds the presented-Scene cache when the room holds none (a first admission, or one after the
+   * cache was discarded), so no socket is synced without a Scene that is presented. The Scene rows
+   * are the room's own; Convex supplies only the pointer and what the rows are composed with.
+   */
+  async #ensureSceneCache(value: SocketAttachment): Promise<void> {
+    if (this.#cache) return
+    const capture = await this.#refreshSceneCache(value, true)
+    if (capture?.sceneHeader) this.#overlayDurableSceneCache(capture.sceneHeader.id)
   }
 
   /**
@@ -3720,12 +3939,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    */
   async #hydrateSceneCache(
     value: SocketAttachment,
-    capture: LiveSessionTransientCapture,
+    capture: LiveSessionRoomSceneCapture,
     serialized: boolean
   ) {
     // Off-chain refreshes queue behind a running command: the room store runs one at a time.
-    if (!serialized) return this.#buildSceneCache(value, capture)
-    const next = this.#commandChain.then(() => this.#buildSceneCache(value, capture))
+    const source = { sceneHeader: capture.sceneHeader }
+    if (!serialized) return this.#buildSceneCache(value, source)
+    const next = this.#commandChain.then(() => this.#buildSceneCache(value, source))
     this.#commandChain = next.then(
       () => undefined,
       () => undefined
@@ -3733,19 +3953,20 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return next
   }
 
-  async #buildSceneCache(value: SocketAttachment, capture: LiveSessionTransientCapture) {
-    const header = capture.sceneHeader
+  /** The Scene rows composed with Character vision: all of a cache that its persisted part does not hold. */
+  async #buildSceneCache(
+    scope: Pick<SocketAttachment, 'authorityEpoch' | 'campaignId'>,
+    { sceneHeader: header }: Pick<TransientCache, 'sceneHeader'>
+  ) {
     if (!header)
       return {
         baseOrdinals: { tokens: [], barriers: [] },
         characterRevisions: [],
         scene: null,
-        uncomposedScene: null,
-        visionEncounterIds: []
+        uncomposedScene: null
       }
     await this.#loadRoomAggregate(header.id)
-    const authorization = await this.#authorizationBoundary(value)
-    const encounterIds = capture.sceneEncounterId ? [capture.sceneEncounterId] : []
+    const authorization = await this.#authorizationBoundary(scope)
     return this.#roomStore.transact(async (transaction) => {
       const { scene: uncomposedScene, baseOrdinals } = await readRoomSceneState(
         transaction,
@@ -3758,45 +3979,40 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         transaction,
         inputs: this.#roomInputs,
         authorization,
-        campaignId: value.campaignId,
-        epoch: value.authorityEpoch,
-        scene: uncomposedScene,
-        encounterIds
+        campaignId: scope.campaignId,
+        epoch: scope.authorityEpoch,
+        scene: uncomposedScene
       })
       return {
         baseOrdinals,
         characterRevisions: composition.characterRevisions,
         scene: composition.scene,
-        uncomposedScene,
-        visionEncounterIds: encounterIds
+        uncomposedScene
       }
     })
   }
 
   async #refreshSceneCache(
     value: SocketAttachment,
-    admission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[],
     serialized = false
-  ): Promise<LiveSessionTransientCapture | null> {
+  ): Promise<LiveSessionRoomSceneCapture | null> {
     if (this.#presentationChanging) return null
+    // Convex holds the room's commands before the capture: hydration would otherwise publish them
+    // between the two captures, and the refresh would read its own checkpoint as a change.
+    const head = this.#journal.readCurrent()
+    if (head && head.sequence !== head.publishedSequence)
+      await this.#checkpointThrough(head.authorityEpoch, head.sequence, 'RELOAD')
     const generation = this.#cacheGeneration
     let staleRetryUsed = false
-    let capture: LiveSessionTransientCapture
+    let capture: LiveSessionRoomSceneCapture
     try {
-      capture = await this.#capture(
-        value,
-        admission,
-        candidates,
-        'FULL',
-        this.#cache?.characterRevisions ?? []
-      )
+      capture = await this.#capture(value, this.#cache?.characterRevisions ?? [])
     } catch (error) {
       if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
       if (generation !== this.#cacheGeneration || this.#presentationChanging) return null
       staleRetryUsed = true
       this.#cache = null
-      capture = await this.#capture(value, admission, candidates, 'FULL', [])
+      capture = await this.#capture(value, [])
     }
     if (generation !== this.#cacheGeneration || this.#presentationChanging) return null
     const key = cacheKey(capture)
@@ -3807,24 +4023,22 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     let uncomposedScene = hydrated.uncomposedScene
     let revisions = hydrated.characterRevisions
     let baseOrdinals = hydrated.baseOrdinals
-    let visionEncounterIds = hydrated.visionEncounterIds
-    let finalCapture: LiveSessionTransientCapture
+    let finalCapture: LiveSessionRoomSceneCapture
     try {
-      finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
+      finalCapture = await this.#capture(value, revisions)
     } catch (error) {
       if (!(error instanceof LiveSessionRouteError) || error.status !== 409) throw error
       if (generation !== this.#cacheGeneration || this.#presentationChanging) return null
       if (staleRetryUsed) throw error
       staleRetryUsed = true
       this.#cache = null
-      const retry = await this.#capture(value, admission, candidates, 'FULL', [])
+      const retry = await this.#capture(value, [])
       const hydratedRetry = await this.#hydrateSceneCache(value, retry, serialized)
       scene = hydratedRetry.scene
       uncomposedScene = hydratedRetry.uncomposedScene
       revisions = hydratedRetry.characterRevisions
       baseOrdinals = hydratedRetry.baseOrdinals
-      visionEncounterIds = hydratedRetry.visionEncounterIds
-      finalCapture = await this.#capture(value, admission, candidates, 'FULL', revisions)
+      finalCapture = await this.#capture(value, revisions)
       if (!equalCanonicalJson(authorityFingerprint(retry), authorityFingerprint(finalCapture)))
         return null
     }
@@ -3836,7 +4050,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#cache = {
       baseOrdinals,
       characterRevisions: revisions,
-      visionEncounterIds,
       encounterId: finalCapture.sceneEncounterId,
       key: cacheKey(finalCapture),
       scene,
@@ -3844,25 +4057,20 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       sceneHeader: finalCapture.sceneHeader,
       presentation: finalCapture.presentation
         ? { expectedPresentationVersion: finalCapture.presentation.version }
-        : null,
-      synchronized: false
+        : null
     }
     return finalCapture
   }
+
+  /** The room's Scene from Convex, authorized by the room's epoch: no member's token is needed. */
   async #capture(
     value: SocketAttachment,
-    admission: Admission,
-    candidates: readonly { admission: Admission; socket: WebSocket }[],
-    mode: 'AUTHORITY' | 'FULL',
-    observedCharacterRevisions: LiveSessionTransientCapture['observedCharacterRevisions']
-  ): Promise<LiveSessionTransientCapture> {
-    return callLiveSessionRoute(this.env, admission.accessToken, 'capture', {
+    observedCharacterRevisions: LiveSessionRoomSceneCapture['observedCharacterRevisions']
+  ): Promise<LiveSessionRoomSceneCapture> {
+    return callLiveSessionRoute(this.env, null, 'roomSceneCapture', {
       campaignId: value.campaignId,
-      expectedRole: admission.role,
-      expectedUserId: admission.userId,
-      mode,
-      observedCharacterRevisions,
-      recipientUserIds: [...new Set(candidates.map(({ admission: candidate }) => candidate.userId))]
+      epoch: value.authorityEpoch,
+      observedCharacterRevisions
     })
   }
 
@@ -3875,7 +4083,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     originAttachment: SocketAttachment,
     originAdmission: Admission,
     candidates: readonly { admission: Admission; socket: WebSocket }[],
-    boundTokenControl: LiveSessionTransientCapture['originBoundTokenControl'] | null,
+    boundTokenControl: BoundTokenControl | null,
     scene: CampaignSceneStateDto,
     envelope: SceneTransientEnvelopeDto
   ): void {
@@ -4050,16 +4258,6 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     return Date.now() < admission.deadline
   }
 
-  #recipientUserIds(): string[] {
-    return [
-      ...new Set(
-        [...this.#admissions.values()]
-          .filter((admission) => this.#isLive(admission))
-          .map((admission) => admission.userId)
-      )
-    ]
-  }
-
   #movementIndex(scene: CampaignSceneStateDto): SceneBarrierIndex {
     const cached = this.#movementIndexes.get(scene.id)
     if (cached?.barriers === scene.barriers) return cached.index
@@ -4076,6 +4274,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#sheetFeed.drop(socket)
     this.#encounterFeed.drop(socket)
     this.#summaryFeed.drop(socket)
+    // A challenged or closed socket must not be restored by a later wake.
+    const value = socket.readyState === WebSocket.OPEN ? attachment(socket) : null
+    if (value && (value.admissionDeadline !== null || value.feeds !== null))
+      socket.serializeAttachment({
+        ...value,
+        admissionDeadline: null,
+        feeds: null
+      })
     return generation
   }
 
@@ -4192,6 +4398,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#activation = null
     this.#storage.sql.exec('DELETE FROM room_idle_release WHERE id = 1')
     return closed
+  }
+
+  /**
+   * Campaign deletion removes everything the room kept, Encounter and Scene history included
+   * (ADR 0035 Amendments 22 and 26). It runs after `#closeRoom` released authority, so nothing
+   * writes afterward. A fresh instance over the emptied storage answers a repeat the same way.
+   */
+  async #deleteRoomStorage(): Promise<void> {
+    await this.ctx.storage.deleteAlarm()
+    await this.ctx.storage.deleteAll()
+    this.#storageDeleted = true
   }
 
   #closeSockets(

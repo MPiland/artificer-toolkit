@@ -352,6 +352,8 @@ it('atomically resolves a failed native Concentration save, retains the private 
     version: state.version,
     stateJson: JSON.stringify(state),
     stateChecksum: checksumCanonicalJson(state),
+    createCommandId: crypto.randomUUID(),
+    createCommandFingerprint: checksumCanonicalJson(state),
     createdAt: now,
     updatedAt: now
   })
@@ -575,7 +577,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   for (const table of [
     'encounterRuns',
     'encounterRunActors',
-    'encounterActorProjectionFacts',
+    'encounterActorSnapshots',
     'encounterSourceProjectionFacts',
     'encounterMaintainedEffectStates',
     'encounterActiveRuleEffects',

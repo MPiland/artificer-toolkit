@@ -184,6 +184,8 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     version: state.version,
     stateJson: JSON.stringify(state),
     stateChecksum: checksumCanonicalJson(state),
+    createCommandId: crypto.randomUUID(),
+    createCommandFingerprint: checksumCanonicalJson(state),
     createdAt: now,
     updatedAt: now
   })
@@ -192,7 +194,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
   for (const table of [
     'encounterRuns',
     'encounterRunActors',
-    'encounterActorProjectionFacts',
+    'encounterActorSnapshots',
     'encounterSourceProjectionFacts'
   ] as const) {
     for (const { _id, _creationTime, ...fields } of memory.documents(table))
@@ -295,7 +297,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
       checksum: value.checksum,
       state: readRunState(run),
       actors: value.documents('encounterRunActors'),
-      facts: value.documents('encounterActorProjectionFacts'),
+      snapshots: value.documents('encounterActorSnapshots'),
       sources: value.documents('encounterSourceProjectionFacts'),
       rounds: value.documents('encounterInitiativeRounds'),
       participants: value.documents('encounterInitiativeParticipants'),

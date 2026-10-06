@@ -1,4 +1,3 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { campaignCharacterStateSchema } from '@artificer-toolkit/schema/projections/campaignCharacterState'
@@ -58,7 +57,9 @@ async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCh
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
       .unique(),
-    commands: await (await readEncounterHistory(ctx))
+    commands: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRunCommands')
       .withIndex('by_encounterId_version', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
@@ -66,7 +67,9 @@ async function snapshot(value: Awaited<ReturnType<typeof setupMovementReactionCh
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
       .collect(),
-    receipts: await (await readEncounterHistory(ctx))
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
       .collect()

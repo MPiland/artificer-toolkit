@@ -15,7 +15,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
-import { readReceiptLedger } from '../lib/receiptLedgers'
 import { readLiveSceneForUser } from '../scenes/liveDocuments'
 
 type StoredRow = Record<string, unknown> & {
@@ -27,14 +26,9 @@ const PAGE = {
   maximumRowsRead: MAX_ROOM_INPUT_PAGE_DOCUMENTS + 1,
   maximumBytesRead: 4 * 1024 * 1024
 }
-const TABLES = [
-  'sceneLiveStates',
-  'sceneLiveEntities',
-  'sceneLiveCommands',
-  'sceneFogLayers',
-  'sceneFogSaves',
-  'sceneGeometrySaves'
-] as const
+const TABLES = ['sceneLiveStates', 'sceneLiveEntities', 'sceneFogLayers', 'sceneFogSaves'] as const
+/** After the indexed tables, the fog-save pages read each published save's chunks. */
+const FOG_CHUNK_POSITION = TABLES.length
 
 function assertAdvances(page: PaginationResult<unknown>, cursor: string | null) {
   if (!page.isDone && page.continueCursor === cursor)
@@ -150,9 +144,10 @@ export async function readRoomSceneInputsPage(
   )
   const position = scope.cursor?.position ?? 0
   const cursor = scope.cursor?.paginationCursor ?? null
-  if (scope.cursor?.fogSave && position !== 6) throw new Error('Room input cursor is invalid.')
+  if (scope.cursor?.fogSave && position !== FOG_CHUNK_POSITION)
+    throw new Error('Room input cursor is invalid.')
 
-  if (position === 6) {
+  if (position === FOG_CHUNK_POSITION) {
     const fogSave = scope.cursor?.fogSave
     if (!fogSave) {
       // Selecting a save and reading its chunks are separate pages: one native paginate per query.
@@ -208,39 +203,6 @@ export async function readRoomSceneInputsPage(
 
   const table = TABLES[position]
   if (!table) throw new Error('Room input cursor is invalid.')
-  if (table === 'sceneLiveCommands') {
-    // Command receipts are packed: one Scene ledger per page keeps rows read independent of history.
-    const ledgers = await ctx.db
-      .query('receiptLedgers')
-      .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', sceneId))
-      .paginate({ ...PAGE, numItems: 1, cursor })
-    if (ledgers.pageStatus === 'SplitRequired')
-      throw new Error('Room Scene command page must split.')
-    assertAdvances(ledgers, cursor)
-    const documents: LiveRoomInputsDocument[] = []
-    for (const { id, _id, _creationTime } of ledgers.page)
-      for (const [index, entry] of (await readReceiptLedger(ctx, id)).entries.entries()) {
-        if (entry?.table !== 'sceneLiveCommands') continue
-        if (entry.value.sceneId !== sceneId)
-          throw new Error('Room input record belongs to another Scene.')
-        documents.push({
-          table,
-          id: `${_id}:${index}`,
-          creationTime: _creationTime,
-          fields: entry.value
-        })
-      }
-    return {
-      kind: 'SCENE',
-      source,
-      sceneVersion: header.version,
-      documents,
-      continueCursor: !ledgers.isDone
-        ? { position, paginationCursor: ledgers.continueCursor, fogSave: null }
-        : { position: position + 1, paginationCursor: null, fogSave: null }
-    }
-  }
-
   const queries = {
     sceneLiveStates: () =>
       ctx.db.query('sceneLiveStates').withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId)),
@@ -255,10 +217,6 @@ export async function readRoomSceneInputsPage(
     sceneFogSaves: () =>
       ctx.db
         .query('sceneFogSaves')
-        .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', sceneId)),
-    sceneGeometrySaves: () =>
-      ctx.db
-        .query('sceneGeometrySaves')
         .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', sceneId))
   } as const
   const page = await queries[table]().paginate({ ...PAGE, cursor })

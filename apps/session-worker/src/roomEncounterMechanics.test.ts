@@ -29,6 +29,7 @@ import { RoomInputs } from './roomInputs.js'
 import { characterPageFixture } from './testing/characterPageFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import { storedRunDocuments } from './testing/storedRunFixture.js'
 
 type SheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>>
 type MechanicsFacts = Pick<SheetFacts, 'active' | 'character' | 'sheetState'> & {
@@ -184,33 +185,7 @@ it('settles Character and Creature mechanics from native play with private recei
         creationTime: playCreationTime,
         fields: playFields
       },
-      {
-        table: 'encounterRuns',
-        id: 'fixture:mechanics-run',
-        creationTime: Date.parse(now),
-        fields: {
-          id: run.id,
-          campaignId,
-          gameSystemId: run.gameSystemId,
-          status: run.status,
-          version: run.version,
-          stateJson: JSON.stringify(run),
-          stateChecksum: checksumCanonicalJson(run),
-          createdAt: now,
-          updatedAt: now
-        }
-      },
-      ...[characterActor, creatureActor].map((actor) => ({
-        table: 'encounterRunActors',
-        id: `fixture:mechanics-actor:${actor.id}`,
-        creationTime: Date.parse(now),
-        fields: {
-          id: actor.id,
-          encounterId: run.id,
-          stateJson: JSON.stringify(actor),
-          stateChecksum: checksumCanonicalJson(actor)
-        }
-      }))
+      ...(await storedRunDocuments(run, [characterActor, creatureActor]))
     ],
     records: [
       {
@@ -366,7 +341,7 @@ it('settles Character and Creature mechanics from native play with private recei
   const snapshot = () => ({
     runs: store.documents('encounterRuns'),
     actors: store.documents('encounterRunActors'),
-    facts: store.documents('encounterActorProjectionFacts'),
+    snapshots: store.documents('encounterActorSnapshots'),
     sources: store.documents('encounterSourceProjectionFacts'),
     head: store.documents('characters'),
     play: store.documents('characterPlayStates'),

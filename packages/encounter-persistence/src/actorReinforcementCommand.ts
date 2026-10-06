@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   encounterCommandResultDtoSchema,
   type EncounterExecuteInput
@@ -244,7 +245,7 @@ export async function reinforceEncounterActors(
         query.eq('encounterId', row.id).eq('id', currentActor.id)
       )
       .unique()
-    if (!actorRow || actorRow.stateChecksum !== checksumCanonicalJson(currentActor))
+    if (!actorRow || actorRow.stateChecksum !== checksumRunActorPlayState(currentActor))
       throw new Error('Encounter actor changed before reinforcement.')
     await writeRunActor(ctx, actorRow._id, updatedActor)
   }

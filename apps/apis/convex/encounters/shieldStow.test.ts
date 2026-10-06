@@ -1,5 +1,4 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { readReceiptHeader } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'

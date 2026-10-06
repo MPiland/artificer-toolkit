@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { LiveSessionTransientCaptureInput } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 import { createSceneDefinitionFixture } from '../../tests/fixtures/sceneDefinitions'
 
 const secret = 'test-live-session-executor-secret-that-is-long-enough'
@@ -12,9 +13,7 @@ async function setup() {
   const input: LiveSessionTransientCaptureInput = {
     campaignId: base.campaign.id,
     expectedRole: 'OWNER',
-    expectedUserId: base.owner.userId,
-    observedCharacterRevisions: [],
-    recipientUserIds: [base.owner.userId, base.other.userId]
+    expectedUserId: base.owner.userId
   }
   return { base, input }
 }
@@ -130,6 +129,39 @@ it('returns owner and player captures through authenticated HTTP', async () => {
     campaignId: base.campaign.id,
     origin: { role: 'PLAYER', userId: base.other.userId }
   })
+})
+
+it('serves the room Scene capture by the worker secret and active epoch, with no user identity', async () => {
+  const { base } = await setup()
+  const epoch = crypto.randomUUID()
+  await base.t.run((ctx) =>
+    insertActiveLiveAuthority(ctx, {
+      campaignId: base.campaign.id,
+      epoch,
+      createdAt: new Date().toISOString()
+    })
+  )
+  const input = { campaignId: base.campaign.id, epoch, observedCharacterRevisions: [] }
+  const secretHeaders = {
+    'Content-Type': 'application/json',
+    'x-artificer-live-session-secret': secret
+  }
+
+  const ok = await base.t.fetch('/live-sessions/room-scene-capture', request(input, secretHeaders))
+  expect(ok.status).toBe(200)
+  expect(await ok.json()).toMatchObject({ campaignId: base.campaign.id, sceneHeader: null })
+
+  const wrongSecret = await base.t.fetch(
+    '/live-sessions/room-scene-capture',
+    request(input, { ...secretHeaders, 'x-artificer-live-session-secret': `${secret}-wrong` })
+  )
+  expect(wrongSecret.status).toBe(401)
+
+  const stale = await base.t.fetch(
+    '/live-sessions/room-scene-capture',
+    request({ ...input, epoch: crypto.randomUUID() }, secretHeaders)
+  )
+  expect(stale.status).toBe(409)
 })
 
 it('returns a generic conflict for mismatched expected user or role', async () => {

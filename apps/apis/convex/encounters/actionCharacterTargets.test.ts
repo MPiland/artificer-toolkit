@@ -1,4 +1,6 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -9,7 +11,6 @@ import type {
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { featureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -30,7 +31,11 @@ import { removeAccountPrivateCharacters } from '../characters/accountDeletion'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import * as rollRandom from '../lib/rollRandom'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { executeInRoom, replayInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  replayInRoom,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -267,7 +272,7 @@ async function setup(relationship = false) {
       .unique()
     if (!row) throw new Error('Missing Creature actor.')
     const capability = discoverEncounterFeatureActionCapabilities({
-      actor: encounterRunActorStateSchema.parse(JSON.parse(row.stateJson)),
+      actor: await readTestActor(ctx, row),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
         id: ability.id,
@@ -413,7 +418,7 @@ describe('native Creature actions against Character targets', () => {
     })
     expect(
       featureChargeUsed(
-        encounterRunActorStateSchema.parse(JSON.parse(after.source.stateJson)),
+        readStoredRunActor(after.source),
         creature.features!.find((feature) => feature.label === 'Bite')!.id
       )
     ).toBe(1)

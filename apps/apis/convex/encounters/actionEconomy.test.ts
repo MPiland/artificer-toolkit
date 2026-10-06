@@ -2,6 +2,7 @@ import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
 } from '../lib/convexEncounterStore'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
@@ -174,7 +175,7 @@ describe('native action economy', () => {
         currentActorId: source.id
       })
       const actor = encounterRunActorStateSchema.parse({
-        ...JSON.parse(row.stateJson),
+        ...(await readTestActor(ctx, row)),
         conditions: [condition.id]
       })
       await ctx.db.patch(run._id, {
@@ -244,7 +245,7 @@ describe('native action economy', () => {
         round: 1,
         currentActorId: source.id
       })
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+      const actor = await readTestActor(ctx, row)
       if (actor.kind === 'CHARACTER') throw new Error('Expected custom actor.')
       const definitionId = crypto.randomUUID()
       const entryId = crypto.randomUUID()

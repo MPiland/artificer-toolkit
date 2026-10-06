@@ -1,3 +1,4 @@
+import { removeFinishedRunRowsPage } from '@artificer-toolkit/encounter-persistence/finishedRunRows'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type { EncounterStoreDocuments } from '@artificer-toolkit/schema/projections/encounterStore'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
@@ -12,7 +13,13 @@ type ReplayIndexRow = EncounterStoreDocuments['encounterReplayIndex']
  */
 export async function lookupRoomEncounterReplay(
   store: RoomEncounterStore,
-  input: { campaignId: string; commandId: string; encounterId: string; userId: string; fingerprint: string }
+  input: {
+    campaignId: string
+    commandId: string
+    encounterId: string
+    userId: string
+    fingerprint: string
+  }
 ): Promise<
   | { kind: 'NONE' | 'MISMATCH' }
   | { kind: 'INDEXED'; encounterId: string; version: number; roll: RollRecordDto | null }
@@ -83,12 +90,15 @@ export async function recordRoomEncounterReplay(
   if (!prior) await db.insert('encounterReplayIndex', row)
 }
 
-/** A completed Run keeps no timeline: its history rows and replay index leave the room's store. */
-export async function removeRoomEncounterTimeline(
+/**
+ * A completed Run keeps only its actors and their source facts (ADR 0035 Amendment 30): its
+ * history rows, replay index and every other child row leave the room's store.
+ */
+export async function removeRoomFinishedRunRows(
   db: EncounterWriteTransaction['db'],
   encounterId: string
 ) {
-  const [commands, receipts, evidence, index] = await Promise.all([
+  const [commands, receipts, evidence] = await Promise.all([
     db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
@@ -100,14 +110,11 @@ export async function removeRoomEncounterTimeline(
     db
       .query('encounterEvidenceRolls')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .collect(),
-    db
-      .query('encounterReplayIndex')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
       .collect()
   ])
   for (const row of commands) await db.delete(row._id)
   for (const row of receipts) await db.delete(row._id)
   for (const row of evidence) await db.delete(row._id)
-  for (const row of index) await db.delete(row._id)
+  let finished = false
+  while (!finished) finished = await removeFinishedRunRowsPage({ db }, encounterId, 64)
 }

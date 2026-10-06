@@ -1,4 +1,4 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -16,7 +16,6 @@ import type {
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
@@ -187,9 +186,8 @@ async function stored(t: Awaited<ReturnType<typeof setup>>['t'], encounterId: st
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run,
       actors,
-      receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      actorStates: await Promise.all(actors.map((row) => readTestActor(ctx, row))),
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }
   })
 }
@@ -213,8 +211,8 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     const afterCustom = after.actors.find((actor) => actor.id === customActor.id)
     if (!beforeCreature || !afterCreature || !beforeCustom || !afterCustom)
       throw new Error('Missing stored Encounter actors.')
-    const beforeState = encounterRunActorStateSchema.parse(JSON.parse(beforeCreature.stateJson))
-    const afterState = encounterRunActorStateSchema.parse(JSON.parse(afterCreature.stateJson))
+    const beforeState = before.actorStates.find((state) => state.id === creatureActor.id)!
+    const afterState = after.actorStates.find((state) => state.id === creatureActor.id)!
     if (beforeState.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
     if (
       typeof beforeState.snapshot !== 'object' ||

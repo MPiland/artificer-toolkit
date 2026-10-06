@@ -60,6 +60,8 @@ export const liveSessionCommandDtoSchema = lazySchema(() =>
 export const liveSessionRecipientStateDtoSchema = lazySchema(() =>
   z.strictObject({
     recipientRole: z.enum(['OWNER', 'PLAYER']),
+    /** The Campaign's presentation version as the room holds it: null until a Scene was ever presented. */
+    presentationVersion: z.nullable(liveSessionSequenceDtoSchema),
     scene: z.nullable(campaignSceneStateDtoSchema)
   })
 )
@@ -119,6 +121,13 @@ export const liveSessionCommandRejectionCodeDtoSchema = lazySchema(() =>
  * `STALE_STATE`.
  */
 export const LIVE_SESSION_TRY_AGAIN_MESSAGE = 'The table is busy right now; try again.'
+
+/**
+ * How many room-pushed chat entries and roll cards a client keeps; Convex history pages everything
+ * older. The room saves before more than this many are unsaved, so that paging never has a gap
+ * (ADR 0035 Amendment 25).
+ */
+export const LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT = 200
 
 export type LiveSessionCommandDto = z.infer<typeof liveSessionCommandDtoSchema>
 export type LiveSessionRecipientStateDto = z.infer<typeof liveSessionRecipientStateDtoSchema>

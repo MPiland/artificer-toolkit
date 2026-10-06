@@ -248,7 +248,12 @@ function stored(row: Record<string, unknown>) {
   return value
 }
 
+/** A served row's save is parsed once, with the stored movement evidence it verifies. */
 export function parseGeometrySave(row: Record<string, unknown>) {
+  return deriveOnce(row, parseStoredGeometrySave)
+}
+
+function parseStoredGeometrySave(row: Record<string, unknown>) {
   const save = sceneStoredGeometrySaveSchema.parse(stored(row))
   if (
     save.sceneId !== save.input.sceneId ||

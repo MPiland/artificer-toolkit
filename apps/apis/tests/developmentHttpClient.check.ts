@@ -51,7 +51,7 @@ const commandMessage = (commandId: string, expectedSessionSequence: number) => (
 const stateSync = (sequence: number) => ({
   authorityEpoch,
   sequence,
-  state: { recipientRole: 'OWNER', scene: null },
+  state: { presentationVersion: null, recipientRole: 'OWNER', scene: null },
   type: 'STATE_SYNC'
 })
 const result = {
@@ -86,7 +86,7 @@ const room = openCommandRoom({
   url: `ws://127.0.0.1:8787/live-session/${campaignId}`,
   origin,
   issueTicket: async () => ({ expiresAt: '2026-09-24T12:01:00.000Z', ticket: 'signed-ticket' }),
-  accessToken: () => accessToken,
+  accessToken: async () => accessToken,
   onClosed: () => {
     closedRooms += 1
   },
@@ -107,6 +107,7 @@ assert.deepEqual(socket.init, {
   protocols: ['artificer.live-session.v1', 'artificer.ticket.signed-ticket']
 })
 socket.dispatchEvent(new Event('open'))
+await new Promise((resolve) => setImmediate(resolve))
 assert.deepEqual(socket.sent, [{ accessToken: 'first-token', type: 'AUTHENTICATE' }])
 
 // Commands wait for TRANSIENT_READY and STATE_SYNC, then carry the synchronized sequence.
@@ -118,6 +119,7 @@ assert.deepEqual(socket.sent[1], commandMessage(commandIds[0], 3))
 // Re-authentication uses the client's current token and resends the in-flight command.
 accessToken = 'second-token'
 socket.receive({ type: 'AUTHENTICATION_REQUIRED' })
+await new Promise((resolve) => setImmediate(resolve))
 assert.deepEqual(socket.sent[2], { accessToken: 'second-token', type: 'AUTHENTICATE' })
 socket.receive({ campaignId, type: 'TRANSIENT_READY' })
 socket.receive(stateSync(5))

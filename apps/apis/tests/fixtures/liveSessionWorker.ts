@@ -25,6 +25,7 @@ import {
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import type { EncounterDocument } from '@artificer-toolkit/encounter-persistence/store'
+import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { receiptLedgerEntryKeyFields } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import type { z } from 'zod'
 import type { TestConvex } from 'convex-test'
@@ -76,7 +77,10 @@ import {
 } from '../../../session-worker/src/roomActorReconcile'
 import { RoomEncounterReads } from '../../../session-worker/src/roomEncounterReads'
 import { RoomEncounterSessionFeed } from '../../../session-worker/src/roomEncounterSessionFeed'
-import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
+import {
+  RoomEncounterStore,
+  SCENE_EVIDENCE_ROW
+} from '../../../session-worker/src/roomEncounterStore'
 import { lookupRoomEncounterReplay } from '../../../session-worker/src/roomEncounterReplayIndex'
 import { RoomInputs } from '../../../session-worker/src/roomInputs'
 import { RoomCheckpoints } from '../../../session-worker/src/roomCheckpoints'
@@ -97,7 +101,10 @@ import {
 } from '../../../session-worker/src/nativeRulesRuntime'
 
 export function workerEnvironment(secret: string) {
-  return { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret }
+  return {
+    CONVEX_SITE_URL: 'https://convex.example.test',
+    LIVE_SESSION_WORKER_SECRET: secret
+  }
 }
 
 type LiveSessionRoute = (pathname: string, init?: RequestInit) => Promise<Response> | Response
@@ -122,7 +129,6 @@ export async function withRoomConvex<T>(
   caller: { fetch(pathname: string, init?: RequestInit): Promise<Response> },
   run: (room: {
     environment: ReturnType<typeof workerEnvironment>
-    accessToken: string
     runtime: Awaited<ReturnType<typeof createNativeLiveRulesRuntime>>
   }) => Promise<T>
 ): Promise<T> {
@@ -134,7 +140,6 @@ export async function withRoomConvex<T>(
   try {
     return await run({
       environment: workerEnvironment(ROOM_WORKER_SECRET),
-      accessToken: 'fixture-access-token',
       runtime: await createNativeLiveRulesRuntime(process.env.RULES_CONTINUATION_SECRET ?? '')
     })
   } finally {
@@ -151,17 +156,14 @@ export async function withRoomConvex<T>(
  */
 async function roomSceneContext(
   room: OpenRoom,
-  session: { environment: ReturnType<typeof workerEnvironment>; accessToken: string },
+  session: { environment: ReturnType<typeof workerEnvironment> },
   actor: LiveEncounterActor,
   encounterId: string | null
 ): Promise<StagedSceneContext | null> {
-  const capture = await callLiveSessionRoute(session.environment, session.accessToken, 'capture', {
+  const capture = await callLiveSessionRoute(session.environment, null, 'roomSceneCapture', {
     campaignId: actor.campaignId,
-    expectedUserId: actor.expectedUserId,
-    expectedRole: actor.expectedRole,
-    mode: 'FULL',
-    observedCharacterRevisions: [],
-    recipientUserIds: []
+    epoch: actor.authorityEpoch,
+    observedCharacterRevisions: []
   })
   if (!capture.presentation || capture.sceneEncounterId !== (encounterId?.toLowerCase() ?? null))
     return null
@@ -176,8 +178,7 @@ async function roomSceneContext(
       authorization: room.authorization,
       campaignId: actor.campaignId,
       epoch: actor.authorityEpoch,
-      scene,
-      encounterIds: capture.sceneEncounterId ? [capture.sceneEncounterId] : []
+      scene
     })
     return { baseOrdinals, ...composition }
   })
@@ -259,7 +260,11 @@ function closeRoomStores() {
   unpublishedPlans.clear()
 }
 
-const historyTables = ['encounterRunCommands', 'encounterRuleReceipts', 'encounterEvidenceRolls'] as const
+const historyTables = [
+  'encounterRunCommands',
+  'encounterRuleReceipts',
+  'encounterEvidenceRolls'
+] as const
 
 /**
  * Per Campaign, the history rows the room held before a planned movement committed, until its
@@ -294,12 +299,16 @@ export async function readEncounterHistory(ctx: QueryCtx, campaignId?: string) {
   const stores = campaignId ? [roomStores.get(campaignId)] : [...roomStores.values()]
   if (stores.length > 1) throw new Error('More than one room is held: pass the Campaign.')
   const held = stores[0]?.store
-  const published = campaignId ? unpublishedPlans.get(campaignId) : [...unpublishedPlans.values()][0]
+  const published = campaignId
+    ? unpublishedPlans.get(campaignId)
+    : [...unpublishedPlans.values()][0]
   const heldRows = <Table extends (typeof historyTables)[number]>(table: Table) =>
     (held?.documents(table) ?? []).filter((row) => !published || published.has(row._id))
   const convex = createConvexEncounterStoreReader(ctx)
   const memory = createMemoryEncounterStore()
-  const load = <Table extends 'encounterRunCommands' | 'encounterRuleReceipts' | 'encounterEvidenceRolls'>(
+  const load = <
+    Table extends 'encounterRunCommands' | 'encounterRuleReceipts' | 'encounterEvidenceRolls'
+  >(
     table: Table,
     rows: EncounterDocument<Table>[]
   ) => {
@@ -415,7 +424,11 @@ async function openRoom(
   const inputs = new RoomInputs(
     store,
     (inputEpoch, scope) =>
-      caller.query(internal.liveSessions.roomInputs.read, { campaignId, epoch: inputEpoch, scope }),
+      caller.query(internal.liveSessions.roomInputs.read, {
+        campaignId,
+        epoch: inputEpoch,
+        scope
+      }),
     (manifest) => loadRoomContentSnapshots(contentSnapshots, manifest, campaignId)
   )
   return {
@@ -425,11 +438,19 @@ async function openRoom(
     runtime,
     sceneId: read.sceneId,
     hydrate: () =>
-      inputs.hydrate({ epoch, encounterId, sceneId: read.sceneId, checkpoint: read.checkpoint }),
+      inputs.hydrate({
+        epoch,
+        encounterId,
+        sceneId: read.sceneId,
+        checkpoint: read.checkpoint
+      }),
     flush: () =>
       new RoomCheckpoints(store, storage, (checkpoint, reason) =>
-        caller.mutation(internal.liveSessions.checkpoint.publish, { ...checkpoint, reason })
-      ).flush({ campaignId, epoch, knownAuthorization: null }, 'DEADLINE'),
+        caller.mutation(internal.liveSessions.checkpoint.publish, {
+          ...checkpoint,
+          reason
+        })
+      ).flush({ campaignId, epoch, knownAuthorization: null }, 'BACKLOG'),
     close: () => undefined
   }
 }
@@ -516,7 +537,7 @@ async function commitRoomScene(
         random: input.random
       })
       const saves = transaction
-        .records('SCENE_CHECKPOINT_ROW')
+        .records(SCENE_EVIDENCE_ROW)
         .filter((record) => record.key.startsWith('["sceneGeometrySaves",'))
         .map((record) => parseGeometrySave(JSON.parse(record.json)))
         .filter((entry) => entry.sceneId === context.scene.id)
@@ -640,7 +661,11 @@ export async function executeRoomEncounterCommand(input: {
       )
       const own = transacted.recipients.get(userId)
       if (!own) throw new Error('The room produced no result for its submitter.')
-      roomJournal.set(journalKey, { userId, fingerprint, resultJson: JSON.stringify(own) })
+      roomJournal.set(journalKey, {
+        userId,
+        fingerprint,
+        resultJson: JSON.stringify(own)
+      })
       return { kind: 'COMMITTED' as const, result: own }
     }).catch((error: unknown) => {
       // As the room does, a Sheet refusal reaches the member with its own message.
@@ -775,7 +800,12 @@ export async function executeInRoom(
 ): Promise<EncounterCommandResultDto> {
   const { command } = encounterExecuteInputSchema.parse(input)
   return asRoomMember(caller, command.encounterId, (actor) =>
-    executeRoomEncounterCommand({ caller, actor, command, random: roomRandom(random) })
+    executeRoomEncounterCommand({
+      caller,
+      actor,
+      command,
+      random: roomRandom(random)
+    })
   )
 }
 
@@ -899,7 +929,10 @@ export function readEncounterSessionInRoom(
       )
       if (!member) throw new Error('The caller is not a Campaign member.')
       const socket: WebSocket = Object.create(WebSocket.prototype)
-      const scope = { authorityEpoch: actor.authorityEpoch, campaignId: actor.campaignId }
+      const scope = {
+        authorityEpoch: actor.authorityEpoch,
+        campaignId: actor.campaignId
+      }
       const frames: EncounterSessionFrameDto[] = []
       const feed = new RoomEncounterSessionFeed({
         store: room.store,
@@ -909,7 +942,9 @@ export function readEncounterSessionInRoom(
         scope: () => scope,
         send: (_socket, message) => {
           if (message.type === 'ENCOUNTER_SESSION') frames.push(message.session)
-        }
+        },
+        // The fixture room never hibernates.
+        remember: () => undefined
       })
       await withoutHttp(async () => {
         await room.hydrate()
@@ -930,7 +965,9 @@ export function readEncounterSessionInRoom(
  * entries), from the history the room carries; empty while the room holds no open Run.
  */
 export async function readTimelineInRoom(caller: MemberCaller, encounterId: string) {
-  const frame = await readEncounterSessionInRoom(caller, encounterId, { timeline: true })
+  const frame = await readEncounterSessionInRoom(caller, encounterId, {
+    timeline: true
+  })
   return (frame.held ? frame.timeline : null) ?? { entries: [], nextCursor: null }
 }
 
@@ -951,7 +988,10 @@ export function readEncounterInRoom(
       )
       if (!member) throw new Error('The caller is not a Campaign member.')
       const socket: WebSocket = Object.create(WebSocket.prototype)
-      const scope = { authorityEpoch: actor.authorityEpoch, campaignId: actor.campaignId }
+      const scope = {
+        authorityEpoch: actor.authorityEpoch,
+        campaignId: actor.campaignId
+      }
       const replies: LiveSessionWebSocketServerMessageDto[] = []
       const reads = new RoomEncounterReads({
         store: room.store,
@@ -1008,16 +1048,23 @@ export async function replayInRoom(
   return replay()
 }
 
-/** The Encounter bound to a Scene, for room work on one of its moves. */
+/** The ACTIVE Encounter bound to a Scene, for room work on one of its moves. */
 async function sceneEncounterId(caller: Pick<MemberCaller, 'run'>, sceneId: string) {
-  const binding = await caller.run((ctx) =>
-    ctx.db
-      .query('encounterSceneBindings')
-      .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId.toLowerCase()))
-      .first()
-  )
-  if (!binding) throw new Error('Expected an Encounter-bound Scene.')
-  return binding.encounterId
+  const encounterId = await caller.run(async (ctx) => {
+    const scene = await ctx.db
+      .query('campaignScenes')
+      .withIndex('by_publicId', (q) => q.eq('id', sceneId.toLowerCase()))
+      .unique()
+    const active = scene
+      ? await readActiveSceneEncounter(
+          { db: createConvexEncounterStoreReader(ctx) },
+          { campaignId: scene.campaignId, sceneId: scene.id }
+        )
+      : null
+    return active?.run.id ?? null
+  })
+  if (!encounterId) throw new Error('Expected an Encounter-bound Scene.')
+  return encounterId
 }
 
 /**
@@ -1037,7 +1084,9 @@ async function planInRoom(caller: MemberCaller, encounterId: string, command: St
           await room.hydrate()
           const held = roomStores.get(member.actor.campaignId)
           before = new Set(
-            historyTables.flatMap((table) => held?.store.documents(table).map((row) => row._id) ?? [])
+            historyTables.flatMap(
+              (table) => held?.store.documents(table).map((row) => row._id) ?? []
+            )
           )
           return commitRoomMovement(room, {
             caller,
@@ -1164,7 +1213,9 @@ export function inProcessDevelopmentClient(caller: MemberCaller): DevelopmentCli
         ? (executeInRoom(caller, encounterExecuteInputSchema.parse(args[0])).catch(
             (error: unknown) => {
               if (!(error instanceof RoomCommandRefusal)) throw error
-              throw new Error(`${error.code}: ${error.message}`, { cause: error.cause })
+              throw new Error(`${error.code}: ${error.message}`, {
+                cause: error.cause
+              })
             }
           ) as Promise<FunctionReturnType<Reference>>)
         : caller.run((ctx) => ctx.runMutation(reference, ...args))

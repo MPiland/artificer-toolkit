@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -31,9 +29,7 @@ async function settle(
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
       .collect()
-    const actors = actorRows.map((actor) =>
-      encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-    )
+    const actors = await Promise.all(actorRows.map((actor) => readTestActor(ctx, actor)))
     const actor = actors.find((value) => value.id === base.actor.id)
     const target = actors.find((value) => value.id === base.target.id)
     if (!actor || !target) throw new Error('Missing Disarm participants.')
@@ -118,9 +114,9 @@ async function settle(
 }
 
 function actorState(records: Awaited<ReturnType<typeof disarmRecords>>, actorId: string) {
-  const actor = records.actors.find((value) => value.id === actorId)
+  const actor = records.actorStates.find((value) => value.id === actorId)
   if (!actor) throw new Error('Missing stored actor.')
-  return encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
+  return actor
 }
 
 describe('native Disarm preparation and settlement transactions', () => {
@@ -175,7 +171,8 @@ describe('native Disarm preparation and settlement transactions', () => {
             }
           }
         })
-        expect(after.characterReceipts).toHaveLength(before.characterReceipts.length + 1)
+        // Encounter commands write no Character receipts (ADR 0035 Amendment 22, D88).
+        expect(after.characterReceipts).toEqual(before.characterReceipts)
         expect(actorState(after, base.target.id)).toEqual(actorState(before, base.target.id))
       } else {
         const prior = actorState(before, base.target.id)

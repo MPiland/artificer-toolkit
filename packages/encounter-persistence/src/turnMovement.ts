@@ -157,25 +157,3 @@ export async function readTurnMovementView(
     })
   )
 }
-
-/** A completed Run keeps no turn movement (D38) or GM-skip records (D39). */
-export async function removeCompletedRunTurnRecords(
-  ctx: EncounterWriteContext,
-  encounterId: string
-) {
-  const [movements, skips] = await Promise.all([
-    ctx.db
-      .query('encounterTurnMovements')
-      .withIndex('by_encounterId_round_turnActorId_actorId', (q) =>
-        q.eq('encounterId', encounterId)
-      )
-      .collect(),
-    ctx.db
-      .query('encounterDecisionSkips')
-      .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) =>
-        q.eq('encounterId', encounterId)
-      )
-      .collect()
-  ])
-  for (const row of [...movements, ...skips]) await ctx.db.delete(row._id)
-}

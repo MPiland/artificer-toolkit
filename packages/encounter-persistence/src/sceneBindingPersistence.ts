@@ -45,7 +45,8 @@ export async function bindEncounterToPresentedScene(
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (encounter.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
-  readRunState(encounter)
+  // A completed Run keeps no binding, so a late retry cannot bind it again (Amendment 30).
+  if (readRunState(encounter).status === 'COMPLETED') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   const commandFingerprint = checksumCanonicalJson(input)
   const existing = await ctx.db
     .query('encounterSceneBindings')

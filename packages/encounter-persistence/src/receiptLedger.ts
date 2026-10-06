@@ -4,14 +4,11 @@ import {
   type ReceiptLedgerEntry,
   type ReceiptLedgerEntryTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
-import { liveSessionCheckpointSceneSchemas } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { encounterStoreSchemas } from '@artificer-toolkit/schema/projections/encounterStore'
 import {
   receiptHeaderSchemas,
-  sceneCommandHeaderSchema,
   type ReceiptHeaderDocuments,
-  type ReceiptHeaderTable,
-  type SceneCommandHeader
+  type ReceiptHeaderTable
 } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 import {
   RECEIPT_LEDGER_MAX_BYTES,
@@ -43,10 +40,6 @@ function validateEntry(raw: unknown): ReceiptLedgerEntry {
   const fields = receiptLedgerEntryKeyFields[entry.table]
   if (fields.some((field, index) => entry.value[field] !== entry.key[index]))
     throw new Error('Receipt ledger entry identity does not match its value.')
-  if (entry.table === 'sceneLiveCommands') {
-    liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(entry.value)
-    return entry
-  }
   const stored = Object.fromEntries(
     Object.entries(entry.value).map(([field, value]) => [
       field,
@@ -106,20 +99,13 @@ export function encodeReceiptLedgerPayload(
 export function projectReceiptHeader(
   raw: ReceiptLedgerEntry,
   pointer: ReceiptLedgerPointer
-): ReceiptHeaderDocuments[ReceiptHeaderTable] | SceneCommandHeader {
+): ReceiptHeaderDocuments[ReceiptHeaderTable] {
   const entry = validateEntry(raw)
   const reference = receiptLedgerPointerSchema.parse(
     JSON.parse(canonicalizeJson(canonicalJsonRecordSchema.parse(pointer)))
   )
   if (reference.entryChecksum !== entry.checksum)
     throw new Error('Receipt header pointer checksum does not match its entry.')
-  if (entry.table === 'sceneLiveCommands')
-    return sceneCommandHeaderSchema.parse({
-      sceneId: entry.value.sceneId,
-      commandId: entry.value.commandId,
-      encoding: entry.value.encoding,
-      ...reference
-    })
   const fields =
     entry.table === 'encounterRunCommands'
       ? receiptHeaderSchemas.encounterRunCommands.def.options.flatMap((variant) =>
@@ -183,17 +169,13 @@ export function receiptLedgerEntryInScope(
   entry: ReceiptLedgerEntry
 ): boolean {
   switch (metadata.scope) {
-    case 'SCENE':
-      return entry.table === 'sceneLiveCommands' && entry.value.sceneId === metadata.scopeId
     case 'CHARACTER':
       return (
         entry.table === 'characterCommandReceipts' && entry.value.characterId === metadata.scopeId
       )
     case 'CAMPAIGN':
       return (
-        entry.table !== 'characterCommandReceipts' &&
-        entry.table !== 'sceneLiveCommands' &&
-        entry.value.campaignId === metadata.scopeId
+        entry.table !== 'characterCommandReceipts' && entry.value.campaignId === metadata.scopeId
       )
   }
 }

@@ -8,7 +8,6 @@ import {
   encounterCommandResultDtoSchema,
   encounterPlayerProjectionDtoSchema
 } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
@@ -51,9 +50,9 @@ function evidence(
 }
 
 function actorState(records: Awaited<ReturnType<typeof disarmRecords>>, actorId: string) {
-  const row = records.actors.find((actor) => actor.id === actorId)
-  if (!row) throw new Error('Missing stored actor.')
-  return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+  const actor = records.actorStates.find((state) => state.id === actorId)
+  if (!actor) throw new Error('Missing stored actor.')
+  return actor
 }
 
 function contestedOutput(records: Awaited<ReturnType<typeof disarmRecords>>) {

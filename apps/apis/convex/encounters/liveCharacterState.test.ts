@@ -1,5 +1,4 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { readReceiptHeader } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'

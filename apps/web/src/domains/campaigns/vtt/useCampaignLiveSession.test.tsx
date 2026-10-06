@@ -42,7 +42,6 @@ const mocks = vi.hoisted(() => ({
   subscribeCampaignSummary: vi.fn(),
   subscribeCharacterSheet: vi.fn(),
   subscribeEncounterSession: vi.fn(),
-  synchronizeScene: vi.fn(),
   useConvex: vi.fn()
 }))
 
@@ -63,8 +62,7 @@ vi.mock('./liveSessionClient', async (importOriginal) => ({
       submitCommand: mocks.submitCommand,
       subscribeCampaignSummary: mocks.subscribeCampaignSummary,
       subscribeCharacterSheet: mocks.subscribeCharacterSheet,
-      subscribeEncounterSession: mocks.subscribeEncounterSession,
-      synchronizeScene: mocks.synchronizeScene
+      subscribeEncounterSession: mocks.subscribeEncounterSession
     }
   }
 }))
@@ -81,7 +79,6 @@ describe('useCampaignLiveSession', () => {
     mocks.subscribeCampaignSummary.mockClear()
     mocks.subscribeCharacterSheet.mockClear()
     mocks.subscribeEncounterSession.mockClear()
-    mocks.synchronizeScene.mockClear()
     mocks.getAccessToken.mockResolvedValue({ data: { token: 'test-access-token' } })
     mocks.issueTicket.mockResolvedValue({
       expiresAt: '2099-08-15T23:59:00.000Z',
@@ -91,6 +88,24 @@ describe('useCampaignLiveSession', () => {
   })
 
   afterEach(() => vi.unstubAllEnvs())
+
+  it('reuses an access token until the room would challenge it again', async () => {
+    const tokenExpiringIn = (seconds: number) =>
+      `header.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds }))}.signature`
+    const lasting = tokenExpiringIn(600)
+    const expiring = tokenExpiringIn(30)
+    mocks.getAccessToken
+      .mockResolvedValueOnce({ data: { token: expiring } })
+      .mockResolvedValueOnce({ data: { token: lasting } })
+    renderHook(() => useCampaignLiveSession({ campaignId, enabled: true }))
+
+    await waitFor(() => expect(mocks.options).not.toBeNull())
+    const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
+    await expect(options.getAccessToken()).resolves.toBe(expiring)
+    await expect(options.getAccessToken()).resolves.toBe(lasting)
+    await expect(options.getAccessToken()).resolves.toBe(lasting)
+    expect(mocks.getAccessToken).toHaveBeenCalledTimes(2)
+  })
 
   it('wires the native ticket, authentication, transient, status, and error flow', async () => {
     const onTransient = vi.fn()
@@ -115,6 +130,7 @@ describe('useCampaignLiveSession', () => {
       options.onDurableState?.({
         commandReady: true,
         recipientState: {
+          presentationVersion: null,
           recipientRole: 'PLAYER',
           scene: null
         },
@@ -144,8 +160,6 @@ describe('useCampaignLiveSession', () => {
     expect(result.current.rejection).toBeNull()
     expect(result.current.sendTransient(envelope)).toBe(true)
     expect(mocks.sendTransient).toHaveBeenCalledWith(envelope)
-    result.current.synchronizeScene(sceneId, 7, 11)
-    expect(mocks.synchronizeScene).toHaveBeenCalledWith(sceneId, 7, 11)
     expect(Object.keys(result.current).sort()).toEqual([
       'campaignSummary',
       'characterSheet',
@@ -161,8 +175,7 @@ describe('useCampaignLiveSession', () => {
       'sendSceneFog',
       'sendTransient',
       'sequence',
-      'status',
-      'synchronizeScene'
+      'status'
     ])
 
     unmount()

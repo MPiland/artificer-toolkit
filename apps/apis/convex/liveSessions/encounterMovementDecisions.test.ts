@@ -1,5 +1,4 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -52,7 +51,6 @@ const concentrationAdvantageFeature = {
     ]
   }
 }
-
 
 it.each([
   { withSuffix: false, asPlayer: false },
@@ -150,7 +148,9 @@ it.each([
             q.eq('encounterId', value.base.run.id).eq('sceneId', value.sceneId)
           )
           .collect(),
-        receipts: await (await readEncounterHistory(ctx))
+        receipts: await (
+          await readEncounterHistory(ctx)
+        )
           .query('encounterRuleReceipts')
           .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
           .collect(),
@@ -164,7 +164,6 @@ it.each([
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
           .collect(),
-        sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
         sceneStates: await ctx.db.query('sceneLiveStates').collect()
       }))
 

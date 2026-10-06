@@ -195,20 +195,8 @@ describe('live-session contracts', () => {
       }).success
     ).toBe(true)
     expect(
-      liveSessionWebSocketClientMessageDtoSchema.parse({
-        expectedPresentationVersion: 5,
-        sceneId: ids.scene,
-        type: 'SYNCHRONIZE_SCENE',
-        version: 2
-      })
-    ).toMatchObject({
-      expectedPresentationVersion: 5,
-      sceneId: ids.scene,
-      type: 'SYNCHRONIZE_SCENE',
-      version: 2
-    })
-    expect(
       liveSessionWebSocketClientMessageDtoSchema.safeParse({
+        expectedPresentationVersion: 5,
         sceneId: ids.scene,
         type: 'SYNCHRONIZE_SCENE',
         version: 2
@@ -240,7 +228,7 @@ describe('live-session contracts', () => {
       const message = {
         authorityEpoch: ids.authorityEpoch,
         sequence: 8,
-        state: { recipientRole, scene },
+        state: { presentationVersion: 4, recipientRole, scene },
         type: 'STATE_SYNC'
       }
       expect(liveSessionWebSocketServerMessageDtoSchema.parse(message)).toEqual(message)

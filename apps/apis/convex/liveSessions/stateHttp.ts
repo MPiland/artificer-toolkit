@@ -23,15 +23,6 @@ const recoverStorage = makeFunctionReference<'mutation', JsonObject, unknown>(
 const checkpoint = makeFunctionReference<'mutation', JsonObject, unknown>(
   'liveSessions/checkpoint:publish'
 )
-const checkpointStage = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/checkpointStaging:begin'
-)
-const checkpointPart = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/checkpointStaging:part'
-)
-const checkpointCommit = makeFunctionReference<'mutation', JsonObject, unknown>(
-  'liveSessions/checkpointStaging:commit'
-)
 const present = makeFunctionReference<'mutation', JsonObject, unknown>(
   'scenes/presentations:setFromRoom'
 )
@@ -43,6 +34,9 @@ const release = makeFunctionReference<'mutation', JsonObject, unknown>(
 )
 const roomAuthorization = makeFunctionReference<'query', JsonObject, unknown>(
   'liveSessions/roomAuthorization:read'
+)
+const roomSceneCapture = makeFunctionReference<'query', JsonObject, unknown>(
+  'liveSessions/transientCapture:roomScene'
 )
 const roomInputs = makeFunctionReference<'query', LiveRoomInputsInput, LiveRoomInputsResponse>(
   'liveSessions/roomInputs:read'
@@ -60,6 +54,11 @@ export const roomAuthorizationHttp = liveStateHttp(
   false,
   'Live Session authorization unavailable.',
   (ctx, input) => ctx.runQuery(roomAuthorization, input)
+)
+export const roomSceneCaptureHttp = liveStateHttp(
+  false,
+  'Live Session Scene capture unavailable.',
+  (ctx, input) => ctx.runQuery(roomSceneCapture, input)
 )
 export const roomInputsHttp = liveStateHttp(
   false,
@@ -89,21 +88,6 @@ export const presentHttp = liveStateHttp(
   false,
   'Live Session presentation unavailable.',
   (ctx, input) => ctx.runMutation(present, input)
-)
-export const checkpointStageHttp = liveStateHttp(
-  false,
-  'Live Session checkpoint staging unavailable.',
-  (ctx, input) => ctx.runMutation(checkpointStage, input)
-)
-export const checkpointPartHttp = liveStateHttp(
-  false,
-  'Live Session checkpoint upload unavailable.',
-  (ctx, input) => ctx.runMutation(checkpointPart, input)
-)
-export const checkpointCommitHttp = liveStateHttp(
-  false,
-  'Live Session checkpoint commit unavailable.',
-  (ctx, input) => ctx.runMutation(checkpointCommit, input)
 )
 export const beginDrainHttp = liveStateHttp(
   false,

@@ -10,6 +10,13 @@ export interface SessionWorkerEnvironment {
   RULES_CONTINUATION_SECRET: string
 }
 
+/** The local-origin marker is absent from every deployed environment. */
+export function isLocalDevelopment(
+  environment: Pick<SessionWorkerEnvironment, 'LOCAL_CONTENT_SNAPSHOT_ORIGIN'>
+): boolean {
+  return environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN === 'http://127.0.0.1:8026'
+}
+
 export function allowedOrigins(
   environment: Pick<SessionWorkerEnvironment, 'LIVE_SESSION_ALLOWED_ORIGINS'>
 ): Set<string> {

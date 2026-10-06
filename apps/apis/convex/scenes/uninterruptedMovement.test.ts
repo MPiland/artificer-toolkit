@@ -85,10 +85,8 @@ async function current(value: Awaited<ReturnType<typeof setup>>) {
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     receipts: await ctx.db.query('encounterRuleReceipts').collect(),
     effects: await ctx.db.query('encounterSpatialRuleEffects').collect(),
-    saves: await ctx.db.query('sceneGeometrySaves').collect(),
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
     liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
-    liveCommands: await ctx.db.query('sceneLiveCommands').collect(),
     fogSaves: await ctx.db.query('sceneFogSaves').collect(),
     fogLayers: await ctx.db.query('sceneFogLayers').collect(),
     fogChunks: await ctx.db.query('sceneFogChunks').collect()

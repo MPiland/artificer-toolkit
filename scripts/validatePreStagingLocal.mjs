@@ -536,9 +536,16 @@ async function startLocalSessionWorker(artifactDirectory) {
 
 // The web app the browser proofs open at http://localhost:3000. Yarn injects the local application
 // environment, so Vite serves the local Convex, Worker and media URLs; it never sees the admin key.
-function startLocalWebApp(artifactDirectory) {
+// Browser proofs exercise the production bundle: the dev server's React development runtime and
+// devtools load the browser enough to skew V15 timings. The `proof` mode reads no `.env` files.
+async function startLocalWebApp(artifactDirectory) {
   const environment = localChildEnvironment()
   delete environment.CONVEX_SELF_HOSTED_ADMIN_KEY
+  await run('yarn', ['workspace', '@artificer-toolkit/web', 'vite', 'build', '--mode', 'proof'], {
+    // Spawn drops undefined values, so the build does not inherit the admin key either.
+    environment: { CONVEX_SELF_HOSTED_ADMIN_KEY: undefined },
+    logPath: resolve(artifactDirectory, 'web-app-build.log')
+  })
   return startLocalService({
     artifactDirectory,
     environment,
@@ -548,7 +555,10 @@ function startLocalWebApp(artifactDirectory) {
     yarnArgs: [
       'workspace',
       '@artificer-toolkit/web',
-      'dev',
+      'vite',
+      'preview',
+      '--mode',
+      'proof',
       '--host',
       'localhost',
       '--port',
@@ -732,7 +742,7 @@ const nativeProofModes = [
   'publication-equipment',
   'encounter-lifecycle',
   'checkpoint',
-  'checkpoint-staging',
+  'checkpoint-large',
   'encounter-action-contention',
   'encounter-reaction-contention',
   'campaign-item-producers',

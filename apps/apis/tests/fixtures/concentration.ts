@@ -1,6 +1,6 @@
 import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
+import { readTestActor } from './storedActors'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -21,6 +21,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { activateFixtureRun } from './activeInitiative'
+import { readEncounterHistory } from './liveSessionWorker'
 
 const creatureId = '00000000-0000-4000-8000-000000000ce0'
 const featureId = '00000000-0000-4000-8000-000000000ce1'
@@ -129,7 +130,7 @@ export async function setupConcentration(
       .unique()
     if (!row) throw new Error('Concentration source actor is unavailable.')
     const capability = discoverEncounterFeatureActionCapabilities({
-      actor: encounterRunActorStateSchema.parse(JSON.parse(row.stateJson)),
+      actor: await readTestActor(ctx, row),
       conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
         id: ability.id,
@@ -328,14 +329,12 @@ export async function concentrationRecords(
       )
       .collect(),
     character: await readCharacterRow(ctx, fixture.character.id),
-    receipts: await readReceiptHeaders(
-      ctx,
-      'encounterRuleReceipts',
-      await ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', fixture.run.id))
-        .collect()
-    ),
+    receipts: await (
+      await readEncounterHistory(ctx, fixture.campaign.id)
+    )
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', fixture.run.id))
+      .collect(),
     characterReceipts: await readReceiptHeaders(
       ctx,
       'characterCommandReceipts',

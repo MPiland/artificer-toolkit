@@ -1,4 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
@@ -110,7 +111,7 @@ describe('native action relationship facts', () => {
       if (!run || !sourceRow) throw new Error('Fixture Encounter is unavailable.')
       const state = encounterRunStateSchema.parse(JSON.parse(run.stateJson))
       const target = encounterRunActorStateSchema.parse({
-        ...JSON.parse(sourceRow.stateJson),
+        ...(await readTestActor(ctx, sourceRow)),
         id: targetId,
         stableTieKey: crypto.randomUUID()
       })

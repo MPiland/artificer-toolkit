@@ -15,10 +15,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
-import {
-  type DevelopmentClient,
-  executeEncounterCommand
-} from './developmentClient'
+import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
 import { encounterEffectFeatureId, encounterEffectId } from './fixtures/encounterEffects'
 
 const actionChoices = makeFunctionReference<
@@ -59,6 +56,8 @@ type EncounterEffectsBaseInput = {
   initiativePolicyCatalogueId: string
   creatureId: string
   targetCreatureId?: string
+  /** Leaves the final Run ACTIVE so its live effect rows stay readable; COMPLETE drops them. */
+  leaveLastRunActive?: boolean
 }
 
 type EncounterEffectsInput =
@@ -96,6 +95,7 @@ export async function verifyEncounterEffects({
   initiativePolicyCatalogueId,
   creatureId,
   targetCreatureId = creatureId,
+  leaveLastRunActive = false,
   playerUserId,
   browser
 }: EncounterEffectsInput) {
@@ -218,9 +218,9 @@ export async function verifyEncounterEffects({
     return { run, source: currentSource, target: currentTarget }
   }
 
-  for (const { face, expectedConditions } of [
-    { face: 1, expectedConditions: [frightened.id] },
-    { face: 20, expectedConditions: [] }
+  for (const { face, expectedConditions, last } of [
+    { face: 20, expectedConditions: [], last: false },
+    { face: 1, expectedConditions: [frightened.id], last: true }
   ]) {
     const prepared = await prepareRun()
     let run = prepared.run
@@ -467,6 +467,7 @@ export async function verifyEncounterEffects({
         verify
       )
     } else await verify()
+    if (last && leaveLastRunActive) continue
     // A Campaign keeps one ACTIVE Run across sittings, so each iteration completes its own Run.
     const settled = encounterGmProjectionDtoSchema.parse(
       await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })

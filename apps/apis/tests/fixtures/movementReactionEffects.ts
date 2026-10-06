@@ -1,4 +1,5 @@
 import { createConvexEncounterStore } from '../../convex/lib/convexEncounterStore'
+import { readTestActor } from './storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
@@ -445,7 +446,7 @@ export async function setupCreatureReactionRun(
       if (!row) throw new Error('Missing native movement reaction actor.')
       // Reactions follow hostility, which dispositions decide: FRIENDLY reactors, HOSTILE mover.
       const state = encounterRunActorStateSchema.parse({
-        ...JSON.parse(row.stateJson),
+        ...(await readTestActor(ctx, row)),
         sideId: party.id,
         disposition: 'FRIENDLY'
       })

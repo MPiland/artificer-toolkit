@@ -295,7 +295,8 @@ The contract is `liveSessions/checkpoint:commit`, an internal mutation behind th
   account/Character state deletion and durable purge intent. Under D71, recommended by Codex and
   approved by the user on 2026-09-30,
   unreachable private Character payloads are physically purged in bounded, retryable native mutations
-  after verifying private ownership and no live headers; shared Encounter history is retained.
+  after verifying private ownership and no live headers; a finished Run's Encounter history is not
+  retained (D85, D88, Amendment 22 and Amendment 30 supersede the original wording).
   See [ADR 0035 D70](../adr/0035-room-authoritative-live-encounters.md#d70-packed-history-with-indexed-receipt-headers--2026-09-29)
   and [ADR 0035 D71](../adr/0035-room-authoritative-live-encounters.md#d71-bounded-deferred-private-payload-purge--2026-09-30).
 - **Response:** persisted sequence and checksum, `replayed`, the SYSTEM, CAMPAIGN, PLAY and Character revisions, and a membership digest. The response also renews the lease.

@@ -12,10 +12,25 @@ const MB = 1024 * 1024
 // Q16 (docs/handoffs/phase-08-2-decisions.md): 100 Free users, 20 of them hosting four 4-hour
 // sessions a month, with 50% headroom against the free allowances.
 const SESSIONS_PER_MONTH = 20 * 4
-const SESSION_HOURS = 4
 const DAYS_PER_MONTH = 30
 const HEADROOM = 1.5
 const sessionsPerDay = SESSIONS_PER_MONTH / DAYS_PER_MONTH
+// The product owner's session model (2026-10-03, adr-0035-implementation-plan.md, REL-5): a weekly
+// 5-hour session, 4 fights of 8 rounds with 5 players and 6 enemies, about 3 hours of combat and so
+// about 2 hours out of it. The command count is the plan's estimate for those fights.
+const SESSION_MODEL = {
+  fights: 4,
+  combatCommands: 2_000,
+  outOfCombatMinutes: 120,
+  sessionHours: 5
+}
+// Save points replace the interval (ADR 0035 Amendment 25): the room saves at a Run's START and
+// COMPLETE, so a fight costs one START save and one COMPLETE save, and nothing saves while it is
+// played. The driver measures each as its own window (a START per aggregate in its preparation, the
+// COMPLETE of every aggregate in the save window), so a fight's save cost is those two per-save costs
+// added. The save at close follows the last COMPLETE and holds only what changed since; it is not
+// measured, and the backlog bound adds saves only for chat beyond the push window, which this model
+// assumes does not happen.
 const perSessionFromDaily = (limit) => limit / HEADROOM / sessionsPerDay
 const perSessionFromMonthly = (limit) => limit / HEADROOM / SESSIONS_PER_MONTH
 
@@ -38,8 +53,6 @@ const budgets = {
 const WEBSOCKET_MESSAGES_PER_REQUEST = 20
 // A Durable Object bills duration at its 128 MB memory limit.
 const DURABLE_OBJECT_GB = 128 / 1024
-// The room arms a save timer on any unsaved change; a paced window longer than it must see it fire.
-const DEADLINE_SECONDS = 120
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const proofDirectory = 'local-validation/local-convex-proofs'
@@ -49,21 +62,33 @@ const windowMarkers = {
   open: 'liveSessions/developmentMeasurement:openWindow',
   close: 'liveSessions/developmentMeasurement:closeWindow'
 }
-const windowNames = ['combat', 'outOfCombat']
+// The windows in the order the driver measures them; `start` is one marker pair per aggregate.
+const windowNames = ['start', 'combat', 'save', 'outOfCombat']
 
-// Convex functions the room and its Worker routes call, by what they are for.
+// Convex functions the room and its Worker routes call, by what they are for. The Worker reaches
+// Convex through private HTTP routes (packages/schema/src/api/liveSessionRoutePaths.ts), which log as
+// their own HttpAction calls: each route is classed with the function it runs, which carries the I/O.
 const classes = {
   checkpointIngestion: new Set([
-    'liveSessions/checkpoint:publish',
-    'liveSessions/checkpointStaging:begin',
-    'liveSessions/checkpointStaging:part',
-    'liveSessions/checkpointStaging:commit'
+    'POST /live-sessions/checkpoint',
+    'liveSessions/checkpoint:publish'
   ]),
   authRefresh: new Set([
+    'POST /live-sessions/room-authorization',
+    'POST /live-sessions/room-scene-capture',
+    'POST /live-sessions/capture',
     'liveSessions/roomAuthorization:read',
-    'liveSessions/transientCapture:capture'
+    'liveSessions/transientCapture:capture',
+    'liveSessions/transientCapture:roomScene'
   ]),
   lifecycle: new Set([
+    'POST /live-sessions/bootstrap',
+    'POST /live-sessions/activate',
+    'POST /live-sessions/recover-storage',
+    'POST /live-sessions/begin-drain',
+    'POST /live-sessions/release',
+    'POST /live-sessions/present',
+    'POST /live-sessions/room-inputs',
     'liveSessions/bootstrap:bootstrap',
     'liveSessions/state:activate',
     'liveSessions/authority:recoverStorage',
@@ -74,14 +99,35 @@ const classes = {
   ])
 }
 const livePlayClasses = Object.keys(classes)
-const authHttp = /^(GET|POST) \/api\/auth\//
+// Better Auth's HTTP routes and the component adapter functions they call (each adapter call in the
+// log has its `/api/auth/*` route as parent).
+const authHttp = /^((GET|POST) \/api\/auth\/|adapter:)/
+// Jobs that run whether or not anyone plays: the crons in apps/apis/convex/crons.ts, and the
+// scheduler chains that reschedule themselves (campaigns/deletionJobs.ts watchdog every 60 s) or run
+// after an upload or deletion (media/assets.ts). They are not play cost, so no per-session total
+// counts them.
+const background = new Set([
+  'notifications/delivery:dispatch',
+  'contentSnapshots/actions:deleteSupersededObjects',
+  'campaigns/deletionJobs:watchdog',
+  'media/assets:deleteObjects',
+  'media/assets:expireOperation',
+  'media/assets:cleanup',
+  'media/assets:cleanupRaw',
+  'media/avatarActions:deleteObjectBytes',
+  'lib:deleteR2Object',
+  'lib:deleteMetadata'
+])
 // What may reach Convex while a window is measured: the room's checkpoints and authorization
-// refresh, and the sign-in token refresh the driver and the browsers make. No command does.
-const toleratedClasses = new Set(['checkpointIngestion', 'authRefresh', 'authHttp'])
+// refresh, the sign-in token refresh the driver and the browsers make, and background jobs. No
+// command does.
+const toleratedClasses = new Set(['checkpointIngestion', 'authRefresh', 'authHttp', 'background'])
 const classOf = (identifier) =>
   authHttp.test(identifier)
     ? 'authHttp'
-    : (livePlayClasses.find((name) => classes[name].has(identifier)) ?? 'other')
+    : background.has(identifier)
+      ? 'background'
+      : (livePlayClasses.find((name) => classes[name].has(identifier)) ?? 'other')
 
 const isMarker = (execution) => Object.values(windowMarkers).includes(execution.identifier)
 const isSuccessful = (execution, identifier) =>
@@ -113,26 +159,37 @@ function tally(executions) {
 
 /**
  * The executions between each pair of window markers, by log order alone: the container's clock is
- * not the host's. The driver opens and closes the combat window, then the out-of-combat window.
+ * not the host's. The driver opens and closes one start window around each aggregate's START (the
+ * aggregates prepare one after the other), then the combat window, the save window (every Run's
+ * COMPLETE, the save that holds what combat left) and the out-of-combat window. The start windows
+ * are returned as one.
  */
-function measuredWindows(executions, failures) {
+function measuredWindows(executions, starts, failures) {
   const marks = executions.flatMap((execution, index) =>
     isMarker(execution) && execution.error == null ? [{ index, marker: execution.identifier }] : []
   )
-  const expected = windowNames.flatMap(() => [windowMarkers.open, windowMarkers.close])
+  const order = [...Array.from({ length: starts }, () => 'start'), 'combat', 'save', 'outOfCombat']
+  const expected = order.flatMap(() => [windowMarkers.open, windowMarkers.close])
   if (marks.length !== expected.length || marks.some(({ marker }, i) => marker !== expected[i])) {
     failures.push(
-      `Expected ${expected.length} window markers (open, close for each of ${windowNames.join(', ')}); the native log holds ${marks.length}.`
+      `Expected ${expected.length} window markers (open, close for each of ${order.join(', ')}); the native log holds ${marks.length}.`
     )
     return null
   }
-  return windowNames.map((name, i) => ({
+  const windows = order.map((name, i) => ({
     name,
     executions: executions.slice(marks[2 * i].index + 1, marks[2 * i + 1].index)
   }))
+  return windowNames.map((name) => ({
+    name,
+    executions: windows.filter((window) => window.name === name).flatMap(({ executions }) => executions)
+  }))
 }
 
-/** What reached Convex inside one window, and whether anything but tolerated traffic did. */
+/**
+ * What reached Convex inside one window, and whether anything but tolerated traffic did. The window's
+ * `calls` and `ioBytes` leave out background jobs, which `byClass` still lists.
+ */
 function auditWindow({ name, executions }, strict, failures) {
   const { byFunction, byClass } = tally(executions)
   const untolerated = executions.filter(
@@ -141,16 +198,17 @@ function auditWindow({ name, executions }, strict, failures) {
   const failed = executions.filter((execution) => execution.error != null)
   if (strict && untolerated.length > 0)
     failures.push(
-      `${name}: ${untolerated.length} Convex calls reached Convex during the window besides checkpoints, authorization refresh and sign-in: ${[...new Set(untolerated.map((execution) => execution.identifier))].join(', ')}.`
+      `${name}: ${untolerated.length} Convex calls reached Convex during the window besides checkpoints, authorization refresh, sign-in and background jobs: ${[...new Set(untolerated.map((execution) => execution.identifier))].join(', ')}.`
     )
   if (failed.length > 0)
     failures.push(
       `${name}: ${failed.length} failed executions inside the window: ${[...new Set(failed.map((execution) => execution.identifier))].join(', ')}.`
     )
+  const play = executions.filter((execution) => classOf(execution.identifier) !== 'background')
   return {
     name,
-    calls: executions.length,
-    ioBytes: sum(executions, databaseIo),
+    calls: play.length,
+    ioBytes: sum(play, databaseIo),
     byClass,
     byFunction,
     unToleratedCalls: untolerated.length
@@ -306,29 +364,40 @@ const assumption = (name) => {
 }
 
 /**
- * A session estimate from the measured unit costs. Its two quantities, commands and paced
- * out-of-combat minutes per session, are assumptions the user sets (V15_ESTIMATE_COMBAT_COMMANDS,
- * V15_ESTIMATE_OOC_MINUTES): the proof does not know how a table plays, so without them the estimate
- * is not made and does not decide the verdict. Session length defaults to Q16's four hours.
+ * A session estimate from the measured unit costs, for Convex I/O and calls:
+ *
+ *   lifecycle + fights * (START save + COMPLETE save * scale) + commands * combat
+ *     + minutes * out-of-combat
+ *
+ * where lifecycle is the measured bootstrap cost per session, each save is the measured cost of one
+ * checkpoint-ingestion save, and combat and out-of-combat are the measured cost per room command and
+ * per paced minute. A COMPLETE save publishes the fight's unsaved commands, so its cost is scaled by
+ * the model's commands per fight over the measured ones, as if all of it grew with commands. The quantities (fights, commands, paced out-of-combat minutes, hours) are
+ * assumptions about how a table plays, not measurements: they default to SESSION_MODEL, and
+ * V15_ESTIMATE_FIGHTS, V15_ESTIMATE_COMBAT_COMMANDS, V15_ESTIMATE_OOC_MINUTES and
+ * V15_ESTIMATE_SESSION_HOURS override them.
  */
 function sessionEstimate(unitCosts, perSession, failures) {
-  const commands = assumption('V15_ESTIMATE_COMBAT_COMMANDS')
-  const minutes = assumption('V15_ESTIMATE_OOC_MINUTES')
-  const hours = assumption('V15_ESTIMATE_SESSION_HOURS') ?? SESSION_HOURS
-  if (commands === null || minutes === null || perSession === null)
+  const fights = assumption('V15_ESTIMATE_FIGHTS') ?? SESSION_MODEL.fights
+  const commands = assumption('V15_ESTIMATE_COMBAT_COMMANDS') ?? SESSION_MODEL.combatCommands
+  const minutes = assumption('V15_ESTIMATE_OOC_MINUTES') ?? SESSION_MODEL.outOfCombatMinutes
+  const hours = assumption('V15_ESTIMATE_SESSION_HOURS') ?? SESSION_MODEL.sessionHours
+  if (perSession === null)
     return {
       status: 'NOT_ASSESSED',
-      reason:
-        'Set V15_ESTIMATE_COMBAT_COMMANDS and V15_ESTIMATE_OOC_MINUTES; they are assumptions about how a table plays, not measurements.'
+      reason: 'The native log holds no live session bootstrap.'
     }
-  const { combat, outOfCombatPerMinute } = unitCosts
+  const { combat, fightSaves, outOfCombatPerMinute } = unitCosts
+  const scale = commands / fights / fightSaves.complete.commandsPerFight
   const estimate = {
     convexCalls:
       perSession.lifecycle.calls +
+      fights * (fightSaves.start.convexCalls + fightSaves.complete.convexCalls * scale) +
       commands * combat.convexCalls +
       minutes * outOfCombatPerMinute.convexCalls,
     convexIoBytes:
       perSession.lifecycle.ioBytes +
+      fights * (fightSaves.start.convexIoBytes + fightSaves.complete.convexIoBytes * scale) +
       commands * combat.convexIoBytes +
       minutes * outOfCombatPerMinute.convexIoBytes,
     durableObjectRequests:
@@ -364,9 +433,37 @@ function sessionEstimate(unitCosts, perSession, failures) {
   ])
     if (value > limit)
       failures.push(`Session estimate: ${label} ${Math.round(value)} exceed ${Math.round(limit)}.`)
+  // The product owner's model is one session a week per group (adr-0035-implementation-plan.md,
+  // REL-5). Monthly allowances spread a group's sessions over the month; daily allowances assume
+  // every group plays the same day. Both keep the 50% headroom.
+  const monthly = (budget, cost) =>
+    Math.floor((budget * SESSIONS_PER_MONTH) / (cost * (DAYS_PER_MONTH / 7)))
+  const sameDay = (budget, cost) => Math.floor((budget * sessionsPerDay) / cost)
+  const weeklyGroupsThatFit = {
+    convexCalls: monthly(budgets.convexCallsPerSession, estimate.convexCalls),
+    convexIoBytes: monthly(budgets.convexIoBytesPerSession, estimate.convexIoBytes),
+    durableObjectRequests: sameDay(
+      budgets.durableObjectRequestsPerSession,
+      estimate.durableObjectRequests
+    ),
+    durableObjectRowsRead: sameDay(
+      budgets.durableObjectRowsReadPerSession,
+      estimate.durableObjectRowsRead
+    ),
+    durableObjectRowsWritten: sameDay(
+      budgets.durableObjectRowsWrittenPerSession,
+      estimate.durableObjectRowsWritten
+    ),
+    durableObjectGbSecondsResident: sameDay(
+      budgets.durableObjectGbSecondsPerSession,
+      estimate.durableObjectGbSecondsResident
+    )
+  }
   return {
     status: 'ASSESSED',
+    weeklyGroupsThatFit,
     assumptions: {
+      fightsPerSession: fights,
       combatCommandsPerSession: commands,
       outOfCombatMinutesPerSession: minutes,
       sessionHours: hours
@@ -396,35 +493,75 @@ export async function verifyV15Budgets(proofName) {
     .filter((execution) => execution.kind === 'Completion')
     .sort((a, b) => a.timestamp - b.timestamp)
   const failures = []
-  const windows = measuredWindows(executions, failures)
   const { combat, outOfCombat } = evidence
+  // The driver records one START meter pair and one COMPLETE per measured aggregate; those are the
+  // saves each window holds.
+  const starts = Object.keys(combat.startMeters.before).length
+  const completions = Object.keys(combat.completions).length
+  const windows = measuredWindows(executions, starts, failures)
   const audits = windows
     ? windows.map((window) =>
         auditWindow(
           window,
-          // The out-of-combat browsers are real clients with Convex queries of their own; only a run
-          // without them can promise that nothing but the room reached Convex.
-          window.name === 'combat' || outOfCombat.browser === null,
+          // A START also opens the room's socket and activates it, which reach Convex beside its
+          // checkpoint, so only its checkpoint ingestion is costed. The out-of-combat browsers are
+          // real clients with Convex queries of their own; only a run without them can promise that
+          // nothing but the room reached Convex.
+          window.name === 'start'
+            ? false
+            : window.name !== 'outOfCombat' || outOfCombat.browser === null,
           failures
         )
       )
     : []
+  const startMeter = windowMeter(combat.startMeters, 'start', failures)
   const combatMeter = windowMeter(combat.meters, 'combat', failures)
+  const saveMeter = windowMeter(combat.saveMeters, 'save', failures)
   const outOfCombatMeter = windowMeter(outOfCombat.meters, 'outOfCombat', failures)
-  const [combatAudit, outOfCombatAudit] = audits
+  const [startAudit, combatAudit, saveAudit, outOfCombatAudit] = audits
   if (combatMeter.commands === 0) failures.push('combat: the room counted no commands.')
+  const startCheckpoints = sum(Object.values(startMeter.checkpoints), (row) => row.count)
+  if (starts === 0 || startCheckpoints === 0)
+    failures.push('start: the Run START made no checkpoint.')
+  const saveCheckpoints = sum(Object.values(saveMeter.checkpoints), (row) => row.count)
+  if (completions === 0 || saveCheckpoints === 0)
+    failures.push('save: completing the Runs made no checkpoint.')
   const outOfCombatMinutes = outOfCombat.durationMs / 60_000
-  if (
-    outOfCombat.durationMs / 1000 > DEADLINE_SECONDS &&
-    (outOfCombatMeter.checkpoints.DEADLINE?.count ?? 0) === 0
+  // Amendment 25: nothing in a paced window is a save point, so the room makes no checkpoint, and
+  // what reaches Convex is authorization lease renewals and background jobs.
+  const outOfCombatCheckpoints = sum(
+    Object.values(outOfCombatMeter.checkpoints),
+    (row) => row.count
   )
+  const outOfCombatCheckpointCalls = outOfCombatAudit?.byClass.checkpointIngestion?.calls ?? 0
+  if (outOfCombatCheckpoints > 0 || outOfCombatCheckpointCalls > 0)
     failures.push(
-      `outOfCombat: a ${Math.round(outOfCombat.durationMs / 1000)} s paced window saw no DEADLINE checkpoint; the ${DEADLINE_SECONDS} s timer did not fire.`
+      `outOfCombat: a ${Math.round(outOfCombat.durationMs / 1000)} s paced window with no save point made ${outOfCombatCheckpoints} checkpoints and ${outOfCombatCheckpointCalls} checkpoint calls reached Convex.`
     )
 
+  // One save is one Run's START or COMPLETE: the checkpoint ingestion of its window per measured
+  // save, however many pages a checkpoint splits into.
+  const costOfSave = (audit, saves) => {
+    const { calls, ioBytes: bytes } = audit.byClass.checkpointIngestion ?? { calls: 0, ioBytes: 0 }
+    return { saves, convexCalls: calls / saves, convexIoBytes: bytes / saves }
+  }
+  const startSave = startAudit && starts > 0 ? costOfSave(startAudit, starts) : null
+  const completeSave = saveAudit && completions > 0 ? costOfSave(saveAudit, completions) : null
   const unitCosts =
-    combatAudit && outOfCombatAudit && combatMeter.commands > 0
+    startSave &&
+    completeSave &&
+    combatAudit &&
+    outOfCombatAudit &&
+    combatMeter.commands > 0 &&
+    startCheckpoints > 0 &&
+    saveCheckpoints > 0
       ? {
+          fightSaves: {
+            start: startSave,
+            complete: { ...completeSave, commandsPerFight: combatMeter.commands / completions },
+            convexCalls: startSave.convexCalls + completeSave.convexCalls,
+            convexIoBytes: startSave.convexIoBytes + completeSave.convexIoBytes
+          },
           combat: perUnit(
             {
               convexCalls: combatAudit.calls,
@@ -442,34 +579,36 @@ export async function verifyV15Budgets(proofName) {
             outOfCombatMinutes
           ),
           checkpointsByReason: Object.fromEntries(
-            Object.keys({ ...combatMeter.checkpoints, ...outOfCombatMeter.checkpoints }).map(
-              (reason) => {
-                const rows = [combatMeter, outOfCombatMeter].flatMap(
-                  ({ checkpoints }) => checkpoints[reason] ?? []
-                )
-                const count = sum(rows, (row) => row.count)
-                return [
-                  reason,
-                  {
-                    count,
-                    payloadBytesEach:
-                      count === 0 ? 0 : sum(rows, (row) => row.payloadBytes) / count,
-                    convexIoBytesEach:
-                      count === 0 ? 0 : sum(rows, (row) => row.convexIoBytes) / count,
-                    sectionIoBytesEach: Object.fromEntries(
-                      [...new Set(rows.flatMap((row) => Object.keys(row.sectionIoBytes)))].map(
-                        (section) => [
-                          section,
-                          count === 0
-                            ? 0
-                            : sum(rows, (row) => row.sectionIoBytes[section] ?? 0) / count
-                        ]
-                      )
+            Object.keys({
+              ...startMeter.checkpoints,
+              ...combatMeter.checkpoints,
+              ...saveMeter.checkpoints,
+              ...outOfCombatMeter.checkpoints
+            }).map((reason) => {
+              const rows = [startMeter, combatMeter, saveMeter, outOfCombatMeter].flatMap(
+                ({ checkpoints }) => checkpoints[reason] ?? []
+              )
+              const count = sum(rows, (row) => row.count)
+              return [
+                reason,
+                {
+                  count,
+                  payloadBytesEach: count === 0 ? 0 : sum(rows, (row) => row.payloadBytes) / count,
+                  convexIoBytesEach:
+                    count === 0 ? 0 : sum(rows, (row) => row.convexIoBytes) / count,
+                  sectionIoBytesEach: Object.fromEntries(
+                    [...new Set(rows.flatMap((row) => Object.keys(row.sectionIoBytes)))].map(
+                      (section) => [
+                        section,
+                        count === 0
+                          ? 0
+                          : sum(rows, (row) => row.sectionIoBytes[section] ?? 0) / count
+                      ]
                     )
-                  }
-                ]
-              }
-            )
+                  )
+                }
+              ]
+            })
           )
         }
       : null
@@ -479,7 +618,9 @@ export async function verifyV15Budgets(proofName) {
     unit: 'bytes of Convex database I/O (read + write); 1 MB = 1024 * 1024 bytes',
     budgets,
     windows: {
+      start: { ...startAudit, meter: startMeter },
       combat: { ...combatAudit, meter: combatMeter },
+      save: { ...saveAudit, meter: saveMeter },
       outOfCombat: { ...outOfCombatAudit, meter: outOfCombatMeter }
     },
     unitCosts,
@@ -487,8 +628,11 @@ export async function verifyV15Budgets(proofName) {
     documents: documentSizes(combat.documents, failures),
     sessionEstimate: unitCosts
       ? sessionEstimate(unitCosts, perSession, failures)
-      : { status: 'NOT_ASSESSED', reason: 'The measured windows were incomplete.' },
-    barriers: combat.barriers,
+      : {
+          status: 'NOT_ASSESSED',
+          reason: 'The measured windows were incomplete.'
+        },
+    completions: combat.completions,
     verdict: 'passed',
     failures
   }
@@ -515,7 +659,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       )
     }
     console.log(
-      `Largest checkpoint document: ${summary.documents.largest.maxBytes} B (${summary.documents.largest.table}). Session estimate: ${summary.sessionEstimate.status}.`
+      `Largest checkpoint document: ${summary.documents.largest.maxBytes} B (${summary.documents.largest.table}). Session estimate: ${summary.sessionEstimate.status}; weekly groups that fit: ${JSON.stringify(summary.sessionEstimate.weeklyGroupsThatFit ?? null)}.`
     )
     console.log('V15 budgets passed.')
   } catch (error) {

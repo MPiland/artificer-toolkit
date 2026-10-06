@@ -62,7 +62,6 @@ test('connects three users through the live room and recovers a reversible scene
     authoritative: [] as number[],
     durable: [] as number[],
     ephemeral: [] as number[],
-    recipientHeader: [] as number[],
     ruleBound: [] as number[],
     sceneOnly: [] as number[]
   }
@@ -290,7 +289,6 @@ interface ConvergenceTimings {
   authoritative: number[]
   durable: number[]
   ephemeral: number[]
-  recipientHeader: number[]
   ruleBound: number[]
   sceneOnly: number[]
 }
@@ -403,9 +401,6 @@ async function collectDoorConvergenceTimings(
       )
     })
     const sentFrameStart = gm.liveSessionSentFrames.length
-    const recipientHeaderConvergence = Promise.all(
-      [gm, ...players].map((client) => waitForRecipientSceneVersion(client.page, priorVersion + 1))
-    )
     const liveSceneConvergence = Promise.all(
       [gm, ...players].map((client) => waitForSceneVersion(client.page, priorVersion + 1))
     )
@@ -418,24 +413,14 @@ async function collectDoorConvergenceTimings(
           .some((payload) => isSceneDoorCommandFrame(payload))
       )
       .toBe(true)
-    const [recipientHeaderResult, liveSceneResult] = await Promise.allSettled([
-      recipientHeaderConvergence,
-      liveSceneConvergence
-    ])
-    if (recipientHeaderResult.status === 'rejected' || liveSceneResult.status === 'rejected') {
+    const [liveSceneResult] = await Promise.allSettled([liveSceneConvergence])
+    if (liveSceneResult.status === 'rejected') {
       const alerts = await gm.page.getByRole('alert').allTextContents()
-      const cause =
-        liveSceneResult.status === 'rejected'
-          ? liveSceneResult.reason
-          : recipientHeaderResult.status === 'rejected'
-            ? recipientHeaderResult.reason
-            : undefined
       throw new Error(
         `Door convergence failed. GM alerts: ${JSON.stringify(alerts)}. Recent received frames: ${JSON.stringify(summarizeFrames(gm.liveSessionFrames.slice(-10)))}. Recent sent frames: ${JSON.stringify(summarizeFrames(gm.liveSessionSentFrames.slice(-10)))}.`,
-        { cause }
+        { cause: liveSceneResult.reason }
       )
     }
-    const recipientHeaderObservedAt = recipientHeaderResult.value
     const observedAt = liveSceneResult.value
     const submittedAt = await gm.page.evaluate(
       () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
@@ -451,7 +436,6 @@ async function collectDoorConvergenceTimings(
     if (index >= warmupPairs) {
       samples.authoritative.push(Math.max(...observedAt) - submittedAt)
       samples.durable.push(durableMs)
-      samples.recipientHeader.push(Math.max(...recipientHeaderObservedAt) - submittedAt)
       samples.sceneOnly.push(sceneOnlyMs)
     }
   }
@@ -639,14 +623,6 @@ async function readSceneVersion(page: Page): Promise<number> {
 
 async function waitForSceneVersion(page: Page, version: number): Promise<number> {
   await expect(liveSceneRegion(page).getByText(`v${version}`, { exact: true })).toBeVisible()
-  return Date.now()
-}
-
-async function waitForRecipientSceneVersion(page: Page, version: number): Promise<number> {
-  await expect(liveSceneRegion(page)).toHaveAttribute(
-    'data-recipient-scene-version',
-    String(version)
-  )
   return Date.now()
 }
 

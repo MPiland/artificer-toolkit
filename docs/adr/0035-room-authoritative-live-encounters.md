@@ -13,6 +13,9 @@
 
 ## Implementation status — 2026-09-30
 
+_Update 2026-10-05:_ D90 (save points, Amendments 25–31) is implemented and V15 passed locally within
+the Q16 budgets; the text below is the 2026-09-30 snapshot.
+
 S0 measurements, S1 persistence extraction, S1b Encounter record changes, S1c Character play-state
 separation, S2 SQLite hydrate/rehydrate and S4 authorization caching are implemented locally.
 Current source commits Scene move/door/undo, binding, the shared room-local Encounter command list
@@ -60,7 +63,7 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
    - The result is broadcast to each recipient through the existing privacy projection: hidden actors, GM-only rolls and redactions (D62, Q14).
    - Receipts keep commands idempotent on retry.
 3. **Checkpoints to Convex.**
-   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than 120 seconds after the first unsent change (Amendments 1, 4 and 13).
+   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than N after the first unsent change, N = 30 s since REL-5 (Amendments 1, 4, 13 and 17).
    - **Fencing:** a checkpoint is one idempotent Convex mutation carrying the room's authority epoch and sequence. Convex accepts only a newer sequence under the current authority, so the existing authority fencing is reused.
    - **Contents:** the checkpoint writes the Run, the actors, Character play state, timeline entries and receipts that Convex's own features need, such as history, the Sheet outside play and audits.
 4. **Durability.**
@@ -129,7 +132,7 @@ Accepted after the code mapping in [the implementation plan](../handoffs/adr-003
    - Checkpoints carry only the records that changed (deltas), never whole documents.
    - N is a tunable constant sized by the Q16 budget (Convex I/O counts checkpoint bytes). The room's SQLite already makes acknowledged commands durable, so N only bounds how stale pages outside the room are.
 5. **Revocation has a bound.**
-   - The room holds authorization under a 240 s lease, renewed by each checkpoint response and token renewal (Amendment 14).
+   - The room holds authorization under a 2N lease (60 s since REL-5), renewed by one background read per half-lease and by token renewal (Amendments 14, 17 and 18).
    - A lost `INVALIDATE_INPUTS` or eviction notification is therefore corrected within the lease.
    - Membership departure and account deletion only evict and notify while a Run is held. The room applies the change, and checkpoints filter controller lists.
 6. **The Scene lane is included.**
@@ -161,8 +164,8 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
       headers remain per command and point into the checksummed ledger; they preserve replay,
       duplicate-command checks, public UUIDs and timeline pagination without repeating history payloads.
     - Tied-initiative and other occurrence updates write only the changed occurrence fields.
-13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event. This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12.
-14. **Authorization lease: 240 s (2N),** renewed by checkpoint responses and each socket's 15-minute re-authentication. This replaces "about 60 s".
+13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event (superseded: Amendment 17, N = 30 s since REL-5). This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12.
+14. **Authorization lease: 240 s (2N; 60 s since REL-5, renewed as Amendment 18 states),** renewed by checkpoint responses and each socket's 15-minute re-authentication. This replaces "about 60 s".
     - A lost eviction is the only case the lease covers. To keep that rare, eviction delivery retries with backoff until it is acknowledged or the room releases, instead of giving up after 5 attempts.
     - The worst-case exposure after a failed eviction is therefore one lease.
 15. **Previews: an immediate fix, independent of the switch.**
@@ -242,6 +245,8 @@ the Character ownership scope and that no live receipt header references the led
 payload storage in bounded, retryable transactions. Removed account/Character history is immediately
 unavailable to product readers. Shared Encounter history is retained. No retention cap is introduced.
 Payload validation remains required for publication, reads and selective cleanup of retained history.
+_Amended by Amendment 22 and Amendment 30:_ a finished Run retains only its Run, actor and source-fact
+rows, not its Encounter history.
 
 **Status:** source integrated; focused local native deletion, rollback, retry and privacy proofs
 passed with three 4 MiB ledgers. See the
@@ -277,8 +282,9 @@ means no flush and no Convex call.
 
 17. **Flush cadence replaces Amendments 4 and 13.**
     - The room flushes only its dirty set, coalesced per record, no later than N after the first
-      unflushed change. N is one tunable constant between 30 s and 120 s, which REL-5 sets from
-      the V15 measurements. Live viewers read the room (Amendment 19), so N bounds only the
+      unflushed change. N is one tunable constant between 30 s and 120 s; REL-5 set it to 30 s
+      from the V15 measurements, since a longer N only grows the backlog one deadline flush must
+      drain, and the lease (Amendment 14) became 2N = 60 s. Live viewers read the room (Amendment 19), so N bounds only the
       storage-loss window and what non-live readers see.
     - A due flush is sent while the room handles its next incoming message. An alarm fires only
       when the room goes quiet, which keeps alarm-billed Durable Object requests down.
@@ -296,7 +302,7 @@ means no flush and no Convex call.
       for the epoch and sequence fence. It never reads every assignment or membership.
     - Controller-list filtering reads only the Characters in the delta.
     - Lease renewal (Amendment 14) leaves the checkpoint. The room renews its authorization
-      separately, at most once per half-lease (120 s) and only while sockets are connected.
+      separately, at most once per half-lease (N) and only while sockets are connected.
       Invalidation notices and eviction retries are unchanged.
     - Each flush records its Convex bytes read and written per section (D85), so any remaining floor
       is measured, not modelled.
@@ -375,6 +381,213 @@ means no flush and no Convex call.
 - `INVALIDATE_INPUTS` and eviction;
 - chat and roll persistence (D69);
 - player control and GM override (ADR 0034).
+
+## D89: a woken room keeps its players — 2026-10-05
+
+**Decided by the product owner on 2026-10-05 (REL-5).** Recorded as D89 in the
+[decisions log](../handoffs/phase-08-2-decisions.md).
+
+**Why.** Cloudflare hibernates a room after about 10 s without work (Amendment 16 requires it, so an
+idle table bills no duration). Each wake challenged every surviving socket. The V15 runs showed the
+cost: every player signed in again, the message that woke the room was dropped, the map cache was
+rebuilt from Convex while previews were dropped, and each wake flushed and read Convex. Keeping the
+room awake would bill wall-clock time for every session and would still not cover deploys and
+evictions, which wake a room the same way.
+
+24. **Hibernation is transparent.** State the room trusts while awake is kept in its own storage
+    when it changes, and restored when the room wakes:
+    - each socket's admission (its token expiry, never the token) and its feed subscriptions, in the
+      socket attachment;
+    - the authorization lease (Amendment 14), in room SQLite;
+    - the map cache's identity (presented Scene header, presentation version, bound Encounter), in
+      room SQLite. The map itself is rebuilt from the room's own rows.
+
+    A wake within the lease therefore costs no sign-in round and no Convex call, and the message
+    that woke the room is handled. The room's map reads (`roomSceneCapture`) are authorized by the
+    Worker secret and the active epoch, like its other reads; a player's token is used only to
+    admit that player.
+
+    **Unchanged:** token expiry and the proactive re-challenge (Amendment 23), Campaign removal
+    (`EVICT_USER`), `INVALIDATE_INPUTS` and Scene presentation changes, which reach a sleeping room
+    by waking it. A socket challenged before the room slept, or whose token expired while it
+    slept, is challenged on wake.
+
+## D90: Convex receives a running table at save points — 2026-10-05
+
+**Decided by the product owner on 2026-10-05 (REL-5).** Recorded as D90 in the
+[decisions log](../handoffs/phase-08-2-decisions.md). **Status: current** (A35-S11 slices; measured by
+V15 run a84 at 4.44 MB per modelled session,
+[validation](../validation/phase-08-2/v15-workload-2026-10-05.md)). Amendment 17's interval is retired.
+
+**Why.** The first passing six-browser V15 run (a76) measured the interval checkpoints. Modelled on
+the product owner's session (2,000 combat commands, 120 minutes out of combat), a session would use
+about 96 MB of Convex I/O against the Q16 budget of 4.3 MB. That figure scales a76's per-command
+costs and was not measured at real pace. It had four sources:
+
+- Scene movement evidence: about 15 KB per move or reaction, which the commit then re-read about
+  twice.
+- Whole-document actor rewrites every 30 s.
+- The room reloading its own inputs after each of its own checkpoints.
+- Convex Scene reads that re-ran after every checkpoint.
+
+The 30 s copy kept Convex fresh for readers that Amendment 19 had already moved to the room. What
+remained was a second copy against losing the room's storage. That loss is a software-defect risk,
+the same for either store, not a weakness of Durable Objects. The product owner chose not to pay
+for that copy during play: "source of truth is contextual to what the data is". Convex is the record
+of a table once it stops running. While it runs, the room is.
+
+25. **Save points replace the interval (replaces Amendment 17's deadline flush).**
+    - The room saves its dirty set, coalesced per record, only at save points:
+      - the room's synchronous key moments: START, COMPLETE, removing a Character actor and the
+        departure reconcile. Adding actors and deleting a Run happen in Convex while no room holds
+        the Run.
+      - a Scene presentation change;
+      - drain, idle release and `CLOSE_ROOM`.
+    - **A backlog bound is the only non-lifecycle trigger.** The room also saves when its unsaved
+      append-only records (chat entries and roll cards, D69) reach the room's chat push window.
+      History paged from Convex therefore never has a gap. That chat push window is the only bound.
+      There is no bytes bound: a checkpoint splits into pages, so one save never exceeds a page
+      however large the backlog, and a raw sum of write sets overcounts the coalesced state a
+      checkpoint carries, which would fire about every 8 combat commands and recreate an interval.
+    - **There is no timer and no deadline alarm.** N and the `DEADLINE` checkpoint reason are
+      retired.
+    - **The lease is independent.** The authorization lease (Amendment 14) stays at 60 s. It bounds
+      revocation, not saving.
+    - **What a table close leaves behind.** When everyone leaves, idle release saves everything a
+      later room needs, as today. A Sheet opened the next day reads current state from Convex.
+      An edit made then is in Convex when the next room loads.
+26. **Scene command evidence stays in the room (extends Amendment 22 to the Scene lane).**
+    - The room's SQLite keeps geometry saves (retained movement evidence) and Scene command receipts
+      across epochs.
+    - Scene undo and replay by command ID read only that copy. Their 30-day reach is unchanged, and
+      the room enforces the retention.
+    - Convex stops storing them. Gone are `sceneGeometrySaves`, Scene receipt ledgers and
+      `sceneLiveCommands` headers, the retention purge, and the room's hydrate reads of them.
+    - Deleting a Campaign deletes the room's copy with the rest of its storage.
+27. **A commit does not re-read what it wrote.** A save reads each record in its delta once, for
+    the checksum fence (Amendment 18), and validates before it writes. Post-write re-reads and
+    receipt re-queries are removed. The room already validated the command, and the atomic
+    transaction is the integrity guarantee.
+28. **Nothing reads a running table's state from Convex.** The following switch to the room's feeds
+    (Amendment 19) while a table runs:
+    - the Convex Scene header and recipient-read subscriptions;
+    - Sheet slices on other pages, such as Encounter actor cards;
+    - the checkpoint-time notice.
+      Pages showing data that is not room-owned keep Convex and show it as of the last save. Examples
+      are the Encounter list, between START and COMPLETE, and private roll history.
+
+**Consequences.**
+
+- **Per-session Convex I/O.** A session costs one save per fight, the lifecycle moments, and one
+  close. It no longer costs one save per 30 s of play. V15 run a84 measured 4.44 MB per modelled
+  session against the 4.51 MB budget (Amendment 31).
+- **Loss window.** Losing the room's storage loses changes since the last save point: at most the
+  current fight, or the current out-of-combat stretch. Scene undo of earlier moves is then refused,
+  as for Encounter history (D88). This replaces D85's "about one round".
+- **Retired:**
+  - the interval flush, `DEADLINE` and N;
+  - Scene command evidence and receipt headers in Convex, and their purge;
+  - commit post-write re-reads;
+  - Convex Scene subscriptions during live play.
+
+**Unchanged:**
+
+- durability before acknowledgement;
+- fencing, epochs and holds;
+- the lease and `INVALIDATE_INPUTS`;
+- chat and roll persistence with stable IDs (D69), now batched at save points;
+- the compact Encounter replay index (Amendment 22), written at save points and never for a Run
+  that completes in the same save.
+
+**Amendment 29: static actor snapshots and whole-journal save pages (A35-S11e).** V15 run a78 measured
+about 9 MB of database I/O for about 1 MB of payload in one fight. Two sources remained after D90:
+
+- _The actor row carried the static source `snapshot`._ A stat block or Character source is large and
+  never changes during play, yet every actor write rewrote it, and the room journal and each checkpoint
+  folded it again. The snapshot now lives in its own immutable `encounterActorSnapshots` row, keyed by
+  Run and content checksum like `encounterSourceProjectionFacts`. The actor row keeps only play state,
+  its projection facts and `snapshotChecksum`; its `stateChecksum` covers the actor without the snapshot.
+  A snapshot row is written once, deleted with the last actor that names it, and never mutated: a
+  command that changes a snapshot writes a new row and repoints the actor. One function,
+  `composeRunActorState`, joins them for every reader that needs the full actor. Convex validates an
+  actor change from the stored record without reading the snapshot row.
+- _`encounterActorProjectionFacts` is removed._ Its content (the facts a projection reads) is merged
+  into the actor row, so exactly one stored record per actor holds the mutable state. The
+  finished-Encounter GM view reads those records and `encounterSourceProjectionFacts`, never a snapshot.
+- _A save page was cut at 1 MiB of raw journal._ Write sets hold whole documents and fold about 5:1 into
+  deltas, so a page cut by raw size split a fight into several saves, each re-reading the Run. The
+  journal page (`LIVE_SESSION_CHECKPOINT_JOURNAL_MAX_BYTES`) is now 4 MiB and only an upper bound: the
+  room still shrinks a page to the longest prefix whose folded records fit `PACKED_CHECKPOINT_BYTES`
+  (256 KiB), so that fold is the real limiter. _Amended by Amendment 31:_ the fold bound is now the
+  1 MiB checkpoint bound. Prefix semantics, exact-retry checks and checksum
+  fences are unchanged, and `MAX_ROOM_INPUT_RESPONSE_DOCUMENTS` still bounds the entries read.
+
+Risks accepted: Convex does not check that a snapshot row exists when it applies an actor row (the
+room writes both in one write set and replay and fences keep them together; a missing row fails the
+next read loudly); a change to a snapshot alone is not caught by the play-state checksum guard, but
+every snapshot change is written together with an actor row that names it.
+
+**Amendment 30: a completed Run keeps only its finished view (A35-S11h; extends Amendment 22, D85, D88).**
+Amendment 22 discards Encounter history at Run end but left the other Run child rows (initiative rounds,
+snapshots, bindings, effects) behind. They have no reader once the Run is COMPLETED, so COMPLETE now
+deletes them in the same save, in both stores. The room deletes them in its write set, which syncs to
+Convex as delta deletes; `removeFinishedRunRows` also frees the Convex receipt ledgers.
+
+- _Kept:_ `encounterRuns`, `encounterRunActors` and the `encounterSourceProjectionFacts` rows the actors
+  name. The finished GM view (`presentEncounterRun`) reads only the stored actor records
+  (`readRunProjectionFacts`), the Characters' `frozenState` (written by the COMPLETE planner before the
+  drop) and the Run state; it reads an initiative round only while the Run is ACTIVE and never a snapshot.
+- _Dropped:_ `encounterActorSnapshots`, `encounterSceneBindings`, `encounterActorTokenBindings`,
+  `encounterInitiativeRounds`, `encounterInitiativeParticipants`, `encounterInitiativeSides`,
+  `encounterRuleOccurrences`, `encounterPendingSnapshotParts`, `encounterReplayIndex`,
+  `encounterTurnMovements`, `encounterDecisionSkips`, `encounterActiveRuleEffects`,
+  `encounterMaintainedEffectStates`, `encounterSpatialRuleEffects`, and the history tables
+  `encounterRunCommands`, `encounterRuleReceipts` and `encounterEvidenceRolls`. The shared page helper is
+  `removeFinishedRunRowsPage` (`packages/encounter-persistence/src/finishedRunRows.ts`); Campaign and
+  prepared-Run deletion reuse it.
+- _Scene binding:_ deleting the binding at COMPLETE means the Scene's Play authorization, transient capture
+  and `readRunPage` no longer resolve a completed Run. `BIND_ENCOUNTER_TO_PRESENTED_SCENE` and
+  `SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING` on a COMPLETED Run are refused with `ENCOUNTER_NOT_ACTIVE`,
+  and any other command with "Completed Encounters are read-only." Several PREPARED or ACTIVE Runs may bind
+  one Scene and a Campaign has at most one ACTIVE Run, so "the fight played on this Scene" is that
+  ACTIVE Run (`by_campaignId_status`) when its binding names the Scene (`readActiveSceneEncounter`, used
+  by Convex Play authorization and transient capture and by the room's play authorization, geometry
+  staging and Scene vision). A PREPARED Run never plays or lends Scene vision, and no lookup ranks Runs
+  by recency. The binding table therefore keeps only `by_encounterId`. The room derives Scene vision
+  from its current store at compose time rather than from a cached list of Run ids, so a Run that
+  COMPLETEs or unbinds is never composed.
+- _Create idempotency:_ `runs.create` replays by a creation key on the Run itself
+  (`createCommandId`, `createCommandFingerprint`, index `by_campaignId_createCommandId`), because the
+  command header that used to answer it is deleted at COMPLETE and a retry would otherwise create a
+  second Run. The same ID with other input is `COMMAND_ID_REUSED`.
+- _Replay after COMPLETE:_ the room's command journal (not the deleted Run replay index) still answers a
+  retry of an earlier command from its original receipt over the current projection. Encounter commands
+  write no Character receipts (Amendment 22).
+
+Risk accepted: a Character's `characterActiveRuleEffects` outlive the Run (they are Character state), so
+their `maintainedEffectStateId` can name a deleted row; no reader dereferences it for a completed Run.
+
+**Amendment 31: one inline checkpoint per save (REL-5; replaces Amendment 29's 256 KiB fold).** V15 run
+a82b measured about 3 MB of Convex I/O per fight save. Two sources remained:
+
+- _Staged uploads._ A checkpoint over 240 KiB was written to upload tables in parts, read back and
+  deleted at commit, about three times its payload in I/O. Convex accepts function arguments up to
+  16 MiB, so a checkpoint within its 1 MiB records bound always fits one request. The staged route
+  (`checkpoint-stage`, `checkpoint-part`, `checkpoint-commit`), its upload tables and their cleanup are
+  removed. Every checkpoint publishes inline to `/live-sessions/checkpoint`.
+- _Prefix pages at COMPLETE._ The 256 KiB fold split a fight's save into several prefix pages. Early
+  pages inserted per-command Run rows (rule occurrences, replay index, initiative participants, turn
+  movements) that the last page then read and deleted under Amendment 30, about 1.2 MB of reads per
+  fight. A page is now the longest journal prefix whose folded records fit
+  `LIVE_SESSION_CHECKPOINT_MAX_BYTES` (1 MiB), so a save normally publishes the whole unsaved journal in
+  one checkpoint. Rows created and dropped within it never reach Convex. A backlog over 1 MiB still
+  splits into prefixes. The room reads the raw journal in 4 MiB pages and streams them into one fold:
+  combat write sets hold whole documents, about 35 KB per command, and fold about 16:1, so a page cut
+  by raw size had split each fight (V15 run a83) and is now only a memory bound for one read.
+
+Risk accepted: Convex validates and applies a checkpoint in one mutation under its 1 s user-code limit,
+and that work grows with the payload. A save near 1 MiB is mostly appended chat and roll records, which
+insert without re-reads (Amendment 27). V15 measures it.
 
 ## Also decided with this ADR
 

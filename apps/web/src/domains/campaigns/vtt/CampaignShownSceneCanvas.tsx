@@ -1,10 +1,7 @@
 import { Alert, Loader } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
-import { useConvex } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
-import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { queryKeys } from '#app/lib/queryKeys'
+import { useVttMapDelivery } from '#app/data/media'
 import * as styles from './CampaignShownSceneViewer.css'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
 
@@ -18,23 +15,18 @@ export function CampaignShownSceneCanvas({
   currentUserId: string
   scene: CampaignSceneStateDto
 }) {
-  const convex = useConvex()
   const host = useRef<HTMLDivElement>(null)
   const [renderer, setRenderer] = useState<VttSceneRenderer | null>(null)
-  const mapDelivery = useQuery({
-    queryFn: () =>
-      convex.action(api.media.vttMapActions.getDelivery, { assetId: scene.map.assetId }),
-    queryKey: queryKeys.media.vttMap(scene.map.assetId),
-    refetchInterval: 4 * 60_000,
-    refetchOnWindowFocus: false,
-    staleTime: 4 * 60_000
-  })
+  const mapDelivery = useVttMapDelivery(scene.map.assetId, (delivery) =>
+    renderer?.retryMap(delivery)
+  )
 
   useEffect(() => {
     const element = host.current
     if (!element) return
     let disposed = false
     void createVttSceneRenderer(element, {
+      onMapLoadStatus: mapDelivery.onMapLoadStatus,
       onCreateBarrier: () => undefined,
       onCreateDarkness: () => undefined,
       onCreateLight: () => undefined,

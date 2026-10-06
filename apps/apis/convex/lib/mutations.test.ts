@@ -24,6 +24,8 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
       version: 0,
       stateJson: '{}',
       stateChecksum: checksum,
+      createCommandId: crypto.randomUUID(),
+      createCommandFingerprint: checksum,
       createdAt: now,
       updatedAt: now
     })

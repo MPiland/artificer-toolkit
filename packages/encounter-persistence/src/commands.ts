@@ -1,5 +1,4 @@
 import { insertRunCommand } from './timelineEntries.js'
-import { removeCompletedRunTurnRecords } from './turnMovement.js'
 import type { z } from 'zod'
 import {
   encounterCommandResultDtoSchema,
@@ -9,8 +8,7 @@ import {
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterRunActorStateSchema,
-  encounterRunStateSchema,
-  type EncounterRunState
+  encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterCreatureEquipmentReplacementSchema } from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
@@ -30,7 +28,7 @@ import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/enc
 import { requireEncounterActorControllerCandidates } from './actorController.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
-import { readRunActors, readRunState, writeRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -45,7 +43,7 @@ import { readEncounterGmProjection } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { rollEncounterRuleEvidence } from './evidenceRolls.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
-import type { EncounterPersistenceTransaction, EncounterWriteTransaction } from './ports.js'
+import type { EncounterWriteTransaction } from './ports.js'
 
 type EncounterToolCommand = Extract<
   EncounterCommandInputDto,
@@ -68,29 +66,6 @@ type EncounterToolCommand = Extract<
   }
 >
 
-/** The stored actor a GM tool edits, checked against its row and the Run. */
-async function readCommandActor(
-  ctx: EncounterPersistenceTransaction,
-  state: EncounterRunState,
-  actorId: string
-) {
-  if (!state.actorIds.includes(actorId)) throw new Error('Encounter actor was not found.')
-  const actorRow = await ctx.db
-    .query('encounterRunActors')
-    .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', actorId))
-    .unique()
-  if (!actorRow) throw new Error('Encounter actor was not found.')
-  const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
-  if (
-    actor.id !== actorRow.id ||
-    actor.encounterId !== state.id ||
-    actor.systemId !== state.gameSystemId ||
-    checksumCanonicalJson(actor) !== actorRow.stateChecksum ||
-    !state.sides.some((side) => side.id === actor.sideId)
-  )
-    throw new Error('Stored Encounter actor mismatch.')
-  return { actorRow, actor }
-}
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -343,7 +318,11 @@ async function recordEncounterToolCommand(
         'ENCOUNTER_NOT_ACTIVE',
         'Initiative can only be set on a prepared or active Encounter.'
       )
-    const { actorRow, actor: storedActor } = await readCommandActor(ctx, state, input.actorId)
+    const { row: actorRow, actor: storedActor } = await readRunActorWithRow(
+      ctx,
+      state,
+      input.actorId
+    )
     let actor = storedActor
     if (input.sideId !== undefined && !state.sides.some((side) => side.id === input.sideId))
       throw new Error('Encounter side was not found.')
@@ -453,7 +432,11 @@ async function recordEncounterToolCommand(
         'ENCOUNTER_NOT_ACTIVE',
         'Feature resources can only be changed on a prepared or active Encounter.'
       )
-    const { actorRow, actor: storedActor } = await readCommandActor(ctx, state, input.actorId)
+    const { row: actorRow, actor: storedActor } = await readRunActorWithRow(
+      ctx,
+      state,
+      input.actorId
+    )
     let actor = storedActor
     if (actor.kind === 'CHARACTER')
       throw new Error('Character resources must be changed through the Character Sheet.')
@@ -481,7 +464,7 @@ async function recordEncounterToolCommand(
     })
     await writeRunActor(ctx, actorRow._id, actor)
   } else if (input.type === 'REPLACE_CREATURE_EQUIPMENT') {
-    const { actorRow, actor } = await readCommandActor(ctx, state, input.actorId)
+    const { row: actorRow, actor } = await readRunActorWithRow(ctx, state, input.actorId)
     const replacement = await replaceActorEquipment(ctx, userId, actor, input, updatedAt)
     await writeRunActor(ctx, actorRow._id, replacement.actor)
     creatureEquipmentReplacement = replacement.provenance
@@ -503,7 +486,11 @@ async function recordEncounterToolCommand(
   } else if (input.type === 'ROLL_ENEMY_ACTION') {
     if (state.status !== 'ACTIVE')
       rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Enemy actions require an active Encounter.')
-    const { actorRow, actor: storedActor } = await readCommandActor(ctx, state, input.actorId)
+    const { row: actorRow, actor: storedActor } = await readRunActorWithRow(
+      ctx,
+      state,
+      input.actorId
+    )
     let actor = storedActor
     if (actor.kind === 'CHARACTER')
       throw new Error('Character actions must be rolled through the Character Sheet.')
@@ -622,7 +609,6 @@ async function recordEncounterToolCommand(
     })
     status = 'COMPLETED'
     currentActorId = null
-    await removeCompletedRunTurnRecords(ctx, row.id)
     // The completed Run keeps each Character's values as the Encounter ended.
     await freezeEncounterCharacterStates(ctx, state)
   }

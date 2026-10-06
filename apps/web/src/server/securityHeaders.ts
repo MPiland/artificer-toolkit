@@ -13,6 +13,11 @@ function isDevelopment() {
   return import.meta.env.MODE === 'development'
 }
 
+// Development and local proof builds reach the loopback Convex backend and media substitute over HTTP.
+function allowsLoopbackHttp() {
+  return isDevelopment() || import.meta.env.MODE === 'proof'
+}
+
 function getScriptSrc(nonce?: string) {
   return [
     "script-src 'self'",
@@ -46,7 +51,7 @@ function getConvexConnectSources() {
   try {
     const url = new URL(configured)
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-    if (url.protocol !== 'https:' && !(isDevelopment() && local && url.protocol === 'http:'))
+    if (url.protocol !== 'https:' && !(allowsLoopbackHttp() && local && url.protocol === 'http:'))
       return []
     return [url.origin, `${url.protocol === 'https:' ? 'wss:' : 'ws:'}//${url.host}`]
   } catch {
@@ -75,7 +80,7 @@ function getMediaStorageSource() {
     const url = new URL(configured)
     const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
     const isAllowedProtocol =
-      url.protocol === 'https:' || (isDevelopment() && isLoopback && url.protocol === 'http:')
+      url.protocol === 'https:' || (allowsLoopbackHttp() && isLoopback && url.protocol === 'http:')
     if (
       !isAllowedProtocol ||
       url.username ||

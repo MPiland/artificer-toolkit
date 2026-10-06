@@ -67,17 +67,17 @@ refresh outside-view revisions without invalidating their own room. Oversized ch
 upload indexed 240 KiB UTF-8 parts through the existing Worker-secret routes; fenced publication
 removes staging bytes in the same transaction. Abandoned uploads expire and use bounded scheduled
 cleanup. Scene/fog records now share that publication transaction, with source/presentation pins,
-normalized deltas and complete native save/chunk/receipt references. Integrated Scene execution
-proof, Scene receipt packing and the room authority switch remain pending; current command publication
-is transitional.
+normalized deltas and complete native fog save and chunk references. Scene command receipts and geometry
+saves are not Convex rows: the room keeps them for 30 days (ADR 0035 Amendment 26), and the checkpoint
+reads each record once, before it writes (Amendment 27).
 
 Raw Scene input hydration is implemented in source through
 [liveSessions/roomInputs](convex/liveSessions/roomInputs.ts) and its
 [roomSceneInputs pager](convex/liveSessions/roomSceneInputs.ts), using the shared
 [SCENE contract](../../packages/schema/src/api/liveRoomInputs.ts). The active Campaign epoch,
 current presentation and Campaign-owner source access authorize every page. Indexed pages read
-live states, entities, commands, fog layers, fog saves, geometry saves, then save-scoped fog chunks;
-they retain native counters, tombstones and receipts and omit unfinished saves and derived vision.
+live states, entities, fog layers and fog saves, then save-scoped fog chunks; they retain native
+counters and tombstones and omit unfinished saves and derived vision.
 Fog-save selection and chunk reads use separate queries with one native pagination call each.
 Batch joins stop when source/presentation pins or the Scene version change. Pure geometry/value
 and live-head validation lives in [encounter-persistence](../../packages/encounter-persistence/README.md),

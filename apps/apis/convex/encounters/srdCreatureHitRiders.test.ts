@@ -1,9 +1,8 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { readReceiptHeader } from '../lib/receiptLedgers'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { describe, expect, it } from 'vitest'
 import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -107,7 +106,7 @@ async function setup(input: {
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
       .unique()
     if (!actorRow) throw new Error('The SRD attack fixture Creature is missing.')
-    const actorState = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+    const actorState = await readTestActor(ctx, actorRow)
     if (input.creatureHitPoints !== undefined || input.hidden) {
       const adjusted = {
         ...actorState,

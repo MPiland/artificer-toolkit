@@ -7,8 +7,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { encounterStoreIndexes } from '@artificer-toolkit/schema/projections/encounterStore'
 import {
-  encounterRunActorStateSchema,
-  encounterActorProjectionFactsSchema,
+  encounterStoredRunActorStateSchema,
   encounterSourceProjectionFactsSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
@@ -20,6 +19,8 @@ import {
   encodeCheckpointRecord
 } from '@artificer-toolkit/encounter-persistence/checkpointRecords'
 import { changedFields, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import {
   readCharacterEffect,
   readEncounterEffect,
@@ -34,7 +35,7 @@ import type { LiveSessionRoomAuthorizationRevisions } from '@artificer-toolkit/s
 import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createReceiptLedger } from '../lib/receiptLedgers'
-import { removeEncounterRunTimeline } from '../encounters/campaignDeletion'
+import { removeFinishedRunRows } from '../encounters/campaignDeletion'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readSceneVisionRevision } from '../scenes/visionFreshness'
 import type { CheckpointIoMeter } from './checkpointIo'
@@ -89,7 +90,7 @@ function holdInput(
   if (!record) return null
   if (table === 'encounterRuns') return String(record.status)
   if (table !== 'encounterRunActors') return null
-  const state = encounterRunActorStateSchema.parse(record.stateJson)
+  const state = encounterStoredRunActorStateSchema.parse(record.stateJson)
   return state.kind === 'CHARACTER'
     ? `${state.sourceId}:${state.frozenState ? 'frozen' : 'live'}`
     : null
@@ -487,7 +488,7 @@ export async function applyCheckpointRecords(
           ).length > 1
         )
           throw new Error('Checkpoint starts a second active Encounter in the Campaign.')
-        // A completed Run keeps no timeline anywhere (ADR 0035 Amendment 22).
+        // A completed Run keeps only its actors and their source facts (ADR 0035 Amendment 30).
         if (
           run.status === 'COMPLETED' &&
           (previous as Doc<'encounterRuns'> | null | undefined)?.status !== 'COMPLETED'
@@ -497,13 +498,7 @@ export async function applyCheckpointRecords(
       }
       case 'encounterRunActors': {
         const actor = row as Doc<'encounterRunActors'>
-        const state = encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson))
-        if (
-          state.id !== actor.id ||
-          state.encounterId !== actor.encounterId ||
-          checksumCanonicalJson(state) !== actor.stateChecksum
-        )
-          throw new Error('Checkpoint actor state checksum or identity does not match.')
+        const state = readStoredRunActor(actor)
         // The room reconciles departures itself (D74); an open Run never names a departed
         // controller or an unfrozen Character the Campaign no longer assigns.
         if ((await requireEncounter(state.encounterId)).status !== 'COMPLETED') {
@@ -517,18 +512,9 @@ export async function applyCheckpointRecords(
         }
         break
       }
-      case 'encounterActorProjectionFacts': {
-        const actor = row as Doc<'encounterActorProjectionFacts'>
-        const facts = encounterActorProjectionFactsSchema.parse(JSON.parse(actor.factsJson))
-        if (
-          facts.id !== actor.id ||
-          facts.encounterId !== actor.encounterId ||
-          (facts.kind === 'CHARACTER' ? null : facts.sourceFactsChecksum) !==
-            actor.sourceFactsChecksum
-        )
-          throw new Error('Checkpoint actor projection facts do not match.')
+      case 'encounterActorSnapshots':
+        readStoredActorSnapshot(row as Doc<'encounterActorSnapshots'>)
         break
-      }
       case 'encounterSourceProjectionFacts': {
         const source = row as Doc<'encounterSourceProjectionFacts'>
         const facts = encounterSourceProjectionFactsSchema.parse(JSON.parse(source.factsJson))
@@ -558,19 +544,23 @@ export async function applyCheckpointRecords(
   }
   const store = { db: createConvexEncounterStoreReader(ctx) }
   for (const id of pendingOccurrences) {
-    const occurrence = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_publicId', (q) => q.eq('id', id))
-      .unique()
+    const identity = `encounterRuleOccurrences:${canonicalizeJson([id])}`
+    // A written occurrence is not read back; its parts are, because earlier parts are not in the delta.
+    const occurrence =
+      (written.get(identity) as Doc<'encounterRuleOccurrences'> | undefined) ??
+      (await ctx.db
+        .query('encounterRuleOccurrences')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique())
     if (!occurrence) {
-      const deletion = changes.get(`encounterRuleOccurrences:${canonicalizeJson([id])}`)
+      const deletion = changes.get(identity)
       if (deletion?.nextChecksum === null) continue
       throw new Error('Checkpoint pending snapshot occurrence is missing.')
     }
     await readPendingSnapshot(store, occurrence)
   }
   await io.mark('records')
-  for (const encounterId of completedRuns) await removeEncounterRunTimeline(ctx, encounterId)
+  for (const encounterId of completedRuns) await removeFinishedRunRows(ctx, encounterId)
   await applyCheckpointScenes(ctx, frame, records.scenes)
   await io.mark('scenes')
   for (const [characterId, entries] of ledgers) {

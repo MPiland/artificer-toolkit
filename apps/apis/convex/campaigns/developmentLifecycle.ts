@@ -16,7 +16,6 @@ import {
 import type { AuthIdentityDto } from '@artificer-toolkit/schema/api/authIdentity'
 import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections/identity'
 import { CHARACTER_DRAFT_PAYLOAD_CHUNK_MAX_BYTES } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { RECEIPT_LEDGER_MAX_PARTS } from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
 import { action, type MutationCtx, type QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
@@ -163,19 +162,6 @@ async function campaignRows(
     8,
     'sceneFogSaves'
   )
-  const sceneReceiptLedgers = await children(
-    sceneIds,
-    (id) =>
-      rows(
-        ctx.db
-          .query('receiptLedgers')
-          .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', id)),
-        8,
-        'sceneReceiptLedgers'
-      ),
-    8,
-    'sceneReceiptLedgers'
-  )
   const socialApplications = await children(
     listingIds,
     (id) =>
@@ -217,10 +203,6 @@ async function campaignRows(
     fogSaveIds: ids(
       sceneFogSaves.map((row) => row.id),
       known?.fogSaveIds
-    ),
-    sceneLedgerIds: ids(
-      sceneReceiptLedgers.map((row) => row.id),
-      known?.sceneLedgerIds
     ),
     conversationIds: ids(
       campaignConversations.map((row) => row.id),
@@ -302,7 +284,6 @@ async function campaignRows(
     campaignConversationEntries,
     socialListings,
     sceneFogSaves,
-    sceneReceiptLedgers,
     socialApplications,
     authoredRouteIds: await rows(
       ctx.db
@@ -567,18 +548,18 @@ async function campaignRows(
       44,
       'encounterRunActors'
     ),
-    encounterActorProjectionFacts: await children(
+    encounterActorSnapshots: await children(
       descendants.encounterIds,
       (id) =>
         rows(
           ctx.db
-            .query('encounterActorProjectionFacts')
-            .withIndex('by_encounterId_id', (q) => q.eq('encounterId', id)),
+            .query('encounterActorSnapshots')
+            .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', id)),
           44,
-          'encounterActorProjectionFacts'
+          'encounterActorSnapshots'
         ),
       44,
-      'encounterActorProjectionFacts'
+      'encounterActorSnapshots'
     ),
     encounterSourceProjectionFacts: await children(
       descendants.encounterIds,
@@ -671,19 +652,6 @@ async function campaignRows(
       40,
       'encounterInitiativeRounds'
     ),
-    sceneGeometrySaves: await children(
-      descendants.sceneIds,
-      (id) =>
-        rows(
-          ctx.db
-            .query('sceneGeometrySaves')
-            .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', id)),
-          32,
-          'sceneGeometrySaves'
-        ),
-      32,
-      'sceneGeometrySaves'
-    ),
     sceneFogLayers: await children(
       descendants.sceneIds,
       (id) =>
@@ -721,19 +689,6 @@ async function campaignRows(
       200,
       'sceneLiveEntities'
     ),
-    sceneLiveCommands: await children(
-      descendants.sceneIds,
-      (id) =>
-        rows(
-          ctx.db
-            .query('sceneLiveCommands')
-            .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', id)),
-          200,
-          'sceneLiveCommands'
-        ),
-      200,
-      'sceneLiveCommands'
-    ),
     sceneDefinitionEntities: await children(
       descendants.definitionSaveIds,
       (id) =>
@@ -744,19 +699,6 @@ async function campaignRows(
         ),
       200,
       'sceneDefinitionEntities'
-    ),
-    sceneReceiptLedgerParts: await children(
-      descendants.sceneLedgerIds,
-      (id) =>
-        rows(
-          ctx.db
-            .query('receiptLedgerParts')
-            .withIndex('by_ledgerId_index', (q) => q.eq('ledgerId', id)),
-          RECEIPT_LEDGER_MAX_PARTS,
-          'sceneReceiptLedgerParts'
-        ),
-      RECEIPT_LEDGER_MAX_PARTS * 4,
-      'sceneReceiptLedgerParts'
     ),
     sceneFogChunks: await children(
       descendants.fogSaveIds,

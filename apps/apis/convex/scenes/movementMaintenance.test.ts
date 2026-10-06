@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -21,7 +23,10 @@ import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persis
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
-import { planMovementDecisionInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  planMovementDecisionInRoom,
+  readEncounterHistory
+} from '../../tests/fixtures/liveSessionWorker'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { api } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
@@ -61,12 +66,17 @@ async function gameplay(base: MaintainedBase) {
       .collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-    receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-        .collect(),
-    sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
+    receiptHeaders: await (
+      await readEncounterHistory(ctx)
+    )
+      .query('encounterRuleReceipts')
+      .collect(),
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
+      .collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))
 }
@@ -93,7 +103,7 @@ async function resetReactionAndDetachScene(base: MaintainedBase) {
         .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id).eq('id', reactorId))
         .unique()
       if (!reactor) throw new Error('Maintained movement reactor is unavailable.')
-      const actor = encounterRunActorStateSchema.parse(JSON.parse(reactor.stateJson))
+      const actor = await readTestActor(ctx, reactor)
       const available = encounterRunActorStateSchema.parse({
         ...actor,
         resources: withEncounterRuleUsageUsed(actor, SRD_REACTION_ALLOWANCE_DEFINITION_ID, 0)
@@ -312,7 +322,7 @@ async function seedPriorDependents(base: MaintainedBase) {
         .unique()
       if (!row) throw new Error('Maintained dependent owner is unavailable.')
       const actor = encounterRunActorStateSchema.parse({
-        ...JSON.parse(row.stateJson),
+        ...(await readTestActor(ctx, row)),
         conditions
       })
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, actor)
@@ -450,8 +460,8 @@ it('forecasts and atomically publishes maintained replacement across ordered use
   const thirdOwner = afterReplacement.actors.find(
     (actor) => actor.id === base.additionalReactorActor!.id
   )
-  const moverState = encounterRunActorStateSchema.parse(JSON.parse(mover!.stateJson))
-  const thirdOwnerState = encounterRunActorStateSchema.parse(JSON.parse(thirdOwner!.stateJson))
+  const moverState = readStoredRunActor(mover!)
+  const thirdOwnerState = readStoredRunActor(thirdOwner!)
   if (moverState.kind === 'CHARACTER' || thirdOwnerState.kind === 'CHARACTER')
     throw new Error('Expected Creature maintenance owners.')
   expect(moverState.conditions).toEqual([seeded.poisonedId])

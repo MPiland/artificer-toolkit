@@ -1,109 +1,65 @@
+import { removeFinishedRunRowsPage } from '@artificer-toolkit/encounter-persistence/finishedRunRows'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { deleteReceiptHeaders } from '../lib/receiptLedgers'
 import type { MutationCtx } from '../_generated/server'
 
 /**
- * Deletes every Convex-held Encounter history header and replay-index row of one Run. After COMPLETE
- * nothing of a Run's timeline remains (ADR 0035 Amendment 22).
+ * Deletes one bounded page of the Convex-held rows a Run stops needing, and reports whether none
+ * was found: the command, rule receipt and evidence headers with their receipt ledgers, then
+ * every other child row a finished Run no longer needs (`removeFinishedRunRowsPage`).
  */
-export async function removeEncounterRunTimeline(ctx: MutationCtx, encounterId: string) {
-  for (;;) {
-    const [commands, rules, evidence, index] = await Promise.all([
-      ctx.db
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-        .take(64),
-      ctx.db
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
-        .take(64),
-      ctx.db
-        .query('encounterEvidenceRolls')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-        .take(64),
-      ctx.db
-        .query('encounterReplayIndex')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-        .take(64)
-    ])
-    if (![commands, rules, evidence, index].some((rows) => rows.length)) return
-    await deleteReceiptHeaders(ctx, [
-      ...commands.map((header) => ({ table: 'encounterRunCommands' as const, header })),
-      ...rules.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),
-      ...evidence.map((header) => ({ table: 'encounterEvidenceRolls' as const, header }))
-    ])
-    for (const row of index) await ctx.db.delete(row._id)
-  }
+async function removeFinishedRunPage(ctx: MutationCtx, encounterId: string, limit: number) {
+  const [commands, rules, evidence] = await Promise.all([
+    ctx.db
+      .query('encounterRunCommands')
+      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+      .take(limit),
+    ctx.db
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
+      .take(limit),
+    ctx.db
+      .query('encounterEvidenceRolls')
+      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
+      .take(limit)
+  ])
+  await deleteReceiptHeaders(ctx, [
+    ...commands.map((header) => ({ table: 'encounterRunCommands' as const, header })),
+    ...rules.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),
+    ...evidence.map((header) => ({ table: 'encounterEvidenceRolls' as const, header }))
+  ])
+  const rowsFinished = await removeFinishedRunRowsPage(
+    { db: createConvexEncounterStore(ctx) },
+    encounterId,
+    limit
+  )
+  return rowsFinished && ![commands, rules, evidence].some((rows) => rows.length)
+}
+
+/**
+ * Deletes every Convex-held row of a completed Run except the Run, its actors and the source facts
+ * they name: the GM's finished Encounter reads only those (ADR 0035 Amendment 30).
+ */
+export async function removeFinishedRunRows(ctx: MutationCtx, encounterId: string) {
+  let finished = false
+  while (!finished) finished = await removeFinishedRunPage(ctx, encounterId, 64)
 }
 
 /** Deletes one bounded page of a Run's child rows and reports whether none remained. */
 export async function removeEncounterRunChildren(ctx: MutationCtx, encounterId: string) {
-  const groups = await Promise.all([
+  const [finished, actors, sources] = await Promise.all([
+    removeFinishedRunPage(ctx, encounterId, 8),
     ctx.db
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
       .take(8),
     ctx.db
-      .query('encounterActorProjectionFacts')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
       .query('encounterSourceProjectionFacts')
       .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterPendingSnapshotParts')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterSceneBindings')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterActorTokenBindings')
-      .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterInitiativeParticipants')
-      .withIndex('by_encounterId_round_actorId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterInitiativeSides')
-      .withIndex('by_encounterId_round_sideId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterInitiativeRounds')
-      .withIndex('by_encounterId_round', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterEvidenceRolls')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .take(1),
-    ctx.db
-      .query('encounterTurnMovements')
-      .withIndex('by_encounterId_round_turnActorId_actorId', (q) => q.eq('encounterId', encounterId)
-      )
-      .take(8),
-    ctx.db
-      .query('encounterReplayIndex')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .take(8),
-    ctx.db
-      .query('encounterDecisionSkips')
-      .withIndex('by_encounterId_occurrenceId_occurrenceVersion', (q) => q.eq('encounterId', encounterId)
-      )
       .take(8)
   ])
-  const evidenceRolls = groups[9]
-  await deleteReceiptHeaders(
-    ctx,
-    evidenceRolls.map((header) => ({
-      table: 'encounterEvidenceRolls',
-      header
-    }))
-  )
-  for (const rows of groups)
-    if (rows !== evidenceRolls) for (const row of rows) await ctx.db.delete(row._id)
-  return groups.every((rows) => rows.length === 0)
+  for (const row of [...actors, ...sources]) await ctx.db.delete(row._id)
+  return finished && actors.length === 0 && sources.length === 0
 }
 
 export async function removeCampaignEncounterRuns(ctx: MutationCtx, campaignId: string) {

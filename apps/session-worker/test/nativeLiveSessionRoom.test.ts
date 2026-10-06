@@ -25,7 +25,9 @@ import { liveSessionCheckpointRequestSchema } from '@artificer-toolkit/schema/ap
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  liveSessionRoomSceneCaptureInputSchema,
   liveSessionTransientCaptureInputSchema,
+  type LiveSessionRoomSceneCapture,
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -41,6 +43,7 @@ import {
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
+import { publishPending } from './publishPendingFixture.js'
 import {
   liveRoomInputsInputSchema,
   type LiveRoomInputsResponse
@@ -80,8 +83,13 @@ import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/fea
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import {
+  checksumRunActorPlayState,
+  runActorPlayState
+} from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
-import { RoomEncounterStore } from '../src/roomEncounterStore.js'
+import { RoomEncounterStore, SCENE_EVIDENCE_ROW } from '../src/roomEncounterStore.js'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
 
 const secret = 'test-secret-that-contains-at-least-thirty-two-bytes'
@@ -132,28 +140,18 @@ function checkpointResponse(body: ReturnType<typeof liveSessionCheckpointRequest
   }
 }
 
-function fireCheckpointAlarm(stub: Awaited<ReturnType<typeof fixture>>['stub']) {
-  return runInDurableObject(stub, async (instance) => {
-    const clock = vi
-      .spyOn(Date, 'now')
-      .mockReturnValue(Date.now() + ROOM_LIMITS.flushIntervalMs + 1)
-    try {
-      await instance.alarm()
-    } finally {
-      clock.mockRestore()
-    }
+/** Scene receipts stay in the room's evidence and never travel in a checkpoint (Amendment 26). */
+function roomReceipt(stub: DurableObjectStub, commandId: string) {
+  return runInDurableObject(stub, (_instance, state) => {
+    const record = new RoomEncounterStore(state.storage)
+      .records(SCENE_EVIDENCE_ROW)
+      .find(({ key }) => {
+        const [table, , id] = JSON.parse(key) as unknown[]
+        return table === 'sceneLiveCommands' && id === commandId
+      })
+    if (!record) throw new Error('Missing room Scene receipt.')
+    return sceneStoredLiveCommandSchema.parse(JSON.parse(record.json))
   })
-}
-
-function checkpointReceipt(
-  checkpoint: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>,
-  commandId: string
-) {
-  const change = checkpoint.records.scenes
-    .flatMap((scene) => scene.changes)
-    .find((entry) => entry.table === 'sceneLiveCommands' && entry.key[1] === commandId)
-  if (!change?.delta || !('set' in change.delta)) throw new Error('Missing checkpoint receipt.')
-  return sceneStoredLiveCommandSchema.parse(change.delta.set)
 }
 
 function doorScene(campaignId: string) {
@@ -348,15 +346,9 @@ async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSe
   const playerAccessToken = await issueAccessTokenFor(playerId, issuedAt + 3_600)
   const capture: LiveSessionTransientCapture = {
     campaignId,
-    systemId: crypto.randomUUID(),
-    observedCharacterRevisions: [],
     origin: { membershipEpoch: new Date().toISOString(), role: 'OWNER', userId },
     presentation: scene ? { campaignId, sceneId: scene.id, version: 1 } : null,
-    recipients: scene
-      ? [{ membershipEpoch: new Date().toISOString(), role: 'PLAYER', userId: playerId }]
-      : [],
     sceneEncounterId: null,
-    originBoundTokenControl: [],
     sceneHeader: scene
       ? {
           ambientIllumination: scene.ambientIllumination,
@@ -388,13 +380,13 @@ async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSe
           version: scene.version,
           visionRevealMode: scene.visionRevealMode
         }
-      : null,
-    visionFreshness: scene ? { campaign: null, play: null, system: null } : null
+      : null
   }
+  /** What the room Scene capture reports besides the presented Scene in `capture`. */
+  const room = { systemId: crypto.randomUUID() }
   /** The Scene Convex serves through the SCENE room-inputs scopes. */
   const rawScene = { current: scene }
   const stub = env.LIVE_SESSION_ROOMS.get(env.LIVE_SESSION_ROOMS.idFromName(campaignId))
-  const captureModes: Array<'AUTHORITY' | 'FULL' | undefined> = []
   const authorityLifecycleCalls: string[] = []
   let currentAuthorityEpoch = authorityEpoch
   /** The last Checkpoint Convex persisted; a re-bootstrapped room must agree with it. */
@@ -434,7 +426,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSe
         return Response.json(
           roomInputsResponse(inputs.scope, {
             campaignId,
-            systemId: capture.systemId,
+            systemId: room.systemId,
             ownerUserId: userId,
             members: authorization.members
           })
@@ -460,7 +452,6 @@ async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSe
               ? playerAccessToken
               : null
         expect(request.headers.get('authorization')).toBe(`Bearer ${expectedAccessToken}`)
-        captureModes.push(body.mode)
         expect(body).toMatchObject({ campaignId })
         return Response.json({
           ...capture,
@@ -468,15 +459,22 @@ async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSe
             membershipEpoch: capture.origin.membershipEpoch,
             role: body.expectedRole,
             userId: body.expectedUserId
-          },
-          recipients: scene
-            ? [
-                body.expectedUserId === userId
-                  ? { ...capture.origin, role: 'PLAYER', userId: playerId }
-                  : { ...capture.origin, role: 'OWNER', userId }
-              ]
-            : []
+          }
         })
+      }
+      if (pathname === '/live-sessions/room-scene-capture') {
+        expect(request.headers.get('authorization')).toBeNull()
+        const body = liveSessionRoomSceneCaptureInputSchema.parse(await request.json())
+        expect(body).toMatchObject({ campaignId, epoch: currentAuthorityEpoch })
+        return Response.json({
+          campaignId,
+          systemId: room.systemId,
+          observedCharacterRevisions: body.observedCharacterRevisions,
+          presentation: capture.presentation,
+          sceneEncounterId: capture.sceneEncounterId,
+          sceneHeader: capture.sceneHeader,
+          visionFreshness: capture.sceneHeader ? { campaign: null, play: null, system: null } : null
+        } satisfies LiveSessionRoomSceneCapture)
       }
       if (pathname === '/live-sessions/bootstrap') {
         expect(request.headers.get('authorization')).toBe(`Bearer ${accessToken}`)
@@ -552,7 +550,7 @@ async function fixture(scene: CampaignSceneStateDto | null = null, accessTokenSe
     authorityLifecycleCalls,
     authorization,
     capture,
-    captureModes,
+    room,
     rawScene,
     issueAccessToken,
     issuedAt,
@@ -614,23 +612,12 @@ async function connectOwnerPeer(base: Awaited<ReturnType<typeof fixture>>) {
   return { messages, socket }
 }
 
+/** Admits the owner socket; the room builds the presented Scene before it sends the first STATE_SYNC. */
 async function synchronizeScene(
   base: Awaited<ReturnType<typeof fixture>>,
   scene: CampaignSceneStateDto
 ) {
-  if (!base.capture.presentation) throw new Error('Missing Scene presentation.')
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
-  base.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: base.capture.presentation.version,
-      sceneId: scene.id,
-      type: 'SYNCHRONIZE_SCENE',
-      version: scene.version
-    })
-  )
   await vi.waitFor(() =>
     expect(base.messages).toContainEqual(
       expect.objectContaining({
@@ -795,6 +782,9 @@ it.each([0, 600])(
 
     const commandId = crypto.randomUUID()
     const command = doorCommand(value.scene, value.doorId, commandId)
+    const alarmBeforeCommand = await runInDurableObject(base.stub, (_instance, state) =>
+      state.storage.getAlarm()
+    )
     base.socket.send(JSON.stringify(command))
     await vi.waitFor(() => {
       expect(
@@ -818,19 +808,11 @@ it.each([0, 600])(
       authority: { published_sequence: 0, sequence: 1 },
       pendingWriteCount: 1
     })
-    await runInDurableObject(base.stub, async (_instance, state) => {
-      const receipt = state.storage.sql
-        .exec<{ command_id: string; created_at: number }>(
-          'SELECT command_id, created_at FROM durable_command_receipts WHERE command_id = ?',
-          commandId
-        )
-        .one()
-      expect(receipt.command_id).toBe(commandId)
-      expect(await state.storage.getAlarm()).toBe(
-        receipt.created_at + ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs
-      )
-    })
-    const alarm = fireCheckpointAlarm(base.stub)
+    // No timer saves the command: committing it schedules no alarm.
+    await expect(
+      runInDurableObject(base.stub, (_instance, state) => state.storage.getAlarm())
+    ).resolves.toBe(alarmBeforeCommand)
+    const alarm = publishPending(base.stub)
     await vi.waitFor(() => expect(publishStarted).toBe(true))
     expect(heldEvidence).toEqual({
       authority: { published_sequence: 0, sequence: 1 },
@@ -886,7 +868,7 @@ it.each([0, 600])(
     const publication = publications[0]
     if (!publication) throw new Error('Missing Scene checkpoint.')
     expect(publication).toMatchObject({ fromSequence: 0, sequence: 1 })
-    expect(checkpointReceipt(publication, commandId)).toMatchObject({
+    expect(await roomReceipt(base.stub, commandId)).toMatchObject({
       actorUserId: base.userId,
       input: command.command.command,
       result: {
@@ -963,24 +945,33 @@ it.each([false, true])(
           const publishedScene = body.records.scenes[0]!
           expect(base.capture.presentation?.sceneId).toBe(publishedScene.sceneId)
           expect(base.capture.presentation?.version).toBe(publishedScene.presentationVersion)
-          const receiptChange = publishedScene.changes.find(
-            (change) => change.table === 'sceneLiveCommands'
+          const doorChange = publishedScene.changes.find(
+            (change) => change.table === 'sceneLiveEntities'
           )
-          if (!receiptChange?.delta || !('set' in receiptChange.delta))
-            throw new Error('Missing Scene receipt.')
-          const receipt = sceneStoredLiveCommandSchema.parse(receiptChange.delta.set)
-          const result = receipt.result
-          if (!('delta' in result) || result.delta?.kind !== 'DOOR_STATE_SET')
+          if (!doorChange?.delta) throw new Error('Missing Scene door row.')
+          // A door already in the room's base publishes a patch of its changed keys.
+          const patched = 'keys' in doorChange.delta ? doorChange.delta.keys.doorState : undefined
+          const published =
+            'set' in doorChange.delta
+              ? sceneStoredLiveEntitySchema.parse(doorChange.delta.set).doorState
+              : patched && 'set' in patched
+                ? patched.set
+                : undefined
+          const doorState = (['OPEN', 'CLOSED', 'LOCKED'] as const).find(
+            (state) => state === published
+          )
+          const entityId = doorChange.key[2]
+          if (typeof entityId !== 'string' || !doorState)
             throw new Error('Expected Scene door publication.')
-          const stored = storedScenes.get(result.sceneId)
+          const stored = storedScenes.get(publishedScene.sceneId)
           if (!stored) throw new Error('Published Scene is missing.')
           const next = {
             ...stored,
-            doorStates: { ...stored.doorStates, [result.delta.barrierId]: result.delta.state },
-            version: result.version
+            doorStates: { ...stored.doorStates, [entityId]: doorState },
+            version: publishedScene.toVersion
           }
-          storedScenes.set(result.sceneId, next)
-          if (base.capture.presentation?.sceneId === result.sceneId) setCapturedScene(next)
+          storedScenes.set(publishedScene.sceneId, next)
+          if (base.capture.presentation?.sceneId === publishedScene.sceneId) setCapturedScene(next)
           return Response.json(checkpointResponse(body))
         }
         if (pathname === '/live-sessions/present') {
@@ -1143,7 +1134,7 @@ it.each([false, true])(
         })
       )
     )
-    await fireCheckpointAlarm(base.stub)
+    await publishPending(base.stub)
     await vi.waitFor(async () => {
       const published = await runInDurableObject(base.stub, (_instance, state) =>
         state.storage.sql
@@ -1216,7 +1207,7 @@ it.each([false, true])(
         })
       )
     )
-    await fireCheckpointAlarm(base.stub)
+    await publishPending(base.stub)
     await vi.waitFor(async () => {
       const final = await runInDurableObject(base.stub, (_instance, state) => ({
         authority: state.storage.sql
@@ -1319,16 +1310,6 @@ it('keeps the new presentation fence when an older authentication capture finish
   })
   expect(switched.status).toBe(200)
   const player = await connectPlayer(base)
-  const synchronizePlayer = () =>
-    player.socket.send(
-      JSON.stringify({
-        expectedPresentationVersion: 2,
-        sceneId: scene.id,
-        type: 'SYNCHRONIZE_SCENE',
-        version: scene.version
-      })
-    )
-  synchronizePlayer()
   await vi.waitFor(() =>
     expect(player.messages).toContainEqual(
       expect.objectContaining({
@@ -1341,7 +1322,7 @@ it('keeps the new presentation fence when an older authentication capture finish
 
   releaseCapture?.()
   await delayedAuthentication
-  synchronizePlayer()
+  player.socket.send(JSON.stringify({ lastAppliedSequence: 0, type: 'RESUME' }))
   await vi.waitFor(() =>
     expect(player.messages).toContainEqual(
       expect.objectContaining({
@@ -1361,8 +1342,113 @@ it('keeps the new presentation fence when an older authentication capture finish
     )
   )
   expect(publications).toHaveLength(0)
-  await fireCheckpointAlarm(base.stub)
+  await publishPending(base.stub)
   expect(publications).toHaveLength(1)
+})
+
+it('queues a cold admission hydrate behind commands so a racing command cannot rewind the room store', async () => {
+  const { doorId, scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const sendDoor = (commandId: string, sequence: number, state: 'OPEN' | 'CLOSED') =>
+    base.socket.send(
+      JSON.stringify(
+        doorCommand(scene, doorId, commandId, {
+          expectedSceneVersion: scene.version + sequence,
+          expectedSessionSequence: sequence,
+          state
+        })
+      )
+    )
+  const warmCommandId = crypto.randomUUID()
+  sendDoor(warmCommandId, 0, 'OPEN')
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        commandId: warmCommandId,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
+  )
+
+  let releaseHydrate: (() => void) | undefined
+  const heldHydrate = new Promise<void>((resolve) => {
+    releaseHydrate = resolve
+  })
+  let hydrateHeld = false
+  await runInDurableObject(base.stub, () => {
+    const originalFetch = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!originalFetch) throw new Error('Missing native request fixture.')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      if (!hydrateHeld && new URL(new Request(input, init).url).pathname === ROOM_INPUTS_PATH) {
+        hydrateHeld = true
+        const inputs = (await originalFetch(input, init)).clone()
+        await heldHydrate
+        return inputs
+      }
+      return originalFetch(input, init)
+    })
+  })
+  // The peer is admitted into a Scene the room does not hold yet, so its admission must hydrate.
+  const otherSceneId = crypto.randomUUID()
+  if (!base.capture.sceneHeader) throw new Error('Missing Scene header.')
+  base.capture.sceneHeader = { ...base.capture.sceneHeader, id: otherSceneId }
+  base.rawScene.current = { ...scene, id: otherSceneId }
+  const peer = await connectOwnerPeer(base)
+  peer.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() => expect(hydrateHeld).toBe(true))
+
+  const racingCommandId = crypto.randomUUID()
+  sendDoor(racingCommandId, 1, 'CLOSED')
+  releaseHydrate?.()
+  await vi.waitFor(() =>
+    expect(peer.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  // The hydrate runs behind the racing command, which may therefore be stale against the new Scene.
+  await vi.waitFor(() =>
+    expect(base.messages).toContainEqual(
+      expect.objectContaining({
+        commandId: racingCommandId,
+        type: expect.stringMatching(/^COMMAND_/)
+      })
+    )
+  )
+  const racingCommit = base.messages.find(
+    (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === racingCommandId
+  )
+  await vi.waitFor(() =>
+    expect(peer.messages).toContainEqual(
+      expect.objectContaining({
+        state: expect.objectContaining({
+          scene: expect.objectContaining({ id: otherSceneId })
+        }),
+        type: 'STATE_SYNC'
+      })
+    )
+  )
+  const followingCommandId = crypto.randomUUID()
+  peer.socket.send(
+    JSON.stringify(
+      doorCommand({ ...scene, id: otherSceneId }, doorId, followingCommandId, {
+        expectedSessionSequence:
+          racingCommit?.type === 'COMMAND_COMMITTED' ? racingCommit.sequence : 1,
+        state: 'CLOSED'
+      })
+    )
+  )
+  await vi.waitFor(() =>
+    expect(peer.messages).toContainEqual(
+      expect.objectContaining({
+        commandId: followingCommandId,
+        type: 'COMMAND_COMMITTED'
+      })
+    )
+  )
+  expect(
+    [...base.messages, ...peer.messages].filter(
+      (message) => message.type === 'COMMAND_REJECTED' && message.code === 'UNAVAILABLE'
+    )
+  ).toEqual([])
 })
 
 it('commits standalone movement and its Scene-history undo, replays, and rejects an uncontrolled player', async () => {
@@ -1454,7 +1540,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
     authority: { published_sequence: 0, sequence: 1 },
     pendingWriteCount: 1
   })
-  const moveAlarm = fireCheckpointAlarm(base.stub)
+  const moveAlarm = publishPending(base.stub)
   await vi.waitFor(() => expect(publications).toHaveLength(1))
   expect(heldEvidence[0]).toEqual({
     authority: { published_sequence: 0, sequence: 1 },
@@ -1526,7 +1612,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
     })
   })
   expect(publications).toHaveLength(1)
-  const undoAlarm = fireCheckpointAlarm(base.stub)
+  const undoAlarm = publishPending(base.stub)
   await vi.waitFor(() => expect(publications).toHaveLength(2))
   expect(heldEvidence[1]).toEqual({
     authority: { published_sequence: 1, sequence: 2 },
@@ -1573,7 +1659,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
     sequence: 1,
     checksum: expect.any(String)
   })
-  expect(checkpointReceipt(movePublication, moveCommandId)).toMatchObject({
+  expect(await roomReceipt(base.stub, moveCommandId)).toMatchObject({
     actorUserId: base.userId,
     input: move.command.command,
     result: moveCommitted.delta.result
@@ -1585,7 +1671,7 @@ it('commits standalone movement and its Scene-history undo, replays, and rejects
     fromChecksum: movePublication.checksum,
     sequence: 2
   })
-  expect(checkpointReceipt(undoPublication, undoCommandId)).toMatchObject({
+  expect(await roomReceipt(base.stub, undoCommandId)).toMatchObject({
     actorUserId: base.userId,
     input: undo.command.command,
     result: undoCommitted.delta.result
@@ -1701,7 +1787,7 @@ it('commits and replays writes to two Campaign rooms concurrently', async () => 
       )
     )
   )
-  await Promise.all(bases.map((base) => fireCheckpointAlarm(base.stub)))
+  await Promise.all(bases.map((base) => publishPending(base.stub)))
   expect(publications.map((publication) => publication.campaignId).sort()).toEqual(
     bases.map((base) => base.capture.campaignId).sort()
   )
@@ -1821,10 +1907,11 @@ it('commits an unbound token move on an Encounter-bound Scene in SQLite before a
         const entityRow = rows.find(
           ({ key }) => key === JSON.stringify(['sceneLiveEntities', scene.id, 'tokens', tokenId])
         )
-        const receiptRow = rows.find(
+        const sceneEvidence = room.records(SCENE_EVIDENCE_ROW)
+        const receiptRow = sceneEvidence.find(
           ({ key }) => key === JSON.stringify(['sceneLiveCommands', scene.id, commandId])
         )
-        const saveRow = rows.find(({ key }) => JSON.parse(key)[0] === 'sceneGeometrySaves')
+        const saveRow = sceneEvidence.find(({ key }) => JSON.parse(key)[0] === 'sceneGeometrySaves')
         const sourceRow = room
           .records('SCENE_CHECKPOINT_SOURCE')
           .find(({ key }) => key === scene.id)
@@ -1965,6 +2052,7 @@ it('rolls back native bound-Scene geometry and journal writes when SQLite receip
     const before = localEncounterEvidence(context.storage)
     const room = new RoomEncounterStore(context.storage)
     const beforeRows = room.records('SCENE_CHECKPOINT_ROW')
+    const beforeEvidence = room.records(SCENE_EVIDENCE_ROW)
     const beforeSources = room.records('SCENE_CHECKPOINT_SOURCE')
     const socket = context
       .getWebSockets()
@@ -1995,6 +2083,7 @@ it('rolls back native bound-Scene geometry and journal writes when SQLite receip
       expect(localEncounterEvidence(context.storage)).toEqual(before)
       const recovered = new RoomEncounterStore(context.storage)
       expect(recovered.records('SCENE_CHECKPOINT_ROW')).toEqual(beforeRows)
+      expect(recovered.records(SCENE_EVIDENCE_ROW)).toEqual(beforeEvidence)
       expect(recovered.records('SCENE_CHECKPOINT_SOURCE')).toEqual(beforeSources)
       expect(globalThis.fetch).not.toHaveBeenCalled()
       context.storage.sql.exec('DROP TRIGGER abort_scene_receipt')
@@ -2005,7 +2094,7 @@ it('rolls back native bound-Scene geometry and journal writes when SQLite receip
       expect(retry.writes).toHaveLength(1)
       expect(retry.receipts).toHaveLength(1)
       const receiptRow = new RoomEncounterStore(context.storage)
-        .records('SCENE_CHECKPOINT_ROW')
+        .records(SCENE_EVIDENCE_ROW)
         .find(({ key }) => key === JSON.stringify(['sceneLiveCommands', scene.id, commandId]))
       if (!receiptRow) throw new Error('Missing retried native Scene receipt.')
       expect(parseGeometryCommand(JSON.parse(receiptRow.json), 1).result).toMatchObject({
@@ -2688,9 +2777,7 @@ it('refuses a player bound-token move from current native actor control with a p
     expect(before.state.version).toBe(2)
     const actor = before.actors.find(({ id }) => id === actors[0]!.id)
     if (!actor) throw new Error('Missing revoked native actor.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).controllerUserIds
-    ).toEqual([])
+    expect(readStoredRunActor(actor).controllerUserIds).toEqual([])
     const room = new RoomEncounterStore(context.storage)
     const beforeRows = room.records('SCENE_CHECKPOINT_ROW')
     const socket = context
@@ -2845,14 +2932,20 @@ it('projects a private Scene without legacy Character or Encounter fields', () =
   const value = movementScene(crypto.randomUUID())
   value.scene.tokens[0]!.hidden = true
   const state = createNativeLiveSessionState(value.scene).state
-  const owner = projectNativeLiveSessionState(state, { role: 'OWNER', userId: crypto.randomUUID() })
-  const player = projectNativeLiveSessionState(state, {
-    role: 'PLAYER',
-    userId: crypto.randomUUID()
-  })
+  const owner = projectNativeLiveSessionState(
+    state,
+    { role: 'OWNER', userId: crypto.randomUUID() },
+    3
+  )
+  const player = projectNativeLiveSessionState(
+    state,
+    { role: 'PLAYER', userId: crypto.randomUUID() },
+    3
+  )
   expect(owner.scene?.tokens.map((token) => token.id)).toContain(value.tokenId)
   expect(player.scene?.tokens.map((token) => token.id)).not.toContain(value.tokenId)
-  expect(Object.keys(player).sort()).toEqual(['recipientRole', 'scene'])
+  expect(Object.keys(player).sort()).toEqual(['presentationVersion', 'recipientRole', 'scene'])
+  expect(player.presentationVersion).toBe(3)
 })
 it('requires native authentication, consumes the ticket once, and never persists the JWT', async () => {
   const base = await fixture()
@@ -2865,7 +2958,6 @@ it('requires native authentication, consumes the ticket once, and never persists
       campaignId: base.capture.campaignId
     })
   )
-  expect(base.captureModes).toEqual(['AUTHORITY'])
   const evidence = await runInDurableObject(base.stub, (_instance, state) => ({
     attachments: state
       .getWebSockets()
@@ -3108,6 +3200,32 @@ it('closes every socket when the live Session ends', async () => {
   ).resolves.toEqual({ status: 'RELEASED' })
 })
 
+it('deletes the room storage when the Campaign is deleted, and a repeat succeeds', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+  )
+  const remove = () =>
+    control({ campaignId: base.capture.campaignId, operation: { type: 'DELETE_ROOM' } })
+  expect(await (await remove()).json()).toEqual({ closed: 1 })
+  expect(base.authorityLifecycleCalls).toEqual([
+    '/live-sessions/begin-drain',
+    '/live-sessions/release'
+  ])
+  await expect(
+    runInDurableObject(base.stub, async (_instance, state) => ({
+      tables: state.storage.sql
+        .exec<{ name: string }>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%'"
+        )
+        .toArray(),
+      keys: (await state.storage.list()).size
+    }))
+  ).resolves.toEqual({ tables: [], keys: 0 })
+  expect(await (await remove()).json()).toEqual({ closed: 0 })
+})
+
 it('resends the authoritative state on a valid resume frame', async () => {
   const base = await fixture()
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
@@ -3122,7 +3240,7 @@ it('resends the authoritative state on a valid resume frame', async () => {
     expect(base.messages).toContainEqual({
       authorityEpoch: base.authorityEpoch,
       sequence: 0,
-      state: { recipientRole: 'OWNER', scene: null },
+      state: { recipientRole: 'OWNER', presentationVersion: null, scene: null },
       type: 'STATE_SYNC'
     })
   )
@@ -3153,21 +3271,216 @@ it('rebuilds an unused provisional journal after Convex verifies a replacement e
   })
 })
 
-it('requires fresh authentication after hibernation restores only socket attachments', async () => {
+it('restores the admitted sockets of a hibernated room with no sign-in round or backend call', async () => {
   const base = await fixture()
-  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-  await vi.waitFor(() =>
-    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-  )
+  await admitOwner(base)
+  const player = await connectPlayer(base)
   await evictDurableObject(base.stub)
   base.messages.length = 0
-  base.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
+  player.messages.length = 0
+  vi.mocked(globalThis.fetch).mockClear()
+  for (const { socket } of [base, player])
+    socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
+  await vi.waitFor(() => {
+    expect(base.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+    expect(player.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+  })
+  expect(base.messages).not.toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+  expect(player.messages).not.toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+  expect(convexRouteCalls()).toEqual([])
+})
+
+it('sends the presented Scene in the first STATE_SYNC of an admission after the room woke with no Scene cache', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const presentation = base.capture.presentation
+  if (!presentation) throw new Error('Missing Scene presentation.')
+  await runInDurableObject(base.stub, (_instance, state) => {
+    state.storage.sql.exec('DELETE FROM room_scene_cache')
+  })
+  await evictDurableObject(base.stub)
+  // The woken room is activated again by the owner's bootstrap, then admits a second owner socket.
+  const peer = await connectOwnerPeer(base)
+  peer.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(peer.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  expect(peer.messages.find((message) => message.type === 'STATE_SYNC')).toMatchObject({
+    state: {
+      presentationVersion: presentation.version,
+      recipientRole: 'OWNER',
+      scene: { id: scene.id }
+    },
+    type: 'STATE_SYNC'
+  })
+})
+
+it('asks Convex once for the authorization when a hibernated room wakes past its lease', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  await evictDurableObject(base.stub)
+  base.messages.length = 0
+  vi.mocked(globalThis.fetch).mockClear()
+  // Past the lease, still within the token: the restored admission needs a fresh authorization only.
+  const clock = vi
+    .spyOn(Date, 'now')
+    .mockReturnValue(Date.now() + ROOM_LIMITS.authorizationLeaseMs + 1)
+  try {
+    base.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
+    await vi.waitFor(() =>
+      expect(base.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
+    )
+    expect(base.messages).not.toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+    expect(convexRouteCalls()).toEqual([ROOM_AUTHORIZATION_PATH])
+  } finally {
+    clock.mockRestore()
+  }
+})
+
+it('challenges a socket again after a wake when it was challenged before hibernation', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  const expired = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 10,
+    subject: authSubjectOf(base.userId)
+  })
+  const clock = vi.spyOn(Date, 'now').mockReturnValue((base.issuedAt + 20) * 1_000)
+  try {
+    base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: expired }))
+    await vi.waitFor(() =>
+      expect(base.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+    )
+  } finally {
+    clock.mockRestore()
+  }
+  await evictDurableObject(base.stub)
+  base.messages.length = 0
+  await runInDurableObject(base.stub, () => undefined)
   await vi.waitFor(() => expect(base.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' }))
   expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(false)
+})
+
+it('challenges a socket whose token expired while the room slept', async () => {
+  const base = await fixture(null, 120)
+  await admitOwner(base)
+  await evictDurableObject(base.stub)
+  base.messages.length = 0
+  const clock = vi.spyOn(Date, 'now').mockReturnValue((base.issuedAt + 121) * 1_000)
+  try {
+    await runInDurableObject(base.stub, () => undefined)
+    await vi.waitFor(() =>
+      expect(base.messages).toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+    )
+  } finally {
+    clock.mockRestore()
+  }
   base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
   await vi.waitFor(() =>
     expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
   )
+})
+
+it('closes the restored sockets of a departed member when private room control reaches a hibernated room', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  await evictDurableObject(base.stub)
+  const closed = waitForClose(base.socket)
+  expect(
+    await (
+      await control({
+        campaignId: base.capture.campaignId,
+        operation: {
+          membershipEpoch: base.capture.origin.membershipEpoch,
+          type: 'EVICT_USER',
+          userId: base.userId
+        }
+      })
+    ).json()
+  ).toEqual({ closed: 1 })
+  await expect(closed).resolves.toMatchObject({ code: 1008, reason: 'Campaign access ended.' })
+})
+
+it('re-admits the restored sockets of a room woken past its lease through one cold admission', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  await connectPlayer(base)
+  await evictDurableObject(base.stub)
+  // Past the authorization lease, within the tokens: no socket can warm-admit from the lease.
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + ROOM_LIMITS.authorizationLeaseMs + 1)
+  // The owner's fixture token cannot be proven locally, so it takes the cold path; the player's can.
+  const playerToken = await signVerifiedAccessToken({
+    expirationTime: base.issuedAt + 3_600,
+    subject: authSubjectOf(base.playerId)
+  })
+  const evidence = await runInDurableObject(base.stub, async (instance, state) => {
+    const socketOf = (userId: string) =>
+      state
+        .getWebSockets()
+        .find(
+          (candidate) => (candidate.deserializeAttachment() as { userId: string }).userId === userId
+        )
+    const owner = socketOf(base.userId)
+    const player = socketOf(base.playerId)
+    if (!owner || !player) throw new Error('Missing native server sockets.')
+    const playerSent = vi.spyOn(player, 'send')
+    const fixtureFetch = vi.mocked(globalThis.fetch).getMockImplementation()
+    if (!fixtureFetch) throw new Error('Missing fixture Convex routes.')
+    let releaseCapture!: () => void
+    const captureHeld = new Promise<void>((resolve) => (releaseCapture = resolve))
+    vi.mocked(globalThis.fetch).mockClear()
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+      if (new URL(new Request(input, init).url).pathname === '/live-sessions/capture')
+        await captureHeld
+      return fixtureFetch(input, init)
+    })
+    const ownerAdmission = instance.webSocketMessage(
+      owner,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken })
+    )
+    await vi.waitFor(() => expect(convexRouteCalls()).toContain('/live-sessions/capture'))
+    const playerAdmission = instance.webSocketMessage(
+      player,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: playerToken })
+    )
+    // The player's proof settles while the owner's capture is held; it must wait, not go cold too.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const waitingFrames = serverFrames(playerSent).map((frame) => frame.type)
+    releaseCapture()
+    await Promise.all([ownerAdmission, playerAdmission])
+    return {
+      playerFrames: serverFrames(playerSent).map((frame) => frame.type),
+      routes: convexRouteCalls(),
+      waitingFrames
+    }
+  })
+  expect(evidence.waitingFrames).toEqual([])
+  expect(evidence.playerFrames).toContain('TRANSIENT_READY')
+  expect(evidence.routes.filter((route) => route === '/live-sessions/capture')).toHaveLength(1)
+})
+
+it('answers a resume only to the asking socket', async () => {
+  const value = movementScene(crypto.randomUUID())
+  const base = await fixture(value.scene)
+  await synchronizeScene(base, value.scene)
+  const peer = await connectOwnerPeer(base)
+  peer.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(peer.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const frames = await runInDurableObject(base.stub, async (instance, state) => {
+    const [other, asking] = state.getWebSockets()
+    if (!other || !asking) throw new Error('Missing native server sockets.')
+    const otherSent = vi.spyOn(other, 'send')
+    const askingSent = vi.spyOn(asking, 'send')
+    await instance.webSocketMessage(
+      asking,
+      JSON.stringify({ lastAppliedSequence: 0, type: 'RESUME' })
+    )
+    return { asking: serverFrames(askingSent), other: serverFrames(otherSent) }
+  })
+  expect(frames.asking.map((frame) => frame.type)).toEqual(['STATE_SYNC'])
+  expect(frames.other).toEqual([])
 })
 
 it('extends drag paths around walls and keeps the sequence of a rejected sample', async () => {
@@ -3459,6 +3772,43 @@ it('re-admits a challenged socket on a fresh token without closing it at the old
   )
 })
 
+it('closes a socket answered with its same expiring token at expiry instead of re-challenging it', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const deadline = (base.issuedAt + 3_600) * 1_000
+  const evidence = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) =>
+      Response.json(
+        new URL(new Request(input, init).url).pathname === ROOM_AUTHORIZATION_PATH
+          ? roomAuthorizationResponse({ members: base.authorization.members })
+          : base.capture
+      )
+    )
+    vi.spyOn(Date, 'now').mockReturnValue(deadline - ROOM_LIMITS.reauthenticationLeadMs)
+    await instance.alarm()
+    await instance.webSocketMessage(
+      socket,
+      JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken })
+    )
+    await instance.alarm()
+    const types = serverFrames(sent).map((frame) => frame.type)
+    vi.spyOn(Date, 'now').mockReturnValue(deadline)
+    await instance.alarm()
+    return {
+      challenges: types.filter((type) => type === 'AUTHENTICATION_REQUIRED').length,
+      readmitted: types.includes('TRANSIENT_READY'),
+      open: socket.readyState === WebSocket.OPEN
+    }
+  })
+  expect(evidence).toEqual({ challenges: 1, readmitted: true, open: false })
+})
+
 function serverFrames(sent: { mock: { calls: unknown[][] } }) {
   return sent.mock.calls.map(([frame]) =>
     liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
@@ -3488,9 +3838,12 @@ it('re-admits an admitted socket on a locally proven token with no Convex route 
 })
 
 it('keeps a passive socket across a challenge-driven warm re-authentication with no Convex route call (A35-S10b)', async () => {
-  const base = await fixture(null, 120)
+  // The challenge falls a quarter into the authorization lease, so the room still trusts its cache.
+  const lifetime =
+    (ROOM_LIMITS.reauthenticationLeadMs + ROOM_LIMITS.authorizationLeaseMs / 4) / 1_000
+  const base = await fixture(null, lifetime)
   await admitOwner(base)
-  const deadline = (base.issuedAt + 120) * 1_000
+  const deadline = (base.issuedAt + lifetime) * 1_000
   const refreshed = await signVerifiedAccessToken({
     expirationTime: base.issuedAt + 3_600,
     subject: authSubjectOf(base.userId)
@@ -3602,91 +3955,76 @@ it.each([
   expect(evidence.frames.some((frame) => frame.type === 'TRANSIENT_READY')).toBe(!forged)
 })
 
-it.each(['RENEWAL_TRAFFIC', 'OLD_TRANSIENT_FAILURE'] as const)(
-  'preserves the new admission across %s',
-  async (race) => {
-    const base = await fixture()
-    base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
-    await vi.waitFor(() =>
-      expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
-    )
-    const newerToken = await base.issueAccessToken(base.issuedAt + 3_601)
-    const frames = await runInDurableObject(base.stub, async (instance, state) => {
-      const socket = state.getWebSockets()[0]
-      if (!socket) throw new Error('Missing native server socket.')
-      const sent = vi.spyOn(socket, 'send')
-      let releaseCapture: (() => void) | undefined
-      let markStarted: (() => void) | undefined
-      const started = new Promise<void>((resolve) => {
-        markStarted = resolve
-      })
-      vi.mocked(globalThis.fetch).mockImplementation(async (input, init) =>
-        Response.json(
-          new URL(new Request(input, init).url).pathname === ROOM_AUTHORIZATION_PATH
-            ? roomAuthorizationResponse({ members: base.authorization.members })
-            : base.capture
-        )
-      )
-      vi.mocked(globalThis.fetch).mockImplementationOnce(
-        () =>
-          new Promise<Response>((resolve) => {
-            releaseCapture = () =>
-              resolve(
-                race === 'OLD_TRANSIENT_FAILURE'
-                  ? new Response(null, { status: 401 })
-                  : Response.json(base.capture)
-              )
-            markStarted?.()
-          })
-      )
-      const authenticate = JSON.stringify({ type: 'AUTHENTICATE', accessToken: newerToken })
-      const preview = JSON.stringify({
-        type: 'TRANSIENT',
-        envelope: {
-          baselineVersion: 1,
-          audience: 'TABLE',
-          kind: 'TOKEN_DRAG_PREVIEW',
-          position: { x: 20, y: 10 },
-          sceneId: crypto.randomUUID(),
-          sequence: 1,
-          tokenId: crypto.randomUUID()
-        }
-      })
-      const delayed = instance.webSocketMessage(
-        socket,
-        race === 'RENEWAL_TRAFFIC' ? authenticate : preview
-      )
-      await started
-      try {
-        if (race === 'RENEWAL_TRAFFIC') {
-          await instance.webSocketMessage(socket, preview)
-          await instance.webSocketMessage(socket, authenticate)
-        } else {
-          await instance.webSocketMessage(socket, authenticate)
-        }
-      } finally {
-        releaseCapture?.()
-        await delayed
-      }
-      await instance.webSocketMessage(socket, preview)
-      return sent.mock.calls.map(([frame]) =>
-        liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
-      )
+it('preserves the new admission across renewal traffic', async () => {
+  const base = await fixture()
+  base.socket.send(JSON.stringify({ type: 'AUTHENTICATE', accessToken: base.accessToken }))
+  await vi.waitFor(() =>
+    expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(true)
+  )
+  const newerToken = await base.issueAccessToken(base.issuedAt + 3_601)
+  const frames = await runInDurableObject(base.stub, async (instance, state) => {
+    const socket = state.getWebSockets()[0]
+    if (!socket) throw new Error('Missing native server socket.')
+    const sent = vi.spyOn(socket, 'send')
+    let releaseCapture: (() => void) | undefined
+    let markStarted: (() => void) | undefined
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve
     })
-    expect(frames).toEqual([
-      {
-        campaignId: base.capture.campaignId,
-        type: 'TRANSIENT_READY'
-      },
-      {
-        authorityEpoch: base.authorityEpoch,
-        sequence: 0,
-        state: { recipientRole: 'OWNER', scene: null },
-        type: 'STATE_SYNC'
+    vi.mocked(globalThis.fetch).mockImplementation(async (input, init) =>
+      Response.json(
+        new URL(new Request(input, init).url).pathname === ROOM_AUTHORIZATION_PATH
+          ? roomAuthorizationResponse({ members: base.authorization.members })
+          : base.capture
+      )
+    )
+    vi.mocked(globalThis.fetch).mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          releaseCapture = () => resolve(Response.json(base.capture))
+          markStarted?.()
+        })
+    )
+    const authenticate = JSON.stringify({ type: 'AUTHENTICATE', accessToken: newerToken })
+    const preview = JSON.stringify({
+      type: 'TRANSIENT',
+      envelope: {
+        baselineVersion: 1,
+        audience: 'TABLE',
+        kind: 'TOKEN_DRAG_PREVIEW',
+        position: { x: 20, y: 10 },
+        sceneId: crypto.randomUUID(),
+        sequence: 1,
+        tokenId: crypto.randomUUID()
       }
-    ])
-  }
-)
+    })
+    const delayed = instance.webSocketMessage(socket, authenticate)
+    await started
+    try {
+      await instance.webSocketMessage(socket, preview)
+      await instance.webSocketMessage(socket, authenticate)
+    } finally {
+      releaseCapture?.()
+      await delayed
+    }
+    await instance.webSocketMessage(socket, preview)
+    return sent.mock.calls.map(([frame]) =>
+      liveSessionWebSocketServerMessageDtoSchema.parse(JSON.parse(String(frame)))
+    )
+  })
+  expect(frames).toEqual([
+    {
+      campaignId: base.capture.campaignId,
+      type: 'TRANSIENT_READY'
+    },
+    {
+      authorityEpoch: base.authorityEpoch,
+      sequence: 0,
+      state: { recipientRole: 'OWNER', presentationVersion: null, scene: null },
+      type: 'STATE_SYNC'
+    }
+  ])
+})
 
 it.each([false, true])(
   'does not restore a delayed admission after a newer membership denial (heartbeat: %s)',
@@ -3832,7 +4170,7 @@ async function localEncounterFixture(
   const encounterId = crypto.randomUUID()
   const sideId = crypto.randomUUID()
   const now = '2026-09-30T00:00:00.000Z'
-  base.capture.systemId = DND5E_SYSTEM_ID
+  base.room.systemId = DND5E_SYSTEM_ID
   base.capture.sceneEncounterId = options.unboundEncounterScene ? null : encounterId
   const actors = [0, 1, 2].map((ordinal) => {
     const id = crypto.randomUUID()
@@ -3931,6 +4269,8 @@ async function localEncounterFixture(
       version: state.version,
       stateJson: JSON.stringify(state),
       stateChecksum: checksumCanonicalJson(state),
+      createCommandId: crypto.randomUUID(),
+      createCommandFingerprint: checksumCanonicalJson(state),
       createdAt: now,
       updatedAt: now
     })
@@ -4019,7 +4359,7 @@ async function localEncounterFixture(
   for (const table of [
     'encounterRuns',
     'encounterRunActors',
-    'encounterActorProjectionFacts',
+    'encounterActorSnapshots',
     'encounterSourceProjectionFacts',
     'encounterInitiativeRounds',
     'encounterInitiativeParticipants',
@@ -4098,7 +4438,7 @@ function localEncounterEvidence(storage: DurableObjectStorage) {
     runId: run._id,
     state: readRunState(run),
     actors: room.documents('encounterRunActors'),
-    facts: room.documents('encounterActorProjectionFacts'),
+    snapshots: room.documents('encounterActorSnapshots'),
     sources: room.documents('encounterSourceProjectionFacts'),
     rounds: room.documents('encounterInitiativeRounds'),
     participants: room.documents('encounterInitiativeParticipants'),
@@ -4228,8 +4568,8 @@ it('commits warm native reminders, round, initiative, health display, and actor 
           if (command.type === 'SET_INITIATIVE' || command.type === 'UPDATE_ACTOR') {
             const row = evidence.actors.find(({ id }) => id === command.actorId)
             if (!row) throw new Error('Missing updated native actor.')
-            const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
-            expect(row.stateChecksum).toBe(checksumCanonicalJson(actor))
+            const actor = readStoredRunActor(row)
+            expect(row.stateChecksum).toBe(checksumCanonicalJson(runActorPlayState(actor)))
             expect(actor).toMatchObject(
               command.type === 'SET_INITIATIVE'
                 ? { initiative: 30 }
@@ -4473,9 +4813,9 @@ it('commits a warm native initiative roll privately and replays its exact eviden
         expect(evidence.state.version).toBe(2)
         const actorRow = evidence.actors.find(({ id }) => id === actorId)
         if (!actorRow) throw new Error('Missing native initiative actor.')
-        const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+        const actor = readStoredRunActor(actorRow)
         expect(actor.initiative).toBe(roll.evidence.total)
-        expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(actor))
+        expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(runActorPlayState(actor)))
         expect(evidence.commands).toHaveLength(1)
         const history = evidence.commands[0]
         if (!history || history.commandType === 'CREATE')
@@ -4686,9 +5026,9 @@ it('commits a private native enemy roll and its charge once before acknowledgeme
         const evidence = localEncounterEvidence(context.storage)
         const actorRow = evidence.actors.find(({ id }) => id === actorId)
         if (!actorRow) throw new Error('Missing charged native actor.')
-        const actor = encounterRunActorStateSchema.parse(JSON.parse(actorRow.stateJson))
+        const actor = readStoredRunActor(actorRow)
         expect(actor.resources).toEqual({ featureCharges: { [feature.id]: 1 } })
-        expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(actor))
+        expect(actorRow.stateChecksum).toBe(checksumCanonicalJson(runActorPlayState(actor)))
         expect(
           message.delta.result.projection.actors.find(({ id }) => id === actorId)
         ).toMatchObject({
@@ -5009,7 +5349,9 @@ it.each([true, false])(
           expect(evidence.state.version).toBe(2)
           expect(evidence.state.actorIds).toHaveLength(4)
           expect(evidence.actors).toHaveLength(4)
-          expect(evidence.facts).toHaveLength(4)
+          expect(new Set(evidence.snapshots.map(({ checksum }) => checksum))).toEqual(
+            new Set(evidence.actors.map(({ snapshotChecksum }) => snapshotChecksum))
+          )
           expect(evidence.participants).toHaveLength(4)
           expect(evidence.commands).toHaveLength(1)
           const history = evidence.commands[0]
@@ -5032,7 +5374,7 @@ it.each([true, false])(
           expect(history.reinforcedActorStateChecksum).toBe(checksumCanonicalJson(reinforced))
           expect(evidence.state.actorIds).toContain(reinforced.id)
           expect(evidence.actors.find(({ id }) => id === reinforced.id)?.stateChecksum).toBe(
-            history.reinforcedActorStateChecksum
+            checksumRunActorPlayState(reinforced)
           )
           expect(
             evidence.participants.find(({ actorId }) => actorId === reinforced.id)
@@ -5048,7 +5390,7 @@ it.each([true, false])(
           expect(JSON.parse(writeSet.json)).toEqual(
             expect.arrayContaining([
               expect.objectContaining({ op: 'INSERT', table: 'encounterRunActors' }),
-              expect.objectContaining({ op: 'INSERT', table: 'encounterActorProjectionFacts' }),
+              expect.objectContaining({ op: 'INSERT', table: 'encounterActorSnapshots' }),
               expect.objectContaining({ op: 'INSERT', table: 'encounterRunCommands' })
             ])
           )
@@ -5192,6 +5534,7 @@ it('rolls back a local Encounter command when admission expires during an input 
       characterPlay: room.documents('characterPlayStates')
     }
   }
+  const commandId = crypto.randomUUID()
   const before = await runInDurableObject(base.stub, async (instance, context) => {
     const before = evidence(context.storage)
     const socket = context
@@ -5205,7 +5548,6 @@ it('rolls back a local Encounter command when admission expires during an input 
     // Past the authorization lease, within admission: the command reloads the changed System.
     const leaseExpired = Date.now() + ROOM_LIMITS.authorizationLeaseMs + 1
     const clock = vi.spyOn(Date, 'now').mockReturnValue(leaseExpired)
-    const commandId = crypto.randomUUID()
     const handling = instance.webSocketMessage(
       socket,
       JSON.stringify({
@@ -5247,7 +5589,15 @@ it('rolls back a local Encounter command when admission expires during an input 
   })
   await evictDurableObject(base.stub)
   await runInDurableObject(base.stub, (_instance, context) => {
-    expect(evidence(context.storage)).toEqual(before)
+    // The woken room reloads the changed System into its own journaled input write, so the head
+    // moves; the rolled-back command itself leaves no Run state, command or receipt behind.
+    const after = evidence(context.storage)
+    expect(after.state).toEqual(before.state)
+    expect(after.actors).toEqual(before.actors)
+    expect(after.commands).toEqual(before.commands)
+    expect(after.receipts.map(({ command_id }) => command_id)).not.toContain(commandId)
+    // The input write is unpublished; its deadline alarm must not fire into a later test.
+    return context.storage.deleteAlarm()
   })
 })
 
@@ -5514,9 +5864,7 @@ it('publishes a local token-control revocation before an evicted room reloads Co
       const evidence = localEncounterEvidence(context.storage)
       const actor = evidence.actors.find(({ id }) => id === actors[0]!.id)
       if (!actor) throw new Error('Missing revoked native actor.')
-      expect(
-        encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).controllerUserIds
-      ).toEqual([])
+      expect(readStoredRunActor(actor).controllerUserIds).toEqual([])
       expect(evidence.bindings).toHaveLength(1)
       expect(evidence.authority).toMatchObject({ sequence: 1, published_sequence: 0 })
       expect(
@@ -5659,16 +6007,17 @@ it('preserves corrupt unpublished rows until recovery succeeds, then hydrates ac
     expect(committed.receipts).toHaveLength(1)
     const revoked = committed.actors.find(({ id }) => id === actors[0]!.id)
     if (!revoked) throw new Error('Missing unpublished native actor before recovery.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(revoked.stateJson)).controllerUserIds
-    ).toEqual([])
-    context.storage.sql.exec("UPDATE room_snapshot_chunks SET content = 'bad' WHERE part = 0")
+    expect(readStoredRunActor(revoked).controllerUserIds).toEqual([])
+    context.storage.sql.exec("UPDATE room_snapshot_pages SET content = 'bad' WHERE part = 0")
   })
   const retainedRows = () =>
     runInDurableObject(base.stub, (_instance, context) => ({
-      snapshot: context.storage.sql
+      snapshotHead: context.storage.sql
+        .exec('SELECT epoch, sequence, chain, counters FROM room_snapshot_head')
+        .toArray(),
+      snapshotPages: context.storage.sql
         .exec(
-          'SELECT generation, part, part_count, epoch, sequence, chain, content_checksum, content FROM room_snapshot_chunks ORDER BY generation, part'
+          'SELECT page, part, part_count, checksum, content FROM room_snapshot_pages ORDER BY page, part'
         )
         .toArray(),
       writes: context.storage.sql
@@ -5777,9 +6126,7 @@ it('preserves corrupt unpublished rows until recovery succeeds, then hydrates ac
     expect(evidence.state.version).toBe(1)
     const actor = evidence.actors.find(({ id }) => id === actors[0]!.id)
     if (!actor) throw new Error('Missing acknowledged native actor after recovery.')
-    expect(
-      encounterRunActorStateSchema.parse(JSON.parse(actor.stateJson)).controllerUserIds
-    ).toEqual([base.playerId])
+    expect(readStoredRunActor(actor).controllerUserIds).toEqual([base.playerId])
     expect(evidence.sequence).toBe(0)
     expect(evidence.writes).toEqual([])
     expect(evidence.receipts).toEqual([])
@@ -5848,7 +6195,6 @@ it('removes a native Encounter actor and its binding, ending the player token co
     const evidence = localEncounterEvidence(context.storage)
     expect(evidence.state).toMatchObject({ version: 2, actorIds: state.actorIds.slice(1) })
     expect(evidence.actors.map(({ id }) => id)).not.toContain(actors[0]!.id)
-    expect(evidence.facts.map(({ id }) => id)).not.toContain(actors[0]!.id)
     expect(evidence.participants.map(({ actorId }) => actorId)).not.toContain(actors[0]!.id)
     expect(evidence.bindings).toEqual([])
     expect(evidence.commands[0]).toMatchObject({ commandId, commandType: 'REMOVE_ACTOR' })
@@ -6382,7 +6728,7 @@ it('closes a socket that exceeds its message budget', async () => {
     base.socket.send(JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 }))
   await expect(closed).resolves.toMatchObject({
     code: 1008,
-    reason: 'Too many live-session messages.'
+    reason: 'Too many live-session SYNC messages.'
   })
 })
 
@@ -6483,15 +6829,7 @@ async function leaveAndFireIdleAlarm(base: Awaited<ReturnType<typeof fixture>>) 
   await vi.waitFor(async () => {
     const pending = await idleRelease(base.stub)
     expect(pending.releaseAt).toBeGreaterThanOrEqual(leftAt + 5 * 60_000)
-    const checkpointAt = await runInDurableObject(base.stub, (_instance, state) => {
-      const first = new DurableCommandJournal(state.storage).oldestUnpublishedCommandTime()
-      return first === null
-        ? null
-        : first + ROOM_LIMITS.flushIntervalMs + ROOM_LIMITS.flushQuietGraceMs
-    })
-    expect(pending.alarm).toBe(
-      checkpointAt === null ? pending.releaseAt : Math.min(checkpointAt, pending.releaseAt!)
-    )
+    expect(pending.alarm).toBe(pending.releaseAt)
   })
   await fireAlarmAfterIdleWindow(base.stub)
 }
@@ -6586,7 +6924,7 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
     ).toBe(true)
   )
   expect(calls).toEqual([])
-  await fireCheckpointAlarm(base.stub)
+  await publishPending(base.stub, 500)
   expect(checkpoints).toHaveLength(1)
   expect(await journalEvidence(base)).toMatchObject({
     authority: { published_sequence: 0, sequence: 1 },
@@ -6598,12 +6936,13 @@ it('retries the exact pending checkpoint after eviction before an idle room rele
 
   await leaveAndFireIdleAlarm(base)
   expect(calls).toEqual([
-    '/live-sessions/checkpoint',
     '/live-sessions/begin-drain',
+    '/live-sessions/checkpoint',
     '/live-sessions/release'
   ])
   expect(checkpoints).toHaveLength(2)
-  expect(checkpoints[1]).toEqual(checkpoints[0])
+  // The retry resends the exact pending input; only its trigger differs from the barrier's.
+  expect(checkpoints[1]).toEqual({ ...checkpoints[0], reason: 'DRAIN' })
   const journal = await runInDurableObject(base.stub, (_instance, state) => ({
     authority: state.storage.sql
       .exec<{ published_sequence: number; sequence: number; status: string }>(
@@ -6716,13 +7055,14 @@ it('keeps an alarm scheduled when the idle release checkpoint fails and releases
   } finally {
     logged.mockRestore()
   }
-  expect(base.authorityLifecycleCalls).toEqual([])
-  expect(await idleRelease(base.stub)).toMatchObject({ status: 'ACTIVE' })
+  expect(base.authorityLifecycleCalls).toEqual(['/live-sessions/begin-drain'])
+  expect(await idleRelease(base.stub)).toMatchObject({ status: 'DRAINING' })
   expect((await idleRelease(base.stub)).alarm).toBeGreaterThan(Date.now())
 
   publishAvailable = true
   await fireAlarmAfterIdleWindow(base.stub)
   expect(base.authorityLifecycleCalls).toEqual([
+    '/live-sessions/begin-drain',
     '/live-sessions/begin-drain',
     '/live-sessions/release'
   ])
@@ -6751,8 +7091,7 @@ it('never captures authority for pings on the synchronized Scene', async () => {
     const captureCalls = () =>
       vi
         .mocked(globalThis.fetch)
-        .mock.calls.filter(([input]) => new Request(input).url.endsWith('/live-sessions/capture'))
-        .length
+        .mock.calls.filter(([input]) => new Request(input).url.endsWith('capture')).length
     const before = captureCalls()
     for (let sequence = 1; sequence <= 5; sequence++)
       await instance.webSocketMessage(socket, pingMessage(sequence))
@@ -6967,14 +7306,6 @@ it('fans out every non-hidden token and door to a player in a fog-OFF Scene', as
   const base = await fixture(scene)
   await synchronizeScene(base, scene)
   const player = await connectPlayer(base)
-  player.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: base.capture.presentation!.version,
-      sceneId: scene.id,
-      type: 'SYNCHRONIZE_SCENE',
-      version: scene.version
-    })
-  )
   await vi.waitFor(() =>
     expect(player.messages).toContainEqual(
       expect.objectContaining({
@@ -7074,9 +7405,9 @@ it('commits an inline GM edit with its INLINE receipt, checkpoints it and replay
   })
   expect((await storedScene(base))?.ambientIllumination).toBe('DIM')
 
-  await fireCheckpointAlarm(base.stub)
+  await publishPending(base.stub)
   expect(publications).toHaveLength(1)
-  expect(checkpointReceipt(publications[0]!, commandId)).toMatchObject({
+  expect(await roomReceipt(base.stub, commandId)).toMatchObject({
     actorUserId: base.userId,
     encoding: 'INLINE',
     input: command
@@ -7113,14 +7444,6 @@ it('serves a joining player the committed Scene from the room store without a Co
   vi.mocked(globalThis.fetch).mockClear()
 
   const player = await connectPlayer(base)
-  player.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: base.capture.presentation?.version,
-      sceneId: scene.id,
-      type: 'SYNCHRONIZE_SCENE',
-      version: 1
-    })
-  )
   await vi.waitFor(() =>
     expect(player.messages).toContainEqual(
       expect.objectContaining({
@@ -7134,7 +7457,47 @@ it('serves a joining player the committed Scene from the room store without a Co
   const paths = vi
     .mocked(globalThis.fetch)
     .mock.calls.map(([input, init]) => new URL(new Request(input, init).url).pathname)
-  expect(paths.filter((path) => path.includes('hydrate'))).toEqual([])
+  expect(paths).not.toContain(ROOM_INPUTS_PATH)
+})
+
+it('checkpoints unpublished commands before reloading the room aggregate for a Scene admission', async () => {
+  const { scene } = doorScene(crypto.randomUUID())
+  const base = await fixture(scene)
+  await synchronizeScene(base, scene)
+  const publications = await recordCheckpoints(base)
+  const commandId = crypto.randomUUID()
+  base.socket.send(
+    sceneMessage(
+      {
+        commandId,
+        expectedSceneVersion: 0,
+        illumination: 'DIM',
+        sceneId: scene.id,
+        type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+      },
+      0
+    )
+  )
+  await vi.waitFor(() => expect(commitsOf(base.messages, commandId)).toHaveLength(1))
+  expect(publications).toHaveLength(0)
+
+  // A Scene the room does not hold must hydrate from Convex while the command is unpublished.
+  const otherScene = { ...scene, id: crypto.randomUUID() }
+  if (!base.capture.sceneHeader) throw new Error('Missing Scene header.')
+  base.capture.sceneHeader = { ...base.capture.sceneHeader, id: otherScene.id }
+  base.rawScene.current = otherScene
+  base.messages.length = 0
+  vi.mocked(globalThis.fetch).mockClear()
+  await synchronizeScene(base, otherScene)
+
+  expect(base.messages).not.toContainEqual({ type: 'AUTHENTICATION_REQUIRED' })
+  expect(publications).toHaveLength(1)
+  const paths = vi
+    .mocked(globalThis.fetch)
+    .mock.calls.map(([input, init]) => new URL(new Request(input, init).url).pathname)
+  const hydrate = paths.indexOf(ROOM_INPUTS_PATH)
+  expect(hydrate).toBeGreaterThan(paths.indexOf('/live-sessions/checkpoint'))
+  expect(paths.indexOf('/live-sessions/checkpoint')).toBeGreaterThanOrEqual(0)
 })
 
 it('lets a player save and remove only their own measurements', async () => {
@@ -7142,14 +7505,6 @@ it('lets a player save and remove only their own measurements', async () => {
   const base = await fixture(scene)
   await synchronizeScene(base, scene)
   const player = await connectPlayer(base)
-  player.socket.send(
-    JSON.stringify({
-      expectedPresentationVersion: base.capture.presentation!.version,
-      sceneId: scene.id,
-      type: 'SYNCHRONIZE_SCENE',
-      version: scene.version
-    })
-  )
   await vi.waitFor(() =>
     expect(player.messages.some((message) => message.type === 'STATE_SYNC')).toBe(true)
   )
@@ -7443,9 +7798,9 @@ it('stages a GM fog patch over the socket, publishes it atomically and replays e
     expect(player.messages).toContainEqual(expect.objectContaining({ commandId, sequence: 1 }))
   )
 
-  await fireCheckpointAlarm(base.stub)
+  await publishPending(base.stub)
   expect(publications).toHaveLength(1)
-  expect(checkpointReceipt(publications[0]!, commandId)).toMatchObject({
+  expect(await roomReceipt(base.stub, commandId)).toMatchObject({
     actorUserId: base.userId,
     encoding: 'FOG_PATCH'
   })

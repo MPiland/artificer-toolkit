@@ -17,27 +17,26 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { receiptLedgerEntryKeyFields } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
+import type { LiveSessionCheckpointAdoption } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type { LiveSessionCheckpointAcknowledgement } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import {
   liveSessionRulesRevisionsSchema,
   type LiveSessionRulesRevisions
 } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
-import type {
-  RoomDocument,
-  RoomEncounterStore,
-  RoomRecord,
-  RoomTransaction
+import {
+  SCENE_EVIDENCE_ROW,
+  type RoomDocument,
+  type RoomEncounterStore,
+  type RoomRecord,
+  type RoomTransaction
 } from './roomEncounterStore.js'
+import { SCENE_COMMAND_RETENTION_MS } from './roomSceneRecords.js'
 import type {
   ContentSnapshotObject,
   ContentSnapshotManifestDto
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  parseGeometrySave,
-  parseGeometryCommand
-} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import {
   readCharacterPlay,
   readCharacterSheetState,
@@ -138,7 +137,11 @@ function expectAssigned(part: LiveRoomCharacterPart) {
 }
 
 /** The Encounter history tables the room keeps for the whole Run (ADR 0035 Amendment 22). */
-const HISTORY_TABLES = ['encounterRunCommands', 'encounterRuleReceipts', 'encounterEvidenceRolls'] as const
+const HISTORY_TABLES = [
+  'encounterRunCommands',
+  'encounterRuleReceipts',
+  'encounterEvidenceRolls'
+] as const
 
 function toRoomDocuments(pages: readonly { documents: readonly RoomDocument[] }[]) {
   return pages.flatMap((page) => page.documents)
@@ -250,46 +253,6 @@ function sceneRecords(pages: readonly ResponseOf<'SCENE'>[]): RoomRecord[] {
         return [canonicalizeJson([chunk.saveId, chunk.ordinal]), chunk] as const
       })
   )
-  const geometrySaves = new Map(
-    rows
-      .filter((row) => row.table === 'sceneGeometrySaves')
-      .map((row) => {
-        const save = parseGeometrySave(row.value)
-        return [save.id, save] as const
-      })
-  )
-  const commands = new Map(
-    rows
-      .filter((row) => row.table === 'sceneLiveCommands')
-      .map((row) => {
-        const command = liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(row.value)
-        return [command.commandId, command] as const
-      })
-  )
-  for (const save of geometrySaves.values()) {
-    const command = commands.get(save.commandId)
-    if (
-      command &&
-      (save.status !== 'PUBLISHED' ||
-        command.encoding !== 'GEOMETRY' ||
-        command.inputChecksum !== save.inputChecksum ||
-        command.actorUserId !== save.actorUserId)
-    )
-      throw new Error('Stored Scene geometry save is inconsistent.')
-    for (const reference of save.fogSaves) {
-      const child = fogSaves.get(reference.saveId)
-      if (
-        !child ||
-        child.geometrySaveId !== save.id ||
-        child.actorUserId !== save.actorUserId ||
-        child.input.layer.ownerUserId !== reference.ownerUserId ||
-        child.commandId !== child.id ||
-        child.input.expectedSceneVersion !== save.snapshotVersion ||
-        (save.status === 'PUBLISHED' && child.status !== 'PUBLISHED')
-      )
-        throw new Error('Stored geometry fog save is inconsistent.')
-    }
-  }
   const validateLayer = (
     layer: ReturnType<typeof liveSessionCheckpointSceneSchemas.sceneFogLayers.parse>,
     version: number
@@ -390,69 +353,8 @@ function sceneRecords(pages: readonly ResponseOf<'SCENE'>[]): RoomRecord[] {
             save.previousLayer.height !== save.input.layer.height
           )
             throw new Error('Stored Scene fog snapshot is inconsistent.')
-          const parent = save.geometrySaveId ? geometrySaves.get(save.geometrySaveId) : null
-          validateLayer(save.previousLayer, parent?.snapshotVersion ?? first.sceneVersion)
+          validateLayer(save.previousLayer, first.sceneVersion)
         }
-        break
-      }
-      case 'sceneLiveCommands': {
-        const command = liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(value)
-        if (
-          command.inputChecksum !== checksumCanonicalJson(command.input) ||
-          command.resultChecksum !== checksumCanonicalJson(command.result) ||
-          command.commandId !== command.input.commandId ||
-          command.commandId !== command.result.commandId ||
-          command.result.replayed ||
-          command.result.version > first.sceneVersion
-        )
-          throw new Error('Stored Scene command is inconsistent.')
-        if (command.encoding === 'FOG_PATCH') {
-          const patch = command.result.patch
-          const save = fogSaves.get(patch.saveId)
-          if (
-            patch.chunkCount !== command.input.chunkManifest.length ||
-            patch.ownerUserId !== command.input.layer.ownerUserId ||
-            patch.width !== command.input.layer.width ||
-            patch.height !== command.input.layer.height ||
-            !save ||
-            save.status !== 'PUBLISHED' ||
-            save.inputChecksum !== command.inputChecksum ||
-            save.commandId !== command.commandId ||
-            save.actorUserId !== command.actorUserId
-          )
-            throw new Error('Stored Scene fog command is inconsistent.')
-        } else if (command.encoding === 'GEOMETRY') {
-          parseGeometryCommand(value, first.sceneVersion)
-          for (const patch of command.result.fogPatches) {
-            const child = fogSaves.get(patch.saveId)
-            const parent = child?.geometrySaveId ? geometrySaves.get(child.geometrySaveId) : null
-            if (
-              !child ||
-              !parent ||
-              child.status !== 'PUBLISHED' ||
-              parent.status !== 'PUBLISHED' ||
-              parent.commandId !== command.commandId ||
-              parent.inputChecksum !== command.inputChecksum ||
-              parent.actorUserId !== command.actorUserId ||
-              child.actorUserId !== command.actorUserId ||
-              parent.snapshotVersion + 1 !== command.result.version ||
-              child.input.expectedSceneVersion !== parent.snapshotVersion ||
-              child.commandId !== child.id ||
-              child.input.layer.ownerUserId !== patch.ownerUserId ||
-              child.input.layer.width !== patch.width ||
-              child.input.layer.height !== patch.height ||
-              child.input.chunkManifest.length !== patch.chunkCount ||
-              !parent.fogSaves.some(
-                (entry) => entry.saveId === child.id && entry.ownerUserId === patch.ownerUserId
-              )
-            )
-              throw new Error('Stored Scene geometry fog source is inconsistent.')
-          }
-        } else if (
-          command.encoding === 'UNDO' &&
-          command.undoneCommandId !== command.result.delta.undoneCommandId
-        )
-          throw new Error('Stored Scene undo command is inconsistent.')
         break
       }
     }
@@ -525,23 +427,20 @@ function assertDefinitionScope(
     throw new Error('Room definition inventory has inconsistent Campaign or System scope.')
 }
 
-/** Whether every revision the cached read observed is still the revision `observed` reports. */
-function isCurrent(record: RoomRecord, observed: LiveSessionRulesRevisions | null) {
-  if (!observed || !record.revision) return false
-  const held = (
-    record.key === 'AUTHORITY' || record.key === 'DEFINITIONS'
+/** The revisions a cached read observed; AUTHORITY and DEFINITIONS observe only SYSTEM and CAMPAIGN. */
+function observedRevisions(key: string, stamp: string) {
+  return (
+    key === 'AUTHORITY' || key === 'DEFINITIONS'
       ? liveRoomAuthorityRevisionsSchema
       : liveSessionRulesRevisionsSchema
-  ).parse(JSON.parse(record.revision))
-  return held.every((entry) =>
-    observed.some(
-      (candidate) =>
-        candidate.scope === entry.scope &&
-        candidate.id === entry.id &&
-        candidate.revision === entry.revision
-    )
-  )
+  ).parse(JSON.parse(stamp))
 }
+
+const revisionKey = ({ scope, id, revision }: LiveSessionRulesRevisions[number]) =>
+  `${scope}:${id}:${revision}`
+
+/** A cached record's stamp as read, and the stamp the room gave it after its own checkpoint. */
+type Restamps = Map<string, { stamped: string | null; stamp: string }>
 
 const cacheKey = (
   scope:
@@ -574,17 +473,22 @@ export class RoomInputs {
   readonly #read: RoomInputsReader
   readonly #loadContent: (manifest: ContentSnapshotManifestDto) => Promise<ContentSnapshotObject[]>
   readonly #content: Map<string, LoadedContent>
+  readonly #restamps: Restamps
+  /** Parsed held responses by record key; a held System is large and read on every command. */
+  readonly #parsed = new Map<string, { json: string; response: LiveRoomInputsResponse }>()
 
   constructor(
     store: RoomEncounterStore,
     read: RoomInputsReader,
     loadContent: (manifest: ContentSnapshotManifestDto) => Promise<ContentSnapshotObject[]>,
-    content = new Map<string, LoadedContent>()
+    content = new Map<string, LoadedContent>(),
+    restamps: Restamps = new Map()
   ) {
     this.#store = store
     this.#read = read
     this.#loadContent = loadContent
     this.#content = content
+    this.#restamps = restamps
   }
 
   /**
@@ -594,7 +498,70 @@ export class RoomInputs {
    */
   heldOnly(): RoomInputs {
     const unheld = () => Promise.reject(new RoomInputsUnheldError())
-    return new RoomInputs(this.#store, unheld, unheld, this.#content)
+    return new RoomInputs(this.#store, unheld, unheld, this.#content, this.#restamps)
+  }
+
+  /**
+   * Restamps the held inputs read at the PLAY and Character revisions the room's own checkpoint
+   * advanced (`sent` to `adopted`), so that checkpoint does not read as an outside change and
+   * reload them. A held part never carries what a checkpoint writes: the Campaign part has no play
+   * data, and a Character part's play state, effects and sheet state are replaced by the room's own
+   * on every read. A restamp is memory only, so it is ignored once its record is rewritten, and a
+   * room woken from hibernation reads once.
+   */
+  adopt(
+    campaignId: string,
+    sent: LiveSessionRoomAuthorizationRevisions,
+    adopted: LiveSessionCheckpointAdoption
+  ) {
+    const advanced = new Map<string, string | null>()
+    if (adopted.play)
+      advanced.set(
+        revisionKey({ scope: 'PLAY', id: campaignId, revision: sent.play }),
+        adopted.play
+      )
+    for (const { characterId, revision } of adopted.characters) {
+      const before = sent.characters.find((entry) => entry.characterId === characterId)
+      if (before)
+        advanced.set(
+          revisionKey({ scope: 'CHARACTER', id: characterId, revision: before.revision }),
+          revision
+        )
+    }
+    for (const record of this.#store.records(CACHE_KIND)) {
+      const stamp = this.#stamp(record)
+      if (!stamp) continue
+      const observed = observedRevisions(record.key, stamp)
+      const restamped = observed.map((entry) => {
+        const revision = advanced.get(revisionKey(entry))
+        return revision === undefined ? entry : { ...entry, revision }
+      })
+      if (restamped.some((entry, index) => entry !== observed[index]))
+        this.#restamps.set(record.key, {
+          stamped: record.revision,
+          stamp: JSON.stringify(restamped)
+        })
+    }
+  }
+
+  /** A cached record's stamp: its restamp while the record is still the one that was restamped. */
+  #stamp({ key, revision }: RoomRecord) {
+    const restamp = this.#restamps.get(key)
+    return restamp?.stamped === revision ? restamp.stamp : revision
+  }
+
+  /** Whether every revision the cached read observed is still the revision `observed` reports. */
+  #isCurrent(record: RoomRecord, observed: LiveSessionRulesRevisions | null) {
+    const stamp = this.#stamp(record)
+    if (!observed || !stamp) return false
+    return observedRevisions(record.key, stamp).every((entry) =>
+      observed.some(
+        (candidate) =>
+          candidate.scope === entry.scope &&
+          candidate.id === entry.id &&
+          candidate.revision === entry.revision
+      )
+    )
   }
 
   /**
@@ -663,6 +630,7 @@ export class RoomInputs {
       ],
       records: [
         ...scene,
+        ...this.#carriedSceneEvidence(),
         ...(runRecord ? [runRecord] : []),
         ...definitionRecords(definitions),
         cacheRecord('AUTHORITY', { ...authority, documents: [] }),
@@ -678,6 +646,7 @@ export class RoomInputs {
       ]
     })
     this.#content.clear()
+    this.#restamps.clear()
     this.#content.set('CAMPAIGN_PLAY', content[0]!)
     characters.forEach(({ part }, index) =>
       this.#content.set(
@@ -716,6 +685,17 @@ export class RoomInputs {
     )
   }
 
+  /**
+   * The Scene command evidence the room already holds, across every Scene: Convex never stores it
+   * (ADR 0035 Amendment 26). Evidence past its retention is dropped here, so a reload is the purge.
+   */
+  #carriedSceneEvidence(): RoomRecord[] {
+    const cutoff = Date.now() - SCENE_COMMAND_RETENTION_MS
+    return this.#store
+      .records(SCENE_EVIDENCE_ROW)
+      .filter(({ revision }) => Number(revision) > cutoff)
+  }
+
   play(observed: LiveSessionRulesRevisions | null, transaction?: RoomTransaction) {
     return this.#point({ kind: 'CAMPAIGN_PLAY' }, observed, 'CAMPAIGN_PLAY', transaction)
   }
@@ -746,10 +726,7 @@ export class RoomInputs {
   systemSnapshot() {
     const held = this.#store.record(CACHE_KIND, cacheKey({ kind: 'SYSTEM', part: 'SYSTEM' }))
     if (!held) throw new Error('Room System inputs have not been hydrated.')
-    const system = expectKind(
-      liveRoomInputsResponseSchema.parse(JSON.parse(held.json)),
-      'SYSTEM'
-    ).system
+    const system = expectKind(this.#parse(held), 'SYSTEM').system
     if (!system) throw new Error('Room System inputs are unavailable.')
     return system
   }
@@ -815,13 +792,13 @@ export class RoomInputs {
   #runAtLoad(encounterId: string, transaction: RoomTransaction) {
     const held = transaction.record(CACHE_KIND, cacheKey({ kind: 'RUN', encounterId }))
     if (!held) throw new Error('Room Run inputs are unavailable.')
-    return expectKind(liveRoomInputsResponseSchema.parse(JSON.parse(held.json)), 'RUN')
+    return expectKind(this.#parse(held), 'RUN')
   }
 
   /** Campaign facts are native rows, refreshed only when their revision changes. */
   async authority(observed: LiveSessionRulesRevisions | null, transaction: RoomTransaction) {
     const held = transaction.record(CACHE_KIND, 'AUTHORITY')
-    if (held && isCurrent(held, observed)) return
+    if (held && this.#isCurrent(held, observed)) return
     const loaded = await this.#readAuthority((scope) => this.#read(this.#requireEpoch(), scope))
     const campaigns = await this.#store.store.query('campaigns').collect()
     for (const campaign of campaigns) {
@@ -847,10 +824,7 @@ export class RoomInputs {
       ? transaction.record(CACHE_KIND, 'AUTHORITY')
       : this.#store.record(CACHE_KIND, 'AUTHORITY')
     if (!held) throw new Error('Room Campaign authority has not been hydrated.')
-    return expectKind(
-      liveRoomInputsResponseSchema.parse(JSON.parse(held.json)),
-      'AUTHORITY'
-    ).accountUserIds.includes(userId)
+    return expectKind(this.#parse(held), 'AUTHORITY').accountUserIds.includes(userId)
   }
 
   system(
@@ -869,7 +843,7 @@ export class RoomInputs {
     const held = transaction
       ? transaction.record(CACHE_KIND, 'DEFINITIONS')
       : this.#store.record(CACHE_KIND, 'DEFINITIONS')
-    if (!held || !isCurrent(held, observed)) {
+    if (!held || !this.#isCurrent(held, observed)) {
       const loaded = await this.#readDefinitions((scope) => this.#read(this.#requireEpoch(), scope))
       const campaigns = this.#store.documents('campaigns')
       if (campaigns.length !== 1) throw new Error('Room Campaign authority has inconsistent scope.')
@@ -926,7 +900,7 @@ export class RoomInputs {
     transaction: RoomTransaction
   ) {
     const held = transaction.record(CACHE_KIND, cacheKey({ kind: 'CHARACTER', characterId }))
-    return held !== null && isCurrent(held, observed)
+    return held !== null && this.#isCurrent(held, observed)
   }
 
   /** The Characters whose inputs the room holds, whether or not they are still assigned. */
@@ -962,7 +936,7 @@ export class RoomInputs {
     const held = transaction
       ? transaction.record(CACHE_KIND, key)
       : this.#store.record(CACHE_KIND, key)
-    if (held && isCurrent(held, observed)) {
+    if (held && this.#isCurrent(held, observed)) {
       const part = expectAssigned(liveRoomCharacterPartSchema.parse(JSON.parse(held.json)))
       const content = await this.#readContent(this.#characterManifest(part), key)
       this.#content.set(key, content)
@@ -1054,8 +1028,8 @@ export class RoomInputs {
     const held = transaction
       ? transaction.record(CACHE_KIND, key)
       : this.#store.record(CACHE_KIND, key)
-    if (held && isCurrent(held, observed)) {
-      const response = expectKind(liveRoomInputsResponseSchema.parse(JSON.parse(held.json)), kind)
+    if (held && this.#isCurrent(held, observed)) {
+      const response = expectKind(this.#parse(held), kind)
       const source: LiveRoomInputsResponse = response
       if (source.kind === 'CAMPAIGN_PLAY')
         this.#content.set(key, await this.#readContent(source.contentSnapshots, key))
@@ -1071,6 +1045,15 @@ export class RoomInputs {
         target.setRecord(cacheRecord(key, response))
       })
     if (content) this.#content.set(key, content)
+    return response
+  }
+
+  /** A held response, parsed once per stored JSON; callers never mutate it. */
+  #parse(held: { key: string; json: string }) {
+    const cached = this.#parsed.get(held.key)
+    if (cached?.json === held.json) return cached.response
+    const response = liveRoomInputsResponseSchema.parse(JSON.parse(held.json))
+    this.#parsed.set(held.key, { json: held.json, response })
     return response
   }
 

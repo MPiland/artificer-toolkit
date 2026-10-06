@@ -305,11 +305,9 @@ export async function verifyEncounterTransactions({
   projection = completed
   assert.deepEqual(await owner.mutation(api.campaigns.sessionFinish.finish, finishInput), finished)
   assert.deepEqual(await owner.mutation(executeEncounterCommand, start), { ...started, projection })
-  assert.deepEqual(await owner.mutation(bindScene, bindingInput), { ...bound, replayed: true })
-  assert.deepEqual(await owner.mutation(bindToken, { input: tokenInput }), {
-    ...tokenResult,
-    projection
-  })
+  // COMPLETE deletes the Scene binding (ADR 0035 Amendment 30): retries of both are refused.
+  await assert.rejects(owner.mutation(bindScene, bindingInput), /Completed/)
+  await assert.rejects(owner.mutation(bindToken, { input: tokenInput }), /Completed/)
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: prepared.id }),
     projection

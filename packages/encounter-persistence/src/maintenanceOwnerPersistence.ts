@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { planEncounterMaintenanceOwner } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -77,9 +78,9 @@ export async function reconcileNativeMaintenanceOwners(
           q.eq('encounterId', input.encounterId).eq('id', actor.id)
         )
         .unique()
-      if (!row || row.stateChecksum !== checksumCanonicalJson(actor))
+      if (!row || row.stateChecksum !== checksumRunActorPlayState(actor))
         throw new Error('Maintained-effect Encounter mirror changed during settlement.')
-      if (row.stateChecksum !== checksumCanonicalJson(updated))
+      if (row.stateChecksum !== checksumRunActorPlayState(updated))
         await writeRunActor(ctx, row._id, updated)
       actors.set(actor.id, updated)
     }

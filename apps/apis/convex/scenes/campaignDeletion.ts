@@ -1,4 +1,3 @@
-import { RECEIPT_LEDGER_MAX_PARTS } from '@artificer-toolkit/schema/projections/receiptLedgerPersistence'
 import type { MutationCtx } from '../_generated/server'
 import { refreshMapReferenceFlag, scheduleDetachedMapCleanup } from '../media/vttMapDocuments'
 
@@ -23,17 +22,9 @@ export async function removeCampaignScenes(ctx: MutationCtx, campaignId: string)
     ...saves.map((save) => save.settings.map.assetId)
   ])
   for (const scene of scenes) {
-    const [fogSaves, ledgers, ...groups] = await Promise.all([
+    const [fogSaves, ...groups] = await Promise.all([
       ctx.db
         .query('sceneFogSaves')
-        .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
-        .take(1),
-      ctx.db
-        .query('receiptLedgers')
-        .withIndex('by_scope_scopeId', (q) => q.eq('scope', 'SCENE').eq('scopeId', scene.id))
-        .take(1),
-      ctx.db
-        .query('sceneGeometrySaves')
         .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
         .take(1),
       ctx.db
@@ -43,10 +34,6 @@ export async function removeCampaignScenes(ctx: MutationCtx, campaignId: string)
       ctx.db
         .query('sceneLiveEntities')
         .withIndex('by_sceneId_collection_entityId', (q) => q.eq('sceneId', scene.id))
-        .take(1),
-      ctx.db
-        .query('sceneLiveCommands')
-        .withIndex('by_sceneId_commandId', (q) => q.eq('sceneId', scene.id))
         .take(1),
       ctx.db
         .query('sceneLiveStates')
@@ -62,17 +49,8 @@ export async function removeCampaignScenes(ctx: MutationCtx, campaignId: string)
       if (chunks.length > 0) return false
       await ctx.db.delete(save._id)
     }
-    for (const ledger of ledgers) {
-      const parts = await ctx.db
-        .query('receiptLedgerParts')
-        .withIndex('by_ledgerId_index', (q) => q.eq('ledgerId', ledger.id))
-        .take(RECEIPT_LEDGER_MAX_PARTS)
-      for (const part of parts) await ctx.db.delete(part._id)
-      await ctx.db.delete(ledger._id)
-    }
     for (const rows of groups) for (const row of rows) await ctx.db.delete(row._id)
-    if (fogSaves.length > 0 || ledgers.length > 0 || groups.some((rows) => rows.length > 0))
-      return false
+    if (fogSaves.length > 0 || groups.some((rows) => rows.length > 0)) return false
   }
   for (const save of saves) {
     const entities = await ctx.db

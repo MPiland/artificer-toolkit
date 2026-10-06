@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import { readTestActor } from './storedActors'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -13,10 +14,7 @@ import type {
   GetEncounterActionChoicesInputDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { srdWolf as wolf } from './srdCreatures'
@@ -209,9 +207,7 @@ export async function nativeDisarmFixture(
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id))
       .collect()
-    const actors = rows.map((value) =>
-      encounterRunActorStateSchema.parse(JSON.parse(value.stateJson))
-    )
+    const actors = await Promise.all(rows.map((value) => readTestActor(ctx, value)))
     const sourceState = actors.find((value) => value.id === actor.id)!
     const targetState = actors.find((value) => value.id === target.id)!
     const actionId = characterSource
@@ -351,15 +347,17 @@ export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarm
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
       .collect()
+    const actorRows = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
+      .collect()
     return {
       run: await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
         .unique(),
-      actors: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id))
-        .collect(),
+      actors: actorRows,
+      actorStates: await Promise.all(actorRows.map((row) => readTestActor(ctx, row))),
       occurrences,
       pendingSnapshots: await Promise.all(
         occurrences.map((occurrence) =>

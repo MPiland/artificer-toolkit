@@ -51,6 +51,10 @@ export function DeleteAccountModal({
           This permanently deletes your profile, homebrew, drafts, characters, and sheet data. This
           action cannot be undone.
         </Text>
+        <Text size='sm'>
+          Your Campaign contributions stay in the Campaign under &quot;Deleted user&quot;: chat,
+          shared notes, and notes the GM can read.
+        </Text>
         <TextInput
           autoComplete='email'
           error={

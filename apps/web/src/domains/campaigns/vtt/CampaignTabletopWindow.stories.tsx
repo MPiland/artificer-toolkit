@@ -1,7 +1,7 @@
 import { convexQuery } from '@convex-dev/react-query'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { ConvexReactClient, useConvex } from 'convex/react'
+import { ConvexReactClient, useAction, useConvex } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { useEffect, useState, type ComponentProps, type JSX, type ReactNode } from 'react'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
@@ -344,19 +344,8 @@ function renderWindow(
     encounterVersion: encounter.version,
     sceneId: scene.id
   })
-  const presentation = {
-    campaignId: tabletopCampaignId,
-    sceneId: scene.id,
-    version: 0
-  }
+  const presentationVersion = 0
   mediaGetDelivery.mockReset().mockResolvedValue(tabletopMapDelivery)
-  const presentationQuery = convexQuery(convexApi.scenes.presentations.get, {
-    campaignId: tabletopCampaignId
-  })
-  const headerQuery = convexQuery(convexApi.scenes.recipientReads.header, {
-    sceneId: scene.id,
-    includeSnapshot: false
-  })
   const sceneBindingQuery = convexQuery(convexApi.encounters.sceneBindings.get, {
     encounterId: encounter.id,
     sceneId: scene.id
@@ -368,12 +357,6 @@ function renderWindow(
     campaignId: tabletopCampaignId
   })
   const skippedActionChoicesQuery = convexQuery(convexApi.encounters.actionChoices.get, 'skip')
-  queryClient.setQueryDefaults(presentationQuery.queryKey, {
-    queryFn: async () => presentation
-  })
-  queryClient.setQueryDefaults(headerQuery.queryKey, {
-    queryFn: async () => header
-  })
   queryClient.setQueryDefaults(sceneBindingQuery.queryKey.slice(0, 2), {
     queryFn: async () => sceneBinding
   })
@@ -388,8 +371,6 @@ function renderWindow(
   queryClient.setQueryDefaults(skippedActionChoicesQuery.queryKey, {
     queryFn: async () => null
   })
-  queryClient.setQueryData(presentationQuery.queryKey, presentation)
-  queryClient.setQueryData(headerQuery.queryKey, header)
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
@@ -411,7 +392,6 @@ function renderWindow(
       if (name === getFunctionName(convexApi.encounters.activeReads.active))
         return { encounter, pending: null, waitingOn: null, turnMovement: [] }
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
-      if (name === getFunctionName(convexApi.scenes.presentations.get)) return presentation
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header
       if (name === getFunctionName(convexApi.encounters.sceneBindings.get)) return sceneBinding
       if (name === getFunctionName(convexApi.scenes.definitionReads.listLive))
@@ -492,7 +472,7 @@ function renderWindow(
           replayed: false,
           campaignId: input.campaignId,
           sceneId: input.sceneId,
-          version: presentation.version + 1
+          version: presentationVersion + 1
         })
       }
       if (name === getFunctionName(convexApi.scenes.recipientActions.encounterBindings)) {
@@ -560,7 +540,11 @@ function renderWindow(
   fogBegin.mockReset()
   fogAppend.mockReset()
 
-  const recipientState: LiveSessionRecipientStateDto = { recipientRole: campaign.role, scene }
+  const recipientState: LiveSessionRecipientStateDto = {
+    presentationVersion,
+    recipientRole: campaign.role,
+    scene
+  }
   liveCommand.mockReset()
   return (
     <StoryLiveSessionTransport encounterResult={encounterResult} state={recipientState}>
@@ -605,6 +589,7 @@ function StoryConvexFixture({
   client: ConvexReactClient
 }) {
   mocked(useConvex).mockReturnValue(client)
+  mocked(useAction).mockImplementation((reference) => (...args) => client.action(reference, ...args))
   useEffect(() => () => void client.close(), [client])
   return children
 }

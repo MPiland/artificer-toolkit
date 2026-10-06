@@ -1,6 +1,8 @@
 import { useMutation as useTanstackMutation, useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useRef } from 'react'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '@artificer-toolkit/apis/convex/api'
+import type { FunctionReturnType } from 'convex/server'
 import type {
   NormalizedImageCrop,
   SignedImageDeliveryDto
@@ -14,6 +16,7 @@ import {
   useQuery as useConvexQuery
 } from 'convex/react'
 import type { MediaImageTarget } from '#app/components/MediaImage/MediaImage.types'
+import { queryKeys } from '#app/lib/queryKeys'
 
 type ImageVariant = 'SOURCE' | 'DISPLAY' | 'THUMBNAIL'
 type ImageMimeType = 'image/jpeg' | 'image/png' | 'image/webp'
@@ -133,6 +136,51 @@ export function useMediaLibraryImage(assetId: string | null, variantKind: ImageV
     enabled: assetId !== null,
     staleTime: 4 * 60_000
   })
+}
+
+/**
+ * The signed URL of one Scene map. It is fetched when the asset changes and refreshed only when the
+ * artwork fails to load: nothing refetches on a timer, in the background, on focus or on reconnect,
+ * because a loaded map never uses its URL again. Feed the renderer's load status to `onMapLoadStatus`:
+ * the first failure per asset refreshes the URL once and hands it to `retryArtwork`. `refresh` is the
+ * same refresh on demand, for a Retry button.
+ */
+export function useVttMapDelivery(
+  assetId: string | null,
+  retryArtwork: (delivery: FunctionReturnType<typeof api.media.vttMapActions.getDelivery>) => void
+) {
+  const getDelivery = useAction(api.media.vttMapActions.getDelivery)
+  const query = useQuery({
+    queryKey: queryKeys.media.vttMap(assetId ?? 'unavailable'),
+    queryFn: () => getDelivery({ assetId: assetId! }),
+    enabled: assetId !== null,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    staleTime: 4 * 60_000
+  })
+  const { refetch } = query
+  const retryArtworkRef = useRef(retryArtwork)
+  retryArtworkRef.current = retryArtwork
+  const refreshedRef = useRef(false)
+  useEffect(() => {
+    refreshedRef.current = false
+  }, [assetId])
+  const refresh = useCallback(() => {
+    void refetch().then((result) => {
+      if (result.isSuccess) retryArtworkRef.current(result.data)
+    })
+  }, [refetch])
+  const onMapLoadStatus = useCallback(
+    (status: 'ERROR' | 'LOADING' | 'READY') => {
+      if (status === 'READY') refreshedRef.current = false
+      else if (status === 'ERROR' && !refreshedRef.current) {
+        refreshedRef.current = true
+        refresh()
+      }
+    },
+    [refresh]
+  )
+  return { ...query, onMapLoadStatus, refresh }
 }
 
 export function useMediaImageActions(target: MediaImageTarget) {

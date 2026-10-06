@@ -1,6 +1,5 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import {
   liveSessionJoinOptionsDtoSchema,
   liveSessionTicketClaimsDtoSchema
@@ -26,38 +25,47 @@ export const liveSessionTransientMemberSchema = lazySchema(() =>
   })
 )
 
+/** The presented Scene as a capture reports it: its presentation, header and ACTIVE bound Encounter. */
+const presentedSceneCaptureSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuidSchema,
+    presentation: z.nullable(campaignScenePresentationDtoSchema),
+    sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
+    /** The Campaign's ACTIVE Encounter, when bound to the presented Scene. */
+    sceneEncounterId: z.nullable(uuidSchema)
+  })
+)
+
+/** Cold admission: proves the presenting user's identity and membership. */
 export const liveSessionTransientCaptureInputSchema = lazySchema(() =>
   z.extend(liveSessionJoinOptionsDtoSchema, {
     expectedRole: roleSchema,
-    expectedUserId: uuidSchema,
-    mode: z.optional(z.enum(['AUTHORITY', 'FULL'])),
-    observedCharacterRevisions: sceneSessionVisionCharacterRevisionsSchema,
-    recipientUserIds: z
-      .array(uuidSchema)
-      .check(z.maxLength(10_000))
-      .check(z.refine((ids) => new Set(ids).size === ids.length, 'Recipients must be unique.'))
+    expectedUserId: uuidSchema
   })
 )
 
 export const liveSessionTransientCaptureSchema = lazySchema(() =>
+  z.extend(presentedSceneCaptureSchema, {
+    origin: liveSessionTransientMemberSchema
+  })
+)
+
+/**
+ * The room's Scene cache refresh, authorized by the room's active epoch rather than a member's
+ * token. The cache is shared by every member, so it names no origin or recipients.
+ */
+export const liveSessionRoomSceneCaptureInputSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,
+    epoch: uuidSchema,
+    observedCharacterRevisions: sceneSessionVisionCharacterRevisionsSchema
+  })
+)
+
+export const liveSessionRoomSceneCaptureSchema = lazySchema(() =>
+  z.extend(presentedSceneCaptureSchema, {
     systemId: postgresUuidSchema,
     observedCharacterRevisions: sceneSessionVisionCharacterRevisionsSchema,
-    origin: liveSessionTransientMemberSchema,
-    presentation: z.nullable(campaignScenePresentationDtoSchema),
-    recipients: z.array(liveSessionTransientMemberSchema).check(z.maxLength(10_000)),
-    sceneHeader: z.nullable(sceneLiveStateHeaderSchema),
-    /** The Encounter bound to the presented Scene, if any. */
-    sceneEncounterId: z.nullable(uuidSchema),
-    /**
-     * For a player origin on an Encounter-bound Scene: each Encounter-bound token and whether the
-     * origin controls its bound actor. Bound tokens follow actor control, never the Scene token's
-     * `controlledByUserIds` (ADR 0034). Empty for the GM and for unbound Scenes.
-     */
-    originBoundTokenControl: z
-      .array(z.strictObject({ tokenId: uuidSchema, controlled: z.boolean() }))
-      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     visionFreshness: z.nullable(sceneSessionVisionFreshnessSchema)
   })
 )
@@ -65,5 +73,9 @@ export const liveSessionTransientCaptureSchema = lazySchema(() =>
 export type LiveSessionTransientCapture = z.infer<typeof liveSessionTransientCaptureSchema>
 export type LiveSessionTransientCaptureInput = z.infer<
   typeof liveSessionTransientCaptureInputSchema
+>
+export type LiveSessionRoomSceneCapture = z.infer<typeof liveSessionRoomSceneCaptureSchema>
+export type LiveSessionRoomSceneCaptureInput = z.infer<
+  typeof liveSessionRoomSceneCaptureInputSchema
 >
 export type LiveSessionTransientMember = z.infer<typeof liveSessionTransientMemberSchema>

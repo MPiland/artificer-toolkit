@@ -140,7 +140,7 @@ async function prepare() {
 
 describe('trusted private Character account cleanup', () => {
   it.each(['SUCCESS', 'LATE_ROLLBACK', 'MALFORMED_RECEIPT'] as const)(
-    'removes complete private Character state and preserves finished Encounter history: %s',
+    'removes complete private Character state and leaves every Encounter row untouched: %s',
     async (outcome) => {
       const fixture = await prepare()
       const { base } = fixture

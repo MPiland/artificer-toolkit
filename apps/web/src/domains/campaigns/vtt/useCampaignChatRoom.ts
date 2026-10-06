@@ -6,6 +6,7 @@ import type {
   RevealCampaignRollInput,
   SendCampaignChatEntryInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import { useQuery } from '@tanstack/react-query'
 import { useMutation as useConvexMutation } from 'convex/react'
@@ -13,8 +14,6 @@ import { useCallback, useState } from 'react'
 import { getCampaignLiveAuthority } from '#app/data/campaigns/queries'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 
-/** Room-pushed entries kept per hook; Convex history carries everything older. */
-const PUSHED_ENTRY_LIMIT = 200
 /** The Convex roll history reads 20 rolls; the room's pushed copies need no more. */
 const PUSHED_PRIVATE_ROLL_LIMIT = 20
 
@@ -41,7 +40,7 @@ export function useCampaignChatRoom(
       setPushed((current) =>
         current.some((existing) => existing.id === entry.id)
           ? current
-          : [...current, entry].slice(-PUSHED_ENTRY_LIMIT)
+          : [...current, entry].slice(-LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT)
       ),
     onPrivateRoll: (roll) =>
       setPushedPrivateRolls((current) =>

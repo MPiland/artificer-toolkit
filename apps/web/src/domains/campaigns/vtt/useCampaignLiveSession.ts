@@ -1,5 +1,6 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { LIVE_SESSION_REAUTHENTICATION_LEAD_MS } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
@@ -28,6 +29,21 @@ import {
   type LiveSessionConnection,
   type LiveSessionConnectionStatus
 } from './liveSessionClient'
+
+/**
+ * Reads `exp` from the access token's payload, or 0 when it has none, so the token is not reused. The
+ * room verifies the token; the client only schedules reuse.
+ */
+function accessTokenExpiresAtMs(token: string): number {
+  try {
+    const payload = token.split('.')[1] ?? ''
+    const claims: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    const exp = typeof claims === 'object' && claims !== null && 'exp' in claims ? claims.exp : null
+    return typeof exp === 'number' ? exp * 1000 : 0
+  } catch {
+    return 0
+  }
+}
 
 /** The Encounter session while the room holds the Campaign's Run; otherwise Convex is the source. */
 export type HeldEncounterSession = Extract<EncounterSessionFrameDto, { held: true }>
@@ -97,11 +113,17 @@ export function useCampaignLiveSession({
       setError('Live play is not configured for this deployment.')
       return
     }
+    // Reused until the room would challenge it again, so a woken room's re-challenge costs no fetch.
+    let cachedToken: { expiresAtMs: number; value: string } | null = null
     const liveConnection = createLiveSessionConnection({
       getAccessToken: async () => {
+        if (cachedToken && cachedToken.expiresAtMs - Date.now() > LIVE_SESSION_REAUTHENTICATION_LEAD_MS) {
+          return cachedToken.value
+        }
         const result = await betterAuthClient.convex.token({ fetchOptions: { throw: false } })
         const accessToken = result.data?.token
         if (!accessToken) throw new Error('Unable to authenticate live play.')
+        cachedToken = { expiresAtMs: accessTokenExpiresAtMs(accessToken), value: accessToken }
         return accessToken
       },
       getTicket: () => convex.action(api.liveSessions.tickets.issue, { campaignId }),
@@ -206,12 +228,6 @@ export function useCampaignLiveSession({
   const sendTransient = useCallback((envelope: SceneTransientEnvelopeDto) => {
     return connection.current?.sendTransient(envelope) ?? false
   }, [])
-  const synchronizeScene = useCallback(
-    (sceneId: string, version: number, expectedPresentationVersion: number) => {
-      connection.current?.synchronizeScene(sceneId, version, expectedPresentationVersion)
-    },
-    []
-  )
 
   return {
     campaignSummary,
@@ -228,7 +244,6 @@ export function useCampaignLiveSession({
     sendSceneFog,
     sendTransient,
     sequence,
-    status,
-    synchronizeScene
+    status
   }
 }

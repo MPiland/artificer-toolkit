@@ -127,29 +127,6 @@ export const encounterRuns = migrations.define({
   }
 })
 
-export const geometrySaves = migrations.define({
-  table: 'sceneGeometrySaves',
-  migrateOne: async (ctx, save) => {
-    const vision = save.sessionVision
-    if (!vision || !('sessionId' in vision)) return
-    // The former Session revision cannot prove play freshness; staged saves must recapture.
-    await ctx.db.patch(save._id, {
-      sessionVision: {
-        campaignId: vision.campaignId,
-        systemId: vision.systemId,
-        sceneId: vision.sceneId,
-        expectedSceneVersion: vision.expectedSceneVersion,
-        expectedPresentationVersion: vision.expectedPresentationVersion,
-        freshness: {
-          system: vision.freshness.system,
-          campaign: vision.freshness.campaign,
-          play: null
-        }
-      }
-    })
-  }
-})
-
 export const fogSaves = migrations.define({
   table: 'sceneFogSaves',
   migrateOne: async (ctx, save) => {
@@ -178,7 +155,6 @@ export const run = migrations.runner([
   internal.campaigns.playMigrations.presentations,
   internal.campaigns.playMigrations.visionRevisions,
   internal.campaigns.playMigrations.encounterRuns,
-  internal.campaigns.playMigrations.geometrySaves,
   internal.campaigns.playMigrations.fogSaves,
   internal.campaigns.playMigrations.presentationEvents
 ])

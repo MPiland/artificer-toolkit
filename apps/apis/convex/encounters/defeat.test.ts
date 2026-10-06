@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import {
   domainRejection,
   playerControlFixture,
@@ -15,7 +15,7 @@ async function storedActor(base: PlayerControlFixture, actorId: string) {
       .unique()
   )
   if (!row) throw new Error('Missing Encounter actor.')
-  return encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+  return readStoredRunActor(row)
 }
 
 async function setHitPoints(base: PlayerControlFixture, actorId: string, currentHitPoints: number) {

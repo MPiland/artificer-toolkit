@@ -59,7 +59,9 @@ describe('Room-pushed Encounter session', () => {
       expect(frame.preparedPending).toEqual(
         await member.caller.query(api.encounters.projectionReads.pendingPrepared, { campaignId })
       )
-      expect(frame.timeline?.entries.length).toBeGreaterThan(0)
+      // Every command here is PRIVATE, so only the GM's timeline shows them.
+      if (member === base.owner) expect(frame.timeline?.entries.length).toBe(3)
+      else expect(frame.timeline?.entries).toEqual([])
       expect(frame.actorSides).toEqual(
         member === base.owner
           ? await member.caller.query(api.encounters.projectionReads.actorSides, {

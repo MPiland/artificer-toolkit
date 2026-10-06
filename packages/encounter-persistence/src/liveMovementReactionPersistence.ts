@@ -1,3 +1,4 @@
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import type { LiveSessionMovementSettlement } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import {
   encounterRunActorStateSchema,
@@ -242,7 +243,7 @@ export async function persistLiveMovementReaction(
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', before.id))
       .unique()
-    if (!row || row.stateChecksum !== checksumCanonicalJson(before))
+    if (!row || row.stateChecksum !== checksumRunActorPlayState(before))
       throw new Error('Live movement reaction actor changed before settlement.')
     await writeRunActor(ctx, row._id, after)
   }

@@ -30,7 +30,7 @@ const watchdogReference = makeFunctionReference<
 const drainReference = makeFunctionReference<'query', Run, { campaignId: string } | null>(
   'campaigns/deletionJobs:drain'
 )
-const closeReference = makeFunctionReference<'action', LiveSessionControlInput, null>(
+const controlReference = makeFunctionReference<'action', LiveSessionControlInput, null>(
   'liveSessions/control:send'
 )
 const WATCHDOG_DELAY_MS = 60_000
@@ -179,7 +179,17 @@ export const step = internalMutation({
     }
     if (capturedRoot || currentRoot)
       throw new Error('Campaign cleanup refuses a live or recreated Campaign root.')
-    const progress = await removeCampaignState(ctx, job)
+    // Pages stay small so no one table can exhaust a transaction, but a step keeps paging until it
+    // has spent a quarter of any transaction limit: a played Campaign otherwise needs thousands of
+    // scheduled steps.
+    let progress = { phase: job.phase, done: false }
+    do progress = await removeCampaignState(ctx, { ...job, phase: progress.phase })
+    while (
+      !progress.done &&
+      Object.values(await ctx.meta.getTransactionMetrics()).every(
+        ({ used, remaining }) => used * 3 < remaining
+      )
+    )
     const next = {
       ...job,
       phase: progress.phase,
@@ -250,7 +260,8 @@ export const run = internalAction({
   handler: async (ctx, input) => {
     try {
       const room = await ctx.runQuery(drainReference, input)
-      if (room) await ctx.runAction(closeReference, { ...room, operation: { type: 'CLOSE_ROOM' } })
+      if (room)
+        await ctx.runAction(controlReference, { ...room, operation: { type: 'DELETE_ROOM' } })
       await ctx.runMutation(stepReference, input)
     } catch (error) {
       await ctx.runMutation(failedReference, input)

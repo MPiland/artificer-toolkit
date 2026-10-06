@@ -9,7 +9,8 @@ import { sceneSessionVisionCharacterRevisionsSchema } from './sceneSessionVision
 /**
  * Why the room sent a checkpoint (ADR 0035 Decision 9; D85 measurement). It attributes Convex I/O
  * to the trigger and is never stored: Convex ignores it beyond the room meter's accounting.
- * - `DEADLINE`: the checkpoint alarm, `flushIntervalMs` after the oldest unpublished command.
+ * - `BACKLOG`: the unsaved chat entries and roll cards reached the chat push window (ADR 0035
+ *   Amendment 25). The journal's size is not a trigger.
  * - `ADMISSION`: a socket authenticated or was admitted and the room saved its pending prefix.
  * - `ACTIVATION`: the bootstrap that claims or recovers an epoch.
  * - `RELOAD`: a command needed the room aggregate reloaded over a newer Convex write.
@@ -20,7 +21,7 @@ import { sceneSessionVisionCharacterRevisionsSchema } from './sceneSessionVision
  *   in production play.
  */
 export const LIVE_SESSION_CHECKPOINT_REASONS = [
-  'DEADLINE',
+  'BACKLOG',
   'ADMISSION',
   'ACTIVATION',
   'RELOAD',

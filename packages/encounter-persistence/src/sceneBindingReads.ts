@@ -66,3 +66,30 @@ export function presentSceneEncounterBinding(
         sceneId: binding.sceneId
       })
 }
+
+/**
+ * The fight being played on a Scene: the Campaign's single ACTIVE Run, only when its binding names
+ * `sceneId`. A PREPARED Run bound to the Scene is not being played and a Run's binding recency
+ * never ranks Runs, so a later bind cannot take the Scene's controls or vision.
+ */
+export async function readActiveSceneEncounter(
+  ctx: EncounterReadContext,
+  input: { campaignId: string; sceneId: string }
+) {
+  const active = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_campaignId_status', (q) =>
+      q.eq('campaignId', input.campaignId).eq('status', 'ACTIVE')
+    )
+    .take(2)
+  if (active.length > 1) throw new Error('Campaign has multiple active Encounters.')
+  const run = active[0]
+  if (!run) return null
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', run.id))
+    .unique()
+  if (binding && (binding.encounterId !== run.id || binding.campaignId !== input.campaignId))
+    throw new Error('Encounter Scene binding is inconsistent.')
+  return binding?.sceneId === input.sceneId ? { run, binding } : null
+}

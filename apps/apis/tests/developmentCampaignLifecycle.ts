@@ -1076,8 +1076,7 @@ export async function verifyCampaignLifecycle(input: {
       openAngleDegrees: 90
     }
   }
-  const roomPresentation = { expectedPresentationVersion: presentation.version }
-  const geometry = await owner.executeSceneCommand(geometryInput, roomPresentation)
+  const geometry = await owner.executeSceneCommand(geometryInput)
   assert.equal(geometry.result?.replayed, false)
   assert.equal(geometry.result?.occurrence, null)
   const exploration: SceneExplorationState = {
@@ -1093,16 +1092,13 @@ export async function verifyCampaignLifecycle(input: {
     explored: true,
     ownerUserId: playerUserId
   })
-  const fog = await owner.executeSceneFog(
-    {
-      type: 'PATCH_SCENE_FOG',
-      sceneId: scene.liveSceneId,
-      commandId: crypto.randomUUID(),
-      expectedSceneVersion: geometry.version,
-      layer: fogLayer
-    },
-    roomPresentation
-  )
+  const fog = await owner.executeSceneFog({
+    type: 'PATCH_SCENE_FOG',
+    sceneId: scene.liveSceneId,
+    commandId: crypto.randomUUID(),
+    expectedSceneVersion: geometry.version,
+    layer: fogLayer
+  })
   assert.equal(fog.version, geometry.version + 1)
   const receivingDefinition = await owner.mutation(api.scenes.definitions.begin, {
     commandId: crypto.randomUUID(),
@@ -1140,12 +1136,9 @@ export async function verifyCampaignLifecycle(input: {
     'sceneDefinitionEntities',
     'sceneLiveEntities',
     'sceneLiveStates',
-    'sceneLiveCommands',
-    'sceneGeometrySaves',
     'sceneFogSaves',
     'sceneFogLayers',
     'sceneFogChunks',
-    'sceneReceiptLedgers',
     'campaignScenePresentations',
     'encounterSceneBindings',
     'encounterActorTokenBindings'

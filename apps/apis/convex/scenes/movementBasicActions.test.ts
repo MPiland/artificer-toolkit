@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import { readTestActor } from '../../tests/fixtures/storedActors'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { expect, it, vi } from 'vitest'
 import type {
   EncounterCommandInputDto,
@@ -86,7 +88,7 @@ async function effectsOf(base: MoverTurn, actorId: string) {
       .unique()
   )
   if (!row) throw new Error('Missing reaction actor.')
-  return encounterBasicActionEffects(encounterRunActorStateSchema.parse(JSON.parse(row.stateJson)))
+  return encounterBasicActionEffects(readStoredRunActor(row))
 }
 
 /** Answers the room's pending movement decision as the GM and publishes the next plan. */
@@ -145,7 +147,7 @@ it('a defeated reactor takes no opportunity attack (D63)', async () => {
       .unique()
     if (!row) throw new Error('Missing reaction actor.')
     const defeated = encounterRunActorStateSchema.parse({
-      ...JSON.parse(row.stateJson),
+      ...(await readTestActor(ctx, row)),
       currentHitPoints: 0,
       defeated: true
     })

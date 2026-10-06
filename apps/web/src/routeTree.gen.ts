@@ -9,113 +9,128 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LogoutRouteImport } from './routes/logout'
-import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as GuestRouteImport } from './routes/_guest'
+import { Route as LogoutRouteImport } from './routes/logout'
+import { Route as AuthedNotificationsRouteImport } from './routes/_authed/notifications'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedSocialRouteImport } from './routes/_authed/social'
 import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
-import { Route as AuthedSocialRouteImport } from './routes/_authed/social'
-import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
-import { Route as AuthedNotificationsRouteImport } from './routes/_authed/notifications'
-import { Route as AuthedVehiclesIndexRouteImport } from './routes/_authed/vehicles/index'
-import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems/index'
-import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
-import { Route as AuthedSocialIndexRouteImport } from './routes/_authed/social/index'
-import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
-import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
-import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
-import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
-import { Route as AuthedEquipmentIndexRouteImport } from './routes/_authed/equipment/index'
-import { Route as AuthedCreaturesIndexRouteImport } from './routes/_authed/creatures/index'
-import { Route as AuthedClassesIndexRouteImport } from './routes/_authed/classes/index'
-import { Route as AuthedCharactersIndexRouteImport } from './routes/_authed/characters/index'
-import { Route as AuthedCampaignsIndexRouteImport } from './routes/_authed/campaigns/index'
 import { Route as AuthedBackgroundsIndexRouteImport } from './routes/_authed/backgrounds/index'
-import { Route as GuestAuthVerifyPasswordResetRouteImport } from './routes/_guest/_auth/verify-password-reset'
-import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
-import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
-import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-in'
-import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
-import { Route as AuthedVehiclesNewRouteImport } from './routes/_authed/vehicles/new'
-import { Route as AuthedVehiclesVehiclePublicIdRouteImport } from './routes/_authed/vehicles/$vehiclePublicId'
-import { Route as AuthedSystemsSystemIdRouteImport } from './routes/_authed/systems/$systemId'
-import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
-import { Route as AuthedSpellsSpellPublicIdRouteImport } from './routes/_authed/spells/$spellPublicId'
-import { Route as AuthedSocialModerationRouteImport } from './routes/_authed/social/moderation'
-import { Route as AuthedSettingsProfileRouteImport } from './routes/_authed/settings/profile'
-import { Route as AuthedSettingsPreferencesRouteImport } from './routes/_authed/settings/preferences'
-import { Route as AuthedSettingsAccountRouteImport } from './routes/_authed/settings/account'
-import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
-import { Route as AuthedRacesRacePublicIdRouteImport } from './routes/_authed/races/$racePublicId'
-import { Route as AuthedLibraryImportRouteImport } from './routes/_authed/library/import'
-import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
-import { Route as AuthedFeatsFeatPublicIdRouteImport } from './routes/_authed/feats/$featPublicId'
-import { Route as AuthedEquipmentNewRouteImport } from './routes/_authed/equipment/new'
-import { Route as AuthedEquipmentEquipmentPublicIdRouteImport } from './routes/_authed/equipment/$equipmentPublicId'
-import { Route as AuthedCreaturesNewRouteImport } from './routes/_authed/creatures/new'
-import { Route as AuthedCreaturesCreaturePublicIdRouteImport } from './routes/_authed/creatures/$creaturePublicId'
-import { Route as AuthedClassesNewRouteImport } from './routes/_authed/classes/new'
-import { Route as AuthedClassesClassPublicIdRouteImport } from './routes/_authed/classes/$classPublicId'
-import { Route as AuthedCharactersNewRouteImport } from './routes/_authed/characters/new'
-import { Route as AuthedCharactersCharacterPublicIdRouteImport } from './routes/_authed/characters/$characterPublicId'
-import { Route as AuthedCampaignsNewRouteImport } from './routes/_authed/campaigns/new'
-import { Route as AuthedCampaignsCampaignPublicIdRouteImport } from './routes/_authed/campaigns/$campaignPublicId'
-import { Route as AuthedBackgroundsNewRouteImport } from './routes/_authed/backgrounds/new'
 import { Route as AuthedBackgroundsBackgroundPublicIdRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId'
-import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
-import { Route as AuthedVehiclesVehiclePublicIdEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/edit'
-import { Route as AuthedSpellsSpellPublicIdEditRouteImport } from './routes/_authed/spells/$spellPublicId/edit'
-import { Route as AuthedSpellsSpellPublicIdSpellSlugRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug'
-import { Route as AuthedSocialProfilesProfilePublicIdRouteImport } from './routes/_authed/social/profiles/$profilePublicId'
-import { Route as AuthedSocialHostingNewRouteImport } from './routes/_authed/social/hosting/new'
-import { Route as AuthedRacesRacePublicIdEditRouteImport } from './routes/_authed/races/$racePublicId/edit'
-import { Route as AuthedRacesRacePublicIdRaceSlugRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug'
-import { Route as AuthedFeatsFeatPublicIdEditRouteImport } from './routes/_authed/feats/$featPublicId/edit'
-import { Route as AuthedFeatsFeatPublicIdFeatSlugRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug'
-import { Route as AuthedEquipmentEquipmentPublicIdEditRouteImport } from './routes/_authed/equipment/$equipmentPublicId/edit'
-import { Route as AuthedCreaturesCreaturePublicIdEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/edit'
-import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug'
-import { Route as AuthedClassesClassPublicIdEditRouteImport } from './routes/_authed/classes/$classPublicId/edit'
-import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug'
-import { Route as AuthedBackgroundsBackgroundPublicIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/edit'
+import { Route as AuthedBackgroundsNewRouteImport } from './routes/_authed/backgrounds/new'
+import { Route as AuthedCampaignsIndexRouteImport } from './routes/_authed/campaigns/index'
+import { Route as AuthedCampaignsCampaignPublicIdRouteImport } from './routes/_authed/campaigns/$campaignPublicId'
+import { Route as AuthedCampaignsNewRouteImport } from './routes/_authed/campaigns/new'
+import { Route as AuthedCharactersIndexRouteImport } from './routes/_authed/characters/index'
+import { Route as AuthedCharactersCharacterPublicIdRouteImport } from './routes/_authed/characters/$characterPublicId'
+import { Route as AuthedCharactersNewRouteImport } from './routes/_authed/characters/new'
+import { Route as AuthedClassesIndexRouteImport } from './routes/_authed/classes/index'
+import { Route as AuthedClassesClassPublicIdRouteImport } from './routes/_authed/classes/$classPublicId'
+import { Route as AuthedClassesNewRouteImport } from './routes/_authed/classes/new'
+import { Route as AuthedCreaturesIndexRouteImport } from './routes/_authed/creatures/index'
+import { Route as AuthedCreaturesCreaturePublicIdRouteImport } from './routes/_authed/creatures/$creaturePublicId'
+import { Route as AuthedCreaturesNewRouteImport } from './routes/_authed/creatures/new'
+import { Route as AuthedEquipmentIndexRouteImport } from './routes/_authed/equipment/index'
+import { Route as AuthedEquipmentEquipmentPublicIdRouteImport } from './routes/_authed/equipment/$equipmentPublicId'
+import { Route as AuthedEquipmentNewRouteImport } from './routes/_authed/equipment/new'
+import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
+import { Route as AuthedFeatsFeatPublicIdRouteImport } from './routes/_authed/feats/$featPublicId'
+import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
+import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
+import { Route as AuthedLibraryImportRouteImport } from './routes/_authed/library/import'
+import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
+import { Route as AuthedRacesRacePublicIdRouteImport } from './routes/_authed/races/$racePublicId'
+import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
+import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
+import { Route as AuthedSettingsAccountRouteImport } from './routes/_authed/settings/account'
+import { Route as AuthedSettingsPreferencesRouteImport } from './routes/_authed/settings/preferences'
+import { Route as AuthedSettingsProfileRouteImport } from './routes/_authed/settings/profile'
+import { Route as AuthedSocialIndexRouteImport } from './routes/_authed/social/index'
+import { Route as AuthedSocialModerationRouteImport } from './routes/_authed/social/moderation'
+import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
+import { Route as AuthedSpellsSpellPublicIdRouteImport } from './routes/_authed/spells/$spellPublicId'
+import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
+import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems/index'
+import { Route as AuthedSystemsSystemIdRouteImport } from './routes/_authed/systems/$systemId'
+import { Route as AuthedVehiclesIndexRouteImport } from './routes/_authed/vehicles/index'
+import { Route as AuthedVehiclesVehiclePublicIdRouteImport } from './routes/_authed/vehicles/$vehiclePublicId'
+import { Route as AuthedVehiclesNewRouteImport } from './routes/_authed/vehicles/new'
+import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
+import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-in'
+import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
+import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
+import { Route as GuestAuthVerifyPasswordResetRouteImport } from './routes/_guest/_auth/verify-password-reset'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
-import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/index'
-import { Route as AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport } from './routes/_authed/tabletop/campaigns/$campaignPublicId/index'
-import { Route as AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug/index'
-import { Route as AuthedRacesRacePublicIdRaceSlugIndexRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug/index'
-import { Route as AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug/index'
-import { Route as AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRouteImport } from './routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/index'
-import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugIndexRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug/index'
-import { Route as AuthedClassesClassPublicIdClassSlugIndexRouteImport } from './routes/_authed/classes/$classPublicId/$classSlug/index'
-import { Route as AuthedCharactersCharacterPublicIdCharacterSlugIndexRouteImport } from './routes/_authed/characters/$characterPublicId/$characterSlug/index'
-import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/index'
+import { Route as AuthedBackgroundsBackgroundPublicIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/edit'
+import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug'
+import { Route as AuthedClassesClassPublicIdEditRouteImport } from './routes/_authed/classes/$classPublicId/edit'
+import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug'
+import { Route as AuthedCreaturesCreaturePublicIdEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/edit'
+import { Route as AuthedEquipmentEquipmentPublicIdEditRouteImport } from './routes/_authed/equipment/$equipmentPublicId/edit'
+import { Route as AuthedFeatsFeatPublicIdFeatSlugRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug'
+import { Route as AuthedFeatsFeatPublicIdEditRouteImport } from './routes/_authed/feats/$featPublicId/edit'
+import { Route as AuthedRacesRacePublicIdRaceSlugRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug'
+import { Route as AuthedRacesRacePublicIdEditRouteImport } from './routes/_authed/races/$racePublicId/edit'
+import { Route as AuthedSocialHostingNewRouteImport } from './routes/_authed/social/hosting/new'
+import { Route as AuthedSocialProfilesProfilePublicIdRouteImport } from './routes/_authed/social/profiles/$profilePublicId'
+import { Route as AuthedSpellsSpellPublicIdSpellSlugRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug'
+import { Route as AuthedSpellsSpellPublicIdEditRouteImport } from './routes/_authed/spells/$spellPublicId/edit'
+import { Route as AuthedVehiclesVehiclePublicIdEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/edit'
+import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/index'
-import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
-import { Route as AuthedSpellsSpellPublicIdSpellSlugEditRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug/edit'
-import { Route as AuthedSocialListingsListingPublicIdSlugRouteImport } from './routes/_authed/social/listings/$listingPublicId/$slug'
-import { Route as AuthedSocialHostingListingPublicIdEditRouteImport } from './routes/_authed/social/hosting/$listingPublicId/edit'
-import { Route as AuthedRacesRacePublicIdRaceSlugEditRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug/edit'
-import { Route as AuthedFeatsFeatPublicIdFeatSlugEditRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug/edit'
-import { Route as AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport } from './routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
-import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug/edit'
-import { Route as AuthedClassesClassPublicIdClassSlugEditRouteImport } from './routes/_authed/classes/$classPublicId/$classSlug/edit'
-import { Route as AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport } from './routes/_authed/characters/$characterPublicId/$characterSlug/edit'
-import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/encounters'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/index'
+import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/encounters'
+import { Route as AuthedCharactersCharacterPublicIdCharacterSlugIndexRouteImport } from './routes/_authed/characters/$characterPublicId/$characterSlug/index'
+import { Route as AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport } from './routes/_authed/characters/$characterPublicId/$characterSlug/edit'
+import { Route as AuthedClassesClassPublicIdClassSlugIndexRouteImport } from './routes/_authed/classes/$classPublicId/$classSlug/index'
+import { Route as AuthedClassesClassPublicIdClassSlugEditRouteImport } from './routes/_authed/classes/$classPublicId/$classSlug/edit'
+import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugIndexRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug/index'
+import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug/edit'
+import { Route as AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRouteImport } from './routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/index'
+import { Route as AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport } from './routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
+import { Route as AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug/index'
+import { Route as AuthedFeatsFeatPublicIdFeatSlugEditRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug/edit'
+import { Route as AuthedRacesRacePublicIdRaceSlugIndexRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug/index'
+import { Route as AuthedRacesRacePublicIdRaceSlugEditRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug/edit'
+import { Route as AuthedSocialHostingListingPublicIdEditRouteImport } from './routes/_authed/social/hosting/$listingPublicId/edit'
+import { Route as AuthedSocialListingsListingPublicIdSlugRouteImport } from './routes/_authed/social/listings/$listingPublicId/$slug'
+import { Route as AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug/index'
+import { Route as AuthedSpellsSpellPublicIdSpellSlugEditRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug/edit'
+import { Route as AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport } from './routes/_authed/tabletop/campaigns/$campaignPublicId/index'
+import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/index'
+import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
 import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
 
-const LogoutRoute = LogoutRouteImport.update({
-  id: '/logout',
-  path: '/logout',
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuestRoute = GuestRouteImport.update({
   id: '/_guest',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedRoute = AuthedRouteImport.update({
-  id: '/_authed',
+const LogoutRoute = LogoutRouteImport.update({
+  id: '/logout',
+  path: '/logout',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedNotificationsRoute = AuthedNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSocialRoute = AuthedSocialRouteImport.update({
+  id: '/social',
+  path: '/social',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const GuestIndexRoute = GuestIndexRouteImport.update({
   id: '/',
@@ -126,248 +141,9 @@ const GuestAuthRoute = GuestAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => GuestRoute,
 } as any)
-const AuthedSocialRoute = AuthedSocialRouteImport.update({
-  id: '/social',
-  path: '/social',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedNotificationsRoute = AuthedNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedVehiclesIndexRoute = AuthedVehiclesIndexRouteImport.update({
-  id: '/vehicles/',
-  path: '/vehicles/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSystemsIndexRoute = AuthedSystemsIndexRouteImport.update({
-  id: '/systems/',
-  path: '/systems/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
-  id: '/spells/',
-  path: '/spells/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSocialIndexRoute = AuthedSocialIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthedSocialRoute,
-} as any)
-const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthedSettingsRoute,
-} as any)
-const AuthedRacesIndexRoute = AuthedRacesIndexRouteImport.update({
-  id: '/races/',
-  path: '/races/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
-  id: '/home/',
-  path: '/home/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedFeatsIndexRoute = AuthedFeatsIndexRouteImport.update({
-  id: '/feats/',
-  path: '/feats/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedEquipmentIndexRoute = AuthedEquipmentIndexRouteImport.update({
-  id: '/equipment/',
-  path: '/equipment/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCreaturesIndexRoute = AuthedCreaturesIndexRouteImport.update({
-  id: '/creatures/',
-  path: '/creatures/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedClassesIndexRoute = AuthedClassesIndexRouteImport.update({
-  id: '/classes/',
-  path: '/classes/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCharactersIndexRoute = AuthedCharactersIndexRouteImport.update({
-  id: '/characters/',
-  path: '/characters/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCampaignsIndexRoute = AuthedCampaignsIndexRouteImport.update({
-  id: '/campaigns/',
-  path: '/campaigns/',
-  getParentRoute: () => AuthedRoute,
-} as any)
 const AuthedBackgroundsIndexRoute = AuthedBackgroundsIndexRouteImport.update({
   id: '/backgrounds/',
   path: '/backgrounds/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const GuestAuthVerifyPasswordResetRoute =
-  GuestAuthVerifyPasswordResetRouteImport.update({
-    id: '/verify-password-reset',
-    path: '/verify-password-reset',
-    getParentRoute: () => GuestAuthRoute,
-  } as any)
-const GuestAuthUpdatePasswordRoute = GuestAuthUpdatePasswordRouteImport.update({
-  id: '/update-password',
-  path: '/update-password',
-  getParentRoute: () => GuestAuthRoute,
-} as any)
-const GuestAuthSignUpRoute = GuestAuthSignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => GuestAuthRoute,
-} as any)
-const GuestAuthSignInRoute = GuestAuthSignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => GuestAuthRoute,
-} as any)
-const GuestAuthResetPasswordRoute = GuestAuthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => GuestAuthRoute,
-} as any)
-const AuthedVehiclesNewRoute = AuthedVehiclesNewRouteImport.update({
-  id: '/vehicles/new',
-  path: '/vehicles/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedVehiclesVehiclePublicIdRoute =
-  AuthedVehiclesVehiclePublicIdRouteImport.update({
-    id: '/vehicles/$vehiclePublicId',
-    path: '/vehicles/$vehiclePublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedSystemsSystemIdRoute = AuthedSystemsSystemIdRouteImport.update({
-  id: '/systems/$systemId',
-  path: '/systems/$systemId',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSpellsNewRoute = AuthedSpellsNewRouteImport.update({
-  id: '/spells/new',
-  path: '/spells/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSpellsSpellPublicIdRoute =
-  AuthedSpellsSpellPublicIdRouteImport.update({
-    id: '/spells/$spellPublicId',
-    path: '/spells/$spellPublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedSocialModerationRoute = AuthedSocialModerationRouteImport.update({
-  id: '/moderation',
-  path: '/moderation',
-  getParentRoute: () => AuthedSocialRoute,
-} as any)
-const AuthedSettingsProfileRoute = AuthedSettingsProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AuthedSettingsRoute,
-} as any)
-const AuthedSettingsPreferencesRoute =
-  AuthedSettingsPreferencesRouteImport.update({
-    id: '/preferences',
-    path: '/preferences',
-    getParentRoute: () => AuthedSettingsRoute,
-  } as any)
-const AuthedSettingsAccountRoute = AuthedSettingsAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => AuthedSettingsRoute,
-} as any)
-const AuthedRacesNewRoute = AuthedRacesNewRouteImport.update({
-  id: '/races/new',
-  path: '/races/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedRacesRacePublicIdRoute = AuthedRacesRacePublicIdRouteImport.update({
-  id: '/races/$racePublicId',
-  path: '/races/$racePublicId',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedLibraryImportRoute = AuthedLibraryImportRouteImport.update({
-  id: '/library/import',
-  path: '/library/import',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedFeatsNewRoute = AuthedFeatsNewRouteImport.update({
-  id: '/feats/new',
-  path: '/feats/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedFeatsFeatPublicIdRoute = AuthedFeatsFeatPublicIdRouteImport.update({
-  id: '/feats/$featPublicId',
-  path: '/feats/$featPublicId',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedEquipmentNewRoute = AuthedEquipmentNewRouteImport.update({
-  id: '/equipment/new',
-  path: '/equipment/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedEquipmentEquipmentPublicIdRoute =
-  AuthedEquipmentEquipmentPublicIdRouteImport.update({
-    id: '/equipment/$equipmentPublicId',
-    path: '/equipment/$equipmentPublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedCreaturesNewRoute = AuthedCreaturesNewRouteImport.update({
-  id: '/creatures/new',
-  path: '/creatures/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCreaturesCreaturePublicIdRoute =
-  AuthedCreaturesCreaturePublicIdRouteImport.update({
-    id: '/creatures/$creaturePublicId',
-    path: '/creatures/$creaturePublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedClassesNewRoute = AuthedClassesNewRouteImport.update({
-  id: '/classes/new',
-  path: '/classes/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedClassesClassPublicIdRoute =
-  AuthedClassesClassPublicIdRouteImport.update({
-    id: '/classes/$classPublicId',
-    path: '/classes/$classPublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedCharactersNewRoute = AuthedCharactersNewRouteImport.update({
-  id: '/characters/new',
-  path: '/characters/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCharactersCharacterPublicIdRoute =
-  AuthedCharactersCharacterPublicIdRouteImport.update({
-    id: '/characters/$characterPublicId',
-    path: '/characters/$characterPublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedCampaignsNewRoute = AuthedCampaignsNewRouteImport.update({
-  id: '/campaigns/new',
-  path: '/campaigns/new',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCampaignsCampaignPublicIdRoute =
-  AuthedCampaignsCampaignPublicIdRouteImport.update({
-    id: '/campaigns/$campaignPublicId',
-    path: '/campaigns/$campaignPublicId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedBackgroundsNewRoute = AuthedBackgroundsNewRouteImport.update({
-  id: '/backgrounds/new',
-  path: '/backgrounds/new',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedBackgroundsBackgroundPublicIdRoute =
@@ -376,99 +152,229 @@ const AuthedBackgroundsBackgroundPublicIdRoute =
     path: '/backgrounds/$backgroundPublicId',
     getParentRoute: () => AuthedRoute,
   } as any)
-const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
-  id: '/auth/confirmed',
-  path: '/auth/confirmed',
-  getParentRoute: () => GuestAuthRoute,
+const AuthedBackgroundsNewRoute = AuthedBackgroundsNewRouteImport.update({
+  id: '/backgrounds/new',
+  path: '/backgrounds/new',
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedVehiclesVehiclePublicIdEditRoute =
-  AuthedVehiclesVehiclePublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
+const AuthedCampaignsIndexRoute = AuthedCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedCampaignsCampaignPublicIdRoute =
+  AuthedCampaignsCampaignPublicIdRouteImport.update({
+    id: '/campaigns/$campaignPublicId',
+    path: '/campaigns/$campaignPublicId',
+    getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedSpellsSpellPublicIdEditRoute =
-  AuthedSpellsSpellPublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedSpellsSpellPublicIdRoute,
+const AuthedCampaignsNewRoute = AuthedCampaignsNewRouteImport.update({
+  id: '/campaigns/new',
+  path: '/campaigns/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedCharactersIndexRoute = AuthedCharactersIndexRouteImport.update({
+  id: '/characters/',
+  path: '/characters/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedCharactersCharacterPublicIdRoute =
+  AuthedCharactersCharacterPublicIdRouteImport.update({
+    id: '/characters/$characterPublicId',
+    path: '/characters/$characterPublicId',
+    getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedSpellsSpellPublicIdSpellSlugRoute =
-  AuthedSpellsSpellPublicIdSpellSlugRouteImport.update({
-    id: '/$spellSlug',
-    path: '/$spellSlug',
-    getParentRoute: () => AuthedSpellsSpellPublicIdRoute,
+const AuthedCharactersNewRoute = AuthedCharactersNewRouteImport.update({
+  id: '/characters/new',
+  path: '/characters/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedClassesIndexRoute = AuthedClassesIndexRouteImport.update({
+  id: '/classes/',
+  path: '/classes/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedClassesClassPublicIdRoute =
+  AuthedClassesClassPublicIdRouteImport.update({
+    id: '/classes/$classPublicId',
+    path: '/classes/$classPublicId',
+    getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedSocialProfilesProfilePublicIdRoute =
-  AuthedSocialProfilesProfilePublicIdRouteImport.update({
-    id: '/profiles/$profilePublicId',
-    path: '/profiles/$profilePublicId',
-    getParentRoute: () => AuthedSocialRoute,
+const AuthedClassesNewRoute = AuthedClassesNewRouteImport.update({
+  id: '/classes/new',
+  path: '/classes/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedCreaturesIndexRoute = AuthedCreaturesIndexRouteImport.update({
+  id: '/creatures/',
+  path: '/creatures/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedCreaturesCreaturePublicIdRoute =
+  AuthedCreaturesCreaturePublicIdRouteImport.update({
+    id: '/creatures/$creaturePublicId',
+    path: '/creatures/$creaturePublicId',
+    getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedSocialHostingNewRoute = AuthedSocialHostingNewRouteImport.update({
-  id: '/hosting/new',
-  path: '/hosting/new',
+const AuthedCreaturesNewRoute = AuthedCreaturesNewRouteImport.update({
+  id: '/creatures/new',
+  path: '/creatures/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedEquipmentIndexRoute = AuthedEquipmentIndexRouteImport.update({
+  id: '/equipment/',
+  path: '/equipment/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedEquipmentEquipmentPublicIdRoute =
+  AuthedEquipmentEquipmentPublicIdRouteImport.update({
+    id: '/equipment/$equipmentPublicId',
+    path: '/equipment/$equipmentPublicId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedEquipmentNewRoute = AuthedEquipmentNewRouteImport.update({
+  id: '/equipment/new',
+  path: '/equipment/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedFeatsIndexRoute = AuthedFeatsIndexRouteImport.update({
+  id: '/feats/',
+  path: '/feats/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedFeatsFeatPublicIdRoute = AuthedFeatsFeatPublicIdRouteImport.update({
+  id: '/feats/$featPublicId',
+  path: '/feats/$featPublicId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedFeatsNewRoute = AuthedFeatsNewRouteImport.update({
+  id: '/feats/new',
+  path: '/feats/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
+  id: '/home/',
+  path: '/home/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedLibraryImportRoute = AuthedLibraryImportRouteImport.update({
+  id: '/library/import',
+  path: '/library/import',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRacesIndexRoute = AuthedRacesIndexRouteImport.update({
+  id: '/races/',
+  path: '/races/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRacesRacePublicIdRoute = AuthedRacesRacePublicIdRouteImport.update({
+  id: '/races/$racePublicId',
+  path: '/races/$racePublicId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRacesNewRoute = AuthedRacesNewRouteImport.update({
+  id: '/races/new',
+  path: '/races/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSettingsAccountRoute = AuthedSettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSettingsPreferencesRoute =
+  AuthedSettingsPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => AuthedSettingsRoute,
+  } as any)
+const AuthedSettingsProfileRoute = AuthedSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
+const AuthedSocialIndexRoute = AuthedSocialIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AuthedSocialRoute,
 } as any)
-const AuthedRacesRacePublicIdEditRoute =
-  AuthedRacesRacePublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedRacesRacePublicIdRoute,
+const AuthedSocialModerationRoute = AuthedSocialModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
+  getParentRoute: () => AuthedSocialRoute,
+} as any)
+const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
+  id: '/spells/',
+  path: '/spells/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSpellsSpellPublicIdRoute =
+  AuthedSpellsSpellPublicIdRouteImport.update({
+    id: '/spells/$spellPublicId',
+    path: '/spells/$spellPublicId',
+    getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedRacesRacePublicIdRaceSlugRoute =
-  AuthedRacesRacePublicIdRaceSlugRouteImport.update({
-    id: '/$raceSlug',
-    path: '/$raceSlug',
-    getParentRoute: () => AuthedRacesRacePublicIdRoute,
+const AuthedSpellsNewRoute = AuthedSpellsNewRouteImport.update({
+  id: '/spells/new',
+  path: '/spells/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSystemsIndexRoute = AuthedSystemsIndexRouteImport.update({
+  id: '/systems/',
+  path: '/systems/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSystemsSystemIdRoute = AuthedSystemsSystemIdRouteImport.update({
+  id: '/systems/$systemId',
+  path: '/systems/$systemId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedVehiclesIndexRoute = AuthedVehiclesIndexRouteImport.update({
+  id: '/vehicles/',
+  path: '/vehicles/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedVehiclesVehiclePublicIdRoute =
+  AuthedVehiclesVehiclePublicIdRouteImport.update({
+    id: '/vehicles/$vehiclePublicId',
+    path: '/vehicles/$vehiclePublicId',
+    getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedFeatsFeatPublicIdEditRoute =
-  AuthedFeatsFeatPublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedFeatsFeatPublicIdRoute,
-  } as any)
-const AuthedFeatsFeatPublicIdFeatSlugRoute =
-  AuthedFeatsFeatPublicIdFeatSlugRouteImport.update({
-    id: '/$featSlug',
-    path: '/$featSlug',
-    getParentRoute: () => AuthedFeatsFeatPublicIdRoute,
-  } as any)
-const AuthedEquipmentEquipmentPublicIdEditRoute =
-  AuthedEquipmentEquipmentPublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedEquipmentEquipmentPublicIdRoute,
-  } as any)
-const AuthedCreaturesCreaturePublicIdEditRoute =
-  AuthedCreaturesCreaturePublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedCreaturesCreaturePublicIdRoute,
-  } as any)
-const AuthedCreaturesCreaturePublicIdCreatureSlugRoute =
-  AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport.update({
-    id: '/$creatureSlug',
-    path: '/$creatureSlug',
-    getParentRoute: () => AuthedCreaturesCreaturePublicIdRoute,
-  } as any)
-const AuthedClassesClassPublicIdEditRoute =
-  AuthedClassesClassPublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedClassesClassPublicIdRoute,
-  } as any)
-const AuthedCampaignsCampaignPublicIdCampaignSlugRoute =
-  AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport.update({
-    id: '/$campaignSlug',
-    path: '/$campaignSlug',
-    getParentRoute: () => AuthedCampaignsCampaignPublicIdRoute,
-  } as any)
-const AuthedBackgroundsBackgroundPublicIdEditRoute =
-  AuthedBackgroundsBackgroundPublicIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedBackgroundsBackgroundPublicIdRoute,
+const AuthedVehiclesNewRoute = AuthedVehiclesNewRouteImport.update({
+  id: '/vehicles/new',
+  path: '/vehicles/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const GuestAuthResetPasswordRoute = GuestAuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => GuestAuthRoute,
+} as any)
+const GuestAuthSignInRoute = GuestAuthSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => GuestAuthRoute,
+} as any)
+const GuestAuthSignUpRoute = GuestAuthSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => GuestAuthRoute,
+} as any)
+const GuestAuthUpdatePasswordRoute = GuestAuthUpdatePasswordRouteImport.update({
+  id: '/update-password',
+  path: '/update-password',
+  getParentRoute: () => GuestAuthRoute,
+} as any)
+const GuestAuthVerifyPasswordResetRoute =
+  GuestAuthVerifyPasswordResetRouteImport.update({
+    id: '/verify-password-reset',
+    path: '/verify-password-reset',
+    getParentRoute: () => GuestAuthRoute,
   } as any)
 const AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute =
   AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport.update({
@@ -476,66 +382,100 @@ const AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute =
     path: '/$backgroundSlug',
     getParentRoute: () => AuthedBackgroundsBackgroundPublicIdRoute,
   } as any)
-const AuthedVehiclesVehiclePublicIdVehicleSlugIndexRoute =
-  AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport.update({
-    id: '/$vehicleSlug/',
-    path: '/$vehicleSlug/',
-    getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
+const AuthedBackgroundsBackgroundPublicIdEditRoute =
+  AuthedBackgroundsBackgroundPublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedBackgroundsBackgroundPublicIdRoute,
   } as any)
-const AuthedTabletopCampaignsCampaignPublicIdIndexRoute =
-  AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport.update({
-    id: '/tabletop/campaigns/$campaignPublicId/',
-    path: '/tabletop/campaigns/$campaignPublicId/',
-    getParentRoute: () => AuthedRoute,
+const AuthedCampaignsCampaignPublicIdCampaignSlugRoute =
+  AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport.update({
+    id: '/$campaignSlug',
+    path: '/$campaignSlug',
+    getParentRoute: () => AuthedCampaignsCampaignPublicIdRoute,
   } as any)
-const AuthedSpellsSpellPublicIdSpellSlugIndexRoute =
-  AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthedSpellsSpellPublicIdSpellSlugRoute,
-  } as any)
-const AuthedRacesRacePublicIdRaceSlugIndexRoute =
-  AuthedRacesRacePublicIdRaceSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthedRacesRacePublicIdRaceSlugRoute,
-  } as any)
-const AuthedFeatsFeatPublicIdFeatSlugIndexRoute =
-  AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthedFeatsFeatPublicIdFeatSlugRoute,
-  } as any)
-const AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRoute =
-  AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRouteImport.update({
-    id: '/$equipmentSlug/',
-    path: '/$equipmentSlug/',
-    getParentRoute: () => AuthedEquipmentEquipmentPublicIdRoute,
-  } as any)
-const AuthedCreaturesCreaturePublicIdCreatureSlugIndexRoute =
-  AuthedCreaturesCreaturePublicIdCreatureSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthedCreaturesCreaturePublicIdCreatureSlugRoute,
-  } as any)
-const AuthedClassesClassPublicIdClassSlugIndexRoute =
-  AuthedClassesClassPublicIdClassSlugIndexRouteImport.update({
-    id: '/$classSlug/',
-    path: '/$classSlug/',
+const AuthedClassesClassPublicIdEditRoute =
+  AuthedClassesClassPublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
     getParentRoute: () => AuthedClassesClassPublicIdRoute,
   } as any)
-const AuthedCharactersCharacterPublicIdCharacterSlugIndexRoute =
-  AuthedCharactersCharacterPublicIdCharacterSlugIndexRouteImport.update({
-    id: '/$characterSlug/',
-    path: '/$characterSlug/',
-    getParentRoute: () => AuthedCharactersCharacterPublicIdRoute,
+const AuthedCreaturesCreaturePublicIdCreatureSlugRoute =
+  AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport.update({
+    id: '/$creatureSlug',
+    path: '/$creatureSlug',
+    getParentRoute: () => AuthedCreaturesCreaturePublicIdRoute,
   } as any)
-const AuthedCampaignsCampaignPublicIdCampaignSlugIndexRoute =
-  AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthedCampaignsCampaignPublicIdCampaignSlugRoute,
+const AuthedCreaturesCreaturePublicIdEditRoute =
+  AuthedCreaturesCreaturePublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedCreaturesCreaturePublicIdRoute,
   } as any)
+const AuthedEquipmentEquipmentPublicIdEditRoute =
+  AuthedEquipmentEquipmentPublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedEquipmentEquipmentPublicIdRoute,
+  } as any)
+const AuthedFeatsFeatPublicIdFeatSlugRoute =
+  AuthedFeatsFeatPublicIdFeatSlugRouteImport.update({
+    id: '/$featSlug',
+    path: '/$featSlug',
+    getParentRoute: () => AuthedFeatsFeatPublicIdRoute,
+  } as any)
+const AuthedFeatsFeatPublicIdEditRoute =
+  AuthedFeatsFeatPublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedFeatsFeatPublicIdRoute,
+  } as any)
+const AuthedRacesRacePublicIdRaceSlugRoute =
+  AuthedRacesRacePublicIdRaceSlugRouteImport.update({
+    id: '/$raceSlug',
+    path: '/$raceSlug',
+    getParentRoute: () => AuthedRacesRacePublicIdRoute,
+  } as any)
+const AuthedRacesRacePublicIdEditRoute =
+  AuthedRacesRacePublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedRacesRacePublicIdRoute,
+  } as any)
+const AuthedSocialHostingNewRoute = AuthedSocialHostingNewRouteImport.update({
+  id: '/hosting/new',
+  path: '/hosting/new',
+  getParentRoute: () => AuthedSocialRoute,
+} as any)
+const AuthedSocialProfilesProfilePublicIdRoute =
+  AuthedSocialProfilesProfilePublicIdRouteImport.update({
+    id: '/profiles/$profilePublicId',
+    path: '/profiles/$profilePublicId',
+    getParentRoute: () => AuthedSocialRoute,
+  } as any)
+const AuthedSpellsSpellPublicIdSpellSlugRoute =
+  AuthedSpellsSpellPublicIdSpellSlugRouteImport.update({
+    id: '/$spellSlug',
+    path: '/$spellSlug',
+    getParentRoute: () => AuthedSpellsSpellPublicIdRoute,
+  } as any)
+const AuthedSpellsSpellPublicIdEditRoute =
+  AuthedSpellsSpellPublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedSpellsSpellPublicIdRoute,
+  } as any)
+const AuthedVehiclesVehiclePublicIdEditRoute =
+  AuthedVehiclesVehiclePublicIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
+  } as any)
+const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
+  id: '/auth/confirmed',
+  path: '/auth/confirmed',
+  getParentRoute: () => GuestAuthRoute,
+} as any)
 const AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute =
   AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRouteImport.update({
     id: '/',
@@ -543,65 +483,18 @@ const AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute =
     getParentRoute: () =>
       AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute,
   } as any)
-const AuthedVehiclesVehiclePublicIdVehicleSlugEditRoute =
-  AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport.update({
-    id: '/$vehicleSlug/edit',
-    path: '/$vehicleSlug/edit',
-    getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
-  } as any)
-const AuthedSpellsSpellPublicIdSpellSlugEditRoute =
-  AuthedSpellsSpellPublicIdSpellSlugEditRouteImport.update({
+const AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRoute =
+  AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport.update({
     id: '/edit',
     path: '/edit',
-    getParentRoute: () => AuthedSpellsSpellPublicIdSpellSlugRoute,
+    getParentRoute: () =>
+      AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute,
   } as any)
-const AuthedSocialListingsListingPublicIdSlugRoute =
-  AuthedSocialListingsListingPublicIdSlugRouteImport.update({
-    id: '/listings/$listingPublicId/$slug',
-    path: '/listings/$listingPublicId/$slug',
-    getParentRoute: () => AuthedSocialRoute,
-  } as any)
-const AuthedSocialHostingListingPublicIdEditRoute =
-  AuthedSocialHostingListingPublicIdEditRouteImport.update({
-    id: '/hosting/$listingPublicId/edit',
-    path: '/hosting/$listingPublicId/edit',
-    getParentRoute: () => AuthedSocialRoute,
-  } as any)
-const AuthedRacesRacePublicIdRaceSlugEditRoute =
-  AuthedRacesRacePublicIdRaceSlugEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedRacesRacePublicIdRaceSlugRoute,
-  } as any)
-const AuthedFeatsFeatPublicIdFeatSlugEditRoute =
-  AuthedFeatsFeatPublicIdFeatSlugEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedFeatsFeatPublicIdFeatSlugRoute,
-  } as any)
-const AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRoute =
-  AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport.update({
-    id: '/$equipmentSlug/edit',
-    path: '/$equipmentSlug/edit',
-    getParentRoute: () => AuthedEquipmentEquipmentPublicIdRoute,
-  } as any)
-const AuthedCreaturesCreaturePublicIdCreatureSlugEditRoute =
-  AuthedCreaturesCreaturePublicIdCreatureSlugEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthedCreaturesCreaturePublicIdCreatureSlugRoute,
-  } as any)
-const AuthedClassesClassPublicIdClassSlugEditRoute =
-  AuthedClassesClassPublicIdClassSlugEditRouteImport.update({
-    id: '/$classSlug/edit',
-    path: '/$classSlug/edit',
-    getParentRoute: () => AuthedClassesClassPublicIdRoute,
-  } as any)
-const AuthedCharactersCharacterPublicIdCharacterSlugEditRoute =
-  AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport.update({
-    id: '/$characterSlug/edit',
-    path: '/$characterSlug/edit',
-    getParentRoute: () => AuthedCharactersCharacterPublicIdRoute,
+const AuthedCampaignsCampaignPublicIdCampaignSlugIndexRoute =
+  AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedCampaignsCampaignPublicIdCampaignSlugRoute,
   } as any)
 const AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRoute =
   AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRouteImport.update({
@@ -609,12 +502,119 @@ const AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRoute =
     path: '/encounters',
     getParentRoute: () => AuthedCampaignsCampaignPublicIdCampaignSlugRoute,
   } as any)
-const AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRoute =
-  AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport.update({
+const AuthedCharactersCharacterPublicIdCharacterSlugIndexRoute =
+  AuthedCharactersCharacterPublicIdCharacterSlugIndexRouteImport.update({
+    id: '/$characterSlug/',
+    path: '/$characterSlug/',
+    getParentRoute: () => AuthedCharactersCharacterPublicIdRoute,
+  } as any)
+const AuthedCharactersCharacterPublicIdCharacterSlugEditRoute =
+  AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport.update({
+    id: '/$characterSlug/edit',
+    path: '/$characterSlug/edit',
+    getParentRoute: () => AuthedCharactersCharacterPublicIdRoute,
+  } as any)
+const AuthedClassesClassPublicIdClassSlugIndexRoute =
+  AuthedClassesClassPublicIdClassSlugIndexRouteImport.update({
+    id: '/$classSlug/',
+    path: '/$classSlug/',
+    getParentRoute: () => AuthedClassesClassPublicIdRoute,
+  } as any)
+const AuthedClassesClassPublicIdClassSlugEditRoute =
+  AuthedClassesClassPublicIdClassSlugEditRouteImport.update({
+    id: '/$classSlug/edit',
+    path: '/$classSlug/edit',
+    getParentRoute: () => AuthedClassesClassPublicIdRoute,
+  } as any)
+const AuthedCreaturesCreaturePublicIdCreatureSlugIndexRoute =
+  AuthedCreaturesCreaturePublicIdCreatureSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedCreaturesCreaturePublicIdCreatureSlugRoute,
+  } as any)
+const AuthedCreaturesCreaturePublicIdCreatureSlugEditRoute =
+  AuthedCreaturesCreaturePublicIdCreatureSlugEditRouteImport.update({
     id: '/edit',
     path: '/edit',
-    getParentRoute: () =>
-      AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute,
+    getParentRoute: () => AuthedCreaturesCreaturePublicIdCreatureSlugRoute,
+  } as any)
+const AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRoute =
+  AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRouteImport.update({
+    id: '/$equipmentSlug/',
+    path: '/$equipmentSlug/',
+    getParentRoute: () => AuthedEquipmentEquipmentPublicIdRoute,
+  } as any)
+const AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRoute =
+  AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport.update({
+    id: '/$equipmentSlug/edit',
+    path: '/$equipmentSlug/edit',
+    getParentRoute: () => AuthedEquipmentEquipmentPublicIdRoute,
+  } as any)
+const AuthedFeatsFeatPublicIdFeatSlugIndexRoute =
+  AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedFeatsFeatPublicIdFeatSlugRoute,
+  } as any)
+const AuthedFeatsFeatPublicIdFeatSlugEditRoute =
+  AuthedFeatsFeatPublicIdFeatSlugEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedFeatsFeatPublicIdFeatSlugRoute,
+  } as any)
+const AuthedRacesRacePublicIdRaceSlugIndexRoute =
+  AuthedRacesRacePublicIdRaceSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedRacesRacePublicIdRaceSlugRoute,
+  } as any)
+const AuthedRacesRacePublicIdRaceSlugEditRoute =
+  AuthedRacesRacePublicIdRaceSlugEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedRacesRacePublicIdRaceSlugRoute,
+  } as any)
+const AuthedSocialHostingListingPublicIdEditRoute =
+  AuthedSocialHostingListingPublicIdEditRouteImport.update({
+    id: '/hosting/$listingPublicId/edit',
+    path: '/hosting/$listingPublicId/edit',
+    getParentRoute: () => AuthedSocialRoute,
+  } as any)
+const AuthedSocialListingsListingPublicIdSlugRoute =
+  AuthedSocialListingsListingPublicIdSlugRouteImport.update({
+    id: '/listings/$listingPublicId/$slug',
+    path: '/listings/$listingPublicId/$slug',
+    getParentRoute: () => AuthedSocialRoute,
+  } as any)
+const AuthedSpellsSpellPublicIdSpellSlugIndexRoute =
+  AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedSpellsSpellPublicIdSpellSlugRoute,
+  } as any)
+const AuthedSpellsSpellPublicIdSpellSlugEditRoute =
+  AuthedSpellsSpellPublicIdSpellSlugEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedSpellsSpellPublicIdSpellSlugRoute,
+  } as any)
+const AuthedTabletopCampaignsCampaignPublicIdIndexRoute =
+  AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport.update({
+    id: '/tabletop/campaigns/$campaignPublicId/',
+    path: '/tabletop/campaigns/$campaignPublicId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedVehiclesVehiclePublicIdVehicleSlugIndexRoute =
+  AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport.update({
+    id: '/$vehicleSlug/',
+    path: '/$vehicleSlug/',
+    getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
+  } as any)
+const AuthedVehiclesVehiclePublicIdVehicleSlugEditRoute =
+  AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport.update({
+    id: '/$vehicleSlug/edit',
+    path: '/$vehicleSlug/edit',
+    getParentRoute: () => AuthedVehiclesVehiclePublicIdRoute,
   } as any)
 const AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRoute =
   AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRouteImport.update(
@@ -1185,11 +1185,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/logout': {
-      id: '/logout'
-      path: '/logout'
-      fullPath: '/logout'
-      preLoaderRoute: typeof LogoutRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_guest': {
@@ -1199,12 +1199,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed': {
-      id: '/_authed'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthedRouteImport
+    '/logout': {
+      id: '/logout'
+      path: '/logout'
+      fullPath: '/logout'
+      preLoaderRoute: typeof LogoutRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authed/notifications': {
+      id: '/_authed/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthedNotificationsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/social': {
+      id: '/_authed/social'
+      path: '/social'
+      fullPath: '/social'
+      preLoaderRoute: typeof AuthedSocialRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_guest/': {
       id: '/_guest/'
@@ -1220,333 +1241,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestAuthRouteImport
       parentRoute: typeof GuestRoute
     }
-    '/_authed/social': {
-      id: '/_authed/social'
-      path: '/social'
-      fullPath: '/social'
-      preLoaderRoute: typeof AuthedSocialRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/settings': {
-      id: '/_authed/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthedSettingsRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/notifications': {
-      id: '/_authed/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof AuthedNotificationsRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/vehicles/': {
-      id: '/_authed/vehicles/'
-      path: '/vehicles'
-      fullPath: '/vehicles/'
-      preLoaderRoute: typeof AuthedVehiclesIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/systems/': {
-      id: '/_authed/systems/'
-      path: '/systems'
-      fullPath: '/systems/'
-      preLoaderRoute: typeof AuthedSystemsIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/spells/': {
-      id: '/_authed/spells/'
-      path: '/spells'
-      fullPath: '/spells/'
-      preLoaderRoute: typeof AuthedSpellsIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/social/': {
-      id: '/_authed/social/'
-      path: '/'
-      fullPath: '/social/'
-      preLoaderRoute: typeof AuthedSocialIndexRouteImport
-      parentRoute: typeof AuthedSocialRoute
-    }
-    '/_authed/settings/': {
-      id: '/_authed/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof AuthedSettingsIndexRouteImport
-      parentRoute: typeof AuthedSettingsRoute
-    }
-    '/_authed/races/': {
-      id: '/_authed/races/'
-      path: '/races'
-      fullPath: '/races/'
-      preLoaderRoute: typeof AuthedRacesIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/home/': {
-      id: '/_authed/home/'
-      path: '/home'
-      fullPath: '/home/'
-      preLoaderRoute: typeof AuthedHomeIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/feats/': {
-      id: '/_authed/feats/'
-      path: '/feats'
-      fullPath: '/feats/'
-      preLoaderRoute: typeof AuthedFeatsIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/equipment/': {
-      id: '/_authed/equipment/'
-      path: '/equipment'
-      fullPath: '/equipment/'
-      preLoaderRoute: typeof AuthedEquipmentIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/creatures/': {
-      id: '/_authed/creatures/'
-      path: '/creatures'
-      fullPath: '/creatures/'
-      preLoaderRoute: typeof AuthedCreaturesIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/classes/': {
-      id: '/_authed/classes/'
-      path: '/classes'
-      fullPath: '/classes/'
-      preLoaderRoute: typeof AuthedClassesIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/characters/': {
-      id: '/_authed/characters/'
-      path: '/characters'
-      fullPath: '/characters/'
-      preLoaderRoute: typeof AuthedCharactersIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/campaigns/': {
-      id: '/_authed/campaigns/'
-      path: '/campaigns'
-      fullPath: '/campaigns/'
-      preLoaderRoute: typeof AuthedCampaignsIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
     '/_authed/backgrounds/': {
       id: '/_authed/backgrounds/'
       path: '/backgrounds'
       fullPath: '/backgrounds/'
       preLoaderRoute: typeof AuthedBackgroundsIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_guest/_auth/verify-password-reset': {
-      id: '/_guest/_auth/verify-password-reset'
-      path: '/verify-password-reset'
-      fullPath: '/verify-password-reset'
-      preLoaderRoute: typeof GuestAuthVerifyPasswordResetRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
-    '/_guest/_auth/update-password': {
-      id: '/_guest/_auth/update-password'
-      path: '/update-password'
-      fullPath: '/update-password'
-      preLoaderRoute: typeof GuestAuthUpdatePasswordRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
-    '/_guest/_auth/sign-up': {
-      id: '/_guest/_auth/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof GuestAuthSignUpRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
-    '/_guest/_auth/sign-in': {
-      id: '/_guest/_auth/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof GuestAuthSignInRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
-    '/_guest/_auth/reset-password': {
-      id: '/_guest/_auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof GuestAuthResetPasswordRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
-    '/_authed/vehicles/new': {
-      id: '/_authed/vehicles/new'
-      path: '/vehicles/new'
-      fullPath: '/vehicles/new'
-      preLoaderRoute: typeof AuthedVehiclesNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/vehicles/$vehiclePublicId': {
-      id: '/_authed/vehicles/$vehiclePublicId'
-      path: '/vehicles/$vehiclePublicId'
-      fullPath: '/vehicles/$vehiclePublicId'
-      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/systems/$systemId': {
-      id: '/_authed/systems/$systemId'
-      path: '/systems/$systemId'
-      fullPath: '/systems/$systemId'
-      preLoaderRoute: typeof AuthedSystemsSystemIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/spells/new': {
-      id: '/_authed/spells/new'
-      path: '/spells/new'
-      fullPath: '/spells/new'
-      preLoaderRoute: typeof AuthedSpellsNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/spells/$spellPublicId': {
-      id: '/_authed/spells/$spellPublicId'
-      path: '/spells/$spellPublicId'
-      fullPath: '/spells/$spellPublicId'
-      preLoaderRoute: typeof AuthedSpellsSpellPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/social/moderation': {
-      id: '/_authed/social/moderation'
-      path: '/moderation'
-      fullPath: '/social/moderation'
-      preLoaderRoute: typeof AuthedSocialModerationRouteImport
-      parentRoute: typeof AuthedSocialRoute
-    }
-    '/_authed/settings/profile': {
-      id: '/_authed/settings/profile'
-      path: '/profile'
-      fullPath: '/settings/profile'
-      preLoaderRoute: typeof AuthedSettingsProfileRouteImport
-      parentRoute: typeof AuthedSettingsRoute
-    }
-    '/_authed/settings/preferences': {
-      id: '/_authed/settings/preferences'
-      path: '/preferences'
-      fullPath: '/settings/preferences'
-      preLoaderRoute: typeof AuthedSettingsPreferencesRouteImport
-      parentRoute: typeof AuthedSettingsRoute
-    }
-    '/_authed/settings/account': {
-      id: '/_authed/settings/account'
-      path: '/account'
-      fullPath: '/settings/account'
-      preLoaderRoute: typeof AuthedSettingsAccountRouteImport
-      parentRoute: typeof AuthedSettingsRoute
-    }
-    '/_authed/races/new': {
-      id: '/_authed/races/new'
-      path: '/races/new'
-      fullPath: '/races/new'
-      preLoaderRoute: typeof AuthedRacesNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/races/$racePublicId': {
-      id: '/_authed/races/$racePublicId'
-      path: '/races/$racePublicId'
-      fullPath: '/races/$racePublicId'
-      preLoaderRoute: typeof AuthedRacesRacePublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/library/import': {
-      id: '/_authed/library/import'
-      path: '/library/import'
-      fullPath: '/library/import'
-      preLoaderRoute: typeof AuthedLibraryImportRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/feats/new': {
-      id: '/_authed/feats/new'
-      path: '/feats/new'
-      fullPath: '/feats/new'
-      preLoaderRoute: typeof AuthedFeatsNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/feats/$featPublicId': {
-      id: '/_authed/feats/$featPublicId'
-      path: '/feats/$featPublicId'
-      fullPath: '/feats/$featPublicId'
-      preLoaderRoute: typeof AuthedFeatsFeatPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/equipment/new': {
-      id: '/_authed/equipment/new'
-      path: '/equipment/new'
-      fullPath: '/equipment/new'
-      preLoaderRoute: typeof AuthedEquipmentNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/equipment/$equipmentPublicId': {
-      id: '/_authed/equipment/$equipmentPublicId'
-      path: '/equipment/$equipmentPublicId'
-      fullPath: '/equipment/$equipmentPublicId'
-      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/creatures/new': {
-      id: '/_authed/creatures/new'
-      path: '/creatures/new'
-      fullPath: '/creatures/new'
-      preLoaderRoute: typeof AuthedCreaturesNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/creatures/$creaturePublicId': {
-      id: '/_authed/creatures/$creaturePublicId'
-      path: '/creatures/$creaturePublicId'
-      fullPath: '/creatures/$creaturePublicId'
-      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/classes/new': {
-      id: '/_authed/classes/new'
-      path: '/classes/new'
-      fullPath: '/classes/new'
-      preLoaderRoute: typeof AuthedClassesNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/classes/$classPublicId': {
-      id: '/_authed/classes/$classPublicId'
-      path: '/classes/$classPublicId'
-      fullPath: '/classes/$classPublicId'
-      preLoaderRoute: typeof AuthedClassesClassPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/characters/new': {
-      id: '/_authed/characters/new'
-      path: '/characters/new'
-      fullPath: '/characters/new'
-      preLoaderRoute: typeof AuthedCharactersNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/characters/$characterPublicId': {
-      id: '/_authed/characters/$characterPublicId'
-      path: '/characters/$characterPublicId'
-      fullPath: '/characters/$characterPublicId'
-      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/campaigns/new': {
-      id: '/_authed/campaigns/new'
-      path: '/campaigns/new'
-      fullPath: '/campaigns/new'
-      preLoaderRoute: typeof AuthedCampaignsNewRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/campaigns/$campaignPublicId': {
-      id: '/_authed/campaigns/$campaignPublicId'
-      path: '/campaigns/$campaignPublicId'
-      fullPath: '/campaigns/$campaignPublicId'
-      preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/backgrounds/new': {
-      id: '/_authed/backgrounds/new'
-      path: '/backgrounds/new'
-      fullPath: '/backgrounds/new'
-      preLoaderRoute: typeof AuthedBackgroundsNewRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/backgrounds/$backgroundPublicId': {
@@ -1556,117 +1255,306 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_guest/_auth/auth/confirmed': {
-      id: '/_guest/_auth/auth/confirmed'
-      path: '/auth/confirmed'
-      fullPath: '/auth/confirmed'
-      preLoaderRoute: typeof GuestAuthAuthConfirmedRouteImport
+    '/_authed/backgrounds/new': {
+      id: '/_authed/backgrounds/new'
+      path: '/backgrounds/new'
+      fullPath: '/backgrounds/new'
+      preLoaderRoute: typeof AuthedBackgroundsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/campaigns/': {
+      id: '/_authed/campaigns/'
+      path: '/campaigns'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof AuthedCampaignsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/campaigns/$campaignPublicId': {
+      id: '/_authed/campaigns/$campaignPublicId'
+      path: '/campaigns/$campaignPublicId'
+      fullPath: '/campaigns/$campaignPublicId'
+      preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/campaigns/new': {
+      id: '/_authed/campaigns/new'
+      path: '/campaigns/new'
+      fullPath: '/campaigns/new'
+      preLoaderRoute: typeof AuthedCampaignsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/characters/': {
+      id: '/_authed/characters/'
+      path: '/characters'
+      fullPath: '/characters/'
+      preLoaderRoute: typeof AuthedCharactersIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/characters/$characterPublicId': {
+      id: '/_authed/characters/$characterPublicId'
+      path: '/characters/$characterPublicId'
+      fullPath: '/characters/$characterPublicId'
+      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/characters/new': {
+      id: '/_authed/characters/new'
+      path: '/characters/new'
+      fullPath: '/characters/new'
+      preLoaderRoute: typeof AuthedCharactersNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/classes/': {
+      id: '/_authed/classes/'
+      path: '/classes'
+      fullPath: '/classes/'
+      preLoaderRoute: typeof AuthedClassesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/classes/$classPublicId': {
+      id: '/_authed/classes/$classPublicId'
+      path: '/classes/$classPublicId'
+      fullPath: '/classes/$classPublicId'
+      preLoaderRoute: typeof AuthedClassesClassPublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/classes/new': {
+      id: '/_authed/classes/new'
+      path: '/classes/new'
+      fullPath: '/classes/new'
+      preLoaderRoute: typeof AuthedClassesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/': {
+      id: '/_authed/creatures/'
+      path: '/creatures'
+      fullPath: '/creatures/'
+      preLoaderRoute: typeof AuthedCreaturesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/$creaturePublicId': {
+      id: '/_authed/creatures/$creaturePublicId'
+      path: '/creatures/$creaturePublicId'
+      fullPath: '/creatures/$creaturePublicId'
+      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/new': {
+      id: '/_authed/creatures/new'
+      path: '/creatures/new'
+      fullPath: '/creatures/new'
+      preLoaderRoute: typeof AuthedCreaturesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/equipment/': {
+      id: '/_authed/equipment/'
+      path: '/equipment'
+      fullPath: '/equipment/'
+      preLoaderRoute: typeof AuthedEquipmentIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/equipment/$equipmentPublicId': {
+      id: '/_authed/equipment/$equipmentPublicId'
+      path: '/equipment/$equipmentPublicId'
+      fullPath: '/equipment/$equipmentPublicId'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/equipment/new': {
+      id: '/_authed/equipment/new'
+      path: '/equipment/new'
+      fullPath: '/equipment/new'
+      preLoaderRoute: typeof AuthedEquipmentNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/feats/': {
+      id: '/_authed/feats/'
+      path: '/feats'
+      fullPath: '/feats/'
+      preLoaderRoute: typeof AuthedFeatsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/feats/$featPublicId': {
+      id: '/_authed/feats/$featPublicId'
+      path: '/feats/$featPublicId'
+      fullPath: '/feats/$featPublicId'
+      preLoaderRoute: typeof AuthedFeatsFeatPublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/feats/new': {
+      id: '/_authed/feats/new'
+      path: '/feats/new'
+      fullPath: '/feats/new'
+      preLoaderRoute: typeof AuthedFeatsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/home/': {
+      id: '/_authed/home/'
+      path: '/home'
+      fullPath: '/home/'
+      preLoaderRoute: typeof AuthedHomeIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/library/import': {
+      id: '/_authed/library/import'
+      path: '/library/import'
+      fullPath: '/library/import'
+      preLoaderRoute: typeof AuthedLibraryImportRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/races/': {
+      id: '/_authed/races/'
+      path: '/races'
+      fullPath: '/races/'
+      preLoaderRoute: typeof AuthedRacesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/races/$racePublicId': {
+      id: '/_authed/races/$racePublicId'
+      path: '/races/$racePublicId'
+      fullPath: '/races/$racePublicId'
+      preLoaderRoute: typeof AuthedRacesRacePublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/races/new': {
+      id: '/_authed/races/new'
+      path: '/races/new'
+      fullPath: '/races/new'
+      preLoaderRoute: typeof AuthedRacesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings/': {
+      id: '/_authed/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthedSettingsIndexRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/account': {
+      id: '/_authed/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof AuthedSettingsAccountRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/preferences': {
+      id: '/_authed/settings/preferences'
+      path: '/preferences'
+      fullPath: '/settings/preferences'
+      preLoaderRoute: typeof AuthedSettingsPreferencesRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/settings/profile': {
+      id: '/_authed/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthedSettingsProfileRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
+    '/_authed/social/': {
+      id: '/_authed/social/'
+      path: '/'
+      fullPath: '/social/'
+      preLoaderRoute: typeof AuthedSocialIndexRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/social/moderation': {
+      id: '/_authed/social/moderation'
+      path: '/moderation'
+      fullPath: '/social/moderation'
+      preLoaderRoute: typeof AuthedSocialModerationRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/spells/': {
+      id: '/_authed/spells/'
+      path: '/spells'
+      fullPath: '/spells/'
+      preLoaderRoute: typeof AuthedSpellsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/spells/$spellPublicId': {
+      id: '/_authed/spells/$spellPublicId'
+      path: '/spells/$spellPublicId'
+      fullPath: '/spells/$spellPublicId'
+      preLoaderRoute: typeof AuthedSpellsSpellPublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/spells/new': {
+      id: '/_authed/spells/new'
+      path: '/spells/new'
+      fullPath: '/spells/new'
+      preLoaderRoute: typeof AuthedSpellsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/systems/': {
+      id: '/_authed/systems/'
+      path: '/systems'
+      fullPath: '/systems/'
+      preLoaderRoute: typeof AuthedSystemsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/systems/$systemId': {
+      id: '/_authed/systems/$systemId'
+      path: '/systems/$systemId'
+      fullPath: '/systems/$systemId'
+      preLoaderRoute: typeof AuthedSystemsSystemIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/vehicles/': {
+      id: '/_authed/vehicles/'
+      path: '/vehicles'
+      fullPath: '/vehicles/'
+      preLoaderRoute: typeof AuthedVehiclesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/vehicles/$vehiclePublicId': {
+      id: '/_authed/vehicles/$vehiclePublicId'
+      path: '/vehicles/$vehiclePublicId'
+      fullPath: '/vehicles/$vehiclePublicId'
+      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/vehicles/new': {
+      id: '/_authed/vehicles/new'
+      path: '/vehicles/new'
+      fullPath: '/vehicles/new'
+      preLoaderRoute: typeof AuthedVehiclesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_guest/_auth/reset-password': {
+      id: '/_guest/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof GuestAuthResetPasswordRouteImport
       parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/vehicles/$vehiclePublicId/edit': {
-      id: '/_authed/vehicles/$vehiclePublicId/edit'
-      path: '/edit'
-      fullPath: '/vehicles/$vehiclePublicId/edit'
-      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdEditRouteImport
-      parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
+    '/_guest/_auth/sign-in': {
+      id: '/_guest/_auth/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof GuestAuthSignInRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/spells/$spellPublicId/edit': {
-      id: '/_authed/spells/$spellPublicId/edit'
-      path: '/edit'
-      fullPath: '/spells/$spellPublicId/edit'
-      preLoaderRoute: typeof AuthedSpellsSpellPublicIdEditRouteImport
-      parentRoute: typeof AuthedSpellsSpellPublicIdRoute
+    '/_guest/_auth/sign-up': {
+      id: '/_guest/_auth/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof GuestAuthSignUpRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/spells/$spellPublicId/$spellSlug': {
-      id: '/_authed/spells/$spellPublicId/$spellSlug'
-      path: '/$spellSlug'
-      fullPath: '/spells/$spellPublicId/$spellSlug'
-      preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRouteImport
-      parentRoute: typeof AuthedSpellsSpellPublicIdRoute
+    '/_guest/_auth/update-password': {
+      id: '/_guest/_auth/update-password'
+      path: '/update-password'
+      fullPath: '/update-password'
+      preLoaderRoute: typeof GuestAuthUpdatePasswordRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/social/profiles/$profilePublicId': {
-      id: '/_authed/social/profiles/$profilePublicId'
-      path: '/profiles/$profilePublicId'
-      fullPath: '/social/profiles/$profilePublicId'
-      preLoaderRoute: typeof AuthedSocialProfilesProfilePublicIdRouteImport
-      parentRoute: typeof AuthedSocialRoute
-    }
-    '/_authed/social/hosting/new': {
-      id: '/_authed/social/hosting/new'
-      path: '/hosting/new'
-      fullPath: '/social/hosting/new'
-      preLoaderRoute: typeof AuthedSocialHostingNewRouteImport
-      parentRoute: typeof AuthedSocialRoute
-    }
-    '/_authed/races/$racePublicId/edit': {
-      id: '/_authed/races/$racePublicId/edit'
-      path: '/edit'
-      fullPath: '/races/$racePublicId/edit'
-      preLoaderRoute: typeof AuthedRacesRacePublicIdEditRouteImport
-      parentRoute: typeof AuthedRacesRacePublicIdRoute
-    }
-    '/_authed/races/$racePublicId/$raceSlug': {
-      id: '/_authed/races/$racePublicId/$raceSlug'
-      path: '/$raceSlug'
-      fullPath: '/races/$racePublicId/$raceSlug'
-      preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugRouteImport
-      parentRoute: typeof AuthedRacesRacePublicIdRoute
-    }
-    '/_authed/feats/$featPublicId/edit': {
-      id: '/_authed/feats/$featPublicId/edit'
-      path: '/edit'
-      fullPath: '/feats/$featPublicId/edit'
-      preLoaderRoute: typeof AuthedFeatsFeatPublicIdEditRouteImport
-      parentRoute: typeof AuthedFeatsFeatPublicIdRoute
-    }
-    '/_authed/feats/$featPublicId/$featSlug': {
-      id: '/_authed/feats/$featPublicId/$featSlug'
-      path: '/$featSlug'
-      fullPath: '/feats/$featPublicId/$featSlug'
-      preLoaderRoute: typeof AuthedFeatsFeatPublicIdFeatSlugRouteImport
-      parentRoute: typeof AuthedFeatsFeatPublicIdRoute
-    }
-    '/_authed/equipment/$equipmentPublicId/edit': {
-      id: '/_authed/equipment/$equipmentPublicId/edit'
-      path: '/edit'
-      fullPath: '/equipment/$equipmentPublicId/edit'
-      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdEditRouteImport
-      parentRoute: typeof AuthedEquipmentEquipmentPublicIdRoute
-    }
-    '/_authed/creatures/$creaturePublicId/edit': {
-      id: '/_authed/creatures/$creaturePublicId/edit'
-      path: '/edit'
-      fullPath: '/creatures/$creaturePublicId/edit'
-      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdEditRouteImport
-      parentRoute: typeof AuthedCreaturesCreaturePublicIdRoute
-    }
-    '/_authed/creatures/$creaturePublicId/$creatureSlug': {
-      id: '/_authed/creatures/$creaturePublicId/$creatureSlug'
-      path: '/$creatureSlug'
-      fullPath: '/creatures/$creaturePublicId/$creatureSlug'
-      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport
-      parentRoute: typeof AuthedCreaturesCreaturePublicIdRoute
-    }
-    '/_authed/classes/$classPublicId/edit': {
-      id: '/_authed/classes/$classPublicId/edit'
-      path: '/edit'
-      fullPath: '/classes/$classPublicId/edit'
-      preLoaderRoute: typeof AuthedClassesClassPublicIdEditRouteImport
-      parentRoute: typeof AuthedClassesClassPublicIdRoute
-    }
-    '/_authed/campaigns/$campaignPublicId/$campaignSlug': {
-      id: '/_authed/campaigns/$campaignPublicId/$campaignSlug'
-      path: '/$campaignSlug'
-      fullPath: '/campaigns/$campaignPublicId/$campaignSlug'
-      preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport
-      parentRoute: typeof AuthedCampaignsCampaignPublicIdRoute
-    }
-    '/_authed/backgrounds/$backgroundPublicId/edit': {
-      id: '/_authed/backgrounds/$backgroundPublicId/edit'
-      path: '/edit'
-      fullPath: '/backgrounds/$backgroundPublicId/edit'
-      preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdEditRouteImport
-      parentRoute: typeof AuthedBackgroundsBackgroundPublicIdRoute
+    '/_guest/_auth/verify-password-reset': {
+      id: '/_guest/_auth/verify-password-reset'
+      path: '/verify-password-reset'
+      fullPath: '/verify-password-reset'
+      preLoaderRoute: typeof GuestAuthVerifyPasswordResetRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
     '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug': {
       id: '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
@@ -1675,75 +1563,117 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport
       parentRoute: typeof AuthedBackgroundsBackgroundPublicIdRoute
     }
-    '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/': {
-      id: '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/'
-      path: '/$vehicleSlug'
-      fullPath: '/vehicles/$vehiclePublicId/$vehicleSlug/'
-      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport
-      parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
+    '/_authed/backgrounds/$backgroundPublicId/edit': {
+      id: '/_authed/backgrounds/$backgroundPublicId/edit'
+      path: '/edit'
+      fullPath: '/backgrounds/$backgroundPublicId/edit'
+      preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdEditRouteImport
+      parentRoute: typeof AuthedBackgroundsBackgroundPublicIdRoute
     }
-    '/_authed/tabletop/campaigns/$campaignPublicId/': {
-      id: '/_authed/tabletop/campaigns/$campaignPublicId/'
-      path: '/tabletop/campaigns/$campaignPublicId'
-      fullPath: '/tabletop/campaigns/$campaignPublicId/'
-      preLoaderRoute: typeof AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_authed/campaigns/$campaignPublicId/$campaignSlug': {
+      id: '/_authed/campaigns/$campaignPublicId/$campaignSlug'
+      path: '/$campaignSlug'
+      fullPath: '/campaigns/$campaignPublicId/$campaignSlug'
+      preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport
+      parentRoute: typeof AuthedCampaignsCampaignPublicIdRoute
     }
-    '/_authed/spells/$spellPublicId/$spellSlug/': {
-      id: '/_authed/spells/$spellPublicId/$spellSlug/'
-      path: '/'
-      fullPath: '/spells/$spellPublicId/$spellSlug/'
-      preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport
-      parentRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRoute
-    }
-    '/_authed/races/$racePublicId/$raceSlug/': {
-      id: '/_authed/races/$racePublicId/$raceSlug/'
-      path: '/'
-      fullPath: '/races/$racePublicId/$raceSlug/'
-      preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugIndexRouteImport
-      parentRoute: typeof AuthedRacesRacePublicIdRaceSlugRoute
-    }
-    '/_authed/feats/$featPublicId/$featSlug/': {
-      id: '/_authed/feats/$featPublicId/$featSlug/'
-      path: '/'
-      fullPath: '/feats/$featPublicId/$featSlug/'
-      preLoaderRoute: typeof AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport
-      parentRoute: typeof AuthedFeatsFeatPublicIdFeatSlugRoute
-    }
-    '/_authed/equipment/$equipmentPublicId/$equipmentSlug/': {
-      id: '/_authed/equipment/$equipmentPublicId/$equipmentSlug/'
-      path: '/$equipmentSlug'
-      fullPath: '/equipment/$equipmentPublicId/$equipmentSlug/'
-      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRouteImport
-      parentRoute: typeof AuthedEquipmentEquipmentPublicIdRoute
-    }
-    '/_authed/creatures/$creaturePublicId/$creatureSlug/': {
-      id: '/_authed/creatures/$creaturePublicId/$creatureSlug/'
-      path: '/'
-      fullPath: '/creatures/$creaturePublicId/$creatureSlug/'
-      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugIndexRouteImport
-      parentRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugRoute
-    }
-    '/_authed/classes/$classPublicId/$classSlug/': {
-      id: '/_authed/classes/$classPublicId/$classSlug/'
-      path: '/$classSlug'
-      fullPath: '/classes/$classPublicId/$classSlug/'
-      preLoaderRoute: typeof AuthedClassesClassPublicIdClassSlugIndexRouteImport
+    '/_authed/classes/$classPublicId/edit': {
+      id: '/_authed/classes/$classPublicId/edit'
+      path: '/edit'
+      fullPath: '/classes/$classPublicId/edit'
+      preLoaderRoute: typeof AuthedClassesClassPublicIdEditRouteImport
       parentRoute: typeof AuthedClassesClassPublicIdRoute
     }
-    '/_authed/characters/$characterPublicId/$characterSlug/': {
-      id: '/_authed/characters/$characterPublicId/$characterSlug/'
-      path: '/$characterSlug'
-      fullPath: '/characters/$characterPublicId/$characterSlug/'
-      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdCharacterSlugIndexRouteImport
-      parentRoute: typeof AuthedCharactersCharacterPublicIdRoute
+    '/_authed/creatures/$creaturePublicId/$creatureSlug': {
+      id: '/_authed/creatures/$creaturePublicId/$creatureSlug'
+      path: '/$creatureSlug'
+      fullPath: '/creatures/$creaturePublicId/$creatureSlug'
+      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport
+      parentRoute: typeof AuthedCreaturesCreaturePublicIdRoute
     }
-    '/_authed/campaigns/$campaignPublicId/$campaignSlug/': {
-      id: '/_authed/campaigns/$campaignPublicId/$campaignSlug/'
-      path: '/'
-      fullPath: '/campaigns/$campaignPublicId/$campaignSlug/'
-      preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport
-      parentRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugRoute
+    '/_authed/creatures/$creaturePublicId/edit': {
+      id: '/_authed/creatures/$creaturePublicId/edit'
+      path: '/edit'
+      fullPath: '/creatures/$creaturePublicId/edit'
+      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdEditRouteImport
+      parentRoute: typeof AuthedCreaturesCreaturePublicIdRoute
+    }
+    '/_authed/equipment/$equipmentPublicId/edit': {
+      id: '/_authed/equipment/$equipmentPublicId/edit'
+      path: '/edit'
+      fullPath: '/equipment/$equipmentPublicId/edit'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdEditRouteImport
+      parentRoute: typeof AuthedEquipmentEquipmentPublicIdRoute
+    }
+    '/_authed/feats/$featPublicId/$featSlug': {
+      id: '/_authed/feats/$featPublicId/$featSlug'
+      path: '/$featSlug'
+      fullPath: '/feats/$featPublicId/$featSlug'
+      preLoaderRoute: typeof AuthedFeatsFeatPublicIdFeatSlugRouteImport
+      parentRoute: typeof AuthedFeatsFeatPublicIdRoute
+    }
+    '/_authed/feats/$featPublicId/edit': {
+      id: '/_authed/feats/$featPublicId/edit'
+      path: '/edit'
+      fullPath: '/feats/$featPublicId/edit'
+      preLoaderRoute: typeof AuthedFeatsFeatPublicIdEditRouteImport
+      parentRoute: typeof AuthedFeatsFeatPublicIdRoute
+    }
+    '/_authed/races/$racePublicId/$raceSlug': {
+      id: '/_authed/races/$racePublicId/$raceSlug'
+      path: '/$raceSlug'
+      fullPath: '/races/$racePublicId/$raceSlug'
+      preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugRouteImport
+      parentRoute: typeof AuthedRacesRacePublicIdRoute
+    }
+    '/_authed/races/$racePublicId/edit': {
+      id: '/_authed/races/$racePublicId/edit'
+      path: '/edit'
+      fullPath: '/races/$racePublicId/edit'
+      preLoaderRoute: typeof AuthedRacesRacePublicIdEditRouteImport
+      parentRoute: typeof AuthedRacesRacePublicIdRoute
+    }
+    '/_authed/social/hosting/new': {
+      id: '/_authed/social/hosting/new'
+      path: '/hosting/new'
+      fullPath: '/social/hosting/new'
+      preLoaderRoute: typeof AuthedSocialHostingNewRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/social/profiles/$profilePublicId': {
+      id: '/_authed/social/profiles/$profilePublicId'
+      path: '/profiles/$profilePublicId'
+      fullPath: '/social/profiles/$profilePublicId'
+      preLoaderRoute: typeof AuthedSocialProfilesProfilePublicIdRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/spells/$spellPublicId/$spellSlug': {
+      id: '/_authed/spells/$spellPublicId/$spellSlug'
+      path: '/$spellSlug'
+      fullPath: '/spells/$spellPublicId/$spellSlug'
+      preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRouteImport
+      parentRoute: typeof AuthedSpellsSpellPublicIdRoute
+    }
+    '/_authed/spells/$spellPublicId/edit': {
+      id: '/_authed/spells/$spellPublicId/edit'
+      path: '/edit'
+      fullPath: '/spells/$spellPublicId/edit'
+      preLoaderRoute: typeof AuthedSpellsSpellPublicIdEditRouteImport
+      parentRoute: typeof AuthedSpellsSpellPublicIdRoute
+    }
+    '/_authed/vehicles/$vehiclePublicId/edit': {
+      id: '/_authed/vehicles/$vehiclePublicId/edit'
+      path: '/edit'
+      fullPath: '/vehicles/$vehiclePublicId/edit'
+      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdEditRouteImport
+      parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
+    }
+    '/_guest/_auth/auth/confirmed': {
+      id: '/_guest/_auth/auth/confirmed'
+      path: '/auth/confirmed'
+      fullPath: '/auth/confirmed'
+      preLoaderRoute: typeof GuestAuthAuthConfirmedRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
     '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/': {
       id: '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/'
@@ -1752,75 +1682,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRouteImport
       parentRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute
     }
-    '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit': {
-      id: '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
-      path: '/$vehicleSlug/edit'
-      fullPath: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
-      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport
-      parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
-    }
-    '/_authed/spells/$spellPublicId/$spellSlug/edit': {
-      id: '/_authed/spells/$spellPublicId/$spellSlug/edit'
+    '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit': {
+      id: '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
       path: '/edit'
-      fullPath: '/spells/$spellPublicId/$spellSlug/edit'
-      preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugEditRouteImport
-      parentRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRoute
+      fullPath: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+      preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport
+      parentRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute
     }
-    '/_authed/social/listings/$listingPublicId/$slug': {
-      id: '/_authed/social/listings/$listingPublicId/$slug'
-      path: '/listings/$listingPublicId/$slug'
-      fullPath: '/social/listings/$listingPublicId/$slug'
-      preLoaderRoute: typeof AuthedSocialListingsListingPublicIdSlugRouteImport
-      parentRoute: typeof AuthedSocialRoute
-    }
-    '/_authed/social/hosting/$listingPublicId/edit': {
-      id: '/_authed/social/hosting/$listingPublicId/edit'
-      path: '/hosting/$listingPublicId/edit'
-      fullPath: '/social/hosting/$listingPublicId/edit'
-      preLoaderRoute: typeof AuthedSocialHostingListingPublicIdEditRouteImport
-      parentRoute: typeof AuthedSocialRoute
-    }
-    '/_authed/races/$racePublicId/$raceSlug/edit': {
-      id: '/_authed/races/$racePublicId/$raceSlug/edit'
-      path: '/edit'
-      fullPath: '/races/$racePublicId/$raceSlug/edit'
-      preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugEditRouteImport
-      parentRoute: typeof AuthedRacesRacePublicIdRaceSlugRoute
-    }
-    '/_authed/feats/$featPublicId/$featSlug/edit': {
-      id: '/_authed/feats/$featPublicId/$featSlug/edit'
-      path: '/edit'
-      fullPath: '/feats/$featPublicId/$featSlug/edit'
-      preLoaderRoute: typeof AuthedFeatsFeatPublicIdFeatSlugEditRouteImport
-      parentRoute: typeof AuthedFeatsFeatPublicIdFeatSlugRoute
-    }
-    '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit': {
-      id: '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
-      path: '/$equipmentSlug/edit'
-      fullPath: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
-      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport
-      parentRoute: typeof AuthedEquipmentEquipmentPublicIdRoute
-    }
-    '/_authed/creatures/$creaturePublicId/$creatureSlug/edit': {
-      id: '/_authed/creatures/$creaturePublicId/$creatureSlug/edit'
-      path: '/edit'
-      fullPath: '/creatures/$creaturePublicId/$creatureSlug/edit'
-      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugEditRouteImport
-      parentRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugRoute
-    }
-    '/_authed/classes/$classPublicId/$classSlug/edit': {
-      id: '/_authed/classes/$classPublicId/$classSlug/edit'
-      path: '/$classSlug/edit'
-      fullPath: '/classes/$classPublicId/$classSlug/edit'
-      preLoaderRoute: typeof AuthedClassesClassPublicIdClassSlugEditRouteImport
-      parentRoute: typeof AuthedClassesClassPublicIdRoute
-    }
-    '/_authed/characters/$characterPublicId/$characterSlug/edit': {
-      id: '/_authed/characters/$characterPublicId/$characterSlug/edit'
-      path: '/$characterSlug/edit'
-      fullPath: '/characters/$characterPublicId/$characterSlug/edit'
-      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport
-      parentRoute: typeof AuthedCharactersCharacterPublicIdRoute
+    '/_authed/campaigns/$campaignPublicId/$campaignSlug/': {
+      id: '/_authed/campaigns/$campaignPublicId/$campaignSlug/'
+      path: '/'
+      fullPath: '/campaigns/$campaignPublicId/$campaignSlug/'
+      preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport
+      parentRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugRoute
     }
     '/_authed/campaigns/$campaignPublicId/$campaignSlug/encounters': {
       id: '/_authed/campaigns/$campaignPublicId/$campaignSlug/encounters'
@@ -1829,12 +1703,138 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugEncountersRouteImport
       parentRoute: typeof AuthedCampaignsCampaignPublicIdCampaignSlugRoute
     }
-    '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit': {
-      id: '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+    '/_authed/characters/$characterPublicId/$characterSlug/': {
+      id: '/_authed/characters/$characterPublicId/$characterSlug/'
+      path: '/$characterSlug'
+      fullPath: '/characters/$characterPublicId/$characterSlug/'
+      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdCharacterSlugIndexRouteImport
+      parentRoute: typeof AuthedCharactersCharacterPublicIdRoute
+    }
+    '/_authed/characters/$characterPublicId/$characterSlug/edit': {
+      id: '/_authed/characters/$characterPublicId/$characterSlug/edit'
+      path: '/$characterSlug/edit'
+      fullPath: '/characters/$characterPublicId/$characterSlug/edit'
+      preLoaderRoute: typeof AuthedCharactersCharacterPublicIdCharacterSlugEditRouteImport
+      parentRoute: typeof AuthedCharactersCharacterPublicIdRoute
+    }
+    '/_authed/classes/$classPublicId/$classSlug/': {
+      id: '/_authed/classes/$classPublicId/$classSlug/'
+      path: '/$classSlug'
+      fullPath: '/classes/$classPublicId/$classSlug/'
+      preLoaderRoute: typeof AuthedClassesClassPublicIdClassSlugIndexRouteImport
+      parentRoute: typeof AuthedClassesClassPublicIdRoute
+    }
+    '/_authed/classes/$classPublicId/$classSlug/edit': {
+      id: '/_authed/classes/$classPublicId/$classSlug/edit'
+      path: '/$classSlug/edit'
+      fullPath: '/classes/$classPublicId/$classSlug/edit'
+      preLoaderRoute: typeof AuthedClassesClassPublicIdClassSlugEditRouteImport
+      parentRoute: typeof AuthedClassesClassPublicIdRoute
+    }
+    '/_authed/creatures/$creaturePublicId/$creatureSlug/': {
+      id: '/_authed/creatures/$creaturePublicId/$creatureSlug/'
+      path: '/'
+      fullPath: '/creatures/$creaturePublicId/$creatureSlug/'
+      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugIndexRouteImport
+      parentRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugRoute
+    }
+    '/_authed/creatures/$creaturePublicId/$creatureSlug/edit': {
+      id: '/_authed/creatures/$creaturePublicId/$creatureSlug/edit'
       path: '/edit'
-      fullPath: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
-      preLoaderRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugEditRouteImport
-      parentRoute: typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRoute
+      fullPath: '/creatures/$creaturePublicId/$creatureSlug/edit'
+      preLoaderRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugEditRouteImport
+      parentRoute: typeof AuthedCreaturesCreaturePublicIdCreatureSlugRoute
+    }
+    '/_authed/equipment/$equipmentPublicId/$equipmentSlug/': {
+      id: '/_authed/equipment/$equipmentPublicId/$equipmentSlug/'
+      path: '/$equipmentSlug'
+      fullPath: '/equipment/$equipmentPublicId/$equipmentSlug/'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugIndexRouteImport
+      parentRoute: typeof AuthedEquipmentEquipmentPublicIdRoute
+    }
+    '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit': {
+      id: '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
+      path: '/$equipmentSlug/edit'
+      fullPath: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport
+      parentRoute: typeof AuthedEquipmentEquipmentPublicIdRoute
+    }
+    '/_authed/feats/$featPublicId/$featSlug/': {
+      id: '/_authed/feats/$featPublicId/$featSlug/'
+      path: '/'
+      fullPath: '/feats/$featPublicId/$featSlug/'
+      preLoaderRoute: typeof AuthedFeatsFeatPublicIdFeatSlugIndexRouteImport
+      parentRoute: typeof AuthedFeatsFeatPublicIdFeatSlugRoute
+    }
+    '/_authed/feats/$featPublicId/$featSlug/edit': {
+      id: '/_authed/feats/$featPublicId/$featSlug/edit'
+      path: '/edit'
+      fullPath: '/feats/$featPublicId/$featSlug/edit'
+      preLoaderRoute: typeof AuthedFeatsFeatPublicIdFeatSlugEditRouteImport
+      parentRoute: typeof AuthedFeatsFeatPublicIdFeatSlugRoute
+    }
+    '/_authed/races/$racePublicId/$raceSlug/': {
+      id: '/_authed/races/$racePublicId/$raceSlug/'
+      path: '/'
+      fullPath: '/races/$racePublicId/$raceSlug/'
+      preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugIndexRouteImport
+      parentRoute: typeof AuthedRacesRacePublicIdRaceSlugRoute
+    }
+    '/_authed/races/$racePublicId/$raceSlug/edit': {
+      id: '/_authed/races/$racePublicId/$raceSlug/edit'
+      path: '/edit'
+      fullPath: '/races/$racePublicId/$raceSlug/edit'
+      preLoaderRoute: typeof AuthedRacesRacePublicIdRaceSlugEditRouteImport
+      parentRoute: typeof AuthedRacesRacePublicIdRaceSlugRoute
+    }
+    '/_authed/social/hosting/$listingPublicId/edit': {
+      id: '/_authed/social/hosting/$listingPublicId/edit'
+      path: '/hosting/$listingPublicId/edit'
+      fullPath: '/social/hosting/$listingPublicId/edit'
+      preLoaderRoute: typeof AuthedSocialHostingListingPublicIdEditRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/social/listings/$listingPublicId/$slug': {
+      id: '/_authed/social/listings/$listingPublicId/$slug'
+      path: '/listings/$listingPublicId/$slug'
+      fullPath: '/social/listings/$listingPublicId/$slug'
+      preLoaderRoute: typeof AuthedSocialListingsListingPublicIdSlugRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/spells/$spellPublicId/$spellSlug/': {
+      id: '/_authed/spells/$spellPublicId/$spellSlug/'
+      path: '/'
+      fullPath: '/spells/$spellPublicId/$spellSlug/'
+      preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugIndexRouteImport
+      parentRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRoute
+    }
+    '/_authed/spells/$spellPublicId/$spellSlug/edit': {
+      id: '/_authed/spells/$spellPublicId/$spellSlug/edit'
+      path: '/edit'
+      fullPath: '/spells/$spellPublicId/$spellSlug/edit'
+      preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugEditRouteImport
+      parentRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRoute
+    }
+    '/_authed/tabletop/campaigns/$campaignPublicId/': {
+      id: '/_authed/tabletop/campaigns/$campaignPublicId/'
+      path: '/tabletop/campaigns/$campaignPublicId'
+      fullPath: '/tabletop/campaigns/$campaignPublicId/'
+      preLoaderRoute: typeof AuthedTabletopCampaignsCampaignPublicIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/': {
+      id: '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/'
+      path: '/$vehicleSlug'
+      fullPath: '/vehicles/$vehiclePublicId/$vehicleSlug/'
+      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdVehicleSlugIndexRouteImport
+      parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
+    }
+    '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit': {
+      id: '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+      path: '/$vehicleSlug/edit'
+      fullPath: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+      preLoaderRoute: typeof AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport
+      parentRoute: typeof AuthedVehiclesVehiclePublicIdRoute
     }
     '/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber': {
       id: '/_authed/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'

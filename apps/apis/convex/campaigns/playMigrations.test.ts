@@ -125,19 +125,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
         stateJson: JSON.stringify(legacyState),
         stateChecksum: checksumCanonicalJson(legacyState)
       }),
-      geometrySave: await insertLegacy(ctx, 'sceneGeometrySaves', {
-        sceneId: scene.id,
-        sessionVision: {
-          campaignId: campaign.id,
-          systemId: campaign.gameSystemId,
-          sceneId: scene.id,
-          expectedSceneVersion: 0,
-          sessionId,
-          expectedSessionVersion: 3,
-          expectedPresentationVersion: 1,
-          freshness: { system: null, campaign: null, session: crypto.randomUUID() }
-        }
-      }),
       fogSave: await insertLegacy(ctx, 'sceneFogSaves', {
         sceneId: scene.id,
         input: fogInput,
@@ -174,7 +161,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
     sessionMarker: await ctx.db.get(ids.sessionMarker),
     campaignMarker: await ctx.db.get(ids.campaignMarker),
     run: await ctx.db.get(ids.run),
-    geometrySave: await ctx.db.get(ids.geometrySave),
     fogSave: await ctx.db.get(ids.fogSave),
     event: await ctx.db.get(ids.event)
   }))
@@ -195,14 +181,6 @@ it('strips Session keys from every Campaign-owned play row and narrows presentat
   const { _id: _migratedRunId, _creationTime: _migratedRunTime, ...migratedRun } = migrated.run!
   const { _id: _currentRunId, _creationTime: _currentRunTime, ...currentRun } = run
   expect(encounterStoredRunSchema.parse(migratedRun)).toEqual(currentRun)
-  expect(migrated.geometrySave?.sessionVision).toEqual({
-    campaignId: campaign.id,
-    systemId: campaign.gameSystemId,
-    sceneId: scene.id,
-    expectedSceneVersion: 0,
-    expectedPresentationVersion: 1,
-    freshness: { system: null, campaign: null, play: null }
-  })
   const { session: _session, ...currentFog } = fogInput
   const narrowedFog = {
     ...currentFog,

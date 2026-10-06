@@ -70,11 +70,8 @@ export async function executeRoomSceneGeometry(input: {
   const { store, transaction, inputs, authorization, campaignId, epoch, userId, command, context } =
     input
   const observed = inputs.revisions(campaignId, authorization.revisions)
-  const binding = await store.store
-    .query('encounterSceneBindings')
-    .withIndex('by_sceneId', (q) => q.eq('sceneId', context.scene.id))
-    .first()
-  if (binding) await inputs.encounter(binding.encounterId, transaction)
+  const held = authorization.play.encounter
+  if (held?.sceneId === context.scene.id) await inputs.encounter(held.encounterId, transaction)
   const ctx = await roomEncounterWriteTransaction({
     store,
     transaction,
@@ -86,7 +83,13 @@ export async function executeRoomSceneGeometry(input: {
     observed
   })
   const { membership } = await ctx.ports.requireCampaignAuthority(campaignId, userId)
-  const begun = await stageRoomSceneGeometry({ ctx, transaction, command, context, observed })
+  const begun = await stageRoomSceneGeometry({
+    ctx,
+    transaction,
+    command,
+    context,
+    observed
+  })
   if (begun.kind !== 'READY') {
     const encounter =
       command.type === 'RESOLVE_RULE_OCCURRENCE'
@@ -94,7 +97,12 @@ export async function executeRoomSceneGeometry(input: {
         : command.type === 'VOID_RULE_OCCURRENCE'
           ? await recordRuleOccurrenceVoid(ctx, command)
           : null
-    return { scene: begun.result, encounter, nextScene: context.scene, fogChanged: false }
+    return {
+      scene: begun.result,
+      encounter,
+      nextScene: context.scene,
+      fogChanged: false
+    }
   }
   const presentation = {
     sceneId: context.scene.id,
@@ -291,9 +299,15 @@ export async function executeRoomSceneGeometry(input: {
       },
       {
         persistSpatial: (step) =>
-          persistLiveMovementSpatial(ctx, step, { applyMechanics, readCampaignCharacterState }),
+          persistLiveMovementSpatial(ctx, step, {
+            applyMechanics,
+            readCampaignCharacterState
+          }),
         persistReaction: (step) =>
-          persistLiveMovementReaction(ctx, step, { applyMechanics, readCampaignCharacterState }),
+          persistLiveMovementReaction(ctx, step, {
+            applyMechanics,
+            readCampaignCharacterState
+          }),
         persistConcentration: (step) =>
           persistLiveMovementConcentration(ctx, step, {
             applyCleanup: (cleanup) => applyLiveConcentrationCleanup(ctx, cleanup),
@@ -356,7 +370,10 @@ export async function executeRoomSceneGeometry(input: {
           evaluateInitial: async () => {
             if (plan.preparation.outcome.kind !== 'PENDING')
               throw new Error('Live pending movement is unavailable.')
-            return { outcome: plan.preparation.outcome, settlements: plan.settlements }
+            return {
+              outcome: plan.preparation.outcome,
+              settlements: plan.settlements
+            }
           },
           settle,
           project
@@ -367,7 +384,10 @@ export async function executeRoomSceneGeometry(input: {
           settle: async () => {
             if (plan.preparation.outcome.kind !== 'TERMINAL')
               throw new Error('Live terminal movement is unavailable.')
-            return { result: plan.preparation.outcome.result, ...(await settle()) }
+            return {
+              result: plan.preparation.outcome.result,
+              ...(await settle())
+            }
           },
           project
         }),
@@ -393,7 +413,12 @@ export async function executeRoomSceneGeometry(input: {
     })
     encounter = await recordRuleOccurrenceVoid(ctx, plan.voidCommand)
   }
-  return { scene, encounter, nextScene: prepared.nextScene, fogChanged: prepared.fogChanged }
+  return {
+    scene,
+    encounter,
+    nextScene: prepared.nextScene,
+    fogChanged: prepared.fogChanged
+  }
 
   function assertPrediction(scene: { sceneId: string; version: number; delta: unknown }) {
     if (

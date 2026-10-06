@@ -1,20 +1,52 @@
-import type {
-  LiveSessionRoomAuthorization,
-  LiveSessionRoomAuthorizationInput,
-  LiveSessionRoomAuthorizationResponse,
-  LiveSessionRoomAuthorizationRevisions
+import {
+  liveSessionRoomAuthorizationSchema,
+  liveSessionRoomPlayAuthorizationSchema,
+  type LiveSessionRoomAuthorization,
+  type LiveSessionRoomAuthorizationInput,
+  type LiveSessionRoomAuthorizationResponse,
+  type LiveSessionRoomAuthorizationRevisions
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { LiveSessionCheckpointAdoption } from '@artificer-toolkit/schema/api/liveSessionCheckpoint'
 import type {
-  LiveSessionTransientCapture,
+  LiveSessionRoomSceneCapture,
   LiveSessionTransientMember
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
+import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
+import { z } from 'zod'
 
+import type { RoomStorage } from './roomEncounterStore.js'
 import { ROOM_LIMITS } from './roomLimits.js'
+
+/**
+ * Each Encounter-bound token and whether a player controls its bound actor. Bound tokens follow
+ * actor control, never the Scene token's `controlledByUserIds` (ADR 0034).
+ */
+export type BoundTokenControl = { tokenId: string; controlled: boolean }[]
 
 type Load = (
   input: Pick<LiveSessionRoomAuthorizationInput, 'epoch' | 'known'>
 ) => Promise<LiveSessionRoomAuthorizationResponse>
+
+/** What a hibernated room keeps of the cache: the lease and everything that can end or bound it. */
+const persistedAuthorizationSchema = z.strictObject({
+  held: z.nullable(
+    z.strictObject({ epoch: z.string().min(1), value: liveSessionRoomAuthorizationSchema })
+  ),
+  leaseExpiresAt: z.number(),
+  stale: z.boolean(),
+  playStale: z.boolean(),
+  localPlay: z.nullable(
+    z.strictObject({ epoch: z.string().min(1), value: liveSessionRoomPlayAuthorizationSchema })
+  )
+})
+
+function readPersistedAuthorization(state: unknown) {
+  try {
+    return persistedAuthorizationSchema.parse(JSON.parse(String(state)))
+  } catch {
+    return null
+  }
+}
 
 /** Applies a read to the held cache: an omitted section is unchanged, so it must already be held. */
 function mergeRoomAuthorization(
@@ -67,7 +99,7 @@ export function roomBoundTokenControl(
   authorization: LiveSessionRoomAuthorization,
   userId: string,
   scene: { sceneId: string; encounterId: string }
-): LiveSessionTransientCapture['originBoundTokenControl'] | null {
+): BoundTokenControl | null {
   const { encounter } = authorization.play
   if (encounter?.sceneId !== scene.sceneId || encounter.encounterId !== scene.encounterId)
     return null
@@ -91,10 +123,28 @@ export function roomBoundTokenControl(
   })
 }
 
+/** `revisions` after a checkpoint's own writes: each adopted PLAY or Character revision replaces its old one. */
+export function adoptRevisions(
+  revisions: LiveSessionRoomAuthorizationRevisions,
+  adopted: LiveSessionCheckpointAdoption
+): LiveSessionRoomAuthorizationRevisions {
+  const characters = new Map(
+    adopted.characters.map(({ characterId, revision }) => [characterId, revision])
+  )
+  return {
+    ...revisions,
+    play: adopted.play ?? revisions.play,
+    characters: revisions.characters.map(({ characterId, revision }) => ({
+      characterId,
+      revision: characters.get(characterId) ?? revision
+    }))
+  }
+}
+
 /** Whether every Character behind a cached Scene vision still has the revision it was built from. */
 export function roomVisionCurrent(
   authorization: LiveSessionRoomAuthorization,
-  observed: LiveSessionTransientCapture['observedCharacterRevisions']
+  observed: LiveSessionRoomSceneCapture['observedCharacterRevisions']
 ): boolean {
   const revisions = new Map(
     authorization.revisions.characters.map(({ characterId, revision }) => [characterId, revision])
@@ -124,9 +174,14 @@ export function roomCharacterInputsKey(
  * lease, and not at all once `INVALIDATE_INPUTS` marks it stale. A stale or expired cache is
  * reloaded by one read before the next command or broadcast; that read returns only changed sections.
  * A checkpoint never renews it; the room does, by one read per half-lease while members are connected.
+ * The cache survives hibernation in room SQLite: a woken room trusts it for the rest of its lease,
+ * and an invalidation made before sleep is still pending after it. Reads in flight do not survive.
  */
 export class RoomAuthorization {
   readonly #load: Load
+  readonly #sql: RoomStorage['sql']
+  /** The state text last written, so an unchanged state is not written again. */
+  #saved: string | null = null
   #held: { epoch: string; value: LiveSessionRoomAuthorization } | null = null
   #leaseExpiresAt = 0
   #stale = false
@@ -143,8 +198,28 @@ export class RoomAuthorization {
     value: Promise<LiveSessionRoomAuthorization>
   } | null = null
 
-  constructor(load: Load) {
+  constructor(load: Load, sql: RoomStorage['sql']) {
     this.#load = load
+    this.#sql = sql
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS room_authorization (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        state TEXT NOT NULL
+      )
+    `)
+    const row = sql.exec('SELECT state FROM room_authorization WHERE id = 1').toArray()[0]
+    if (!row) return
+    const restored = readPersistedAuthorization(row.state)
+    if (!restored) {
+      sql.exec('DELETE FROM room_authorization WHERE id = 1')
+      return
+    }
+    this.#held = restored.held
+    this.#leaseExpiresAt = restored.leaseExpiresAt
+    this.#stale = restored.stale
+    this.#playStale = restored.playStale
+    this.#localPlay = restored.localPlay
+    this.#saved = String(row.state)
   }
 
   /** The cache for `epoch` while its lease runs and no invalidation is pending, else null. */
@@ -162,12 +237,14 @@ export class RoomAuthorization {
   invalidate(): void {
     this.#stale = true
     this.#changes += 1
+    this.#persist()
   }
 
   invalidatePlay(): void {
     this.#localPlay = null
     this.#playStale = true
     this.#playChanges += 1
+    this.#persist()
   }
 
   /** Room-owned control changes stay visible while their checkpoint is still pending. */
@@ -177,16 +254,19 @@ export class RoomAuthorization {
     this.#held.value = { ...this.#held.value, play }
     this.#playStale = false
     this.#playChanges += 1
+    this.#persist()
   }
 
   /** Party visibility follows native play immediately, including an unpublished checkpoint suffix. */
   applyCharacters(epoch: string, characters: LiveSessionRoomAuthorization['characters']): void {
     if (this.#held?.epoch !== epoch) throw new Error('Room authorization epoch changed.')
     this.#held.value = { ...this.#held.value, characters }
+    this.#persist()
   }
 
   acknowledgePlay(epoch: string): void {
     if (this.#localPlay?.epoch === epoch) this.#localPlay = null
+    this.#persist()
   }
 
   /**
@@ -197,26 +277,18 @@ export class RoomAuthorization {
    */
   adopt(
     epoch: string,
-    sent: LiveSessionRoomAuthorizationRevisions | null,
+    sent: LiveSessionRoomAuthorizationRevisions,
     adopted: LiveSessionCheckpointAdoption
   ): void {
-    if (!sent || this.#held?.epoch !== epoch || this.#held.value.revisions !== sent) return
-    const characters = new Map(
-      adopted.characters.map(({ characterId, revision }) => [characterId, revision])
+    if (
+      this.#held?.epoch !== epoch ||
+      canonicalizeJson(this.#held.value.revisions) !== canonicalizeJson(sent)
     )
-    this.#held.value = {
-      ...this.#held.value,
-      revisions: {
-        ...sent,
-        play: adopted.play ?? sent.play,
-        characters: sent.characters.map(({ characterId, revision }) => ({
-          characterId,
-          revision: characters.get(characterId) ?? revision
-        }))
-      }
-    }
+      return
+    this.#held.value = { ...this.#held.value, revisions: adoptRevisions(sent, adopted) }
     // A read that started before the checkpoint may return pre-checkpoint revisions.
     if (this.#reading) this.invalidate()
+    else this.#persist()
   }
 
   /** Whether half the lease has passed since the last read, so a renewal read should start. */
@@ -263,6 +335,24 @@ export class RoomAuthorization {
     this.#leaseExpiresAt = startedAt + ROOM_LIMITS.authorizationLeaseMs
     if (changes === this.#changes) this.#stale = false
     if (playChanges === this.#playChanges) this.#playStale = false
+    this.#persist()
     return value
+  }
+
+  #persist(): void {
+    const state = JSON.stringify({
+      held: this.#held,
+      leaseExpiresAt: this.#leaseExpiresAt,
+      stale: this.#stale,
+      playStale: this.#playStale,
+      localPlay: this.#localPlay
+    } satisfies z.infer<typeof persistedAuthorizationSchema>)
+    if (state === this.#saved) return
+    this.#sql.exec(
+      `INSERT INTO room_authorization (id, state) VALUES (1, ?)
+       ON CONFLICT (id) DO UPDATE SET state = excluded.state`,
+      state
+    )
+    this.#saved = state
   }
 }

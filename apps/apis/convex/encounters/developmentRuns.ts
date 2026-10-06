@@ -117,8 +117,8 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
           .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', run.id))
           .take(13),
         ctx.db
-          .query('encounterActorProjectionFacts')
-          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id))
+          .query('encounterActorSnapshots')
+          .withIndex('by_encounterId_checksum', (q) => q.eq('encounterId', run.id))
           .take(12),
         ctx.db
           .query('encounterSourceProjectionFacts')
@@ -242,9 +242,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
     characterReceipts.some((receipt) => !participantUserIds.has(receipt.actorId))
   )
     throw new Error('Fixture Encounter dependency or ownership mismatch.')
-  await deleteReceiptHeaders(
-    ctx,
-    [
+  await deleteReceiptHeaders(ctx, [
     // The GM's Character commands on the fixture Character leave with the Runs they were issued in.
     ...characterReceipts
       .filter((receipt) => receipt.actorId === args.ownerUserId)
@@ -253,8 +251,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
       ...child.receipts.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),
       ...child.commands.map((header) => ({ table: 'encounterRunCommands' as const, header }))
     ])
-    ]
-  )
+  ])
   for (const child of children) {
     for (const row of child.actorBindings) await ctx.db.delete(row._id)
     if (child.binding) await ctx.db.delete(child.binding._id)

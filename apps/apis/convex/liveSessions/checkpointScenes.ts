@@ -13,28 +13,26 @@ import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shar
 import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { livePublicationCampaignScope } from '../campaigns/authority'
-import { parseLiveEntity, readLiveSceneForUser } from '../scenes/liveDocuments'
+import { readLiveSceneForUser } from '../scenes/liveDocuments'
+import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import {
-  parseFogLayer,
-  parseFogSave,
-  parseFogCommand,
-  parseReferencedFogChunk
-} from '../scenes/fogDocuments'
-import {
-  parseGeometrySave,
-  parseGeometryCommand,
-  readSpatialPreparation
-} from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
-import { createReceiptLedger } from '../lib/receiptLedgers'
+  parseSceneFogLayer,
+  parseSceneFogSave,
+  parseSceneReferencedFogChunk
+} from '@artificer-toolkit/encounter-persistence/sceneFogDocuments'
 import { requireCampaignLiveAuthority } from './authorityGuard'
 
 interface SceneIndexRange extends IndexRange {
   eq(field: string, value: string | number | null): SceneIndexRange
 }
 
-function content<Row extends { _id: unknown; _creationTime: unknown }>(row: Row) {
+function withoutSystemFields<Row extends { _id: unknown; _creationTime: unknown }>(row: Row) {
   const { _id, _creationTime, ...fields } = row
-  return canonicalJsonRecordSchema.parse(JSON.parse(canonicalizeJson(fields)))
+  return fields
+}
+
+function content<Row extends { _id: unknown; _creationTime: unknown }>(row: Row) {
+  return canonicalJsonRecordSchema.parse(JSON.parse(canonicalizeJson(withoutSystemFields(row))))
 }
 
 async function readRow<Table extends LiveSessionCheckpointSceneTable>(
@@ -106,18 +104,12 @@ export async function applyCheckpointScenes(
       before: Doc<LiveSessionCheckpointSceneTable> | null
       next: WithoutSystemFields<Doc<LiveSessionCheckpointSceneTable>> | null
     }[] = []
-    const commands: {
-      value: ReturnType<typeof canonicalJsonRecordSchema.parse>
-      command: ReturnType<typeof liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse>
-    }[] = []
     for (const change of scene.changes) {
       const identity = `${change.table}:${canonicalizeJson(change.key)}`
       if (identities.has(identity)) throw new Error('Checkpoint Scene record is duplicated.')
       identities.add(identity)
+      // The one read of this record: the checksum fence (Amendment 18) and the append-only check.
       const before = await readRow(ctx, change.table, change.key)
-      // Receipts live in the Scene ledger; their header only proves the key is already taken.
-      if (change.table === 'sceneLiveCommands' && (before || change.previousChecksum !== null))
-        throw new Error('Checkpoint Scene saves and receipts are append-only.')
       const previous = before ? content(before) : null
       if ((previous ? checksumCanonicalJson(previous) : null) !== change.previousChecksum)
         throw new Error('Checkpoint Scene record changed before publication.')
@@ -142,15 +134,7 @@ export async function applyCheckpointScenes(
         !['sceneLiveStates', 'sceneLiveEntities', 'sceneFogLayers'].includes(change.table) &&
         before
       )
-        throw new Error('Checkpoint Scene saves and receipts are append-only.')
-      if (change.table === 'sceneLiveCommands') {
-        // Receipts are packed into the Scene's ledger below; only their header rows are indexed.
-        commands.push({
-          value,
-          command: liveSessionCheckpointSceneSchemas.sceneLiveCommands.parse(value)
-        })
-        continue
-      }
+        throw new Error('Checkpoint Scene saves are append-only.')
       const next = liveSessionCheckpointSceneSchemas[change.table].parse(value)
       rows.push({ table: change.table, key: change.key, before, next })
     }
@@ -218,6 +202,130 @@ export async function applyCheckpointScenes(
         }))
     )
       throw new Error('Checkpoint Scene entity counts or ordering are inconsistent.')
+    // Reader invariants run on the values about to be written (ADR 0035 Amendment 27): a row this
+    // checkpoint writes is never read back. Only rows from earlier checkpoints are read, and each
+    // distinct save and tile once, because repeated 256-entry manifests can exhaust the read limit.
+    const fogSaves = new Map<string, WithoutSystemFields<Doc<'sceneFogSaves'>> | null>()
+    const fogChunks = new Map<string, WithoutSystemFields<Doc<'sceneFogChunks'>> | null>()
+    for (const written of rows) {
+      if (written.table === 'sceneFogSaves' && written.next) {
+        const save = written.next as WithoutSystemFields<Doc<'sceneFogSaves'>>
+        fogSaves.set(save.id, save)
+      }
+      if (written.table === 'sceneFogChunks' && written.next) {
+        const chunk = written.next as WithoutSystemFields<Doc<'sceneFogChunks'>>
+        fogChunks.set(`${chunk.saveId}:${chunk.ordinal}`, chunk)
+      }
+    }
+    const readFogSave = async (id: string) => {
+      if (!fogSaves.has(id)) {
+        const row = await ctx.db
+          .query('sceneFogSaves')
+          .withIndex('by_publicId', (q) => q.eq('id', id))
+          .unique()
+        fogSaves.set(id, row && withoutSystemFields(row))
+      }
+      return fogSaves.get(id) ?? null
+    }
+    const checkedChunks = new Set<string>()
+    const checkChunk = async (
+      reference: Doc<'sceneFogLayers'>['chunks'][number],
+      layer: Doc<'sceneFogSaves'>['input']['layer']
+    ) => {
+      const identity = canonicalizeJson([reference, layer.ownerUserId, layer.width, layer.height])
+      if (checkedChunks.has(identity)) return
+      const chunkKey = `${reference.saveId}:${reference.ordinal}`
+      if (!fogChunks.has(chunkKey)) {
+        const row = await ctx.db
+          .query('sceneFogChunks')
+          .withIndex('by_saveId_ordinal', (q) =>
+            q.eq('saveId', reference.saveId).eq('ordinal', reference.ordinal)
+          )
+          .unique()
+        fogChunks.set(chunkKey, row && withoutSystemFields(row))
+      }
+      parseSceneReferencedFogChunk(
+        await readFogSave(reference.saveId),
+        fogChunks.get(chunkKey) ?? null,
+        reference,
+        scene.sceneId,
+        layer
+      )
+      checkedChunks.add(identity)
+    }
+    // An ordinal is unique in the final state: no two written rows claim it, and an unwritten row
+    // from an earlier checkpoint does not hold it.
+    const claimedOrdinals = new Set<string>()
+    const claimOrdinal = (slot: string) => {
+      if (claimedOrdinals.has(slot)) throw new Error('Checkpoint Scene ordinal is claimed twice.')
+      claimedOrdinals.add(slot)
+    }
+    for (const written of rows) {
+      if (!written.next) continue
+      switch (written.table) {
+        case 'sceneLiveEntities': {
+          const entity = written.next as WithoutSystemFields<Doc<'sceneLiveEntities'>>
+          parseSceneLiveEntity(entity, scene.toVersion)
+          if (entity.ordinal === null) break
+          claimOrdinal(`entity:${entity.collection}:${entity.ordinal}`)
+          const holder = await ctx.db
+            .query('sceneLiveEntities')
+            .withIndex('by_sceneId_collection_ordinal', (q) =>
+              q
+                .eq('sceneId', scene.sceneId)
+                .eq('collection', entity.collection)
+                .eq('ordinal', entity.ordinal)
+            )
+            .unique()
+          if (
+            holder &&
+            !identities.has(
+              `sceneLiveEntities:${canonicalizeJson([scene.sceneId, holder.collection, holder.entityId])}`
+            )
+          )
+            throw new Error('Checkpoint Scene entity ordinal is already allocated.')
+          break
+        }
+        case 'sceneFogLayers': {
+          const layer = parseSceneFogLayer(written.next, scene.toVersion)
+          claimOrdinal(`fog:${layer.ordinal}`)
+          const holder = await ctx.db
+            .query('sceneFogLayers')
+            .withIndex('by_sceneId_ordinal', (q) =>
+              q.eq('sceneId', scene.sceneId).eq('ordinal', layer.ordinal)
+            )
+            .unique()
+          if (
+            holder &&
+            !identities.has(
+              `sceneFogLayers:${canonicalizeJson([scene.sceneId, holder.ownerUserId])}`
+            )
+          )
+            throw new Error('Checkpoint Scene fog ordinal is already allocated.')
+          for (const reference of layer.chunks) await checkChunk(reference, layer)
+          break
+        }
+        case 'sceneFogSaves': {
+          const save = parseSceneFogSave(written.next)
+          if (save.status !== 'PUBLISHED') throw new Error('Checkpoint fog save is incomplete.')
+          for (const [ordinal, manifest] of save.input.chunkManifest.entries())
+            await checkChunk({ ...manifest, saveId: save.id, ordinal }, save.input.layer)
+          break
+        }
+        case 'sceneFogChunks': {
+          const chunk = written.next as WithoutSystemFields<Doc<'sceneFogChunks'>>
+          const save = await readFogSave(chunk.saveId)
+          const manifest = save?.input.chunkManifest[chunk.ordinal]
+          if (!save || save.sceneId !== scene.sceneId || !manifest)
+            throw new Error('Checkpoint fog chunk belongs to another Scene or missing save.')
+          await checkChunk(
+            { ...manifest, saveId: save.id, ordinal: chunk.ordinal },
+            save.input.layer
+          )
+          break
+        }
+      }
+    }
     for (const row of rows) {
       if (!row.next) {
         await ctx.db.delete(row.before!._id)
@@ -253,217 +361,5 @@ export async function applyCheckpointScenes(
         await ctx.db.patch(row.before._id, { ...changedFields(previous, next), ...removed })
       } else await ctx.db.insert(row.table, row.next)
     }
-
-    const publishedFogSaves = new Map<string, Doc<'sceneFogSaves'> | null>()
-    const checkedChunks = new Set<string>()
-    const readFogSave = async (id: string) => {
-      if (!publishedFogSaves.has(id))
-        publishedFogSaves.set(
-          id,
-          await ctx.db
-            .query('sceneFogSaves')
-            .withIndex('by_publicId', (q) => q.eq('id', id))
-            .unique()
-        )
-      return publishedFogSaves.get(id) ?? null
-    }
-    const checkChunk = async (
-      reference: Doc<'sceneFogLayers'>['chunks'][number],
-      layer: Doc<'sceneFogSaves'>['input']['layer']
-    ) => {
-      const identity = canonicalizeJson([reference, layer.ownerUserId, layer.width, layer.height])
-      if (checkedChunks.has(identity)) return
-      const save = await readFogSave(reference.saveId)
-      const chunk = await ctx.db
-        .query('sceneFogChunks')
-        .withIndex('by_saveId_ordinal', (q) =>
-          q.eq('saveId', reference.saveId).eq('ordinal', reference.ordinal)
-        )
-        .unique()
-      parseReferencedFogChunk(save, chunk, reference, scene.sceneId, layer)
-      checkedChunks.add(identity)
-    }
-    // Reader invariants run after all rows exist, inside the same rollback boundary. Each distinct
-    // save and tile is read once: repeated 256-entry manifests can otherwise exhaust the read limit.
-    for (const written of rows) {
-      if (!written.next) continue
-      const row = await readRow(ctx, written.table, written.key)
-      if (!row) throw new Error('Checkpoint Scene record is missing after publication.')
-      switch (written.table) {
-        case 'sceneLiveEntities':
-          parseLiveEntity(row as Doc<'sceneLiveEntities'>, scene.toVersion)
-          if ('collection' in row && 'ordinal' in row && row.ordinal !== null)
-            await ctx.db
-              .query('sceneLiveEntities')
-              .withIndex('by_sceneId_collection_ordinal', (q) =>
-                q
-                  .eq('sceneId', scene.sceneId)
-                  .eq('collection', row.collection)
-                  .eq('ordinal', row.ordinal)
-              )
-              .unique()
-          break
-        case 'sceneFogLayers': {
-          const layer = parseFogLayer(row as Doc<'sceneFogLayers'>, scene.toVersion)
-          await ctx.db
-            .query('sceneFogLayers')
-            .withIndex('by_sceneId_ordinal', (q) =>
-              q.eq('sceneId', scene.sceneId).eq('ordinal', layer.ordinal)
-            )
-            .unique()
-          for (const reference of layer.chunks) await checkChunk(reference, layer)
-          break
-        }
-        case 'sceneFogSaves': {
-          const save = parseFogSave(row as Doc<'sceneFogSaves'>)
-          if (save.status !== 'PUBLISHED') throw new Error('Checkpoint fog save is incomplete.')
-          for (const [ordinal, manifest] of save.input.chunkManifest.entries())
-            await checkChunk({ ...manifest, saveId: save.id, ordinal }, save.input.layer)
-          if (save.geometrySaveId) {
-            const parent = await ctx.db
-              .query('sceneGeometrySaves')
-              .withIndex('by_publicId', (q) => q.eq('id', save.geometrySaveId!))
-              .unique()
-            if (
-              !parent ||
-              parent.sceneId !== scene.sceneId ||
-              parent.status !== 'PUBLISHED' ||
-              save.commandId !== save.id ||
-              parent.actorUserId !== save.actorUserId ||
-              !parent.fogSaves.some(
-                (child) =>
-                  child.saveId === save.id && child.ownerUserId === save.input.layer.ownerUserId
-              )
-            )
-              throw new Error('Checkpoint fog save parent is inconsistent.')
-          }
-          break
-        }
-        case 'sceneFogChunks': {
-          const chunk = row as Doc<'sceneFogChunks'>
-          const save = await readFogSave(chunk.saveId)
-          const manifest = save?.input.chunkManifest[chunk.ordinal]
-          if (!save || save.sceneId !== scene.sceneId || !manifest)
-            throw new Error('Checkpoint fog chunk belongs to another Scene or missing save.')
-          await checkChunk(
-            { ...manifest, saveId: save.id, ordinal: chunk.ordinal },
-            save.input.layer
-          )
-          break
-        }
-        case 'sceneGeometrySaves': {
-          const save = parseGeometrySave(row as Doc<'sceneGeometrySaves'>)
-          if (
-            save.status !== 'PUBLISHED' ||
-            save.snapshotVersion < scene.fromVersion ||
-            save.snapshotVersion > scene.toVersion
-          )
-            throw new Error('Checkpoint geometry save is incomplete or stale.')
-          readSpatialPreparation(save)
-          for (const child of save.fogSaves) {
-            const fog = await readFogSave(child.saveId)
-            if (
-              !fog ||
-              fog.sceneId !== scene.sceneId ||
-              fog.status !== 'PUBLISHED' ||
-              fog.geometrySaveId !== save.id ||
-              fog.commandId !== fog.id ||
-              fog.actorUserId !== save.actorUserId ||
-              fog.input.layer.ownerUserId !== child.ownerUserId
-            )
-              throw new Error('Checkpoint geometry fog publication is incomplete.')
-          }
-          break
-        }
-      }
-    }
-
-    // Receipt validation runs after the saves it references exist, inside the same rollback boundary.
-    for (const { command } of commands) {
-      if (
-        command.input.sceneId !== scene.sceneId ||
-        command.result.sceneId !== scene.sceneId ||
-        command.commandId !== command.input.commandId ||
-        command.commandId !== command.result.commandId ||
-        command.inputChecksum !== checksumCanonicalJson(command.input) ||
-        command.resultChecksum !== checksumCanonicalJson(command.result) ||
-        command.result.replayed ||
-        command.result.version < scene.fromVersion ||
-        command.result.version > scene.toVersion
-      )
-        throw new Error('Checkpoint Scene receipt is inconsistent.')
-      if (command.encoding === 'GEOMETRY') {
-        parseGeometryCommand(command, scene.toVersion)
-        const save = await ctx.db
-          .query('sceneGeometrySaves')
-          .withIndex('by_sceneId_commandId', (q) =>
-            q.eq('sceneId', scene.sceneId).eq('commandId', command.commandId)
-          )
-          .unique()
-        if (
-          !save ||
-          save.status !== 'PUBLISHED' ||
-          save.actorUserId !== command.actorUserId ||
-          save.inputChecksum !== command.inputChecksum ||
-          save.fogSaves.length !== command.result.fogPatches.length ||
-          command.result.fogPatches.some(
-            (patch) =>
-              !save.fogSaves.some(
-                (child) => child.saveId === patch.saveId && child.ownerUserId === patch.ownerUserId
-              )
-          )
-        )
-          throw new Error('Checkpoint geometry receipt publication is incomplete.')
-        for (const patch of command.result.fogPatches) {
-          const fog = await readFogSave(patch.saveId)
-          if (
-            !fog ||
-            fog.status !== 'PUBLISHED' ||
-            fog.sceneId !== scene.sceneId ||
-            fog.geometrySaveId !== save.id ||
-            fog.input.layer.width !== patch.width ||
-            fog.input.layer.height !== patch.height ||
-            fog.input.chunkManifest.length !== patch.chunkCount
-          )
-            throw new Error('Checkpoint geometry receipt fog references are inconsistent.')
-        }
-      }
-      if (command.encoding === 'FOG_PATCH') {
-        parseFogCommand(command, scene.toVersion)
-        const save = await readFogSave(command.result.patch.saveId)
-        if (
-          !save ||
-          save.status !== 'PUBLISHED' ||
-          save.sceneId !== scene.sceneId ||
-          save.commandId !== command.commandId ||
-          save.actorUserId !== command.actorUserId ||
-          save.inputChecksum !== command.inputChecksum
-        )
-          throw new Error('Checkpoint fog receipt publication is incomplete.')
-      }
-      if (
-        command.encoding === 'UNDO' &&
-        command.undoneCommandId !== command.result.delta.undoneCommandId
-      )
-        throw new Error('Checkpoint Scene undo receipt is inconsistent.')
-    }
-    if (commands.length)
-      await createReceiptLedger(
-        ctx,
-        {
-          id: crypto.randomUUID(),
-          scope: 'SCENE',
-          scopeId: scene.sceneId,
-          epoch: frame.epoch,
-          checkpointId: frame.checkpointId,
-          createdAt: new Date().toISOString()
-        },
-        commands.map(({ value, command }) => ({
-          table: 'sceneLiveCommands',
-          key: [command.sceneId, command.commandId],
-          value,
-          checksum: checksumCanonicalJson(value)
-        }))
-      )
   }
 }

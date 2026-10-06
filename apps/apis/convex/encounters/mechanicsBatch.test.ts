@@ -1,4 +1,7 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -19,8 +22,6 @@ import {
   applyEncounterMechanicsBatch,
   type EncounterMechanicsBatchInput
 } from '../../tests/fixtures/mechanicsBatch'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -112,9 +113,9 @@ describe('applyEncounterMechanicsBatch', () => {
     if (result.updatedActor.kind === 'CHARACTER') throw new Error('Expected a non-Character actor.')
     expect(result.updatedActor.currentHitPoints).toBe(1)
     const stored = await base.readActor()
-    expect(stored?.stateChecksum).toBe(checksumCanonicalJson(result.updatedActor))
-    expect(JSON.parse(stored!.stateJson)).toEqual({
-      ...JSON.parse(before.stateJson),
+    expect(stored?.stateChecksum).toBe(checksumRunActorPlayState(result.updatedActor))
+    expect(readStoredRunActor(stored!)).toEqual({
+      ...readStoredRunActor(before),
       currentHitPoints: 1
     })
   })
@@ -220,7 +221,7 @@ describe('applyEncounterMechanicsBatch', () => {
           )
           .unique()
         if (!row) throw new Error('Missing actor.')
-        const actor = encounterRunActorStateSchema.parse(JSON.parse(row.stateJson))
+        const actor = await readTestActor(ctx, row)
         const updated = {
           ...actor,
           conditions: [{ conditionTypeId: oldCondition, label: 'Retained metadata' }]

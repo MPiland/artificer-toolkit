@@ -1,4 +1,4 @@
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   consumeEncounterActionEconomy,
   type EncounterActionEconomyConsumption
@@ -22,7 +22,7 @@ export async function consumeNativeActionEconomy(
       q.eq('encounterId', actor.encounterId).eq('id', actor.id)
     )
     .unique()
-  if (!row || row.stateChecksum !== checksumCanonicalJson(input.actor))
+  if (!row || row.stateChecksum !== checksumRunActorPlayState(input.actor))
     throw new Error('The selected action allowance changed before settlement.')
   await writeRunActor(ctx, row._id, actor)
   return actor

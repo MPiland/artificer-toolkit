@@ -31,7 +31,6 @@ import {
   planMovementInRoom,
   readEncounterHistory
 } from '../../tests/fixtures/liveSessionWorker'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
@@ -177,12 +176,17 @@ async function records(value: MovementFixture) {
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-    receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-        .collect(),
-    sceneCommands: await ctx.db.query('sceneLiveCommands').collect(),
+    receiptHeaders: await (
+      await readEncounterHistory(ctx)
+    )
+      .query('encounterRuleReceipts')
+      .collect(),
+    receipts: await (
+      await readEncounterHistory(ctx)
+    )
+      .query('encounterRuleReceipts')
+      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
+      .collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))
 }

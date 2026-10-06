@@ -20,6 +20,16 @@ describe('security headers', () => {
     expect(createSecurityHeaders()['Content-Security-Policy']).not.toContain('public.example')
   })
 
+  it('lets a local proof build reach loopback HTTP without development eval', () => {
+    vi.stubEnv('MODE', 'proof')
+    vi.stubEnv('VITE_CONVEX_URL', 'http://127.0.0.1:3210')
+    vi.stubEnv('VITE_MEDIA_STORAGE_ORIGIN', 'http://127.0.0.1:9000')
+    const csp = createSecurityHeaders()['Content-Security-Policy']
+    expect(csp).toContain('http://127.0.0.1:3210 ws://127.0.0.1:3210')
+    expect(csp).toContain('http://127.0.0.1:9000')
+    expect(csp).not.toContain("'unsafe-eval'")
+  })
+
   it.each([
     { mode: 'production', nodeEnv: undefined },
     { mode: 'production', nodeEnv: 'development' },

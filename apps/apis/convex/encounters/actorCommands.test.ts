@@ -1,4 +1,4 @@
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
@@ -122,9 +122,7 @@ async function stored(
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run,
       actor,
-      receipts: await (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .collect()
+      receipts: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
     }
   })
 }
@@ -166,16 +164,14 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       healthBand: 'CRITICAL'
     })
     const after = await stored(t, run.id, customActor.id)
-    const actorState = encounterRunActorStateSchema.parse(JSON.parse(after.actor!.stateJson))
+    const actorState = readStoredRunActor(after.actor!)
     expect(actorState).toMatchObject({
       currentHitPoints: 2,
       tempHitPoints: 3,
       conditions: [{ label: 'Prone' }],
       sideId
     })
-    expect(actorState.snapshot).toEqual(
-      encounterRunActorStateSchema.parse(JSON.parse(before.actor!.stateJson)).snapshot
-    )
+    expect(after.actor!.snapshotChecksum).toBe(before.actor!.snapshotChecksum)
     expect(actorState.initiative).toBe(12)
     expect(actorState.manualOrder).toBe(0)
     expect(result.projection.currentActorId).toBe(customActor.id)
@@ -249,9 +245,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       first.projection.actors.find((actor) => actor.id === characterActor.id)?.conditions
     ).toHaveLength(1)
     const after = await stored(t, run.id, characterActor.id)
-    expect(encounterRunActorStateSchema.parse(JSON.parse(after.actor!.stateJson)).kind).toBe(
-      'CHARACTER'
-    )
+    expect(readStoredRunActor(after.actor!).kind).toBe('CHARACTER')
     const storedCharacter = await t.run((ctx) => readCharacterRow(ctx, character.id))
     expect(storedCharacter!.play.maximumHitPoints).toBe(15)
     expect(readCharacterRecord(storedCharacter!).state.conditions).toHaveLength(1)

@@ -35,6 +35,7 @@ import {
   type SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { SOCKET_MESSAGE_BUDGETS } from '../../session-worker/src/roomLimits'
 import { api } from '../convex/_generated/api.js'
 import { executeEncounterCommand } from './developmentClient'
 import { bindToken } from './developmentEncounterLifecycle'
@@ -48,13 +49,8 @@ type SceneFogStagingMessage = Extract<
 >
 type SceneFogPatchCommand = Extract<SceneCommandInputDto, { type: 'PATCH_SCENE_FOG' }>
 export type OpenRoomSocket = (url: string, init: RoomSocketInit) => RoomSocket
-/** The presented Scene a Scene command needs the room to hold, as the tabletop synchronizes it. */
-export type RoomScenePresentation = { expectedPresentationVersion: number }
-/** The Scene the room must hold, synchronized, before it accepts a command that reads it. */
-type RoomSceneSynchronization = RoomScenePresentation & {
-  sceneId: string
-  expectedSceneVersion: number
-}
+/** The presented Scene the room must report, at this version or later, before a command that reads it is sent. */
+type RoomSceneRequirement = { sceneId: string; expectedSceneVersion: number }
 /**
  * A committed Scene command and the session sequence it carried, which an exact retry repeats. The
  * result is null when this member cannot see the change and the room sends only the version bump.
@@ -67,21 +63,17 @@ export type RoomSceneCommit = {
 export type CommandRoom = {
   executeEncounter: (
     command: RoomCommand,
-    synchronization?: RoomSceneSynchronization
+    requirement?: RoomSceneRequirement
   ) => Promise<EncounterCommandResultDto>
   executeScene: (
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
-    presentation: RoomScenePresentation,
     replayOfSequence?: number
   ) => Promise<RoomSceneCommit>
   /** Stages a fog patch over the socket and publishes it, as the browser does (D79). */
-  executeSceneFog: (
-    command: SceneFogPatchCommand,
-    presentation: RoomScenePresentation
-  ) => Promise<RoomSceneCommit>
+  executeSceneFog: (command: SceneFogPatchCommand) => Promise<RoomSceneCommit>
   /** Resolves once the room has admitted this member and sent its first STATE_SYNC. */
   whenReady: () => Promise<void>
-  /** The Scene as the room last reported it to this socket, or null before it is synchronized. */
+  /** The Scene as the room last reported it to this socket, or null before the room has sent one. */
   scene: () => { id: string; version: number } | null
   /** Holds the Encounter session subscription, re-sent after the room asks to authenticate again. */
   subscribeEncounterSession: (timeline: boolean) => void
@@ -115,26 +107,24 @@ type PendingCommand = {
   | {
       scope: 'ENCOUNTER'
       command: RoomCommand
-      synchronization: RoomSceneSynchronization | null
+      requirement: RoomSceneRequirement | null
       resolve: (result: EncounterCommandResultDto) => void
     }
   | {
       scope: 'SCENE'
       command: SceneCommandInputDto | SceneFogPublishCommandInput
-      presentation: RoomScenePresentation
       // An exact retry repeats the original session sequence, which the room's receipt covers.
       replayOfSequence: number | null
       sentSequence: number | null
       resolve: (commit: RoomSceneCommit) => void
     }
   | {
-      // A fog staging step answers with SCENE_FOG_PROGRESS and needs the room's Scene synchronized.
+      // A fog staging step answers with SCENE_FOG_PROGRESS and needs the room's Scene to be the command's.
       scope: 'FOG'
       command: Pick<SceneFogPatchInput, 'sceneId' | 'commandId' | 'expectedSceneVersion'> & {
         type: SceneFogStagingMessage['type']
       }
       message: SceneFogStagingMessage
-      presentation: RoomScenePresentation
       resolve: (progress: SceneFogSaveProgress) => void
     }
 )
@@ -169,14 +159,15 @@ const openNodeSocket: OpenRoomSocket = (url, init) =>
 /**
  * One authenticated Session room connection that sends commands exactly as the browser does:
  * ticket subprotocol, AUTHENTICATE, then COMMAND after TRANSIENT_READY and STATE_SYNC. A Scene
- * command first synchronizes the room's presented Scene (SYNCHRONIZE_SCENE) at the command's
- * expected Scene version. With `holdOpen`, an idle room stays connected until `close`.
+ * command waits until the room's own STATE_SYNC (or a commit) reports the command's Scene at its
+ * expected version; the room builds its presented Scene on admission. With `holdOpen`, an idle room stays connected until `close`.
  */
 export function openCommandRoom(options: {
   url: string
   origin: string
   issueTicket: () => Promise<LiveSessionTicketDto>
-  accessToken: () => string | null
+  /** Called for every challenge, so a held socket answers with a fresh token as the browser does. */
+  accessToken: () => Promise<string | null>
   onClosed: () => void
   holdOpen?: boolean
   openSocket?: OpenRoomSocket
@@ -187,17 +178,21 @@ export function openCommandRoom(options: {
   const pending = new Map<string, PendingCommand>()
   let socket: RoomSocket | null = null
   let admitted = false
-  // Admitted and synchronized: set by STATE_SYNC, cleared when the room asks to authenticate again.
-  let synchronized = false
+  // Admitted and synced: set by STATE_SYNC, cleared when the room asks to authenticate again.
+  let synced = false
   const readyWaiters: { resolve: () => void; reject: (error: Error) => void }[] = []
   let encounterTimeline: boolean | null = null
   let encounterSubscribed = false
   let sequence: number | null = null
-  // The room's synchronized Scene as its last STATE_SYNC and committed Scene changes report it.
+  // The room's presented Scene as its last STATE_SYNC and committed Scene changes report it.
   let roomScene: { id: string; version: number } | null = null
-  let requestedSynchronization: string | null = null
   let failure: Error | null = null
   let idleTimer: ReturnType<typeof setTimeout> | null = null
+  // The room closes a socket that exceeds its COMMAND budget, so sends keep one token below it.
+  const commandBudget = SOCKET_MESSAGE_BUDGETS.COMMAND
+  let commandTokens = commandBudget.capacity - 1
+  let commandTokensAt = Date.now()
+  let commandRetry: ReturnType<typeof setTimeout> | null = null
 
   const send = (message: LiveSessionWebSocketClientMessageDto) =>
     socket?.send(JSON.stringify(message))
@@ -207,6 +202,7 @@ export function openCommandRoom(options: {
     failure = error
     options.onEvent?.(`ended: ${error.message}`)
     if (idleTimer) clearTimeout(idleTimer)
+    if (commandRetry) clearTimeout(commandRetry)
     for (const entry of pending.values()) {
       clearTimeout(entry.timer)
       entry.reject(error)
@@ -229,41 +225,53 @@ export function openCommandRoom(options: {
     return entry
   }
 
-  const authenticate = () => {
-    const accessToken = options.accessToken()
+  const authenticate = async () => {
+    const accessToken = await options.accessToken().catch(() => null)
+    if (failure) return
     if (!accessToken)
       return fail(new Error('Unauthenticated: the Session room needs a signed-in client.'))
     send({ accessToken, type: 'AUTHENTICATE' })
   }
 
+  const takeCommandToken = () => {
+    const now = Date.now()
+    commandTokens = Math.min(
+      commandBudget.capacity - 1,
+      commandTokens + ((now - commandTokensAt) / 1000) * commandBudget.refillPerSecond
+    )
+    commandTokensAt = now
+    if (commandTokens >= 1) {
+      commandTokens -= 1
+      return true
+    }
+    commandRetry ??= setTimeout(
+      () => {
+        commandRetry = null
+        flush()
+      },
+      ((1 - commandTokens) / commandBudget.refillPerSecond) * 1000
+    )
+    return false
+  }
+
   const flush = () => {
-    if (!admitted || sequence === null) return
+    if (failure || !admitted || sequence === null) return
     for (const entry of pending.values()) {
       if (entry.sent) continue
       const required =
         entry.scope === 'ENCOUNTER'
-          ? entry.synchronization
+          ? entry.requirement
           : {
               sceneId: entry.command.sceneId,
-              expectedSceneVersion: entry.command.expectedSceneVersion,
-              expectedPresentationVersion: entry.presentation.expectedPresentationVersion
+              expectedSceneVersion: entry.command.expectedSceneVersion
             }
+      // The room alone moves its Scene; the next STATE_SYNC or commit that reaches it flushes again.
       if (
         required &&
         (roomScene?.id !== required.sceneId || roomScene.version < required.expectedSceneVersion)
-      ) {
-        const synchronization = `${required.sceneId}:${required.expectedSceneVersion}:${required.expectedPresentationVersion}`
-        if (requestedSynchronization !== synchronization) {
-          requestedSynchronization = synchronization
-          send({
-            type: 'SYNCHRONIZE_SCENE',
-            sceneId: required.sceneId,
-            version: required.expectedSceneVersion,
-            expectedPresentationVersion: required.expectedPresentationVersion
-          })
-        }
+      )
         continue
-      }
+      if (entry.scope !== 'FOG' && !takeCommandToken()) return
       if (entry.scope === 'ENCOUNTER') {
         send({
           command: { command: entry.command, scope: 'ENCOUNTER' },
@@ -311,11 +319,10 @@ export function openCommandRoom(options: {
       // A command in flight when admission changes is dropped by the room; resend it after the next
       // STATE_SYNC. Its command ID makes a repeat an exact replay.
       admitted = false
-      synchronized = false
+      synced = false
       encounterSubscribed = false
-      requestedSynchronization = null
       for (const entry of pending.values()) entry.sent = false
-      authenticate()
+      void authenticate()
     } else if (message.type === 'TRANSIENT_READY') {
       admitted = true
     } else if (message.type === 'STATE_SYNC') {
@@ -323,7 +330,7 @@ export function openCommandRoom(options: {
       roomScene = message.state.scene
         ? { id: message.state.scene.id, version: message.state.scene.version }
         : null
-      synchronized = true
+      synced = true
       for (const waiter of readyWaiters.splice(0)) waiter.resolve()
       applyEncounterSubscription()
       flush()
@@ -394,7 +401,7 @@ export function openCommandRoom(options: {
     }
   }
 
-  void (async () => {
+  const join = async (attempt: number): Promise<void> => {
     const ticket = await options.issueTicket()
     if (failure) return
     const opened = (options.openSocket ?? openNodeSocket)(options.url, {
@@ -407,12 +414,25 @@ export function openCommandRoom(options: {
     socket = opened
     opened.addEventListener('open', authenticate)
     opened.addEventListener('message', receive)
-    opened.addEventListener('close', (event) =>
+    opened.addEventListener('close', (event) => {
+      // Activation waits on transient inputs such as a pending content snapshot build, so like the
+      // browser client an unadmitted socket retries it with backoff.
+      if (
+        !admitted &&
+        event.code === 1008 &&
+        event.reason === 'Live-session activation failed.' &&
+        attempt < 5
+      ) {
+        options.onEvent?.(`activation retry ${attempt + 1}`)
+        setTimeout(() => void join(attempt + 1).catch(joinFailed), 250 * 2 ** attempt)
+        return
+      }
       fail(new Error(`The Session room closed the connection (${event.code} ${event.reason}).`))
-    )
-  })().catch((error: unknown) =>
+    })
+  }
+  const joinFailed = (error: unknown) =>
     fail(error instanceof Error ? error : new Error('Could not join the Session room.'))
-  )
+  void join(0).catch(joinFailed)
 
   const refusal = (commandId: string) =>
     failure ??
@@ -431,7 +451,6 @@ export function openCommandRoom(options: {
 
   const executeScene = (
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
-    presentation: RoomScenePresentation,
     replayOfSequence?: number
   ): Promise<RoomSceneCommit> => {
     const refused = refusal(command.commandId)
@@ -440,7 +459,6 @@ export function openCommandRoom(options: {
       track({
         scope: 'SCENE',
         command,
-        presentation,
         replayOfSequence: replayOfSequence ?? null,
         sentSequence: null,
         sent: false,
@@ -452,8 +470,7 @@ export function openCommandRoom(options: {
   }
   const stageFog = (
     message: SceneFogStagingMessage,
-    { sceneId, commandId, expectedSceneVersion }: SceneFogPatchInput,
-    presentation: RoomScenePresentation
+    { sceneId, commandId, expectedSceneVersion }: SceneFogPatchInput
   ): Promise<SceneFogSaveProgress> => {
     const refused = refusal(commandId)
     if (refused) return Promise.reject(refused)
@@ -462,7 +479,6 @@ export function openCommandRoom(options: {
         scope: 'FOG',
         command: { type: message.type, sceneId, commandId, expectedSceneVersion },
         message,
-        presentation,
         sent: false,
         resolve,
         reject,
@@ -477,23 +493,23 @@ export function openCommandRoom(options: {
     whenReady: () =>
       failure
         ? Promise.reject(failure)
-        : synchronized
+        : synced
           ? Promise.resolve()
           : new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject })),
     subscribeEncounterSession(timeline) {
       encounterTimeline = timeline
       encounterSubscribed = false
-      if (synchronized) applyEncounterSubscription()
+      if (synced) applyEncounterSubscription()
     },
     sendTransient: (envelope) => send({ envelope, type: 'TRANSIENT' }),
-    executeEncounter(command, synchronization) {
+    executeEncounter(command, requirement) {
       const refused = refusal(command.commandId)
       if (refused) return Promise.reject(refused)
       return new Promise((resolve, reject) =>
         track({
           scope: 'ENCOUNTER',
           command,
-          synchronization: synchronization ?? null,
+          requirement: requirement ?? null,
           sent: false,
           resolve,
           reject,
@@ -502,7 +518,7 @@ export function openCommandRoom(options: {
       )
     },
     executeScene,
-    async executeSceneFog(command, presentation) {
+    async executeSceneFog(command) {
       const input = sceneFogPatchInputSchema.parse({
         type: command.type,
         sceneId: command.sceneId,
@@ -518,7 +534,7 @@ export function openCommandRoom(options: {
           checksum: checksumCanonicalJson(chunk)
         }))
       })
-      let progress = await stageFog({ input, type: 'SCENE_FOG_BEGIN' }, input, presentation)
+      let progress = await stageFog({ input, type: 'SCENE_FOG_BEGIN' }, input)
       // One chunk per append always fits the room's frame cap.
       while (
         progress.status === 'RECEIVING' &&
@@ -535,21 +551,17 @@ export function openCommandRoom(options: {
             },
             type: 'SCENE_FOG_APPEND'
           },
-          input,
-          presentation
+          input
         )
       }
       if (progress.status === 'EXPIRED') throw new Error('Scene fog save expired.')
-      return executeScene(
-        {
-          type: 'PUBLISH_SCENE_FOG_PATCH',
-          sceneId: input.sceneId,
-          commandId: input.commandId,
-          expectedSceneVersion: input.expectedSceneVersion,
-          saveId: progress.saveId
-        },
-        presentation
-      )
+      return executeScene({
+        type: 'PUBLISH_SCENE_FOG_PATCH',
+        sceneId: input.sceneId,
+        commandId: input.commandId,
+        expectedSceneVersion: input.expectedSceneVersion,
+        saveId: progress.saveId
+      })
     }
   }
 }
@@ -563,6 +575,7 @@ export function openCommandRoom(options: {
  */
 export class DevelopmentHttpClient extends ConvexHttpClient {
   #accessToken: string | null = null
+  #fetchToken: (() => Promise<string>) | null = null
   readonly #holdRooms: boolean
   readonly #rooms = new Map<string, CommandRoom>()
   readonly #encounterCampaigns = new Map<string, string>()
@@ -577,14 +590,17 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     this.#holdRooms = options?.holdRooms ?? false
   }
 
-  override setAuth(value: string) {
+  /** With `fetchToken`, each Session room challenge is answered with a freshly minted token. */
+  override setAuth(value: string, fetchToken?: () => Promise<string>) {
     super.setAuth(value)
     this.#accessToken = value
+    this.#fetchToken = fetchToken ?? null
   }
 
   override clearAuth() {
     super.clearAuth()
     this.#accessToken = null
+    this.#fetchToken = null
   }
 
   override mutation<Mutation extends FunctionReference<'mutation'>>(
@@ -603,22 +619,14 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
 
   async executeSceneCommand(
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
-    presentation: RoomScenePresentation,
     replayOfSequence?: number
   ): Promise<RoomSceneCommit> {
-    return (await this.#sceneRoom(command.sceneId)).executeScene(
-      command,
-      presentation,
-      replayOfSequence
-    )
+    return (await this.#sceneRoom(command.sceneId)).executeScene(command, replayOfSequence)
   }
 
   /** Uploads a fog patch to the room in bounded steps and publishes it, as the browser does. */
-  async executeSceneFog(
-    command: SceneFogPatchCommand,
-    presentation: RoomScenePresentation
-  ): Promise<RoomSceneCommit> {
-    return (await this.#sceneRoom(command.sceneId)).executeSceneFog(command, presentation)
+  async executeSceneFog(command: SceneFogPatchCommand): Promise<RoomSceneCommit> {
+    return (await this.#sceneRoom(command.sceneId)).executeSceneFog(command)
   }
 
   async #sceneCampaign(sceneId: string): Promise<string> {
@@ -645,13 +653,13 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   }
 
   /**
-   * Looks up an Encounter's and its Scene's Campaign and joins the room, so measured commands pay no
-   * lookup, ticket or join. Returns the Campaign ID.
+   * Looks up the Campaign of the Scene the Encounter is bound to and joins the room, so measured
+   * commands pay no lookup, ticket or join. Convex shows players the Run only after a checkpoint, so
+   * the Encounter's Campaign is taken from its bound Scene. Returns the Campaign ID.
    */
   async warmRoom(input: { encounterId: string; sceneId: string }): Promise<string> {
-    const campaignId = await this.#encounterCampaign(input.encounterId)
-    if ((await this.#sceneCampaign(input.sceneId)) !== campaignId)
-      throw new Error('The Scene and the Encounter belong to different Campaigns.')
+    const campaignId = await this.#sceneCampaign(input.sceneId)
+    this.#encounterCampaigns.set(input.encounterId, campaignId)
     await this.#room(campaignId).whenReady()
     return campaignId
   }
@@ -697,16 +705,11 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   async #executeTokenBinding(args: { input: unknown }): Promise<EncounterCommandResultDto> {
     const input = encounterActorTokenBindingCommandInputDtoSchema.parse(args.input)
     const campaignId = await this.#encounterCampaign(input.encounterId)
-    // The room reads the binding's Scene from its synchronized presented Scene, as the GM's tabletop holds it.
-    const [header, presentation] = await Promise.all([
-      this.query(api.scenes.liveReads.header, { sceneId: input.sceneId }),
-      this.query(api.scenes.presentations.get, { campaignId })
-    ])
-    if (!presentation) throw new Error('The Campaign has no presented Scene to bind tokens on.')
+    // The room reads the binding's Scene from its presented Scene, as the GM's tabletop holds it.
+    const header = await this.query(api.scenes.liveReads.header, { sceneId: input.sceneId })
     return this.#room(campaignId).executeEncounter(input, {
       sceneId: input.sceneId,
-      expectedSceneVersion: header.version,
-      expectedPresentationVersion: presentation.version
+      expectedSceneVersion: header.version
     })
   }
 
@@ -720,7 +723,10 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
       url: url.toString(),
       origin: liveSessionOrigin,
       issueTicket: () => super.action(api.liveSessions.tickets.issue, { campaignId }),
-      accessToken: () => this.#accessToken,
+      accessToken: async () => {
+        if (this.#fetchToken) this.setAuth(await this.#fetchToken(), this.#fetchToken)
+        return this.#accessToken
+      },
       holdOpen: this.#holdRooms,
       onMessage: (message, receivedAt) => {
         for (const listener of this.#frameListeners) listener({ campaignId, message, receivedAt })
