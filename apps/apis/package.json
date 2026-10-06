@@ -50,7 +50,7 @@
     "@convex-dev/action-retrier": "0.3.1",
     "auth": "1.6.33",
     "convex-test": "0.0.60",
-    "react": "^19.2.6",
+    "react": "^19.3.0",
     "typescript": "^7.0.2"
   },
   "installConfig": {
