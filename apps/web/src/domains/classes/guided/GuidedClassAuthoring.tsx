@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, NumberInput, Select, Stack } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants/proficiency'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
@@ -38,7 +38,7 @@ export const GuidedClassAuthoring = withForm({
   props: {} as GuidedClassAuthoringProps,
   render: function RenderGuidedClassAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [step, setStep] = useState(0)
-    const values = useStore(form.store, (state) => readClassValues(state.values))
+    const values = useSelector(form.store, (state) => readClassValues(state.values))
     const isSubclass = values.category === CLASS_CATEGORY.SUBCLASS
     const steps = isSubclass ? SUBCLASS_STEPS : BASE_STEPS
     const categoryLocked = session.mode === 'edit'

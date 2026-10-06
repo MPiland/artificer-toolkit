@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Alert, Stack, Text } from '@mantine/core'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
@@ -22,7 +22,7 @@ export const GuidedCreatureAuthoring = withForm({
   props: {} as GuidedCreatureAuthoringProps,
   render: function RenderGuidedCreatureAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [step, setStep] = useState(0)
-    const values = useStore(form.store, (state) => readCreatureValues(state.values))
+    const values = useSelector(form.store, (state) => readCreatureValues(state.values))
     const system = session.system
     const categoryLocked = session.mode === 'edit'
 

@@ -1,7 +1,9 @@
-import type { AnyFieldMeta, AnyFieldMetaBase } from '@tanstack/react-form'
+import type { AnyFieldLikeMetaBase, AnyFieldMeta } from '@tanstack/react-form'
 import type { GroupEditorTransaction } from './FormRenderer.context'
 
-const EMPTY_FIELD_META: AnyFieldMetaBase = {
+const EMPTY_FIELD_META: AnyFieldLikeMetaBase = {
+  _arrayVersion: 0,
+  _pendingValidationsCount: 0,
   errorMap: {},
   errorSourceMap: {},
   isBlurred: false,
@@ -23,8 +25,10 @@ function isEditorField(fieldName: string, collectionFieldName: string, rowIndex:
   )
 }
 
-function toFieldMetaBase(meta: AnyFieldMeta): AnyFieldMetaBase {
+function toFieldMetaBase(meta: AnyFieldMeta): AnyFieldLikeMetaBase {
   return {
+    _arrayVersion: meta._arrayVersion,
+    _pendingValidationsCount: meta._pendingValidationsCount,
     errorMap: { ...meta.errorMap },
     errorSourceMap: { ...meta.errorSourceMap },
     isBlurred: meta.isBlurred,
@@ -69,7 +73,7 @@ export function restoreGroupEditorTransaction({
   currentFieldMeta: FieldMetaRecord
   editor: GroupEditorTransaction
   restoreCollection: (collection: readonly unknown[]) => void
-  restoreFieldMeta: (fieldName: string, meta: AnyFieldMetaBase) => void
+  restoreFieldMeta: (fieldName: string, meta: AnyFieldLikeMetaBase) => void
 }) {
   restoreCollection(structuredClone(editor.collectionSnapshot))
 

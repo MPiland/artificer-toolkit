@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import type {
   NodeRuntimePathDto,
   NodeRuntimeResolveResponseDto
@@ -123,7 +123,7 @@ export function FormRenderer<TValues extends object>({
       const resolvedResolveModel = resolveModel ?? authoring.resolveModel
       const resolvedSystemId = systemId ?? authoring.systemId
       const rendersNavigationTarget = updateAuthoringState || renderNavigationTarget
-      const formValues = useStore(form.store, (state) => state.values)
+      const formValues = useSelector(form.store, (state) => state.values)
       const rootValues = useMemo(() => toResolvedNodeValues(formValues), [formValues])
       const localStructuralChangeGuard = useStructuralChangeGuard({
         form,
@@ -134,13 +134,13 @@ export function FormRenderer<TValues extends object>({
       const structuralChangeGuard = inheritedStructuralChangeGuard ?? localStructuralChangeGuard
       const ownsStructuralChangeGuard = inheritedStructuralChangeGuard === undefined
 
-      const canSubmit = useStore(form.store, (state) => state.canSubmit)
-      const fieldMeta = useStore(
+      const canSubmit = useSelector(form.store, (state) => state.canSubmit)
+      const fieldMeta = useSelector(
         form.store,
         (state) => state.fieldMeta as Partial<Record<string, FieldMetaSnapshot>>
       )
-      const hasChanges = useStore(form.store, (state) => state.isDirty)
-      const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+      const hasChanges = useSelector(form.store, (state) => state.isDirty)
+      const isSubmitting = useSelector(form.store, (state) => state.isSubmitting)
       const values = useMemo(() => {
         if (!resolvedFieldPathPrefix) return rootValues
 
@@ -283,7 +283,7 @@ export function FormRenderer<TValues extends object>({
         : updateAuthoringState
           ? authoring.activeStep
           : visibleSteps[0]
-      const currentStepHasChanges = useStore(form.store, (state) =>
+      const currentStepHasChanges = useSelector(form.store, (state) =>
         hasVisibleStepChanges(
           form,
           currentStep?.sections ?? [],

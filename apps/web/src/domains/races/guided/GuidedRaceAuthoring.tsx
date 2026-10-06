@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Alert, Stack } from '@mantine/core'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
@@ -25,7 +25,7 @@ export const GuidedRaceAuthoring = withForm({
   props: {} as GuidedRaceAuthoringProps,
   render: function RenderGuidedRaceAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [step, setStep] = useState(0)
-    const values = useStore(form.store, (state) => readRaceValues(state.values))
+    const values = useSelector(form.store, (state) => readRaceValues(state.values))
     const system = session.system
     const categoryLocked = session.mode === 'edit'
     const parentRaces = useContentCatalogue('RACE', {

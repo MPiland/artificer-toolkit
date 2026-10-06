@@ -1,7 +1,7 @@
 import { AuthoringLayoutProvider } from './AuthoringLayoutProvider'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Alert, Button, Group, Stack } from '@mantine/core'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { useMatches } from '@tanstack/react-router'
 import * as styles from './AuthoringLayout.css'
 import { ResetFormConfirmation } from './Actions/ResetFormConfirmation'
@@ -99,7 +99,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       await activateValues(value)
     }
   })
-  const canonicalLabel = useStore(form.store, (state) =>
+  const canonicalLabel = useSelector(form.store, (state) =>
     readPreviewLabel(state.values, session?.fallbackLabel ?? 'Untitled Item')
   )
   const editorTitle = characterSession ? authoring.subjectLabel : canonicalLabel

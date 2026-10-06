@@ -1,7 +1,4 @@
-import type {
-  CharacterSheetCommonDto,
-  CharacterSheetSliceResponseDto
-} from '@artificer-toolkit/schema/api/characterSheetSlices'
+import type { CharacterSheetSliceResponseDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import {
   createCharacterResourceOwnerKey,
   createCharacterSpellSourceKey,

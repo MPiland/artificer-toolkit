@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { Alert, Stack, Text } from '@mantine/core'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
@@ -38,7 +38,7 @@ export const GuidedVehicleAuthoring = withForm({
   props: {} as Props,
   render: function RenderGuidedVehicleAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [screen, setScreen] = useState(0)
-    const values = useStore(form.store, (state) => state.values)
+    const values = useSelector(form.store, (state) => state.values)
     const label = readString(values, 'label')
     const features = readFeatures(values)
 

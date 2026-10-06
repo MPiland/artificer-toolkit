@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider, queryOptions } from '@tanstack/react-query'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { useMemo, type ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NodeRuntimeCompactResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
@@ -111,7 +111,7 @@ function Harness({
     [systemId]
   )
   if (!session) throw new Error('Expected class authoring session.')
-  const values = useStore(form.store, (state) => state.values)
+  const values = useSelector(form.store, (state) => state.values)
   return (
     <form.AppForm>
       <GuidedClassAuthoring

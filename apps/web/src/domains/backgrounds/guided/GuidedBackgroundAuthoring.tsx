@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { Alert, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
@@ -39,7 +39,7 @@ export const GuidedBackgroundAuthoring = withForm({
   props: {} as Props,
   render: function RenderGuidedBackgroundAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [screen, setScreen] = useState(0)
-    const values = useStore(form.store, (state) => state.values)
+    const values = useSelector(form.store, (state) => state.values)
     const label = readString(values, 'label')
     const details = readDetails(values)
     const features = readFeatures(values)

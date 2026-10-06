@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Stack } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
@@ -27,7 +27,7 @@ export const GuidedEquipmentAuthoring = withForm({
   props: {} as GuidedEquipmentAuthoringProps,
   render: function RenderGuidedEquipmentAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [step, setStep] = useState(0)
-    const values = useStore(form.store, (state) => readEquipmentValues(state.values))
+    const values = useSelector(form.store, (state) => readEquipmentValues(state.values))
     const categoryLocked = session.mode === 'edit'
     const parentEquipment = useQuery({
       ...getEquipmentOptions(session.system?.id, true),

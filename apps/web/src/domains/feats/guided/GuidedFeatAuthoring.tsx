@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { Alert, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
@@ -41,7 +41,7 @@ export const GuidedFeatAuthoring = withForm({
   props: {} as Props,
   render: function RenderGuidedFeatAuthoring({ form, onAdvanced, onStateChange, session }) {
     const [screen, setScreen] = useState(0)
-    const values = useStore(form.store, (state) => state.values)
+    const values = useSelector(form.store, (state) => state.values)
     const label = readString(values, 'label')
     const details = readDetails(values)
     const features = readFeatures(values)

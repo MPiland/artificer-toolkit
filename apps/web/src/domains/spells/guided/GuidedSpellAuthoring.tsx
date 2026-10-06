@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
@@ -42,7 +42,7 @@ export const GuidedSpellAuthoring = withForm({
     system
   }) {
     const [fallbackEffectIds] = useState(createGuidedEffectIds)
-    const effects = useStore(form.store, (state) => readSpellEffects(state.values))
+    const effects = useSelector(form.store, (state) => readSpellEffects(state.values))
     const rehydrated = effects?.[0] ? rehydrateGuidedSpell(effects[0], fallbackEffectIds) : null
     const baseEffect = rehydrated?.effect ?? null
     const canonicalDraft = rehydrated?.draft ?? null
@@ -52,7 +52,7 @@ export const GuidedSpellAuthoring = withForm({
     const effectIds = rehydrated?.ids ?? fallbackEffectIds
     const [screen, setScreen] = useState(!isExistingDraft && draft ? 3 : 0)
     const hadEffectsRef = useRef(Boolean(effects?.length))
-    const basics = useStore(form.store, (state) => readSpellBasics(state.values))
+    const basics = useSelector(form.store, (state) => readSpellBasics(state.values))
     const { canFinalize } = useAuthoringForm()
 
     useEffect(() => {

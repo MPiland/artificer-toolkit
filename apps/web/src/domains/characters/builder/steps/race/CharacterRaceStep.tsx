@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@mantine/core'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { withForm } from '#forms/app-form/AppForm'
 import type { CharacterBuilderGrantSummaryItemDto } from '@artificer-toolkit/schema/api/characters'
 import { AppSelect } from '#ui/primitives/Select'
@@ -28,8 +28,8 @@ export const CharacterRaceStep = withForm({
   render: function RenderCharacterRace({ form, payload, readOnly }) {
     const [raceChooserOpened, setRaceChooserOpened] = useState(false)
     const [stagedRaceId, setStagedRaceId] = useState<string | null>(null)
-    const raceIntent = useStore(form.store, (state) => state.values.intent.race)
-    const ancestrySelections = useStore(
+    const raceIntent = useSelector(form.store, (state) => state.values.intent.race)
+    const ancestrySelections = useSelector(
       form.store,
       (state) => state.values.intent.ancestrySelections
     )

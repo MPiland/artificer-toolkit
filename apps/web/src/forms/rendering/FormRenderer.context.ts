@@ -6,14 +6,14 @@ import {
   type SetStateAction
 } from 'react'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
-import type { AnyFieldMetaBase } from '@tanstack/react-form'
+import type { AnyFieldLikeMetaBase } from '@tanstack/react-form'
 import type { AuthoringNavigationTarget } from '../layout/authoringNavigation'
 import type { StructuralChangeGuard } from './useStructuralChangeGuard'
 
 export type GroupEditorTransaction = {
   collectionSnapshot: readonly unknown[]
   fieldName: string
-  fieldMetaSnapshot: Readonly<Record<string, AnyFieldMetaBase>>
+  fieldMetaSnapshot: Readonly<Record<string, AnyFieldLikeMetaBase>>
   label: string
   mode: 'add' | 'edit'
   opener: HTMLElement | null

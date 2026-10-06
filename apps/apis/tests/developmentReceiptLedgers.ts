@@ -35,10 +35,8 @@ export async function verifyDevelopmentReceiptLedgers({
       await cli('characters/developmentReceiptLedgers:inspect', { ...scope, ordinal }, false)
     )
   }
-  let proofFailed = false
-  let proofFailure: unknown
   let accountDeleted = false
-  try {
+  const prove = async () => {
     for (let ordinal = 0; ordinal < 3; ordinal++) {
       // Maximal fixture writes exceed 4 MiB including headers; space them past the native
       // deployment's one-second write-rate window. Workload proofs retain their own cadence.
@@ -263,30 +261,31 @@ export async function verifyDevelopmentReceiptLedgers({
         retry: 'PASS'
       }
     }
-  } catch (error) {
-    proofFailed = true
-    proofFailure = error
-    throw error
-  } finally {
-    const cleanupFailures: unknown[] = []
-    for (const ordinal of accountDeleted ? [] : seededOrdinals) {
-      try {
-        developmentReceiptLedgerRemovalSchema.parse(
-          await cli('characters/developmentReceiptLedgers:remove', { ...scope, ordinal }, false)
-        )
-        assert.deepEqual(await inspect(ordinal), {
-          headerExists: false,
-          ledgerExists: false,
-          partCount: 0
-        })
-      } catch (error) {
-        cleanupFailures.push(error)
-      }
-    }
-    if (cleanupFailures.length)
-      throw new AggregateError(
-        proofFailed ? [proofFailure, ...cleanupFailures] : cleanupFailures,
-        'Receipt ledger proof fixture cleanup failed.'
-      )
   }
+  const outcome = await prove().then(
+    (value) => ({ ok: true as const, value }),
+    (error: unknown) => ({ ok: false as const, error })
+  )
+  const cleanupFailures: unknown[] = []
+  for (const ordinal of accountDeleted ? [] : seededOrdinals) {
+    try {
+      developmentReceiptLedgerRemovalSchema.parse(
+        await cli('characters/developmentReceiptLedgers:remove', { ...scope, ordinal }, false)
+      )
+      assert.deepEqual(await inspect(ordinal), {
+        headerExists: false,
+        ledgerExists: false,
+        partCount: 0
+      })
+    } catch (error) {
+      cleanupFailures.push(error)
+    }
+  }
+  if (cleanupFailures.length)
+    throw new AggregateError(
+      outcome.ok ? cleanupFailures : [outcome.error, ...cleanupFailures],
+      'Receipt ledger proof fixture cleanup failed.'
+    )
+  if (!outcome.ok) throw outcome.error
+  return outcome.value
 }

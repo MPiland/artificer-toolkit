@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Text } from '@mantine/core'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
 import {
@@ -40,14 +40,14 @@ export const CharacterBuilderRenderer = withForm({
   render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 150 }) {
     const authoring = useAuthoringForm()
     const { updateAuthoringFormState } = authoring
-    const values = useStore(form.store, (state) => state.values)
-    const immediateResolutionFingerprint = useStore(form.store, (state) =>
+    const values = useSelector(form.store, (state) => state.values)
+    const immediateResolutionFingerprint = useSelector(form.store, (state) =>
       getCharacterBuilderImmediateResolutionFingerprint(state.values)
     )
-    const deferredResolutionFingerprint = useStore(form.store, (state) =>
+    const deferredResolutionFingerprint = useSelector(form.store, (state) =>
       getCharacterBuilderDeferredResolutionFingerprint(state.values)
     )
-    const submitState = useStore(form.store, (state) => ({
+    const submitState = useSelector(form.store, (state) => ({
       canSubmit: state.canSubmit,
       isSubmitting: state.isSubmitting
     }))

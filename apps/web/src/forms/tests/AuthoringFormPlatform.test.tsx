@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect, useMemo } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import type {
   NodeRuntimeNodeDto,
   NodeRuntimeResolveResponseDto
@@ -545,8 +545,8 @@ const TestAuthoringContent = withForm({
   },
   render: function TestAuthoringContent({ canSaveDraft, form, model, onCancel, onSaveDraft }) {
     const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
-    const nameValue = useStore(form.store, (state) => state.values.name)
-    const formValues = useStore(form.store, (state) => state.values)
+    const nameValue = useSelector(form.store, (state) => state.values.name)
+    const formValues = useSelector(form.store, (state) => state.values)
     const resolvedModel = useMemo(
       () => withStaticResolvedScopes(model, formValues),
       [formValues, model]

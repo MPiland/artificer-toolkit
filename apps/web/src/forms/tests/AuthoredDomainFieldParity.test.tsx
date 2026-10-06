@@ -1,6 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { useMemo } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useSelector } from '@tanstack/react-form'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { backgroundAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/background'
@@ -135,7 +135,7 @@ function RegistrationHarness({
     defaultValues,
     onSubmit: async () => undefined
   })
-  const registeredFields = useStore(form.store, (state) => Object.keys(state.fieldMeta).sort())
+  const registeredFields = useSelector(form.store, (state) => Object.keys(state.fieldMeta).sort())
 
   return (
     <AuthoringLayout>
