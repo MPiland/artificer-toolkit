@@ -59,6 +59,19 @@ export async function readCampaignCharacterAssignment(
 }
 
 /**
+ * Whether a Character actor has departed (D74): frozen, or unassigned and not yet frozen by the
+ * room. A departed actor no longer reads its Character, so commands refuse it and vision skips it.
+ */
+export async function isDepartedCharacterActor(
+  ctx: EncounterReadContext,
+  campaignId: string,
+  actor: Pick<EncounterRunCharacterActorState, 'sourceId' | 'frozenState'>
+): Promise<boolean> {
+  if (actor.frozenState) return true
+  return !(await readCampaignCharacterAssignment(ctx, campaignId, actor.sourceId))
+}
+
+/**
  * Reads each Character actor's current hit points and conditions for a Run projection (ADR 0034
  * decision 4). A completed Run, and an open Run whose Character left the Campaign, show the values
  * frozen when the Run stopped reading it: a detached Character grants no current Sheet access.

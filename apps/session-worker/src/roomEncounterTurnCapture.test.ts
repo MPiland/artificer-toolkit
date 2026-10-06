@@ -293,3 +293,152 @@ it('admits native turn scopes and pages the selected actor effects without a bac
   expect(store.sequence).toBe(0)
   expect(store.documents('encounterRunCommands')).toEqual([])
 })
+
+it.each([
+  {
+    name: 'frozen Character actor that is still assigned',
+    assigned: true,
+    frozenState: { currentHitPoints: 7, maxHitPoints: 11, tempHitPoints: 0, conditions: [] }
+  },
+  { name: 'unfrozen Character actor without an assignment', assigned: false, frozenState: null }
+])('refuses actor and effects capture for a departed $name (D74)', async (departed) => {
+  const campaignId = uuid(0xe50)
+  const systemId = DND5E_SYSTEM_ID
+  const epoch = uuid(0xe51)
+  const gmId = uuid(0xe52)
+  const playerId = uuid(0xe53)
+  const characterId = uuid(0xe54)
+  const encounterId = uuid(0xe55)
+  const sideId = uuid(0xe56)
+  const now = '2026-09-30T12:00:00.000Z'
+  const actor = encounterRunActorStateSchema.parse({
+    id: uuid(0xe57),
+    encounterId,
+    sideId,
+    label: 'Departed Character',
+    kind: 'CHARACTER',
+    sourceId: characterId,
+    stableTieKey: uuid(0xe57),
+    public: true,
+    controllerUserIds: [],
+    disposition: 'HOSTILE',
+    initiative: 0,
+    manualOrder: 0,
+    healthDisplay: null,
+    systemId,
+    resources: {},
+    gmNotes: null,
+    snapshot: {},
+    frozenState: departed.frozenState,
+    outOfInitiative: false,
+    createdAt: now,
+    updatedAt: now
+  })
+  const optionalCombatSnapshot = { schemaVersion: 1, gameSystemId: systemId, definitions: [] }
+  const state = encounterRunStateSchema.parse({
+    id: encounterId,
+    campaignId,
+    gameSystemId: systemId,
+    blueprintId: uuid(0xe58),
+    blueprintVersion: 1,
+    blueprintChecksum: 'b'.repeat(64),
+    name: 'Departed Character capture',
+    status: 'ACTIVE',
+    automationMode: 'MANUAL',
+    manualReminderMode: 'OFF',
+    healthDisplayDefault: 'HIDDEN',
+    version: 1,
+    round: 1,
+    currentActorId: actor.id,
+    actorIds: [actor.id],
+    initiativePolicySnapshot: null,
+    initiativePolicySnapshotChecksum: null,
+    optionalCombatSnapshot,
+    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot),
+    turnSequence: 0,
+    sides: [{ id: sideId, label: 'Characters', sortOrder: 0 }],
+    createdAt: now,
+    updatedAt: now
+  })
+  const members = [
+    { userId: gmId, role: 'OWNER' as const, membershipEpoch: now },
+    { userId: playerId, role: 'PLAYER' as const, membershipEpoch: now }
+  ]
+  const assignments = departed.assigned ? [{ userId: playerId, characterId }] : []
+  const authorization = liveSessionRoomAuthorizationSchema.parse(
+    roomAuthorizationResponse({ members, assignments })
+  )
+  const authority = roomInputsResponse(
+    { kind: 'AUTHORITY', cursor: null },
+    { campaignId, systemId, ownerUserId: gmId, members, assignments }
+  )
+  if (authority.kind !== 'AUTHORITY') throw new Error('Missing Campaign authority fixture.')
+  const observed = [
+    ...authority.revisions,
+    { scope: 'PLAY' as const, id: campaignId, revision: null }
+  ]
+  const { storage } = createNodeSqliteRoomStorage()
+  const store = new RoomEncounterStore(storage)
+  store.hydrate({
+    epoch,
+    documents: [...authority.documents, ...(await storedRunDocuments(state, [actor]))],
+    records: [
+      {
+        kind: 'ROOM_INPUT',
+        key: 'AUTHORITY',
+        revision: JSON.stringify(authority.revisions),
+        json: JSON.stringify({ ...authority, documents: [] })
+      }
+    ]
+  })
+  const inputs = new RoomInputs(
+    store,
+    async () => {
+      throw new Error('Turn capture must not read Convex.')
+    },
+    async () => []
+  )
+  const scene = {
+    readSceneHeader: async () => {
+      throw new Error('Actor capture must not read Scene state.')
+    },
+    readSceneEntities: async () => {
+      throw new Error('Actor capture must not read Scene entities.')
+    }
+  }
+  await store.transact(async (transaction) => {
+    const owner = await roomEncounterReadTransaction({
+      store,
+      transaction,
+      inputs,
+      authorization,
+      campaignId,
+      epoch,
+      userId: gmId,
+      observed
+    })
+    const input: LiveSessionEncounterRulesInput = {
+      campaignId,
+      authorityEpoch: epoch,
+      expectedUserId: gmId,
+      expectedRole: 'OWNER',
+      encounterId,
+      expectedVersion: 1,
+      request: { kind: 'ACTOR', actorId: actor.id }
+    }
+    const refusal = {
+      data: {
+        code: 'DOMAIN_REJECTED',
+        reason: 'TARGET_UNAVAILABLE',
+        message: 'That Character has left the Campaign.'
+      }
+    }
+    for (const request of [
+      input.request,
+      { kind: 'EFFECTS' as const, actorId: actor.id, afterEffectId: null }
+    ])
+      await expect(
+        readRoomEncounterTurnCapture(owner, inputs, transaction, { ...input, request }, observed, scene)
+      ).rejects.toMatchObject(refusal)
+  })
+})

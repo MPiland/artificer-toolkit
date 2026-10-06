@@ -347,7 +347,10 @@ A Run the room never hydrated this epoch is covered at release by
 `reconcileOpenRunsAtRelease` in Convex. Checkpoint ingestion rejects an open Run's actor row that names a
 departed controller or an unassigned unfrozen Character. Scene vision composition (`composeRoomSceneVision`)
 skips such an actor, and a frozen one, so a departure never fails activation: it binds no Character vision
-(`readCampaignCharacterAssignment`, the same departed test as `readEncounterCharacterStates`).
+(`isDepartedCharacterActor`, the same departed test as `readEncounterCharacterStates`). Commands that
+would read a departed actor's Character (its ACTOR/EFFECTS rules capture, or moving its token) refuse with
+the domain rejection `TARGET_UNAVAILABLE` ("That Character has left the Campaign.") rather than an
+internal error.
 
 Known gap: a Character actor already frozen whose account is deleted later is removed only at release,
 because a frozen actor names no departure for the room to reconcile.

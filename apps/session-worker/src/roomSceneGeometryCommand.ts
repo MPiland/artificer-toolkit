@@ -23,6 +23,8 @@ import {
   recordRuleOccurrenceVoid
 } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { liveSessionMovementPrepareInputSchema } from '@artificer-toolkit/schema/api/liveSessionMovementCommit'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -166,6 +168,8 @@ export async function executeRoomSceneGeometry(input: {
       const current = (await readRunActors(ctx, state)).find((entry) => entry.id === actor.id)
       if (current?.kind !== 'CHARACTER' || current.sourceId !== scope.characterId)
         throw new Error('Movement Character source is inconsistent.')
+      if (await isDepartedCharacterActor(ctx, campaignId, current))
+        rejectDomain('TARGET_UNAVAILABLE', 'That Character has left the Campaign.')
       await ctx.ports.requireCampaignCharacterAuthority(
         campaignId,
         scope.characterId,

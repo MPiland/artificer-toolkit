@@ -1,4 +1,4 @@
-import { readCampaignCharacterAssignment } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { deriveCharacterSceneVision } from '@artificer-toolkit/rules-runtime/character/characterSceneVision'
@@ -90,12 +90,7 @@ export async function composeRoomSceneVision(input: {
           throw new Error('Scene vision actor token binding is inconsistent.')
         const actor = await readRunActor(ctx, state, tokenBinding.actorId)
         if (actor.kind !== 'CHARACTER') continue
-        // D74: a departed actor, frozen or not yet frozen by the room, binds no vision.
-        if (
-          actor.frozenState ||
-          !(await readCampaignCharacterAssignment(ctx, campaign.id, actor.sourceId))
-        )
-          continue
+        if (await isDepartedCharacterActor(ctx, campaign.id, actor)) continue
         const { assignment } = await ctx.ports.requireCampaignCharacterAuthority(
           campaign.id,
           actor.sourceId,

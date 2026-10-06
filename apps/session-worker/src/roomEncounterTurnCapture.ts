@@ -20,6 +20,7 @@ import {
   readEncounterEffect
 } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomInputs } from './roomInputs.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
@@ -453,6 +454,8 @@ export async function readRoomEncounterTurnCapture(
   } else if (request.kind === 'ACTOR' || request.kind === 'EFFECTS') {
     const actor = await readRunActor(ctx, state, request.actorId)
     if (actor.kind === 'CHARACTER') {
+      if (await isDepartedCharacterActor(ctx, campaign.id, actor))
+        rejectDomain('TARGET_UNAVAILABLE', 'That Character has left the Campaign.')
       const { assignment } = await ctx.ports.requireCampaignCharacterAuthority(
         campaign.id,
         actor.sourceId,
