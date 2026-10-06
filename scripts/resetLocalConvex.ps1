@@ -36,8 +36,9 @@ $emptyPath = "$stem.empty.jsonl"
 # by their download confirmation plus a readable zip, imports by the post-reset snapshot check.
 $libuvExitAbort = -1073740791
 # Yarn runs through Node directly, as validatePreStagingLocal.mjs does: a yarn.cmd shim would pass the
-# key through cmd.exe, which splits it at its '|' and echoes the secret half into the log.
-$node = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+# key through cmd.exe, which splits it at its '|' and echoes the secret half into the log. Under a yarn
+# script the first `node` on PATH is Yarn's node.cmd shim, so resolve the real node.exe.
+$node = (Get-Command node.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $yarn = Join-Path (Split-Path $node) 'node_modules/corepack/dist/yarn.js'
 if (-not (Test-Path -LiteralPath $yarn)) { throw 'Corepack yarn.js was not found beside node.' }
 function Invoke-LocalConvex {
