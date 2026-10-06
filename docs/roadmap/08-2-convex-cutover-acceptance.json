@@ -493,7 +493,7 @@
           "id": "F12",
           "title": "Account deletion",
           "proofTier": "LOCAL_INTEGRATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-19",
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/f12-native-account-delete-20260918/live-account-deletion-20260919/account-deletion-browser12.manifest.json",
@@ -2114,7 +2114,7 @@
           "id": "P14",
           "title": "Campaign collaboration",
           "proofTier": "LOCAL_E2E",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-chat/local-progress.md",
             ".codex/validation/phase82-notebooks/local-progress.md",
@@ -2192,7 +2192,7 @@
           "id": "P15",
           "title": "Sessions and control",
           "proofTier": "CONCURRENCY",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-sessions/local-progress.md",
             ".codex/validation/phase82-session-notes/local-progress.md",
@@ -2651,7 +2651,7 @@
           "id": "V05",
           "title": "Session admission and presence",
           "proofTier": "AUTHORIZATION",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "acceptedAt": "2026-09-09",
           "evidence": [
             ".codex/validation/phase82-v05-final/acceptance.md",
@@ -2773,7 +2773,7 @@
           "id": "V07",
           "title": "Committed token movement and multi-client convergence",
           "proofTier": "LOCAL_E2E",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-ultra-continuation-20260911/v07-standalone-movement-01/completion.md",
             ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
@@ -3378,7 +3378,7 @@
           "id": "V13",
           "title": "Receipts, replay, and reconnect",
           "proofTier": "LOCAL_E2E",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/scene-passage-coordinator-20260914/local-integration-evidence.json",
             ".codex/validation/movement-replay-duplicates-20260916/pending-assignment-focused-imports/acceptance.md",
@@ -3432,7 +3432,7 @@
           "id": "V14",
           "title": "Same-aggregate contention and unrelated concurrency",
           "proofTier": "CONCURRENCY",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "notes": "Reopened by the acceptance rewording user-approved 2026-09-27 (ADR 0035): live Encounter state and the play state of Characters in an ACTIVE Run are room-authoritative and reach Convex by checkpoint. V14.5 is reworded; its READY evidence proved the per-command Convex path; that evidence is historical and must be re-proved on the final source. Earlier notes below describe the superseded contract. Reopened 2026-09-24 under ADR 0033 (user-approved amendment: Campaign-owned Encounter Runs, Campaign-keyed live table, Sessions as an optional log). The prior evidence below proves the superseded Session-scoped contract and is historical; this case must pass again on the final source. Accepted at the frozen CONCURRENCY tier. Retained real09 lifecycle/binding/presentation/ownership/Session-finish and rollback schedules, same-Scene movement contention, distinct-Scene writes, and action02 same-Run/independent-Run proofs are joined by final-source Disarm03 and reaction12 terminal contention. Reaction12 races every outcome request: one winner, one recognized stale loser, one reaction spend and one mechanics receipt; winner/root replay and loser retry preserve complete Run, timeline, Character and recipient Scene state. A completed-response receipt lookup bug found by reaction11 was corrected and passes targeted native regressions plus the actual rerun. Exact fixture/account cleanup and unchanged source pass; reaction12 provider deletion remains tracked behind its normal fence. Acceptance packet: .codex/validation/v14-acceptance-20260916/acceptance.md. V15 measured workload, V07/V13 browser/reconnect and R08 release lifecycle remain open.",
           "evidence": [
             ".codex/validation/phase82-ultra-continuation-20260911/workstreams/v14-real-20260913/real-09/evidence.json",
@@ -3727,7 +3727,7 @@
           "id": "R06",
           "title": "Session Durable Object is the active live-command authority",
           "proofTier": "REVIEW",
-          "status": "IN_PROGRESS",
+          "status": "READY_FOR_ACCEPTANCE",
           "evidence": [
             ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-worker",
             ".codex/validation/phase82-gate-progress-20260917/live-authority-release/token-move-convex",
