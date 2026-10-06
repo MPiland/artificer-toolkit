@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { serverSentryOptions } from './sentry.server'
-import { redactSentryEvent } from './sentryPrivacy'
+import { sentryPrivacyOptions } from './sentryPrivacy'
 
 const DSN = 'https://public@example.ingest.sentry.io/1'
 
@@ -12,17 +12,9 @@ describe('serverSentryOptions', () => {
     vi.stubEnv('VITE_SENTRY_DSN', DSN)
 
     expect(serverSentryOptions()).toEqual({
-      beforeSend: redactSentryEvent,
-      beforeSendTransaction: redactSentryEvent,
-      dataCollection: {
-        httpBodies: [],
-        userInfo: false
-      },
+      ...sentryPrivacyOptions,
       dsn: DSN,
-      enableLogs: true,
-      enableMetrics: true,
-      enabled: true,
-      sendDefaultPii: false
+      enabled: true
     })
   })
 

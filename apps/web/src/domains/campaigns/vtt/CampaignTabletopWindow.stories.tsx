@@ -72,12 +72,12 @@ const shownScene = {
 } satisfies CampaignSceneShowingDto
 const meta = {
   component: CampaignTabletopWindow,
+  beforeEach({ msw }) {
+    msw.use(liveSessionTokenHandler)
+  },
   parameters: {
     a11y: { test: 'error' },
-    layout: 'fullscreen',
-    msw: {
-      handlers: [liveSessionTokenHandler]
-    }
+    layout: 'fullscreen'
   },
   title: 'Domains/Campaigns/VTT/Tabletop Window'
 } satisfies Meta<typeof CampaignTabletopWindow>

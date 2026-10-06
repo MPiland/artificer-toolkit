@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/tanstackstart-react'
 import { isSentryConfigured } from './sentry.config'
-import { redactSentryEvent } from './sentryPrivacy'
+import { sentryPrivacyOptions } from './sentryPrivacy'
 
 interface SentryEnvironment {
   dsn?: string
@@ -22,16 +22,8 @@ export function initializeClientSentry(environment = getSentryEnvironment()): vo
   }
 
   Sentry.init({
-    beforeSend: redactSentryEvent,
-    beforeSendTransaction: redactSentryEvent,
-    dataCollection: {
-      httpBodies: [],
-      userInfo: false
-    },
+    ...sentryPrivacyOptions,
     dsn: environment.dsn,
-    enableLogs: true,
-    enableMetrics: true,
-    sendDefaultPii: false,
     integrations: [
       Sentry.feedbackIntegration({
         autoInject: false,

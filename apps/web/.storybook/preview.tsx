@@ -13,7 +13,8 @@ import { usePaginatedQuery } from 'convex-helpers/react'
 import { fn, mocked, sb } from 'storybook/test'
 import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
-import { initialize, mswLoader } from 'msw-storybook-addon'
+import { setupWorker } from 'msw/browser'
+import { mswLoader } from 'msw-storybook-addon/csf3'
 import MockDate from 'mockdate'
 import '#css/main.css'
 import '@mantine/notifications/styles.layer.css'
@@ -37,8 +38,6 @@ const unavailableConvexMutation: ReturnType<typeof useMutation> = Object.assign(
   unavailableConvexCall,
   { withOptimisticUpdate: () => unavailableConvexMutation }
 )
-
-initialize({ onUnhandledRequest: 'bypass' })
 
 type StoryColorScheme = 'dark' | 'light'
 type StoryQueryClient = ReturnType<typeof createAppQueryClient>
@@ -92,7 +91,13 @@ const preview: Preview = {
       )
     }
   ],
-  loaders: [mswLoader],
+  loaders: [
+    mswLoader(async () => {
+      const worker = setupWorker()
+      await worker.start({ onUnhandledFrame: 'bypass' })
+      return worker
+    })
+  ],
   async beforeEach() {
     MockDate.set('2024-04-01T12:00:00Z')
     mocked(useConvexAuth).mockReturnValue({

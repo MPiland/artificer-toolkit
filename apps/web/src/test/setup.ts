@@ -54,7 +54,7 @@ if (typeof document !== 'undefined' && !document.fonts) {
 
 beforeAll(() => {
   server.listen({
-    onUnhandledRequest: 'bypass'
+    onUnhandledFrame: 'bypass'
   })
 })
 

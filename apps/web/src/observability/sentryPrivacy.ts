@@ -1,17 +1,26 @@
-import type { Event } from '@sentry/tanstackstart-react'
+import type { BrowserOptions, Event } from '@sentry/tanstackstart-react'
 
 const URL_BREADCRUMB_KEYS = ['url', 'referer', 'referrer', 'from', 'to'] as const
-const URL_SPAN_DATA_KEYS = [
+const URL_SPAN_ATTRIBUTE_KEYS = new Set([
   'url',
   'url.full',
   'http.url',
   'http.target',
   'referer',
-  'referrer',
-  'http.request.header.referer',
-  'http.request.header.referrer'
-] as const
-const QUERY_SPAN_DATA_KEYS = ['url.query', 'http.query'] as const
+  'referrer'
+])
+const HTTP_HEADER_SPAN_ATTRIBUTE = /^http\.(?:request|response)\.header\./
+const QUERY_SPAN_ATTRIBUTE_KEYS = new Set([
+  'url.query',
+  'url.fragment',
+  'http.query',
+  'http.fragment'
+])
+const ROUTE_PARAMETER_SPAN_ATTRIBUTE_PREFIX = 'url.path.parameter.'
+const SENSITIVE_HEADER_DENYLIST = ['forwarded', '-ip', 'remote-', 'via', '-user']
+
+type StreamedSpan = Parameters<NonNullable<BrowserOptions['beforeSendSpan']>>[0]
+
 function isUrlLike(value: string): boolean {
   return value.startsWith('/') || /^https?:\/\//i.test(value)
 }
@@ -50,18 +59,62 @@ export function redactSentryEvent<T extends Event>(event: T): T {
   const transaction = scrubUrlValue(event.transaction)
   if (transaction !== undefined) event.transaction = transaction
 
-  for (const span of event.spans ?? []) {
-    const description = scrubUrlValue(span.description)
-    if (description !== undefined) span.description = description
+  return event
+}
 
-    for (const key of URL_SPAN_DATA_KEYS) {
-      const url = scrubUrlValue(span.data[key])
-      if (url !== undefined) span.data[key] = url
-    }
-    for (const key of QUERY_SPAN_DATA_KEYS) {
-      delete span.data[key]
+function scrubAttributeValue(value: unknown): unknown {
+  if (typeof value === 'string') return scrubSentryUrl(value)
+  if (Array.isArray(value)) return value.map(scrubAttributeValue)
+  if (typeof value === 'object' && value !== null && 'value' in value) {
+    return { ...value, value: scrubAttributeValue(value.value) }
+  }
+  return value
+}
+
+/** Span streaming (the v11 default) sends spans individually, so `beforeSendTransaction` never runs. */
+export function redactSentrySpan(span: StreamedSpan): StreamedSpan {
+  span.name = scrubSentryUrl(span.name)
+
+  for (const [key, value] of Object.entries(span.attributes)) {
+    if (
+      QUERY_SPAN_ATTRIBUTE_KEYS.has(key) ||
+      key.startsWith(ROUTE_PARAMETER_SPAN_ATTRIBUTE_PREFIX)
+    ) {
+      delete span.attributes[key]
+    } else if (URL_SPAN_ATTRIBUTE_KEYS.has(key) || HTTP_HEADER_SPAN_ATTRIBUTE.test(key)) {
+      span.attributes[key] = scrubAttributeValue(value)
     }
   }
 
-  return event
+  return span
+}
+
+/** Logs and metrics are not collected: nothing here emits them, and they carry no redaction path. */
+function dropSentryTelemetry(): null {
+  return null
+}
+
+/** The v10 `sendDefaultPii: false` baseline; v11 widens collection when `dataCollection` is unset. */
+const SENTRY_DATA_COLLECTION: NonNullable<BrowserOptions['dataCollection']> = {
+  cookies: false,
+  databaseQueryData: false,
+  genAI: { inputs: false, outputs: false },
+  graphQL: { document: false, variables: false },
+  httpBodies: [],
+  httpHeaders: {
+    request: { deny: SENSITIVE_HEADER_DENYLIST },
+    response: { deny: SENSITIVE_HEADER_DENYLIST }
+  },
+  queues: false,
+  urlQueryParams: { deny: SENSITIVE_HEADER_DENYLIST },
+  userInfo: false
+}
+
+/** Privacy hooks and collection baseline shared by the browser and Worker Sentry options. */
+export const sentryPrivacyOptions = {
+  beforeSend: redactSentryEvent,
+  beforeSendLog: dropSentryTelemetry,
+  beforeSendMetric: dropSentryTelemetry,
+  beforeSendSpan: redactSentrySpan,
+  dataCollection: SENTRY_DATA_COLLECTION
 }
