@@ -946,7 +946,7 @@
     {
       "id": "REL-6",
       "stream": "REL",
-      "state": "remaining",
+      "state": "active",
       "title": "Final proof: R01–R05 audit, yarn validate:pre-staging:local on the final source, fog save retention, docs",
       "cases": ["R01", "R02", "R03", "R04", "R05", "R07", "R08"],
       "refs": ["CP-S7", "Q4"]

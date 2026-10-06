@@ -3688,7 +3688,7 @@
             {
               "id": "R04.2",
               "text": "The complete native rule-corpus and gameplay proof passes in the same R08 source state.",
-              "status": "NOT_STARTED",
+              "status": "IN_PROGRESS",
               "proof": null
             }
           ]
@@ -3718,7 +3718,7 @@
             {
               "id": "R05.2",
               "text": "Final native journeys and the same-source R08 packaging and request audit pass; the audit shows signed-in pages render without server-side Convex prefetch and without session refetch on window focus (D75, D80).",
-              "status": "NOT_STARTED",
+              "status": "IN_PROGRESS",
               "proof": null
             }
           ]

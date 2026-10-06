@@ -75,7 +75,7 @@ Evidence:
 What was proven or remains to prove:
 
 - `R04.1` READY_FOR_ACCEPTANCE (fifth pass; static audit and lockfile at `aa68fd681`): GoRules runtime source, Rule Studio, dependencies and configuration are removed.
-- `R04.2` NOT_STARTED: The complete native rule-corpus and gameplay proof passes in the same R08 source state.
+- `R04.2` IN_PROGRESS: The complete native rule-corpus and gameplay proof passes in the same R08 source state.
 
 Evidence:
 
@@ -93,7 +93,7 @@ Evidence:
 What was proven or remains to prove:
 
 - `R05.1` READY_FOR_ACCEPTANCE (fifth pass; static audit, lockfile and integration run at `aa68fd681`): tRPC routers and clients, product Netlify functions and durable-command compatibility are removed, with static/SSR web packaging kept.
-- `R05.2` NOT_STARTED: Final native journeys and the same-source R08 packaging and request audit pass.
+- `R05.2` IN_PROGRESS: Final native journeys and the same-source R08 packaging and request audit pass.
 
 Evidence:
 
