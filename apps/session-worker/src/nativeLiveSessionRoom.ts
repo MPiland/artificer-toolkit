@@ -3,7 +3,9 @@ import {
   LIVE_SESSION_CHECKPOINT_BARRIER_PATH,
   LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_METER_PATH,
+  LIVE_SESSION_TEST_ROLLS_PATH,
   liveSessionControlInputSchema,
+  liveSessionTestRollsInputSchema,
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionCommandRejectionCodeDto,
@@ -95,6 +97,7 @@ import {
 import type { StagedSceneCommand, StagedSceneContext } from './roomSceneGeometryPlan.js'
 import { createNativeLiveRulesRuntime, secureRandomInt } from './nativeRulesRuntime.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
+import { RoomTestDice } from './roomTestDice.js'
 import { RoomInputs } from './roomInputs.js'
 import { RoomCheckpoints } from './roomCheckpoints.js'
 import { publishRoomCheckpoint } from './roomCheckpointPublication.js'
@@ -360,6 +363,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   #coldAdmission: Promise<void> | null = null
   readonly #previewStreams = new Map<WebSocket, Map<string, PreviewStream>>()
   readonly #authorization: RoomAuthorization
+  readonly #testDice = new RoomTestDice()
+  /** The platform's dice; a local-development test's queued rolls come first (`roomTestDice.ts`). */
+  readonly #random = (maximum: number): number =>
+    (isLocalDevelopment(this.env) ? this.#testDice.next() : null) ?? secureRandomInt(maximum)
   /** A background authorization read runs at most once; after a failure, not before this time. */
   #authorizationRefreshing = false
   #authorizationRetryAt = 0
@@ -652,6 +659,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           status: 500
         })
       }
+    }
+    // Local development only, like the routes above; the Worker's own gate is checked first.
+    if (request.method === 'POST' && url.pathname === LIVE_SESSION_TEST_ROLLS_PATH) {
+      if (!isLocalDevelopment(this.env)) return new Response('Not found.', { status: 404 })
+      const parsed = liveSessionTestRollsInputSchema.safeParse(
+        await request.json().catch(() => null)
+      )
+      if (!parsed.success) return new Response('Invalid test rolls request.', { status: 400 })
+      this.#testDice.replace(parsed.data)
+      return new Response(null, { status: 204 })
     }
     if (request.method === 'POST' && url.pathname === LIVE_SESSION_CONTROL_PATH) {
       const parsed = liveSessionControlInputSchema.safeParse(await request.json().catch(() => null))
@@ -2508,7 +2525,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             campaignId: value.campaignId,
             epoch: value.authorityEpoch,
             userId: admission.userId,
-            command: command.command
+            command: command.command,
+            random: this.#random
           })
           receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
             type: 'COMMAND_COMMITTED',
@@ -2648,7 +2666,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             recipientUserIds: recipients,
             command,
             presentedSceneId: sceneCache?.scene?.id ?? null,
-            random: secureRandomInt,
+            random: this.#random,
             ...(command.type === 'START' ||
             command.type === 'ADVANCE_TURN' ||
             command.type === 'RESOLVE_ACTION' ||
@@ -3065,7 +3083,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           command,
           context,
           runtime: await this.#liveRulesRuntime(),
-          random: secureRandomInt
+          random: this.#random
         })
         // The fog patches are written by their owners; the acknowledged DTO carries none.
         const scene = sceneCommandResultDtoSchema.parse({

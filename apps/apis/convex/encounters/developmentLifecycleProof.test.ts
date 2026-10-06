@@ -1,8 +1,6 @@
 // @vitest-environment node
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
-import type { ConvexHttpClient } from 'convex/browser'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
@@ -14,36 +12,39 @@ import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
-import { startLocalR2 } from '../../tests/localR2'
 import { verifyEncounterLifecycle } from '../../tests/developmentEncounterLifecycle'
 import { verifyEncounterAutomation } from '../../tests/developmentEncounterAutomation'
 import { verifyEncounterTransactions } from '../../tests/developmentEncounterTransactions'
 import { prepareEncounterCutoverFixture } from '../../tests/developmentEncounterCutover'
-import type { DevelopmentClient } from '../../tests/developmentClient'
+import {
+  attachRoomWorker,
+  checkpointRoom,
+  closeRoom,
+  queueRoomRolls,
+  roomDevelopmentClient,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { api, components, internal } from '../_generated/api'
-import type { ActionCtx } from '../_generated/server'
 import type { FunctionArgs } from 'convex/server'
-import * as rollRandom from '../lib/rollRandom'
 
-let server: Awaited<ReturnType<typeof startLocalR2>>
-beforeEach(async () => {
-  server = await startLocalR2()
-  vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
-  vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
-  vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3221')
-  vi.stubEnv('LOCAL_R2_ENDPOINT', server.endpoint)
+useLocalRoomWorker()
+beforeEach(() => {
+  // Real time keeps passing, so the real room's sockets and the room client's timers behave as in
+  // production while Convex's scheduler still waits for the test's own clock.
+  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date', 'setTimeout', 'clearTimeout'] })
 })
-afterEach(async () => {
+afterEach(() => {
   vi.clearAllTimers()
   vi.useRealTimers()
   vi.unstubAllEnvs()
-  await server.close()
 })
 
-it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions', async () => {
+it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through the real Session room', async () => {
   const { t, other: owner, owner: player, character } = await readySheetFixture()
   register(t)
   registerRetrier(t, 'r2/actionRetrier')
+  const server = await attachRoomWorker(t)
   await t.run(async (ctx) => {
     await ctx.runMutation(components.betterAuth.adapter.updateMany, {
       input: { model: 'session', update: { expiresAt: Date.now() + 3 * 86_400_000 } },
@@ -96,31 +97,10 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
       campaignId: campaign.id
     }
   )
-  const clients: Record<
-    'owner' | 'player' | 'anonymous',
-    DevelopmentClient & Pick<ConvexHttpClient, 'action'>
-  > = {
-    owner: {
-      ...inProcessDevelopmentClient(owner.caller),
-      action: (action, ...args) => {
-        const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
-        return owner.caller.action<typeof invoke>(invoke)
-      }
-    },
-    player: {
-      ...inProcessDevelopmentClient(player.caller),
-      action: (action, ...args) => {
-        const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
-        return player.caller.action<typeof invoke>(invoke)
-      }
-    },
-    anonymous: {
-      ...inProcessDevelopmentClient(t),
-      action: (action, ...args) => {
-        const invoke = (ctx: ActionCtx) => ctx.runAction(action, ...args)
-        return t.action<typeof invoke>(invoke)
-      }
-    }
+  const clients = {
+    owner: roomDevelopmentClient(owner.caller),
+    player: roomDevelopmentClient(player.caller),
+    anonymous: roomDevelopmentClient(null)
   }
   const policies = createEncounterLifecyclePolicyFixture(owner.userId)
   expect(await t.mutation(internal.content.import.bootstrap, policies.bootstrap)).toEqual({
@@ -131,11 +111,17 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     inserted: 6,
     reused: 0
   })
+  await seedRoomContentSnapshots(campaign.id)
   const result = await verifyEncounterLifecycle({ ...clients, campaignId: campaign.id })
   await t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
   })
+  // A room reads the content snapshots current when it activates, so the new creature needs a
+  // rebuild and a room that starts after it.
+  await closeRoom(campaign.id)
+  await seedRoomContentSnapshots(campaign.id)
+  const checkpoint = () => checkpointRoom(campaign.id)
   const automated = await verifyEncounterAutomation({
     owner: clients.owner,
     player: clients.player,
@@ -144,12 +130,13 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     characterId: character.id,
     policies,
     sceneFixture: result,
-    // Convex runs these commands in-process with no room holding the Run, so reads are never behind.
-    checkpoint: async () => undefined
+    checkpoint
   })
   expect(automated).toHaveLength(4)
+  // No `rollback`: the Run is held by the real room, whose bindings are room commands that Convex
+  // fences (D47), so Convex's own binding mutation cannot be forced to roll back through it.
   await verifyEncounterTransactions({
-    checkpoint: async () => undefined,
+    checkpoint,
     owner: clients.owner,
     player: clients.player,
     ownerUserId: owner.userId,
@@ -157,14 +144,9 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     campaignId: campaign.id,
     fixture: result,
     concurrent: (actor, reference, args) =>
-      (actor === 'OWNER' ? clients.owner : clients.player).mutation(reference, args),
-    rollback: (input) => {
-      const args = { ...input, ownerUserId: owner.userId, campaignId: campaign.id }
-      const reference = makeFunctionReference<'action', typeof args, { rolledBack: true }>(
-        'encounters/developmentLifecycle:verifyRollback'
-      )
-      return owner.caller.action(reference, args)
-    }
+      (actor === 'OWNER' ? clients.owner : clients.player).mutation(reference, args, {
+        skipQueue: true
+      })
   })
   // Every Run in the proof is COMPLETED, and COMPLETE deletes its Scene and token bindings
   // (ADR 0035 Amendment 30).
@@ -175,14 +157,17 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
     }))
   ).toEqual({ scenes: [], actors: [] })
   expect(server.objects.size).toBeGreaterThan(0)
-  const tiedRolls = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(0)
+  // Every die rolls 0, so initiative ties.
+  await queueRoomRolls(campaign.id, { rolls: [], repeat: 0 })
   const cutoverFixture = await prepareEncounterCutoverFixture({
     owner: clients.owner,
     campaignId: campaign.id,
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     lifecycle: result
-  }).finally(() => tiedRolls.mockRestore())
+  }).finally(() => queueRoomRolls(campaign.id, { rolls: [] }))
   expect(cutoverFixture.initiativeOrderResolutions).toBeGreaterThan(0)
+  // Closing the room checkpoints it and releases the Campaign's live authority before cleanup.
+  await closeRoom(campaign.id)
   await t.mutation(
     makeFunctionReference<'mutation', typeof cleanup, null>(
       'encounters/developmentRuns:removeFixtureState'

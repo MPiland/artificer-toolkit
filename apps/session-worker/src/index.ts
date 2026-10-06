@@ -4,6 +4,7 @@ import {
   LIVE_SESSION_CONTROL_SECRET_HEADER,
   LIVE_SESSION_METER_PATH,
   LIVE_SESSION_PATH_PREFIX,
+  LIVE_SESSION_TEST_ROLLS_PATH,
   LIVE_SESSION_TICKET_PROTOCOL_PREFIX,
   LIVE_SESSION_WEBSOCKET_PROTOCOL,
   liveSessionControlInputSchema
@@ -18,10 +19,11 @@ import { verifyLiveSessionTicket } from './ticket.js'
 
 const INTERNAL_TICKET_HEADER = 'x-artificer-live-session-ticket'
 
-/** Load-proof routes into one room, `<path>/<campaignId>`; see the gate in `fetch`. */
+/** Local-development routes into one room, `<path>/<campaignId>`; see the gate in `fetch`. */
 const developmentRoomRoutes = [
   { method: 'GET', path: LIVE_SESSION_METER_PATH },
-  { method: 'POST', path: LIVE_SESSION_CHECKPOINT_BARRIER_PATH }
+  { method: 'POST', path: LIVE_SESSION_CHECKPOINT_BARRIER_PATH },
+  { method: 'POST', path: LIVE_SESSION_TEST_ROLLS_PATH }
 ] as const
 
 function secretMatches(supplied: string, expected: string): boolean {
@@ -99,7 +101,11 @@ const worker: ExportedHandler<SessionWorkerEnvironment> = {
         return new Response('Unauthorized.', { status: 401 })
       const objectId = environment.LIVE_SESSION_ROOMS.idFromName(campaign[1])
       return environment.LIVE_SESSION_ROOMS.get(objectId).fetch(
-        new Request(`https://live-session.internal${route.path}`, { method: route.method })
+        new Request(`https://live-session.internal${route.path}`, {
+          body: request.body,
+          headers: { 'content-type': 'application/json' },
+          method: route.method
+        })
       )
     }
     const path = url.pathname.match(new RegExp(`^${LIVE_SESSION_PATH_PREFIX}/([^/]+)$`))

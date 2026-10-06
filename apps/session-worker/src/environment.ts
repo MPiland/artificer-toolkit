@@ -10,11 +10,16 @@ export interface SessionWorkerEnvironment {
   RULES_CONTINUATION_SECRET: string
 }
 
-/** The local-origin marker is absent from every deployed environment. */
+/**
+ * The local-origin marker is absent from every deployed environment. Local development is an
+ * `http://127.0.0.1:<port>` fixture origin: any port, but never https, `localhost` or another host.
+ */
 export function isLocalDevelopment(
   environment: Pick<SessionWorkerEnvironment, 'LOCAL_CONTENT_SNAPSHOT_ORIGIN'>
 ): boolean {
-  return environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN === 'http://127.0.0.1:8026'
+  return /^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(
+    environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN ?? ''
+  )
 }
 
 export function allowedOrigins(

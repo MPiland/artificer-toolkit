@@ -137,6 +137,22 @@ export const LIVE_SESSION_CONTROL_SECRET_HEADER = 'x-artificer-live-session-secr
 /** Development-only Worker routes (`<path>/<campaignId>`) the V15 load proof calls with the Worker secret. */
 export const LIVE_SESSION_METER_PATH = '/internal/live-sessions/meter'
 export const LIVE_SESSION_CHECKPOINT_BARRIER_PATH = '/internal/live-sessions/checkpoint'
+/** Local-development-only Worker route (`<path>/<campaignId>`) a test uses to set the room's next dice. */
+export const LIVE_SESSION_TEST_ROLLS_PATH = '/internal/live-sessions/test-rolls'
+
+const testRollSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
+
+/**
+ * Replaces a room's test dice: each roll takes the next of `rolls` (an empty list ends the queue),
+ * then `repeat` if given, else the platform CSPRNG. A value is returned as it is, whatever the die.
+ */
+export const liveSessionTestRollsInputSchema = lazySchema(() =>
+  z.strictObject({
+    rolls: z.array(testRollSchema).check(z.maxLength(1_000)),
+    repeat: z.optional(testRollSchema)
+  })
+)
+export type LiveSessionTestRollsInputDto = z.infer<typeof liveSessionTestRollsInputSchema>
 
 const scenePresentationOperationSchema = lazySchema(() =>
   z.strictObject({

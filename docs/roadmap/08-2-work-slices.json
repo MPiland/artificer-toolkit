@@ -944,6 +944,17 @@
       ]
     },
     {
+      "id": "REL-9",
+      "stream": "REL",
+      "state": "active",
+      "title": "Room-routed Convex tests run the real Session Worker locally (workerd) over in-memory Convex; delete the stand-in room in tests/fixtures/liveSessionWorker.ts",
+      "cases": [],
+      "refs": [
+        "Agreed with the user during VS-9: the stand-in skipped the room's GM_ONLY check",
+        "apps/apis/tests/fixtures/localRoomWorker.ts"
+      ]
+    },
+    {
       "id": "REL-6",
       "stream": "REL",
       "state": "active",
@@ -1161,7 +1172,7 @@
         "R08.1",
         "R08.2"
       ],
-      "includes": ["REL-8", "REL-6"],
+      "includes": ["REL-8", "REL-9", "REL-6"],
       "refs": ["yarn validate:pre-staging:local"]
     },
     {

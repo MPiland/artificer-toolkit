@@ -329,36 +329,23 @@ describe('room content snapshots', () => {
   it('reads the same local fixture raw gzip path and rejects a managed Convex site', async () => {
     const state = fixture()
     const local = await startLocalR2()
-    const nativeFetch = globalThis.fetch
-    const bridge = vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation((input, init) =>
-        nativeFetch(
-          typeof input === 'string'
-            ? input.replace('http://127.0.0.1:8026', local.endpoint)
-            : input,
-          init
-        )
-      )
     try {
       for (const [key, object] of state.stored) {
-        const response = await nativeFetch(
-          `${local.endpoint}/artificer-local-content-snapshots/${key}`,
-          {
-            method: 'PUT',
-            body: object.bytes,
-            headers: {
-              authorization: 'AWS4-HMAC-SHA256 Credential=local-media-access-key/local-fixture',
-              'content-type': 'application/json',
-              ...(object.gzip ? { 'content-encoding': 'gzip' } : {})
-            }
+        const response = await fetch(`${local.endpoint}/artificer-local-content-snapshots/${key}`, {
+          method: 'PUT',
+          body: object.bytes,
+          headers: {
+            authorization: 'AWS4-HMAC-SHA256 Credential=local-media-access-key/local-fixture',
+            'content-type': 'application/json',
+            ...(object.gzip ? { 'content-encoding': 'gzip' } : {})
           }
-        )
+        })
         expect(response.ok).toBe(true)
       }
+      // Any loopback port is local development, so the fixture's ephemeral port needs no bridge.
       const environment = {
         ...state.environment,
-        LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026'
+        LOCAL_CONTENT_SNAPSHOT_ORIGIN: local.endpoint
       }
       expect((await loadRoomContentSnapshots(environment, state.manifest, campaignId)).length).toBe(
         4
@@ -372,16 +359,21 @@ describe('room content snapshots', () => {
           campaignId
         )
       ).rejects.toThrow('loopback')
-      await expect(
-        loadRoomContentSnapshots(
-          { ...environment, LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://localhost:8026' },
-          state.manifest,
-          campaignId
-        )
-      ).rejects.toThrow()
+      for (const origin of [
+        'http://localhost:8026',
+        'https://127.0.0.1:8026',
+        'http://127.0.0.1',
+        'http://192.168.0.1:8026'
+      ])
+        await expect(
+          loadRoomContentSnapshots(
+            { ...environment, LOCAL_CONTENT_SNAPSHOT_ORIGIN: origin },
+            state.manifest,
+            campaignId
+          )
+        ).rejects.toThrow()
       expect(local.methods.length).toBe(reads)
     } finally {
-      bridge.mockRestore()
       await local.close()
     }
   })

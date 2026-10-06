@@ -1,3 +1,5 @@
+import { isLocalDevelopment } from './environment.js'
+
 /** The raw R2 surface used by room hydration and browser delivery. */
 export interface ContentSnapshotObjectBody {
   body: ReadableStream<Uint8Array>
@@ -17,7 +19,7 @@ export async function readContentSnapshotObject(
 ): Promise<ContentSnapshotObjectBody | null> {
   const localOrigin = environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN
   if (localOrigin === undefined) return environment.CONTENT_SNAPSHOTS.get(key)
-  if (localOrigin !== 'http://127.0.0.1:8026')
+  if (!isLocalDevelopment(environment))
     throw new Error('Local content snapshot delivery is not available.')
   const response = await fetch(`${localOrigin}/artificer-local-content-snapshots/${key}`, {
     redirect: 'manual',

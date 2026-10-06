@@ -66,6 +66,14 @@ type SceneFogPatchCommand = Extract<SceneCommandInputDto, { type: 'PATCH_SCENE_F
 export type OpenRoomSocket = (url: string, init: RoomSocketInit) => RoomSocket
 /** The presented Scene the room must report, at this version or later, before a command that reads it is sent. */
 type RoomSceneRequirement = { sceneId: string; expectedSceneVersion: number }
+/** Reads the Scene Convex presents now. A command that binds to it asks again when the room moves to another Scene. */
+type PresentedSceneReader = () => Promise<RoomSceneRequirement>
+type PresentedSceneWait = {
+  read: PresentedSceneReader
+  requirement: RoomSceneRequirement | null
+  // The Scene id the room reported (null before its first STATE_SYNC) when `read` last ran.
+  askedAtRoomScene: string | null | undefined
+}
 /**
  * A committed Scene command and the session sequence it carried, which an exact retry repeats. The
  * result is null when this member cannot see the change and the room sends only the version bump.
@@ -78,12 +86,12 @@ export type RoomSceneCommit = {
 export type CommandRoom = {
   executeEncounter: (
     command: RoomCommand,
-    requirement?: RoomSceneRequirement
+    presentedScene?: PresentedSceneReader
   ) => Promise<EncounterCommandResultDto>
   /** Binds the Encounter to the room's presented Scene, as the GM's tabletop does (D47). */
   executeEncounterBinding: (
     command: BindEncounterToPresentedSceneInputDto,
-    requirement: RoomSceneRequirement
+    presentedScene: PresentedSceneReader
   ) => Promise<BindEncounterToPresentedSceneResultDto>
   executeScene: (
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
@@ -162,13 +170,13 @@ type PendingCommand = {
   | {
       scope: 'ENCOUNTER'
       command: RoomCommand
-      requirement: RoomSceneRequirement | null
+      presentedScene: PresentedSceneWait | null
       resolve: (result: EncounterCommandResultDto) => void
     }
   | {
       scope: 'ENCOUNTER_BINDING'
       command: BindEncounterToPresentedSceneInputDto
-      requirement: RoomSceneRequirement
+      presentedScene: PresentedSceneWait
       resolve: (result: BindEncounterToPresentedSceneResultDto) => void
     }
   | {
@@ -195,6 +203,15 @@ type PendingRead<Value> = {
   resolve: (value: Value) => void
   reject: (error: Error) => void
 }
+
+// The close reason the room gives a member it evicts (`#closeSockets`).
+const roomAccessEndedReason = 'Campaign access ended.'
+
+const waitForPresentedScene = (read: PresentedSceneReader): PresentedSceneWait => ({
+  read,
+  requirement: null,
+  askedAtRoomScene: undefined
+})
 
 const commandTimeoutMs = 120_000
 // A room that answers "try again" (an outside change landed mid-command) is asked once more.
@@ -269,6 +286,7 @@ export function openCommandRoom(options: {
   let commandTokensAt = Date.now()
   let commandRetry: ReturnType<typeof setTimeout> | null = null
   const retried = new Map<string, number>()
+  let rejoins = 0
 
   const send = (message: LiveSessionWebSocketClientMessageDto) =>
     socket?.send(JSON.stringify(message))
@@ -359,23 +377,45 @@ export function openCommandRoom(options: {
     return false
   }
 
+  const askPresentedScene = (command: { commandId: string }, presented: PresentedSceneWait) => {
+    presented.askedAtRoomScene = roomScene?.id ?? null
+    void presented.read().then(
+      (requirement) => {
+        presented.requirement = requirement
+        flush()
+      },
+      (error: unknown) =>
+        take(command.commandId)?.reject(error instanceof Error ? error : new Error(String(error)))
+    )
+  }
+
   const flush = () => {
     if (failure || !admitted || sequence === null) return
     for (const entry of pending.values()) {
       if (entry.sent) continue
+      const presented =
+        entry.scope === 'ENCOUNTER' || entry.scope === 'ENCOUNTER_BINDING'
+          ? entry.presentedScene
+          : null
       const required =
         entry.scope === 'ENCOUNTER' || entry.scope === 'ENCOUNTER_BINDING'
-          ? entry.requirement
+          ? (entry.presentedScene?.requirement ?? null)
           : {
               sceneId: entry.command.sceneId,
               expectedSceneVersion: entry.command.expectedSceneVersion
             }
       // The room alone moves its Scene; the next STATE_SYNC or commit that reaches it flushes again.
-      if (
-        required &&
-        (roomScene?.id !== required.sceneId || roomScene.version < required.expectedSceneVersion)
-      )
+      const held =
+        !!required &&
+        roomScene?.id === required.sceneId &&
+        roomScene.version >= required.expectedSceneVersion
+      if ((presented || required) && !held) {
+        // A presentation that raced this command can leave the room on a Scene the requirement is
+        // not for. Ask Convex again once per Scene the room reports.
+        if (presented && presented.askedAtRoomScene !== (roomScene?.id ?? null))
+          askPresentedScene(entry.command, presented)
         continue
+      }
       if (entry.scope !== 'FOG' && !takeCommandToken()) return
       if (entry.scope === 'ENCOUNTER') {
         send({
@@ -551,6 +591,25 @@ export function openCommandRoom(options: {
         setTimeout(() => void join(attempt + 1).catch(joinFailed), 250 * 2 ** attempt)
         return
       }
+      // The room evicts a member whose Campaign access changed (an ownership transfer). Like the
+      // browser, rejoin with a fresh ticket and resend what waits: its command ID makes a repeat an
+      // exact replay, and the room plans it for the access the member holds now.
+      if (
+        admitted &&
+        event.code === 1008 &&
+        event.reason === roomAccessEndedReason &&
+        pending.size > 0 &&
+        rejoins < roomRetryLimit
+      ) {
+        rejoins += 1
+        options.onEvent?.(`rejoin ${rejoins}`)
+        admitted = false
+        synced = false
+        encounterSubscribed = false
+        for (const entry of pending.values()) entry.sent = false
+        void join(0).catch(joinFailed)
+        return
+      }
       fail(new Error(`The Session room closed the connection (${event.code} ${event.reason}).`))
     })
   }
@@ -675,14 +734,14 @@ export function openCommandRoom(options: {
       if (synced) applyEncounterSubscription()
     },
     sendTransient: (envelope) => send({ envelope, type: 'TRANSIENT' }),
-    executeEncounter(command, requirement) {
+    executeEncounter(command, presentedScene) {
       const refused = refusal(command.commandId)
       if (refused) return Promise.reject(refused)
       return new Promise((resolve, reject) =>
         track({
           scope: 'ENCOUNTER',
           command,
-          requirement: requirement ?? null,
+          presentedScene: presentedScene && waitForPresentedScene(presentedScene),
           sent: false,
           resolve,
           reject,
@@ -690,14 +749,14 @@ export function openCommandRoom(options: {
         })
       )
     },
-    executeEncounterBinding(command, requirement) {
+    executeEncounterBinding(command, presentedScene) {
       const refused = refusal(command.commandId)
       if (refused) return Promise.reject(refused)
       return new Promise((resolve, reject) =>
         track({
           scope: 'ENCOUNTER_BINDING',
           command,
-          requirement,
+          presentedScene: waitForPresentedScene(presentedScene),
           sent: false,
           resolve,
           reject,
@@ -952,9 +1011,8 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     const campaignId = await this.#encounterCampaign(input.encounterId)
     // The room reads the binding's Scene from its presented Scene, as the GM's tabletop holds it, so
     // the command waits for that Scene; a binding for another Scene is then the room's to refuse.
-    return this.#room(campaignId).executeEncounter(
-      input,
-      await this.#presentedSceneRequirement(campaignId)
+    return this.#room(campaignId).executeEncounter(input, () =>
+      this.#presentedSceneRequirement(campaignId)
     )
   }
 
@@ -972,9 +1030,8 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
   ): Promise<BindEncounterToPresentedSceneResultDto> {
     const campaignId = await this.#encounterCampaign(input.encounterId)
     // The room binds to the Scene it presents, so it must hold the Scene the GM presented.
-    return this.#room(campaignId).executeEncounterBinding(
-      input,
-      await this.#presentedSceneRequirement(campaignId)
+    return this.#room(campaignId).executeEncounterBinding(input, () =>
+      this.#presentedSceneRequirement(campaignId)
     )
   }
 

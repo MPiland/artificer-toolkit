@@ -748,8 +748,12 @@ time and the Convex-reported `io`, in total and per section (fence, records, sco
 history, privateRolls, remainder). Each
 checkpoint logs one `[room-meter]` JSON line and release logs the epoch summary. The totals are
 readable only in development, through `GET /internal/live-sessions/meter/<campaignId>` on the Worker. The
-meter and barrier routes require the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker, a loopback host and the
-worker secret header.
+meter, barrier and test-rolls routes require the `LOCAL_CONTENT_SNAPSHOT_ORIGIN` marker (any
+`http://127.0.0.1:<port>`; see `isLocalDevelopment`), a loopback host and the worker secret header. The
+test-rolls route queues the room's next dice (`LiveSessionTestRollsInputDto`: consumed in order and
+unclamped, then an optional repeat value, ahead of `secureRandomInt`) and the room itself ignores any
+queue when it is not local. `apps/apis/tests/fixtures/localRoomWorker.ts` runs the real Worker in local
+workerd with these routes, loopback R2 and a Convex bridge, so tests fake the platform and never the room.
 
 `scripts/v15Budgets.mjs <proofName>` judges the `v15-workload` proof and `validatePreStagingLocal` runs it
 after that stage. The driver (`developmentEncounterCutover.ts`) brackets measured windows: each Run's

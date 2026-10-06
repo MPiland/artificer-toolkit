@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 
 import { verifyContentSnapshotToken } from './contentToken.js'
-import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
+import { allowedOrigins, isLocalDevelopment, type SessionWorkerEnvironment } from './environment.js'
 import {
   readContentSnapshotObject,
   type ContentSnapshotObjectBody
@@ -41,9 +41,10 @@ export async function serveContentSnapshot(
 
   const url = new URL(request.url)
   const localOrigin = environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN
+  // A marker that is set but not a valid local origin fails closed rather than reading R2.
   if (
     localOrigin !== undefined &&
-    (localOrigin !== 'http://127.0.0.1:8026' ||
+    (!isLocalDevelopment(environment) ||
       !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
   )
     return refuse(503, 'Local content snapshot delivery is not available.')

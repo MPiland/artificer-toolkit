@@ -31,7 +31,6 @@ import {
   projectRoomCharacterSheetForViewer
 } from './roomCharacterSheetProjection.js'
 import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
-import { secureRandomInt } from './nativeRulesRuntime.js'
 import {
   readRoomPrivateRoll,
   retainRoomPrivateRoll,
@@ -57,6 +56,7 @@ export async function executeRoomCampaignChatCommand(input: {
   epoch: string
   userId: string
   command: CampaignChatLiveCommand
+  random: (maximum: number) => number
 }): Promise<{
   entry: CampaignChatEntryDto | null
   privateRoll: RollHistoryEntryDto | null
@@ -152,7 +152,7 @@ export async function executeRoomCampaignChatCommand(input: {
       label: character?.label ?? username,
       system,
       resolved,
-      nextInt: secureRandomInt
+      nextInt: input.random
     })
   }
 

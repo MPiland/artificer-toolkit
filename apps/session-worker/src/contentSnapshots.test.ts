@@ -15,17 +15,9 @@ import { serveContentSnapshot } from './contentSnapshots.js'
 
 it('delivers the shared local fixture gzip objects with metadata and scoped authorization', async () => {
   const fixture = await startLocalR2()
-  const localOrigin = 'http://127.0.0.1:8026'
+  // Any loopback port is local development, so the fixture's ephemeral port needs no bridge.
+  const localOrigin = fixture.endpoint
   const nativeFetch = globalThis.fetch
-  // Keep the real HTTP transport while avoiding the lifecycle fixture's occupied port.
-  const bridgeFetch = vi
-    .spyOn(globalThis, 'fetch')
-    .mockImplementation((input, init) =>
-      nativeFetch(
-        typeof input === 'string' ? input.replace(localOrigin, fixture.endpoint) : input,
-        init
-      )
-    )
   try {
     const sourceId = '00000000-0000-4000-8000-000000000403'
     const publicKey = contentSnapshotObjectKey(
@@ -111,7 +103,9 @@ it('delivers the shared local fixture gzip objects with metadata and scoped auth
     for (const origin of [
       'http://localhost:8026',
       'https://127.0.0.1:8026',
-      'http://127.0.0.1:8027',
+      'http://127.0.0.1',
+      'http://127.0.0.1:8026/',
+      'http://192.168.0.1:8026',
       ''
     ])
       expect(
@@ -125,7 +119,6 @@ it('delivers the shared local fixture gzip objects with metadata and scoped auth
     expect(fixture.methods.length).toBe(reads)
     expect(get).not.toHaveBeenCalled()
   } finally {
-    bridgeFetch.mockRestore()
     await fixture.close()
   }
 })
