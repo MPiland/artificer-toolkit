@@ -21,7 +21,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "convex": "1.45.0",
+    "convex": "1.46.0",
     "typescript": "^7.0.2"
   }
 }

@@ -3,6 +3,7 @@ import {
   getFunctionName,
   type ArgsAndOptions,
   type FunctionReference,
+  type FunctionReference_future,
   type FunctionReturnType,
   type OptionalRestArgs
 } from 'convex/server'
@@ -789,7 +790,9 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     this.#fetchToken = null
   }
 
-  override mutation<Mutation extends FunctionReference<'mutation'>>(
+  override mutation<
+    Mutation extends FunctionReference<'mutation'> | FunctionReference_future<'mutation'>
+  >(
     mutation: Mutation,
     ...args: ArgsAndOptions<Mutation, HttpMutationOptions>
   ): Promise<FunctionReturnType<Mutation>> {
@@ -808,7 +811,7 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     return this.#executeEncounterCommand(args[0]) as Promise<FunctionReturnType<Mutation>>
   }
 
-  override async query<Query extends FunctionReference<'query'>>(
+  override async query<Query extends FunctionReference<'query'> | FunctionReference_future<'query'>>(
     query: Query,
     ...args: OptionalRestArgs<Query>
   ): Promise<FunctionReturnType<Query>> {

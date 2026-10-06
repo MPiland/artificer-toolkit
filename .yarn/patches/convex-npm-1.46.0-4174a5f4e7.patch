@@ -1,0 +1,48 @@
+diff --git a/dist/cjs/cli/codegen_templates/validator_helpers.js b/dist/cjs/cli/codegen_templates/validator_helpers.js
+index 31f59ce92316a7dccc207e461cf3ea48514502af..bbe8ceb68239a65955adc2427e411564d54894d8 100644
+--- a/dist/cjs/cli/codegen_templates/validator_helpers.js
++++ b/dist/cjs/cli/codegen_templates/validator_helpers.js
+@@ -56,6 +56,7 @@ function validatorToType(validator, useIdType) {
+   } else if (validator.type === "record") {
+     return `Record<${validatorToType(validator.keys, useIdType)}, ${validatorToType(validator.values.fieldType, useIdType)}>`;
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value.map((v) => validatorToType(v, useIdType)).join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);
+diff --git a/dist/cli.bundle.cjs b/dist/cli.bundle.cjs
+index 62bf695a7981221ba291db8beabcd5e5da0fe0af..ec4e01f009d119212d9e97430bb715775a5318b4 100644
+--- a/dist/cli.bundle.cjs
++++ b/dist/cli.bundle.cjs
+@@ -117015,6 +117015,7 @@ function validatorToType(validator, useIdType) {
+   } else if (validator.type === "record") {
+     return `Record<${validatorToType(validator.keys, useIdType)}, ${validatorToType(validator.values.fieldType, useIdType)}>`;
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value.map((v) => validatorToType(v, useIdType)).join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);
+diff --git a/dist/esm/cli/codegen_templates/validator_helpers.js b/dist/esm/cli/codegen_templates/validator_helpers.js
+index 9138b9b8d893f2ba8edab8f58788a5cbd4108af8..88e1e0148b5b170536be14293332f6072ad4a1aa 100644
+--- a/dist/esm/cli/codegen_templates/validator_helpers.js
++++ b/dist/esm/cli/codegen_templates/validator_helpers.js
+@@ -33,6 +33,7 @@ export function validatorToType(validator, useIdType) {
+   } else if (validator.type === "record") {
+     return `Record<${validatorToType(validator.keys, useIdType)}, ${validatorToType(validator.values.fieldType, useIdType)}>`;
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value.map((v) => validatorToType(v, useIdType)).join(" | ");
+   } else if (validator.type === "object") {
+     return objectValidatorToType(validator.value, useIdType);
+diff --git a/src/cli/codegen_templates/validator_helpers.ts b/src/cli/codegen_templates/validator_helpers.ts
+index 76bfde0a947aa780773bdbf695387f26c0246250..7a522aa0f922f3499d97f82b68df38cb54389d0d 100644
+--- a/src/cli/codegen_templates/validator_helpers.ts
++++ b/src/cli/codegen_templates/validator_helpers.ts
+@@ -45,6 +45,7 @@ export function validatorToType(
+   } else if (validator.type === "record") {
+     return `Record<${validatorToType(validator.keys, useIdType)}, ${validatorToType(validator.values.fieldType, useIdType)}>`;
+   } else if (validator.type === "union") {
++    if (validator.value.length === 0) return "never";
+     return validator.value
+       .map((v) => validatorToType(v, useIdType))
+       .join(" | ");
