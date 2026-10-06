@@ -88,7 +88,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "fast-check": "4.9.0",
+    "fast-check": "4.10.2",
     "ts-to-zod": "^5.1.0",
     "typescript": "^7.0.2"
   }

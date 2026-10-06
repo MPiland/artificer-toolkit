@@ -20,17 +20,17 @@
     "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "jose": "^6.2.4",
+    "jose": "^6.2.12",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@artificer-toolkit/source-data": "workspace:^",
     "@cloudflare/vitest-pool-workers": "0.21.3",
-    "@vitest/runner": "^4.1.9",
-    "@vitest/snapshot": "^4.1.9",
+    "@vitest/runner": "^4.1.11",
+    "@vitest/snapshot": "^4.1.11",
     "typescript": "^7.0.2",
-    "uuid": "^14.0.0",
-    "vitest": "^4.1.9",
+    "uuid": "^14.0.2",
+    "vitest": "^4.1.11",
     "wrangler": "^4.143.0"
   }
 }
