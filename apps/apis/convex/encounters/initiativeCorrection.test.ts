@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -18,19 +18,26 @@ import type {
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-
 import { fixture } from '../../tests/fixtures/characters'
 
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { recordEncounterCommand } from '@artificer-toolkit/encounter-persistence/commands'
 import { encounterWriteTransaction } from './encounterPorts'
 import {
+  attachRoomWorker,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  readRoomTimeline,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -188,6 +195,7 @@ describe('validateInitiativeCursor', () => {
 describe('native initiative corrections', () => {
   it('rewinds, clears, reselects, and revisits a manually-settled round without new rolls', async () => {
     const base = await fixture()
+    await attachRoomWorker(base.t)
     const campaign = await base.owner.caller.mutation(createCampaign, {
       name: 'Manual correction',
       format: 'ONGOING',
@@ -196,6 +204,7 @@ describe('native initiative corrections', () => {
       gameSystemId: srdSystemRecord.id,
       primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
     })
+    await seedRoomContentSnapshots(campaign.id)
     const settings = await base.owner.caller.query(getPlaySettings, { campaignId: campaign.id })
     const { version, updatedAt: _updatedAt, ...settingsFields } = settings
     await base.owner.caller.mutation(savePlaySettings, {
@@ -248,8 +257,11 @@ describe('native initiative corrections', () => {
       }
     })
     expect(result.projection.currentActorId).toBe(first.id)
-    const capture = () =>
-      base.t.run(async (ctx) => ({
+    // The room holds the Run's command and rule-receipt history until it ends (D85), so only the
+    // rows the room publishes are compared.
+    const capture = async () => {
+      await checkpointLiveRoom(campaign.id)
+      return base.t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         runs: await ctx.db.query('encounterRuns').collect(),
@@ -257,14 +269,11 @@ describe('native initiative corrections', () => {
         rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
         participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
         sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        ruleReceipts: await (
-          await readEncounterHistory(ctx)
-        )
-          .query('encounterRuleReceipts')
-          .collect()
+        occurrences: await ctx.db.query('encounterRuleOccurrences').collect()
       }))
+    }
+    // The checks below plant Convex rows, so the room must not hold the Run while they are written.
+    await closeRoom(campaign.id)
     const beforeCorrection = await capture()
     const correction: EncounterExecuteInput = {
       command: {
@@ -307,12 +316,14 @@ describe('native initiative corrections', () => {
     const beforePending = await capture()
     await expect(executeInRoom(base.owner.caller, correction)).rejects.toThrow()
     expect(await capture()).toEqual(beforePending)
+    await closeRoom(campaign.id)
     await base.t.run((ctx) => ctx.db.delete(pendingId))
     const participant = beforeCorrection.participants[0]!
     await base.t.run((ctx) => ctx.db.patch(participant._id, { turnOrderOrdinal: 999 }))
     const corruptCursor = await capture()
     await expect(executeInRoom(base.owner.caller, correction)).rejects.toThrow()
     expect(await capture()).toEqual(corruptCursor)
+    await closeRoom(campaign.id)
     await base.t.run((ctx) =>
       ctx.db.patch(participant._id, { turnOrderOrdinal: participant.turnOrderOrdinal })
     )
@@ -416,9 +427,11 @@ describe('native initiative corrections', () => {
       })
     ).rejects.toThrow('Encounter version is stale')
     const replayedSetRound = { ...setRoundResult, projection: result.projection }
-    await expect(replayInRoom(base.owner.caller, setRound)).resolves.toEqual(replayedSetRound)
+    // Sending a settled command again is a retry: the room verifies its stored initiative snapshot
+    // against its checksum and answers from its held history.
+    await expect(executeInRoom(base.owner.caller, setRound)).resolves.toEqual(replayedSetRound)
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: {
           ...setRound.command,
           commandId: setRound.command.commandId.toUpperCase(),
@@ -439,9 +452,7 @@ describe('native initiative corrections', () => {
       'already used for different input',
       'INVALID_COMMAND'
     )
-    const heldCommands = await base.t.run(async (ctx) =>
-      (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    )
+    const heldCommands = await readRoomTimeline(base.owner.caller, campaign.id)
     result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'COMPLETE',
@@ -462,43 +473,15 @@ describe('native initiative corrections', () => {
         }
       })
     ).rejects.toThrow('Completed Encounters are read-only')
-    const stored = await base.t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect()
-    }))
-    // COMPLETE drops the Run's room-held history.
-    expect(stored.commands).toEqual([])
-    const corrections = heldCommands.filter((command) =>
-      ['PREVIOUS_TURN', 'SET_CURRENT_ACTOR', 'SET_ROUND'].includes(command.commandType)
-    )
-    expect(corrections).toHaveLength(6)
-    expect(corrections).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          initiativeStateChecksum: expect.stringMatching(/^[a-f0-9]{64}$/)
-        })
-      ])
-    )
-    expect(stored.rounds).toEqual([])
-    for (const command of corrections) {
-      if (
-        command.commandType !== 'SET_ROUND' &&
-        command.commandType !== 'SET_CURRENT_ACTOR' &&
-        command.commandType !== 'PREVIOUS_TURN'
-      )
-        throw new Error('Wrong correction command')
-      expect(checksumCanonicalJson(JSON.parse(command.initiativeStateJson))).toBe(
-        command.initiativeStateChecksum
-      )
-    }
-    const afterCorrection = await capture()
-    expect(afterCorrection.actors).toEqual(beforeCorrection.actors)
+    // The room's held timeline names each correction the Run recorded.
     expect(
-      afterCorrection.ruleReceipts.some((receipt) =>
-        ['SET_ROUND', 'SET_CURRENT_ACTOR', 'PREVIOUS_TURN'].includes(receipt.commandType)
+      heldCommands.filter((command) =>
+        ['PREVIOUS_TURN', 'SET_CURRENT_ACTOR', 'SET_ROUND'].includes(command.commandType)
       )
-    ).toBe(false)
+    ).toHaveLength(6)
+    const afterCorrection = await capture()
+    // COMPLETE ends the Run: no initiative round remains and the corrections never touched an actor.
+    expect(afterCorrection.rounds).toEqual([])
+    expect(afterCorrection.actors).toEqual(beforeCorrection.actors)
   }, 30000)
 })

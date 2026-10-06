@@ -6,8 +6,9 @@ import {
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 
 import { verifyContentSnapshotToken } from './contentToken.js'
-import { allowedOrigins, isLocalDevelopment, type SessionWorkerEnvironment } from './environment.js'
+import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
 import {
+  isLocalDevelopment,
   readContentSnapshotObject,
   type ContentSnapshotObjectBody
 } from './contentSnapshotStorage.js'

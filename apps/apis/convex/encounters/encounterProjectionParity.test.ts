@@ -8,7 +8,13 @@ import {
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 import { encounterConformanceCorpus } from '../../tests/fixtures/encounterConformanceCorpus'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointRoom,
+  executeInRoom,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
@@ -25,6 +31,8 @@ import {
  * and each command its whole result, so building them on read must reproduce them exactly.
  */
 
+useLocalRoomWorker()
+
 let uuidSequence = 0
 beforeEach(() => {
   uuidSequence = 0
@@ -38,6 +46,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllEnvs()
   vi.useRealTimers()
 })
 
@@ -113,18 +122,46 @@ async function expectProjectionFactsCurrent(base: PlayerControlFixture) {
 }
 
 describe('Encounter command replay', () => {
+  // The Worker's rooms outlive a test and every test's Campaign has the same ID, so a checkpoint
+  // before this test's first room command would reach the previous test's room.
+  let commanded = false
+  let roomTests = 0
+
+  /** The real room holds the Run, so the fixture's Convex-read version is current only after a checkpoint. */
+  async function roomFixture(options?: Parameters<typeof playerControlFixture>[0]) {
+    commanded = false
+    // Each test needs its own Campaign ID, which the per-test UUID sequence would repeat.
+    uuidSequence += ++roomTests * 1000
+    const base = await playerControlFixture(options)
+    await attachRoomWorker(base.t)
+    await seedRoomContentSnapshots(base.campaign.id)
+    const settle = () => (commanded ? checkpointRoom(base.campaign.id) : undefined)
+    return {
+      ...base,
+      version: async () => {
+        await settle()
+        return base.version()
+      },
+      bite: async (...args: Parameters<typeof base.bite>) => {
+        await settle()
+        return base.bite(...args)
+      }
+    }
+  }
+
   async function expectExactReplay(
     member: PlayerControlFixture['owner'],
     command: EncounterCommandInputDto
   ) {
     const original = await executeInRoom(member.caller, { command })
+    commanded = true
     const replay = await executeInRoom(member.caller, { command })
     expect(JSON.stringify(replay)).toBe(JSON.stringify(original))
     return original
   }
 
   it('returns the same bytes to the GM for GM tools, actions and turns', async () => {
-    const base = await playerControlFixture()
+    const base = await roomFixture()
     await expectExactReplay(base.owner, {
       type: 'UPDATE_ACTOR',
       encounterId: base.run.id,
@@ -150,13 +187,13 @@ describe('Encounter command replay', () => {
   })
 
   it('returns the same bytes to a player for their action', async () => {
-    const base = await playerControlFixture()
+    const base = await roomFixture()
     await setActorControllers(base, base.companion.id, [base.player.userId])
     await expectExactReplay(base.player, await base.bite(base.companion.id, base.enemy.id))
   })
 
   it('returns the same bytes for a paused action', async () => {
-    const base = await playerControlFixture({ bite: 'ATTACK', promptRolls: true })
+    const base = await roomFixture({ bite: 'ATTACK', promptRolls: true })
     const paused = await expectExactReplay(
       base.owner,
       await base.bite(base.companion.id, base.enemy.id)

@@ -1,5 +1,5 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   EncounterCommandInputDto,
   EncounterGmProjectionDto
@@ -10,14 +10,23 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
+  attachRoomWorker,
+  checkpointLiveRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  RoomCommandRefusal
-} from '../../tests/fixtures/liveSessionWorker'
+  RoomCommandRefusal,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
   const base = await setupCharacterRun()
+  await attachRoomWorker(base.t)
   if (mode === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
   let definitionId: string | null = null
   if (mode !== 'MANUAL') {
@@ -30,6 +39,7 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     })
     definitionId = policyIds[0]!
   }
+  await seedRoomContentSnapshots(base.campaign.id)
   const {
     version,
     updatedAt: _updatedAt,
@@ -140,8 +150,10 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     })
     projection = result.projection as EncounterGmProjectionDto
   }
-  const capture = () =>
-    base.t.run(async (ctx) => ({
+  // The room holds the Run between save points (D85), so Convex is read after a checkpoint.
+  const capture = async () => {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       runs: await ctx.db.query('encounterRuns').collect(),
@@ -155,6 +167,7 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
         .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers)),
       occurrences: await ctx.db.query('encounterRuleOccurrences').collect()
     }))
+  }
   return { ...base, execute, start, advance, capture, projection: () => projection }
 }
 
@@ -203,7 +216,7 @@ describe('native Encounter reorder', () => {
     expect(result.projection.actors.map((actor) => actor.id)).toEqual(actorIds)
     const later = await base.execute({ type: 'REORDER', actorIds: [...actorIds].reverse() })
     const beforeReplay = await base.capture()
-    expect(await replayInRoom(base.owner.caller, request)).toEqual({
+    expect(await executeInRoom(base.owner.caller, request)).toEqual({
       ...result,
       projection: later.result.projection
     })

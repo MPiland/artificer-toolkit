@@ -13,7 +13,8 @@ import {
 import { CONTENT_SNAPSHOT_PATH_PREFIX } from '@artificer-toolkit/schema/api/contentSnapshots'
 
 import { serveContentSnapshot } from './contentSnapshots.js'
-import { allowedOrigins, isLocalDevelopment, type SessionWorkerEnvironment } from './environment.js'
+import { allowedOrigins, type SessionWorkerEnvironment } from './environment.js'
+import { isLocalDevelopment } from './contentSnapshotStorage.js'
 import { NativeLiveSessionRoom as LiveSessionRoom } from './nativeLiveSessionRoom.js'
 import { verifyLiveSessionTicket } from './ticket.js'
 

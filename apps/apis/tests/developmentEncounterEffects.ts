@@ -65,7 +65,8 @@ type EncounterEffectsInput =
       owner: DevelopmentClient
       playerUserId?: string
       browser?: undefined
-      saveTable?: undefined
+      /** Saves a room-held Run to Convex (D90) before the proof reads it there. */
+      saveTable?: () => Promise<void>
     })
   | (EncounterEffectsBaseInput & {
       owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>
@@ -338,9 +339,9 @@ export async function verifyEncounterEffects({
         targetTokenId
       }
       scene = { id: preparedScene.liveSceneId, name }
-      // The room holds the bound Run; Convex's reads below need it saved first.
-      await saveTable?.()
     }
+    // The room holds the Run; Convex's reads below need it saved first.
+    await saveTable?.()
     let root: ResolveEncounterActionInputDto = {
       type: 'RESOLVE_ACTION',
       acceptedWieldConflict: null,

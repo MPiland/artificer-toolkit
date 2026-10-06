@@ -71,7 +71,8 @@ import { decodeJwt } from 'jose'
 import { z } from 'zod'
 
 import { DurableCommandJournal, DurableCommandJournalError } from './durableCommandJournal.js'
-import { isLocalDevelopment, type SessionWorkerEnvironment } from './environment.js'
+import type { SessionWorkerEnvironment } from './environment.js'
+import { isLocalDevelopment } from './contentSnapshotStorage.js'
 import {
   createNativeLiveSessionState,
   hydrateNativeLiveSessionState,

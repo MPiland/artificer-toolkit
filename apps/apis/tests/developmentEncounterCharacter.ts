@@ -11,13 +11,16 @@ export async function verifyEncounterCharacterCommands({
   player,
   anonymous,
   campaignId,
-  characterId
+  characterId,
+  checkpoint
 }: {
   owner: DevelopmentClient
   player: DevelopmentClient
   anonymous: DevelopmentClient
   campaignId: string
   characterId: string
+  /** Publishes a room-held Run to Convex before the proof reads it there. */
+  checkpoint?: () => Promise<void>
 }) {
   const measurements: Array<{ operation: string; elapsedMs: number; responseBytes: number }> = []
   async function measure<T>(operation: string, run: () => Promise<T>): Promise<T> {
@@ -116,6 +119,7 @@ export async function verifyEncounterCharacterCommands({
     await measure('initiativeReplay', () => owner.mutation(executeEncounterCommand, initiative)),
     rolled
   )
+  await checkpoint?.()
   assert.deepEqual(
     await owner.query(api.encounters.projectionReads.get, { encounterId: run.id }),
     rolled.projection
@@ -163,6 +167,7 @@ export async function verifyEncounterCharacterCommands({
     .actors.find((entry) => entry.id === actor.id)
   assert.equal(damagedActor?.currentHitPoints, 9)
   assert.equal(damagedActor.maxHitPoints, 15)
+  await checkpoint?.()
   const sheet = await player.query(api.characters.sheet.get, { id: characterId })
   assert.ok(sheet)
   assert.equal(sheet.overview.currentHitPoints, 9)

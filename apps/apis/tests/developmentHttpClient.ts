@@ -23,7 +23,11 @@ import type {
   EncounterReadDto,
   EncounterReadResultDto
 } from '@artificer-toolkit/schema/api/encounterRead'
-import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
+import type { CharacterSheetCommandResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import {
+  LIVE_SESSION_TRY_AGAIN_MESSAGE,
+  type LiveSessionCommandDto
+} from '@artificer-toolkit/schema/api/liveSessionCommands'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import {
   LIVE_SESSION_PATH_PREFIX,
@@ -56,6 +60,7 @@ import { executeEncounterCommand } from './developmentClient'
 import { bindScene, bindToken } from './developmentEncounterLifecycle'
 
 type RoomCommand = EncounterCommandInputDto | EncounterActorTokenBindingCommandInputDto
+export type RoomSheetCommand = Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
 type RoomSocket = Pick<WebSocket, 'addEventListener' | 'close' | 'send'>
 type RoomSocketInit = { headers: { origin: string }; protocols: string[] }
 type SceneFogStagingMessage = Extract<
@@ -88,6 +93,8 @@ export type CommandRoom = {
     command: RoomCommand,
     presentedScene?: PresentedSceneReader
   ) => Promise<EncounterCommandResultDto>
+  /** Sends one live Character Sheet command, as the Sheet does while the room holds the Character. */
+  executeCharacterSheet: (command: RoomSheetCommand) => Promise<CharacterSheetCommandResponseDto>
   /** Binds the Encounter to the room's presented Scene, as the GM's tabletop does (D47). */
   executeEncounterBinding: (
     command: BindEncounterToPresentedSceneInputDto,
@@ -178,6 +185,13 @@ type PendingCommand = {
       command: BindEncounterToPresentedSceneInputDto
       presentedScene: PresentedSceneWait
       resolve: (result: BindEncounterToPresentedSceneResultDto) => void
+    }
+  | {
+      scope: 'CHARACTER_SHEET'
+      command: RoomSheetCommand['command']
+      characterId: string
+      encounterId: string
+      resolve: (result: CharacterSheetCommandResponseDto) => void
     }
   | {
       scope: 'SCENE'
@@ -400,10 +414,12 @@ export function openCommandRoom(options: {
       const required =
         entry.scope === 'ENCOUNTER' || entry.scope === 'ENCOUNTER_BINDING'
           ? (entry.presentedScene?.requirement ?? null)
-          : {
-              sceneId: entry.command.sceneId,
-              expectedSceneVersion: entry.command.expectedSceneVersion
-            }
+          : entry.scope === 'CHARACTER_SHEET'
+            ? null
+            : {
+                sceneId: entry.command.sceneId,
+                expectedSceneVersion: entry.command.expectedSceneVersion
+              }
       // The room alone moves its Scene; the next STATE_SYNC or commit that reaches it flushes again.
       const held =
         !!required &&
@@ -429,6 +445,20 @@ export function openCommandRoom(options: {
       if (entry.scope === 'ENCOUNTER_BINDING') {
         send({
           command: { command: entry.command, scope: 'ENCOUNTER_BINDING' },
+          expectedSessionSequence: sequence,
+          type: 'COMMAND'
+        })
+        entry.sent = true
+        continue
+      }
+      if (entry.scope === 'CHARACTER_SHEET') {
+        send({
+          command: {
+            characterId: entry.characterId,
+            command: entry.command,
+            encounterId: entry.encounterId,
+            scope: 'CHARACTER_SHEET'
+          },
           expectedSessionSequence: sequence,
           type: 'COMMAND'
         })
@@ -502,6 +532,9 @@ export function openCommandRoom(options: {
         take(message.commandId)
         entry.resolve(delta.result)
       } else if (entry?.scope === 'ENCOUNTER_BINDING' && delta?.scope === 'ENCOUNTER_BINDING') {
+        take(message.commandId)
+        entry.resolve(delta.result)
+      } else if (entry?.scope === 'CHARACTER_SHEET' && delta?.scope === 'CHARACTER_SHEET') {
         take(message.commandId)
         entry.resolve(delta.result)
       } else if (entry?.scope === 'SCENE') {
@@ -741,7 +774,23 @@ export function openCommandRoom(options: {
         track({
           scope: 'ENCOUNTER',
           command,
-          presentedScene: presentedScene && waitForPresentedScene(presentedScene),
+          presentedScene: presentedScene ? waitForPresentedScene(presentedScene) : null,
+          sent: false,
+          resolve,
+          reject,
+          timer: expire(command, reject)
+        })
+      )
+    },
+    executeCharacterSheet({ command, characterId, encounterId }) {
+      const refused = refusal(command.commandId)
+      if (refused) return Promise.reject(refused)
+      return new Promise((resolve, reject) =>
+        track({
+          scope: 'CHARACTER_SHEET',
+          command,
+          characterId,
+          encounterId,
           sent: false,
           resolve,
           reject,
@@ -877,6 +926,15 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
     return held === undefined ? super.query(query, ...args) : (held as FunctionReturnType<Query>)
   }
 
+  /** Sends a live Character Sheet command through the room that holds the Character's Run. */
+  async executeCharacterSheet(
+    command: RoomSheetCommand
+  ): Promise<CharacterSheetCommandResponseDto> {
+    return this.#room(await this.#encounterCampaign(command.encounterId)).executeCharacterSheet(
+      command
+    )
+  }
+
   async executeSceneCommand(
     command: SceneCommandInputDto | SceneFogPublishCommandInput,
     replayOfSequence?: number
@@ -946,10 +1004,20 @@ export class DevelopmentHttpClient extends ConvexHttpClient {
 
   /** The Run's timeline as the room pushes it to this member; null while the room holds no Run. */
   async encounterTimeline(campaignId: string): Promise<EncounterTimelineDto | null> {
-    const room = this.#room(campaignId)
-    room.subscribeEncounterSession(true)
-    const session = await room.readEncounterSession()
+    const session = await this.encounterSession(campaignId, true)
     return session.held ? session.timeline : null
+  }
+
+  /** The Encounter session the room sends this member after it subscribes, as the room holds the Run now. */
+  async encounterSession(campaignId: string, timeline: boolean): Promise<EncounterSessionFrameDto> {
+    const room = this.#room(campaignId)
+    room.subscribeEncounterSession(timeline)
+    return room.readEncounterSession()
+  }
+
+  /** The room's answer to one `ENCOUNTER_READ`; the room's refusal rejects, as for the tabletop. */
+  readEncounter(campaignId: string, read: EncounterReadDto): Promise<EncounterReadResultDto> {
+    return this.#room(campaignId).readEncounter(read)
   }
 
   sendTransient(campaignId: string, envelope: SceneTransientEnvelopeDto) {

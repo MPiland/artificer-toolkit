@@ -1,7 +1,7 @@
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -9,7 +9,6 @@ import type {
   EncounterGmProjectionDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -24,11 +23,16 @@ import {
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
+  attachRoomWorker,
+  checkpointLiveRoom,
+  checkpointRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  readRoomRollCards,
+  roomErrorLogs,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { getNativeActionChoices } from '../../tests/fixtures/nativeDisarm'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
@@ -45,6 +49,19 @@ import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persiste
 import { encounterReadTransaction } from './encounterPorts'
 import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import { encounterTurnReadTransaction } from './turnReadPorts'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
+/** The room redacts a refusal to the member; its cause is what the room logged as an error. */
+async function expectRefusalCause(command: Promise<unknown>, cause: string) {
+  await expectRedactedRoomRefusal(command, 'The Encounter command could not be completed.')
+  await vi.waitFor(() =>
+    expect(roomErrorLogs()).toEqual(expect.arrayContaining([expect.stringContaining(cause)]))
+  )
+}
 
 /** Unlimited range keeps the fixture free of Scene positions; grips and properties are unchanged. */
 function withUnlimitedRange(weapon: typeof greatsword) {
@@ -63,6 +80,7 @@ function withUnlimitedRange(weapon: typeof greatsword) {
 /** A Character carrying a weapon (a two-handed greatsword by default) and a shield, first in initiative. */
 async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquipped = false } = {}) {
   const base = await setupCharacterRun({}, withUnlimitedRange(weapon))
+  await attachRoomWorker(base.t)
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_RULE_STATE_DEFINITIONS.filter(
@@ -109,6 +127,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
         itemId
       }
     })
+  await seedRoomContentSnapshots(base.campaign.id)
   const blueprint = await base.owner.caller.mutation(
     makeFunctionReference<'mutation', CreateEncounterBlueprintInputDto, EncounterBlueprintDto>(
       'encounters/blueprints:create'
@@ -176,8 +195,9 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
     acceptedWieldConflict,
     acknowledgedWarnings: []
   })
-  const armorClass = () =>
-    base.owner.caller.run(async (ctx) => {
+  const armorClass = async () => {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.owner.caller.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', run.id))
@@ -193,7 +213,11 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
       ).get(actor.id)
       return source?.effectiveRulePolicyOutput?.derivedStats.armorClass.effective
     })
-  const characterRow = () => base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
+  }
+  const characterRow = async () => {
+    await checkpointLiveRoom(base.campaign.id)
+    return base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
+  }
   return {
     ...base,
     run,
@@ -275,7 +299,7 @@ describe('shield stow on two-handed attacks', () => {
       actorId: base.actor.id
     })
     expect(choices?.actions.find((action) => action.id === base.actionId)?.wieldConflict).toBeNull()
-    await expectRedactedRoomRefusal(
+    await expectRefusalCause(
       executeInRoom(base.owner.caller, {
         command: base.command(accept(base.shieldItemId))
       }),
@@ -355,7 +379,7 @@ describe('shield stow on two-handed attacks', () => {
   it('commits an accepted stow through the Convex action path and replays it exactly', async () => {
     const base = await setup()
     expect(await base.armorClass()).toBe(14)
-    await expectRedactedRoomRefusal(
+    await expectRefusalCause(
       executeInRoom(base.owner.caller, {
         command: base.command(null)
       }),
@@ -371,7 +395,8 @@ describe('shield stow on two-handed attacks', () => {
     expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
     expect(readCharacterRecord(after!).state.equipment.equipped).not.toContain(base.shieldItemId)
     expect(await base.armorClass()).toBe(12)
-    expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
+    // Sending the settled command again is a retry: the room's held history answers it.
+    expect(await executeInRoom(base.owner.caller, { command })).toEqual(result)
     expect((await base.characterRow())?.play.streamVersion).toBe(after!.play.streamVersion)
   }, 60000)
 
@@ -381,6 +406,7 @@ describe('shield stow on two-handed attacks', () => {
     const result = await executeInRoom(base.owner.caller, {
       command: base.command(accept(base.shieldItemId))
     })
+    await checkpointRoom(base.campaign.id)
     const storedProjection = await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -420,8 +446,8 @@ describe('versatile grips', () => {
     })
     const execute = (command: ResolveEncounterActionInputDto) =>
       executeInRoom(base.owner.caller, { command })
-    await expectRedactedRoomRefusal(execute(base.command(null, twoHand.id)), 'confirm it first')
-    await expectRedactedRoomRefusal(
+    await expectRefusalCause(execute(base.command(null, twoHand.id)), 'confirm it first')
+    await expectRefusalCause(
       execute(base.command(accept(base.shieldItemId), oneHand.id)),
       'This attack does not stow a shield.'
     )
@@ -449,23 +475,11 @@ describe('drawn weapons', () => {
         command
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
-      const receipt = await base.t.run(async (ctx) =>
-        (await readEncounterHistory(ctx, base.campaign.id))
-          .query('encounterRuleReceipts')
-          .withIndex('by_campaignId_commandId', (q) =>
-            q.eq('campaignId', base.campaign.id).eq('commandId', command.commandId)
-          )
-          .unique()
-      )
-      const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt!.resultJson))
-      if (
-        stored.status !== 'COMPLETE' ||
-        stored.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-      )
-        throw new Error('Expected a completed Creature-target attack.')
+      // The attack roll's modifier, as the room reports the roll card to the table.
+      const cards = await readRoomRollCards(base.player.caller, base.campaign.id)
       return {
         attackBonus: choice?.attackBonus,
-        rolledModifier: stored.applicationOutputs.d20?.modifier
+        rolledModifier: cards.find((card) => card.source.kind === 'ATTACK')?.evidence.modifier
       }
     }
     const equipped = await attack(true)

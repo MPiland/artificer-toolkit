@@ -2,7 +2,7 @@ import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference } from 'convex/server'
 import * as z from 'zod/mini'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -35,7 +35,21 @@ import { importedSubject, versionWithCompilation } from '../../tests/fixtures/pu
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { insertAuthoredVersion } from '../content/documents'
 import { readCharacterRow } from '../characters/stateDocuments'
-import { executeInRoom, expectRedactedRoomRefusal } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointRoom,
+  closeRoom,
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  roomErrorLogs,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -167,6 +181,8 @@ async function setup() {
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
+  await attachRoomWorker(base.t)
+  await seedRoomContentSnapshots(campaign.id)
   const blueprint = await owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Spell declaration',
@@ -263,8 +279,9 @@ describe('native initiative Spell declarations', () => {
     const option = spellOption(pending)
     // The room's checkpoint publishes the Encounter's receipts to a Campaign ledger; only the
     // Character's own ledgers show a spend.
-    const characterSpend = () =>
-      base.t.run(async (ctx) => {
+    const characterSpend = async () => {
+      await checkpointRoom(base.campaign.id)
+      return base.t.run(async (ctx) => {
         const ledgers = await ctx.db
           .query('receiptLedgers')
           .withIndex('by_scope_scopeId', (q) =>
@@ -289,6 +306,7 @@ describe('native initiative Spell declarations', () => {
             .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
         }
       })
+    }
     const beforeCharacter = await characterSpend()
     const publication = await base.t.run(async (ctx) => {
       const root = await ctx.db
@@ -315,6 +333,7 @@ describe('native initiative Spell declarations', () => {
       base.player.caller,
       spellCommand(base.run.id, pending, option.optionId)
     )
+    await checkpointRoom(base.campaign.id)
     pending = z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema).parse(
       await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
@@ -323,6 +342,7 @@ describe('native initiative Spell declarations', () => {
     if (pending && pending.kind === 'INITIATIVE_DECLARATION')
       result = await executeInRoom(base.owner.caller, gmCommand(base.run.id, pending))
     expect(result.projection.status).toBe('ACTIVE')
+    await checkpointRoom(base.campaign.id)
     const participant = await base.t.run((ctx) =>
       ctx.db
         .query('encounterInitiativeParticipants')
@@ -397,6 +417,9 @@ describe('native initiative Spell declarations', () => {
         checksum
       })
     })
+    // A room reads the content snapshots current at activation, so it re-hydrates on the republished Spell.
+    await seedRoomContentSnapshots(base.campaign.id)
+    await closeRoom(base.campaign.id)
     const before = await base.t.run(async (ctx) => ({
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -414,7 +437,17 @@ describe('native initiative Spell declarations', () => {
         .collect()
         .then((headers) => readReceiptHeaders(ctx, 'encounterRunCommands', headers))
     }))
-    await expectRedactedRoomRefusal(executeInRoom(base.player.caller, response), /stale/)
+    // The room redacts the cause to the member and logs it.
+    await expectRedactedRoomRefusal(
+      executeInRoom(base.player.caller, response),
+      'The Encounter command could not be completed.'
+    )
+    await vi.waitFor(() =>
+      expect(roomErrorLogs()).toEqual([
+        expect.stringMatching(/Initiative declaration options are stale/)
+      ])
+    )
+    await checkpointRoom(base.campaign.id)
     expect(
       await base.t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),

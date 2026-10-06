@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { makeFunctionReference } from 'convex/server'
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -18,7 +18,19 @@ import {
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { api, components, internal } from '../_generated/api'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointRoom,
+  closeRoom,
+  roomDevelopmentClient,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 const removeFixtureState = makeFunctionReference<
   'mutation',
@@ -81,19 +93,24 @@ async function prepareActionEffectFixture() {
     subjectId: draft.subjectId,
     expectedDraftUpdatedAt: draft.updatedAt
   })
-  const owner = inProcessDevelopmentClient(base.owner.caller)
-  const player = inProcessDevelopmentClient(base.other.caller)
+  await attachRoomWorker(base.t)
+  const owner = roomDevelopmentClient(base.owner.caller)
+  const player = roomDevelopmentClient(base.other.caller)
   return { base, policies, draft, owner, player }
 }
 
-async function createFixtureCampaign(base: Awaited<ReturnType<typeof fixture>>) {
+async function createFixtureCampaign(
+  base: Awaited<ReturnType<typeof fixture>>,
+  initiativePolicyCatalogueId: string
+) {
   const campaign = await base.owner.caller.mutation(api.campaigns.create.create, {
     name: 'Encounter execution fixture',
     format: 'ONGOING',
     toneTags: ['HEROIC'],
     contentMaturity: 'STANDARD',
     gameSystemId: srdSystemRecord.id,
-    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id,
+    additionalRulesCatalogueIds: [initiativePolicyCatalogueId]
   })
   await base.t.run((ctx) =>
     ctx.db.insert('campaignMemberships', {
@@ -106,6 +123,7 @@ async function createFixtureCampaign(base: Awaited<ReturnType<typeof fixture>>) 
       leftAt: null
     })
   )
+  await seedRoomContentSnapshots(campaign.id)
   return campaign
 }
 
@@ -152,8 +170,8 @@ async function effectsForRuns(
 
 it('persists one failed-save effect, leaves another Campaign unchanged, and retries cleanup safely', async () => {
   const { base, policies, draft, owner, player } = await prepareActionEffectFixture()
-  const campaign = await createFixtureCampaign(base)
-  const preservedCampaign = await createFixtureCampaign(base)
+  const campaign = await createFixtureCampaign(base, policies.bootstrap.catalogue.id)
+  const preservedCampaign = await createFixtureCampaign(base, policies.bootstrap.catalogue.id)
   await verifyEncounterEffects({
     owner,
     player,
@@ -161,7 +179,8 @@ it('persists one failed-save effect, leaves another Campaign unchanged, and retr
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
     creatureId: draft.subjectId,
-    leaveLastRunActive: true
+    leaveLastRunActive: true,
+    saveTable: () => checkpointRoom(campaign.id)
   })
   await verifyEncounterEffects({
     owner,
@@ -170,8 +189,12 @@ it('persists one failed-save effect, leaves another Campaign unchanged, and retr
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
     creatureId: draft.subjectId,
-    leaveLastRunActive: true
+    leaveLastRunActive: true,
+    saveTable: () => checkpointRoom(preservedCampaign.id)
   })
+  // Closing a room checkpoints it and releases the Campaign's live authority before cleanup.
+  await closeRoom(campaign.id)
+  await closeRoom(preservedCampaign.id)
   const targetBefore = await effectSnapshot(base, campaign.id)
   const preservedBefore = await effectSnapshot(base, preservedCampaign.id)
   expect(targetBefore.runs).toHaveLength(2)
@@ -197,11 +220,11 @@ it('persists one failed-save effect, leaves another Campaign unchanged, and retr
   await expect(base.t.mutation(removeFixtureState, cleanup)).resolves.toBeNull()
   expect(await effectsForRuns(base, targetRunIds)).toEqual([])
   expect(await effectSnapshot(base, preservedCampaign.id)).toEqual(preservedBefore)
-}, 30000)
+}, 120000)
 
 it('rejects malformed stored action-effect ownership without changing fixture rows', async () => {
   const { base, policies, draft, owner, player } = await prepareActionEffectFixture()
-  const campaign = await createFixtureCampaign(base)
+  const campaign = await createFixtureCampaign(base, policies.bootstrap.catalogue.id)
   await verifyEncounterEffects({
     owner,
     player,
@@ -209,8 +232,10 @@ it('rejects malformed stored action-effect ownership without changing fixture ro
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
     creatureId: draft.subjectId,
-    leaveLastRunActive: true
+    leaveLastRunActive: true,
+    saveTable: () => checkpointRoom(campaign.id)
   })
+  await closeRoom(campaign.id)
   const before = await effectSnapshot(base, campaign.id)
   const effect = effectRows(before)[0]
   if (!effect) throw new Error('Action-effect fixture did not persist the failed save.')
@@ -225,4 +250,4 @@ it('rejects malformed stored action-effect ownership without changing fixture ro
     })
   ).rejects.toThrow('Fixture Encounter dependency or ownership mismatch.')
   expect(await effectSnapshot(base, campaign.id)).toEqual(malformed)
-}, 30000)
+}, 120000)

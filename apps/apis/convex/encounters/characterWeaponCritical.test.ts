@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -9,12 +8,24 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  executeInRoom,
+  queueRoomRolls,
+  readRoomRollCards,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 /**
  * A player's SRD Fighter with an equipped seeded Longsword, acting first in an Assisted Run against
@@ -22,6 +33,7 @@ import { loadCharacterSheetFacts } from '../characters/sheetFacts'
  */
 async function setup() {
   const base = await setupCharacterRun({}, longsword)
+  await attachRoomWorker(base.t)
   await equipAllCharacterItems(base)
   await setAutoRollDice(base.t, base.player.userId, true)
   await base.t.mutation(internal.content.import.importDefinitions, {
@@ -35,6 +47,7 @@ async function setup() {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })
+  await seedRoomContentSnapshots(base.campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
     name: 'Longsword critical fixture',
@@ -99,36 +112,17 @@ describe('a Character weapon critical hit in the room', () => {
     const base = await setup()
     const hit = parseRollExpression(base.attack.damage.expression)
     expect(hit.terms).toMatchObject([{ count: 1, die: 8 }])
-    // A natural 20, then the d8s roll 4 and 7.
-    const faces = [19, 3, 6]
-    const result = await executeInRoom(base.player.caller, { command: base.command }, (maximum) => {
-      const face = faces.shift()
-      if (face === undefined || face >= maximum) throw new Error(`Unexpected roll (d${maximum}).`)
-      return face
-    })
+    // A natural 20, then the d8s roll 1 and 2. The room holds the settled receipt (D85), so the
+    // d20 and the damage are read where a member sees them: the roll cards in the table chat.
+    await queueRoomRolls(base.campaign.id, { rolls: [19, 0, 1] })
+    const result = await executeInRoom(base.player.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    expect(faces).toEqual([])
-    const receipt = await base.t.run(async (ctx) =>
-      (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) =>
-          q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
-        )
-        .unique()
-    )
-    if (!receipt) throw new Error('The Longsword receipt is missing.')
-    const settled = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-    if (
-      settled.status !== 'COMPLETE' ||
-      settled.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-    )
-      throw new Error('Expected a settled Longsword attack on the Wolf.')
-    const batch = settled.applicationOutputs
-    expect(batch.d20).toMatchObject({ selectedNatural: 20, resultPath: 'ON_CRIT' })
+    const cards = await readRoomRollCards(base.player.caller, base.campaign.id)
+    expect(cards.find((card) => card.source.kind === 'ATTACK')?.evidence.terms[0]?.rolls).toEqual([
+      20
+    ])
     expect(
-      batch.applications.flatMap((application) =>
-        application.kind === 'DAMAGE' ? [application.requestedAmount] : []
-      )
-    ).toEqual([4 + 7 + hit.modifier])
+      cards.filter((card) => card.source.kind === 'DAMAGE').map((card) => card.evidence.total)
+    ).toEqual([1 + 2 + hit.modifier])
   }, 30000)
 })

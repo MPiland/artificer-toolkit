@@ -19,7 +19,8 @@ export async function verifyEncounterActionTransactions({
   contentionCampaignId,
   initiativePolicyDefinitionId,
   initiativePolicyCatalogueId,
-  creatureId
+  creatureId,
+  checkpoint
 }: {
   owner: DevelopmentClient
   peer: DevelopmentClient
@@ -28,8 +29,14 @@ export async function verifyEncounterActionTransactions({
   initiativePolicyDefinitionId: string
   initiativePolicyCatalogueId: string
   creatureId: string
+  /** Publishes a room-held Run to Convex before the proof reads its projection there. */
+  checkpoint?: () => Promise<void>
 }) {
   assert.notEqual(owner, peer, 'Action contenders require independent clients.')
+  const readRun = async (encounterId: string) => {
+    await checkpoint?.()
+    return owner.query(api.encounters.projectionReads.get, { encounterId })
+  }
   assert.notEqual(duplicateCampaignId, contentionCampaignId)
   for (const campaignId of [duplicateCampaignId, contentionCampaignId]) {
     const campaign = await owner.query(api.campaigns.queries.get, { id: campaignId })
@@ -175,9 +182,7 @@ export async function verifyEncounterActionTransactions({
     ])
   ])
   assert.deepEqual(duplicate[0], duplicate[1])
-  const duplicateRun = encounterGmProjectionDtoSchema.parse(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: duplicateFixture.run.id })
-  )
+  const duplicateRun = encounterGmProjectionDtoSchema.parse(await readRun(duplicateFixture.run.id))
   assert.equal(duplicateRun.version, duplicateFixture.run.version + 1)
   const duplicateSource = duplicateRun.actors.find(
     (actor) => actor.id === duplicateFixture.source.id
@@ -194,10 +199,7 @@ export async function verifyEncounterActionTransactions({
   assert.equal(duplicateFeature.resource.used, duplicateFixture.resource.used + 1)
   assert.equal(duplicateFeature.resource.remaining, duplicateFixture.resource.remaining - 1)
   assert.deepEqual(await owner.mutation(executeEncounterCommand, duplicateInput), duplicate[0])
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: duplicateFixture.run.id }),
-    duplicateRun
-  )
+  assert.deepEqual(await readRun(duplicateFixture.run.id), duplicateRun)
   assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1)
   const winnerIndex = results.findIndex((result) => result.status === 'fulfilled')
   const winner = results[winnerIndex]
@@ -205,9 +207,7 @@ export async function verifyEncounterActionTransactions({
   if (!winner || winner.status !== 'fulfilled' || !loser || loser.status !== 'rejected')
     throw new Error('V14 action contention did not produce one winner and one stale loser.')
   assert.match(String(loser.reason), /stale/)
-  const afterWinner = encounterGmProjectionDtoSchema.parse(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: contentionFixture.run.id })
-  )
+  const afterWinner = encounterGmProjectionDtoSchema.parse(await readRun(contentionFixture.run.id))
   assert.equal(afterWinner.version, contentionFixture.run.version + 1)
   const source = afterWinner.actors.find((actor) => actor.id === contentionFixture.source.id)
   const target = afterWinner.actors.find((actor) => actor.id === contentionFixture.target.id)
@@ -223,12 +223,7 @@ export async function verifyEncounterActionTransactions({
     await owner.mutation(executeEncounterCommand, contenders[winnerIndex]),
     winner.value
   )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, {
-      encounterId: contentionFixture.run.id
-    }),
-    afterWinner
-  )
+  assert.deepEqual(await readRun(contentionFixture.run.id), afterWinner)
   const winnerCommand = contenders[winnerIndex]?.command
   if (!winnerCommand) throw new Error('V14 action contention winner input is unavailable.')
   const changedPayload: EncounterExecuteInput = {
@@ -247,15 +242,7 @@ export async function verifyEncounterActionTransactions({
     }
   }
   await assert.rejects(owner.mutation(executeEncounterCommand, changedPayload), /different input/)
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, {
-      encounterId: contentionFixture.run.id
-    }),
-    afterWinner
-  )
-  assert.deepEqual(
-    await owner.query(api.encounters.projectionReads.get, { encounterId: duplicateFixture.run.id }),
-    duplicateRun
-  )
+  assert.deepEqual(await readRun(contentionFixture.run.id), afterWinner)
+  assert.deepEqual(await readRun(duplicateFixture.run.id), duplicateRun)
   console.log('V14 native RESOLVE_ACTION contention, duplicate replay, and receipt checks passed.')
 }

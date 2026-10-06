@@ -497,6 +497,72 @@ it("commits a GM Encounter actor's Sheet command on the held Character with its 
   ])
 })
 
+it("rolls back a GM Encounter actor's Sheet write, actor, Run and room journal when the room commit fails after the Sheet write", async () => {
+  const room = await sheetRoom()
+  const commandId = crypto.randomUUID()
+  const evidence = () =>
+    runInDurableObject(room.stub, (_instance, state) => {
+      const store = new RoomEncounterStore(state.storage)
+      return {
+        sheetReceipts: store.documents('characterCommandReceipts'),
+        commands: store.documents('encounterRunCommands'),
+        actors: store.documents('encounterRunActors'),
+        runs: store.documents('encounterRuns'),
+        journal: state.storage.sql.exec('SELECT sequence FROM durable_command_receipts').toArray()
+      }
+    })
+  const send = () =>
+    room.gm.socket.send(
+      JSON.stringify({
+        type: 'COMMAND',
+        expectedSessionSequence: 0,
+        command: {
+          scope: 'ENCOUNTER',
+          command: {
+            type: 'UPDATE_ACTOR',
+            encounterId: room.encounterId,
+            commandId,
+            expectedVersion: 1,
+            actorId: room.actorId,
+            characterCommand: {
+              type: 'ADJUST_HIT_POINTS',
+              commandId: crypto.randomUUID(),
+              expectedVersion: 1,
+              mode: 'DAMAGE',
+              amount: 3
+            }
+          }
+        }
+      })
+    )
+  const replyTo = () =>
+    room.gm.messages.find(
+      (message) =>
+        (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+        message.commandId === commandId
+    )
+  const before = await evidence()
+  const trigger = (sql: string) =>
+    runInDurableObject(room.stub, (_instance, state) => void state.storage.sql.exec(sql))
+  // The journal receipt is the room transaction's last write, after the Sheet, actor and Run writes.
+  await trigger(
+    "CREATE TRIGGER abort_journal_receipt AFTER INSERT ON durable_command_receipts BEGIN SELECT RAISE(ABORT, 'Injected journal failure'); END"
+  )
+  try {
+    send()
+    await vi.waitFor(() => expect(replyTo()).toMatchObject({ type: 'COMMAND_REJECTED' }))
+    expect(await room.hitPoints()).toEqual({ current: 11, streamVersion: 1 })
+    expect(await evidence()).toEqual(before)
+  } finally {
+    await trigger('DROP TRIGGER abort_journal_receipt')
+  }
+  // The failed command left no journal entry: its retry commits rather than replaying.
+  room.gm.messages.length = 0
+  send()
+  await vi.waitFor(() => expect(replyTo()).toMatchObject({ type: 'COMMAND_COMMITTED' }))
+  expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+})
+
 it('keeps a GM-removed Character in the held Run, out of initiative, and still playable (D82)', async () => {
   const room = await sheetRoom()
   const gmCommand = (command: object, commandId: string) =>

@@ -2,7 +2,7 @@ import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -29,13 +29,19 @@ import schema from '../schema'
 import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.helper'
 import { removeAccountPrivateCharacters } from '../characters/accountDeletion'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import * as rollRandom from '../lib/rollRandom'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
+  attachRoomWorker,
+  checkpointRoom,
   executeInRoom,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  queueRoomRolls,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -124,8 +130,12 @@ function command(input: {
   }
 }
 
-async function setup(relationship = false) {
+async function setup(
+  relationship = false,
+  beforeStart?: (prepared: Awaited<ReturnType<typeof setupCharacterRun>>) => Promise<void>
+) {
   const base = await setupCharacterRun()
+  await attachRoomWorker(base.t)
   const sourceCreature = relationship
     ? {
         ...creature,
@@ -209,6 +219,7 @@ async function setup(relationship = false) {
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
+  await seedRoomContentSnapshots(base.campaign.id)
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,
     name: 'Character action target fixture',
@@ -223,6 +234,7 @@ async function setup(relationship = false) {
   const actor = prepared.actors.find((candidate) => candidate.kind === 'CREATURE')
   const target = prepared.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!actor || !target) throw new Error('Missing Creature or Character action fixture actor.')
+  await beforeStart?.(base)
   let active = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
@@ -286,49 +298,44 @@ async function setup(relationship = false) {
     if (!capability) throw new Error('Missing Creature action capability.')
     return capability.actionId
   })
+  await checkpointRoom(base.campaign.id)
   return { ...base, run, actor, target, actionId }
 }
 
+// Reads Convex after publishing the room-held Run. The room keeps command and rule-receipt
+// history until the Run ends (D85), so those rows are not readable here.
 async function records(base: Awaited<ReturnType<typeof setup>>) {
+  await checkpointRoom(base.campaign.id)
   return base.t.run(async (ctx) => {
-    const [character, target, source, run, commands, occurrences, receipts, characterReceipts] =
-      await Promise.all([
-        readCharacterRow(ctx, base.character.id),
-        ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) =>
-            q.eq('encounterId', base.run.id).eq('id', base.target.id)
-          )
-          .unique(),
-        ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) =>
-            q.eq('encounterId', base.run.id).eq('id', base.actor.id)
-          )
-          .unique(),
-        ctx.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-          .unique(),
-        (await readEncounterHistory(ctx))
-          .query('encounterRunCommands')
-          .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-          .collect(),
-        ctx.db
-          .query('encounterRuleOccurrences')
-          .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
-          .collect(),
-        (await readEncounterHistory(ctx))
-          .query('encounterRuleReceipts')
-          .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-          .collect(),
-        ctx.db
-          .query('characterCommandReceipts')
-          .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
-          .collect()
-          .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
-      ])
-    return { character, target, source, run, commands, occurrences, receipts, characterReceipts }
+    const [character, target, source, run, occurrences, characterReceipts] = await Promise.all([
+      readCharacterRow(ctx, base.character.id),
+      ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.target.id)
+        )
+        .unique(),
+      ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.actor.id)
+        )
+        .unique(),
+      ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique(),
+      ctx.db
+        .query('encounterRuleOccurrences')
+        .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
+        .collect(),
+      ctx.db
+        .query('characterCommandReceipts')
+        .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
+        .collect()
+        .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
+    ])
+    return { character, target, source, run, occurrences, characterReceipts }
   })
 }
 
@@ -343,7 +350,7 @@ describe('native Creature actions against Character targets', () => {
       expectedVersion: base.run.version
     })
     const before = await records(base)
-    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(14)
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 14 })
     try {
       const result = await executeInRoom(base.owner.caller, {
         command: input
@@ -357,21 +364,6 @@ describe('native Creature actions against Character targets', () => {
       expect(afterState.conditions ?? []).toEqual(beforeState.conditions ?? [])
       expect(after.target.stateJson).toBe(before.target.stateJson)
       expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
-      const row = after.receipts.find((receipt) => receipt.commandId === input.commandId)
-      if (!row) throw new Error('Missing Character effect receipt.')
-      const receipt = storedRuleExecutionResultDtoSchema.parse(JSON.parse(row.resultJson))
-      if (
-        receipt.status !== 'COMPLETE' ||
-        receipt.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH'
-      )
-        throw new Error('Expected Character effect receipt.')
-      expect(receipt.applicationOutputs.activeEffectTransitions).toEqual([
-        expect.objectContaining({
-          characterId: base.character.id,
-          sourceEncounterId: base.run.id,
-          maintainedEffectStateId: null
-        })
-      ])
       const effects = () =>
         base.t.run((ctx) =>
           ctx.db
@@ -382,12 +374,20 @@ describe('native Creature actions against Character targets', () => {
             .collect()
         )
       const created = await effects()
-      expect(created).toHaveLength(1)
-      await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
+      // The room's held receipt is not sent to members; its activeEffectTransitions are the rows
+      // the room published for the Character.
+      expect(created).toEqual([
+        expect.objectContaining({
+          characterId: base.character.id,
+          sourceEncounterId: base.run.id,
+          maintainedEffectStateId: null
+        })
+      ])
+      await expect(executeInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
       expect(await records(base)).toEqual(after)
       expect(await effects()).toEqual(created)
     } finally {
-      random.mockRestore()
+      await queueRoomRolls(base.campaign.id, { rolls: [] })
     }
   }, 30000)
 
@@ -405,7 +405,14 @@ describe('native Creature actions against Character targets', () => {
       command: input
     })
     const after = await records(base)
-    if (!before.character || !after.character || !before.target || !after.target || !after.source)
+    if (
+      !before.character ||
+      !after.character ||
+      !before.target ||
+      !after.target ||
+      !before.source ||
+      !after.source
+    )
       throw new Error('Missing settled records.')
     const afterHitPoints = readCharacterRecord(after.character).state.hitpoints.current
     expect(afterHitPoints).toBe(readCharacterRecord(before.character).state.hitpoints.current - 1)
@@ -416,28 +423,13 @@ describe('native Creature actions against Character targets', () => {
       sourceRevision: null,
       currentHitPoints: afterHitPoints
     })
-    expect(
-      featureChargeUsed(
-        readStoredRunActor(after.source),
-        creature.features!.find((feature) => feature.label === 'Bite')!.id
-      )
-    ).toBe(1)
+    // The source's charge consumption (0 to 1) as the room published the actor, not its held receipt.
+    const biteId = creature.features!.find((feature) => feature.label === 'Bite')!.id
+    expect(featureChargeUsed(readStoredRunActor(before.source), biteId)).toBe(0)
+    expect(featureChargeUsed(readStoredRunActor(after.source), biteId)).toBe(1)
     expect(after.character.play.streamVersion).toBe(before.character.play.streamVersion + 1)
     expect(after.characterReceipts).toEqual([])
-    const receipt = after.receipts.find((value) => value.commandId === input.commandId)
-    if (!receipt) throw new Error('Missing Creature action receipt.')
-    expect(JSON.parse(receipt.resultJson).applicationOutputs).toMatchObject({
-      kind: 'CHARACTER_MECHANICS_BATCH',
-      sourceActorId: base.actor.id,
-      sourceCharacterId: null,
-      targetActorId: base.target.id,
-      featureResourceConsumption: expect.objectContaining({
-        ownerActorId: base.actor.id,
-        beforeUsed: 0,
-        afterUsed: 1
-      })
-    })
-    await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
+    await expect(executeInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
     expect(await records(base)).toEqual(after)
     expect(base.owner.userId).not.toBe(base.player.userId)
     const tables = Object.keys(schema.tables) as TableNames[]
@@ -516,22 +508,26 @@ describe('native Creature actions against Character targets', () => {
   }, 30000)
 
   it('targets the current Character after a Sheet edit made after Run creation', async () => {
-    const base = await setup()
-    const created = (await records(base)).character
-    if (!created) throw new Error('Missing Character.')
-    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
-      id: base.character.id,
-      command: {
-        type: 'ADJUST_HIT_POINTS',
-        mode: 'DAMAGE',
-        amount: 1,
-        expectedVersion: created.play.streamVersion,
-        commandId: crypto.randomUUID()
-      }
+    // A Sheet edit is refused once the room holds the Run, so it is made before the Run starts.
+    const created = { streamVersion: 0 }
+    const base = await setup(false, async (prepared) => {
+      const row = await prepared.t.run((ctx) => readCharacterRow(ctx, prepared.character.id))
+      if (!row) throw new Error('Missing Character.')
+      created.streamVersion = row.play.streamVersion
+      await prepared.player.caller.mutation(api.characters.sheetCommands.execute, {
+        id: prepared.character.id,
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          mode: 'DAMAGE',
+          amount: 1,
+          expectedVersion: row.play.streamVersion,
+          commandId: crypto.randomUUID()
+        }
+      })
     })
     const before = await records(base)
     if (!before.character) throw new Error('Missing edited Character.')
-    expect(before.character.play.streamVersion).toBe(created.play.streamVersion + 1)
+    expect(before.character.play.streamVersion).toBe(created.streamVersion + 1)
     await executeInRoom(base.owner.caller, {
       command: command({
         encounterId: base.run.id,

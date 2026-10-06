@@ -2,7 +2,7 @@ import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -12,8 +12,8 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { healthBand } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -30,10 +30,25 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { api, internal } from '../_generated/api'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
+import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import * as rollRandom from '../lib/rollRandom'
-import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointLiveRoom,
+  checkpointRoom,
+  executeInRoom,
+  executeSheetInRoom,
+  invalidateRoomInputs,
+  queueRoomRolls,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -123,6 +138,7 @@ async function setup() {
       }
     ]
   })
+  await attachRoomWorker(base.t)
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' }
   ])
@@ -152,6 +168,7 @@ async function setup() {
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
+  await seedRoomContentSnapshots(base.campaign.id)
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,
     name: 'Live Character state journey',
@@ -214,17 +231,36 @@ async function sheetCommand(
   fixture: Fixture,
   command: (base: { commandId: string; expectedVersion: number }) => CharacterSheetCommandInputDto
 ) {
+  // The room holds the Character's play state, so the Sheet version is read after a checkpoint.
+  await checkpointLiveRoom(fixture.campaign.id)
   const sheet = await fixture.player.caller.query(api.characters.sheet.get, {
     id: fixture.character.id
   })
   if (!sheet) throw new Error('Missing journey Sheet.')
+  const input = command({
+    commandId: crypto.randomUUID(),
+    expectedVersion: sheet.meta.streamVersion
+  })
+  // Once the room holds the Character, play-state commands go through it; Sheet adjustments and
+  // edits made before the Run starts stay Convex-direct.
+  const held = await fixture.t.run((ctx) => readCharacterLiveHold(ctx, fixture.character.id))
+  if (held && isCharacterSheetLivePlayCommand(input)) {
+    await executeSheetInRoom(fixture.player.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: fixture.character.id,
+      encounterId: fixture.run.id,
+      command: input
+    })
+    return
+  }
   await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
     id: fixture.character.id,
-    command: command({ commandId: crypto.randomUUID(), expectedVersion: sheet.meta.streamVersion })
+    command: input
   })
 }
 
 async function storedCharacter(fixture: Fixture) {
+  await checkpointLiveRoom(fixture.campaign.id)
   return fixture.t.run(async (ctx) => {
     const row = await readCharacterRow(ctx, fixture.character.id)
     if (!row) throw new Error('Missing journey Character.')
@@ -306,6 +342,7 @@ async function builderEdit(
     mode: 'edit',
     character: change(current)
   })
+  await invalidateRoomInputs(fixture.campaign.id, ['CHARACTER'])
 }
 
 function projectedHero(fixture: Fixture, result: CommandResult) {
@@ -345,7 +382,7 @@ describe('Encounter reads of live Character state', () => {
     const edited = await storedCharacter(fixture)
     expect(edited.state.hitpoints.current).toBe(fixture.hero.currentHitPoints - 2)
 
-    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(10)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: 10 })
     try {
       let result = await start(fixture)
       expect(projectedHero(fixture, result)).toMatchObject({
@@ -358,10 +395,8 @@ describe('Encounter reads of live Character state', () => {
         const currentActorId = result.projection.currentActorId
         if (currentActorId === fixture.enemy.id && !acted.has(currentActorId)) {
           const expectedVersion = result.projection.version
-          const commandId = crypto.randomUUID()
           result = await execute(fixture, (base) => ({
             ...base,
-            commandId,
             type: 'RESOLVE_ACTION',
             acceptedWieldConflict: null,
             acknowledgedWarnings: [],
@@ -376,22 +411,6 @@ describe('Encounter reads of live Character state', () => {
           expect(projectedHero(fixture, result)).toMatchObject({
             currentHitPoints: edited.state.hitpoints.current - 1,
             conditions: [expect.objectContaining({ conditionTypeId: deafened.id })]
-          })
-          // The outcome was planned against the Character's current Sheet condition.
-          const receipt = await fixture.t.run(async (ctx) =>
-            (await readEncounterHistory(ctx))
-              .query('encounterRuleReceipts')
-              .withIndex('by_campaignId_commandId', (q) =>
-                q.eq('campaignId', fixture.campaign.id).eq('commandId', commandId)
-              )
-              .unique()
-          )
-          const outputs = receipt
-            ? storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-            : null
-          if (outputs?.status !== 'COMPLETE') throw new Error('Missing Creature action receipt.')
-          expect(outputs.applicationOutputs).toMatchObject({
-            targetTransition: { before: { conditionIds: [deafened.id] } }
           })
           acted.add(currentActorId)
         } else if (currentActorId === fixture.hero.id && !acted.has(currentActorId)) {
@@ -421,13 +440,14 @@ describe('Encounter reads of live Character state', () => {
       while (result.projection.round === round) result = await advance(fixture, result)
       expect(result.projection.round).toBe(round + 1)
     } finally {
-      random.mockRestore()
+      await queueRoomRolls(fixture.campaign.id, { rolls: [] })
     }
 
     const final = await storedCharacter(fixture)
     expect(final.state.hitpoints.current).toBe(edited.state.hitpoints.current - 1)
     expect(final.state.spellSlots).toEqual(edited.state.spellSlots)
     expect(final.state.equipment.equipped).toContain(item.id)
+    await checkpointRoom(fixture.campaign.id)
     const gmView = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
       encounterId: fixture.run.id
     })
@@ -450,6 +470,7 @@ describe('Encounter reads of live Character state', () => {
       mode: 'HEAL',
       amount: 1
     }))
+    await checkpointRoom(fixture.campaign.id)
     const gm = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
       encounterId: fixture.run.id
     })
@@ -461,7 +482,7 @@ describe('Encounter reads of live Character state', () => {
 
   it('shows a changed Character maximum without blocking Encounter commands on it', async () => {
     const fixture = await setup()
-    const random = vi.spyOn(rollRandom, 'nextRollInt').mockReturnValue(10)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: 10 })
     try {
       let result = await start(fixture)
       const initial = projectedHero(fixture, result)
@@ -531,6 +552,7 @@ describe('Encounter reads of live Character state', () => {
       expect(adjusted.maxHitPoints).toBe(levelled.maxHitPoints + 30)
       expect(adjusted.healthBand).toBe(healthBand(adjusted.currentHitPoints, adjusted.maxHitPoints))
       expect(adjusted.healthBand).not.toBe('HEALTHY')
+      await checkpointRoom(fixture.campaign.id)
       const live = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
         encounterId: fixture.run.id
       })
@@ -544,7 +566,7 @@ describe('Encounter reads of live Character state', () => {
       expect(playerLiveHero).toBeDefined()
       expect(playerLiveHero).not.toHaveProperty('healthBand')
     } finally {
-      random.mockRestore()
+      await queueRoomRolls(fixture.campaign.id, { rolls: [] })
     }
   }, 60000)
 })

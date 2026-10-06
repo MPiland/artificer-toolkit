@@ -12,14 +12,16 @@ import {
   LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_CONTROL_SECRET_HEADER,
   LIVE_SESSION_TEST_ROLLS_PATH,
+  type LiveSessionInputScope,
   type LiveSessionTestRollsInputDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   encounterExecuteInputSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type { z } from 'zod'
-import { internal } from '../../convex/_generated/api'
+import { api, internal } from '../../convex/_generated/api'
 import type { QueryCtx } from '../../convex/_generated/server'
 import { createConvexEncounterStoreReader } from '../../convex/lib/convexEncounterStore'
 import type schema from '../../convex/schema'
@@ -28,7 +30,11 @@ import {
   type ContentSnapshotScopeRef
 } from '../../convex/contentSnapshots/marking'
 import { executeEncounterCommand } from '../developmentClient'
-import { DevelopmentHttpClient, RoomCommandRejectedError } from '../developmentHttpClient'
+import {
+  DevelopmentHttpClient,
+  RoomCommandRejectedError,
+  type RoomSheetCommand
+} from '../developmentHttpClient'
 import { startLocalR2 } from '../localR2'
 
 /**
@@ -192,36 +198,46 @@ async function startWorker() {
   await writeFile(environmentFile, '')
   const rulesSecret = process.env.RULES_CONTINUATION_SECRET
   if (!rulesSecret) throw new Error('RULES_CONTINUATION_SECRET is required by the room.')
-  const { unstable_dev } = await import('wrangler')
-  const worker = await unstable_dev(resolve(root, 'apps/session-worker/src/index.ts'), {
+  const errorLogs: string[] = []
+  const { unstable_startWorker } = await import('wrangler')
+  vi.stubEnv('WRANGLER_LOG', 'warn')
+  const worker = await unstable_startWorker({
     config: resolve(root, 'apps/session-worker/wrangler.jsonc'),
+    entrypoint: resolve(root, 'apps/session-worker/src/index.ts'),
     envFiles: [environmentFile],
-    experimental: { disableDevRegistry: true, disableExperimentalWarning: true, watch: false },
-    ip: '127.0.0.1',
-    // Without it wrangler serves the first route's host (the deployed domain) as the request host,
-    // and the development routes only answer loopback hosts.
-    localUpstream: '127.0.0.1',
-    local: true,
-    logLevel: 'warn',
-    persistTo: resolve(directory, 'state'),
-    port: 0,
-    vars: {
-      CONTENT_SNAPSHOT_TOKEN_SECRET: CONTENT_TOKEN_SECRET,
-      CONVEX_SITE_URL: bridge.url,
-      LIVE_SESSION_ALLOWED_ORIGINS: LOCAL_ROOM_ORIGIN,
-      LIVE_SESSION_TICKET_SECRET: TICKET_SECRET,
-      LIVE_SESSION_WORKER_SECRET: WORKER_SECRET,
-      LOCAL_CONTENT_SNAPSHOT_ORIGIN: r2.endpoint,
-      RULES_CONTINUATION_SECRET: rulesSecret
+    bindings: Object.fromEntries(
+      Object.entries({
+        CONTENT_SNAPSHOT_TOKEN_SECRET: CONTENT_TOKEN_SECRET,
+        CONVEX_SITE_URL: bridge.url,
+        LIVE_SESSION_ALLOWED_ORIGINS: LOCAL_ROOM_ORIGIN,
+        LIVE_SESSION_TICKET_SECRET: TICKET_SECRET,
+        LIVE_SESSION_WORKER_SECRET: WORKER_SECRET,
+        LOCAL_CONTENT_SNAPSHOT_ORIGIN: r2.endpoint,
+        RULES_CONTINUATION_SECRET: rulesSecret
+      }).map(([name, value]) => [name, { type: 'plain_text', value }])
+    ),
+    dev: {
+      // Like `wrangler dev --host localhost`: without an origin wrangler infers the first route's
+      // deployed domain as the request host, and the development routes only answer loopback hosts.
+      origin: { hostname: '127.0.0.1' },
+      persist: resolve(directory, 'state'),
+      remote: false,
+      server: { hostname: '127.0.0.1', port: 0 },
+      structuredLogsHandler: (log: { level: string; message: string }) => {
+        if (log.level === 'error') errorLogs.push(log.message)
+      },
+      watch: false
     }
   })
+  await worker.ready
+  const url = await worker.url
   return {
-    dev: worker,
+    errorLogs,
     r2,
     bridge,
-    url: `http://${worker.address}:${worker.port}`,
+    url: url.origin,
     dispose: async () => {
-      await worker.stop()
+      await worker.dispose()
       await bridge.close()
       await r2.close()
       await rm(directory, { force: true, recursive: true })
@@ -234,6 +250,7 @@ type AttachedRoom = {
   worker: RoomWorker
   t: TestConvex<typeof schema>
   clients: Map<RoomCaller | null, DevelopmentHttpClient>
+  peers: DevelopmentHttpClient[]
 }
 
 let started: Promise<RoomWorker> | null = null
@@ -246,7 +263,8 @@ export function useLocalRoomWorker() {
     return started.then(() => undefined)
   }, STARTUP_TIMEOUT_MS)
   afterEach(() => {
-    for (const client of attached?.clients.values() ?? []) client.closeRooms()
+    for (const client of [...(attached?.clients.values() ?? []), ...(attached?.peers ?? [])])
+      client.closeRooms()
     attached = null
   })
   afterAll(async () => {
@@ -266,6 +284,7 @@ export async function attachRoomWorker(t: TestConvex<typeof schema>) {
   worker.bridge.serve(t)
   worker.r2.objects.clear()
   worker.r2.contentSnapshotObjects.clear()
+  worker.errorLogs.length = 0
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', WORKER_SECRET)
   vi.stubEnv('LIVE_SESSION_TICKET_SECRET', TICKET_SECRET)
   vi.stubEnv('LIVE_SESSION_WORKER_URL', worker.url)
@@ -273,7 +292,7 @@ export async function attachRoomWorker(t: TestConvex<typeof schema>) {
   vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
   vi.stubEnv('LOCAL_R2_ENDPOINT', worker.r2.endpoint)
   vi.stubEnv('CONVEX_SITE_URL', LOCAL_CONVEX_SITE_URL)
-  attached = { worker, t, clients: new Map() }
+  attached = { worker, t, clients: new Map(), peers: [] }
   return worker.r2
 }
 
@@ -288,19 +307,38 @@ function room(): AttachedRoom {
  * Encounter commands and Scene bindings go through the member's socket to the real room.
  */
 export function roomDevelopmentClient(caller: RoomCaller | null): DevelopmentHttpClient {
-  const { worker, clients } = room()
+  const { clients } = room()
   const existing = clients.get(caller)
   if (existing) return existing
+  const client = openRoomClient(caller)
+  clients.set(caller, client)
+  return client
+}
+
+/**
+ * A second, independent client for the same member: its own sockets to the real room, as a second
+ * browser tab has, so concurrent commands from one member reach the room's own ordering.
+ */
+export function roomPeerClient(caller: RoomCaller): DevelopmentHttpClient {
+  const client = openRoomClient(caller)
+  room().peers.push(client)
+  return client
+}
+
+function openRoomClient(caller: RoomCaller | null): DevelopmentHttpClient {
+  const { worker } = room()
   const client = new DevelopmentHttpClient(worker.bridge.url, { holdRooms: true, logger: false })
   if (caller) {
     const mint = () => worker.bridge.tokenFor(caller)
     client.setAuth(mint(), () => Promise.resolve(mint()))
   }
-  clients.set(caller, client)
   return client
 }
 
-/** Sends an Encounter command through the member's socket to the real room, as a browser does. */
+/**
+ * Sends an Encounter command through the member's socket to the real room, as a browser does.
+ * Sending a settled command again is a retry: the live room's held history answers it (D85).
+ */
 export function executeInRoom(
   caller: RoomCaller,
   input: z.input<typeof encounterExecuteInputSchema>
@@ -311,25 +349,55 @@ export function executeInRoom(
   )
 }
 
+/** Sends one live Character Sheet command through the member's socket, as the Sheet does while the room holds the Character. */
+export function executeSheetInRoom(caller: RoomCaller, command: RoomSheetCommand) {
+  return roomDevelopmentClient(caller).executeCharacterSheet(command)
+}
+
 /**
- * Retries a settled command as a lost acknowledgement's retry reaches a fresh room: the room is
- * closed (drained and checkpointed) first, so the next one hydrates from Convex and its replay index
- * and must return the stored result.
+ * What a member's socket reads from the real room while it holds the Run (D85): the Encounter
+ * session frame the room sends after the member subscribes. Held history is visible only through
+ * the room's own member messages, never through Convex rows.
  */
-export async function replayInRoom(
+export function readRoomEncounterSession(
   caller: RoomCaller,
-  input: z.input<typeof encounterExecuteInputSchema>
-): Promise<EncounterCommandResultDto> {
-  const { command } = encounterExecuteInputSchema.parse(input)
-  const run = await caller.run((ctx) =>
-    ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', command.encounterId.toLowerCase()))
-      .unique()
-  )
-  if (!run) throw new Error('Encounter is unavailable.')
-  await closeRoom(run.campaignId)
-  return executeInRoom(caller, { command })
+  campaignId: string,
+  options: { timeline: boolean }
+) {
+  return roomDevelopmentClient(caller).encounterSession(campaignId, options.timeline)
+}
+
+/** The Run's timeline as the real room sends it to this member (newest page; a player's only the table's entries). */
+export async function readRoomTimeline(caller: RoomCaller, campaignId: string) {
+  const session = await readRoomEncounterSession(caller, campaignId, { timeline: true })
+  return (session.held ? session.timeline?.entries : null) ?? []
+}
+
+/**
+ * The roll cards the room's commands posted to the table chat, oldest first, as this member reads
+ * them after a checkpoint. An action's d20s and damage totals are visible only here (D85).
+ */
+export async function readRoomRollCards(caller: RoomCaller, campaignId: string) {
+  await checkpointLiveRoom(campaignId)
+  const page = await caller.query(api.campaigns.chat.list, {
+    campaignId,
+    room: 'TABLE',
+    limit: 100
+  })
+  return page.entries.flatMap((entry) => (entry.roll ? [entry.roll] : [])).reverse()
+}
+
+/** The real room's answer to this member's `ENCOUNTER_READ`; its refusal rejects. */
+export function readRoomEncounter(caller: RoomCaller, campaignId: string, read: EncounterReadDto) {
+  return roomDevelopmentClient(caller).readEncounter(campaignId, read)
+}
+
+/**
+ * What the real room logged as errors since this test attached. The room tells a member nothing of
+ * a command's failure cause, so its error log is where the cause of a redacted refusal shows.
+ */
+export function roomErrorLogs(): readonly string[] {
+  return room().worker.errorLogs
 }
 
 /** A refusal the room redacted to the member: its code and the message it sent (never the cause). */
@@ -358,9 +426,9 @@ export async function expectRedactedRoomRefusal(
   })
 }
 
-async function postToWorker(path: string, body?: unknown) {
+async function postToWorker(path: string, body?: unknown, tolerated: readonly number[] = []) {
   const post = () =>
-    room().worker.dev.fetch(path, {
+    fetch(new URL(path, room().worker.url), {
       body: body === undefined ? undefined : JSON.stringify(body),
       headers: { [LIVE_SESSION_CONTROL_SECRET_HEADER]: WORKER_SECRET },
       method: 'POST'
@@ -368,7 +436,10 @@ async function postToWorker(path: string, body?: unknown) {
   // Every control route here is safe to repeat. The proxy can drop a pooled connection between
   // requests (ECONNABORTED), which fails the write before anything reaches the Worker.
   const response = await post().catch(post)
-  if (!response.ok) throw new Error(`The Worker ${path} route answered ${response.status}.`)
+  if (!response.ok && !tolerated.includes(response.status))
+    throw new Error(
+      `The Worker ${path} route answered ${response.status}: ${(await response.text()).slice(0, 300)}`
+    )
 }
 
 /**
@@ -384,6 +455,25 @@ export function queueRoomRolls(campaignId: string, rolls: LiveSessionTestRollsIn
 /** Publishes everything the room has committed to Convex, without disturbing its sockets. */
 export function checkpointRoom(campaignId: string) {
   return postToWorker(`${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}/${campaignId}`)
+}
+
+/**
+ * Like `checkpointRoom`, for a read that can come before the Campaign's first room command: the
+ * room answers 409 while it holds no live authority, and Convex is then the only state there is.
+ */
+export function checkpointLiveRoom(campaignId: string) {
+  return postToWorker(`${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}/${campaignId}`, undefined, [409])
+}
+
+/**
+ * The notice Convex's scheduler sends after a transaction changes a Campaign's inputs. convex-test
+ * runs no scheduler, so a test that edits a held Character delivers it here.
+ */
+export function invalidateRoomInputs(campaignId: string, scopes: LiveSessionInputScope[]) {
+  return postToWorker(LIVE_SESSION_CONTROL_PATH, {
+    campaignId,
+    operation: { type: 'INVALIDATE_INPUTS', scopes }
+  })
 }
 
 /** The control route Convex calls to close a Campaign's room: it drains, checkpoints and releases. */

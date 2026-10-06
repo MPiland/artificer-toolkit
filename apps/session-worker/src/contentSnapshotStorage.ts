@@ -1,4 +1,15 @@
-import { isLocalDevelopment } from './environment.js'
+/**
+ * The local-origin marker is absent from every deployed environment. Local development is an
+ * `http://127.0.0.1:<port>` fixture origin: any port, but never https, `localhost` or another host.
+ * It lives here, free of Worker globals, because Convex tests import this module's types.
+ */
+export function isLocalDevelopment(environment: {
+  LOCAL_CONTENT_SNAPSHOT_ORIGIN?: string | undefined
+}): boolean {
+  return /^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(
+    environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN ?? ''
+  )
+}
 
 /** The raw R2 surface used by room hydration and browser delivery. */
 export interface ContentSnapshotObjectBody {

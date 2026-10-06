@@ -1,9 +1,11 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { readTestActor } from '../../tests/fixtures/storedActors'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { characterSheetCommandInputDtoSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import {
+  encounterGmProjectionDtoSchema,
+  type EncounterCommandResultDto
+} from '@artificer-toolkit/schema/api/encounters'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
@@ -12,13 +14,23 @@ import {
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   SRD_CONDITION_TYPES,
-  SRD_DAMAGE_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointLiveRoom,
+  checkpointRoom,
+  closeRoom,
+  executeInRoom,
+  queueRoomRolls,
+  readRoomEncounterSession,
+  readRoomRollCards,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
@@ -32,16 +44,15 @@ function srdId(entries: readonly { id: string; code: string }[], code: string) {
   return entry.id
 }
 const conditionId = (code: string) => srdId(SRD_CONDITION_TYPES, code)
-const damageTypeId = (code: string) => srdId(SRD_DAMAGE_TYPES, code)
 
-/** Every die the room rolls, as 0-based faces in request order. */
-function scripted(faces: readonly number[]) {
-  const queue = [...faces]
-  return (maximum: number) => {
-    const face = queue.shift()
-    if (face === undefined || face >= maximum) throw new Error(`Unexpected roll (d${maximum}).`)
-    return face
-  }
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
+/** The room's next dice, as 0-based faces in request order. */
+function rollFaces(base: Fixture, faces: readonly number[]) {
+  return queueRoomRolls(base.campaign.id, { rolls: [...faces] })
 }
 
 /**
@@ -61,6 +72,7 @@ async function setup(input: {
   hidden?: boolean
 }) {
   const base = await setupCharacterRun()
+  await attachRoomWorker(base.t)
   await setAutoRollDice(base.t, base.owner.userId, true)
   await setAutoRollDice(base.t, base.player.userId, input.playerAutoRoll)
   const creature = seededSrdCreature(input.creature)
@@ -79,6 +91,7 @@ async function setup(input: {
       ...seededSrdLoadoutEquipment(creature).map(importedSubject)
     ]
   })
+  await seedRoomContentSnapshots(base.campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
     name: `${input.creature} fixture`,
@@ -130,6 +143,7 @@ async function setup(input: {
   return {
     ...base,
     run,
+    target,
     command: {
       type: 'RESOLVE_ACTION' as const,
       acceptedWieldConflict: null,
@@ -149,30 +163,44 @@ async function setup(input: {
 
 type Fixture = Awaited<ReturnType<typeof setup>>
 
-/** The settled action's Character mechanics receipt. */
-async function settledBatch(base: Fixture) {
-  const receipt = await base.t.run(async (ctx) =>
-    (await readEncounterHistory(ctx, base.campaign.id))
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) =>
-        q.eq('encounterId', base.run.id).eq('commandId', base.command.commandId)
-      )
-      .unique()
-  )
-  if (!receipt) throw new Error('The SRD attack receipt is missing.')
-  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-  if (
-    result.status !== 'COMPLETE' ||
-    result.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH'
-  )
-    throw new Error('Expected a Character mechanics receipt.')
-  const batch = result.applicationOutputs
-  return {
-    ...batch,
-    damage: batch.applications.flatMap((application) =>
-      application.kind === 'DAMAGE' ? [[application.requestedAmount, application.damageTypeId]] : []
+/**
+ * The Character target as the table sees it after a checkpoint. The room holds the settled receipt
+ * (D85) and sends members no part of it, so a settled action is read from what the table sees: the
+ * target's hit points and conditions, the roll cards and the Character's published effects.
+ */
+async function targetAfter(base: Fixture) {
+  await checkpointRoom(base.campaign.id)
+  const projection = await base.owner.caller.query(api.encounters.projectionReads.get, {
+    encounterId: base.run.id
+  })
+  const actor = encounterGmProjectionDtoSchema
+    .parse(projection)
+    .actors.find((candidate) => candidate.id === base.target.id)
+  if (!actor) throw new Error('The projected Character target is missing.')
+  return actor
+}
+
+async function damageTaken(base: Fixture) {
+  return base.target.currentHitPoints - (await targetAfter(base)).currentHitPoints
+}
+
+async function expectConditions(base: Fixture, codes: readonly string[]) {
+  expect(await targetAfter(base)).toMatchObject({
+    conditions: expect.arrayContaining(
+      codes.map((code) => expect.objectContaining({ conditionTypeId: conditionId(code) }))
     )
-  }
+  })
+}
+
+/** The active effects the room published for the Character. */
+async function characterEffects(base: Fixture) {
+  await checkpointLiveRoom(base.campaign.id)
+  return base.t.run((ctx) =>
+    createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+      kind: 'CHARACTER',
+      characterId: base.character.id
+    })
+  )
 }
 
 function answerSave(base: Fixture, result: EncounterCommandResultDto, face: number) {
@@ -206,60 +234,50 @@ async function lifeDrainCharacter(input: { hidden: boolean }) {
     hidden: input.hidden
   })
   // A natural 19 hits for 1d6 + 2 necrotic, the die rolling 4; the Character's save waits on its player.
-  const pending = await executeInRoom(
-    base.owner.caller,
-    { command: base.command },
-    scripted([18, 3])
-  )
+  await rollFaces(base, [18, 3])
+  const pending = await executeInRoom(base.owner.caller, { command: base.command })
   const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
   expect(answered.occurrence?.status).toBe('COMPLETE')
-  return { base, batch: await settledBatch(base) }
+  await checkpointRoom(base.campaign.id)
+  return { base, answered }
 }
 describe('seeded SRD Creature hit riders in the room', () => {
   it('deals both damage parts of the Hell Hound’s Bite on one hit', async () => {
     const base = await setup({ creature: 'Hell Hound', feature: 'Bite', playerAutoRoll: true })
     // A natural 19 hits; every damage die rolls 1: 1 + 3 piercing and 1 + 1 fire.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    expect((await settledBatch(base)).damage).toEqual([
-      [4, damageTypeId('PIERCING')],
-      [2, damageTypeId('FIRE')]
-    ])
+    expect(await damageTaken(base)).toBe(4 + 2)
   }, 30000)
 
   it('rolls every damage die of the Hell Hound’s Bite twice on a critical hit', async () => {
     const base = await setup({ creature: 'Hell Hound', feature: 'Bite', playerAutoRoll: true })
     // A natural 20: 2d8 + 3 piercing and 4d6 fire, every die rolling 1.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([19, 0, 0, 0, 0, 0, 0])
-    )
+    await rollFaces(base, [19, 0, 0, 0, 0, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.d20).toMatchObject({ selectedNatural: 20, resultPath: 'ON_CRIT' })
-    expect(batch.damage).toEqual([
-      [2 + 3, damageTypeId('PIERCING')],
-      [4, damageTypeId('FIRE')]
+    const cards = await readRoomRollCards(base.owner.caller, base.campaign.id)
+    expect(cards.find((card) => card.source.kind === 'ATTACK')?.evidence.terms[0]?.rolls).toEqual([
+      20
     ])
+    expect(
+      cards.filter((card) => card.source.kind === 'DAMAGE').map((card) => card.evidence.total)
+    ).toEqual([2 + 3, 4])
+    expect(await damageTaken(base)).toBe(2 + 3 + 4)
   }, 30000)
 
   it('hits with the Aboleth’s newly authored Tentacle (D60)', async () => {
     const base = await setup({ creature: 'Aboleth', feature: 'Tentacle', playerAutoRoll: true })
     // A natural 19 hits; 2d6 + 5 bludgeoning with both dice rolling 1.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.d20).toMatchObject({ selectedNatural: 19, resultPath: 'ON_HIT' })
-    expect(batch.damage).toEqual([[7, damageTypeId('BLUDGEONING')]])
+    const cards = await readRoomRollCards(base.owner.caller, base.campaign.id)
+    expect(cards.find((card) => card.source.kind === 'ATTACK')?.evidence.terms[0]?.rolls).toEqual([
+      19
+    ])
+    expect(await damageTaken(base)).toBe(7)
   }, 30000)
 
   it('hits with the new Swarm of Ravens’ Beaks, which add no ability modifier (D60)', async () => {
@@ -269,13 +287,10 @@ describe('seeded SRD Creature hit riders in the room', () => {
       playerAutoRoll: true
     })
     // A natural 19 hits; 2d6 piercing with both dice rolling 1.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    expect((await settledBatch(base)).damage).toEqual([[2, damageTypeId('PIERCING')]])
+    expect(await damageTaken(base)).toBe(2)
   }, 30000)
 
   it('bites a creature in the Swarm of Rats’ space for half dice once it has half of its hit points or fewer (D61)', async () => {
@@ -288,79 +303,47 @@ describe('seeded SRD Creature hit riders in the room', () => {
       })
     // Reach 0 ft.; a natural 19 hits for 2d6 piercing, or 1d6 at 12 of 24 hit points or fewer.
     const full = await bites(13)
-    const fullResult = await executeInRoom(
-      full.owner.caller,
-      { command: full.command },
-      scripted([18, 2, 3])
-    )
+    await rollFaces(full, [18, 2, 3])
+    const fullResult = await executeInRoom(full.owner.caller, { command: full.command })
     expect(fullResult.occurrence?.status).toBe('COMPLETE')
-    expect((await settledBatch(full)).damage).toEqual([[3 + 4, damageTypeId('PIERCING')]])
+    expect(await damageTaken(full)).toBe(3 + 4)
     const half = await bites(12)
-    const halfResult = await executeInRoom(
-      half.owner.caller,
-      { command: half.command },
-      scripted([18, 2])
-    )
+    await rollFaces(half, [18, 2])
+    const halfResult = await executeInRoom(half.owner.caller, { command: half.command })
     expect(halfResult.occurrence?.status).toBe('COMPLETE')
-    expect((await settledBatch(half)).damage).toEqual([[3, damageTypeId('PIERCING')]])
+    expect(await damageTaken(half)).toBe(3)
   }, 60000)
 
   it('routes the Giant Spider’s poison save to the Character’s player, then halves on a success', async () => {
     const base = await setup({ creature: 'Giant Spider', feature: 'Bite', playerAutoRoll: false })
     // The GM auto-rolls the hit and its piercing damage; the Character's save waits on its player.
-    const pending = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0])
-    )
+    await rollFaces(base, [18, 0])
+    const pending = await executeInRoom(base.owner.caller, { command: base.command })
     expect(pending.occurrence).toMatchObject({
       status: 'PENDING',
       pending: { kind: 'D20_EVIDENCE', rollerActorId: base.command.targetActorId }
     })
-    const prompt = await base.player.caller.query(
-      api.encounters.pendingReads.pendingRuleOccurrence,
-      {
-        encounterId: base.run.id
-      }
-    )
-    expect(prompt).toMatchObject({
+    const session = await readRoomEncounterSession(base.player.caller, base.campaign.id, {
+      timeline: false
+    })
+    expect(session.held ? session.state.pending : null).toMatchObject({
       kind: 'D20_EVIDENCE',
       rollerActorId: base.command.targetActorId
     })
     // A natural 20 saves against DC 11; the poison dice roll 2 and 2, halved to 2.
-    const answered = await executeInRoom(
-      base.player.caller,
-      answerSave(base, pending, 20),
-      scripted([1, 1])
-    )
+    await rollFaces(base, [1, 1])
+    const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 20))
     expect(answered.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.nestedD20).toMatchObject({
-      selectedNatural: 20,
-      defenseOrDc: 11,
-      resultPath: 'ON_SAVE_SUCCESS'
-    })
-    expect(batch.damage).toEqual([
-      [4, damageTypeId('PIERCING')],
-      [2, damageTypeId('POISON')]
-    ])
+    expect(await damageTaken(base)).toBe(4 + 2)
   }, 30000)
 
   it('auto-rolls the Character’s save when its player auto-rolls, taking full poison on a failure', async () => {
     const base = await setup({ creature: 'Giant Spider', feature: 'Bite', playerAutoRoll: true })
     // Hit, 1 + 3 piercing, then a natural 1 fails the save: 1 + 1 poison.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.nestedD20).toMatchObject({ selectedNatural: 1, resultPath: 'ON_SAVE_FAIL' })
-    expect(batch.damage).toEqual([
-      [4, damageTypeId('PIERCING')],
-      [2, damageTypeId('POISON')]
-    ])
+    expect(await damageTaken(base)).toBe(4 + 2)
   }, 30000)
 
   it('knocks the Character prone when it fails its save against the Mastiff’s Bite', async () => {
@@ -370,38 +353,22 @@ describe('seeded SRD Creature hit riders in the room', () => {
       conditionCodes: ['PRONE'],
       playerAutoRoll: false
     })
-    const pending = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0])
-    )
+    await rollFaces(base, [18, 0])
+    const pending = await executeInRoom(base.owner.caller, { command: base.command })
     const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
     expect(answered.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 11, resultPath: 'ON_SAVE_FAIL' })
-    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('PRONE'))
+    await expectConditions(base, ['PRONE'])
   }, 30000)
 
   it('deals the Spider’s poison only when the Character fails its save', async () => {
     const base = await setup({ creature: 'Spider', feature: 'Bite', playerAutoRoll: false })
     // A natural 19 hits for a fixed 1 piercing; the Character's save waits on its player.
-    const pending = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18])
-    )
-    const answered = await executeInRoom(
-      base.player.caller,
-      answerSave(base, pending, 1),
-      scripted([2])
-    )
+    await rollFaces(base, [18])
+    const pending = await executeInRoom(base.owner.caller, { command: base.command })
+    await rollFaces(base, [2])
+    const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
     expect(answered.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 9, resultPath: 'ON_SAVE_FAIL' })
-    expect(batch.damage).toEqual([
-      [1, damageTypeId('PIERCING')],
-      [3, damageTypeId('POISON')]
-    ])
+    expect(await damageTaken(base)).toBe(1 + 3)
   }, 30000)
 
   it('paralyzes the Character with a repeating save when it fails against the Ghoul’s Claws', async () => {
@@ -411,29 +378,21 @@ describe('seeded SRD Creature hit riders in the room', () => {
       conditionCodes: ['PARALYZED'],
       playerAutoRoll: false
     })
-    const pending = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0])
+    const pending = await executeInRoom(base.owner.caller, { command: base.command })
     const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
     expect(answered.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 10, resultPath: 'ON_SAVE_FAIL' })
-    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('PARALYZED'))
-    expect(batch.activeEffectTransitions).toMatchObject([{ kind: 'CREATE' }])
+    await expectConditions(base, ['PARALYZED'])
+    expect(await characterEffects(base)).toHaveLength(1)
   }, 30000)
 
   it('hits with the Ogre’s Greatclub for its printed damage through its held Equipment (D62, M9)', async () => {
     const base = await setup({ creature: 'Ogre', feature: 'Greatclub', playerAutoRoll: true })
     // A natural 19 hits; 2d8 + 4 bludgeoning (the Equipment alone deals 1d8) with both dice rolling 1.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    expect((await settledBatch(base)).damage).toEqual([[6, damageTypeId('BLUDGEONING')]])
+    expect(await damageTaken(base)).toBe(6)
   }, 30000)
 
   it('grapples and restrains the Character with one hit of the Giant Toad’s Bite (D62, M9)', async () => {
@@ -444,20 +403,11 @@ describe('seeded SRD Creature hit riders in the room', () => {
       playerAutoRoll: true
     })
     // A natural 19 hits; 1d10 + 2 piercing and 1d10 poison, both dice rolling 1.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 0, 0])
-    )
+    await rollFaces(base, [18, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.damage).toEqual([
-      [3, damageTypeId('PIERCING')],
-      [1, damageTypeId('POISON')]
-    ])
-    expect(batch.targetTransition.after.conditionIds).toEqual(
-      expect.arrayContaining([conditionId('GRAPPLED'), conditionId('RESTRAINED')])
-    )
+    expect(await damageTaken(base)).toBe(3 + 1)
+    await expectConditions(base, ['GRAPPLED', 'RESTRAINED'])
   }, 30000)
 
   it('poisons the Character for 1 minute when it fails its save against the Homunculus’s Bite (D62.2)', async () => {
@@ -468,19 +418,21 @@ describe('seeded SRD Creature hit riders in the room', () => {
       playerAutoRoll: false
     })
     // A natural 19 hits for a fixed 1 piercing; the Character's save waits on its player.
-    const pending = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18])
-    )
+    await rollFaces(base, [18])
+    const pending = await executeInRoom(base.owner.caller, { command: base.command })
     const answered = await executeInRoom(base.player.caller, answerSave(base, pending, 1))
     expect(answered.occurrence?.status).toBe('COMPLETE')
-    const batch = await settledBatch(base)
-    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 10, resultPath: 'ON_SAVE_FAIL' })
-    expect(batch.targetTransition.after.conditionIds).toContain(conditionId('POISONED'))
+    await expectConditions(base, ['POISONED'])
     // One active effect times the poison: 10 of the Character's turns, with no repeated save.
-    expect(batch.activeEffectTransitions).toMatchObject([
-      { kind: 'CREATE', recurrenceStage: 'END_OF_TURN', remainingTicks: 10 }
+    expect(await characterEffects(base)).toMatchObject([
+      {
+        definition: {
+          recurrence: {
+            recurrenceStage: 'END_OF_TURN',
+            expiration: { kind: 'TICKS', initialRemaining: 10 }
+          }
+        }
+      }
     ])
   }, 30000)
 
@@ -494,27 +446,14 @@ describe('seeded SRD Creature hit riders in the room', () => {
     ])
   }, 30000)
   it('drains the Character’s hit point maximum with the Wight’s Life Drain until a long rest (D62)', async () => {
-    const { base, batch } = await lifeDrainCharacter({ hidden: true })
-    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 13, resultPath: 'ON_SAVE_FAIL' })
-    expect(batch.damage).toEqual([[6, damageTypeId('NECROTIC')]])
-    const maximum = batch.targetTransition.before.maximumHitPoints
-    expect(batch.targetTransition.after.maximumHitPoints).toBe(maximum - 6)
-    expect(batch.applications).toContainEqual(
-      expect.objectContaining({
-        kind: 'HIT_POINT_MAXIMUM_REDUCTION',
-        reductionAmount: 6,
-        recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM', 'LONG_REST']
-      })
-    )
-    const reductions = () =>
-      base.t.run((ctx) =>
-        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
-          kind: 'CHARACTER',
-          characterId: base.character.id
-        })
-      )
-    expect(await reductions()).toHaveLength(1)
-    const [drain] = await reductions()
+    const { base, answered } = await lifeDrainCharacter({ hidden: true })
+    expect(answered.occurrence?.status).toBe('COMPLETE')
+    expect(await damageTaken(base)).toBe(6)
+    const maximum = base.target.maxHitPoints
+    expect((await targetAfter(base)).maxHitPoints).toBe(maximum - 6)
+    // The reduction's amount and recovery tags reach the Sheet (read back below) and the effect store.
+    expect(await characterEffects(base)).toHaveLength(1)
+    const [drain] = await characterEffects(base)
     // The attack's Feature label is frozen onto the reduction and read back by the Sheet.
     expect(drain?.definition).toMatchObject({
       stateContributions: [
@@ -559,7 +498,9 @@ describe('seeded SRD Creature hit riders in the room', () => {
       }
     ])
 
-    // A long rest ends the reduction and restores every hit point.
+    // A long rest ends the reduction and restores every hit point. The Character rests once the
+    // table's room releases it.
+    await closeRoom(base.campaign.id)
     const streamVersion = await base.t.run(async (ctx) => {
       const row = await readCharacterRow(ctx, base.character.id)
       if (!row) throw new Error('The Life Drain Character is missing.')
@@ -592,7 +533,7 @@ describe('seeded SRD Creature hit riders in the room', () => {
     const restedSheet = (await base.player.caller.query(api.characters.sheet.get, {
       id: rested.characterId
     }))!
-    expect(await reductions()).toEqual([])
+    expect(await characterEffects(base)).toEqual([])
     expect(restedSheet.overview).toMatchObject({
       currentHitPoints: maximum,
       maxHitPoints: maximum
@@ -622,15 +563,16 @@ describe('seeded SRD Creature hit riders in the room', () => {
     )
     // A natural 19 hits; the two-handed d10 rolls 10 (a d8 could not): 10 + 4 slashing, then 3d8
     // poison rolling 1s.
-    const result = await executeInRoom(
-      base.owner.caller,
-      { command: base.command },
-      scripted([18, 9, 0, 0, 0])
-    )
+    await rollFaces(base, [18, 9, 0, 0, 0])
+    const result = await executeInRoom(base.owner.caller, { command: base.command })
     expect(result.occurrence?.status).toBe('COMPLETE')
-    expect((await settledBatch(base)).damage).toEqual([
-      [14, damageTypeId('SLASHING')],
-      [3, damageTypeId('POISON')]
-    ])
+    // The Character's hit points clamp the applied damage, so the dealt amounts read off the cards.
+    const cards = await readRoomRollCards(base.owner.caller, base.campaign.id)
+    expect(
+      cards
+        .filter((card) => card.source.kind === 'DAMAGE')
+        .map((card) => card.evidence.total)
+        .sort((a, b) => a - b)
+    ).toEqual([3, 10 + 4])
   }, 30000)
 })

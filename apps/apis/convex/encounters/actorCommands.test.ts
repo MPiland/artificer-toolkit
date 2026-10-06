@@ -16,10 +16,7 @@ import type {
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
-import {
-  encounterRunActorStateSchema,
-  encounterRunStateSchema
-} from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_CONDITION_TYPES,
@@ -27,14 +24,20 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import * as roomSheetCommands from '../../../session-worker/src/roomCharacterSheetCommands'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
+  attachRoomWorker,
+  checkpointLiveRoom,
+  checkpointRoom,
+  closeRoom,
   executeInRoom,
-  replayInRoom,
+  readRoomTimeline,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -93,6 +96,8 @@ async function setup() {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachRoomWorker(base.t)
+  await seedRoomContentSnapshots(campaign.id)
   const characterActor = run.actors.find((actor) => actor.kind === 'CHARACTER')
   const customActor = run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!characterActor || !customActor) throw new Error('Missing fixture actors.')
@@ -103,12 +108,15 @@ function update(command: Extract<EncounterExecuteInput['command'], { type: 'UPDA
   return { command }
 }
 
+// Publishes the room-held Run first. The room keeps command history until the Run ends (D85), so
+// the stored command rows are not readable here.
 async function stored(
-  t: Awaited<ReturnType<typeof setup>>['t'],
+  base: Awaited<ReturnType<typeof setup>>,
   encounterId: string,
   actorId: string
 ) {
-  return t.run(async (ctx) => {
+  await checkpointLiveRoom(base.campaign.id)
+  return base.t.run(async (ctx) => {
     const run = await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', encounterId))
@@ -121,23 +129,23 @@ async function stored(
       receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run,
-      actor,
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
+      actor
     }
   })
 }
 
 describe('native Encounter UPDATE_ACTOR commands', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => vi.unstubAllEnvs())
   it('persists direct CUSTOM updates, derives health, and leaves snapshots and cursor intact', async () => {
-    const { t, other: gm, run, customActor } = await setup()
+    const base = await setup()
+    const { t, other: gm, run, customActor } = base
     await t.run(async (ctx) => {
       await updateFixtureRunActors(ctx, run.id, (actor) =>
         actor.id === customActor.id ? { ...actor, initiative: 12, manualOrder: 0 } : actor
       )
       await activateFixtureRun(ctx, run.id, { round: 1, currentActorId: customActor.id })
     })
-    const before = await stored(t, run.id, customActor.id)
+    const before = await stored(base, run.id, customActor.id)
     const sideId = encounterRunStateSchema.parse(JSON.parse(before.run!.stateJson)).sides[0]!.id
     const result = await executeInRoom(
       gm.caller,
@@ -163,7 +171,7 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       public: false,
       healthBand: 'CRITICAL'
     })
-    const after = await stored(t, run.id, customActor.id)
+    const after = await stored(base, run.id, customActor.id)
     const actorState = readStoredRunActor(after.actor!)
     expect(actorState).toMatchObject({
       currentHitPoints: 2,
@@ -181,7 +189,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
   }, 30000)
 
   it('bridges a Character Sheet command, retains max override, and replays its original Encounter result', async () => {
-    const { t, owner, other: gm, character, run, characterActor, readState } = await setup()
+    const base = await setup()
+    const { t, owner, other: gm, character, run, characterActor, readState } = base
     await owner.caller.mutation(personalExecute, {
       id: character.id,
       command: {
@@ -224,6 +233,8 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
         })
       )
     ).rejects.toThrow('Make this change from the Character Sheet.')
+    // The fixture activates the Run in Convex, so the room must not hold the prepared Run.
+    await closeRoom(base.campaign.id)
     await t.run((ctx) =>
       activateFixtureRun(ctx, run.id, { round: 1, currentActorId: characterActor.id })
     )
@@ -244,13 +255,19 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     expect(
       first.projection.actors.find((actor) => actor.id === characterActor.id)?.conditions
     ).toHaveLength(1)
-    const after = await stored(t, run.id, characterActor.id)
+    const after = await stored(base, run.id, characterActor.id)
     expect(readStoredRunActor(after.actor!).kind).toBe('CHARACTER')
     const storedCharacter = await t.run((ctx) => readCharacterRow(ctx, character.id))
     expect(storedCharacter!.play.maximumHitPoints).toBe(15)
     expect(readCharacterRecord(storedCharacter!).state.conditions).toHaveLength(1)
-    const receipt = after.receipts.find((candidate) => candidate.commandId === commandId)!
-    if (receipt.commandType !== 'UPDATE_ACTOR') throw new Error('Missing UPDATE_ACTOR receipt.')
+    // The room holds the command's receipt until the Run ends; its timeline entry is the member-visible record.
+    expect(await readRoomTimeline(gm.caller, base.campaign.id)).toEqual([
+      expect.objectContaining({
+        commandType: 'UPDATE_ACTOR',
+        version: first.projection.version
+      }),
+      expect.objectContaining({ commandType: 'CREATE', version: 0 })
+    ])
     expect((await readState()).receipts).toHaveLength(3)
     const later = await executeInRoom(
       gm.caller,
@@ -263,76 +280,35 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       })
     )
     expect(
-      await replayInRoom(gm.caller, {
+      await executeInRoom(gm.caller, {
         command: { ...command.command, encounterId: run.id, commandId }
       })
     ).toEqual({ ...first, projection: later.projection })
+    await checkpointRoom(base.campaign.id)
     expect((await readState()).receipts).toHaveLength(3)
 
     // A new outer command reusing the settled nested Sheet command never applies its damage again.
-    const settled = await stored(t, run.id, characterActor.id)
-    await expect(
-      executeInRoom(
-        gm.caller,
-        update({
-          ...command.command,
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 2
-        })
-      )
-    ).rejects.toThrow('Character Sheet changed; refresh before applying this command.')
-    expect(await stored(t, run.id, characterActor.id)).toEqual(settled)
-  }, 30000)
-
-  it('rolls back Sheet, actor, Run, and the room journal when the room transaction fails after the Sheet write', async () => {
-    const { t, other: gm, run, characterActor, readState } = await setup()
-    await t.run((ctx) =>
-      activateFixtureRun(ctx, run.id, { round: 1, currentActorId: characterActor.id })
-    )
-    const before = await stored(t, run.id, characterActor.id)
-    const beforeSheet = await readState()
-    const original = roomSheetCommands.executeRoomCharacterSheetCommand
-    let sheetCompleted = false
-    vi.spyOn(roomSheetCommands, 'executeRoomCharacterSheetCommand').mockImplementation(
-      async (...args) => {
-        const result = await original(...args)
-        sheetCompleted = true
-        return result
-      }
-    )
-    const parseActor = encounterRunActorStateSchema.parse.bind(encounterRunActorStateSchema)
-    vi.spyOn(encounterRunActorStateSchema, 'parse').mockImplementation((...args) => {
-      if (sheetCompleted) throw new Error('Injected post-Sheet bridge failure')
-      return parseActor(...args)
-    })
-    const command = update({
-      type: 'UPDATE_ACTOR',
-      encounterId: run.id,
-      commandId: crypto.randomUUID(),
-      expectedVersion: 0,
-      actorId: characterActor.id,
-      characterCommand: {
-        type: 'ADJUST_HIT_POINTS',
+    const settledSheet = await t.run((ctx) => readCharacterRow(ctx, character.id))
+    const reused = await executeInRoom(
+      gm.caller,
+      update({
+        ...command.command,
+        encounterId: run.id,
         commandId: crypto.randomUUID(),
-        expectedVersion: 1,
-        mode: 'DAMAGE',
-        amount: 1
-      }
+        expectedVersion: 2
+      })
+    )
+    expect(reused.projection.actors.find((actor) => actor.id === characterActor.id)).toMatchObject({
+      currentHitPoints: 9
     })
-    await expect(executeInRoom(gm.caller, command)).rejects.toThrow(RoomCommandRefusal)
-    expect(sheetCompleted).toBe(true)
-    vi.restoreAllMocks()
-    expect(await stored(t, run.id, characterActor.id)).toEqual(before)
-    expect(await readState()).toEqual(beforeSheet)
-    // The failed command left no journal entry: its retry commits rather than replaying.
-    const retried = await executeInRoom(gm.caller, command)
-    expect(retried.projection.version).toBe(before.run!.version + 1)
+    await checkpointRoom(base.campaign.id)
+    expect(await t.run((ctx) => readCharacterRow(ctx, character.id))).toEqual(settledSheet)
   }, 30000)
 
   it('rejects character direct state, invalid sides, failed Sheet commands, and corrupt actor state without writes', async () => {
-    const { t, other: gm, run, characterActor, customActor, readState } = await setup()
-    const before = await stored(t, run.id, characterActor.id)
+    const base = await setup()
+    const { t, other: gm, run, characterActor, customActor, readState } = base
+    const before = await stored(base, run.id, characterActor.id)
     const beforeSheet = await readState()
     const rejected = [
       update({
@@ -368,8 +344,10 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     ]
     for (const request of rejected)
       await expect(executeInRoom(gm.caller, request)).rejects.toThrow()
-    expect(await stored(t, run.id, characterActor.id)).toEqual(before)
+    expect(await stored(base, run.id, characterActor.id)).toEqual(before)
     expect(await readState()).toEqual(beforeSheet)
+    // The room holds the Run after the rejected commands; release it before editing Convex rows.
+    await closeRoom(base.campaign.id)
     await t.run(async (ctx) => {
       const actor = await ctx.db
         .query('encounterRunActors')

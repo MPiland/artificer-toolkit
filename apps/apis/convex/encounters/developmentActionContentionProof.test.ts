@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import type { CreateCampaignInput } from '@artificer-toolkit/schema/api/campaignCore'
 import {
   SRD_CONTENT_SOURCE,
@@ -18,7 +18,19 @@ import {
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import { fixture } from '../../tests/fixtures/characters'
 import { api, internal } from '../_generated/api'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointRoom,
+  roomDevelopmentClient,
+  roomPeerClient,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 it('proves V14 native RESOLVE_ACTION contention through public commands', async () => {
   const base = await fixture()
@@ -73,14 +85,26 @@ it('proves V14 native RESOLVE_ACTION contention through public commands', async 
     api.campaigns.create.create,
     campaignInput
   )
-  const owner = inProcessDevelopmentClient(base.owner.caller)
+  for (const campaign of [duplicateCampaign, contentionCampaign])
+    await base.owner.caller.mutation(api.campaigns.update.update, {
+      campaignId: campaign.id,
+      expectedVersion: campaign.version,
+      additionalRulesCatalogueIds: [policies.bootstrap.catalogue.id]
+    })
+  await attachRoomWorker(base.t)
+  await seedRoomContentSnapshots(duplicateCampaign.id)
+  await seedRoomContentSnapshots(contentionCampaign.id)
   await verifyEncounterActionTransactions({
-    owner,
-    peer: { ...owner },
+    owner: roomDevelopmentClient(base.owner.caller),
+    peer: roomPeerClient(base.owner.caller),
+    checkpoint: async () => {
+      await checkpointRoom(duplicateCampaign.id)
+      await checkpointRoom(contentionCampaign.id)
+    },
     duplicateCampaignId: duplicateCampaign.id,
     contentionCampaignId: contentionCampaign.id,
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
     creatureId: draft.subjectId
   })
-}, 30000)
+}, 120000)

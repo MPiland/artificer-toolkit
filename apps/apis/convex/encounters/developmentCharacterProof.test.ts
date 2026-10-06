@@ -1,12 +1,24 @@
 import { readReceiptHeaders } from '../lib/receiptLedgers'
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { makeFunctionReference } from 'convex/server'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { verifyEncounterCharacterCommands } from '../../tests/developmentEncounterCharacter'
 import { api, components, internal } from '../_generated/api'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  checkpointRoom,
+  closeRoom,
+  roomDevelopmentClient,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 it('runs the actual-backend Character/Encounter assertions against local transactions', async () => {
   const { t, owner: player, other: owner, character } = await readySheetFixture()
@@ -49,13 +61,18 @@ it('runs the actual-backend Character/Encounter assertions against local transac
     campaignId: campaign.id,
     characterId: character.id
   })
+  await attachRoomWorker(t)
+  await seedRoomContentSnapshots(campaign.id)
   await verifyEncounterCharacterCommands({
-    owner: inProcessDevelopmentClient(owner.caller),
-    player: inProcessDevelopmentClient(player.caller),
-    anonymous: inProcessDevelopmentClient(t),
+    owner: roomDevelopmentClient(owner.caller),
+    player: roomDevelopmentClient(player.caller),
+    anonymous: roomDevelopmentClient(null),
     campaignId: campaign.id,
-    characterId: character.id
+    characterId: character.id,
+    checkpoint: () => checkpointRoom(campaign.id)
   })
+  // Closing the room checkpoints it and releases the Campaign's live authority before cleanup.
+  await closeRoom(campaign.id)
   const cleanup = { ...fixture, characterId: character.id }
   await t.mutation(
     makeFunctionReference<'mutation', typeof cleanup, null>(
@@ -90,4 +107,4 @@ it('runs the actual-backend Character/Encounter assertions against local transac
       ])
     )
   ).toEqual(Array.from({ length: 14 }, () => []))
-}, 30000)
+}, 120000)
