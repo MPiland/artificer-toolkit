@@ -75,9 +75,9 @@
     "@tiptap/pm": "^3.22.5",
     "@tiptap/react": "^3.22.5",
     "@tiptap/starter-kit": "3.22.5",
-    "@vanilla-extract/css": "^1.20.1",
+    "@vanilla-extract/css": "^1.21.2",
     "@vanilla-extract/recipes": "^0.5.7",
-    "@vanilla-extract/sprinkles": "^1.6.5",
+    "@vanilla-extract/sprinkles": "^1.7.1",
     "better-auth": "patch:better-auth@npm%3A1.6.15#~/.yarn/patches/better-auth-npm-1.6.15-9073440fd1.patch",
     "clsx": "^2.1.1",
     "convex": "1.45.0",
@@ -93,7 +93,7 @@
   "devDependencies": {
     "@artificer-toolkit/source-data": "workspace:^",
     "@chromatic-com/storybook": "^5.2.1",
-    "@cloudflare/vite-plugin": "^1.62.0",
+    "@cloudflare/vite-plugin": "^1.62.5",
     "@mantine/vanilla-extract": "9.2.2",
     "@playwright/test": "^1.59.1",
     "@storybook/addon-a11y": "10.6.1",
@@ -111,8 +111,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/three": "0.182.0",
-    "@vanilla-extract/vite-plugin": "^5.2.2",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vanilla-extract/vite-plugin": "^5.2.6",
+    "@vitejs/plugin-react": "^6.1.2",
     "@vitest/browser": "^4.1.11",
     "@vitest/browser-playwright": "^4.1.11",
     "@vitest/coverage-v8": "^4.1.11",
@@ -125,9 +125,9 @@
     "postcss-preset-mantine": "^1.18.0",
     "storybook": "^10.6.1",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1",
+    "vite": "^8.3.3",
     "vitest": "^4.1.11",
-    "wrangler": "^4.143.0"
+    "wrangler": "^4.147.0"
   },
   "msw": {
     "workerDirectory": [
