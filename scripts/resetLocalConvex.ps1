@@ -35,9 +35,14 @@ $emptyPath = "$stem.empty.jsonl"
 # (exit 0xC0000409). That exit is accepted only when the step is verified independently: exports
 # by their download confirmation plus a readable zip, imports by the post-reset snapshot check.
 $libuvExitAbort = -1073740791
+# Yarn runs through Node directly, as validatePreStagingLocal.mjs does: a yarn.cmd shim would pass the
+# key through cmd.exe, which splits it at its '|' and echoes the secret half into the log.
+$node = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$yarn = Join-Path (Split-Path $node) 'node_modules/corepack/dist/yarn.js'
+if (-not (Test-Path -LiteralPath $yarn)) { throw 'Corepack yarn.js was not found beside node.' }
 function Invoke-LocalConvex {
   param([string[]]$Arguments, [string]$LogPath, [string]$Label, [string]$ExportPath)
-  & yarn workspace @artificer-toolkit/apis exec convex @Arguments --url $url --admin-key $adminKey *> $LogPath
+  & $node $yarn workspace @artificer-toolkit/apis exec convex @Arguments --url $url --admin-key $adminKey *> $LogPath
   $exitCode = $LASTEXITCODE
   if ($exitCode -eq 0) { return }
   if ($exitCode -eq $libuvExitAbort) {

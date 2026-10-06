@@ -118,8 +118,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      strictPort: true,
-      open: true
+      strictPort: true
     },
     plugins: [
       vanillaExtractPlugin(),
