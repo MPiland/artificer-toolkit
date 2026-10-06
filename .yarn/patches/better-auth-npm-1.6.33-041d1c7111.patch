@@ -1,0 +1,25 @@
+diff --git a/dist/plugins/email-otp/routes.mjs b/dist/plugins/email-otp/routes.mjs
+index 1cda0f7f03174e18436f0fbe04342e0e2e24ef97..9b0ac405febdd3f89b4dd36aa0c0ed7731ee0757 100644
+--- a/dist/plugins/email-otp/routes.mjs
++++ b/dist/plugins/email-otp/routes.mjs
+@@ -239,17 +239,17 @@ const checkVerificationOTP = (opts) => createAuthEndpoint("/email-otp/check-veri
+ 	const verificationValue = await ctx.context.internalAdapter.findVerificationValue(identifier);
+ 	if (!verificationValue) throw APIError$1.from("BAD_REQUEST", EMAIL_OTP_ERROR_CODES.INVALID_OTP);
+ 	if (verificationValue.expiresAt < /* @__PURE__ */ new Date()) {
+-		await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
++		await ctx.context.internalAdapter.consumeVerificationValue(identifier);
+ 		throw APIError$1.from("BAD_REQUEST", EMAIL_OTP_ERROR_CODES.OTP_EXPIRED);
+ 	}
+ 	const [otpValue, attempts] = splitAtLastColon(verificationValue.value);
+ 	const allowedAttempts = opts?.allowedAttempts || 3;
+ 	if (attempts && parseInt(attempts) >= allowedAttempts) {
+-		await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
++		await ctx.context.internalAdapter.consumeVerificationValue(identifier);
+ 		throw APIError$1.from("FORBIDDEN", EMAIL_OTP_ERROR_CODES.TOO_MANY_ATTEMPTS);
+ 	}
+ 	if (!await verifyStoredOTP(ctx, opts, otpValue, ctx.body.otp)) {
+-		await ctx.context.internalAdapter.updateVerificationByIdentifier(identifier, { value: `${otpValue}:${parseInt(attempts || "0") + 1}` });
++		await ctx.context.adapter.update({ model: "verification", where: [{ field: "id", value: verificationValue.id }], update: { value: `${otpValue}:${parseInt(attempts || "0") + 1}` } });
+ 		throw APIError$1.from("BAD_REQUEST", EMAIL_OTP_ERROR_CODES.INVALID_OTP);
+ 	}
+ 	if (!await ctx.context.internalAdapter.findUserByEmail(email))

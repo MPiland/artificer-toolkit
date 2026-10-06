@@ -78,7 +78,7 @@
     "@vanilla-extract/css": "^1.21.2",
     "@vanilla-extract/recipes": "^0.5.7",
     "@vanilla-extract/sprinkles": "^1.7.1",
-    "better-auth": "patch:better-auth@npm%3A1.6.15#~/.yarn/patches/better-auth-npm-1.6.15-9073440fd1.patch",
+    "better-auth": "patch:better-auth@npm%3A1.6.33#~/.yarn/patches/better-auth-npm-1.6.33-041d1c7111.patch",
     "clsx": "^2.1.1",
     "convex": "1.46.0",
     "convex-helpers": "^0.1.127",
