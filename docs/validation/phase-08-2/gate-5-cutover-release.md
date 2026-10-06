@@ -152,7 +152,7 @@ Evidence:
 What was proven or remains to prove:
 
 - `R08.1` NOT_STARTED: The complete development lifecycle passes from a fresh, isolated Convex development deployment.
-- `R08.2` NOT_STARTED: The lifecycle runs on one final source state shared by the R01–R05 release audits, and later source changes rerun it from the earliest affected stage.
+- `R08.2` IN_PROGRESS: The lifecycle runs on one final source state shared by the R01–R05 release audits, and later source changes rerun it from the earliest affected stage.
 
 Evidence:
 

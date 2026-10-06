@@ -82,8 +82,9 @@ Campaign/epoch/phase, held Run IDs, checkpoint sequence/time and acknowledged pl
 readers receive null. It loads neither mechanics nor owned collections. Authority `checkpointedAt`
 is set only by an actual acknowledged delta checkpoint or retained per-command publication; exact
 retry and drain preserve it. Activation/new recovery has no timestamp, so routing metadata returns
-null before the epoch's first acknowledgement. Frontend routing remains open; pages outside the room date
-their checkpoint from the Campaign-level [campaigns/queries.liveAuthority](../../apps/apis/convex/campaigns/queries.ts) query.
+null before the epoch's first acknowledgement. Pages outside the room use the Campaign-level
+[campaigns/queries.liveAuthority](../../apps/apis/convex/campaigns/queries.ts) query only to route to the
+room; they show no saved-at time (ADR 0035 A28, see [live sessions](live-sessions.md)).
 
 Public `SET_INSPIRATION` and `SET_PARTY_VISIBILITY` acknowledgements now use
 [sheetPlayPreferences](../../apps/apis/convex/characters/sheetPlayPreferences.ts) in current source.
