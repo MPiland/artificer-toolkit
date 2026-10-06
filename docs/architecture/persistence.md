@@ -229,8 +229,10 @@ state), `encounterSceneBindings`, `encounterActorTokenBindings`, `encounterIniti
   only a timeline. Pending decisions (Concentration chains, Cleaving, movement reactions, turn responses),
   the GM's void, undo and replay read them.
 - **Carry-over:** the room keeps them in its SQLite store for the whole Run. Every hydrate, a same-epoch
-  reload or a new epoch after release, carries the store's rows for that Run and unions them with the
-  rows Convex holds, deduplicated by ledger key (`apps/session-worker/src/roomInputs.ts`).
+  reload or a new epoch after release, carries the store's rows for every Run it holds, bound to the
+  presented Scene or not, and unions them with the rows Convex holds, deduplicated by ledger key
+  (`apps/session-worker/src/roomInputs.ts`). A Run loaded lazily later does not restore a row the store
+  already holds.
 - **What Convex holds:**
   - only the history its own writers record while no room holds the Run: Run creation, and the
     departure, release and account reconciles;

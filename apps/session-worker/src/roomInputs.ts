@@ -143,6 +143,26 @@ const HISTORY_TABLES = [
   'encounterEvidenceRolls'
 ] as const
 
+/** A history row's ledger identity, shared by the carry at hydrate and the lazy Run load. */
+function historyKey({ table, fields }: RoomDocument) {
+  const history = HISTORY_TABLES.find((candidate) => candidate === table)
+  return history
+    ? canonicalizeJson([
+        history,
+        ...receiptLedgerEntryKeyFields[history].map((field) => fields[field])
+      ])
+    : null
+}
+
+/** `documents` without the history rows `other` already holds; other tables pass through. */
+function withoutHistoryIn(documents: readonly RoomDocument[], other: readonly RoomDocument[]) {
+  const held = new Set(other.map(historyKey))
+  return documents.filter((document) => {
+    const key = historyKey(document)
+    return key === null || !held.has(key)
+  })
+}
+
 function toRoomDocuments(pages: readonly { documents: readonly RoomDocument[] }[]) {
   return pages.flatMap((page) => page.documents)
 }
@@ -581,7 +601,9 @@ export class RoomInputs {
   /**
    * Replaces the store with `encounterId`'s aggregate as Convex holds it for `epoch`. With no
    * Encounter the store holds the Campaign inputs and optional raw Scene checkpoint records.
-   * A Run or Scene that changes while it is being read is read again.
+   * A Run or Scene that changes while it is being read is read again. History rows the room holds
+   * are carried for every Run it holds, not only `encounterId`, so a Run that is unbound or not
+   * presented keeps its history until `encounter()` loads it again.
    */
   async hydrate({
     epoch,
@@ -618,7 +640,7 @@ export class RoomInputs {
     ])
     assertDefinitionScope(definitions, play.campaign)
     const chat = chatMetadataDocuments(chatPages, authority)
-    const carried = encounterId ? this.#carriedHistory(encounterId, run) : []
+    const carried = this.#carriedHistory(run)
     const content = await Promise.all([
       this.#readContent(play.contentSnapshots),
       ...characters.map(({ part }) => this.#readContent(this.#characterManifest(part)))
@@ -671,32 +693,28 @@ export class RoomInputs {
   }
 
   /**
-   * The Run's history rows the room already holds, which a reload keeps instead of re-reading them
-   * from Convex (which holds only the rows its own writers recorded). A row Convex also returned
-   * is not carried twice. A recovered or corrupt store holds none.
+   * Every history row the room holds, for every Run it holds, whether or not that Run is the one
+   * being hydrated: a Run without an ACTIVE binding to the presented Scene is legal, and its
+   * pending decisions, undo and replay still read these rows. A recovered or corrupt store holds
+   * none.
    */
-  #carriedHistory(encounterId: string, read: readonly RoomDocument[]): RoomDocument[] {
-    const identity = (table: (typeof HISTORY_TABLES)[number], fields: Record<string, unknown>) =>
-      canonicalizeJson([table, ...receiptLedgerEntryKeyFields[table].map((field) => fields[field])])
-    const seen = new Set(
-      read.flatMap(({ table, fields }) =>
-        HISTORY_TABLES.some((history) => history === table)
-          ? [identity(table as (typeof HISTORY_TABLES)[number], fields)]
-          : []
-      )
-    )
+  #heldHistory(): RoomDocument[] {
     return HISTORY_TABLES.flatMap((table) =>
-      this.#store
-        .documents(table)
-        .filter((document) => document.encounterId === encounterId)
-        .map(({ _id, _creationTime, ...fields }) => ({
-          table,
-          id: _id,
-          creationTime: _creationTime,
-          fields
-        }))
-        .filter(({ fields }) => !seen.has(identity(table, fields)))
+      this.#store.documents(table).map(({ _id, _creationTime, ...fields }) => ({
+        table,
+        id: _id,
+        creationTime: _creationTime,
+        fields
+      }))
     )
+  }
+
+  /**
+   * The held history a reload keeps instead of re-reading it from Convex (which holds only the rows
+   * its own writers recorded). A row Convex also returned for the hydrated Run is not carried twice.
+   */
+  #carriedHistory(read: readonly RoomDocument[]) {
+    return withoutHistoryIn(this.#heldHistory(), read)
   }
 
   /**
@@ -745,7 +763,10 @@ export class RoomInputs {
     return system
   }
 
-  /** A previously unopened Run is an initial-input read, staged with the first command using it. */
+  /**
+   * A previously unopened Run is an initial-input read, staged with the first command using it.
+   * History rows the room already holds for it (carried by `hydrate`) are not restored again.
+   */
   async encounter(encounterId: string, transaction: RoomTransaction) {
     const held = await this.#store.store
       .query('encounterRuns')
@@ -756,7 +777,8 @@ export class RoomInputs {
       (scope) => this.#read(this.#requireEpoch(), scope),
       encounterId
     )
-    for (const document of run) transaction.restoreDocument(document)
+    for (const document of withoutHistoryIn(run, this.#heldHistory()))
+      transaction.restoreDocument(document)
     transaction.setRecord(runRecord)
     for (const { part, documents } of characters) {
       if (!part.inputs) throw new Error('Character inputs are missing.')

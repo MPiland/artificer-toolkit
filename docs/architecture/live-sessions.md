@@ -653,6 +653,7 @@ call is one subrequest however many query pages it spans. A page is at most 1024
   `sceneFogSaves`, `sceneFogChunks`) behind immutable definition, presentation and Scene-version pins. A page
   with changed pins is left for the next batch so the Worker retries the whole read. Scene command receipts
   and geometry saves are not hydrated: the room already holds them, and `hydrate` carries them across (below).
+  Encounter history rows are carried the same way for every Run the room holds, not only the hydrated one.
 
 Every response carries its revision vector. `RoomInputs.hydrate` reads these scopes, verifies content
 snapshots and Scene evidence, and replaces the store in one transaction; with no Run it still loads the
