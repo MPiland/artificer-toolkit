@@ -106,6 +106,8 @@ const runtimeArtifactPaths = [
   'packages/design-system/tsconfig.build.tsbuildinfo',
   'packages/emails/dist',
   'packages/emails/tsconfig.build.tsbuildinfo',
+  'packages/encounter-persistence/dist',
+  'packages/encounter-persistence/tsconfig.build.tsbuildinfo',
   'packages/rules-runtime/dist',
   'packages/rules-runtime/tsconfig.build.tsbuildinfo',
   'packages/schema/dist',
@@ -756,6 +758,7 @@ const nativeProofModes = [
 ]
 const browserProofModes = [
   'auth-browser',
+  'signed-in-request-audit',
   'profile-browser',
   'recovery-browser',
   'social-browser',
@@ -886,6 +889,17 @@ const stages = [
   stage('authoring-tests', 'Authoring tests', 'yarn', [
     'workspace',
     '@artificer-toolkit/authoring',
+    'test'
+  ]),
+  // The tests resolve sibling packages through their dist output, which the `build` stage produced.
+  stage('rules-runtime-tests', 'Rules runtime tests', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/rules-runtime',
+    'test'
+  ]),
+  stage('encounter-persistence-tests', 'Encounter persistence tests', 'yarn', [
+    'workspace',
+    '@artificer-toolkit/encounter-persistence',
     'test'
   ]),
   stage('apis-tests', 'API transport tests', 'yarn', [
@@ -1340,6 +1354,26 @@ async function main() {
         }
         await copyFile(source, timingPath)
         entry.proofEvidence.paths.browserTimings = relative(root, timingPath).replaceAll('\\', '/')
+      }
+      if (current.name === 'r08-browser-signed-in-request-audit') {
+        // R05.2: written by apps/web/tests/live-backend/signedInRequestAudit.ts, which owns this path.
+        const source = resolve(
+          root,
+          `${localProofDirectory}/phase82-signed-in-request-audit/request-audit.json`
+        )
+        const auditPath = resolve(artifactDirectory, 'r08-browser-signed-in-request-audit.json')
+        if ((await stat(source)).mtimeMs < stageStart - 2000) {
+          throw new Error('The signed-in request audit was not written by this proof.')
+        }
+        const audit = JSON.parse(await readFile(source, 'utf8'))
+        if (audit.verdict !== 'passed' || !(audit.pages?.length > 0)) {
+          throw new Error('The signed-in request audit did not pass.')
+        }
+        await copyFile(source, auditPath)
+        entry.requestAudit = {
+          pageCount: audit.pages.length,
+          path: relative(root, auditPath).replaceAll('\\', '/')
+        }
       }
       entry.exitCode = 0
       entry.status = 'passed'

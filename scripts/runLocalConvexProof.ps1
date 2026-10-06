@@ -7,7 +7,7 @@ param(
     'encounter-reaction-contention', 'checkpoint', 'checkpoint-large','campaign-item-producers', 'campaign-vehicle-producers',
     'campaign-inventory-read-probe', 'campaign-membership-custody', 'campaign-currency-lifecycle',
     'campaign-assignment-lifecycle', 'campaign-qualified-currency', 'campaign-custody-authored-delete',
-    'auth-browser', 'profile-browser', 'recovery-browser', 'social-browser', 'account-entitlements',
+    'auth-browser', 'signed-in-request-audit', 'profile-browser', 'recovery-browser', 'social-browser', 'account-entitlements',
     'publication-browser', 'publication-class-browser', 'publication-feat-browser',
     'publication-equipment-browser', 'campaign-lifecycle', 'campaign-custody-browser',
     'campaign-membership-browser', 'campaign-collaboration-browser', 'campaign-content-browser',

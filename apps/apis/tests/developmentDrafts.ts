@@ -5333,6 +5333,27 @@ try {
         'Profile privacy, server state, anonymous denial and owner-argument rejection passed.'
       )
     }
+  } else if (process.argv.includes('--signed-in-request-audit')) {
+    assert.equal(mode, 'local', 'The request audit reads the verified local backend log.')
+    const adminKey = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY
+    assert.ok(adminKey, 'Local fixture CLI credentials are required.')
+    const author = await createAuthor()
+    const { verifySignedInRequestAudit } =
+      await import('../../web/tests/live-backend/signedInRequestAudit')
+    await verifySignedInRequestAudit({
+      email: author.email,
+      password: author.password,
+      systemId: srdSystemRecord.id,
+      readFunctionLog: async (cursor) => {
+        const response = await fetch(
+          new URL(`/api/stream_function_logs?cursor=${cursor}`, deploymentUrl.origin),
+          { headers: { Authorization: `Convex ${adminKey}` } }
+        )
+        assert.equal(response.status, 200)
+        return response.json()
+      },
+      callMarker: () => author.client.query(api.account.identity, {})
+    })
   } else if (process.argv.includes('--authoring-resolver')) {
     const author = await createAuthor()
     const input = {

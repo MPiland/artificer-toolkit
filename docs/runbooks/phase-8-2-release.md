@@ -42,6 +42,19 @@ flowchart LR
    Turbo concurrency one. Convex test shards run serially, each in a separate process with one
    worker; every shard retains its own log and result. A failed shard stops later stages.
    Other package checks and all database/browser proofs remain serial.
+   R04.2 (complete rule-corpus and gameplay proof) is the `rules-runtime-tests` and
+   `encounter-persistence-tests` package stages, which run against the `build` stage's `dist`
+   output, together with the native Encounter, movement, passage, disarm, effects and VTT proofs.
+   R05.2 (packaging and request audit, D75, D80) is the `build` stage plus the browser proof
+   `signed-in-request-audit`: for seven signed-in pages (home, systems list and detail, characters,
+   campaigns, notifications, settings profile) it reads the local backend's native function log
+   around a script-free server render and requires that the only client-originated Convex call is
+   the root `account:session` query, then replays a hidden-then-visible window and requires no
+   `/api/auth/get-session` request.
+   R08.1 (a fresh, isolated Convex development deployment) is the guarded `convex-reset` stage: the
+   runner resets the isolated local container before the schema push, then deploys and seeds it from
+   the protected corpus, so every later stage starts from the seeded corpus alone. Step 3 rules out a
+   replacement container.
    Before Convex codegen pushes a schema, the runner backs up and resets disposable local fixtures.
    Required fields and removed storage paths can reject old rows during that push; resetting after
    deployment would be too late. After package checks, the runner verifies source identity and deploys
@@ -71,7 +84,10 @@ flowchart LR
      `local-validation/`.
    - The development drivers write their own browser output under
      `local-validation/local-convex-proofs/<topic>/`, for example
-     `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder.
+     `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder, and
+     `phase82-signed-in-request-audit/request-audit.json`, which the runner copies there as
+     `r08-browser-signed-in-request-audit.json` after checking it was written by this proof and
+     passed.
    - The drivers send Encounter commands, and Scene token moves, door changes and move undo, through
      the Session room, as the tabletop does (D42, D43), so the proof stages need the local Worker.
      Before the first proof stage the runner starts the documented Worker once on `127.0.0.1:8787`
