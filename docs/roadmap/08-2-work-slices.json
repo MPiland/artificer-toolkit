@@ -935,8 +935,8 @@
     {
       "id": "REL-8",
       "stream": "REL",
-      "state": "active",
-      "title": "Dependency refresh to latest, before the pre-staging lifecycle run (batches 0-12 done; 13-16 running; zod held at 4.4.3 for convex-helpers#1019)",
+      "state": "done",
+      "title": "Dependency refresh to latest, before the pre-staging lifecycle run (zod held at 4.4.3 for convex-helpers#1019)",
       "cases": [],
       "refs": [
         "Agreed with the user during REL-5",
