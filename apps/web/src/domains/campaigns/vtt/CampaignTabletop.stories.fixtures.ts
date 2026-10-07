@@ -1,4 +1,8 @@
-import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
+import {
+  campaignDetailDtoSchema,
+  type CampaignDetailDto
+} from '@artificer-toolkit/schema/api/campaignCore'
+import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto
@@ -301,26 +305,10 @@ export const tabletopGmEncounter = {
 } satisfies EncounterGmProjectionDto
 
 export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetailDto {
-  return {
+  return campaignDetailDtoSchema.parse({
     assignedCharacter: role === 'PLAYER' ? assignedCharacter : null,
     attunementSlotOverride: null,
-    capabilities: {
-      archive: role === 'OWNER',
-      assignOwnCharacter: role === 'PLAYER',
-      contributeSessionNotes: true,
-      delete: role === 'OWNER',
-      edit: role === 'OWNER',
-      invite: role === 'OWNER',
-      manageCharacters: role === 'OWNER',
-      manageSharedContent: role === 'OWNER',
-      manageMembers: role === 'OWNER',
-      manageNotes: role === 'OWNER',
-      managePartyInventory: role === 'OWNER',
-      readPartyChat: true,
-      readTableChat: true,
-      shareOwnedContent: true,
-      transferOwnInventory: role === 'PLAYER'
-    },
+    capabilities: getCampaignCapabilities('ACTIVE', role),
     contentMaturity: 'STANDARD',
     createdAt: '2026-08-01T12:00:00.000Z',
     description: '<p>A city of glass, smoke, and buried promises.</p>',
@@ -349,5 +337,5 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
     toneTags: ['HEROIC', 'SERIOUS'],
     updatedAt: '2026-08-15T18:00:00.000Z',
     version: 8
-  }
+  })
 }

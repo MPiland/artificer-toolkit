@@ -13,7 +13,7 @@ import { api, internal } from '../_generated/api'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { verifyEquipmentCharacterDeletion } from '../../tests/developmentEquipmentCharacter'
 import type { DevelopmentClient } from '../../tests/developmentClient'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -38,8 +38,8 @@ it('reconciles Equipment loss through public authoring, Builder and Sheet comman
       ),
     mutation: (mutation, ...args) => first.caller.run((ctx) => ctx.runMutation(mutation, ...args))
   }
-  const other = inProcessDevelopmentClient(second.caller)
-  const anonymous = inProcessDevelopmentClient(t)
+  const other = convexDevelopmentClient(second.caller)
+  const anonymous = convexDevelopmentClient(t)
   const characterId = crypto.randomUUID()
   await verifyEquipmentCharacterDeletion({
     owner,
@@ -132,7 +132,7 @@ it('publishes two Campaign lifecycle Background fixtures for one owner', async (
       ]
     ]
   )
-  const baseOwner = inProcessDevelopmentClient(first.caller)
+  const baseOwner = convexDevelopmentClient(first.caller)
   const firstCharacterId = crypto.randomUUID()
   const secondCharacterId = crypto.randomUUID()
 

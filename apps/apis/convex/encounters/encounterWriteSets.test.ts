@@ -12,7 +12,13 @@ import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { playerControlFixture, type PlayerControlFixture } from '../../tests/fixtures/playerControl'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeInRoom,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { presentEncounterRun } from '@artificer-toolkit/encounter-persistence/sessionReads'
 import { encounterReadTransaction } from './encounterPorts'
 import { readRunSummaries } from './projectionReads'
@@ -20,8 +26,11 @@ import { readRunSummaries } from './projectionReads'
 /**
  * What one Encounter command writes, and what building a member's projection reads, at 11 and 100
  * actors (ADR 0035 Amendment 12). A write costs the whole new document in Convex; the changed-field
- * bytes are what a checkpoint delta carries.
+ * bytes are what a checkpoint delta carries. The room holds a command's state until it checkpoints
+ * (D85), so a command's write set is what the checkpoint after it publishes to Convex.
  */
+
+useLocalRoomWorker()
 
 const tables = Object.keys(schema.tables) as (keyof typeof schema.tables)[]
 type StoredDocument = { _id: string; _creationTime: number } & Record<string, unknown>
@@ -35,7 +44,8 @@ function stored({ _id, _creationTime, ...fields }: StoredDocument) {
   return fields
 }
 
-async function snapshot(t: PlayerControlFixture['t']): Promise<Snapshot> {
+async function snapshot(t: PlayerControlFixture['t'], campaignId: string): Promise<Snapshot> {
+  await checkpointLiveRoom(campaignId)
   const entries = await t.run(async (ctx) => {
     const documents: { table: string; document: StoredDocument }[] = []
     for (const table of tables)
@@ -77,9 +87,9 @@ async function measure(
   command: () => Promise<EncounterCommandInputDto>
 ) {
   const input = await command()
-  const before = await snapshot(base.t)
+  const before = await snapshot(base.t, base.campaign.id)
   await executeInRoom(base.owner.caller, { command: input })
-  return writeSet(before, await snapshot(base.t))
+  return writeSet(before, await snapshot(base.t, base.campaign.id))
 }
 
 /** Reads through `db` counting each returned document and its bytes. */
@@ -127,6 +137,7 @@ function countingReads<Database extends object>(db: Database) {
 }
 
 async function projectionReadCost(base: PlayerControlFixture, role: 'OWNER' | 'PLAYER') {
+  await checkpointLiveRoom(base.campaign.id)
   const samples: number[] = []
   let read = { documents: 0, bytes: 0 }
   for (let sample = 0; sample < 5; sample++)
@@ -225,23 +236,21 @@ async function tiedStart(actors: number) {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  // Identical Creatures rolling each die face twice in turn tie in pairs, which the GM orders.
-  let draws = 0
-  const cycling = (maximum: number) => Math.floor(draws++ / 2) % maximum
-  let before = await snapshot(base.t)
-  let current = await executeInRoom(
-    base.owner.caller,
-    {
-      command: {
-        type: 'START',
-        encounterId: run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: 0
-      }
-    },
-    cycling
-  )
-  let after = await snapshot(base.t)
+  await attachFixtureRoom(base.t, campaign.id)
+  // Identical Creatures rolling each d20 face twice in turn tie in pairs, which the GM orders.
+  await queueRoomRolls(campaign.id, {
+    rolls: Array.from({ length: 1000 }, (_, draw) => Math.floor(draw / 2) % 20)
+  })
+  let before = await snapshot(base.t, campaign.id)
+  let current = await executeInRoom(base.owner.caller, {
+    command: {
+      type: 'START',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 0
+    }
+  })
+  let after = await snapshot(base.t, campaign.id)
   const start = writeSet(before, after)
   const choices: WriteSet[] = []
   while (current.occurrence?.status === 'PENDING') {
@@ -249,27 +258,23 @@ async function tiedStart(actors: number) {
     if (pending?.kind !== 'INITIATIVE_ORDER' || choices.length > actors)
       throw new Error(`Expected an initiative tie, got ${pending?.kind ?? 'none'}.`)
     before = after
-    current = await executeInRoom(
-      base.owner.caller,
-      {
-        command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: current.projection.version,
-          correlationId: null,
-          occurrenceId: current.occurrence.occurrenceId,
-          expectedOccurrenceVersion: current.occurrence.occurrenceVersion,
-          resolution: {
-            kind: 'INITIATIVE_ENTITY',
-            requestId: pending.requestId,
-            entityId: pending.optionIds[0]!
-          }
+    current = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: current.projection.version,
+        correlationId: null,
+        occurrenceId: current.occurrence.occurrenceId,
+        expectedOccurrenceVersion: current.occurrence.occurrenceVersion,
+        resolution: {
+          kind: 'INITIATIVE_ENTITY',
+          requestId: pending.requestId,
+          entityId: pending.optionIds[0]!
         }
-      },
-      cycling
-    )
-    after = await snapshot(base.t)
+      }
+    })
+    after = await snapshot(base.t, campaign.id)
     choices.push(writeSet(before, after))
   }
   // Settling the occurrence deletes its snapshot parts.

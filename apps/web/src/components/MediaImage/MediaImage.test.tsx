@@ -55,6 +55,21 @@ vi.mock('@convex-dev/react-query', async (importOriginal) => ({
 
 vi.mock('convex/react', async (importOriginal) => {
   const original = await importOriginal<typeof import('convex/react')>()
+  const { signedImageDeliveryDtoSchema } = await import('@artificer-toolkit/schema/api/media')
+  const { mediaSinglePutUploadSchema } = await import('@artificer-toolkit/schema/api/mediaAssets')
+  // Every response a test supplies passes through the real DTO schema, so a contract change fails
+  // here instead of leaving the fixtures on a stale shape.
+  const delivering = (read: (args: unknown) => unknown) => async (args: unknown) =>
+    signedImageDeliveryDtoSchema.parse(await read(args))
+  const uploading = (create: (args: unknown) => unknown) => async (args: unknown) =>
+    mediaSinglePutUploadSchema.parse(await create(args))
+  const getLibraryImage = delivering(mocks.getLibraryImage)
+  const getAvatarImage = delivering(mocks.getAvatarImage)
+  const getPortraitImage = delivering(mocks.getPortraitImage)
+  const getArtworkImage = delivering(mocks.getArtworkImage)
+  const createAvatarUpload = uploading(mocks.createAvatarUpload)
+  const createPortraitUpload = uploading(mocks.createPortraitUpload)
+  const createArtworkUpload = uploading(mocks.createArtworkUpload)
   return {
     ...original,
     usePaginatedQuery: (reference: Parameters<typeof getFunctionName>[0], args: unknown) => {
@@ -63,13 +78,13 @@ vi.mock('convex/react', async (importOriginal) => {
     },
     useAction: (reference: Parameters<typeof getFunctionName>[0]) =>
       getFunctionName(reference) === 'media/libraryActions:getImage'
-        ? mocks.getLibraryImage
+        ? getLibraryImage
         : getFunctionName(reference) === 'media/avatarActions:getAvatarImage'
-          ? mocks.getAvatarImage
+          ? getAvatarImage
           : getFunctionName(reference) === 'media/characterPortraitActions:getImage'
-            ? mocks.getPortraitImage
+            ? getPortraitImage
             : getFunctionName(reference) === 'media/authoredActions:getImage'
-              ? mocks.getArtworkImage
+              ? getArtworkImage
               : getFunctionName(reference) === 'media/characterPortraitActions:save'
                 ? mocks.savePortrait
                 : getFunctionName(reference) === 'media/authoredActions:save'
@@ -83,11 +98,11 @@ vi.mock('convex/react', async (importOriginal) => {
       getFunctionName(reference) === 'media/library:attachImage'
         ? mocks.attachImage
         : getFunctionName(reference) === 'media/assets:createAvatarUpload'
-          ? mocks.createAvatarUpload
+          ? createAvatarUpload
           : getFunctionName(reference) === 'media/characterPortraitAssets:createUpload'
-            ? mocks.createPortraitUpload
+            ? createPortraitUpload
             : getFunctionName(reference) === 'media/authoredAssets:createUpload'
-              ? mocks.createArtworkUpload
+              ? createArtworkUpload
               : getFunctionName(reference) === 'media/authoredAssets:remove'
                 ? mocks.removeArtwork
                 : getFunctionName(reference) === 'media/characterPortraitAssets:remove'

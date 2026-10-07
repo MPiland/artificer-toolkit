@@ -15,6 +15,8 @@ export function roomAuthorizationResponse(input: {
   assignments?: LiveSessionRoomAuthorization['campaign']['assignments']
   characterRevisions?: LiveSessionRoomAuthorization['revisions']['characters']
   play?: LiveSessionRoomAuthorization['play']
+  /** Members whose stored preference rolls dice automatically. */
+  autoRollUserIds?: readonly string[]
 }): LiveSessionRoomAuthorizationResponse {
   const members = [...new Map(input.members.map((member) => [member.userId, member])).values()]
   const ownerUserId =
@@ -39,7 +41,7 @@ export function roomAuthorizationResponse(input: {
     })),
     preferences: members.map(({ userId }) => ({
       userId,
-      autoRollDice: false,
+      autoRollDice: input.autoRollUserIds?.includes(userId) ?? false,
       gmRollVisibility: 'PUBLIC',
       username: 'FixtureMember'
     })),

@@ -1,16 +1,17 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { socialBlockDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialBlocksPanel } from './SocialBlocksPanel'
 
-const blockedProfile = {
+const blockedProfile = socialBlockDtoSchema.parse({
   profile: {
     profilePublicId: '22222222-2222-4222-8222-222222222222',
     username: 'BlockedPlayer'
   },
   createdAt: '2026-09-01T00:00:00.000Z'
-}
+})
 
 const mocks = vi.hoisted(() => ({
   blocks: {

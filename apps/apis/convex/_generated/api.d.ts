@@ -2999,7 +2999,6 @@ export declare const api: {
               };
               resourceCost?: number;
               resourceGrantId?: string;
-              rollable?: boolean;
               sourceLabel?: string;
             }>;
           };
@@ -17225,7 +17224,6 @@ export declare const api: {
               };
               resourceCost?: number;
               resourceGrantId?: string;
-              rollable?: boolean;
               sourceLabel?: string;
             }>;
           };
@@ -19832,7 +19830,6 @@ export declare const api: {
                   };
                   resourceCost?: number;
                   resourceGrantId?: string;
-                  rollable?: boolean;
                   sourceLabel?: string;
                 }>;
               };

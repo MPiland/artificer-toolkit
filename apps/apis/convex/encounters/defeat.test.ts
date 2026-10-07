@@ -5,9 +5,12 @@ import {
   playerControlFixture,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
+import { checkpointLiveRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { api } from '../_generated/api'
 
+/** The stored actor Convex holds, which is current only after the room checkpoints (D85). */
 async function storedActor(base: PlayerControlFixture, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
   const row = await base.t.run((ctx) =>
     ctx.db
       .query('encounterRunActors')
@@ -49,6 +52,8 @@ async function setCurrentActor(base: PlayerControlFixture, actorId: string) {
 }
 
 describe('0 hit points in the room (D63)', () => {
+  useLocalRoomWorker()
+
   it('defeats a Creature in the commit whose damage drops it to 0, then skips its turns', async () => {
     // Turn order: companion, Character, enemy, hidden lurker.
     const base = await playerControlFixture()
@@ -60,6 +65,7 @@ describe('0 hit points in the room (D63)', () => {
     })
     expect(await storedActor(base, base.enemy.id)).toMatchObject({ defeated: true })
     // Players see it fall too.
+    await checkpointLiveRoom(base.campaign.id)
     const seen = await base.player.caller.query(api.encounters.projectionReads.get, {
       encounterId: base.run.id
     })
@@ -80,6 +86,7 @@ describe('0 hit points in the room (D63)', () => {
     await base.gm(await base.bite(base.companion.id, base.enemy.id))
     // The GM may still put its turn marker on it, but it has no choices and can't act.
     const current = await setCurrentActor(base, base.enemy.id)
+    await checkpointLiveRoom(base.campaign.id)
     await expect(
       base.owner.caller.query(api.encounters.actionChoices.get, {
         encounterId: base.run.id,
@@ -96,6 +103,7 @@ describe('0 hit points in the room (D63)', () => {
       currentHitPoints: 4,
       defeated: false
     })
+    await checkpointLiveRoom(base.campaign.id)
     const choices = await base.owner.caller.query(api.encounters.actionChoices.get, {
       encounterId: base.run.id,
       expectedVersion: revived.projection.version,

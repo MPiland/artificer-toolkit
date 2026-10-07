@@ -7,15 +7,15 @@ import {
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 import { describe, expect, it } from 'vitest'
 
-import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
 import { pruneSheetAdjustments } from '../character/sheetAdjustmentCommands.js'
 import { applyCompletedCharacterRest, buildCharacterRestPreview } from '../character/sheetRest.js'
 import { pruneSheetResourceUsage } from '../character/sheetResourceUsage.js'
 import {
   prepareFixtureBuilder,
   prepareFixtureSheet,
-  readyFighterFixture
-} from './characterContextFixtures.js'
+  readyFighterFixture,
+  restParamsFromFixtureSheet
+} from '../testing/characterContextFixtures.js'
 
 const shortRest = {
   restKind: 'SHORT',
@@ -60,13 +60,7 @@ async function playedFighter({ hitDiceUsed = 0, resourceUsed = false } = {}) {
     : fresh
   return {
     resource,
-    params: {
-      character: prepared.prepared.character,
-      resolution: prepared.prepared.resolution,
-      sheet: prepared.sheet,
-      restPolicy: prepared.ruleEvaluation.output.rest,
-      effectiveMaximum: resolveCharacterRecordStats(prepared.ruleEvaluation).maximumHitPoints
-    }
+    params: restParamsFromFixtureSheet(prepared)
   }
 }
 

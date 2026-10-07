@@ -2,7 +2,10 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { SocialInvitationListInput } from '@artificer-toolkit/schema/api/socialAdmissionLists'
-import type { CampaignInviteDto } from '@artificer-toolkit/schema/api/campaignCore'
+import {
+  campaignInviteDtoSchema,
+  type CampaignInviteDto
+} from '@artificer-toolkit/schema/api/campaignCore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialInvitationsView } from './SocialInvitationsView'
@@ -46,7 +49,7 @@ vi.mock('convex/react', async (importOriginal) => ({
 describe('SocialInvitationsView', () => {
   it('withholds expired pending actions before the horizon refresh completes', () => {
     mocks.pending.results = [
-      {
+      campaignInviteDtoSchema.parse({
         invitePublicId: 'aaaaaaaa-1111-4111-8111-111111111111',
         listingPublicId: 'bbbbbbbb-2222-4222-8222-222222222222',
         hostProfilePublicId: 'cccccccc-3333-4333-8333-333333333333',
@@ -58,7 +61,7 @@ describe('SocialInvitationsView', () => {
         createdAt: new Date(Date.now() - 2000).toISOString(),
         respondedAt: null,
         version: 0
-      }
+      })
     ]
     renderWithAppProviders(<SocialInvitationsView />)
     expect(screen.getByText('Expired table')).toBeVisible()

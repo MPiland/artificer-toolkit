@@ -5,6 +5,9 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ConvexReactClient, usePaginatedQuery } from 'convex/react'
 import { getFunctionName } from 'convex/server'
+import { finalizeVttMapUploadOutputSchema } from '@artificer-toolkit/schema/api/media'
+import { mediaSinglePutUploadSchema } from '@artificer-toolkit/schema/api/mediaAssets'
+import { sceneDefinitionHeaderSchema } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
 import { loadSceneDefinition, saveSceneDefinition } from '#app/data/campaigns/scenes'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { tabletopSceneDefinition, tabletopMapDelivery } from './CampaignTabletop.stories.fixtures'
@@ -20,7 +23,7 @@ vi.mock('#app/data/campaigns/scenes', () => ({
 }))
 const { annotations, barriers, darknessZones, lights, tokens, ...sceneSettings } =
   tabletopSceneDefinition
-const sceneHeader = {
+const sceneHeader = sceneDefinitionHeaderSchema.parse({
   ...sceneSettings,
   saveId: '99999999-9999-4999-8999-999999999999',
   counts: {
@@ -32,7 +35,7 @@ const sceneHeader = {
   },
   createdAt: '2026-09-10T00:00:00.000Z',
   updatedAt: '2026-09-10T00:00:00.000Z'
-}
+})
 
 vi.mock('./CampaignSceneEditor', () => ({
   CampaignSceneEditor: ({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) => (
@@ -114,17 +117,22 @@ describe('CampaignScenePreparation unsaved navigation', () => {
     })
     vi.mocked(saveSceneDefinition).mockResolvedValue(tabletopSceneDefinition)
     const client = new ConvexReactClient('https://unit-test.convex.cloud', { logger: false })
-    const createUpload = vi.spyOn(client, 'mutation').mockResolvedValue({
-      assetId: tabletopMapDelivery.assetId,
-      method: 'PUT',
-      url: 'https://storage.example/map',
-      expiresAt: '2026-09-11T02:00:00.000Z'
-    })
+    const createUpload = vi.spyOn(client, 'mutation').mockResolvedValue(
+      mediaSinglePutUploadSchema.parse({
+        assetId: tabletopMapDelivery.assetId,
+        method: 'PUT',
+        url: 'https://storage.example/map',
+        expiresAt: '2026-09-11T02:00:00.000Z'
+      })
+    )
     let finalizations = 0
     const action = vi.spyOn(client, 'action').mockImplementation(async (...[reference]) => {
       if (getFunctionName(reference) === 'media/vttMapActions:finalize') {
         if (++finalizations === 1) throw new Error('Try finalization again.')
-        return { assetId: tabletopMapDelivery.assetId, status: 'READY' }
+        return finalizeVttMapUploadOutputSchema.parse({
+          assetId: tabletopMapDelivery.assetId,
+          status: 'READY'
+        })
       }
       if (getFunctionName(reference) === 'media/vttMapActions:getDelivery')
         return tabletopMapDelivery

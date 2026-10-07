@@ -1,87 +1,88 @@
-import { createFunctionHandle } from 'convex/server'
 import { Resend, type EmailId } from '@convex-dev/resend'
 import { register } from '@convex-dev/resend/test'
-import { convexTest } from '../../tests/convexTest'
-import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NotificationIntentData } from '@artificer-toolkit/schema/api/notifications'
 import {
   notificationStoredIntentSchema,
   type NotificationEnqueueInput
 } from '@artificer-toolkit/schema/projections/notificationPersistence'
+import { campaignStoredAnnouncementSchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import { socialStoredApplicationSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { components, internal } from '../_generated/api'
+import { fixture as socialFixture } from '../../tests/fixtures/socialAdmission'
 import { cancelNotification, enqueueNotification } from './intents'
-import schema from '../schema'
-import authSchema from '../betterAuth/schema'
 
-vi.mock('./source', () => ({
-  isNotificationSourceEligible: vi.fn(async () => true)
-}))
+type SubmittedData = Extract<NotificationIntentData, { kind: 'SOCIAL_APPLICATION_SUBMITTED' }>
+type AnnouncementData = Extract<NotificationIntentData, { kind: 'CAMPAIGN_ANNOUNCEMENT' }>
 
-const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
-
+/**
+ * The host Owner is the recipient. `submitted` and `announcement` seed a real Social application
+ * and a real Campaign announcement by another author, so source eligibility is the real check.
+ */
 async function fixture() {
-  const t = convexTest(schema, modules)
-  t.registerComponent('betterAuth', authSchema, import.meta.glob('../betterAuth/**/*.*s'))
-  registerRateLimiter(t)
+  const base = await socialFixture()
+  const { t } = base
   register(t)
-  const user = await t.run(async (ctx) =>
-    ctx.runMutation(components.betterAuth.adapter.create, {
-      input: {
-        model: 'user',
-        data: {
-          name: 'Notification recipient',
-          email: 'recipient@example.test',
-          emailVerified: true,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        }
-      },
-      onCreateHandle: await createFunctionHandle(internal.auth.onCreate)
-    })
-  )
-  const profile = await t.run(async (ctx) =>
-    ctx.db
-      .query('userProfiles')
-      .withIndex('by_authUserId', (q) => q.eq('authUserId', user._id))
+  const applicationTemplate = await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('socialApplications')
+      .withIndex('by_publicId', (q) => q.eq('id', base.applicationId))
       .unique()
-  )
-  if (!profile) throw new Error('Missing notification profile fixture.')
-  return { t, user, userId: profile.userId }
-}
-
-const ids = () => ({
-  sourcePublicId: crypto.randomUUID(),
-  listingPublicId: crypto.randomUUID()
-})
-
-function submitted(
-  overrides: Partial<Extract<NotificationIntentData, { kind: 'SOCIAL_APPLICATION_SUBMITTED' }>> = {}
-): Extract<NotificationIntentData, { kind: 'SOCIAL_APPLICATION_SUBMITTED' }> {
-  const { sourcePublicId, listingPublicId } = ids()
-  return {
-    kind: 'SOCIAL_APPLICATION_SUBMITTED',
-    sourcePublicId,
-    listingPublicId,
-    listingTitle: '  Secret campaign title  ',
-    applicantUsername: 'Applicant',
-    occurredAt: new Date().toISOString(),
-    ...overrides
+    if (!row) throw new Error('Missing Social application fixture.')
+    const { _id, _creationTime, ...stored } = row
+    return socialStoredApplicationSchema.parse(stored)
+  })
+  // The Social fixture seeds its own pending intents; these tests enqueue their own.
+  await t.run(async (ctx) => {
+    for (const row of await ctx.db.query('notificationDeliveryIntents').collect())
+      await ctx.db.delete(row._id)
+  })
+  const submitted = async (overrides: Partial<SubmittedData> = {}): Promise<SubmittedData> => {
+    const sourcePublicId = crypto.randomUUID()
+    await t.run((ctx) =>
+      ctx.db.insert('socialApplications', { ...applicationTemplate, id: sourcePublicId })
+    )
+    return {
+      kind: 'SOCIAL_APPLICATION_SUBMITTED',
+      sourcePublicId,
+      listingPublicId: base.listingId,
+      listingTitle: '  Secret campaign title  ',
+      applicantUsername: 'Applicant',
+      occurredAt: new Date().toISOString(),
+      ...overrides
+    }
   }
-}
-
-function announcement(
-  overrides: Partial<Extract<NotificationIntentData, { kind: 'CAMPAIGN_ANNOUNCEMENT' }>> = {}
-): Extract<NotificationIntentData, { kind: 'CAMPAIGN_ANNOUNCEMENT' }> {
-  return {
-    kind: 'CAMPAIGN_ANNOUNCEMENT',
-    announcementPublicId: crypto.randomUUID(),
-    campaignPublicId: 'campaign-1',
-    summary: 'private source text',
-    scope: 'TABLE',
-    occurredAt: new Date().toISOString(),
-    ...overrides
+  const announcement = async (): Promise<AnnouncementData> => {
+    const announcementPublicId = crypto.randomUUID()
+    const createdAt = new Date().toISOString()
+    await t.run((ctx) =>
+      ctx.db.insert(
+        'campaignAnnouncements',
+        campaignStoredAnnouncementSchema.parse({
+          announcementPublicId,
+          campaignId: base.campaign.id,
+          authorUserId: base.other.userId,
+          scope: 'TABLE',
+          partyId: null,
+          title: 'Notice',
+          body: 'private source text',
+          createdAt,
+          commandId: crypto.randomUUID(),
+          inputFingerprint: checksumCanonicalJson({ announcementPublicId })
+        })
+      )
+    )
+    return {
+      kind: 'CAMPAIGN_ANNOUNCEMENT',
+      announcementPublicId,
+      campaignPublicId: base.campaign.publicId,
+      summary: 'private source text',
+      scope: 'TABLE',
+      occurredAt: createdAt
+    }
   }
+  return { t, userId: base.owner.userId, submitted, announcement }
 }
 
 async function intent(
@@ -159,8 +160,8 @@ afterEach(() => {
 
 describe('native notification intent delivery', () => {
   it('deduplicates replay, preserves the first payload, masks titles, and fixes announcement summaries', async () => {
-    const { t, userId } = await fixture()
-    const first = submitted({ occurredAt: '2030-01-01T00:00:00Z' })
+    const { t, userId, submitted, announcement } = await fixture()
+    const first = await submitted({ occurredAt: '2030-01-01T00:00:00Z' })
     const replay = {
       ...first,
       listingTitle: 'replacement title',
@@ -183,7 +184,7 @@ describe('native notification intent delivery', () => {
     expect(row[0]?.occurredAt).toBe('2030-01-01T00:00:00.000Z')
     expect(row[0]?.data).not.toHaveProperty('email')
     expect(row[0]?.data).not.toHaveProperty('authUserId')
-    const announcementData = announcement()
+    const announcementData = await announcement()
     await t.run((ctx) =>
       enqueueNotification(ctx, {
         recipientUserId: userId,
@@ -199,12 +200,14 @@ describe('native notification intent delivery', () => {
   })
 
   it('rejects malformed strict input and rolls back source enqueue work together', async () => {
-    const { t, userId } = await fixture()
+    const { t, userId, submitted } = await fixture()
+    const malformed = { ...(await submitted()), extra: true }
+    const rolledBack = await submitted()
     await expect(
       t.run((ctx) =>
         enqueueNotification(ctx, {
           recipientUserId: userId,
-          data: { ...submitted(), extra: true }
+          data: malformed
         } as unknown as NotificationEnqueueInput)
       )
     ).rejects.toThrow()
@@ -212,7 +215,7 @@ describe('native notification intent delivery', () => {
       t.run(async (ctx) => {
         await enqueueNotification(ctx, {
           recipientUserId: userId,
-          data: submitted()
+          data: rolledBack
         })
         throw new Error('source mutation failed')
       })
@@ -221,8 +224,8 @@ describe('native notification intent delivery', () => {
   })
 
   it('creates cancellation tombstones before trigger and retains cancellation history after feed delivery', async () => {
-    const { t, userId } = await fixture()
-    const cancelledData = submitted()
+    const { t, userId, submitted } = await fixture()
+    const cancelledData = await submitted()
     await t.run((ctx) =>
       cancelNotification(ctx, {
         recipientUserId: userId,
@@ -240,7 +243,7 @@ describe('native notification intent delivery', () => {
     const cancelled = await t.run((ctx) => ctx.db.query('notificationDeliveryIntents').collect())
     expect(cancelled).toHaveLength(1)
     expect(cancelled[0]?.status).toBe('CANCELLED')
-    const data = submitted()
+    const data = await submitted()
     await t.run((ctx) => enqueueNotification(ctx, { recipientUserId: userId, data }))
     await t.mutation(internal.notifications.delivery.dispatch, {})
     const after = await t.run(async (ctx) => ({
@@ -282,7 +285,7 @@ describe('native notification intent delivery', () => {
   })
 
   it('claims at most ten, honors preferences, prunes delivered history, and does not resurrect pruned feed on retry', async () => {
-    const { t, userId } = await fixture()
+    const { t, userId, submitted, announcement } = await fixture()
     vi.useFakeTimers()
     vi.stubEnv('MAIL_DELIVERY_MODE', 'local')
     vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3210')
@@ -292,9 +295,12 @@ describe('native notification intent delivery', () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 500 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
-    const deliveredData = Array.from({ length: 26 }, (_, index) =>
-      submitted({ occurredAt: new Date(Date.now() + index).toISOString() })
+    const deliveredData = await Promise.all(
+      Array.from({ length: 26 }, (_, index) =>
+        submitted({ occurredAt: new Date(Date.now() + index).toISOString() })
+      )
     )
+    const announcementData = await announcement()
     await t.run(async (ctx) => {
       const profile = await ctx.db
         .query('userProfiles')
@@ -311,7 +317,7 @@ describe('native notification intent delivery', () => {
         await enqueueNotification(ctx, { recipientUserId: userId, data })
       await enqueueNotification(ctx, {
         recipientUserId: userId,
-        data: announcement()
+        data: announcementData
       })
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -335,7 +341,7 @@ describe('native notification intent delivery', () => {
         })
       ])
     )
-    const retryData = submitted({
+    const retryData = await submitted({
       occurredAt: new Date(Date.now() + 100).toISOString()
     })
     const retryId = await intent(t, userId, retryData)
@@ -363,6 +369,11 @@ describe('native notification intent delivery', () => {
     expect(afterFailure.feed).toHaveLength(25)
     expect(afterFailure.row?.lastErrorCode).toBe('DELIVERY_ERROR')
     // Evict the failed email's already-recorded feed item before reclaiming its retry.
+    const evictingData = await Promise.all(
+      Array.from({ length: 26 }, (_, index) =>
+        submitted({ occurredAt: new Date(Date.now() + 1000 + index).toISOString() })
+      )
+    )
     await t.run(async (ctx) => {
       const profile = await ctx.db
         .query('userProfiles')
@@ -375,13 +386,8 @@ describe('native notification intent delivery', () => {
           campaign: { inApp: false, email: false }
         }
       })
-      for (let index = 0; index < 26; index++)
-        await enqueueNotification(ctx, {
-          recipientUserId: userId,
-          data: submitted({
-            occurredAt: new Date(Date.now() + 1000 + index).toISOString()
-          })
-        })
+      for (const data of evictingData)
+        await enqueueNotification(ctx, { recipientUserId: userId, data })
     })
     await t.mutation(internal.notifications.delivery.dispatch, {})
     await t.mutation(internal.notifications.delivery.dispatch, {})
@@ -422,11 +428,11 @@ describe('native notification intent delivery', () => {
   })
 
   it('rolls back the component enqueue with the intent handle when the enclosing mutation fails', async () => {
-    const { t, userId } = await fixture()
+    const { t, userId, submitted } = await fixture()
     vi.stubEnv('MAIL_DELIVERY_MODE', 'resend')
     vi.stubEnv('NOTIFICATION_EMAIL_FROM', 'Artificer Toolkit <notifications@example.test>')
     vi.stubEnv('RESEND_API_KEY', 'test-key')
-    const id = await intent(t, userId, submitted(), { attemptCount: 1 })
+    const id = await intent(t, userId, await submitted(), { attemptCount: 1 })
     const observedIds: EmailId[] = []
     await expect(
       t.run(async (ctx) => {
@@ -448,8 +454,8 @@ describe('native notification intent delivery', () => {
   })
 
   it('fails closed for exhausted attempts, invalid payloads, unknown recipients, and active-account purge', async () => {
-    const { t, userId } = await fixture()
-    const exhausted = await intent(t, userId, submitted(), {
+    const { t, userId, submitted } = await fixture()
+    const exhausted = await intent(t, userId, await submitted(), {
       attemptCount: 10
     })
     const invalid = await t.run((ctx) =>
@@ -483,17 +489,17 @@ describe('native notification intent delivery', () => {
     await expect(
       t.mutation(internal.notifications.delivery.purgeRecipient, { userId })
     ).rejects.toThrow('active account')
-    const missing = await intent(t, crypto.randomUUID(), submitted())
+    const missing = await intent(t, crypto.randomUUID(), await submitted())
     await t.mutation(internal.notifications.delivery.dispatch, {})
     expect((await t.run((ctx) => ctx.db.get(missing)))?.lastErrorCode).toBe('RECIPIENT_UNAVAILABLE')
   })
 
   it('purges only the deleted recipient in bounded batches and cancels their queued email', async () => {
-    const { t, userId } = await fixture()
+    const { t, userId, submitted } = await fixture()
     vi.stubEnv('MAIL_DELIVERY_MODE', 'resend')
     vi.stubEnv('NOTIFICATION_EMAIL_FROM', 'Artificer Toolkit <notifications@example.test>')
     vi.stubEnv('RESEND_API_KEY', 'test-key')
-    const queued = await intent(t, userId, submitted(), { attemptCount: 1 })
+    const queued = await intent(t, userId, await submitted(), { attemptCount: 1 })
     await t.mutation(internal.notifications.delivery.enqueueRendered, {
       intentId: queued,
       attempt: 1,
@@ -502,8 +508,8 @@ describe('native notification intent delivery', () => {
     })
     const emailId = (await t.run((ctx) => ctx.db.get(queued)))?.providerEmailId
     if (!emailId) throw new Error('Missing queued email')
-    for (let index = 0; index < 50; index++) await intent(t, userId, submitted())
-    const other = await intent(t, crypto.randomUUID(), submitted())
+    for (let index = 0; index < 50; index++) await intent(t, userId, await submitted())
+    const other = await intent(t, crypto.randomUUID(), await submitted())
     await t.run(async (ctx) => {
       const profile = await ctx.db
         .query('userProfiles')
@@ -550,13 +556,13 @@ describe('native notification intent delivery', () => {
   })
 
   it('uses the configured Resend test recipient and persists its provider handle atomically', async () => {
-    const { t, userId } = await fixture()
+    const { t, userId, submitted } = await fixture()
     vi.stubEnv('MAIL_DELIVERY_MODE', 'resend')
     vi.stubEnv('NOTIFICATION_EMAIL_FROM', 'Artificer Toolkit <notifications@example.test>')
     vi.stubEnv('RESEND_API_KEY', 'test-key')
     vi.stubEnv('RESEND_TEST_RECIPIENT', 'delivered+notification_probe@resend.dev')
     const sendEmail = vi.spyOn(Resend.prototype, 'sendEmail')
-    const queued = await intent(t, userId, submitted(), { attemptCount: 1 })
+    const queued = await intent(t, userId, await submitted(), { attemptCount: 1 })
 
     await t.mutation(internal.notifications.delivery.enqueueRendered, {
       intentId: queued,
@@ -581,14 +587,14 @@ describe('native notification intent delivery', () => {
   })
 
   it('deduplicates concurrent Resend attempts, polls provider state, and cancels queued mail', async () => {
-    const { t, userId } = await fixture()
+    const { t, userId, submitted } = await fixture()
     vi.useFakeTimers()
     vi.stubEnv('MAIL_DELIVERY_MODE', 'resend')
     vi.stubEnv('NOTIFICATION_EMAIL_FROM', 'Artificer Toolkit <notifications@example.test>')
     vi.stubEnv('RESEND_API_KEY', 'test-key')
     vi.stubEnv('SITE_URL', 'https://app.example.test')
     const sendEmail = vi.spyOn(Resend.prototype, 'sendEmail')
-    const data = submitted()
+    const data = await submitted()
     const id = await intent(t, userId, data, { attemptCount: 1 })
     await Promise.all([
       t.action(internal.notifications.deliveryAction.send, {
@@ -620,7 +626,7 @@ describe('native notification intent delivery', () => {
     await t.mutation(internal.notifications.delivery.dispatch, {})
     expect((await t.run((ctx) => ctx.db.get(id)))?.status).toBe('DISPATCHED')
 
-    const failedId = await intent(t, userId, submitted(), { attemptCount: 1 })
+    const failedId = await intent(t, userId, await submitted(), { attemptCount: 1 })
     await t.action(internal.notifications.deliveryAction.send, {
       intentId: failedId,
       attempt: 1
@@ -635,7 +641,7 @@ describe('native notification intent delivery', () => {
       lastErrorCode: 'DELIVERY_ERROR'
     })
 
-    const cancelledData = submitted()
+    const cancelledData = await submitted()
     const cancelledId = await intent(t, userId, cancelledData, {
       attemptCount: 1
     })

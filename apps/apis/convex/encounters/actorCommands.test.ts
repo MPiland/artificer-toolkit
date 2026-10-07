@@ -303,6 +303,9 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     })
     await checkpointRoom(base.campaign.id)
     expect(await t.run((ctx) => readCharacterRow(ctx, character.id))).toEqual(settledSheet)
+    // A settled nested Sheet command id reused with the same input replays (above); reusing it, or an
+    // outer command id, with different input is refused. Both are asserted against the real room in
+    // `apps/session-worker/test/nativeRoomTurnEvidence.test.ts` ("a Sheet command nested in a GM UPDATE_ACTOR").
   }, 30000)
 
   it('rejects character direct state, invalid sides, failed Sheet commands, and corrupt actor state without writes', async () => {

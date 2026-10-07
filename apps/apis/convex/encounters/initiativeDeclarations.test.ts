@@ -44,6 +44,7 @@ import {
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
@@ -51,12 +52,17 @@ import {
   writePendingSnapshot
 } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  replayInRoom,
-  RoomCommandRefusal,
-  readTimelineInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  expectRedactedRoomRefusal,
+  readRoomTimeline,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -133,7 +139,25 @@ async function setup(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   return { ...base, campaign, run }
+}
+
+/** The room redacts the cause from the member; the Worker error log still carries it. */
+async function expectRoomCause(command: Promise<unknown>, cause: RegExp) {
+  const seen = roomErrorLogs().length
+  await expectRedactedRoomRefusal(command, 'The Encounter command could not be completed.')
+  expect(roomErrorLogs().slice(seen).join('\n')).toMatch(cause)
+}
+
+/** A pending-declaration read as a member sees it: Convex, once the room has published. */
+async function readPending(
+  base: { campaign: { id: string } },
+  caller: Awaited<ReturnType<typeof fixture>>['owner']['caller'],
+  encounterId: string
+) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(api.encounters.pendingReads.pendingRuleOccurrence, { encounterId })
 }
 
 function declarationCommand(input: {
@@ -176,9 +200,10 @@ function declarationCommand(input: {
   }
 }
 
-async function storedInitiative<T extends { t: Awaited<ReturnType<typeof fixture>>['t'] }>(
-  base: T
-) {
+async function storedInitiative<
+  T extends { t: Awaited<ReturnType<typeof fixture>>['t']; campaign: { id: string } }
+>(base: T) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -186,10 +211,54 @@ async function storedInitiative<T extends { t: Awaited<ReturnType<typeof fixture
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-    occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-    receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
+    occurrences: await ctx.db.query('encounterRuleOccurrences').collect()
   }))
+}
+
+/** A started Run whose declarations alternate between an assigned Character and a Custom enemy. */
+async function startCharacterDeclarationRun() {
+  // Deliberately unequipped: a carried weapon is declared as drawn.
+  const base = await setupCharacterRun()
+  const initiative = createEncounterInitiativeDefinitions([
+    { procedure: 'DECLARED_ACTION_ROLL', cadence: 'ENCOUNTER_START' }
+  ])
+  await base.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: initiative.definitions
+  })
+  const settings = await base.owner.caller.query(getSettings, { campaignId: base.campaign.id })
+  const { version, updatedAt: _updatedAt, ...fields } = settings
+  await base.owner.caller.mutation(saveSettings, {
+    ...fields,
+    expectedVersion: version,
+    automationMode: 'ASSISTED',
+    manualReminderMode: 'OFF',
+    initiativePolicyDefinitionId: initiative.policyIds[0]!,
+    initiativeTieDefinitionId: null
+  })
+  const blueprint = await base.owner.caller.mutation(createBlueprint, {
+    gameSystemId: base.campaign.gameSystemId,
+    name: 'Declaration privacy',
+    commandId: crypto.randomUUID(),
+    enemies: [{ kind: 'CUSTOM', label: 'First', maxHitPoints: 3 }]
+  })
+  const run = await base.owner.caller.mutation(createRun, {
+    campaignId: base.campaign.id,
+    blueprintId: blueprint.id,
+    commandId: crypto.randomUUID()
+  })
+  await attachFixtureRoom(base.t, base.campaign.id)
+  const characterActor = run.actors.find((actor) => actor.kind === 'CHARACTER')
+  if (!characterActor) throw new Error('Expected assigned Character actor.')
+  const started = await executeInRoom(base.owner.caller, {
+    command: {
+      type: 'START',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: run.version
+    }
+  })
+  return { base, run, characterActor, started }
 }
 
 describe('native initiative declarations', () => {
@@ -209,30 +278,20 @@ describe('native initiative declarations', () => {
       pending.occurrence.pending.kind !== 'INITIATIVE_DECLARATION'
     )
       throw new Error('Expected first declaration.')
-    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(pending)
-    expect(await storedInitiative(base)).toMatchObject({
-      rounds: [],
-      participants: [],
-      receipts: [],
-      commands: expect.any(Array)
-    })
+    await expect(executeInRoom(base.owner.caller, start)).resolves.toEqual(pending)
+    expect(await storedInitiative(base)).toMatchObject({ rounds: [], participants: [] })
     const first = declarationCommand({
       encounterId: base.run.id,
       pending: pending.occurrence.pending
     })
     const continued = await executeInRoom(base.owner.caller, first)
-    await expect(replayInRoom(base.owner.caller, first)).resolves.toEqual(continued)
+    await expect(executeInRoom(base.owner.caller, first)).resolves.toEqual(continued)
     if (
       !continued.occurrence?.pending ||
       continued.occurrence.pending.kind !== 'INITIATIVE_DECLARATION'
     )
       throw new Error('Expected second declaration.')
-    expect(await storedInitiative(base)).toMatchObject({
-      rounds: [],
-      participants: [],
-      receipts: [],
-      commands: expect.any(Array)
-    })
+    expect(await storedInitiative(base)).toMatchObject({ rounds: [], participants: [] })
     const terminal = declarationCommand({
       encounterId: base.run.id,
       pending: continued.occurrence.pending
@@ -240,12 +299,12 @@ describe('native initiative declarations', () => {
     const beforeTerminal = await storedInitiative(base)
     expect(await storedInitiative(base)).toEqual(beforeTerminal)
     const settled = await executeInRoom(base.owner.caller, terminal)
-    await expect(replayInRoom(base.owner.caller, terminal)).resolves.toEqual(settled)
-    await expect(replayInRoom(base.owner.caller, first)).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, terminal)).resolves.toEqual(settled)
+    await expect(executeInRoom(base.owner.caller, first)).resolves.toEqual({
       ...continued,
       projection: settled.projection
     })
-    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, start)).resolves.toEqual({
       ...pending,
       projection: settled.projection
     })
@@ -256,8 +315,34 @@ describe('native initiative declarations', () => {
     const stored = await storedInitiative(base)
     expect(stored.rounds).toHaveLength(1)
     expect(stored.participants).toHaveLength(2)
-    expect(stored.receipts).toHaveLength(1)
-    expect(stored.commands.filter((command) => command.commandType === 'START')).toHaveLength(1)
+    // Replaying START, a continuation and the terminal answered from held history without a
+    // second round, order or occurrence. The receipt and command rows live only in the room (D85).
+    expect(stored.occurrences).toHaveLength(1)
+    // Command rows and rule receipts stay in the room for the Run (D85, D88); Convex holds one
+    // replay-index row per room command. The checkpointed rows prove the room committed each
+    // command once, under the caller's identity and input fingerprint, at the resulting version,
+    // even though START and each continuation were sent again.
+    await checkpointLiveRoom(base.campaign.id)
+    const replayIndex = await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterReplayIndex')
+        .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', base.campaign.id))
+        .collect()
+    )
+    const sent = [
+      { input: start, result: pending },
+      { input: first, result: continued },
+      { input: terminal, result: settled }
+    ]
+    for (const { input, result } of sent)
+      expect(replayIndex.filter(({ commandId }) => commandId === input.command.commandId)).toEqual([
+        expect.objectContaining({
+          encounterId: base.run.id,
+          actorUserId: base.owner.userId,
+          commandFingerprint: checksumCanonicalJson({ command: input.command, scope: 'ENCOUNTER' }),
+          version: result.projection.version
+        })
+      ])
   }, 30000)
 
   it('settles Assisted declarations through score evidence and GM order', async () => {
@@ -349,6 +434,8 @@ describe('native initiative declarations', () => {
     expect((await storedInitiative(base)).rounds).toHaveLength(1)
     if (!turn.occurrence?.pending || turn.occurrence.pending.kind !== 'INITIATIVE_DECLARATION')
       throw new Error('Expected second-round declaration.')
+    // The room holds the Run: release it so the direct write is what it hydrates next.
+    await closeRoom(base.campaign.id)
     const beforeRound = await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterInitiativeRounds')
@@ -359,13 +446,15 @@ describe('native initiative declarations', () => {
       return row
     })
     const changedRound = await storedInitiative(base)
-    await expect(
+    await expectRoomCause(
       executeInRoom(
         base.owner.caller,
         declarationCommand({ encounterId: base.run.id, pending: turn.occurrence.pending })
-      )
-    ).rejects.toThrow()
+      ),
+      /Initiative outgoing advancement is stale/
+    )
     expect(await storedInitiative(base)).toEqual(changedRound)
+    await closeRoom(base.campaign.id)
     await base.t.run((ctx) => ctx.db.patch(beforeRound._id, { version: beforeRound.version }))
     const nextRoundFirst = await executeInRoom(
       base.owner.caller,
@@ -394,6 +483,7 @@ describe('native initiative declarations', () => {
         expectedVersion: base.run.version
       }
     })
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const occurrence = await ctx.db.query('encounterRuleOccurrences').unique()
       if (!occurrence) throw new Error('Expected declaration occurrence.')
@@ -445,6 +535,7 @@ describe('native initiative declarations', () => {
     })
     const pending = result.occurrence?.pending
     if (pending?.kind !== 'INITIATIVE_DECLARATION') throw new Error('Expected declaration.')
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const occurrence = await ctx.db.query('encounterRuleOccurrences').unique()
       if (!occurrence) throw new Error('Expected declaration occurrence.')
@@ -477,54 +568,49 @@ describe('native initiative declarations', () => {
       })
     })
     const before = await storedInitiative(base)
-    await expect(
-      executeInRoom(base.owner.caller, declarationCommand({ encounterId: base.run.id, pending }))
-    ).rejects.toThrow(RoomCommandRefusal)
+    await expectRoomCause(
+      executeInRoom(base.owner.caller, declarationCommand({ encounterId: base.run.id, pending })),
+      /Initiative response state is unavailable/
+    )
     expect(await storedInitiative(base)).toEqual(before)
   }, 30000)
 
-  it('shows a Character declaration only to its current controller and the GM', async () => {
-    // Deliberately unequipped: a carried weapon is declared as drawn.
-    const base = await setupCharacterRun()
-    const initiative = createEncounterInitiativeDefinitions([
-      { procedure: 'DECLARED_ACTION_ROLL', cadence: 'ENCOUNTER_START' }
-    ])
-    await base.t.mutation(internal.content.import.importDefinitions, {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: initiative.definitions
-    })
-    const settings = await base.owner.caller.query(getSettings, { campaignId: base.campaign.id })
-    const { version, updatedAt: _updatedAt, ...fields } = settings
-    await base.owner.caller.mutation(saveSettings, {
-      ...fields,
-      expectedVersion: version,
-      automationMode: 'ASSISTED',
-      manualReminderMode: 'OFF',
-      initiativePolicyDefinitionId: initiative.policyIds[0]!,
-      initiativeTieDefinitionId: null
-    })
-    const blueprint = await base.owner.caller.mutation(createBlueprint, {
-      gameSystemId: base.campaign.gameSystemId,
-      name: 'Declaration privacy',
-      commandId: crypto.randomUUID(),
-      enemies: [{ kind: 'CUSTOM', label: 'First', maxHitPoints: 3 }]
-    })
-    const run = await base.owner.caller.mutation(createRun, {
-      campaignId: base.campaign.id,
-      blueprintId: blueprint.id,
-      commandId: crypto.randomUUID()
-    })
-    const characterActor = run.actors.find((actor) => actor.kind === 'CHARACTER')
-    if (!characterActor) throw new Error('Expected assigned Character actor.')
-    let result = await executeInRoom(base.owner.caller, {
-      command: {
-        type: 'START',
-        encounterId: run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: run.version
-      }
-    })
+  it('refuses a declaration from a controller who lost the Character assignment', async () => {
+    const { base, run, characterActor, started } = await startCharacterDeclarationRun()
+    let result = started
     for (let step = 0; step < 2; step += 1) {
+      await checkpointLiveRoom(base.campaign.id)
+      const pending = result.occurrence?.pending
+      if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
+        throw new Error('Expected declaration.')
+      const response = declarationCommand({ encounterId: run.id, pending })
+      if (pending.actorId === characterActor.id) {
+        await closeRoom(base.campaign.id)
+        await base.t.run(async (ctx) => {
+          const assignment = await ctx.db
+            .query('campaignCharacterAssignments')
+            .withIndex('by_campaignId_userId', (q) =>
+              q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
+            )
+            .unique()
+          if (!assignment) throw new Error('Expected current Character assignment.')
+          await ctx.db.delete(assignment._id)
+        })
+        await expect(executeInRoom(base.player.caller, response)).rejects.toThrow(
+          /NOT_ACTOR_CONTROLLER/
+        )
+        return
+      }
+      result = await executeInRoom(base.owner.caller, response)
+    }
+    throw new Error('Expected a declaration addressed to the Character.')
+  }, 30000)
+
+  it('shows a Character declaration only to its current controller and the GM', async () => {
+    const { base, run, characterActor, started } = await startCharacterDeclarationRun()
+    let result = started
+    for (let step = 0; step < 2; step += 1) {
+      await checkpointLiveRoom(base.campaign.id)
       const pending = result.occurrence?.pending
       if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected declaration.')
@@ -546,6 +632,7 @@ describe('native initiative declarations', () => {
           })
         ).toHaveLength(1)
         const response = declarationCommand({ encounterId: run.id, pending })
+        await closeRoom(base.campaign.id)
         await base.t.run(async (ctx) => {
           const membership = await ctx.db
             .query('campaignMemberships')
@@ -566,7 +653,10 @@ describe('native initiative declarations', () => {
             campaignId: base.campaign.id
           })
         ).rejects.toThrow()
-        await expect(executeInRoom(base.player.caller, response)).rejects.toThrow()
+        await expect(executeInRoom(base.player.caller, response)).rejects.toThrow(
+          'Campaign not found.'
+        )
+        await closeRoom(base.campaign.id)
         await base.t.run(async (ctx) => {
           const membership = await ctx.db
             .query('campaignMemberships')
@@ -584,27 +674,24 @@ describe('native initiative declarations', () => {
             expectedOccurrenceVersion: pending.occurrenceVersion + 1
           }
         }
+        await checkpointLiveRoom(base.campaign.id)
         const beforeStale = await base.t.run((ctx) =>
           ctx.db.query('encounterRuleOccurrences').collect()
         )
-        await expect(executeInRoom(base.player.caller, stale)).rejects.toThrow()
+        await expect(executeInRoom(base.player.caller, stale)).rejects.toThrow(/VERSION_STALE/)
+        await checkpointLiveRoom(base.campaign.id)
         expect(
           await base.t.run((ctx) => ctx.db.query('encounterRuleOccurrences').collect())
         ).toEqual(beforeStale)
         result = await executeInRoom(base.player.caller, response)
         expect(encounterPlayerProjectionDtoSchema.safeParse(result.projection).success).toBe(true)
         expect(result.occurrence?.pending).toBeNull()
-        await expect(replayInRoom(base.player.caller, response)).resolves.toEqual(result)
+        await expect(executeInRoom(base.player.caller, response)).resolves.toEqual(result)
         result = encounterCommandResultDtoSchema.parse({
           ...result,
           occurrence: result.occurrence && {
             ...result.occurrence,
-            pending: await base.owner.caller.query(
-              api.encounters.pendingReads.pendingRuleOccurrence,
-              {
-                encounterId: run.id
-              }
-            )
+            pending: await readPending(base, base.owner.caller, run.id)
           }
         })
       } else {
@@ -617,10 +704,7 @@ describe('native initiative declarations', () => {
         await expect(
           base.player.caller.query(api.encounters.projectionReads.get, { encounterId: run.id })
         ).rejects.toThrow('Encounter is unavailable.')
-        expect(await readTimelineInRoom(base.player.caller, run.id)).toEqual({
-          entries: [],
-          nextCursor: null
-        })
+        expect(await readRoomTimeline(base.player.caller, base.campaign.id)).toEqual([])
         expect(
           await base.player.caller.query(api.encounters.projectionReads.pendingPrepared, {
             campaignId: base.campaign.id
@@ -628,7 +712,7 @@ describe('native initiative declarations', () => {
         ).toEqual([])
         await expect(
           executeInRoom(base.player.caller, declarationCommand({ encounterId: run.id, pending }))
-        ).rejects.toThrow()
+        ).rejects.toThrow(/NOT_ACTOR_CONTROLLER/)
         result = await executeInRoom(
           base.owner.caller,
           declarationCommand({ encounterId: run.id, pending })
@@ -636,6 +720,7 @@ describe('native initiative declarations', () => {
       }
     }
     expect(result.projection.status).toBe('ACTIVE')
+    await checkpointLiveRoom(base.campaign.id)
     expect(
       await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: run.id
@@ -712,6 +797,7 @@ describe('native initiative declarations', () => {
           commandId: createRunCommandId
         })
         .finally(() => uuidSpy.mockRestore())
+      await attachFixtureRoom(base.t, base.campaign.id)
       const characterActor = run.actors.find((actor) => actor.kind === 'CHARACTER')
       if (!characterActor) throw new Error('Expected assigned Character actor.')
       expect(characterActor.id).toBe(characterActorId)
@@ -731,6 +817,7 @@ describe('native initiative declarations', () => {
       let ownerDeclarations = 0
       let finalResponderUserId: string | null = null
       for (let step = 0; step < 4; step += 1) {
+        await checkpointLiveRoom(base.campaign.id)
         // A player's result hides the GM's declaration, so the GM reads it for the next step.
         const pending =
           current.occurrence?.pending ??
@@ -758,7 +845,12 @@ describe('native initiative declarations', () => {
         const before = await storedInitiative(base)
         const answer = (member: typeof base.player) => executeInRoom(member.caller, { command })
         if (role === 'PLAYER') {
-          await expect(executeInRoom(base.player.caller, { command: start })).rejects.toThrow()
+          await expect(
+            executeInRoom(base.player.caller, {
+              command: { ...start, commandId: crypto.randomUUID() }
+            })
+          ).rejects.toThrow(/GM_ONLY/)
+          await closeRoom(base.campaign.id)
           const membership = await base.t.run((ctx) =>
             ctx.db
               .query('campaignMemberships')
@@ -774,33 +866,17 @@ describe('native initiative declarations', () => {
               leftAt: new Date().toISOString()
             })
           )
-          await expect(answer(base.player)).rejects.toThrow()
+          await expect(answer(base.player)).rejects.toThrow('Campaign not found.')
+          await closeRoom(base.campaign.id)
           await base.t.run((ctx) =>
             ctx.db.patch(membership._id, {
               status: 'ACTIVE',
               leftAt: null
             })
           )
-          const assignment = await base.t.run((ctx) =>
-            ctx.db
-              .query('campaignCharacterAssignments')
-              .withIndex('by_campaignId_userId', (q) =>
-                q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
-              )
-              .unique()
-          )
-          if (!assignment) throw new Error('Expected current Character assignment.')
-          await base.t.run((ctx) => ctx.db.delete(assignment._id))
-          await expect(answer(base.player)).rejects.toThrow()
-          await base.t.run((ctx) => {
-            const { _id: ignoredId, _creationTime: ignoredTime, ...saved } = assignment
-            void ignoredId
-            void ignoredTime
-            return ctx.db.insert('campaignCharacterAssignments', saved)
-          })
           expect(await storedInitiative(base)).toEqual(before)
         } else {
-          await expect(answer(base.player)).rejects.toThrow()
+          await expect(answer(base.player)).rejects.toThrow(/NOT_ACTOR_CONTROLLER/)
         }
         await expect(
           executeInRoom(caller, {
@@ -809,18 +885,21 @@ describe('native initiative declarations', () => {
               expectedOccurrenceVersion: command.expectedOccurrenceVersion + 1
             }
           })
-        ).rejects.toThrow()
-        await expect(
+        ).rejects.toThrow(/VERSION_STALE/)
+        await expectRoomCause(
           executeInRoom(caller, {
             command: {
               ...command,
               resolution: { ...command.resolution, requestId: crypto.randomUUID() }
             }
-          })
-        ).rejects.toThrow()
+          }),
+          // A player's unknown request cannot name a controlled actor, so it is indistinguishable
+          // from an unavailable Campaign (turnResponseAuthority.ts:75-76); the GM sees the cause.
+          role === 'PLAYER' ? /Campaign not found/ : /Initiative declaration is unavailable/
+        )
         expect(await storedInitiative(base)).toEqual(before)
         current = await answer(role === 'PLAYER' ? base.player : base.owner)
-        expect(await replayInRoom(caller, { command })).toEqual(current)
+        expect(await executeInRoom(caller, { command })).toEqual(current)
         if (role === 'PLAYER') playerDeclarations += 1
         else ownerDeclarations += 1
         if (current.projection.status !== 'ACTIVE') {
@@ -859,9 +938,6 @@ describe('native initiative declarations', () => {
       expect(finalResponderUserId).toBe(
         firstRole === 'PLAYER' ? base.owner.userId : base.player.userId
       )
-      expect(settled.receipts.find((entry) => entry.commandId === start.commandId)).toMatchObject({
-        actorUserId: base.owner.userId
-      })
       expect(
         await base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
           encounterId: run.id
@@ -1016,6 +1092,7 @@ describe('native initiative declarations', () => {
     } finally {
       randomUuid.mockRestore()
     }
+    await attachFixtureRoom(base.t, base.campaign.id)
     expect(
       [...run.actors]
         .sort((left, right) => left.id.localeCompare(right.id))
@@ -1030,9 +1107,7 @@ describe('native initiative declarations', () => {
         expectedVersion: run.version
       }
     })
-    let pending = await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-      encounterId: run.id
-    })
+    let pending = await readPending(base, base.owner.caller, run.id)
     for (let response = 0; response < 2; response += 1) {
       if (!pending || pending.kind !== 'INITIATIVE_DECLARATION')
         throw new Error('Expected a pending declaration before terminal resolution.')
@@ -1057,9 +1132,7 @@ describe('native initiative declarations', () => {
       } else {
         await executeInRoom(base.owner.caller, command)
       }
-      pending = await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: run.id
-      })
+      pending = await readPending(base, base.owner.caller, run.id)
     }
     const finalPending = pending
     if (!finalPending || finalPending.kind !== 'INITIATIVE_DECLARATION')
@@ -1078,7 +1151,7 @@ describe('native initiative declarations', () => {
     expect(encounterPlayerProjectionDtoSchema.safeParse(settled.projection).success).toBe(true)
     expect(settled.projection.actors.every((actor) => !('currentHitPoints' in actor))).toBe(true)
     const beforeReplay = await storedInitiative(base)
-    await expect(replayInRoom(secondPlayer, terminal)).resolves.toEqual(settled)
+    await expect(executeInRoom(secondPlayer, terminal)).resolves.toEqual(settled)
     expect(await storedInitiative(base)).toEqual(beforeReplay)
 
     const currentSheet = await base.player.caller.query(api.characters.sheet.get, {
@@ -1150,6 +1223,7 @@ describe('native initiative declarations', () => {
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
+    await attachFixtureRoom(base.t, base.campaign.id)
     const actor = run.actors.find((value) => value.kind === 'CREATURE')
     if (!actor) throw new Error('Expected Creature actor.')
     const before = await base.t.run(async (ctx) =>
@@ -1179,34 +1253,9 @@ describe('native initiative declarations', () => {
     })
     result = await executeInRoom(base.owner.caller, response)
     expect(result.projection.status).toBe('ACTIVE')
-    const after = await base.t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      participant: await ctx.db
-        .query('encounterInitiativeParticipants')
-        .withIndex('by_encounterId_round_actorId', (q) =>
-          q.eq('encounterId', run.id).eq('round', 1).eq('actorId', actor.id)
-        )
-        .unique(),
-      receipts: (
-        await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-      ).filter((value) => value.encounterId === run.id),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      rounds: await ctx.db
-        .query('encounterInitiativeRounds')
-        .withIndex('by_encounterId_round', (q) => q.eq('encounterId', run.id).eq('round', 1))
-        .collect()
-    }))
-    await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(result)
-    expect(
-      await base.t.run(async (ctx) => ({
+    const readDeclared = async () => {
+      await checkpointLiveRoom(base.campaign.id)
+      return base.t.run(async (ctx) => ({
         receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
         receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
         actor: await ctx.db
@@ -1219,9 +1268,6 @@ describe('native initiative declarations', () => {
             q.eq('encounterId', run.id).eq('round', 1).eq('actorId', actor.id)
           )
           .unique(),
-        receipts: (
-          await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-        ).filter((value) => value.encounterId === run.id),
         run: await ctx.db
           .query('encounterRuns')
           .withIndex('by_publicId', (q) => q.eq('id', run.id))
@@ -1231,9 +1277,14 @@ describe('native initiative declarations', () => {
           .withIndex('by_encounterId_round', (q) => q.eq('encounterId', run.id).eq('round', 1))
           .collect()
       }))
-    ).toEqual(after)
+    }
+    const after = await readDeclared()
+    await expect(executeInRoom(base.owner.caller, response)).resolves.toEqual(result)
+    expect(await readDeclared()).toEqual(after)
     expect(after.actor).toEqual(before)
-    expect(after.receipts).toHaveLength(1)
+    // The one receipt this Run wrote lives only in the room (D85); one round and one
+    // declaration row show the declaration settled once.
+    expect(after.rounds).toHaveLength(1)
     expect(after.participant?.declaration).toMatchObject({
       primary: {
         kind: 'CREATURE_FEATURE_ACTION',

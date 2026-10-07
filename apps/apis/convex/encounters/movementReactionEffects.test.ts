@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import type {
   EncounterExecuteInput,
@@ -14,16 +14,22 @@ import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneM
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api } from '../_generated/api'
 import {
+  checkpointLiveRoom,
   executeInRoom,
-  planMovementDecisionInRoom,
-  planMovementInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  queueRoomRolls,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: (maximum: number) => maximum - 1 }))
+useLocalRoomWorker()
 
-async function effects(base: Awaited<ReturnType<typeof setupCreatureReactionRun>>) {
+type Base = Awaited<ReturnType<typeof setupCreatureReactionRun>>
+
+/** Convex's rows after the room checkpoints what it holds (a Run's state is the room's until then, D85). */
+async function effects(base: Base) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run((ctx) =>
     ctx.db
       .query('encounterActiveRuleEffects')
@@ -32,10 +38,13 @@ async function effects(base: Awaited<ReturnType<typeof setupCreatureReactionRun>
   )
 }
 
+async function records(base: Base) {
+  await checkpointLiveRoom(base.campaign.id)
+  return reactionRecords(base.t, base.run.id)
+}
+
 async function publish(scene: Awaited<ReturnType<typeof setupReactionMovementScene>>) {
-  const prepared = await planMovementInRoom(scene.owner.caller, scene.rootInput)
-  const result = await prepared.publish()
-  return { prepared, result }
+  return (await executeSceneInRoom(scene.owner.caller, scene.rootInput)).result
 }
 
 function resolution(
@@ -71,17 +80,12 @@ async function useAutomaticReaction(
   )
 }
 
-/** Answers a movement decision through the room and publishes it. */
+/** Answers a movement decision through the room. */
 async function answer(
   scene: Awaited<ReturnType<typeof setupReactionMovementScene>>,
   command: ResolveRuleOccurrenceInputDto
 ) {
-  const plan = await planMovementDecisionInRoom(scene.owner.caller, command)
-  return {
-    prepared: { outcome: plan.outcome },
-    result: await plan.publish(),
-    command
-  }
+  return { result: await executeInRoom(scene.owner.caller, { command }), command }
 }
 
 function moverConditionIds(row: Parameters<typeof readStoredRunActor>[0]) {
@@ -117,11 +121,13 @@ function diceResponse(encounterId: string, input: unknown, face: number): Encoun
 it('publishes a real repeated-save condition from an Automatic Scene reaction', async () => {
   const base = await setupCreatureReactionRun(null, true, false, 'AUTOMATIC')
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  const before = await reactionRecords(base.t, base.run.id)
+  // Queued values are zero-based and not clamped to the die: 19 is a natural 20 for the reaction's
+  // attack, then 0s keep every later die at 1 (minimal damage, and the target's save fails).
+  await queueRoomRolls(base.campaign.id, { rolls: [19], repeat: 0 })
+  const before = await records(base)
   const choice = await publish(scene)
-  const published = await useAutomaticReaction(scene, choice.result.occurrence?.pending)
+  const published = await useAutomaticReaction(scene, choice?.occurrence?.pending)
 
-  expect(published.prepared.outcome?.kind).toBe('TERMINAL')
   expect(published.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const created = await effects(base)
   expect(created).toHaveLength(1)
@@ -129,12 +135,11 @@ it('publishes a real repeated-save condition from an Automatic Scene reaction', 
     encounterId: base.run.id,
     targetActorId: base.mover.id
   })
-  const actor = (await reactionRecords(base.t, base.run.id)).actors.find(
-    (entry) => entry.id === base.mover.id
-  )
+  const after = await records(base)
+  const actor = after.actors.find((entry) => entry.id === base.mover.id)
   if (!actor) throw new Error('Movement reaction target missing.')
   expect(moverConditionIds(actor)).not.toEqual([])
-  expect(before.actors).not.toEqual((await reactionRecords(base.t, base.run.id)).actors)
+  expect(before.actors).not.toEqual(after.actors)
 }, 30_000)
 
 it('offers an automatic reaction as Use/Decline and keeps it inert until entered dice, then replays one created effect', async () => {
@@ -145,15 +150,12 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
   if (!frightened) throw new Error('Expected the System Frightened condition.')
   await setAutoRollDice(base.t, base.owner.userId, false)
   const scene = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  const before = await reactionRecords(base.t, base.run.id)
-  const prepared = await planMovementInRoom(scene.owner.caller, scene.rootInput)
-  expect(prepared.outcome.kind).toBe('PENDING')
-  expect(await reactionRecords(base.t, base.run.id)).toEqual(before)
+  const before = await records(base)
+  const choice = await publish(scene)
+  expect(choice?.occurrence).toMatchObject({ status: 'PENDING' })
+  expect(await records(base)).toEqual(before)
   expect(await effects(base)).toEqual([])
-
-  const choice = await prepared.publish()
-  expect(await effects(base)).toEqual([])
-  const attack = await useAutomaticReaction(scene, choice.occurrence?.pending)
+  const attack = await useAutomaticReaction(scene, choice?.occurrence?.pending)
   const attackPending = attack.result.occurrence?.pending
   if (!attackPending || attackPending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected assisted reaction attack evidence after Use.')
@@ -164,12 +166,20 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
     rawFaces: attackPending.request.rollMode === 'NORMAL' ? [20] : [20, 20],
     rollMode: attackPending.request.rollMode
   })
+  const logsBefore = roomErrorLogs().length
   await expect(
-    planMovementDecisionInRoom(scene.owner.caller, {
-      ...stale,
-      expectedVersion: stale.expectedVersion - 1
+    executeInRoom(scene.owner.caller, {
+      command: { ...stale, expectedVersion: stale.expectedVersion - 1 }
     })
-  ).rejects.toThrow()
+  ).rejects.toMatchObject({
+    data: {
+      code: 'DOMAIN_REJECTED',
+      reason: 'VERSION_STALE',
+      message: 'Encounter version is stale.'
+    }
+  })
+  // A stale answer is a domain refusal the member sees, not a failure inside the room.
+  expect(roomErrorLogs()).toHaveLength(logsBefore)
   expect(await effects(base)).toEqual([])
   const outcome = await answer(
     scene,
@@ -193,7 +203,7 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
   )
   let completed: typeof current | null = null
   for (let step = 0; step < 10; step++) {
-    if (current.prepared.outcome?.kind === 'TERMINAL') {
+    if (current.result.occurrence?.status === 'COMPLETE') {
       completed = current
       break
     }
@@ -221,19 +231,16 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
     )
   }
   if (!completed) throw new Error('Assisted immediate reaction did not complete.')
-  expect(completed.prepared.outcome?.kind).toBe('TERMINAL')
   expect(completed.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   expect(await effects(base)).toHaveLength(1)
-  const settled = await reactionRecords(base.t, base.run.id)
+  const settled = await records(base)
   await expect(
     executeInRoom(scene.owner.caller, { command: completed.command })
   ).resolves.toMatchObject({ occurrence: { status: 'COMPLETE', pending: null } })
-  expect(await reactionRecords(base.t, base.run.id)).toEqual(settled)
+  expect(await records(base)).toEqual(settled)
   expect(await effects(base)).toHaveLength(1)
 
-  let projection = await scene.owner.caller.query(api.encounters.projectionReads.get, {
-    encounterId: base.run.id
-  })
+  let { projection } = completed.result
   let targetTurns = 0
   for (let advances = 0; advances < 12 && targetTurns < 2; advances++) {
     const advanced = await executeInRoom(scene.owner.caller, {
@@ -258,18 +265,14 @@ it('offers an automatic reaction as Use/Decline and keeps it inert until entered
       expect(await effects(base)).toMatchObject([
         { lifecycle: { schemaVersion: 1, remainingTicks: 1 } }
       ])
-      const target = (await reactionRecords(base.t, base.run.id)).actors.find(
-        (actor) => actor.id === base.mover.id
-      )
+      const target = (await records(base)).actors.find((actor) => actor.id === base.mover.id)
       if (!target) throw new Error('Expiry target actor missing.')
       expect(moverConditionIds(target)).toContain(frightened.id)
     }
   }
   expect(targetTurns).toBe(2)
   expect(await effects(base)).toEqual([])
-  const expiredTarget = (await reactionRecords(base.t, base.run.id)).actors.find(
-    (actor) => actor.id === base.mover.id
-  )
+  const expiredTarget = (await records(base)).actors.find((actor) => actor.id === base.mover.id)
   if (!expiredTarget) throw new Error('Expired target actor missing.')
   expect(moverConditionIds(expiredTarget)).not.toContain(frightened.id)
 }, 30_000)

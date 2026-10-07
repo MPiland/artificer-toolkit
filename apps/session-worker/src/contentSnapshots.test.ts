@@ -12,6 +12,19 @@ import { expect, it, vi } from 'vitest'
 
 import { startLocalR2 } from '../../apis/tests/localR2.js'
 import { serveContentSnapshot } from './contentSnapshots.js'
+import { isLocalDevelopment } from './contentSnapshotStorage.js'
+
+it('treats only loopback ports 1 to 65535 as local development', () => {
+  for (const port of ['1', '8026', '65535'])
+    expect(isLocalDevelopment({ LOCAL_CONTENT_SNAPSHOT_ORIGIN: `http://127.0.0.1:${port}` })).toBe(
+      true
+    )
+  for (const port of ['0', '65536', '99999', '100000'])
+    expect(isLocalDevelopment({ LOCAL_CONTENT_SNAPSHOT_ORIGIN: `http://127.0.0.1:${port}` })).toBe(
+      false
+    )
+  expect(isLocalDevelopment({})).toBe(false)
+})
 
 it('delivers the shared local fixture gzip objects with metadata and scoped authorization', async () => {
   const fixture = await startLocalR2()
@@ -105,6 +118,9 @@ it('delivers the shared local fixture gzip objects with metadata and scoped auth
       'https://127.0.0.1:8026',
       'http://127.0.0.1',
       'http://127.0.0.1:8026/',
+      'http://127.0.0.1:0',
+      'http://127.0.0.1:65536',
+      'http://127.0.0.1:99999',
       'http://192.168.0.1:8026',
       ''
     ])

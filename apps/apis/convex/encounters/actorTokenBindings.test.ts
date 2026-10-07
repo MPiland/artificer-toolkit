@@ -17,11 +17,16 @@ import {
 } from '../../tests/fixtures/encounterScene'
 import { seedLiveToken } from '../../tests/fixtures/liveSceneToken'
 import {
+  attachFixtureRoom,
   bindActorTokenInRoom,
+  checkpointLiveRoom,
   insertActiveLiveAuthority,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  readEncounterHistory,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { execute as registeredExecute } from './actorTokenBindings'
+
+useLocalRoomWorker()
 
 const execute = makeFunctionReference<
   'mutation',
@@ -155,6 +160,8 @@ async function snapshot(base: Awaited<ReturnType<typeof boundFixture>>) {
     liveStates: await ctx.db.query('sceneLiveStates').collect(),
     liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
     bindings: await ctx.db.query('encounterActorTokenBindings').collect(),
+    // Only meaningful while Convex holds the Run's history: once a room holds the Run, its command
+    // rows live in the room and this read stays empty.
     commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
   }))
 }
@@ -477,7 +484,7 @@ it('rejects anonymous, player, revoked, pending and completed fresh writes', asy
   )
 })
 
-it('refuses Convex binding writes while the live table holds the Run, and binds in the room', async () => {
+it('refuses Convex binding writes while the live table holds the Run', async () => {
   const base = await boundFixture()
   await base.t.run((ctx) =>
     insertActiveLiveAuthority(ctx, {
@@ -491,10 +498,15 @@ it('refuses Convex binding writes while the live table holds the Run, and binds 
     'currently owned by its Campaign live table'
   )
   expect(await snapshot(base)).toEqual(before)
+})
 
+it('binds and unbinds an actor token in the real room', async () => {
+  const base = await boundFixture()
   await publishFixtureSceneSource(base)
+  await attachFixtureRoom(base.t, base.campaign.id)
   const bound = await bindActorTokenInRoom(base.other.caller, base.input)
   expect(bound.projection.version).toBe(base.run.version + 1)
+  await checkpointLiveRoom(base.campaign.id)
   expect((await snapshot(base)).bindings).toMatchObject([
     { actorId: base.input.actorId, tokenId: base.tokens[0]!.id.toLowerCase() }
   ])
@@ -507,5 +519,6 @@ it('refuses Convex binding writes while the live table holds the Run, and binds 
     actorId: base.input.actorId,
     sceneId: base.sceneId
   })
+  await checkpointLiveRoom(base.campaign.id)
   expect((await snapshot(base)).bindings).toEqual([])
 }, 60000)

@@ -35,7 +35,7 @@ import {
   populateCampaignLifecycleCharacter,
   reconcileCampaignDeletionPersonalExpected
 } from '../../tests/developmentCampaignLifecycleCharacter'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 
 const create = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -563,7 +563,7 @@ describe('native Campaign custody deletion', () => {
           leftAt: null
         })
       )
-      const client = inProcessDevelopmentClient
+      const client = convexDevelopmentClient
       const produced = await populateCampaignLifecycleInventory(
         client(base.other.caller),
         target.id

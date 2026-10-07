@@ -273,7 +273,7 @@ function GuidedSpellCopySourceMetadata({ sourceId }: { sourceId: string }) {
   }
 
   const level = spell.level === 0 ? 'Cantrip' : `Level ${spell.level}`
-  const castingTime = `${spell.castingTime.amount} ${spell.castingTime.unit.toLowerCase().replaceAll('_', ' ')}`
+  const castingTime = `${spell.castingTime.amount} ${spell.castingTime.unit.toLowerCase()}`
 
   return (
     <Text size='sm' c='dimmed'>

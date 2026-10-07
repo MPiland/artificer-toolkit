@@ -8,6 +8,7 @@ import { tabletopCampaignId } from '#domains/campaigns/vtt/CampaignTabletop.stor
 import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
 import { createRestPreview, createSheet, openHpControls } from '../tests/sheetTestHarness'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 
@@ -62,25 +63,35 @@ vi.mock('#app/components/dice/DiceCanvas', () => ({
   }
 }))
 
+const canceledRollId = '00000000-0000-4000-8000-000000000112'
+const restRollId = '00000000-0000-4000-8000-000000000113'
 const liveCharacterId = '33333333-3333-4333-8333-333333333333'
+const realSheet = createSheet()
+const sheetCharacterId = realSheet.meta.characterId
+const strength = realSheet.overview.abilities.find((entry) => entry.ability === 'STRENGTH')
+if (!strength) throw new Error('Expected the Strength ability on the Sheet.')
+const strengthModifier = strength.modifier
+const strengthExpression = `1d20 + ${strengthModifier}`
+const strengthTotal = 14 + strengthModifier
+
 function createRollRecord(id: string) {
-  return {
+  return rollRecordDtoSchema.parse({
     id,
-    characterId: 'character-1',
+    characterId: sheetCharacterId,
     characterLabel: 'Aria',
-    source: { kind: 'ABILITY_CHECK' as const, label: 'Strength check' },
-    ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
-    normalizedExpression: '1d20',
+    source: { kind: 'ABILITY_CHECK', label: 'Strength check' },
+    ruleset: { systemId: realSheet.meta.systemId, code: 'DND5E_2014', version: '1' },
+    normalizedExpression: strengthExpression,
     evidence: {
-      terms: [{ count: 1, die: 20 as const, rolls: [14], subtotal: 14 }],
-      modifier: 0,
-      mode: 'NORMAL' as const,
+      terms: [{ count: 1, die: 20, rolls: [14], subtotal: 14 }],
+      modifier: strengthModifier,
+      mode: 'NORMAL',
       subtotal: 14,
-      transform: { kind: 'NONE' as const },
-      total: 14
+      transform: { kind: 'NONE' },
+      total: strengthTotal
     },
     createdAt: '2026-07-30T18:00:00.000Z'
-  }
+  })
 }
 
 describe('Character Sheet shell', () => {
@@ -99,7 +110,7 @@ describe('Character Sheet shell', () => {
         shadowQuality: 'MEDIUM'
       })
     )
-    const rollRecord = createRollRecord('roll-1')
+    const rollRecord = createRollRecord('00000000-0000-4000-8000-000000000111')
 
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
     const executeRoll = vi.spyOn(convexClient, 'mutation').mockResolvedValue(rollRecord)
@@ -121,19 +132,21 @@ describe('Character Sheet shell', () => {
         { convexClient }
       )
 
-      await user.click(screen.getByRole('button', { name: 'Roll Strength check: 1d20' }))
+      await user.click(
+        screen.getByRole('button', { name: `Roll Strength check: ${strengthExpression}` })
+      )
 
       await waitFor(() =>
         expect(executeRoll.mock.calls[0]?.[1]).toMatchObject({
-          characterId: 'character-1',
-          expression: '1d20',
+          characterId: sheetCharacterId,
+          expression: strengthExpression,
           source: { kind: 'ABILITY_CHECK', label: 'Strength check' }
         })
       )
       expect(getFunctionName(executeRoll.mock.calls[0]![0])).toBe(
         getFunctionName(convexApi.rolls.execute)
       )
-      expect(await screen.findByText('Rolled 14')).toBeInTheDocument()
+      expect(await screen.findByText(`Rolled ${strengthTotal}`)).toBeInTheDocument()
       expect(diceCanvasMocks.preloadDiceModels).not.toHaveBeenCalled()
 
       await user.click(screen.getByRole('button', { name: 'Open roll history' }))
@@ -150,7 +163,7 @@ describe('Character Sheet shell', () => {
   it('shows immediate roll feedback and cancels active dice from the next sheet click', async () => {
     const user = userEvent.setup()
     const sheet = createSheet()
-    const rollRecord = createRollRecord('roll-cancel')
+    const rollRecord = createRollRecord(canceledRollId)
     let discardedRoll: unknown
     let releaseRoll!: () => void
     const rollGate = new Promise<void>((resolve) => {
@@ -186,7 +199,7 @@ describe('Character Sheet shell', () => {
       )
 
       const rollTarget = screen.getByRole('button', {
-        name: 'Roll Strength check: 1d20'
+        name: `Roll Strength check: ${strengthExpression}`
       })
       await user.click(rollTarget)
       expect(rollTarget).toHaveAttribute('aria-busy', 'true')
@@ -196,8 +209,8 @@ describe('Character Sheet shell', () => {
       releaseRoll()
 
       await waitFor(() => expect(screen.getByTestId('dice-canvas')).toHaveTextContent('idle'))
-      await waitFor(() => expect(discardedRoll).toEqual({ id: 'roll-cancel' }))
-      expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()
+      await waitFor(() => expect(discardedRoll).toEqual({ id: canceledRollId }))
+      expect(screen.queryByText(`Rolled ${strengthTotal}`)).not.toBeInTheDocument()
     } finally {
       window.localStorage.removeItem('artificer:dice-presentation:v1')
       await convexClient.close()
@@ -207,18 +220,22 @@ describe('Character Sheet shell', () => {
   it('waits for dice presentation before applying rest evidence and cancels an unrevealed roll', async () => {
     const user = userEvent.setup()
     const sheet = createSheet()
-    const roll = {
-      ...createRollRecord('rest-roll'),
-      source: { kind: 'HIT_DIE' as const, label: 'Short rest hit dice' },
-      normalizedExpression: '1d8 + 1',
+    const hitDie = sheet.overview.hitDice[0]
+    const constitution = sheet.overview.abilities.find((entry) => entry.ability === 'CONSTITUTION')
+    if (!hitDie || !constitution) throw new Error('Expected a Hit Die and Constitution.')
+    const restExpression = `1d${hitDie.die} + ${constitution.modifier}`
+    const roll = rollRecordDtoSchema.parse({
+      ...createRollRecord(restRollId),
+      source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
+      normalizedExpression: restExpression,
       evidence: {
-        ...createRollRecord('rest-roll').evidence,
-        terms: [{ count: 1, die: 8 as const, rolls: [5], subtotal: 5 }],
-        modifier: 1,
-        subtotal: 6,
-        total: 6
+        ...createRollRecord(restRollId).evidence,
+        terms: [{ count: 1, die: hitDie.die, rolls: [5], subtotal: 5 }],
+        modifier: constitution.modifier,
+        subtotal: 5,
+        total: 5 + constitution.modifier
       }
-    }
+    })
     let rollNumber = 0
     const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
     const readSlice = mockSheetSliceReads(convexClient, sheet)
@@ -271,9 +288,11 @@ describe('Character Sheet shell', () => {
       const dialog = await screen.findByRole('dialog', {
         name: /^short rest$/i
       })
-      await user.click(within(dialog).getByRole('button', { name: /add one d8 hit die/i }))
+      await user.click(
+        within(dialog).getByRole('button', { name: `Add one d${hitDie.die} hit die` })
+      )
       const reroll = await within(dialog).findByRole('button', {
-        name: /1d8 \+ 1/i
+        name: `Roll ${restExpression}`
       })
       await waitFor(() => expect(reroll).toBeEnabled())
       await user.click(reroll)
@@ -302,12 +321,12 @@ describe('Character Sheet shell', () => {
         name: /^short rest$/i
       })
       const addHitDie = within(reopenedDialog).getByRole('button', {
-        name: /add one d8 hit die/i
+        name: `Add one d${hitDie.die} hit die`
       })
       await waitFor(() => expect(addHitDie).toBeEnabled())
       await user.click(addHitDie)
       const revealedReroll = await within(reopenedDialog).findByRole('button', {
-        name: /1d8 \+ 1/i
+        name: `Roll ${restExpression}`
       })
       await waitFor(() => expect(revealedReroll).toBeEnabled())
       await user.click(revealedReroll)

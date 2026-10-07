@@ -21,7 +21,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import { activateFixtureRun } from './activeInitiative'
-import { readEncounterHistory } from './roomRouting'
+import { readEncounterHistory } from './localRoomWorker'
 
 const creatureId = '00000000-0000-4000-8000-000000000ce0'
 const featureId = '00000000-0000-4000-8000-000000000ce1'
@@ -330,7 +330,7 @@ export async function concentrationRecords(
       .collect(),
     character: await readCharacterRow(ctx, fixture.character.id),
     receipts: await (
-      await readEncounterHistory(ctx, fixture.campaign.id)
+      await readEncounterHistory(ctx)
     )
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (query) => query.eq('encounterId', fixture.run.id))

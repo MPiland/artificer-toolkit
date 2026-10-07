@@ -3,6 +3,15 @@ import {
   type LiveSessionRulesRevisions
 } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 
+/** A command stopped before it wrote anything, so the same command can be sent again. */
+export class RetryableCommandError extends Error {}
+
+/**
+ * An input the command read changed while it was being prepared (a GM edit landed between two reads).
+ * Preparation writes nothing durable, so the room prepares again from fresh inputs.
+ */
+export class RulesRevisionChangedError extends RetryableCommandError {}
+
 /** Keep one consistent view of the inputs read across paged and nested captures. */
 export function mergeNativeRulesRevisions(
   current: LiveSessionRulesRevisions,
@@ -15,7 +24,7 @@ export function mergeNativeRulesRevisions(
     const key = `${observation.scope}:${observation.id}`
     const previous = revisions.get(key)
     if (previous && previous.revision !== observation.revision)
-      throw new Error(
+      throw new RulesRevisionChangedError(
         `Live rules revision changed during preparation. ${key} was ${previous.revision}, now ${observation.revision}.`
       )
     revisions.set(key, observation)

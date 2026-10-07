@@ -25,6 +25,10 @@ import {
  * and each command its whole result, so building them on read must reproduce them exactly.
  */
 
+// Registered before the hooks below: hooks after each test run in reverse, so the room closes on
+// restored mocks and real timers.
+useLocalRoomWorker()
+
 let uuidSequence = 0
 beforeEach(() => {
   uuidSequence = 0
@@ -114,8 +118,6 @@ async function expectProjectionFactsCurrent(base: PlayerControlFixture) {
 }
 
 describe('Encounter command replay', () => {
-  useLocalRoomWorker()
-
   async function expectExactReplay(
     member: PlayerControlFixture['owner'],
     command: EncounterCommandInputDto

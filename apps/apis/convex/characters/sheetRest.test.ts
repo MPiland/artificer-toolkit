@@ -1,6 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { api } from '../_generated/api'
-import { createHash } from 'node:crypto'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -11,6 +10,16 @@ import {
   type CharacterSheetCommandResponseDto,
   type CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type {
+  CampaignDetailDto,
+  CreateCampaignInput
+} from '@artificer-toolkit/schema/api/campaignCore'
+import type {
+  CampaignAdjustmentDto,
+  CampaignAdjustmentInput
+} from '@artificer-toolkit/schema/api/campaignLiveState'
+import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { ExecuteRollInputDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type {
   CharacterSheetReadInput,
@@ -19,12 +28,8 @@ import type {
 import type { ActiveRuleEffectDefinitionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { formatCharacterHitDiceRollExpression } from '@artificer-toolkit/shared/character'
-import {
-  buildCharacterRestPreview,
-  sortFingerprintValue
-} from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import { buildCharacterRestPreview } from '@artificer-toolkit/rules-runtime/character/sheetRest'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
-import * as evaluation from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheet } from './sheetPreparation'
 import { readCharacterRecord } from './stateDocuments'
@@ -44,6 +49,14 @@ const roll = makeFunctionReference<'mutation', ExecuteRollInputDto, RollRecordDt
 const clearRolls = makeFunctionReference<'mutation', Record<string, never>, { ok: true }>(
   'rolls:clearHistory'
 )
+const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
+  'campaigns/create:create'
+)
+const saveAdjustment = makeFunctionReference<
+  'mutation',
+  CampaignAdjustmentInput,
+  CampaignAdjustmentDto
+>('campaigns/gmWrites:saveAdjustment')
 const getSheet = makeFunctionReference<
   'query',
   CharacterSheetReadInput,
@@ -75,6 +88,17 @@ function completion(input: CharacterRestPreviewInput, projected: CharacterRestPr
   })
   if (command.type !== 'COMPLETE_REST') throw new Error('Expected a complete-rest command.')
   return { id: input.id, command }
+}
+
+const goldenFingerprints = {
+  SHORT: {
+    unchanged: '38ae9505376670f6dbb99df0bb1c9d09894e1e70dc222808b033ae85aea106d4',
+    revisionPinned: '069916b47b93ca550e5f636e7a2db827a2be130d878e34de87efbe618b0cab2b'
+  },
+  LONG: {
+    unchanged: 'c207d7803ba7994ecf138db08095991fbbdfe215f40660bc2656120e826ec154',
+    revisionPinned: 'f0a5cee68037cd6b83d0c05aef3cc2819757a2811067f542534fa96418de7687'
+  }
 }
 
 type StateContribution = Extract<
@@ -170,64 +194,52 @@ describe('native Character rest preview and completion', () => {
         const loaded = await loadCharacterSheet(ctx, owner.userId, character.id)
         if (!loaded) throw new Error('Missing current Sheet.')
         const restPolicy = loaded.ruleEvaluation.output.rest
-        const legacy = await buildCharacterRestPreview({
-          character: loaded.character,
-          resolution: loaded.resolution,
-          restPolicy,
-          effectiveMaximum: loaded.sheet.overview.maxHitPoints,
-          ruleRevisionId: 'transitional-revision',
-          sheet: loaded.sheet,
-          input
-        })
-        const fingerprintInput = {
-          restKind,
-          streamVersion: 1,
-          rulesPolicy: {
-            rest: restPolicy,
-            longRest:
-              restKind === 'LONG'
-                ? {
-                    exhaustionAfter: restPolicy.exhaustionAfterLongRest,
-                    hitDiceRecoveryCount: restPolicy.hitDiceRecoveredAfterLongRest,
-                    recoveredHitDice: []
-                  }
-                : undefined
-          },
-          hitPoints: {
-            current: loaded.sheet.overview.currentHitPoints,
-            maximum: loaded.sheet.overview.maxHitPoints,
-            temporary: 0,
-            maximumModifier: 0
-          },
-          selectedHitDice: [],
-          resetMaximumHitPointModifier: false,
-          healingMode: 'AUTOMATIC',
-          manualHealingAccepted: false,
-          selectedCompanionInstanceIds: [],
-          rollEvidence: undefined,
-          automaticRecoveries: { resources: [], spellSlots: [] },
-          eligibleCompanions: []
+        const fingerprintOf = async (
+          overrides: Partial<Parameters<typeof buildCharacterRestPreview>[0]>
+        ) =>
+          (
+            await buildCharacterRestPreview({
+              character: loaded.character,
+              resolution: loaded.resolution,
+              restPolicy,
+              effectiveMaximum: loaded.sheet.overview.maxHitPoints,
+              sheet: loaded.sheet,
+              input,
+              ...overrides
+            })
+          ).previewFingerprint
+        return {
+          unchanged: await fingerprintOf({}),
+          revisionPinned: await fingerprintOf({ ruleRevisionId: 'transitional-revision' }),
+          otherRevisionPinned: await fingerprintOf({ ruleRevisionId: 'other-revision' }),
+          restPolicyChanged: await fingerprintOf({
+            restPolicy: {
+              ...restPolicy,
+              hitDieConstitutionModifier: restPolicy.hitDieConstitutionModifier + 1
+            }
+          }),
+          maximumChanged: await fingerprintOf({
+            effectiveMaximum: loaded.sheet.overview.maxHitPoints - 1
+          }),
+          healingModeChanged: await fingerprintOf({
+            input: { ...input, healingMode: 'MANUAL' }
+          })
         }
-        const nativeHash = createHash('sha256')
-          .update(JSON.stringify(sortFingerprintValue(fingerprintInput)))
-          .digest('hex')
-        const legacyHash = createHash('sha256')
-          .update(
-            JSON.stringify(
-              sortFingerprintValue({
-                ...fingerprintInput,
-                rulesPolicy: {
-                  ...fingerprintInput.rulesPolicy,
-                  revisionId: 'transitional-revision'
-                }
-              })
-            )
-          )
-          .digest('hex')
-        return { legacyFingerprint: legacy.previewFingerprint, legacyHash, nativeHash }
       })
-      expect(proof.legacyFingerprint).toBe(proof.legacyHash)
-      expect(current.previewFingerprint).toBe(proof.nativeHash)
+      // The product path pins no revision, so its fingerprint is the unpinned one.
+      expect(current.previewFingerprint).toBe(proof.unchanged)
+      // Golden literals: a change to the hashing or the hashed shape must fail here, not drift silently.
+      expect({ unchanged: proof.unchanged, revisionPinned: proof.revisionPinned }).toEqual(
+        goldenFingerprints[restKind]
+      )
+      const changed = [
+        proof.revisionPinned,
+        proof.otherRevisionPinned,
+        proof.restPolicyChanged,
+        proof.maximumChanged,
+        proof.healingModeChanged
+      ]
+      expect(new Set([proof.unchanged, ...changed]).size).toBe(changed.length + 1)
       await expect(
         owner.caller.mutation(execute, completion({ id: character.id, input }, current))
       ).rejects.toThrow('no completed recovery')
@@ -451,7 +463,7 @@ describe('native Character rest preview and completion', () => {
         ...command,
         command: { ...command.command, manualHealingAccepted: true }
       })
-    ).rejects.toThrow('replay does not match')
+    ).rejects.toThrow('Command ID was already used with different input.')
     const noted = await owner.caller.mutation(execute, {
       id: character.id,
       command: {
@@ -569,16 +581,23 @@ describe('native Character rest preview and completion', () => {
     expect(projected.hitPoints.canResetMaximumHitPointModifier).toBe(true)
     expect(await readState()).toEqual(before)
     const command = completion(input, projected)
-    const original = evaluation.evaluateCharacterRules
-    vi.spyOn(evaluation, 'evaluateCharacterRules').mockImplementation((facts) => {
-      const current = original(facts)
-      return {
-        ...current,
-        output: { ...current.output, rest: { ...current.output.rest, exhaustionAfterLongRest: 0 } }
-      }
-    })
+    // Another restoration-only reduction lands after the preview (effects do not bump the stream
+    // version), so the post-rest maximum the player saw is stale.
+    const lateEffectId = '00000000-0000-4000-8000-000000000124'
+    const lateEffect = await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: lateEffectId,
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: reductionDefinition(
+          character.id,
+          hitPointMaximumReduction(['RESTORE_HIT_POINT_MAXIMUM'])
+        ),
+        lifecycle: { schemaVersion: 1, remainingTicks: null }
+      })
+    )
+    const stateWithLateEffect = await readState()
     await expect(owner.caller.mutation(execute, command)).rejects.toThrow('Rest preview changed')
-    expect(await readState()).toEqual(before)
+    expect(await readState()).toEqual(stateWithLateEffect)
     expect(
       await t.run((ctx) =>
         createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
@@ -586,8 +605,14 @@ describe('native Character rest preview and completion', () => {
           characterId: character.id
         })
       )
-    ).toHaveLength(3)
-    vi.restoreAllMocks()
+    ).toHaveLength(4)
+    await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).deleteCas({
+        id: lateEffectId,
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        expectedVersion: lateEffect.version
+      })
+    )
     const completed = await owner.caller.mutation(execute, command)
     expect(completed).not.toHaveProperty('sheet')
     const completedSheet = (await owner.caller.query(api.characters.sheet.get, {
@@ -629,5 +654,66 @@ describe('native Character rest preview and completion', () => {
       )
     ).toBe(false)
     expect(readCharacterRecord(after).state.exhaustion?.notes).toBe('Fatigued')
+  })
+
+  it('refuses a completion whose rest policy changed after the preview without touching the Character', async () => {
+    const { t, owner, other: gm, character, readState } = await readySheetFixture()
+    const campaign = await gm.caller.mutation(createCampaign, {
+      name: 'Rest policy drift',
+      format: 'ONGOING',
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD',
+      gameSystemId: srdSystemRecord.id,
+      primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+    })
+    // Admission/assignment fixtures only; the rest preview and the GM writer are real.
+    await t.run(async (ctx) => {
+      await ctx.db.insert('campaignMemberships', {
+        campaignId: campaign.id,
+        userId: owner.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: campaign.createdAt,
+        joinedAt: campaign.createdAt,
+        leftAt: null
+      })
+      await ctx.db.insert('campaignCharacterAssignments', {
+        campaignId: campaign.id,
+        userId: owner.userId,
+        characterId: character.id,
+        assignedAt: campaign.createdAt
+      })
+    })
+    await owner.caller.mutation(execute, {
+      id: character.id,
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 6,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 1
+      }
+    })
+    const input: CharacterRestPreviewInput = { id: character.id, input: request('LONG', 2) }
+    const projected = await owner.caller.query(preview, input)
+    expect(projected.canApply).toBe(true)
+    const command = completion(input, projected)
+    // A GM Constitution override changes the hit-die modifier the rest policy carries, and it does not
+    // advance the Character's stream version, so only the fingerprint can notice.
+    await gm.caller.mutation(saveAdjustment, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      visibility: 'VISIBLE',
+      expectedVersion: 0,
+      adjustment: { family: 'ABILITY', ability: 'CONSTITUTION', field: 'SCORE_OVERRIDE', value: 20 }
+    })
+    const before = await readState()
+    const drifted = await owner.caller.query(preview, input)
+    expect(drifted.streamVersion).toBe(projected.streamVersion)
+    expect(drifted.previewFingerprint).not.toBe(projected.previewFingerprint)
+    await expect(owner.caller.mutation(execute, command)).rejects.toThrow('Rest preview changed')
+    expect(await readState()).toEqual(before)
+    const completed = await owner.caller.mutation(execute, completion(input, drifted))
+    expect(completed.result).toMatchObject({ type: 'COMPLETE_REST' })
   })
 })

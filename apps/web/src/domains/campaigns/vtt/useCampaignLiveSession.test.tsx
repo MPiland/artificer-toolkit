@@ -1,4 +1,5 @@
 import { api } from '@artificer-toolkit/apis/convex/api'
+import { liveSessionTicketDtoSchema } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type { SceneTransientEnvelopeDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { act, renderHook, waitFor } from '@testing-library/react'
@@ -6,6 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { createLiveSessionConnection } from './liveSessionClient'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
 
+const liveTicket = liveSessionTicketDtoSchema.parse({
+  expiresAt: '2099-08-15T23:59:00.000Z',
+  ticket: 'test-live-session-ticket'
+})
 const campaignId = '00000000-0000-4000-8000-000000000001'
 const sceneId = '00000000-0000-4000-8000-000000000003'
 const userId = '00000000-0000-4000-8000-000000000004'
@@ -80,10 +85,7 @@ describe('useCampaignLiveSession', () => {
     mocks.subscribeCharacterSheet.mockClear()
     mocks.subscribeEncounterSession.mockClear()
     mocks.getAccessToken.mockResolvedValue({ data: { token: 'test-access-token' } })
-    mocks.issueTicket.mockResolvedValue({
-      expiresAt: '2099-08-15T23:59:00.000Z',
-      ticket: 'test-live-session-ticket'
-    })
+    mocks.issueTicket.mockResolvedValue(liveTicket)
     mocks.useConvex.mockReturnValue({ action: mocks.issueTicket })
   })
 
@@ -116,10 +118,7 @@ describe('useCampaignLiveSession', () => {
     await waitFor(() => expect(mocks.options).not.toBeNull())
     const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
     expect(options.url).toBe(`ws://127.0.0.1:8787/live-session/${campaignId}`)
-    await expect(options.getTicket()).resolves.toEqual({
-      expiresAt: '2099-08-15T23:59:00.000Z',
-      ticket: 'test-live-session-ticket'
-    })
+    await expect(options.getTicket()).resolves.toEqual(liveTicket)
     expect(mocks.issueTicket).toHaveBeenCalledWith(api.liveSessions.tickets.issue, { campaignId })
     await expect(options.getAccessToken()).resolves.toBe('test-access-token')
     expect(mocks.getAccessToken).toHaveBeenCalledWith({ fetchOptions: { throw: false } })

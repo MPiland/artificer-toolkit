@@ -1,17 +1,27 @@
-import { SELF, evictDurableObject, runInDurableObject } from 'cloudflare:test'
+import {
+  SELF,
+  createExecutionContext,
+  evictDurableObject,
+  runInDurableObject
+} from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
+  LIVE_SESSION_CHECKPOINT_BARRIER_PATH,
   LIVE_SESSION_CONTROL_PATH,
   LIVE_SESSION_CONTROL_SECRET_HEADER,
+  LIVE_SESSION_TEST_ROLLS_PATH,
   LIVE_SESSION_TICKET_AUDIENCE,
   LIVE_SESSION_TICKET_ISSUER,
   LIVE_SESSION_TICKET_VERSION,
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import { LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT } from '@artificer-toolkit/schema/api/liveSessionCommands'
+import {
+  LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT,
+  LIVE_SESSION_TRY_AGAIN_MESSAGE
+} from '@artificer-toolkit/schema/api/liveSessionCommands'
 import {
   liveSessionActivationInputSchema,
   liveSessionBootstrapInputSchema
@@ -27,6 +37,7 @@ import {
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 
+import worker from '../src/index.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { ACCOUNT_BUCKETS, ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
@@ -100,6 +111,11 @@ async function sheetRoom(
     darkvision: true
   })
   let characterEdited = false
+  /**
+   * How many Character reads still report a Campaign revision the System read disagrees with: a GM
+   * edit landing between the two reads of one command's preparation.
+   */
+  let tornCharacterReads = 0
   /** Every Convex route the room called, in order. */
   const calls: string[] = []
   /** While set, the authorization read waits for it, so notices can arrive during a reload. */
@@ -134,19 +150,35 @@ async function sheetRoom(
             parts: body.scope.characterIds.map((id) => ({ status: 'DELETED', characterId: id })),
             continueCursor: null
           })
-        return Response.json(
-          roomInputsResponse(body.scope, {
-            campaignId,
-            systemId: inputs.systemId,
-            ownerUserId: gmId,
-            members,
-            assignments,
-            characterInputs: characterEdited
-              ? { ...inputs.characterInputs, parts: edited.characterInputs.parts }
-              : inputs.characterInputs,
-            definitions: [darkvisionDefinition]
-          })
-        )
+        const response = roomInputsResponse(body.scope, {
+          campaignId,
+          systemId: inputs.systemId,
+          ownerUserId: gmId,
+          members,
+          assignments,
+          characterInputs: characterEdited
+            ? { ...inputs.characterInputs, parts: edited.characterInputs.parts }
+            : inputs.characterInputs,
+          definitions: [darkvisionDefinition]
+        })
+        if (response.kind !== 'CHARACTERS' || tornCharacterReads <= 0)
+          return Response.json(response)
+        tornCharacterReads -= 1
+        return Response.json({
+          ...response,
+          parts: response.parts.map((part) =>
+            'revisions' in part
+              ? {
+                  ...part,
+                  revisions: part.revisions.map((observation) =>
+                    observation.scope === 'CAMPAIGN'
+                      ? { ...observation, revision: crypto.randomUUID() }
+                      : observation
+                  )
+                }
+              : part
+          )
+        })
       }
       if (pathname === ROOM_AUTHORIZATION_PATH) {
         await authorizationGate
@@ -348,9 +380,19 @@ async function sheetRoom(
     characterDeleted = true
   }
 
+  /** Convex commits the Character's unassignment; the member stays in the Campaign. */
+  function commitUnassignment() {
+    assignments = []
+  }
+
   /** Convex commits a GM edit that grants the Character Darkvision. */
   function commitCharacterEdit() {
     characterEdited = true
+  }
+
+  /** The next `reads` Character reads are torn from the System read; `Infinity` tears them all. */
+  function tearCharacterReads(reads: number) {
+    tornCharacterReads = reads
   }
 
   /** Holds authorization reads until the returned function is called. */
@@ -368,6 +410,7 @@ async function sheetRoom(
   return {
     calls,
     commitCharacterEdit,
+    tearCharacterReads,
     holdAuthorization,
     gm,
     gmId,
@@ -382,6 +425,7 @@ async function sheetRoom(
     stub,
     checkpoints,
     commitAccountDeletion,
+    commitUnassignment,
     ...inputs
   }
 }
@@ -855,6 +899,60 @@ it('commits chat and to-GM rolls in the room to their recipients, replays exact 
     ).toHaveLength(2)
 })
 
+it('accepts queued test rolls in a local development room and rolls its next dice from them', async () => {
+  const room = await sheetRoom()
+  const local = {
+    ...env,
+    CONTENT_SNAPSHOT_TOKEN_SECRET: `${secret}-content`,
+    LOCAL_CONTENT_SNAPSHOT_ORIGIN: 'http://127.0.0.1:8026'
+  }
+  // The room itself is real; its bindings are the local development ones, which the test worker lacks.
+  await runInDurableObject(room.stub, (instance) => {
+    Reflect.set(instance, 'env', local)
+  })
+  const queued = await worker.fetch!(
+    new Request(`http://127.0.0.1:8787${LIVE_SESSION_TEST_ROLLS_PATH}/${room.campaignId}`, {
+      body: JSON.stringify({ rolls: [19, 0] }),
+      headers: { [LIVE_SESSION_CONTROL_SECRET_HEADER]: secret },
+      method: 'POST'
+    }),
+    local,
+    createExecutionContext()
+  )
+  expect(queued.status).toBe(204)
+
+  // A raw draw of 19 is the d20's face 20; the next queued draw 0 is face 1.
+  const totals: number[] = []
+  for (const draw of [19, 0]) {
+    const rollId = crypto.randomUUID()
+    room.owner.socket.send(
+      chatFrame({
+        type: 'EXECUTE_ROLL',
+        commandId: rollId,
+        input: {
+          campaignId: room.campaignId,
+          destination: 'GM',
+          clientNonce: rollId,
+          roll: {
+            characterId: room.characterId,
+            expression: '1d20',
+            source: { kind: 'MANUAL', label: 'Manual roll' }
+          }
+        }
+      })
+    )
+    await vi.waitFor(() => expect(repliesTo(room.owner, rollId)).toHaveLength(1))
+    const [reply] = repliesTo(room.owner, rollId)
+    if (reply?.type !== 'COMMAND_COMMITTED' || reply.delta?.scope !== 'CAMPAIGN_CHAT')
+      throw new Error(JSON.stringify(reply))
+    const rolled = reply.delta.entry?.roll
+    if (!rolled) throw new Error('The roll entry carries no roll.')
+    totals.push(rolled.evidence.total)
+    expect(rolled.evidence.terms[0]?.rolls).toEqual([draw + 1])
+  }
+  expect(totals).toEqual([20, 1])
+})
+
 it('refuses chat past the per-account TABLE allowance without writing an entry, at the D72 allowances (P14.5)', async () => {
   expect(ACCOUNT_BUCKETS.TABLE.PLAYER).toEqual({ capacity: 30, refillPerMinute: 30 })
   expect(ACCOUNT_BUCKETS.TABLE.OWNER).toEqual({ capacity: 60, refillPerMinute: 60 })
@@ -1284,6 +1382,51 @@ it('reaches the table with a GM Feature edit and no command, through one eager r
   await vi.waitFor(() => expect(authorizationReads(room) - readsBefore).toBe(2))
 })
 
+/** A GM edit commits, and the owner's next command finds the lease expired and its Character stale. */
+async function editBeforeNextCommand(room: SheetRoom, tornReads: number) {
+  room.commitCharacterEdit()
+  room.tearCharacterReads(tornReads)
+  await advanceRoomClock(room, ROOM_LIMITS.authorizationLeaseMs * 1.5)
+}
+
+const damage = { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 } as const
+
+it('prepares a Sheet command again from fresh inputs when a GM edit lands mid-preparation', async () => {
+  const room = await sheetRoom()
+  await editBeforeNextCommand(room, 1)
+
+  const [committed] = await room.play(room.owner, damage, crypto.randomUUID(), 1)
+
+  expect(committed).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+})
+
+it('refuses with try-again semantics when the inputs keep changing, then commits the resent command', async () => {
+  const room = await sheetRoom()
+  await editBeforeNextCommand(room, Infinity)
+  const commandId = crypto.randomUUID()
+
+  const [refused] = await room.play(room.owner, damage, commandId, 1)
+
+  expect(refused).toMatchObject({
+    type: 'COMMAND_REJECTED',
+    code: 'UNAVAILABLE',
+    message: LIVE_SESSION_TRY_AGAIN_MESSAGE
+  })
+  expect(await room.hitPoints()).toEqual({ current: 11, streamVersion: 1 })
+
+  room.tearCharacterReads(0)
+  await room.play(room.owner, damage, commandId, 1)
+  await vi.waitFor(() =>
+    expect(
+      room.owner.messages.filter(
+        (message) => message.type === 'COMMAND_COMMITTED' && message.commandId === commandId
+      )
+    ).toHaveLength(1)
+  )
+  expect(await room.hitPoints()).toEqual({ current: 8, streamVersion: 2 })
+})
+
 it('keeps a notice lazy while no socket is connected (Amendment 21)', async () => {
   const room = await sheetRoom()
   for (const member of [room.gm, room.owner, room.stranger]) member.socket.close()
@@ -1298,6 +1441,49 @@ it('keeps a notice lazy while no socket is connected (Amendment 21)', async () =
   )
   await new Promise((resolve) => setTimeout(resolve, 100))
   expect(authorizationReads(room)).toBe(readsBefore)
+})
+
+it('freezes an unassigned Character actor before a checkpoint barrier that follows a Campaign notice, with no socket connected (D74)', async () => {
+  const room = await sheetRoom()
+  for (const member of [room.gm, room.owner, room.stranger]) member.socket.close()
+  await vi.waitFor(async () =>
+    expect(
+      await runInDurableObject(room.stub, (_instance, state) => state.getWebSockets())
+    ).toEqual([])
+  )
+  room.commitUnassignment()
+  // The reload is still reading when the barrier arrives; the barrier must queue behind it.
+  const releaseAuthorization = room.holdAuthorization()
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(
+    200
+  )
+  const pendingBarrier = room.stub.fetch(
+    new Request(`https://live-session.internal${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}`, {
+      method: 'POST'
+    })
+  )
+  setTimeout(releaseAuthorization, 100)
+  const barrier = await pendingBarrier
+  expect(barrier.status).toBe(200)
+  const frozen = await runInDurableObject(room.stub, (_instance, state) => {
+    const row = new RoomEncounterStore(state.storage)
+      .documents('encounterRunActors')
+      .find(({ id }) => id === room.actorId)
+    if (!row) throw new Error('Missing Run actor.')
+    const actor = readStoredRunActor(row)
+    return actor.kind === 'CHARACTER' && Boolean(actor.frozenState)
+  })
+  expect(frozen).toBe(true)
+  expect(
+    room.checkpoints
+      .at(-1)
+      ?.records.changes.some(
+        (change) =>
+          change.table === 'encounterRunActors' &&
+          change.key.includes(room.actorId) &&
+          change.nextChecksum !== null
+      )
+  ).toBe(true)
 })
 
 it('makes no Convex call for an idle member, however long the quiet (Amendment 17)', async () => {

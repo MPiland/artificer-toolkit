@@ -16,7 +16,10 @@ import {
 import type { CampaignChatEntryDto } from '@artificer-toolkit/schema/api/campaignCommunication'
 import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRead'
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
-import type { DomainRejectionReasonDto } from '@artificer-toolkit/schema/api/domainRejections'
+import {
+  domainRejectionErrorDataSchema,
+  type DomainRejectionReasonDto
+} from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import type {
@@ -28,6 +31,7 @@ import {
   type SceneFogSaveProgress
 } from '@artificer-toolkit/schema/api/sceneFog'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { ConvexError } from 'convex/values'
 import { applySceneDelta, VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
 
 export type LiveSessionConnectionStatus =
@@ -162,6 +166,18 @@ interface LiveSessionSocket {
   addEventListener: (type: string, listener: (event: Event) => void) => void
   close: (code?: number, reason?: string) => void
   send: (data: string) => void
+}
+
+/** Join refusals no retry can change: the Campaign is gone to this user or is archived. */
+const terminalJoinReasons: ReadonlySet<DomainRejectionReasonDto> = new Set([
+  'CAMPAIGN_NOT_ACTIVE',
+  'CAMPAIGN_NOT_FOUND'
+])
+
+function isTerminalJoinRefusal(error: unknown): boolean {
+  if (!(error instanceof ConvexError)) return false
+  const rejected = domainRejectionErrorDataSchema.safeParse(error.data)
+  return rejected.success && terminalJoinReasons.has(rejected.data.reason)
 }
 
 const reconnectDelay = (attempt: number) => Math.min(1_000 * 2 ** attempt, 30_000)
@@ -562,6 +578,10 @@ export function createLiveSessionConnection(
       options.onError(
         error instanceof Error ? error : new Error('Unable to join the live session.')
       )
+      if (isTerminalJoinRefusal(error)) {
+        options.onStatus('DISCONNECTED')
+        return
+      }
       scheduleReconnect()
     }
   }

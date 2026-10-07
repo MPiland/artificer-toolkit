@@ -5,7 +5,10 @@ import {
 } from '../encounterActionExecution.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
-import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import {
+  DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
+  dnd5eCharacterRuleActionSystemAdapter
+} from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import type { CharacterActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
@@ -392,6 +395,33 @@ describe('native phased action execution', () => {
     expect(result.phaseReceipts?.map((receipt) => receipt.phase)).toEqual(['TEST', 'OUTCOME'])
     expect(result.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_HIT')
     expect(result.applications).toMatchObject([{ kind: 'DAMAGE', appliedAmount: 4 }])
+  })
+
+  it('binds the target-state checksum fact of a self action from the target actor state', async () => {
+    const result = await executeNativeActionGraphs({
+      runtime: runtime(),
+      adapter: dnd5eCharacterRuleActionSystemAdapter,
+      plan: singlePlan(directDiceAction()),
+      occurrenceId: OCCURRENCE_ID,
+      binding: binding({
+        hitPoints: 10,
+        outcomes: [
+          {
+            kind: 'HEAL',
+            outcomeId: 'heal',
+            pathCode: 'ON_USE',
+            expression: '1d8',
+            temporary: false,
+            scaling: []
+          }
+        ]
+      }),
+      afterTest: async () => undefined,
+      random: deterministic([5])
+    })
+    expect(result.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]).toBe(
+      '8257e9379c05115ced949c58632e7a8157fd6db011924c9c368d5c6ef8321ea6'
+    )
   })
 
   it('keeps a miss as TEST_ONLY and does not roll or apply an outcome', async () => {

@@ -55,7 +55,7 @@ import { components, internal } from '../../convex/_generated/api'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { createRulesRuntime } from './rulesRuntime'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
-import { executeInRoom } from './roomRouting'
+import { attachFixtureRoom, executeInRoom } from './localRoomWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -221,6 +221,7 @@ export async function turnCharacterEffectFixture() {
   })
   const opponent = created.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!opponent) throw new Error('Expected the fixture opponent.')
+  await attachFixtureRoom(base.t, base.campaign.id)
   const removed = await executeInRoom(base.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',

@@ -14,6 +14,7 @@ import {
   encounterActiveRuleEffectStoredSchema,
   encounterMaintainedEffectStateStoredSchema
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { liveSessionEncounterRulesResponseSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
@@ -301,6 +302,57 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
           readRoomMaintenanceCapture(ctx, state, { ...request, cursor })
         ).rejects.toThrow('Maintained effect capture cursor is unavailable.')
     }
+
+    // Each real response must satisfy the schema the Convex reader parses it with.
+    const parsed = (response: Awaited<ReturnType<typeof readRoomMaintenanceCapture>>) =>
+      liveSessionEncounterRulesResponseSchema.parse({
+        ...response,
+        revisions: [
+          ...authority.revisions,
+          { scope: 'PLAY', id: uuid(0xd90), revision: uuid(0xd91) }
+        ]
+      })
+    const slot = { actorId: actors[0]!.id, definitionId }
+    const found = parsed(
+      await readRoomMaintenanceCapture(ctx, state, { kind: 'MAINTENANCE_SLOT', ...slot })
+    )
+    if (found.kind !== 'MAINTENANCE_SLOT') throw new Error('Missing slot response.')
+    expect(found.state?.id).toBe(stateId)
+    const absent = parsed(
+      await readRoomMaintenanceCapture(ctx, state, {
+        kind: 'MAINTENANCE_SLOT',
+        actorId: actors[1]!.id,
+        definitionId
+      })
+    )
+    expect(absent).toMatchObject({ kind: 'MAINTENANCE_SLOT', state: null })
+
+    const owner = {
+      kind: 'ENCOUNTER_ACTOR' as const,
+      encounterId,
+      targetActorId: actors[0]!.id
+    }
+    expect(
+      parsed(
+        await readRoomMaintenanceCapture(ctx, state, {
+          kind: 'MAINTENANCE_OWNER',
+          ...slot,
+          stateId,
+          owner
+        })
+      )
+    ).toMatchObject({ kind: 'MAINTENANCE_OWNER', owner, character: null })
+    const ownerEffects = parsed(
+      await readRoomMaintenanceCapture(ctx, state, {
+        kind: 'MAINTENANCE_OWNER_EFFECTS',
+        ...slot,
+        stateId,
+        owner,
+        afterEffectId: null
+      })
+    )
+    if (ownerEffects.kind !== 'MAINTENANCE_OWNER_EFFECTS') throw new Error('Missing effects.')
+    expect(ownerEffects.effects.length).toBeGreaterThan(0)
   })
   expect(read).not.toHaveBeenCalled()
 })

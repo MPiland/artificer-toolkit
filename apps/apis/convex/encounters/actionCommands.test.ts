@@ -2,8 +2,7 @@ import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
-import { ConvexError } from 'convex/values'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -18,12 +17,8 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -36,7 +31,6 @@ import {
   sceneStoredLiveEntitySchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
-import { DND5E_TARGET_STATE_CHECKSUM_FACT_KEY } from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import {
   encounterRuleUsageUsed,
   featureChargeUsed,
@@ -59,16 +53,26 @@ import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
-import * as rollRandom from '../lib/rollRandom'
 import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  expectRedactedRoomRefusal,
-  replayInRoom,
-  RoomCommandRefusal,
-  readTimelineInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  queueRoomRolls,
+  readRoomRollCards,
+  readRoomTimeline,
+  type RoomCaller,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+import {
+  expectReusedCommandRefusal,
+  expectUnavailableRefusal,
+  rejection
+} from '../../tests/fixtures/roomRefusals'
+
+useLocalRoomWorker()
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -462,7 +466,6 @@ async function setup({
   targetCreature = false,
   rolls = 'AUTO_ROLL',
   distance = false,
-  uppercaseTokens = false,
   condition = false,
   directRepeatSave = false,
   conditionImmune = false,
@@ -476,7 +479,6 @@ async function setup({
   targetCreature?: boolean
   rolls?: FixtureRolls
   distance?: boolean
-  uppercaseTokens?: boolean
   condition?: boolean
   directRepeatSave?: boolean
   conditionImmune?: boolean
@@ -544,6 +546,7 @@ async function setup({
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   const creatures = run.actors.filter((candidate) => candidate.kind === 'CREATURE')
   const actor = creatures[0]
   const target = targetCreature
@@ -590,7 +593,7 @@ async function setup({
     const saveId = crypto.randomUUID()
     const now = new Date().toISOString()
     const tokens = [actor.id, target.id].map((_, index) => ({
-      id: uppercaseTokens ? crypto.randomUUID().toUpperCase() : crypto.randomUUID(),
+      id: crypto.randomUUID(),
       assetId: null,
       controlledByUserIds: [],
       height: 1,
@@ -802,6 +805,47 @@ async function replaceTargetToken(base: DistanceSetup, position: { x: number; y:
   })
 }
 
+/** Moves the target's token in the Scene definition itself, before the room first loads the Scene. */
+async function moveDefinitionTargetToken(base: DistanceSetup) {
+  await base.t.run(async (ctx) => {
+    const entity = (await ctx.db.query('sceneDefinitionEntities').collect()).filter(
+      (row) => row.value.collection === 'tokens'
+    )
+    const target = entity.find((row) => row.ordinal === 1)
+    if (!target) throw new Error('Missing target Scene token.')
+    if (target.value.collection !== 'tokens') throw new Error('Expected target token entity.')
+    const value = {
+      ...target.value,
+      entity: { ...target.value.entity, position: { x: 300, y: 0 } }
+    }
+    await ctx.db.patch(target._id, { value, checksum: checksumCanonicalJson(value) })
+  })
+}
+
+/** The tabletop move that takes the target out of range: a bound token moves at the Run's version. */
+function moveTargetTokenInRoom(base: DistanceSetup, encounterVersion: number) {
+  const targetToken = base.tokens[1]!
+  return executeSceneInRoom(base.owner.caller, {
+    type: 'MOVE_SCENE_TOKEN',
+    commandId: crypto.randomUUID(),
+    sceneId: base.sceneId,
+    // The live Scene keys tokens by their lowercase ID.
+    tokenId: targetToken.id.toLowerCase(),
+    expectedSceneVersion: 0,
+    expectedEncounterVersion: encounterVersion,
+    correlationId: null,
+    movementKind: 'VOLUNTARY',
+    path: [targetToken.position, { x: 450, y: 450 }]
+  })
+}
+
+/** What the room's error log names for each fault in a distance action's Scene context. */
+const distanceFaultCause = {
+  missing: 'Scene',
+  mismatched: 'token',
+  stale: 'Scene'
+} as const
+
 function command(
   input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'actionId'> & {
     encounterId: string
@@ -831,11 +875,13 @@ function creatureActorState(row: Parameters<typeof readStoredRunActor>[0]) {
   return actor
 }
 
+/** The Run as the room last published it: the room holds receipts and commands until it checkpoints (D85). */
 async function records(
   t: Awaited<ReturnType<typeof fixture>>['t'],
   encounterId: string,
   campaignId: string
 ) {
+  await checkpointLiveRoom(campaignId)
   return t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -851,18 +897,6 @@ async function records(
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', encounterId))
       .collect(),
-    receipts: await (
-      await readEncounterHistory(ctx, campaignId)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
-      .collect(),
-    commands: await (
-      await readEncounterHistory(ctx, campaignId)
-    )
-      .query('encounterRunCommands')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .collect(),
     activeEffects: await ctx.db
       .query('encounterActiveRuleEffects')
       .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
@@ -870,6 +904,20 @@ async function records(
       )
       .collect()
   }))
+}
+
+async function pendingFor(base: Awaited<ReturnType<typeof setup>>, caller: RoomCaller) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    encounterId: base.run.id
+  })
+}
+
+/** How many commands the room has committed past the Run's setup version, as it sends them to the GM (D85). */
+async function committedCount(base: Awaited<ReturnType<typeof setup>>) {
+  return (await readRoomTimeline(base.owner.caller, base.campaign.id)).filter(
+    (entry) => entry.version > base.run.version
+  ).length
 }
 
 describe('native encounter actions', () => {
@@ -903,8 +951,9 @@ describe('native encounter actions', () => {
     })
     let result = issued
     expect(result.occurrence?.status).toBe('PENDING')
+    const committedBefore = await committedCount(base)
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
@@ -923,17 +972,9 @@ describe('native encounter actions', () => {
       const staged = await records(base.t, base.run.id, base.campaign.id)
       expect(staged.run).toEqual(before.run)
       expect(staged.actors).toEqual(before.actors)
-      expect(staged.commands).toEqual(before.commands)
-      await expect(
-        base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-          encounterId: base.run.id
-        })
-      ).resolves.toEqual(pending)
-      await expect(
-        base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-          encounterId: base.run.id
-        })
-      ).resolves.toBeNull()
+      expect(await committedCount(base)).toBe(committedBefore)
+      await expect(pendingFor(base, base.owner.caller)).resolves.toEqual(pending)
+      await expect(pendingFor(base, base.other.caller)).resolves.toBeNull()
       const response: ResolveRuleOccurrenceInputDto = {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -960,20 +1001,25 @@ describe('native encounter actions', () => {
       await expect(executeInRoom(base.other.caller, { command: response })).rejects.toMatchObject({
         data: { reason: 'NOT_ACTOR_CONTROLLER' }
       })
-      await expect(
-        executeInRoom(base.owner.caller, {
-          command: {
-            ...response,
-            resolution: {
-              kind: 'SYSTEM_ROLL',
-              requestId: 'stale-request',
-              rollId: crypto.randomUUID()
+      expect(
+        await rejection(
+          executeInRoom(base.owner.caller, {
+            command: {
+              ...response,
+              resolution: {
+                kind: 'SYSTEM_ROLL',
+                requestId: 'stale-request',
+                rollId: crypto.randomUUID()
+              }
             }
-          }
-        })
-      ).rejects.toThrow()
+          })
+        )
+      ).toMatchObject({ reason: 'ROLL_UNAVAILABLE' })
       expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(staged)
-      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(staged)
+      // The room's held history (command rows, receipts, evidence rolls, occurrences) is unchanged by
+      // the stale answer: `apps/session-worker/test/nativeRoomTurnEvidence.test.ts` ("a refused room
+      // command leaves the held commands, receipts and evidence rolls as they were, even after a roll
+      // is held") asserts it against the room's own tables.
       result = await executeInRoom(base.owner.caller, {
         command: response
       })
@@ -983,24 +1029,19 @@ describe('native encounter actions', () => {
       const retry = (change: { correlationId: string } | { commandId: string }) =>
         executeInRoom(base.owner.caller, { command: { ...response, ...change } })
       if (settledAction) {
-        await expectRedactedRoomRefusal(
-          retry({ correlationId: crypto.randomUUID() }),
-          'The command ID was already used for different input.',
-          'INVALID_COMMAND'
-        )
+        await expectReusedCommandRefusal(retry({ correlationId: crypto.randomUUID() }))
         await expect(retry({ commandId: crypto.randomUUID() })).rejects.toMatchObject({
           data: { reason: 'VERSION_STALE' }
         })
       } else {
-        await expect(retry({ correlationId: crypto.randomUUID() })).rejects.toThrow(
-          RoomCommandRefusal
-        )
-        await expect(retry({ commandId: crypto.randomUUID() })).rejects.toThrow(
-          'occurrence version is stale'
-        )
+        await expectReusedCommandRefusal(retry({ correlationId: crypto.randomUUID() }))
+        expect(await rejection(retry({ commandId: crypto.randomUUID() }))).toMatchObject({
+          reason: 'VERSION_STALE',
+          message: 'The action occurrence version is stale.'
+        })
       }
       await expect(
-        replayInRoom(base.owner.caller, {
+        executeInRoom(base.owner.caller, {
           command: response
         })
       ).resolves.toEqual(result)
@@ -1022,27 +1063,25 @@ describe('native encounter actions', () => {
     expect(featureChargeUsed(sourceState, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(sourceState, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
     expect(creatureActorState(target).currentHitPoints).toBeLessThan(base.target.currentHitPoints!)
-    expect(settled.commands).toHaveLength(before.commands.length + 1)
+    expect(await committedCount(base)).toBe(committedBefore + 1)
     // The root replays its own pending result over the settled projection.
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual({ ...issued, projection: result.projection })
     // Each answer replays its own result over the settled projection.
     for (const answered of responses)
       await expect(
-        replayInRoom(base.owner.caller, {
+        executeInRoom(base.owner.caller, {
           command: answered.command
         })
       ).resolves.toEqual({ ...answered.result, projection: result.projection })
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
-    await expectRedactedRoomRefusal(
+    await expectReusedCommandRefusal(
       executeInRoom(base.owner.caller, {
         command: { ...input, expectedVersion: 1, commandId: responses[0]!.command.commandId }
-      }),
-      'The command ID was already used for different input.',
-      'INVALID_COMMAND'
+      })
     )
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
     const secondRun = await base.owner.caller.mutation(createRun, {
@@ -1052,7 +1091,7 @@ describe('native encounter actions', () => {
     })
     for (const run of [result.projection, secondRun]) {
       const beforeCollision = await records(base.t, run.id, base.campaign.id)
-      await expectRedactedRoomRefusal(
+      await expectReusedCommandRefusal(
         executeInRoom(base.owner.caller, {
           command: {
             type: 'UPSERT_REMINDER',
@@ -1069,9 +1108,7 @@ describe('native encounter actions', () => {
               order: 0
             }
           }
-        }),
-        'The command ID was already used for different input.',
-        'INVALID_COMMAND'
+        })
       )
       expect(await records(base.t, run.id, base.campaign.id)).toEqual(beforeCollision)
     }
@@ -1122,10 +1159,8 @@ describe('native encounter actions', () => {
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect(result.projection.version).toBe(granted.projection.version + 1)
     const settled = await records(base.t, base.run.id, base.campaign.id)
-    await expect(replayInRoom(base.other.caller, { command: input })).resolves.toEqual(result)
-    await expect(executeInRoom(base.owner.caller, { command: input })).rejects.toThrow(
-      'The command ID was already used for different input.'
-    )
+    await expect(executeInRoom(base.other.caller, { command: input })).resolves.toEqual(result)
+    await expectReusedCommandRefusal(executeInRoom(base.owner.caller, { command: input }))
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
   }, 30000)
 
@@ -1155,10 +1190,11 @@ describe('native encounter actions', () => {
     if (!target) throw new Error('Missing settled target.')
     expect(creatureActorState(target).currentHitPoints).toBeLessThan(100)
     expect(settled.occurrences).toHaveLength(before.occurrences.length + 1)
-    expect(settled.receipts).toHaveLength(before.receipts.length + 1)
-    expect(settled.commands).toHaveLength(before.commands.length + 1)
+    // The room answers the retry from the receipt it holds for the command; a second commit
+    // would move the version, so one committed command is the same fact the rows used to show.
+    expect(await committedCount(base)).toBe(1)
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
@@ -1167,66 +1203,65 @@ describe('native encounter actions', () => {
       executeInRoom(base.owner.caller, {
         command: command({ ...input, commandId: crypto.randomUUID() })
       })
-    ).rejects.toThrow('stale')
+    ).rejects.toMatchObject({ data: { reason: 'VERSION_STALE' } })
     await expect(
       executeInRoom(base.other.caller, {
         command: input
       })
-    ).rejects.toThrow(RoomCommandRefusal)
+    ).rejects.toThrow('Campaign not found.')
   }, 30000)
 
-  it.each([false, true])(
-    'settles and rolls back distance actions, then replays after movement (uppercase token IDs: %s)',
-    async (uppercaseTokens) => {
-      const base = await distanceSetup({ uppercaseTokens })
-      const input = command({
-        encounterId: base.run.id,
-        expectedVersion: base.run.version,
-        actorId: base.actor.id,
-        targetActorId: base.target.id,
-        actionId: base.actionId,
-        sceneContext: {
-          sceneId: base.sceneId,
-          expectedSceneVersion: 0,
-          sourceTokenId: base.tokens[0]!.id,
-          targetTokenId: base.tokens[1]!.id
-        }
-      })
-      const before = await records(base.t, base.run.id, base.campaign.id)
-      const random = vi
-        .spyOn(rollRandom, 'nextRollInt')
-        .mockImplementation((maximum) => (maximum === 20 ? 14 : maximum - 1))
-      let result: EncounterCommandResultDto
-      try {
-        expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
-        result = encounterCommandResultDtoSchema.parse(
-          await executeInRoom(base.owner.caller, { command: input })
-        )
-        expect(random).toHaveBeenCalled()
-      } finally {
-        random.mockRestore()
+  it('settles and rolls back distance actions, then replays after movement', async () => {
+    const base = await distanceSetup()
+    const input = command({
+      encounterId: base.run.id,
+      expectedVersion: base.run.version,
+      actorId: base.actor.id,
+      targetActorId: base.target.id,
+      actionId: base.actionId,
+      sceneContext: {
+        sceneId: base.sceneId,
+        expectedSceneVersion: 0,
+        sourceTokenId: base.tokens[0]!.id,
+        targetTokenId: base.tokens[1]!.id
       }
-      const settled = await records(base.t, base.run.id, base.campaign.id)
-      expect(settled.run?.version).toBe(base.run.version + 1)
-      expect(settled.commands).toHaveLength(before.commands.length + 1)
-      const target = creatureActorState(
-        settled.actors.find((actor) => actor.id === base.target.id)!
-      )
-      expect(target.currentHitPoints).toBeLessThan(base.target.currentHitPoints)
-      // The seeded Bite's second hit path knocks the target prone.
-      expect(target.conditions).toEqual([
-        {
-          conditionTypeId: srdSystemRecord.conditionTypes.find(
-            (condition) => condition.code === 'PRONE'
-          )?.id
-        }
-      ])
-      await replaceTargetToken(base, { x: 450, y: 450 })
-      await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
-      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
-    },
-    30000
-  )
+    })
+    const before = await records(base.t, base.run.id, base.campaign.id)
+    // The attack d20 shows 15; every later die shows its highest face.
+    await queueRoomRolls(base.campaign.id, { rolls: [14], repeat: 3 })
+    let result: EncounterCommandResultDto
+    try {
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
+      result = await executeInRoom(base.owner.caller, { command: input })
+      // One card per rolled step, oldest first: the attack d20, then the damage it dealt.
+      expect(
+        (await readRoomRollCards(base.owner.caller, base.campaign.id)).map(
+          (card) => card.source.kind
+        )
+      ).toEqual(['ATTACK', 'DAMAGE'])
+    } finally {
+      await queueRoomRolls(base.campaign.id, { rolls: [] })
+    }
+    const settled = await records(base.t, base.run.id, base.campaign.id)
+    expect(settled.run?.version).toBe(base.run.version + 1)
+    expect(await committedCount(base)).toBe(1)
+    const target = creatureActorState(settled.actors.find((actor) => actor.id === base.target.id)!)
+    expect(target.currentHitPoints).toBeLessThan(base.target.currentHitPoints)
+    // The seeded Bite's second hit path knocks the target prone.
+    expect(target.conditions).toEqual([
+      {
+        conditionTypeId: srdSystemRecord.conditionTypes.find(
+          (condition) => condition.code === 'PRONE'
+        )?.id
+      }
+    ])
+    // The target moves out of range through the room, as the tabletop moves it.
+    await moveTargetTokenInRoom(base, result.projection.version)
+    await checkpointLiveRoom(base.campaign.id)
+    // A Scene move does not change the Run, so the room answers the retry from its receipt as it was.
+    await expect(executeInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
+    expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
+  }, 30000)
 
   it.each(['moved', 'removed'] as const)(
     'uses live target state instead of the in-range base token when %s',
@@ -1256,115 +1291,47 @@ describe('native encounter actions', () => {
           reason: 'RULE_WARNINGS',
           warnings: [{ code: 'TARGET_OUT_OF_RANGE' }]
         })
-      else await expect(attempt()).rejects.toThrow(RoomCommandRefusal)
+      else await expectUnavailableRefusal(attempt(), 'token')
       expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
     },
     30000
   )
 
-  it('rejects bounded distance actions before writes for missing, mismatched, out-of-range, and stale Scene context', async () => {
-    const missing = await distanceSetup()
-    const missingInput = command({
-      encounterId: missing.run.id,
-      expectedVersion: missing.run.version,
-      actorId: missing.actor.id,
-      targetActorId: missing.target.id,
-      actionId: missing.actionId,
-      sceneContext: {
-        sceneId: crypto.randomUUID(),
-        expectedSceneVersion: 0,
-        sourceTokenId: missing.tokens[0]!.id,
-        targetTokenId: missing.tokens[1]!.id
-      }
-    })
-    const beforeMissing = await records(missing.t, missing.run.id, missing.campaign.id)
-    await expect(executeInRoom(missing.owner.caller, { command: missingInput })).rejects.toThrow()
-    expect(await records(missing.t, missing.run.id, missing.campaign.id)).toEqual(beforeMissing)
-
-    const wrongBinding = await distanceSetup()
-    const wrongBindingInput = command({
-      encounterId: wrongBinding.run.id,
-      expectedVersion: wrongBinding.run.version,
-      actorId: wrongBinding.actor.id,
-      targetActorId: wrongBinding.target.id,
-      actionId: wrongBinding.actionId,
-      sceneContext: {
-        sceneId: wrongBinding.sceneId,
-        expectedSceneVersion: 0,
-        sourceTokenId: wrongBinding.tokens[1]!.id,
-        targetTokenId: wrongBinding.tokens[0]!.id
-      }
-    })
-    const beforeWrongBinding = await records(
-      wrongBinding.t,
-      wrongBinding.run.id,
-      wrongBinding.campaign.id
-    )
-    await expect(
-      executeInRoom(wrongBinding.owner.caller, {
-        command: wrongBindingInput
+  // Each fault gets its own Campaign and room: one attached room serves one fixture at a time.
+  it.each(['missing', 'mismatched', 'out-of-range', 'stale'] as const)(
+    'rejects a bounded distance action before writes for %s Scene context',
+    async (fault) => {
+      const base = await distanceSetup()
+      if (fault === 'out-of-range') await moveDefinitionTargetToken(base)
+      const input = command({
+        encounterId: base.run.id,
+        expectedVersion: base.run.version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        sceneContext: {
+          sceneId: fault === 'missing' ? crypto.randomUUID() : base.sceneId,
+          expectedSceneVersion: 0,
+          sourceTokenId: base.tokens[fault === 'mismatched' ? 1 : 0]!.id,
+          targetTokenId: base.tokens[fault === 'mismatched' ? 0 : 1]!.id
+        }
       })
-    ).rejects.toThrow()
-    expect(await records(wrongBinding.t, wrongBinding.run.id, wrongBinding.campaign.id)).toEqual(
-      beforeWrongBinding
-    )
-
-    const outOfRange = await distanceSetup()
-    await outOfRange.t.run(async (ctx) => {
-      const entity = (await ctx.db.query('sceneDefinitionEntities').collect()).filter(
-        (row) => row.value.collection === 'tokens'
-      )
-      const target = entity.find((row) => row.ordinal === 1)
-      if (!target) throw new Error('Missing target Scene token.')
-      if (target.value.collection !== 'tokens') throw new Error('Expected target token entity.')
-      const value = {
-        ...target.value,
-        entity: { ...target.value.entity, position: { x: 300, y: 0 } }
-      }
-      await ctx.db.patch(target._id, { value, checksum: checksumCanonicalJson(value) })
-    })
-    const outOfRangeInput = command({
-      encounterId: outOfRange.run.id,
-      expectedVersion: outOfRange.run.version,
-      actorId: outOfRange.actor.id,
-      targetActorId: outOfRange.target.id,
-      actionId: outOfRange.actionId,
-      sceneContext: {
-        sceneId: outOfRange.sceneId,
-        expectedSceneVersion: 0,
-        sourceTokenId: outOfRange.tokens[0]!.id,
-        targetTokenId: outOfRange.tokens[1]!.id
-      }
-    })
-    const beforeOutOfRange = await records(outOfRange.t, outOfRange.run.id, outOfRange.campaign.id)
-    await expect(
-      executeInRoom(outOfRange.owner.caller, {
-        command: outOfRangeInput
-      })
-    ).rejects.toThrow()
-    expect(await records(outOfRange.t, outOfRange.run.id, outOfRange.campaign.id)).toEqual(
-      beforeOutOfRange
-    )
-
-    const stale = await distanceSetup()
-    const staleInput = command({
-      encounterId: stale.run.id,
-      expectedVersion: stale.run.version,
-      actorId: stale.actor.id,
-      targetActorId: stale.target.id,
-      actionId: stale.actionId,
-      sceneContext: {
-        sceneId: stale.sceneId,
-        expectedSceneVersion: 0,
-        sourceTokenId: stale.tokens[0]!.id,
-        targetTokenId: stale.tokens[1]!.id
-      }
-    })
-    await advanceSceneVersion(stale.t, stale.sceneId)
-    const beforeStale = await records(stale.t, stale.run.id, stale.campaign.id)
-    await expect(executeInRoom(stale.owner.caller, { command: staleInput })).rejects.toThrow()
-    expect(await records(stale.t, stale.run.id, stale.campaign.id)).toEqual(beforeStale)
-  }, 30000)
+      if (fault === 'stale') await advanceSceneVersion(base.t, base.sceneId)
+      const before = await records(base.t, base.run.id, base.campaign.id)
+      // A target out of range is an overridable warning; the other faults are hard failures.
+      if (fault === 'out-of-range')
+        expect(await rejection(executeInRoom(base.owner.caller, { command: input }))).toMatchObject(
+          { reason: 'RULE_WARNINGS', warnings: [{ code: 'TARGET_OUT_OF_RANGE' }] }
+        )
+      else
+        await expectUnavailableRefusal(
+          executeInRoom(base.owner.caller, { command: input }),
+          distanceFaultCause[fault]
+        )
+      expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
+    },
+    30000
+  )
 
   it('pauses an Assisted distance action without mechanics and rejects changed Scene geometry', async () => {
     const base = await distanceSetup({
@@ -1393,13 +1360,15 @@ describe('native encounter actions', () => {
     const paused = await records(base.t, base.run.id, base.campaign.id)
     expect(paused.run).toEqual(before.run)
     expect(paused.actors).toEqual(before.actors)
-    expect(paused.commands).toEqual(before.commands)
+    expect(await committedCount(base)).toBe(0)
     expect(paused.occurrences).toHaveLength(before.occurrences.length + 1)
     const pending = result.occurrence?.pending
     if (!pending || (pending.kind !== 'D20_EVIDENCE' && pending.kind !== 'ACTION_OUTCOME_EVIDENCE'))
       throw new Error('Expected Assisted distance evidence.')
+    // The Scene changes in Convex while the room holds nothing: the pending answer re-hydrates it.
+    await closeRoom(base.campaign.id)
     await advanceSceneVersion(base.t, base.sceneId)
-    await expect(
+    await expectUnavailableRefusal(
       executeInRoom(base.owner.caller, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
@@ -1423,12 +1392,13 @@ describe('native encounter actions', () => {
                   value: pending.request.max
                 }
         }
-      })
-    ).rejects.toThrow()
+      }),
+      'Scene'
+    )
+    await closeRoom(base.campaign.id)
     const afterRejected = await records(base.t, base.run.id, base.campaign.id)
     expect(afterRejected.run).toEqual(before.run)
     expect(afterRejected.actors).toEqual(before.actors)
-    expect(afterRejected.commands).toEqual(before.commands)
     expect(afterRejected.occurrences).toHaveLength(before.occurrences.length + 1)
   }, 30000)
 
@@ -1464,7 +1434,7 @@ describe('native encounter actions', () => {
       const retained = await records(base.t, base.run.id, base.campaign.id)
       expect(retained.run).toEqual(before.run)
       expect(retained.actors).toEqual(before.actors)
-      expect(retained.commands).toEqual(before.commands)
+      expect(await committedCount(base)).toBe(0)
       const response: ResolveRuleOccurrenceInputDto = {
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: base.run.id,
@@ -1494,15 +1464,15 @@ describe('native encounter actions', () => {
         command: response
       })
       const after = await records(base.t, base.run.id, base.campaign.id)
-      await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
+      await expect(executeInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
       expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(after)
     }
     expect(result.occurrence?.status).toBe('COMPLETE')
     const settled = await records(base.t, base.run.id, base.campaign.id)
     expect(settled.run?.version).toBe(base.run.version + 1)
-    expect(settled.commands).toHaveLength(before.commands.length + 1)
+    expect(await committedCount(base)).toBe(1)
     // The root replays its own pending result over the settled projection.
-    await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, { command: input })).resolves.toEqual({
       ...issued,
       projection: result.projection
     })
@@ -1522,21 +1492,20 @@ describe('native encounter actions', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    const random = vi
-      .spyOn(rollRandom, 'nextRollInt')
-      .mockReturnValueOnce(14)
-      .mockReturnValueOnce(0)
-      .mockReturnValueOnce(0)
+    await queueRoomRolls(base.campaign.id, { rolls: [14, 0, 0] })
     try {
-      await expectRedactedRoomRefusal(
+      await expectUnavailableRefusal(
         executeInRoom(base.owner.caller, {
           command: input
         }),
         'Spatially interpreted actions are not available yet.'
       )
-      expect(random).toHaveBeenCalled()
+      // A refused action posts no roll card: the table chat was never opened.
+      await expect(readRoomRollCards(base.owner.caller, base.campaign.id)).rejects.toThrow(
+        'Conversation not found.'
+      )
     } finally {
-      random.mockRestore()
+      await queueRoomRolls(base.campaign.id, { rolls: [] })
     }
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
   }, 30000)
@@ -1553,27 +1522,26 @@ describe('native encounter actions', () => {
       targetActorId: base.target.id,
       actionId: base.actionId
     })
-    const random = vi
-      .spyOn(rollRandom, 'nextRollInt')
-      .mockImplementation((maximum) => (maximum === 20 ? 14 : maximum - 1))
+    // The attack d20 shows 15; every later die shows its highest face.
+    await queueRoomRolls(base.campaign.id, { rolls: [14], repeat: 5 })
     let result: EncounterCommandResultDto
     try {
-      result = encounterCommandResultDtoSchema.parse(
-        await executeInRoom(base.owner.caller, {
-          command: input
-        })
-      )
-      expect(random).toHaveBeenCalled()
+      result = await executeInRoom(base.owner.caller, {
+        command: input
+      })
     } finally {
-      random.mockRestore()
+      await queueRoomRolls(base.campaign.id, { rolls: [] })
     }
+    // One card per rolled step, oldest first: the attack d20, then the damage it dealt.
+    expect(
+      (await readRoomRollCards(base.owner.caller, base.campaign.id)).map((card) => card.source.kind)
+    ).toEqual(['ATTACK', 'DAMAGE'])
 
     expect(result.projection.version).toBe(1)
     const settled = await records(base.t, base.run.id, base.campaign.id)
     const source = settled.actors.find((actor) => actor.id === base.actor.id)
     const target = settled.actors.find((actor) => actor.id === base.target.id)
-    const receipt = settled.receipts.find((entry) => entry.commandId === input.commandId)
-    if (!source || !target || !receipt) throw new Error('Missing phased native action settlement.')
+    if (!source || !target) throw new Error('Missing phased native action settlement.')
     const sourceState = readStoredRunActor(source)
     const targetState = creatureActorState(target)
     const featureId = nativeCreature(true, false, false, true).features?.find(
@@ -1584,23 +1552,13 @@ describe('native encounter actions', () => {
     expect(featureChargeUsed(sourceState, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(sourceState, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
 
-    const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-    if (
-      stored.status !== 'COMPLETE' ||
-      stored.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-    ) {
-      throw new Error('Expected completed phased native action receipt.')
-    }
-    expect(stored.phaseReceipts?.map((phase) => phase.phase)).toEqual(['TEST', 'OUTCOME'])
-    expect(stored.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_HIT')
-    expect(stored.applicationOutputs).toMatchObject({
-      occurrenceId: receipt.occurrenceId,
-      sourceActorId: base.actor.id,
-      targetActorId: base.target.id
-    })
+    // The TEST and OUTCOME phase receipts and the ON_HIT path are held by the room with the
+    // command's receipt (D85), and no member read shows them. Their producer is covered at
+    // packages/rules-runtime/src/__tests__/encounterActionExecution.test.ts:369-394 (a hit TEST then
+    // OUTCOME with sealed receipts, ON_HIT path).
 
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
@@ -1621,7 +1579,7 @@ describe('native encounter actions', () => {
       targetActorId: base.actor.id,
       actionId: base.actionId
     })
-    await executeInRoom(base.owner.caller, {
+    const acted = await executeInRoom(base.owner.caller, {
       command: input
     })
     const after = await records(base.t, base.run.id, base.campaign.id)
@@ -1635,26 +1593,25 @@ describe('native encounter actions', () => {
     if (!featureId) throw new Error('Missing self-action feature.')
     expect(featureChargeUsed(settled, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(settled, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
-    const receipt = after.receipts.find((entry) => entry.commandId === input.commandId)
-    if (!receipt) throw new Error('Missing self-action receipt.')
-    const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-    if (
-      stored.status !== 'COMPLETE' ||
-      stored.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-    ) {
-      throw new Error('Expected completed self-action receipt.')
-    }
-    const transition = stored.applicationOutputs.targetTransition
-    expect(
-      checksumRuleDocument({
-        targetActorId: base.actor.id,
-        currentHitPoints: transition.before.currentHitPoints,
-        temporaryHitPoints: transition.before.temporaryHitPoints,
-        maximumHitPoints: transition.before.maximumHitPoints,
-        scalarValues: transition.before.scalarValues,
-        conditionIds: transition.before.conditionIds
-      })
-    ).toBe(stored.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY])
+
+    // Command rows and rule receipts stay in the room for the Run (D85, D88); Convex holds one
+    // replay-index row per room command. The checkpointed row proves the room committed this
+    // command under the caller's identity and input fingerprint at the resulting version.
+    await checkpointLiveRoom(base.campaign.id)
+    const replayIndex = await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterReplayIndex')
+        .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', base.campaign.id))
+        .collect()
+    )
+    const indexed = replayIndex.filter(({ commandId }) => commandId === input.commandId)
+    expect(indexed).toHaveLength(1)
+    expect(indexed[0]).toMatchObject({
+      encounterId: base.run.id,
+      actorUserId: base.owner.userId,
+      commandFingerprint: checksumCanonicalJson({ command: input, scope: 'ENCOUNTER' }),
+      version: acted.projection.version
+    })
   }, 30000)
 
   it('settles a charged Feature once and warns before using an exhausted source', async () => {
@@ -1668,25 +1625,18 @@ describe('native encounter actions', () => {
     const result = await executeInRoom(base.owner.caller, {
       command: input
     })
-    const source = await base.t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) =>
-          q.eq('encounterId', base.run.id).eq('id', base.actor.id)
-        )
-        .unique()
-      if (!row) throw new Error('Missing charged source actor.')
-      return await readTestActor(ctx, row)
-    })
+    const source = await sourceActorState(base)
     const featureId = nativeCreature(true).features?.find((feature) => feature.label === 'Bite')?.id
     if (!featureId) throw new Error('Missing charged Feature fixture.')
     expect(featureChargeUsed(source, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: input
       })
     ).resolves.toEqual(result)
+    // The exhausted source is written straight into Convex, so the room lets go of its copy first.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRunActors')
@@ -1732,48 +1682,11 @@ describe('native encounter actions', () => {
         command: input
       })
       expect(result.occurrence?.status).toBe('COMPLETE')
-      const stored = await base.t.run(async (ctx) => {
-        const effect = await ctx.db
-          .query('encounterActiveRuleEffects')
-          .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
-            q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
-          )
-          .unique()
-        const receipt = await (
-          await readEncounterHistory(ctx)
-        )
-          .query('encounterRuleReceipts')
-          .withIndex('by_encounterId_commandId', (q) =>
-            q.eq('encounterId', base.run.id).eq('commandId', input.commandId)
-          )
-          .unique()
-        return { effect, receipt }
-      })
-      expect(stored.effect).toBeTruthy()
-      if (!stored.receipt) throw new Error('Missing native action receipt.')
-      const execution = storedRuleExecutionResultDtoSchema.parse(
-        JSON.parse(stored.receipt.resultJson)
-      )
-      if (
-        execution.status !== 'COMPLETE' ||
-        !execution.applicationOutputs ||
-        execution.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-      )
-        throw new Error('Missing completed native action outputs.')
-      expect(execution.applicationOutputs.activeEffectTransitions).toHaveLength(1)
-      expect(execution.applicationOutputs.activeEffectTransitions[0]?.activeEffectId).toBe(
-        stored.effect?.id
-      )
-      await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
-      const replayed = await base.t.run(async (ctx) =>
-        ctx.db
-          .query('encounterActiveRuleEffects')
-          .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
-            q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
-          )
-          .collect()
-      )
-      expect(replayed).toHaveLength(1)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(1)
+      // The receipt's one active-effect transition is the effect row above: the undo test below
+      // ("deletes the effect an action created") deletes exactly that row from the receipt alone.
+      await expect(executeInRoom(base.owner.caller, { command: input })).resolves.toEqual(result)
+      expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(1)
     },
     30000
   )
@@ -1825,7 +1738,7 @@ describe('native encounter actions', () => {
       expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(
         effects
       )
-      await expect(replayInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
+      await expect(executeInRoom(base.owner.caller, { command: response })).resolves.toEqual(result)
       expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(
         effects
       )
@@ -1884,16 +1797,8 @@ describe('native encounter actions', () => {
   }, 30000)
 })
 
-async function rejection(promise: Promise<unknown>) {
-  const error = await promise.then(
-    () => null,
-    (caught: unknown) => caught
-  )
-  if (!(error instanceof ConvexError)) throw new Error('Expected a domain rejection.')
-  return domainRejectionErrorDataSchema.parse(error.data)
-}
-
-function sourceActorState(base: Awaited<ReturnType<typeof setup>>) {
+async function sourceActorState(base: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRunActors')
@@ -1969,48 +1874,19 @@ describe('Assisted soft enforcement', () => {
     // Charges stop at their maximum; the allowance records the over-use.
     expect(featureChargeUsed(source, featureId)).toBe(1)
     expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(2)
-    const stored = await base.t.run(async (ctx) => ({
-      runCommand: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId_version', (q) =>
-          q.eq('encounterId', base.run.id).eq('version', 2)
-        )
-        .unique(),
-      receipt: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_encounterVersion', (q) =>
-          q.eq('encounterId', base.run.id).eq('encounterVersion', 2)
-        )
-        .unique()
-    }))
-    if (stored.runCommand?.commandType !== 'RESOLVE_ACTION' || !stored.receipt)
-      throw new Error('Missing overridden action records.')
-    expect(stored.runCommand.ruleOverrides.map((warning) => warning.code)).toEqual([
-      'ACTION_ECONOMY_UNAVAILABLE',
-      'RESOURCE_UNAVAILABLE'
-    ])
-    const execution = storedRuleExecutionResultDtoSchema.parse(
-      JSON.parse(stored.receipt.resultJson)
-    )
-    if (
-      !('applicationOutputs' in execution) ||
-      execution.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-    )
-      throw new Error('Expected a completed Creature action receipt.')
-    expect(execution.applicationOutputs.featureResourceConsumption).toBeNull()
-    expect(execution.applicationOutputs.actionEconomyTransition).toMatchObject({
-      maximum: 1,
-      beforeUsed: 1,
-      afterUsed: 2
+    const timeline = await readRoomTimeline(base.owner.caller, base.campaign.id)
+    expect(timeline.find((entry) => entry.version === 2)).toMatchObject({
+      commandType: 'RESOLVE_ACTION'
     })
-    const timeline = await readTimelineInRoom(base.owner.caller, base.run.id)
-    expect(timeline.entries.find((entry) => entry.version === 2)?.ruleOverrides).toEqual(
-      stored.runCommand.ruleOverrides
-    )
+    expect(
+      timeline.find((entry) => entry.version === 2)?.ruleOverrides.map((warning) => warning.code)
+    ).toEqual(['ACTION_ECONOMY_UNAVAILABLE', 'RESOURCE_UNAVAILABLE'])
+    // The receipt records the over-use (allowance 1 -> 2, no charge spent) so the undo restores it
+    // exactly: undoing the override returns the allowance to 1 and leaves the spent charge alone.
+    await revert(base, 2)
+    const undone = await sourceActorState(base)
+    expect(encounterRuleUsageUsed(undone, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
+    expect(featureChargeUsed(undone, featureId)).toBe(1)
   }, 30000)
 
   it('treats range and target disposition as overridable warnings', async () => {
@@ -2083,16 +1959,14 @@ describe('Assisted soft enforcement', () => {
       pending: { kind: 'D20_EVIDENCE', request: { rollMode: 'DISADVANTAGE' } }
     })
     // Assisted names the reason, like any other derived roll mode.
-    expect(
-      await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: base.run.id
-      })
-    ).toMatchObject({
+    expect(await pendingFor(base, base.owner.caller)).toMatchObject({
       kind: 'D20_EVIDENCE',
       request: { rollMode: 'DISADVANTAGE', derivedRollModeReasons: ['Long range'] }
     })
+  }, 60000)
 
-    // Beyond its long range (13 squares, 65 ft.) the attack only warns (D11).
+  it('only warns for a ranged attack beyond its long range (D11)', async () => {
+    // The seeded Ape's Rock: range 25/50 ft. The target stands 13 squares (65 ft.) away.
     const far = await distanceSetup({ ranged: true, rolls: 'PROMPT' })
     await replaceTargetToken(far, { x: 1350, y: 50 })
     expect(
@@ -2105,8 +1979,8 @@ describe('Assisted soft enforcement', () => {
             targetActorId: far.target.id,
             actionId: far.actionId,
             sceneContext: {
-              ...sceneContext,
               sceneId: far.sceneId,
+              expectedSceneVersion: 1,
               sourceTokenId: far.tokens[0]!.id,
               targetTokenId: far.tokens[1]!.id
             }
@@ -2142,13 +2016,14 @@ describe('Assisted soft enforcement', () => {
     )
     expect(await refuse({ ...input, expectedVersion: 7 })).toBe('VERSION_STALE')
     await expect(executeInRoom(base.other.caller, { command: input })).rejects.toThrow(
-      RoomCommandRefusal
+      'Campaign not found.'
     )
-    await expect(
+    await expectUnavailableRefusal(
       executeInRoom(base.owner.caller, {
         command: { ...input, targetActorId: crypto.randomUUID() }
-      })
-    ).rejects.toThrow()
+      }),
+      'actor'
+    )
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(before)
   }, 30000)
 })
@@ -2170,7 +2045,7 @@ describe('GM undo of the last action', () => {
       creatureActorState(value.actors.find((actor) => actor.id === base.target.id)!)
     expect(targetState(settled).currentHitPoints).toBeLessThan(targetState(before).currentHitPoints)
 
-    await expect(revert(base, 1, base.other.caller)).rejects.toThrow(RoomCommandRefusal)
+    await expect(revert(base, 1, base.other.caller)).rejects.toThrow('Campaign not found.')
     const undone = await revert(base, 1)
     expect(undone.projection.version).toBe(2)
     const after = await records(base.t, base.run.id, base.campaign.id)
@@ -2179,12 +2054,10 @@ describe('GM undo of the last action', () => {
     const source = await sourceActorState(base)
     expect(featureChargeUsed(source, featureId)).toBe(0)
     expect(encounterRuleUsageUsed(source, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
-    expect(after.commands.find((entry) => entry.version === 2)).toMatchObject({
-      commandType: 'REVERT_LAST_ACTION',
-      revertedCommandId: action.commandId
-    })
-    const timeline = await readTimelineInRoom(base.owner.caller, base.run.id)
-    expect(timeline.entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION', version: 2 })
+    const timeline = await readRoomTimeline(base.owner.caller, base.campaign.id)
+    expect(timeline[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION', version: 2 })
+    // The reverting receipt's `revertedCommandId` is asserted against the room's receipt rows in
+    // `apps/session-worker/test/nativeRoomActionReceipts.test.ts:342-346`.
     expect(await rejection(revert(base, 2))).toMatchObject({
       reason: 'REVERT_UNAVAILABLE',
       message: 'The last action was already undone.'

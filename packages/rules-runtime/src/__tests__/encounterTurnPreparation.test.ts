@@ -27,9 +27,9 @@ import {
   ACTOR_B,
   ACTOR_C,
   SIDE_FOES,
-  initiativePolicySnapshot,
   preparingRound
 } from './encounterInitiativeFixtures.js'
+import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 
 type Stages = Parameters<typeof prepareEncounterTurn<ProjectableCharacterFacts>>[1]
 

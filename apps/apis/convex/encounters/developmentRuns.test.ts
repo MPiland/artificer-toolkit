@@ -1,10 +1,13 @@
 import {
-  persistHeldHistoryToConvex,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  checkpointLiveRoom,
+  closeRoom,
+  queueRoomRolls,
+  readEncounterHistory,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { writeReceiptRecord, readReceiptHeaders } from '../lib/receiptLedgers'
 import { makeFunctionReference, type FunctionArgs } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { CreateEncounterInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { vttMapStoredAssetSchema } from '@artificer-toolkit/schema/projections/vttMapPersistence'
@@ -20,7 +23,6 @@ import {
   encounterStoredRuleReceiptSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { api, components } from '../_generated/api'
 import {
@@ -29,11 +31,9 @@ import {
   createRun
 } from '../../tests/fixtures/encounterScene'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
-import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
+import { useMovementReactionsInRoom } from '../../tests/fixtures/automaticSceneMovement'
 
-vi.mock('../lib/rollRandom', () => ({
-  nextRollInt: (sides: number) => (sides === 20 ? 14 : 0)
-}))
+useLocalRoomWorker()
 
 const removeFixtureState = makeFunctionReference<
   'mutation',
@@ -435,36 +435,18 @@ function characterReceipt(
 
 async function settleNativeMovementFixture() {
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'])
-  // Assisted mode turns the authored automatic reaction into the GM's Use choice.
-  const { publish, prepared } = await useMovementReactions(value)
-  if (prepared.outcome.kind !== 'TERMINAL')
-    throw new Error('Expected native movement reaction terminal.')
-  await publish()
-  // The Use response settles the movement, so its receipt, not the paused root's, is terminal.
-  const terminal = (
-    await value.base.t.run(async (ctx) =>
-      (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-    )
-  )
-    .map((receipt) => ({
-      receipt,
-      result: storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-    }))
-    .filter(
-      ({ result }) =>
-        result.status === 'MOVEMENT_COMPLETE' ||
-        (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
-    )
-  if (terminal.length !== 1) throw new Error('Missing native movement receipt.')
-  const { receipt } = terminal[0]!
-  // The cleanup removes what Convex's own store holds, so the room's history is written there.
-  await persistHeldHistoryToConvex(value.owner.caller, value.base.campaign.id, value.base.run.id)
+  await queueRoomRolls(value.base.campaign.id, { rolls: [], repeat: 14 })
+  // Assisted mode turns the authored automatic reaction into the GM's Use choice; the Use response
+  // settles the movement.
+  const { occurrence } = await useMovementReactionsInRoom(value)
+  if (!occurrence || occurrence.pending)
+    throw new Error('Expected the native movement to settle in the room.')
+  // The room holds the Run's command rows and receipts (D85); it checkpoints the Run and its
+  // occurrences, then lets go so the cleanup mutation, which writes Convex directly, owns the Run.
+  await checkpointLiveRoom(value.base.campaign.id)
+  await closeRoom(value.base.campaign.id)
   return {
     value,
-    receipt,
     cleanup: {
       ownerUserId: value.owner.userId,
       playerUserId: value.player.userId,
@@ -690,6 +672,9 @@ describe('development Encounter Run cleanup', () => {
         'characterCommandReceipts',
         characterReceipt(fixture.value, playerReceiptId, fixture.value.player.userId)
       )
+    )
+    expect((await nativeMovementCleanupState(fixture.value)).runs.map((run) => run.id)).toContain(
+      fixture.value.base.run.id
     )
     await fixture.value.base.t.mutation(removeFixtureState, fixture.cleanup)
     const after = await nativeMovementCleanupState(fixture.value)

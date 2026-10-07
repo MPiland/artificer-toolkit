@@ -111,7 +111,6 @@ describe('Character Sheet actions', () => {
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Equipment',
         description: '<p>A plain wooden staff.</p>',
-        rollable: true,
         mechanic: {
           effectId: 'quarterstaff-effect',
           trigger: 'ATTACK_ROLL',
@@ -136,7 +135,6 @@ describe('Character Sheet actions', () => {
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Artificer',
         description: '<p>Build a magical turret that attacks your enemies.</p>',
-        rollable: true,
         mechanic: {
           effectId: 'force-ballista-effect',
           trigger: 'ATTACK_ROLL',
@@ -166,7 +164,6 @@ describe('Character Sheet actions', () => {
         kind: 'ACTION',
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Core action',
-        rollable: false,
         mechanic: {
           effectId: 'dash-effect',
           trigger: 'ACTIVATED',
@@ -218,7 +215,7 @@ describe('Character Sheet actions', () => {
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Recover your fighting spirit.</p>',
-        resourceGrantId: 'resource-1'
+        resourceGrantId: sheet.resources.items[0]!.id
       }
     ]
     sheet.resources.items[0] = {
@@ -251,7 +248,7 @@ describe('Character Sheet actions', () => {
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_RESOURCE',
       actionId: 'action-second-wind',
-      resourceGrantId: 'resource-1',
+      resourceGrantId: sheet.resources.items[0]!.id,
       expectedVersion: 4
     })
     expect(screen.getByRole('alert')).toHaveTextContent(/charges could not be updated/i)
@@ -261,7 +258,7 @@ describe('Character Sheet actions', () => {
     )
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'RESTORE_RESOURCE',
-      resourceGrantId: 'resource-1',
+      resourceGrantId: sheet.resources.items[0]!.id,
       expectedVersion: 4
     })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -278,7 +275,7 @@ describe('Character Sheet actions', () => {
         kind: 'ACTION',
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Astral Tear',
-        resourceGrantId: 'resource-1',
+        resourceGrantId: sheet.resources.items[0]!.id,
         resourceCost: 2
       }
     ]
@@ -298,7 +295,7 @@ describe('Character Sheet actions', () => {
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_RESOURCE',
       actionId: 'action-warping-strike',
-      resourceGrantId: 'resource-1',
+      resourceGrantId: sheet.resources.items[0]!.id,
       amount: 2,
       expectedVersion: 4
     })
@@ -315,7 +312,7 @@ describe('Character Sheet actions', () => {
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Artificer',
         description: '<p>Build a magical turret that attacks your enemies.</p>',
-        resourceGrantId: 'resource-1',
+        resourceGrantId: sheet.resources.items[0]!.id,
         mechanic: {
           effectId: 'force-ballista-effect',
           trigger: 'ATTACK_ROLL',
@@ -370,7 +367,6 @@ describe('Character Sheet actions', () => {
         sourceLabel: 'Wizard',
         description: '<p>Recover expended spell slots after a short rest.</p>',
         resourceGrantId: 'resource-arcane-recovery',
-        rollable: false,
         mechanic: {
           effectId: 'arcane-recovery-effect',
           trigger: 'ACTIVATED',
@@ -468,7 +464,7 @@ describe('Character Sheet actions', () => {
         label: 'Wand Burst',
         kind: 'ACTION',
         availability: { status: 'UNAVAILABLE', reasonCode: 'SOURCE_NOT_ATTUNED' },
-        resourceGrantId: 'resource-1',
+        resourceGrantId: sheet.resources.items[0]!.id,
         resourceCost: 1,
         sourceLabel: 'Wand of Bursts'
       }
@@ -491,7 +487,7 @@ describe('Character Sheet actions', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'RESTORE_RESOURCE',
-      resourceGrantId: 'resource-1',
+      resourceGrantId: sheet.resources.items[0]!.id,
       expectedVersion: 4
     })
   })

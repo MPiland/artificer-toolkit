@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { saveSceneDefinition } from '#app/data/campaigns/scenes'
+import { sceneDefinitionDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
 import {
@@ -56,11 +57,13 @@ it('preserves a dirty draft during refresh and reuses its save attempt until the
   const first = save.mock.calls[0]!
   expect(first[1]).toMatchObject({ expectedVersion: tabletopSceneDefinition.version })
   expect(first[1].barriers).toHaveLength(tabletopSceneDefinition.barriers.length + 1)
-  save.mockResolvedValueOnce({
-    ...tabletopSceneDefinition,
-    barriers: first[1].barriers,
-    version: tabletopSceneDefinition.version + 1
-  })
+  save.mockResolvedValueOnce(
+    sceneDefinitionDtoSchema.parse({
+      ...tabletopSceneDefinition,
+      barriers: first[1].barriers,
+      version: tabletopSceneDefinition.version + 1
+    })
+  )
   await user.click(screen.getByRole('button', { name: 'Save scene' }))
   await waitFor(() => expect(screen.getByRole('button', { name: 'Save scene' })).toBeDisabled())
   expect(save.mock.calls[1]).toEqual(first)

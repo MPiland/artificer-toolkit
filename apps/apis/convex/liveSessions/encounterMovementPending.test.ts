@@ -1,4 +1,3 @@
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 // @vitest-environment node
 import { expect, it } from 'vitest'
@@ -6,13 +5,27 @@ import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticScene
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
-import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
-import { planMovementInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import { readRoomPendingSnapshot } from '../../tests/fixtures/roomPendingSnapshots'
+import {
+  checkpointLiveRoom,
+  executeSceneInRoom,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 type Fixture = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
 
+/**
+ * Convex's rows, after the room checkpoints what it holds (a Run's history is the room's until then,
+ * D85), with the room's command timeline: its receipts and command rows are held history.
+ */
 async function records(value: Fixture) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  const timeline = await readRoomTimeline(value.owner.caller, value.base.campaign.id)
   return value.base.t.run(async (ctx) => ({
+    timeline,
     run: await ctx.db
       .query('encounterRuns')
       .withIndex('by_publicId', (q) => q.eq('id', value.base.run.id))
@@ -30,23 +43,21 @@ async function records(value: Fixture) {
     occurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', value.base.run.id))
-      .collect(),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-      .collect(),
-    runCommands: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRunCommands')
-      .withIndex('by_campaignId_commandId', (q) =>
-        q.eq('campaignId', value.base.campaign.id).eq('commandId', value.rootInput.commandId)
-      )
       .collect()
   }))
 }
+
+/** The application context the room stored for the move's pause. */
+async function readPauseContext(value: Fixture) {
+  const snapshot = await readRoomPendingSnapshot(value.base.t, {
+    campaignId: value.base.campaign.id,
+    encounterId: value.base.run.id,
+    rootCommandId: value.rootInput.commandId
+  })
+  if (!snapshot) throw new Error('The room stored no pending snapshot for the move.')
+  return snapshot.applicationContext
+}
+
 it('publishes an Assisted spatial evidence pause without settling retained no-input contact', async () => {
   const value = await setupAutomaticSceneMovement({
     policies: ['CHOICE', 'CHOICE'],
@@ -68,11 +79,10 @@ it('publishes an Assisted spatial evidence pause without settling retained no-in
   })
   await setAutoRollDice(value.base.t, value.base.owner.userId, false)
   const before = await records(value)
-  const plan = await planMovementInRoom(value.owner.caller, value.rootInput)
-  expect(await records(value)).toEqual(before)
-  expect(plan.outcome.kind).toBe('PENDING')
-  if (plan.outcome.kind !== 'PENDING') throw new Error('Expected spatial dice pause.')
-  const context = plan.outcome.pendingSnapshot.applicationContext
+  const published = await executeSceneInRoom(value.owner.caller, value.rootInput)
+  const after = await records(value)
+  expect(published.result?.occurrence).toMatchObject({ status: 'PENDING' })
+  const context = await readPauseContext(value)
   if (context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' || context.phase.kind !== 'SPATIAL_EVIDENCE')
     throw new Error('Expected pending spatial evidence before reaction choice.')
   expect(
@@ -89,26 +99,13 @@ it('publishes an Assisted spatial evidence pause without settling retained no-in
   expect(context.phase.currentCandidate.candidate.pathDistance).toBeLessThan(
     nextReaction.group.pathDistance
   )
-  const published = await plan.publish()
-  const after = await records(value)
-  expect(published.occurrence).toMatchObject({ status: 'PENDING' })
   expect(after.run?.version).toBe(before.run?.version)
   expect(after.actors).toEqual(before.actors)
   expect(after.effects).toEqual(before.effects)
   expect(after.occurrences).toHaveLength(before.occurrences.length + 1)
-  expect(after.receipts).toHaveLength(before.receipts.length + 1)
-  expect(after.runCommands).toEqual(before.runCommands)
-  const retained = after.occurrences.find(
-    (entry) => entry.rootCommandId === value.rootInput.commandId
-  )
-  if (!retained) throw new Error('Pending spatial evidence was not stored.')
-  expect(
-    (
-      await value.base.t.run((ctx) =>
-        readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, retained)
-      )
-    )?.applicationContext
-  ).toHaveProperty('completedSpatialExecutions', context.completedSpatialExecutions)
+  expect(published.result).toMatchObject({ replayed: false })
+  // A pause commits no command row (the baseline's `runCommands` were unchanged here).
+  expect(after.timeline).toHaveLength(before.timeline.length)
 }, 60_000)
 
 it('commits a spatial prefix once before a choice pause', async () => {
@@ -126,11 +123,10 @@ it('commits a spatial prefix once before a choice pause', async () => {
     5
   )
   const before = await records(value)
-  const plan = await planMovementInRoom(value.owner.caller, value.rootInput)
-  expect(await records(value)).toEqual(before)
-  expect(plan.outcome.kind).toBe('PENDING')
-  if (plan.outcome.kind !== 'PENDING') throw new Error('Expected reaction choice pause.')
-  const context = plan.outcome.pendingSnapshot.applicationContext
+  const published = await executeSceneInRoom(value.owner.caller, value.rootInput)
+  const after = await records(value)
+  expect(published.result?.occurrence).toMatchObject({ status: 'PENDING' })
+  const context = await readPauseContext(value)
   if (context.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
     throw new Error('Expected reaction choice context.')
   const prefix = context.appliedSpatialPrefix
@@ -149,9 +145,6 @@ it('commits a spatial prefix once before a choice pause', async () => {
   expect(prefix.executions[0]!.candidate.candidate.pathDistance).toBeLessThan(
     choice.group.pathDistance
   )
-  const published = await plan.publish()
-  const after = await records(value)
-  expect(published.occurrence).toMatchObject({ status: 'PENDING' })
   expect(after.run?.version).toBe(before.run!.version + 1)
   const beforeMover = before.actors.find((actor) => actor.id === value.base.mover.id)
   const afterMover = after.actors.find((actor) => actor.id === value.base.mover.id)
@@ -162,6 +155,6 @@ it('commits a spatial prefix once before a choice pause', async () => {
     throw new Error('Expected a non-Character mover.')
   expect(afterMoverState.currentHitPoints).toBe(beforeMoverState.currentHitPoints - 1)
   expect(after.effects.map((entry) => entry.id)).not.toContain(effect.id)
-  expect(after.receipts).toHaveLength(before.receipts.length + 1)
-  expect(after.runCommands).toHaveLength(before.runCommands.length + 1)
+  expect(published.result).toMatchObject({ replayed: false })
+  expect(after.timeline).toHaveLength(before.timeline.length + 1)
 }, 60_000)

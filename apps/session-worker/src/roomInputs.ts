@@ -31,6 +31,7 @@ import {
   type RoomTransaction
 } from './roomEncounterStore.js'
 import { SCENE_COMMAND_RETENTION_MS } from './roomSceneRecords.js'
+import { RulesRevisionChangedError } from './nativeRulesRevisions.js'
 import type {
   ContentSnapshotObject,
   ContentSnapshotManifestDto
@@ -1159,7 +1160,7 @@ export class RoomInputs {
         continueCursor: null
       }
     }
-    throw new Error('Campaign authority changed while it was being read.')
+    throw new RulesRevisionChangedError('Campaign authority changed while it was being read.')
   }
 
   async #readDefinitions(read: (scope: LiveRoomInputsScope) => Promise<LiveRoomInputsResponse>) {

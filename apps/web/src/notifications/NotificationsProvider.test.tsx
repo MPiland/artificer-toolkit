@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { notificationFeedDtoSchema } from '@artificer-toolkit/schema/api/notifications'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { useNotificationAvailability, useNotificationUnseenCount } from './notificationContext'
 import { NotificationsProvider } from './NotificationsProvider'
@@ -23,7 +24,7 @@ function Status() {
 
 describe('native notification subscription', () => {
   it('waits for verified Convex auth, subscribes when ready, and hides data after auth loss', async () => {
-    mocks.feed.mockResolvedValue({ items: [], unseenCount: 3 })
+    mocks.feed.mockResolvedValue(notificationFeedDtoSchema.parse({ items: [], unseenCount: 3 }))
     const { rerender } = renderWithAppProviders(
       <NotificationsProvider>
         <Status />

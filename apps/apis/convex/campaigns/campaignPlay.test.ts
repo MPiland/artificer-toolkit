@@ -15,7 +15,13 @@ import {
 } from '../../tests/fixtures/encounterScene'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  executeInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const claim = makeFunctionReference<'mutation', { campaignId: string }, { epoch: string }>(
   'liveSessions/authority:claim'
@@ -93,15 +99,8 @@ it('leaves live authority, presentation and an ACTIVE Run untouched when a Sessi
   expect(
     (await base.other.caller.query(activeEncounter, { campaignId: base.campaign.id })).encounter
   ).toMatchObject({ id: base.run.id, status: 'ACTIVE' })
-  // The claimed room finishes activating before it runs an Encounter command.
-  await base.t.run(async (ctx) => {
-    const authority = await ctx.db
-      .query('campaignLiveAuthorities')
-      .withIndex('by_campaignId', (q) => q.eq('campaignId', base.campaign.id))
-      .unique()
-    if (!authority) throw new Error('Missing claimed live authority.')
-    await ctx.db.patch(authority._id, { phase: 'DO_ACTIVE' })
-  })
+  // The real room finishes activating the claimed authority when its first command joins.
+  await attachFixtureRoom(base.t, base.campaign.id)
   const reminder = await executeInRoom(base.other.caller, {
     command: {
       type: 'UPSERT_REMINDER',

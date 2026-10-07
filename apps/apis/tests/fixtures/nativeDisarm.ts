@@ -64,11 +64,10 @@ import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import {
   attachFixtureRoom,
   closeRoom,
-  insertActiveLiveAuthority,
-  usesRoomWorker,
+  executeInRoom,
+  readEncounterHistory,
   type RoomCaller
 } from './localRoomWorker'
-import { executeInRoom, readEncounterHistory } from './roomRouting'
 export { disarmHeldEntryId, disarmOtherEntryId } from './disarmCreature'
 export const getNativeActionChoices = makeFunctionReference<
   'query',
@@ -185,9 +184,9 @@ export async function nativeDisarmFixture(
       definitionIds: [optional.id]
     }
   })
-  // The real room holds the Run until it closes; the Run is then started in Convex below, as the
-  // stand-in room reads it, and the first command's room hydrates from it.
-  if (usesRoomWorker()) await closeRoom(base.campaign.id)
+  // The room holds the Run until it closes; the Run is then started in Convex below, and the first
+  // command's room hydrates from it.
+  await closeRoom(base.campaign.id)
   const prepared = await base.owner.caller.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')
@@ -311,15 +310,6 @@ export async function nativeDisarmFixture(
     })
     return { command, contest: preparation.contest }
   })
-  // The real room claims live authority itself on first join.
-  if (!usesRoomWorker())
-    await base.t.run((ctx) =>
-      insertActiveLiveAuthority(ctx, {
-        campaignId: base.campaign.id,
-        epoch: crypto.randomUUID(),
-        createdAt: base.campaign.createdAt
-      })
-    )
   return {
     ...base,
     run,
@@ -330,14 +320,14 @@ export async function nativeDisarmFixture(
   }
 }
 
-/** Sends a command through the room as `member`; the stand-in room's dice come from `nextRollInt`. */
+/** Sends a command through the real room as `member`. */
 export function disarmInRoom(member: { caller: RoomCaller }, command: EncounterCommandInputDto) {
   return executeInRoom(member.caller, { command })
 }
 
 export async function disarmRecords(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
   return base.t.run(async (ctx) => {
-    const history = await readEncounterHistory(ctx, base.campaign.id)
+    const history = await readEncounterHistory(ctx)
     const occurrences = await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))

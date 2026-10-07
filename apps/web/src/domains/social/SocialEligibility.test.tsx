@@ -1,22 +1,31 @@
 import { screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SocialEligibilityDto } from '@artificer-toolkit/schema/api/socialHub'
+import {
+  socialEligibilityDtoSchema,
+  type SocialEligibilityDto
+} from '@artificer-toolkit/schema/api/socialHub'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialEligibility } from './SocialEligibility'
 
 type EligibilityFixture = {
-  data: Pick<SocialEligibilityDto, 'status' | 'eligible'> | undefined
+  data: SocialEligibilityDto | undefined
   isPending: boolean
   isError: boolean
 }
 
+const eligibility = (
+  overrides: Pick<SocialEligibilityDto, 'status' | 'eligible'>
+): SocialEligibilityDto =>
+  socialEligibilityDtoSchema.parse({
+    profilePublicId: overrides.status ? '22222222-2222-4222-8222-222222222222' : null,
+    adultAttestedAt: null,
+    contentPreference: 'STANDARD',
+    ...overrides
+  })
+
 const mocks = vi.hoisted(() => ({
-  eligibility: {
-    data: { status: 'ACTIVE', eligible: true } as Pick<SocialEligibilityDto, 'status' | 'eligible'>,
-    isPending: false,
-    isError: false
-  } as EligibilityFixture,
+  eligibility: { data: undefined, isPending: true, isError: false } as EligibilityFixture,
   initialize: vi.fn(),
   query: vi.fn()
 }))
@@ -46,7 +55,7 @@ describe('SocialEligibility', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.eligibility = {
-      data: { status: 'ACTIVE', eligible: true },
+      data: eligibility({ status: 'ACTIVE', eligible: true }),
       isPending: false,
       isError: false
     }
@@ -61,7 +70,7 @@ describe('SocialEligibility', () => {
 
   it('initializes once when the profile is absent', async () => {
     mocks.eligibility = {
-      data: { status: null, eligible: false },
+      data: eligibility({ status: null, eligible: false }),
       isPending: false,
       isError: false
     }
@@ -71,7 +80,7 @@ describe('SocialEligibility', () => {
 
   it('does not initialize or render the outlet for suspended profiles', () => {
     mocks.eligibility = {
-      data: { status: 'SUSPENDED', eligible: false },
+      data: eligibility({ status: 'SUSPENDED', eligible: false }),
       isPending: false,
       isError: false
     }
@@ -91,7 +100,7 @@ describe('SocialEligibility', () => {
 
   it('keeps initialization failures unavailable', async () => {
     mocks.eligibility = {
-      data: { status: null, eligible: false },
+      data: eligibility({ status: null, eligible: false }),
       isPending: false,
       isError: false
     }

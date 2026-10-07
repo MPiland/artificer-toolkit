@@ -111,10 +111,10 @@ export async function readMovementResponseAuthority(
   if (
     campaign.status !== 'ACTIVE' ||
     campaign.gameSystemId !== state.gameSystemId ||
-    state.status !== 'ACTIVE' ||
-    state.version !== command.expectedVersion
+    state.status !== 'ACTIVE'
   )
     throw new Error('Movement response Encounter scope is stale.')
+  if (state.version !== command.expectedVersion) rejectDomain('VERSION_STALE')
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', command.occurrenceId))
@@ -126,10 +126,10 @@ export async function readMovementResponseAuthority(
     occurrence.campaignId !== campaign.id ||
     occurrence.encounterId !== state.id ||
     occurrence.state !== 'PENDING' ||
-    occurrence.version !== command.expectedOccurrenceVersion ||
     occurrence.expectedEncounterVersion !== state.version
   )
     throw new Error('Movement response occurrence is stale.')
+  if (occurrence.version !== command.expectedOccurrenceVersion) rejectDomain('VERSION_STALE')
   const snapshot = await readPendingSnapshot(ctx, occurrence)
   if (!snapshot) throw new Error('Movement response occurrence is stale.')
   const { context, root } = readEncounterMovementPendingContext(snapshot)

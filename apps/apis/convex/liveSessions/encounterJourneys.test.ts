@@ -13,19 +13,21 @@ import {
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 import {
-  discardRoomJournal,
-  endRoomEpoch,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  readEncounterHistory,
-  readHeldReplayIndex,
-  replayInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 /**
- * Four gameplay journeys through the room (V13.1) and their recovery after a reload (V13.2). Each
- * command opens a fresh room hydrated from Convex: `endRoomEpoch` keeps the room's store, so a retry
- * replays from the history it carries over; `discardRoomJournal` models storage recovery, so a retry
- * is recognized only from the Run's replay index (D85).
+ * Four gameplay journeys through the real room (V13.1) and their recovery after a reload (V13.2).
+ * `closeRoom` ends the room's epoch with its store kept, so the next command opens a new epoch (D85).
+ * A retry recognized only from the Run's replay index, after storage loss, cannot be driven here:
+ * the harness has no way to empty one room's storage and keep serving it (`DELETE_ROOM` leaves the
+ * instance answering 410, and a fresh Worker is private to `localRoomWorker.ts`), so the session
+ * worker's `roomEncounterReplayIndex.test.ts` covers that path.
  */
 
 type Member = PlayerControlFixture['owner']
@@ -38,7 +40,8 @@ const pendingRuleOccurrence = makeFunctionReference<
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
 
-function readPending(base: PlayerControlFixture, member: Member) {
+async function readPending(base: PlayerControlFixture, member: Member) {
+  await checkpointLiveRoom(base.campaign.id)
   return member.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
 }
 
@@ -48,8 +51,12 @@ async function d20Pending(base: PlayerControlFixture, member: Member): Promise<D
   return pending
 }
 
-/** Every stored row of the Run, its receipts and its evidence: a replay must leave them unchanged. */
-function stored(base: PlayerControlFixture) {
+/**
+ * Every row of the Run Convex holds once the room checkpoints (the Run's history stays in the
+ * room until it completes, D85), with its replay index: a replay must leave them unchanged.
+ */
+async function stored(base: PlayerControlFixture) {
+  await checkpointLiveRoom(base.campaign.id)
   const encounterId = base.run.id
   return base.t.run(async (ctx) => ({
     run: await ctx.db
@@ -60,18 +67,13 @@ function stored(base: PlayerControlFixture) {
       .query('encounterRunActors')
       .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
       .collect(),
-    commands: await ctx.db
-      .query('encounterRunCommands')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      .collect(),
     occurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', encounterId))
       .collect(),
-    evidenceRolls: await ctx.db.query('encounterEvidenceRolls').collect(),
-    receipts: await ctx.db
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
+    replayIndex: await ctx.db
+      .query('encounterReplayIndex')
+      .withIndex('by_campaignId_commandId', (q) => q.eq('campaignId', base.campaign.id))
       .collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect()
   }))
@@ -91,19 +93,21 @@ function journey() {
 }
 
 /**
- * Retried after the room's epoch ends with its store kept, every step replays from the history the
- * next hydrate carries over: its own dice, evidence and occurrence over the Run's current
- * projection, so the last step's replay is its exact result, with no roll and no write (no double
- * spend, reroll or recharge). A "Roll dice" replay returns only its evidence roll; its chat card and
- * decision went out with the original. A reused command ID is refused.
+ * Every committed step leaves its replay-index row in Convex, and a release of the room changes
+ * nothing Convex holds. Retried after the release, every step replays from the history the next
+ * hydrate carries over: its own dice, evidence and occurrence over the Run's current projection,
+ * with no roll and no write. A "Roll dice" replay returns only its evidence roll.
  */
-async function expectReplayAfterNewEpoch(base: PlayerControlFixture, steps: readonly Step[]) {
+async function expectReplayAcrossRelease(base: PlayerControlFixture, steps: readonly Step[]) {
   const before = await stored(base)
+  expect(before.replayIndex.map((row) => row.commandId)).toEqual(
+    expect.arrayContaining(steps.map((step) => step.command.commandId))
+  )
   const last = steps.at(-1)
   if (!last) throw new Error('A journey needs a step.')
-  endRoomEpoch()
+  await closeRoom(base.campaign.id)
   for (const { member, command, result } of steps) {
-    const replayed = await replayInRoom(member.caller, { command })
+    const replayed = await executeInRoom(member.caller, { command })
     expect(replayed).toMatchObject(
       command.type === 'ROLL_RULE_EVIDENCE'
         ? { roll: null, evidenceRoll: result.evidenceRoll, occurrence: null }
@@ -115,11 +119,12 @@ async function expectReplayAfterNewEpoch(base: PlayerControlFixture, steps: read
     )
     expect(replayed.projection.version).toBe(last.result.projection.version)
   }
-  expect(await replayInRoom(last.member.caller, { command: last.command })).toEqual(last.result)
+  expect(await executeInRoom(last.member.caller, { command: last.command })).toEqual(last.result)
   expect(await stored(base)).toEqual(before)
+  // A command ID reused with other input is refused in the next epoch too, and writes nothing.
   const [first] = steps
   if (!first) throw new Error('A journey needs a step.')
-  endRoomEpoch()
+  await closeRoom(base.campaign.id)
   await expect(
     domainRejection(
       executeInRoom(first.member.caller, {
@@ -127,36 +132,6 @@ async function expectReplayAfterNewEpoch(base: PlayerControlFixture, steps: read
       })
     )
   ).resolves.toMatchObject({ reason: 'COMMAND_ID_REUSED' })
-  expect(await stored(base)).toEqual(before)
-}
-
-/**
- * Retried after storage recovery, the room's history is gone: each step's command ID is recognized
- * from the Run's replay index, which answers "applied at its version" over the Run's current
- * projection, with no second effect, no reroll and no decision or evidence replayed. A reused
- * command ID with other input is refused.
- */
-async function expectIndexedReplayAfterRecovery(
-  base: PlayerControlFixture,
-  steps: readonly Step[]
-) {
-  const before = await stored(base)
-  const last = steps.at(-1)
-  const [first] = steps
-  if (!last || !first) throw new Error('A journey needs a step.')
-  discardRoomJournal()
-  for (const { member, command } of steps) {
-    const replayed = await replayInRoom(member.caller, { command })
-    expect(replayed).toMatchObject({ roll: null, evidenceRoll: null, occurrence: null })
-    expect(replayed.projection.version).toBe(last.result.projection.version)
-  }
-  expect(await stored(base)).toEqual(before)
-  discardRoomJournal()
-  await expect(
-    executeInRoom(first.member.caller, {
-      command: { ...first.command, expectedVersion: first.command.expectedVersion + 1 }
-    })
-  ).rejects.toThrow('The command ID was already used for different input.')
   expect(await stored(base)).toEqual(before)
 }
 
@@ -215,8 +190,7 @@ describe('Encounter journeys through the room (V13.1)', () => {
     expect(hitPoints(bitten, base.enemy.id)).toBeLessThan(base.enemy.currentHitPoints)
     const advanced = await send(base.owner, await runCommand(base, 'ADVANCE_TURN'))
     expect(advanced.projection.currentActorId).toBe(base.character.id)
-    await expectReplayAfterNewEpoch(base, steps)
-    await expectIndexedReplayAfterRecovery(base, steps)
+    await expectReplayAcrossRelease(base, steps)
   }, 120000)
 
   it('a player attack whose controller enters the roll', async () => {
@@ -235,8 +209,7 @@ describe('Encounter journeys through the room (V13.1)', () => {
       })
     )
     expect(settled.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
-    await expectReplayAfterNewEpoch(base, steps)
-    await expectIndexedReplayAfterRecovery(base, steps)
+    await expectReplayAcrossRelease(base, steps)
   }, 120000)
 
   it('a player action whose enemy save the GM rolls twice and settles', async () => {
@@ -257,8 +230,7 @@ describe('Encounter journeys through the room (V13.1)', () => {
       })
     )
     expect(settled.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
-    await expectReplayAfterNewEpoch(base, steps)
-    await expectIndexedReplayAfterRecovery(base, steps)
+    await expectReplayAcrossRelease(base, steps)
   }, 120000)
 
   it('a GM undo of an action, then the action again', async () => {
@@ -269,8 +241,7 @@ describe('Encounter journeys through the room (V13.1)', () => {
     expect(hitPoints(undone, base.enemy.id)).toBe(base.enemy.currentHitPoints)
     const again = await send(base.owner, await base.bite(base.companion.id, base.enemy.id))
     expect(hitPoints(again, base.enemy.id)).toBeLessThan(base.enemy.currentHitPoints)
-    await expectReplayAfterNewEpoch(base, steps)
-    await expectIndexedReplayAfterRecovery(base, steps)
+    await expectReplayAcrossRelease(base, steps)
   }, 120000)
 })
 
@@ -280,7 +251,7 @@ describe('Encounter recovery after a reload (V13.2)', () => {
     await setActorControllers(base, base.companion.id, [base.other.userId])
     const start = await base.bite(base.companion.id, base.enemy.id)
     await executeInRoom(base.other.caller, { command: start })
-    discardRoomJournal()
+    await closeRoom(base.campaign.id)
 
     // A new action waits for the pending save, and the reloaded room keeps that save the GM's.
     const before = await stored(base)
@@ -307,7 +278,7 @@ describe('Encounter recovery after a reload (V13.2)', () => {
         rollId: rolled.evidenceRoll.rollId
       })
     })
-    discardRoomJournal()
+    await closeRoom(base.campaign.id)
     const settledState = await stored(base)
     await expect(
       domainRejection(
@@ -316,14 +287,12 @@ describe('Encounter recovery after a reload (V13.2)', () => {
     ).resolves.toMatchObject({ reason: 'VERSION_STALE' })
     expect(await stored(base)).toEqual(settledState)
 
-    // Only the GM undoes. The recovered room holds no history of the Run, so the undo is unavailable
-    // after storage recovery (a GM undo with the store kept is the fourth journey).
+    // Only the GM undoes. The release kept the room's history of the Run, so the GM's undo is available.
     const undo = await runCommand(base, 'REVERT_LAST_ACTION')
     await expect(executeInRoom(base.other.caller, { command: undo })).rejects.toThrow()
-    await expect(
-      domainRejection(executeInRoom(base.owner.caller, { command: undo }))
-    ).resolves.toMatchObject({ reason: 'REVERT_UNAVAILABLE' })
     expect(await stored(base)).toEqual(settledState)
+    const undone = await executeInRoom(base.owner.caller, { command: undo })
+    expect(hitPoints(undone, base.enemy.id)).toBe(base.enemy.currentHitPoints)
   }, 120000)
 })
 
@@ -331,19 +300,15 @@ describe('Encounter history stays in the room (D85)', () => {
   it('keeps the timeline and a pending decision across a reload mid-Run', async () => {
     const base = await playerControlFixture({ bite: 'ATTACK', promptRolls: true })
     await setActorControllers(base, base.companion.id, [base.other.userId])
-    await executeInRoom(base.other.caller, {
-      command: await base.bite(base.companion.id, base.enemy.id)
-    })
+    const start = await base.bite(base.companion.id, base.enemy.id)
+    const started = await executeInRoom(base.other.caller, { command: start })
     const pending = await d20Pending(base, base.other)
-    const held = () =>
-      base.t.run(async (ctx) =>
-        (await readEncounterHistory(ctx, base.campaign.id)).query('encounterRunCommands').collect()
-      )
-    const before = await held()
-    expect(before.length).toBeGreaterThan(0)
-    endRoomEpoch()
-    expect(await held()).toEqual(before)
+    await closeRoom(base.campaign.id)
     await expect(d20Pending(base, base.other)).resolves.toEqual(pending)
+    // The reloaded room still holds the command's history, so a retry replays it.
+    await expect(executeInRoom(base.other.caller, { command: start })).resolves.toMatchObject({
+      occurrence: started.occurrence && { occurrenceId: started.occurrence.occurrenceId }
+    })
     const settled = await executeInRoom(base.other.caller, {
       command: settle(base, pending, {
         kind: 'ENTER_DICE',
@@ -353,17 +318,16 @@ describe('Encounter history stays in the room (D85)', () => {
       })
     })
     expect(settled.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
-    expect((await held()).length).toBeGreaterThan(before.length)
   }, 120000)
 
-  it('lets the GM complete the Run after storage recovery with a pending decision whose receipts were lost', async () => {
+  it('lets the GM complete the Run after a release with a pending decision', async () => {
     const base = await playerControlFixture({ bite: 'ATTACK', promptRolls: true })
     await setActorControllers(base, base.companion.id, [base.other.userId])
     await executeInRoom(base.other.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
     const pending = await d20Pending(base, base.other)
-    discardRoomJournal()
+    await closeRoom(base.campaign.id)
     await expect(d20Pending(base, base.other)).resolves.toEqual(pending)
     const complete = async () => ({
       type: 'COMPLETE' as const,
@@ -371,8 +335,7 @@ describe('Encounter history stays in the room (D85)', () => {
       commandId: crypto.randomUUID(),
       expectedVersion: await base.version()
     })
-    // As before the recovery, an open decision blocks COMPLETE until the GM settles or voids it;
-    // the Run row and its occurrence live in Convex, so the lost receipts change nothing.
+    // As before the release, an open decision blocks COMPLETE until the GM settles or voids it.
     await expect(
       domainRejection(executeInRoom(base.owner.caller, { command: await complete() }))
     ).resolves.toMatchObject({ reason: 'PENDING_DECISION' })
@@ -392,13 +355,15 @@ describe('Encounter history stays in the room (D85)', () => {
 
   it('persists roll cards once, with stable ids, across two flushes', async () => {
     const base = await playerControlFixture()
-    const rollCardIds = () =>
-      base.t.run(async (ctx) =>
+    const rollCardIds = async () => {
+      await checkpointLiveRoom(base.campaign.id)
+      return base.t.run(async (ctx) =>
         (await ctx.db.query('campaignConversationEntryPayloads').collect())
           .filter((payload) => payload.roll !== null)
           .map((payload) => payload.entryId)
           .sort()
       )
+    }
     await executeInRoom(base.owner.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
@@ -409,14 +374,16 @@ describe('Encounter history stays in the room (D85)', () => {
     expect(new Set(first).size).toBe(first.length)
   }, 120000)
 
-  it('leaves no history or replay index in Convex or the room once the Run completes', async () => {
+  it('leaves no history or replay index in Convex once the Run completes', async () => {
     const base = await playerControlFixture()
-    const heldIndex = () =>
-      readHeldReplayIndex(base.campaign.id).filter((row) => row.encounterId === base.run.id)
+    const replayIndex = async () => {
+      await checkpointLiveRoom(base.campaign.id)
+      return (await stored(base)).replayIndex.filter((row) => row.encounterId === base.run.id)
+    }
     await executeInRoom(base.owner.caller, {
       command: await base.bite(base.companion.id, base.enemy.id)
     })
-    expect(heldIndex()).not.toEqual([])
+    expect(await replayIndex()).not.toEqual([])
     await executeInRoom(base.owner.caller, {
       command: {
         type: 'COMPLETE',
@@ -425,26 +392,17 @@ describe('Encounter history stays in the room (D85)', () => {
         expectedVersion: await base.version()
       }
     })
-    expect(heldIndex()).toEqual([])
+    expect(await replayIndex()).toEqual([])
     const rows = await base.t.run(async (ctx) => {
-      const room = await readEncounterHistory(ctx, base.campaign.id)
       const encounterId = base.run.id
       const ofRun = <Row extends { encounterId: string }>(all: Row[]) =>
         all.filter((row) => row.encounterId === encounterId)
-      return {
-        room: [
-          ...ofRun(await room.query('encounterRunCommands').collect()),
-          ...ofRun(await room.query('encounterRuleReceipts').collect()),
-          ...ofRun(await room.query('encounterEvidenceRolls').collect())
-        ],
-        convex: [
-          ...ofRun(await ctx.db.query('encounterRunCommands').collect()),
-          ...ofRun(await ctx.db.query('encounterRuleReceipts').collect()),
-          ...ofRun(await ctx.db.query('encounterEvidenceRolls').collect()),
-          ...ofRun(await ctx.db.query('encounterReplayIndex').collect())
-        ]
-      }
+      return [
+        ...ofRun(await ctx.db.query('encounterRunCommands').collect()),
+        ...ofRun(await ctx.db.query('encounterRuleReceipts').collect()),
+        ...ofRun(await ctx.db.query('encounterEvidenceRolls').collect())
+      ]
     })
-    expect(rows).toEqual({ room: [], convex: [] })
+    expect(rows).toEqual([])
   }, 120000)
 })

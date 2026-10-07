@@ -10,7 +10,7 @@ import {
   createEncounterSceneFixture,
   createRun
 } from '../../tests/fixtures/encounterScene'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/localRoomWorker'
 
 const read = makeFunctionReference<
   'query',

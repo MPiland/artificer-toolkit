@@ -13,8 +13,14 @@ export class RoomTestDice {
     this.#repeat = repeat ?? null
   }
 
-  /** The next queued roll, else the repeat value; null leaves the roll to the platform's dice. */
-  next(): number | null {
-    return this.#rolls.shift() ?? this.#repeat
+  /**
+   * The next queued roll, else the repeat value; null leaves the roll to the platform's dice.
+   * A roll is a raw draw in `[0, maximum)` like the platform's dice, so one outside it fails loudly.
+   */
+  next(maximum: number): number | null {
+    const roll = this.#rolls.shift() ?? this.#repeat
+    if (roll !== null && roll >= maximum)
+      throw new Error(`Queued test roll ${roll} is outside the die range 0 to ${maximum - 1}.`)
+    return roll
   }
 }

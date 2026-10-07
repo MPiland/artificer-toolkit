@@ -1,7 +1,9 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { InventoryDto } from '@artificer-toolkit/schema/api/campaignInventory'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import { inventoryDtoSchema } from '@artificer-toolkit/schema/api/campaignInventory'
+import { getFunctionName, type FunctionReference } from 'convex/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const mocks = vi.hoisted(() => ({
@@ -14,22 +16,15 @@ const mocks = vi.hoisted(() => ({
   shares: { results: [], status: 'Exhausted' as const, loadMore: vi.fn() }
 }))
 
-vi.mock('@artificer-toolkit/apis/convex/api', () => ({
-  api: {
-    campaigns: {
-      partyInventory: { equipmentOptions: 'partyInventory/equipmentOptions' },
-      contentShares: { list: 'contentShares/list' },
-      partyInventoryCommands: { mutate: 'partyInventoryCommands/mutate' }
-    }
-  }
-}))
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useMutation: () => mocks.mutate
 }))
 vi.mock('convex-helpers/react', () => ({
-  usePaginatedQuery: (reference: unknown) =>
-    reference === 'partyInventory/equipmentOptions' ? mocks.equipment : mocks.shares
+  usePaginatedQuery: (reference: FunctionReference<'query'>) =>
+    getFunctionName(reference) === getFunctionName(api.campaigns.partyInventory.equipmentOptions)
+      ? mocks.equipment
+      : mocks.shares
 }))
 
 import { CampaignPartyInventoryActions } from './CampaignPartyInventoryActions'
@@ -49,12 +44,12 @@ const campaignCurrency = {
   campaignCurrencySystemId: '22222222-2222-4222-8222-222222222222',
   label: 'Copper (Campaign)'
 }
-const emptyInventory = {
-  owner: { kind: 'CAMPAIGN' as const, campaignId },
+const emptyInventory = inventoryDtoSchema.parse({
+  owner: { kind: 'CAMPAIGN', campaignId },
   version: 7,
   items: [],
   currencies: []
-} satisfies InventoryDto
+})
 
 beforeEach(() => {
   vi.clearAllMocks()

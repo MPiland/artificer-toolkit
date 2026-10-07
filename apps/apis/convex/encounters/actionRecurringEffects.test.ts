@@ -6,7 +6,6 @@ import {
   type EncounterCommandResultDto,
   type EncounterExecuteInput
 } from '@artificer-toolkit/schema/api/encounters'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -23,10 +22,13 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
   executeInRoom,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const recurringCreatureId = '00000000-0000-4000-8000-0000000008c0'
 const recurringFeatureId = '00000000-0000-4000-8000-0000000008c1'
@@ -204,6 +206,7 @@ async function recurringFixture(kind: 'HEAL' | 'SAVE_DAMAGE', rolls: FixtureRoll
     initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
     initiativeTieDefinitionId: null
   })
+  await attachFixtureRoom(base.t, campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: campaign.gameSystemId,
     name: 'Recurring action fixture',
@@ -255,10 +258,12 @@ async function recurringFixture(kind: 'HEAL' | 'SAVE_DAMAGE', rolls: FixtureRoll
         })
       ).projection
     )
-  return { base, run, actor, target }
+  return { base, campaignId: campaign.id, run, actor, target }
 }
 
+/** The rows the room last published: it holds the Run and its receipts until it checkpoints (D85). */
 async function stored(base: Awaited<ReturnType<typeof recurringFixture>>) {
+  await checkpointLiveRoom(base.campaignId)
   return base.base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -267,13 +272,7 @@ async function stored(base: Awaited<ReturnType<typeof recurringFixture>>) {
       .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
         q.eq('encounterId', base.run.id)
       )
-      .take(3),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(10)
+      .take(3)
   }))
 }
 
@@ -329,17 +328,9 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
     targetActorId: base.actor.id,
     lifecycle: { remainingTicks: 2 }
   })
-  const receipt = afterAction.receipts.find((row) => row.commandId === action.commandId)
-  if (!receipt) throw new Error('Recurring heal action receipt is missing.')
-  const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-  expect(execution).toMatchObject({
-    status: 'COMPLETE',
-    applicationOutputs: {
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
-      activeEffectTransitions: [expect.objectContaining({ kind: 'CREATE' })]
-    }
-  })
-  await expect(replayInRoom(base.base.owner.caller, { command: action })).resolves.toEqual(created)
+  // The room holds the action's receipt (D85); `nativeRoomEffectReceipts.test.ts` asserts its one
+  // CREATE transition. The retry below answers from the room's held history.
+  await expect(executeInRoom(base.base.owner.caller, { command: action })).resolves.toEqual(created)
   expect(await stored(base)).toEqual(afterAction)
 
   let projection = encounterGmProjectionDtoSchema.parse(
@@ -370,7 +361,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
     base.actor.maxHitPoints - 1
   )
   expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
-  await expect(replayInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual(firstTick)
+  await expect(executeInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual(firstTick)
 
   const secondAdvance: EncounterExecuteInput = {
     command: {
@@ -387,7 +378,7 @@ it('creates, ticks, expires, and replays a recurring heal after zero healing at 
       .actors.find((actor) => actor.id === base.actor.id)?.currentHitPoints
   ).toBe(base.actor.maxHitPoints)
   expect((await stored(base)).effects).toEqual([])
-  await expect(replayInRoom(base.base.owner.caller, secondAdvance)).resolves.toEqual(expired)
+  await expect(executeInRoom(base.base.owner.caller, secondAdvance)).resolves.toEqual(expired)
 }, 30000)
 
 it.each([
@@ -400,6 +391,7 @@ it.each([
     command: action
   })
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
+  await checkpointLiveRoom(base.campaignId)
   const pending = await base.base.owner.caller.query(
     api.encounters.pendingReads.pendingRuleOccurrence,
     {
@@ -429,11 +421,11 @@ it.each([
   expect(settled.occurrence?.status).toBe('COMPLETE')
   expect((await stored(base)).effects).toHaveLength(effects)
   // A retried command replays its journaled original occurrence with the projection as it is now (D78).
-  await expect(replayInRoom(base.base.owner.caller, { command: action })).resolves.toEqual({
+  await expect(executeInRoom(base.base.owner.caller, { command: action })).resolves.toEqual({
     ...issued,
     projection: settled.projection
   })
-  await expect(replayInRoom(base.base.owner.caller, response)).resolves.toEqual(settled)
+  await expect(executeInRoom(base.base.owner.caller, response)).resolves.toEqual(settled)
   const afterAction = await stored(base)
   expect(afterAction.effects).toHaveLength(effects)
   if (effects === 0) return
@@ -455,7 +447,7 @@ it.each([
   }
   const firstPending = await executeInRoom(base.base.owner.caller, firstAdvance)
   expect(firstPending.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
-  await expect(replayInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual(firstPending)
+  await expect(executeInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual(firstPending)
   const firstResponse = diceResponse(base.run.id, firstPending)
   const firstTick = await executeInRoom(base.base.owner.caller, firstResponse)
   projection = encounterGmProjectionDtoSchema.parse(firstTick.projection)
@@ -463,8 +455,8 @@ it.each([
     base.target.currentHitPoints - 2
   )
   expect((await stored(base)).effects[0]?.lifecycle.remainingTicks).toBe(1)
-  await expect(replayInRoom(base.base.owner.caller, firstResponse)).resolves.toEqual(firstTick)
-  await expect(replayInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual({
+  await expect(executeInRoom(base.base.owner.caller, firstResponse)).resolves.toEqual(firstTick)
+  await expect(executeInRoom(base.base.owner.caller, firstAdvance)).resolves.toEqual({
     ...firstPending,
     projection: firstTick.projection
   })
@@ -499,8 +491,8 @@ it.each([
       .actors.find((actor) => actor.id === base.target.id)?.currentHitPoints
   ).toBe(base.target.currentHitPoints - 3)
   expect((await stored(base)).effects).toEqual([])
-  await expect(replayInRoom(base.base.owner.caller, finalResponse)).resolves.toEqual(expired)
-  await expect(replayInRoom(base.base.owner.caller, finalAdvance)).resolves.toEqual({
+  await expect(executeInRoom(base.base.owner.caller, finalResponse)).resolves.toEqual(expired)
+  await expect(executeInRoom(base.base.owner.caller, finalAdvance)).resolves.toEqual({
     ...finalPending,
     projection: expired.projection
   })

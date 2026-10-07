@@ -6,33 +6,79 @@ import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import { planNativeSpatialMovementPrefix } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPlan'
 import { DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID as UNCONSCIOUS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
-import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
+import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import { executeSceneInRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
+import { readRoomPendingSnapshot } from '../../tests/fixtures/roomPendingSnapshots'
+import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
+import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
+
+useLocalRoomWorker()
 
 type SpatialExecution = FrozenMovementReactionRemainder['completedSpatialExecutions'][number]
 
-/** A spatial execution the room planned for a real move over one seeded hazard. */
+/**
+ * The spatial execution the real room stored in a move's pause for the hazard the mover crossed
+ * before a later save hazard asked for evidence (nothing applied yet), with the stored Run version.
+ */
 async function completedExecution() {
-  const { base, input, plan } = await planSpatialTerminalFixture()
-  if (plan.outcome.kind !== 'TERMINAL' || plan.outcome.result.status !== 'BATCH_COMPLETE')
+  const value = await setupAutomaticSceneMovement({
+    policies: ['CHOICE', 'CHOICE'],
+    reactorPositions: [150, 150],
+    path: [
+      { x: 150, y: 50 },
+      { x: 600, y: 50 }
+    ]
+  })
+  const { base } = value
+  const first = await seedSpatialEffect({ ...base, sceneId: value.sceneId }, { x: 250, y: 50 }, 5)
+  await seedSpatialSaveEffect(value, {
+    center: { x: 300, y: 50 },
+    radius: 5,
+    targetActorId: base.mover.id
+  })
+  await setAutoRollDice(base.t, base.owner.userId, false)
+  await executeSceneInRoom(value.owner.caller, value.rootInput)
+  const snapshot = await readRoomPendingSnapshot(base.t, {
+    campaignId: base.campaign.id,
+    encounterId: base.run.id,
+    rootCommandId: value.rootInput.commandId
+  })
+  if (snapshot?.applicationContext.kind !== 'ENCOUNTER_MOVEMENT_REACTION')
     throw new Error('Fixture spatial execution is unavailable.')
+  const execution = snapshot.applicationContext.completedSpatialExecutions[0]
+  if (execution?.candidate.candidate.effectId !== first.id)
+    throw new Error('Fixture spatial execution is unavailable.')
+  const version = await base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+      .unique()
+    if (!row) throw new Error('Missing fixture Run.')
+    return row.version
+  })
   return {
     base,
+    version,
     input: {
       occurrenceId: crypto.randomUUID(),
-      executionCommandId: input.commandId,
+      executionCommandId: value.rootInput.commandId,
       occurredAt: '2026-09-14T00:00:00.000Z'
     },
-    execution: plan.outcome.result.executions[0]!
+    execution
   }
 }
 
 describe('planNativeSpatialMovementPrefix', () => {
   it('folds multiple spatial applications once and retains unaffected targets', async () => {
-    const { base, input, execution } = await completedExecution()
+    const { base, version, input, execution } = await completedExecution()
+    const targetActorId = execution.candidate.candidate.targetActorId
+    const untouchedActorId = base.run.actors.find((actor) => actor.id !== targetActorId)?.id
+    if (!untouchedActorId) throw new Error('Fixture Run has no second actor.')
     await base.other.caller.run(async (ctx) => {
       const targets = await readMovementTargets(ctx, {
         encounterId: base.run.id,
-        expectedEncounterVersion: base.run.version,
+        expectedEncounterVersion: version,
         targetActorIds: base.run.actors.map((actor) => actor.id)
       })
       const conditionId = crypto.randomUUID()
@@ -41,12 +87,8 @@ describe('planNativeSpatialMovementPrefix', () => {
         ...execution,
         targetTransition: {
           checksum: checksumRuleDocument({
-            targetActorId: base.run.actors[0]!.id,
-            currentHitPoints: 0,
-            temporaryHitPoints: 0,
-            maximumHitPoints: 1,
-            conditionIds: [],
-            scalarValues: {}
+            targetActorId,
+            ...execution.targetTransition.after
           }),
           before: execution.targetTransition.after,
           after: { ...execution.targetTransition.after, conditionIds: [conditionId] }
@@ -70,7 +112,7 @@ describe('planNativeSpatialMovementPrefix', () => {
         targets,
         executions: [execution, second],
         encounterId: base.run.id,
-        expectedEncounterVersion: base.run.version,
+        expectedEncounterVersion: version,
         campaignId: base.campaign.id,
         gameSystemId: base.campaign.gameSystemId,
         occurrenceId: input.occurrenceId,
@@ -80,21 +122,19 @@ describe('planNativeSpatialMovementPrefix', () => {
       })
       expect(result.settlements).toHaveLength(1)
       expect(result.settlements[0]!.plan.receiptApplications).toHaveLength(2)
-      expect(result.projectedTargets.get(base.run.actors[0]!.id)!.state).toEqual({
-        current: 0,
-        temporary: 0,
+      expect(result.projectedTargets.get(targetActorId)!.state).toEqual({
+        current: execution.targetTransition.after.currentHitPoints,
+        temporary: execution.targetTransition.after.temporaryHitPoints,
         conditions: [conditionId]
       })
-      expect(result.projectedTargets.get(base.run.actors[1]!.id)).toBe(
-        targets.get(base.run.actors[1]!.id)
-      )
+      expect(result.projectedTargets.get(untouchedActorId)).toBe(targets.get(untouchedActorId))
       expect(JSON.stringify(targets)).toBe(before)
       expect(
         planNativeSpatialMovementPrefix({
           targets,
           executions: [execution, second],
           encounterId: base.run.id,
-          expectedEncounterVersion: base.run.version,
+          expectedEncounterVersion: version,
           campaignId: base.campaign.id,
           gameSystemId: base.campaign.gameSystemId,
           occurrenceId: input.occurrenceId,
@@ -102,8 +142,8 @@ describe('planNativeSpatialMovementPrefix', () => {
           occurredAt: input.occurredAt,
           userId: base.other.userId,
           projectTargets: false
-        }).projectedTargets.get(base.run.actors[0]!.id)
-      ).toBe(targets.get(base.run.actors[0]!.id))
+        }).projectedTargets.get(targetActorId)
+      ).toBe(targets.get(targetActorId))
     })
   })
 

@@ -94,7 +94,7 @@ describe('Character play preference acknowledgements', () => {
         ...input,
         command: { ...input.command, inspired: false }
       })
-    ).rejects.toThrow('Sheet command replay does not match the original command.')
+    ).rejects.toThrow('Command ID was already used with different input.')
     await expect(
       owner.caller.mutation(api.characters.sheetCommands.execute, {
         ...input,

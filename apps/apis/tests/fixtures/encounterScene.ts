@@ -90,7 +90,7 @@ export async function createEncounterSceneFixture(
   const now = new Date().toISOString()
   const sceneId = crypto.randomUUID()
   const saveId = crypto.randomUUID()
-  const tokens = [crypto.randomUUID().toUpperCase(), crypto.randomUUID()].map(
+  const tokens = [crypto.randomUUID(), crypto.randomUUID()].map(
     (id, ordinal): SceneDefinitionDto['tokens'][number] => ({
       id,
       assetId: null,

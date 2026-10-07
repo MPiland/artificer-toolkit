@@ -41,8 +41,7 @@ import { createEncounterLifecyclePolicyFixture } from './encounterInitiative'
 import { importedSubject } from './publication'
 import { api, internal } from '../../convex/_generated/api'
 import { sourceImportBatches } from '../../convex/content/importBatches'
-import { attachFixtureRoom } from './localRoomWorker'
-import { executeInRoom } from './roomRouting'
+import { attachFixtureRoom, closeRoom, executeInRoom } from './localRoomWorker'
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -410,6 +409,9 @@ export async function setupCreatureReactionRun(
     : null
   if (!reactor || !mover || (additionalReactor && !additionalReactorActor))
     throw new Error('Missing native movement reaction actors.')
+  // The real room holds the Run until it closes; it is made Active in Convex below, and the first
+  // command's room hydrates from it.
+  await closeRoom(campaign.id)
   await base.t.run(async (ctx) => {
     const runRow = await ctx.db
       .query('encounterRuns')

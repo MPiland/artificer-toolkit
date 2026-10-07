@@ -69,5 +69,5 @@ it('replays original checksummed history under current maturity and play version
       },
       readReceipt
     )
-  ).rejects.toThrow('Sheet command replay does not match the original command.')
+  ).rejects.toThrow('Command ID was already used with different input.')
 })

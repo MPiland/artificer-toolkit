@@ -2,6 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { authoredCatalogueItemSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
+import { spellResponseDtoSchema } from '@artificer-toolkit/schema/api/content'
+import { authoredRouteStoryResponses } from '#domains/authoredRouteStory.fixtures'
 import { GuidedStartChoice } from './GuidedStartChoice'
 
 const mocks = vi.hoisted(() => ({
@@ -23,13 +26,15 @@ vi.mock('../layout/AuthoringFormContext', () => ({
   useAuthoringForm: () => ({ copySource: mocks.copySource })
 }))
 
-const source = {
+const source = authoredCatalogueItemSchema.parse({
   id: 'e80601a2-6162-4674-a748-28af7d9d1d49',
+  publicId: 'acolyte',
+  systemId: 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53',
   label: 'Acolyte',
   description: '<p>Temple trained.</p>',
-  permissions: { canCopy: true },
-  provenance: { kind: 'MASTER' }
-}
+  provenance: { kind: 'MASTER', ownerUserId: null },
+  permissions: { canView: true, canEdit: false, canCopy: true, canDelete: false }
+})
 
 function renderChoice(
   systemId = 'f07a619a-9f4e-44e7-bcf0-3bbda8206e53',
@@ -214,8 +219,12 @@ describe('GuidedStartChoice', () => {
 
   it('loads native Spell metadata for a selected source and keeps copying independent', async () => {
     const user = userEvent.setup()
+    const spell = authoredRouteStoryResponses.spell
     mocks.useQuery.mockReturnValue({
-      data: { item: { castingTime: { amount: 1, unit: 'BONUS_ACTION' }, level: 3 } },
+      data: spellResponseDtoSchema.parse({
+        ...spell,
+        item: { ...spell.item, level: 3, castingTime: { amount: 1, unit: 'MINUTE' } }
+      }),
       isError: false,
       isPending: false
     })
@@ -231,7 +240,7 @@ describe('GuidedStartChoice', () => {
         queryKey: ['convexQuery', 'content/details:get', { id: source.id, subjectKind: 'SPELL' }]
       })
     )
-    expect(screen.getByText('Level 3 · 1 bonus action')).toBeInTheDocument()
+    expect(screen.getByText('Level 3 · 1 minute')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Create copy' }))
     expect(mocks.copySource).toHaveBeenCalledWith(source.id)
   })

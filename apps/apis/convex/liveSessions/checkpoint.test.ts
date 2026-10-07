@@ -37,6 +37,7 @@ import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
 import { createCampaign } from '../../tests/fixtures/encounterScene'
+import { checkpointLiveRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { disarmInRoom, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readReceiptHeaders, readReceiptLedger } from '../lib/receiptLedgers'
@@ -50,6 +51,9 @@ import {
   createCampaignEntryHeader
 } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 
+// Registered before the timer hook below: hooks after each test run in reverse, so the room closes
+// on real timers.
+useLocalRoomWorker()
 afterEach(() => vi.useRealTimers())
 
 const claim = makeFunctionReference<'mutation', LiveSessionJoinOptionsDto, LiveSessionAuthorityDto>(
@@ -1122,6 +1126,8 @@ it('rolls back the entire checkpoint when deleting a required part of a survivin
   if (started.occurrence?.status !== 'PENDING')
     throw new Error('Expected pending Disarm occurrence.')
   const occurrenceId = started.occurrence.occurrenceId
+  // The room holds the pending occurrence until it checkpoints (D85).
+  await checkpointLiveRoom(base.campaign.id)
   const pending = await base.t.run(async (ctx) => {
     const occurrence = await ctx.db
       .query('encounterRuleOccurrences')

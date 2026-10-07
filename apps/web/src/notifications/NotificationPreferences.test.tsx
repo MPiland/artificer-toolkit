@@ -1,7 +1,13 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { notificationPreferencesDtoSchema } from '@artificer-toolkit/schema/api/notifications'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { NotificationAvailabilityContext } from './notificationContext'
+
+const allEnabled = notificationPreferencesDtoSchema.parse({
+  campaign: { email: true, inApp: true },
+  social: { email: true, inApp: true }
+})
 
 const mocks = vi.hoisted(() => ({
   preferences: vi.fn(),
@@ -24,10 +30,7 @@ import { NotificationPreferences } from './NotificationPreferences'
 
 describe('NotificationPreferences', () => {
   it('rolls an optimistic channel update back and announces the save failure', async () => {
-    mocks.preferences.mockResolvedValue({
-      campaign: { email: true, inApp: true },
-      social: { email: true, inApp: true }
-    })
+    mocks.preferences.mockResolvedValue(allEnabled)
     mocks.updatePreferences.mockRejectedValueOnce(new Error('unavailable'))
     renderWithAppProviders(
       <NotificationAvailabilityContext value='ready'>
@@ -56,14 +59,13 @@ describe('NotificationPreferences', () => {
   })
 
   it('updates Campaign delivery independently', async () => {
-    mocks.preferences.mockResolvedValue({
-      campaign: { email: true, inApp: true },
-      social: { email: true, inApp: true }
-    })
-    mocks.updatePreferences.mockResolvedValue({
-      campaign: { email: true, inApp: false },
-      social: { email: true, inApp: true }
-    })
+    mocks.preferences.mockResolvedValue(allEnabled)
+    mocks.updatePreferences.mockResolvedValue(
+      notificationPreferencesDtoSchema.parse({
+        ...allEnabled,
+        campaign: { email: true, inApp: false }
+      })
+    )
     renderWithAppProviders(
       <NotificationAvailabilityContext value='ready'>
         <NotificationPreferences />

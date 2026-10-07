@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
 import {
-  claimActiveLiveAuthority,
+  checkpointLiveRoom,
   executeInRoom,
-  reconcileDeparturesInRoom,
-  readTimelineInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  invalidateRoomInputs,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { api, internal } from '../_generated/api'
+
+useLocalRoomWorker()
 
 /**
  * Deleting the account of a player whose Character a live room holds (F12.3, F12.4, Convex half).
@@ -17,6 +20,15 @@ import { api, internal } from '../_generated/api'
 
 const TABLE = 'TABLE' as const
 
+/**
+ * The room reloads after an input notice and then queues its departure reconcile behind that
+ * reload, so the first checkpoint barrier may run before the reconcile and the second always follows it.
+ */
+async function settleReconcile(campaignId: string) {
+  await checkpointLiveRoom(campaignId)
+  await checkpointLiveRoom(campaignId)
+}
+
 describe('account deletion with a Character held by a live room', () => {
   it('leaves the held Run to the room, which removes the actor and keeps the history', async () => {
     const base = await playerControlFixture({ bite: 'ATTACK' })
@@ -24,16 +36,13 @@ describe('account deletion with a Character held by a live room', () => {
     const characterId = (await base.readState()).character?.id
     if (!characterId) throw new Error('Missing held Character fixture.')
 
-    // The player's history: a Run attack, a table roll and a table chat message.
+    // The player's history: a table roll and a table chat message while Convex still owns chat, then
+    // a Run attack, which makes the room claim the Campaign's live authority and hold the Run.
     for (const member of [gm, player])
       await member.caller.mutation(api.campaigns.conversations.open, {
         campaignId: campaign.id,
         kind: TABLE
       })
-    await setActorControllers(base, base.companion.id, [player.userId])
-    await executeInRoom(player.caller, {
-      command: await base.bite(base.companion.id, base.enemy.id)
-    })
     await player.caller.mutation(api.campaigns.rolls.execute, {
       campaignId: campaign.id,
       destination: TABLE,
@@ -51,6 +60,12 @@ describe('account deletion with a Character held by a live room', () => {
       body: 'Held table chat',
       clientNonce: crypto.randomUUID()
     })
+    await setActorControllers(base, base.companion.id, [player.userId])
+    await executeInRoom(player.caller, {
+      command: await base.bite(base.companion.id, base.enemy.id)
+    })
+    // The attack's roll card reaches the table chat with the room's checkpoint.
+    await checkpointLiveRoom(campaign.id)
     const readChat = async () =>
       (
         await gm.caller.query(api.campaigns.chat.list, {
@@ -59,15 +74,14 @@ describe('account deletion with a Character held by a live room', () => {
           limit: 50
         })
       ).entries.filter((entry) => entry.authorUserId === player.userId)
-    const readTimeline = () => readTimelineInRoom(gm.caller, run.id)
+    const readTimeline = () => readRoomTimeline(gm.caller, campaign.id)
     const chatBefore = await readChat()
     expect(chatBefore.some((entry) => entry.roll !== null)).toBe(true)
     expect(chatBefore.some((entry) => entry.body === 'Held table chat')).toBe(true)
-    expect((await readTimeline()).entries).toContainEqual(
+    expect(await readTimeline()).toContainEqual(
       expect.objectContaining({ commandType: 'RESOLVE_ACTION', actorUserId: player.userId })
     )
 
-    await claimActiveLiveAuthority(t, { campaignId: campaign.id, userId: gm.userId })
     const stored = () =>
       t.run(async (ctx) => ({
         run: await ctx.db
@@ -128,29 +142,41 @@ describe('account deletion with a Character held by a live room', () => {
       (await gm.caller.query(api.encounters.projectionReads.get, { encounterId: run.id })).actors
     ).toHaveLength(heldActorIds.length - 1)
 
-    // The room removes the deleted Character's actor and releases its hold.
-    await expect(reconcileDeparturesInRoom(gm.caller, run.id)).resolves.toEqual({
-      unassignedCharacterIds: [characterId]
-    })
+    // The room reloads its authorization, removes the deleted Character's actor and releases its hold.
+    // Convex's scheduler sends the room this notice; convex-test runs none.
+    await invalidateRoomInputs(campaign.id, ['CAMPAIGN'])
+    await settleReconcile(campaign.id)
     const reconciled = await stored()
     expect(reconciled.actors.map((actor) => actor.id)).toEqual(
       held.actors.map((actor) => actor.id).filter((id) => id !== base.character.id)
     )
+    // The room's reconcile returns nothing to a caller, so the departure list it acted on shows only as
+    // the one actor it removed: exactly the deleted Character's. (The list itself is asserted in
+    // `roomActorReconcile.test.ts`.)
+    expect(
+      held.actors
+        .map((actor) => actor.id)
+        .filter((id) => !reconciled.actors.some((a) => a.id === id))
+    ).toEqual([base.character.id])
     expect(reconciled.holds).toEqual([])
     // History is kept in the room, which appends its own REMOVE_ACTOR command; Convex gains none.
     expect(reconciled.commands).toEqual(held.commands)
-    const { entries } = await readTimeline()
+    const entries = await readTimeline()
     expect(entries).toContainEqual(
       expect.objectContaining({ commandType: 'RESOLVE_ACTION', actorUserId: player.userId })
     )
-    expect(entries).toContainEqual(expect.objectContaining({ commandType: 'REMOVE_ACTOR' }))
+    expect(entries.filter((entry) => entry.commandType === 'REMOVE_ACTOR')).toHaveLength(1)
     const chatAfter = await readChat()
     expect(chatAfter).toHaveLength(chatBefore.length)
     for (const entry of chatAfter)
       expect(entry).toMatchObject({ authorUsername: deletedCampaignAuthorLabel })
 
     // A second reconcile finds nothing to do and writes nothing.
-    await expect(reconcileDeparturesInRoom(gm.caller, run.id)).resolves.toBeNull()
+    await invalidateRoomInputs(campaign.id, ['CAMPAIGN'])
+    await settleReconcile(campaign.id)
     expect(await stored()).toEqual(reconciled)
+    expect(
+      (await readTimeline()).filter((entry) => entry.commandType === 'REMOVE_ACTOR')
+    ).toHaveLength(1)
   }, 120000)
 })

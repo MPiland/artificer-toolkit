@@ -10,6 +10,7 @@ import {
   planEncounterTurnAdvance,
   prepareEncounterTurn
 } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { prepareEncounterTurnResponse } from '@artificer-toolkit/rules-runtime/encounterTurnResponse'
 import { restoreEncounterInitiativeTurnActors } from '@artificer-toolkit/rules-runtime/encounterTurnInitiativeReplay'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -102,9 +103,11 @@ export async function planNativeLiveEncounterTurn(
       context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
       context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE') &&
       context.root.commandType === 'START')
+  // A client version that no longer matches the Run is the client's stale view, never retried.
+  if (state.id === initial.encounterId && state.version !== initial.expectedVersion)
+    rejectDomain('VERSION_STALE', 'Encounter version is stale.')
   if (
     state.id !== initial.encounterId ||
-    state.version !== initial.expectedVersion ||
     state.campaignId !== initial.campaignId ||
     state.gameSystemId !== system.id ||
     state.status !== (starting ? 'PREPARED' : 'ACTIVE') ||
@@ -262,6 +265,7 @@ export async function planNativeLiveEncounterTurn(
       },
       encounterVersion: state.version
     })
+    if (response.kind === 'STALE') rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
     if (response.kind === 'REPLAY') {
       if (!admission.result) throw new Error('Pending turn replay is unavailable.')
       return { kind: 'REPLAY' as const, result: admission.result }

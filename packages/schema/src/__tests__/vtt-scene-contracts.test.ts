@@ -5,10 +5,12 @@ import {
   LEGACY_VISUAL_ONLY_DARKNESS_REPLAY_KIND,
   sceneCommandInputDtoSchema,
   sceneCommandResultDtoSchema,
+  sceneBarrierDtoSchema,
   sceneDefinitionDtoSchema,
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
   sceneGeometryCommandInputDtoSchema,
+  sceneTokenDtoSchema,
   sceneTransientEnvelopeDtoSchema
 } from '../api/vttScenes.js'
 
@@ -193,6 +195,35 @@ describe('VTT scene contracts', () => {
           opacity: 0.5,
           polygon
         }
+      }).success
+    ).toBe(false)
+  })
+
+  it('requires lowercase Token and Barrier IDs', () => {
+    const token = {
+      assetId: null,
+      controlledByUserIds: [],
+      height: 1,
+      hidden: false,
+      id: ids.token,
+      label: 'Token',
+      locked: false,
+      position: { x: 1, y: 2 },
+      rotationDegrees: 0,
+      vision: null,
+      width: 1
+    }
+    const upper = crypto.randomUUID().toUpperCase()
+    expect(sceneTokenDtoSchema.safeParse(token).success).toBe(true)
+    expect(sceneTokenDtoSchema.safeParse({ ...token, id: upper }).success).toBe(false)
+    expect(
+      sceneBarrierDtoSchema.safeParse({
+        a: { x: 0, y: 0 },
+        b: { x: 10, y: 0 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: upper,
+        kind: 'WALL'
       }).success
     ).toBe(false)
   })

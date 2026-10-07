@@ -8,7 +8,17 @@ import { LibraryImportPage } from './LibraryImportPage'
 
 const previewId = '00000000-0000-4000-8000-000000000222'
 const mocks = vi.hoisted(() => ({ commitImport: vi.fn(), previewImport: vi.fn() }))
-vi.mock('#app/data/imports/importClient', () => mocks)
+// Each response a test supplies passes through the real DTO schema before the page sees it.
+vi.mock('#app/data/imports/importClient', async () => {
+  const { importResultReportDtoSchema } = await import('@artificer-toolkit/schema/api/imports')
+  const { importPreviewResultSchema } = await import('@artificer-toolkit/schema/api/importJobs')
+  return {
+    previewImport: async (...args: unknown[]) =>
+      importPreviewResultSchema.parse(await mocks.previewImport(...args)),
+    commitImport: async (...args: unknown[]) =>
+      importResultReportDtoSchema.parse(await mocks.commitImport(...args))
+  }
+})
 
 function NativeSystemImportPage() {
   const queryClient = useQueryClient()

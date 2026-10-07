@@ -232,6 +232,7 @@ async function sheetCommand(
   command: (base: { commandId: string; expectedVersion: number }) => CharacterSheetCommandInputDto
 ) {
   // The room holds the Character's play state, so the Sheet version is read after a checkpoint.
+  // The held receipt's `targetTransition.before.conditionIds` is asserted in `nativeRoomEffectReceipts.test.ts`.
   await checkpointLiveRoom(fixture.campaign.id)
   const sheet = await fixture.player.caller.query(api.characters.sheet.get, {
     id: fixture.character.id

@@ -22,10 +22,10 @@ import {
   SIDE_HEROES,
   creatureSource,
   customSource,
-  initiativePolicySnapshot,
   preparingRound,
   scriptedDice
 } from './encounterInitiativeFixtures.js'
+import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 import { createSrdRulesRuntime } from '../testing/dnd5eSrdEncounter.js'
 
 const OCCURRENCE_ID = '00000000-0000-4000-8000-00000000f001'

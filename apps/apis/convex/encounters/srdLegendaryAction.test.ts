@@ -1,40 +1,38 @@
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { describe, expect, it } from 'vitest'
-import type {
-  EncounterCommandResultDto,
-  ResolveRuleOccurrenceInputDto
+import {
+  encounterGmProjectionDtoSchema,
+  type EncounterCommandResultDto,
+  type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { executeInRoom, readEncounterHistory } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeInRoom,
+  queueRoomRolls,
+  type RoomCaller,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { domainRejection } from '../../tests/fixtures/playerControl'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seededSrdCreature, seededSrdLoadoutEquipment } from '../../tests/fixtures/srdCreatures'
 import { api, internal } from '../_generated/api'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { sourceImportBatches } from '../content/importBatches'
 
-const bludgeoning = SRD_DAMAGE_TYPES.find((entry) => entry.code === 'BLUDGEONING')?.id
-
-/** Every die the room rolls, as 0-based faces in request order. */
-function scripted(faces: readonly number[]) {
-  const queue = [...faces]
-  return (maximum: number) => {
-    const face = queue.shift()
-    if (face === undefined || face >= maximum) throw new Error(`Unexpected roll (d${maximum}).`)
-    return face
-  }
-}
+useLocalRoomWorker()
 
 /**
  * The seeded SRD Adult Red Dragon and the player's Character in an Assisted Run, at the end of the
@@ -66,6 +64,7 @@ async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean }) {
       ...seededSrdLoadoutEquipment(dragon).map(importedSubject)
     ]
   })
+  await attachFixtureRoom(base.t, base.campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,
     name: 'Legendary dragon fixture',
@@ -124,22 +123,30 @@ function respond(
   }
 }
 
-/** The terminal turn receipt's executed Legendary Action. */
-async function executedLegendaryAction(base: Fixture, commandId: string) {
-  const receipt = await base.t.run(async (ctx) =>
-    (await readEncounterHistory(ctx, base.campaign.id))
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) =>
-        q.eq('encounterId', base.run.id).eq('commandId', commandId)
-      )
-      .unique()
+/**
+ * What the Legendary Action did to the Character, as the room published it: the room holds the
+ * turn receipt until the Run ends (D85), so the hit points and Sheet stream version show it.
+ */
+async function characterAfter(base: Fixture) {
+  await checkpointLiveRoom(base.campaign.id)
+  const projection = encounterGmProjectionDtoSchema.parse(
+    await base.owner.caller.query(api.encounters.projectionReads.get, {
+      encounterId: base.run.id
+    })
   )
-  if (!receipt) throw new Error('The terminal turn receipt is missing.')
-  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-  const [action] = 'legendaryActions' in result ? (result.legendaryActions ?? []) : []
-  if (action?.resolution.kind !== 'EXECUTED')
-    throw new Error('Expected an executed Legendary Action.')
-  return action.resolution
+  const actor = projection.actors.find((candidate) => candidate.id === base.characterActor.id)
+  if (!actor) throw new Error('The projected Character is missing.')
+  const row = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
+  if (!row) throw new Error('The Character row is missing.')
+  return { currentHitPoints: actor.currentHitPoints, streamVersion: row.play.streamVersion }
+}
+
+/** The decision Convex serves a member, current only after the room checkpoints. */
+async function pendingFor(base: Fixture, caller: RoomCaller) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    encounterId: base.run.id
+  })
 }
 
 function tailAttack(result: EncounterCommandResultDto) {
@@ -154,43 +161,32 @@ function tailAttack(result: EncounterCommandResultDto) {
 describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
   it('runs the Adult Red Dragon’s Tail against the Character the GM picks', async () => {
     const base = await setup({ gmAutoRoll: true, playerAutoRoll: true })
-    const advanceInput = advance(base)
-    const choice = await executeInRoom(base.owner.caller, advanceInput)
+    const before = await characterAfter(base)
+    const choice = await executeInRoom(base.owner.caller, advance(base))
     const { pending, option } = tailAttack(choice)
     // Detect has no executable effect and Wing Attack is an area save, so only the Tail runs.
     expect(pending.options.map((entry) => entry.label)).toEqual(['Tail Attack'])
     expect(option).toMatchObject({ featureCost: 1, targetActorIds: [base.characterActor.id] })
     // An ungranted Creature's choice stays with the GM.
-    await expect(
-      base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: base.run.id
-      })
-    ).resolves.toBeNull()
+    await expect(pendingFor(base, base.player.caller)).resolves.toBeNull()
     // A natural 19 hits (+14); the Tail's 2d8 + 8 rolls 1 and 1.
+    await queueRoomRolls(base.campaign.id, { rolls: [18, 0, 0] })
     const done = await executeInRoom(
       base.owner.caller,
       respond(base, choice, {
         kind: 'LEGENDARY_OPTION',
         optionId: option.optionId,
         targetActorId: base.characterActor.id
-      }),
-      scripted([18, 0, 0])
+      })
     )
     expect(done.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    const executed = await executedLegendaryAction(base, advanceInput.command.commandId)
-    expect(executed).toMatchObject({
-      targetActorId: base.characterActor.id,
-      application: {
-        kind: 'CHARACTER_MECHANICS_BATCH',
-        sourceActorId: base.dragonActor.id,
-        targetActorId: base.characterActor.id,
-        d20: { selectedNatural: 19, resultPath: 'ON_HIT' },
-        featureResourceConsumption: { cost: 1, beforeUsed: 0, afterUsed: 1 },
-        applications: [{ kind: 'DAMAGE', requestedAmount: 10, damageTypeId: bludgeoning }]
-      }
-    })
-    // The Character's Sheet advances once for the damage.
-    expect(executed.characterTransitions).toHaveLength(1)
+    // The room holds the turn receipt (D85; `nativeRoomLegendary.test.ts` asserts the executed
+    // action and its Character transition) and posts no roll card for a Legendary Action, so the
+    // hit (a natural 19) and the damage dice (1 and 1) show as the Character's 10 damage and one
+    // Sheet advance on the checkpointed Character.
+    const after = await characterAfter(base)
+    expect(before.currentHitPoints - after.currentHitPoints).toBe(10)
+    expect(after.streamVersion).toBe(before.streamVersion + 1)
     // On its own turn the dragon's drawer offers its Tail, but no Legendary option (SRD 5.1).
     expect(done.projection.currentActorId).toBe(base.dragonActor.id)
     const choices = await base.owner.caller.query(api.encounters.actionChoices.get, {
@@ -207,9 +203,11 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
     expect(labels).not.toContain('Wing Attack (Costs 2 Actions)')
   }, 60000)
 
-  it('lets the granted controller pick its target and roll its dice, with GM override', async () => {
-    for (const answerer of ['PLAYER', 'GM'] as const) {
+  it.each(['PLAYER', 'GM'] as const)(
+    'lets the granted controller pick its target and roll its dice, with GM override (%s answers)',
+    async (answerer) => {
       const base = await setup({ gmAutoRoll: false, playerAutoRoll: false })
+      const before = await characterAfter(base)
       const granted = await executeInRoom(base.owner.caller, {
         command: {
           type: 'UPDATE_ACTOR',
@@ -225,11 +223,10 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
       }
       const choice = await executeInRoom(base.owner.caller, advanceInput)
       const { option } = tailAttack(choice)
-      await expect(
-        base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-          encounterId: base.run.id
-        })
-      ).resolves.toMatchObject({ kind: 'LEGENDARY_ACTION_CHOICE', options: [option] })
+      await expect(pendingFor(base, base.player.caller)).resolves.toMatchObject({
+        kind: 'LEGENDARY_ACTION_CHOICE',
+        options: [option]
+      })
       const caller = answerer === 'PLAYER' ? base.player.caller : base.owner.caller
       const attack = await executeInRoom(
         caller,
@@ -252,7 +249,7 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
         })
       )
       // The Tail's damage dice wait on the same controllers.
-      for (const value of [8, 8]) {
+      for (const value of [1, 1]) {
         const die = result.occurrence?.pending
         if (die?.kind !== 'ACTION_OUTCOME_EVIDENCE') throw new Error('Expected a damage die.')
         expect(die).toMatchObject({ rollerActorId: base.dragonActor.id, request: { max: 8 } })
@@ -262,12 +259,13 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
         )
       }
       expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-      expect(await executedLegendaryAction(base, advanceInput.command.commandId)).toMatchObject({
-        targetActorId: base.characterActor.id,
-        application: { applications: [{ kind: 'DAMAGE', requestedAmount: 8 + 8 + 8 }] }
-      })
-    }
-  }, 120000)
+      // The room holds the turn receipt (D85): the entered dice show as the Character's damage
+      // (2d8 + 8 with both dice entered as 1; larger dice would take the Character to 0).
+      const after = await characterAfter(base)
+      expect(before.currentHitPoints - after.currentHitPoints).toBe(1 + 1 + 8)
+    },
+    120000
+  )
 
   it('refuses a Legendary option sent as the dragon’s own action (D63)', async () => {
     const base = await setup({ gmAutoRoll: true, playerAutoRoll: true })
@@ -328,22 +326,17 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
     })
     const choice = await executeInRoom(base.owner.caller, advance(base))
     const { option } = tailAttack(choice)
+    await queueRoomRolls(base.campaign.id, { rolls: [18, 0, 0] })
     const result = await executeInRoom(
       base.owner.caller,
       respond(base, choice, {
         kind: 'LEGENDARY_OPTION',
         optionId: option.optionId,
         targetActorId: base.characterActor.id
-      }),
-      scripted([18, 0, 0])
+      })
     )
     // The turn settles; the 10 bludgeoning damage asks the Character's player for a DC 10 check.
-    const check = await base.player.caller.query(
-      api.encounters.pendingReads.pendingRuleOccurrence,
-      {
-        encounterId: base.run.id
-      }
-    )
+    const check = await pendingFor(base, base.player.caller)
     expect(result.projection.currentActorId).toBe(base.dragonActor.id)
     expect(check).toMatchObject({
       kind: 'D20_EVIDENCE',

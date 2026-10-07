@@ -24,7 +24,7 @@ vi.mock('#app/data/campaigns/queries', async (importOriginal) => ({
   useCampaignDetailOrNull: () => mocks.detail()
 }))
 
-vi.mock('./campaignAccess', () => ({ getCampaignTabs: () => ['settings'] }))
+vi.mock('./components/CampaignSessions', () => ({ CampaignSessions: () => null }))
 vi.mock('./components/CampaignLiveControls', () => ({ CampaignLiveControls: () => null }))
 vi.mock('./components/CampaignGmRoller', () => ({ CampaignGmRoller: () => null }))
 vi.mock('./components/CampaignSettings', () => ({
@@ -45,6 +45,7 @@ describe('Campaign detail deletion navigation', () => {
     const { rerender } = renderWithAppProviders(
       <CampaignDetailPage campaignId={campaign.id} currentUserId={tabletopCurrentUserId} />
     )
+    await user.click(await screen.findByRole('tab', { name: /settings/i }))
     await user.click(await screen.findByRole('button', { name: 'Confirm deletion' }))
 
     mocks.detail.mockReturnValue(null)

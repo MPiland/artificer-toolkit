@@ -105,7 +105,9 @@ sequenceDiagram
 Every command takes the same path. The room's command chain serializes commands; a command first
 reloads a stale or expired authorization cache (a failed read refuses it with `UNAVAILABLE`), then
 the journal answers an exact retry (same command ID and input) with its stored receipt, and a reused
-command ID with different input is `INVALID_COMMAND`. A command runs its planner inside one
+command ID with different input is `INVALID_COMMAND`. An Encounter command's retry returns its own
+journaled result (occurrence, roll) shown over the Run's current projection, so a retry after later
+work never moves a client's view backwards (`replayRoomEncounterCommand`). A command runs its planner inside one
 `RoomEncounterStore.transact`, and `DurableCommandJournal.commitInTransaction` stores the receipt and
 authority head in the same SQLite transaction. The room acknowledges and fans out only after that
 transaction commits. A command that changes nothing writes no row.
@@ -175,8 +177,9 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   before acknowledging them, including when a retry recovers that receipt after a restart. The rest of
   the synchronous list is not room commands: Encounter delete and adding a Character actor (assignment
   or `START`) happen in Convex, and the departure reconcile (D81) flushes in the room's own departure
-  path. Token bind and unbind and round changes ride the next flush. `REVERT_LAST_ACTION` is not a
-  command.
+  path. Token bind and unbind and round changes ride the next flush. `REVERT_LAST_ACTION` is an
+  ordinary room command (it reads the receipts the room holds for the Run, D85 and D88); Convex
+  records no Encounter command.
 - `COMPLETE` also deletes, in the same save, every Run child row except the Run, its actors and the
   source facts they name (ADR 0035 Amendment 30), including the Scene binding. The room refuses
   further commands on a completed Run ("Completed Encounters are read-only."), the Play authorization
@@ -333,7 +336,11 @@ maximum.
 `EVICT_USER` and `INVALIDATE_INPUTS`. The room runs
 [reconcileRoomActorDepartures](../../apps/session-worker/src/roomActorReconcile.ts) from one coalesced
 post-commit task (`#queuePostCommit`) after every committed room transaction, authorization reload and
-Sheet subscribe. It runs one `RoomEncounterStore` transaction (with a journal entry, `delta: null`) only
+Sheet subscribe. A CAMPAIGN `INVALIDATE_INPUTS` reloads membership at once, with or without a socket, and
+runs the reconcile inside that same task on the room's serialized command chain (`#queueEagerReload`,
+`#queueMembershipReload`), so a checkpoint barrier, command or read that follows the notice orders behind
+the reload and the freeze; queuing the reconcile only through `#queuePostCommit` would append it after them.
+It runs one `RoomEncounterStore` transaction (with a journal entry, `delta: null`) only
 when an open Run names a departure: Characters that no longer exist (read as `DELETED` through the
 CHARACTERS input scope) lose their actors, other unassigned Character actors are frozen, and departed
 controllers are unlisted, via
@@ -509,8 +516,8 @@ CHARACTER revisions only, as it does the Authority and Definition parts: a PLAY 
 reads (a checkpoint landing between the part and the System read) cannot split the part from the System
 read it is merged with, and a checkpoint never reloads a held Character. A restamped record is served with the restamped revisions, not the ones
 it was stored with, so a part merged with a fresh System or Campaign read reports one revision per scope
-(a stale one fails the merge as "Live rules revision changed during preparation", naming the scope and
-both revisions, an UNAVAILABLE command on the first command after a checkpoint). The restamp is memory only and ignored once its record is rewritten, so
+(a stale one fails the merge with `RulesRevisionChangedError`, "Live rules revision changed during
+preparation", naming the scope and both revisions; the room prepares the command again, see Domain rejections). The restamp is memory only and ignored once its record is rewritten, so
 an outside edit, which advances a revision the room did not adopt, still misses and reads, and a room
 woken from hibernation reads once. A multi-page flush adopts per page: each page is sent the revisions
 after the previous page's adoption (`adoptRevisions`), and `RoomCheckpoints` reports every page's response
@@ -992,6 +999,26 @@ outside change that a reload picks up mid-command (an Encounter created in Conve
 without a notice) costs that one command a retry, and the same command ID resent is answered by the
 journal. The development room client (`developmentHttpClient.ts`) resends such an Encounter or
 Encounter-binding command up to twice.
+Both errors extend `RetryableCommandError` (`nativeRulesRevisions.ts`), which `encounterCommandRefusal` and
+the Scene-command refusal map to that try-again refusal by class. An input that changes while a command is
+being prepared (a GM edit to Campaign or System content between two reads, `RulesRevisionChangedError`) is
+not refused at once: `retryPreparation` (`roomPreparationRetry.ts`) wraps the one preparation-and-commit
+transaction of the Encounter, Sheet, Scene edit, Scene geometry and binding commands (`#prepareWithRetry`),
+rolls it back, reloads authorization (`#refreshAuthorization`, so held inputs reload against the new
+revisions) and prepares again, at most `MAX_PREPARATION_RETRIES` (2) times; past that the error reaches the
+try-again refusal. Only the transaction repeats; the journal commit lives in the commit fence, so a retry
+never commits twice and idempotency and replay are untouched. Dice reach a command only through the
+injected `random`; `retryPreparation` records each draw (size and value) and replays them on a retry, so a
+retried command rolls the dice an undisturbed one would (a retry that needs a die the earlier attempt never
+rolled draws it fresh, from that point on) and a queued test roll is spent once.
+A version the client supplied that is behind the room (a Run `expectedVersion` on a turn command, an
+`expectedOccurrenceVersion` on a movement response) is the client's stale view, not an internal change: it
+is refused at once as `VERSION_STALE` through `rejectDomain` and never retried.
+A selected movement reaction whose retained option no longer matches its source's current facts is the same
+stale view and is refused as `VERSION_STALE`. A decline never fails for a different reactor's stale retained
+group: movement continuation discovers that group's options again through the existing discovery path, and a
+group with no options left resolves as no reaction. A player's voluntary move that would end inside a hostile
+footprint is refused as `MOVEMENT_BLOCKED` with a message that names no creature.
 The room forwards a domain rejection as `COMMAND_REJECTED` with
 code `DOMAIN_REJECTED`, the `reason` and its message; every other rejection carries `reason: null` and a
 generic message, so Convex internals never reach clients. A permission refusal says what it is

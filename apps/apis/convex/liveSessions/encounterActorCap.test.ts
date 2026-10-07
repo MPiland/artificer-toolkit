@@ -10,14 +10,22 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachRoomWorker,
+  executeInRoom,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
+
+useLocalRoomWorker()
 
 // Initiative evidence, its order and every refresh list hold one entry per actor, so a Run at the
 // actor cap must start and turn, not only a Run within the rule graph's node limit.
 it('starts and advances a turn in a Run at the actor cap through the room', async () => {
   const base = await setupCharacterRun()
+  await attachRoomWorker(base.t)
   // The GM rolls every Creature and the player their Character without a prompt.
   for (const userId of [base.owner.userId, base.player.userId])
     await setAutoRollDice(base.t, userId, true)
@@ -65,6 +73,7 @@ it('starts and advances a turn in a Run at the actor cap through the room', asyn
     commandId: crypto.randomUUID()
   })
   expect(prepared.actors).toHaveLength(MAX_ENCOUNTER_ACTORS)
+  await seedRoomContentSnapshots(base.campaign.id)
   let active = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',

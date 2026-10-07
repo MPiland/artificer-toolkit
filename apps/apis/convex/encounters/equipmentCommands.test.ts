@@ -30,12 +30,13 @@ import { toCreatureFeatureEffects } from '../../tests/fixtures/creatureWeaponEff
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -168,10 +169,17 @@ async function setup() {
   const creatureActor = run.actors.find((actor) => actor.kind === 'CREATURE')
   const customActor = run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!creatureActor || !customActor) throw new Error('Missing Encounter actor fixtures.')
+  await attachFixtureRoom(base.t, campaign.id)
   return { ...base, campaign, run, creatureActor, customActor }
 }
 
-async function stored(t: Awaited<ReturnType<typeof setup>>['t'], encounterId: string) {
+/** The Run's rows as the room last published them: it holds the Run until it checkpoints (D85). */
+async function stored(
+  t: Awaited<ReturnType<typeof setup>>['t'],
+  campaignId: string,
+  encounterId: string
+) {
+  await checkpointLiveRoom(campaignId)
   return t.run(async (ctx) => {
     const run = await ctx.db
       .query('encounterRuns')
@@ -186,16 +194,26 @@ async function stored(t: Awaited<ReturnType<typeof setup>>['t'], encounterId: st
       receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
       run,
       actors,
-      actorStates: await Promise.all(actors.map((row) => readTestActor(ctx, row))),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
+      actorStates: await Promise.all(actors.map((row) => readTestActor(ctx, row)))
     }
   })
 }
 
+async function initiativeRows(t: Awaited<ReturnType<typeof setup>>['t'], campaignId: string) {
+  await checkpointLiveRoom(campaignId)
+  return t.run(async (ctx) => ({
+    rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
+    participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
+    sides: await ctx.db.query('encounterInitiativeSides').collect()
+  }))
+}
+
 describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
+  useLocalRoomWorker()
+
   it('pins an equivalent current Equipment source, preserves unrelated Encounter state, and replays without source reads', async () => {
-    const { t, owner, other, run, creatureActor, customActor } = await setup()
-    const before = await stored(t, run.id)
+    const { t, campaign, owner, other, run, creatureActor, customActor } = await setup()
+    const before = await stored(t, campaign.id, run.id)
     const command = replace({
       encounterId: run.id.toUpperCase(),
       actorId: creatureActor.id.toUpperCase(),
@@ -204,7 +222,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     })
     const first = await executeInRoom(owner.caller, command)
     expect(first.projection).toMatchObject({ id: run.id, version: 1, currentActorId: null })
-    const after = await stored(t, run.id)
+    const after = await stored(t, campaign.id, run.id)
     const beforeCreature = before.actors.find((actor) => actor.id === creatureActor.id)
     const afterCreature = after.actors.find((actor) => actor.id === creatureActor.id)
     const beforeCustom = before.actors.find((actor) => actor.id === customActor.id)
@@ -245,19 +263,8 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       }
     })
     expect(afterCustom.stateJson).toBe(beforeCustom.stateJson)
-    const receipt = after.receipts.find(
-      (candidate) => candidate.commandId === command.command.commandId.toLowerCase()
-    )
-    if (receipt?.commandType !== 'REPLACE_CREATURE_EQUIPMENT')
-      throw new Error('Missing Creature Equipment replacement receipt.')
-    expect(receipt.creatureEquipmentReplacement).toMatchObject({
-      actorId: creatureActor.id,
-      loadoutEntryId,
-      equipmentId: compatibleClub.id,
-      sourceRevision: 1,
-      sourceVersionId: expect.any(String),
-      sourceChecksum: checksumRuleDocument(compatibleClub)
-    })
+    // The room holds the command receipt (D85). Its provenance is the pinned source object the
+    // actor's snapshot carries (`replaceActorEquipment`), so the snapshot shows what it records.
     expect(afterState.snapshot).toEqual({
       ...beforeState.snapshot,
       equipmentLoadoutOverride: expect.any(Array),
@@ -266,7 +273,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
           loadoutEntryId,
           equipmentId: compatibleClub.id,
           sourceRevision: 1,
-          sourceVersionId: receipt.creatureEquipmentReplacement.sourceVersionId,
+          sourceVersionId: expect.any(String),
           sourceChecksum: checksumRuleDocument(compatibleClub),
           payload: compatibleClub
         },
@@ -299,11 +306,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
         expectedVersion: 2
       }
     })
-    const initiativeBefore = await t.run(async (ctx) => ({
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      sides: await ctx.db.query('encounterInitiativeSides').collect()
-    }))
+    const initiativeBefore = await initiativeRows(t, campaign.id)
     const active = await executeInRoom(
       owner.caller,
       replace({
@@ -319,13 +322,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       currentActorId: started.projection.currentActorId
     })
     expect(active.projection.currentActorId).not.toBeNull()
-    await expect(
-      t.run(async (ctx) => ({
-        rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-        participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-        sides: await ctx.db.query('encounterInitiativeSides').collect()
-      }))
-    ).resolves.toEqual(initiativeBefore)
+    await expect(initiativeRows(t, campaign.id)).resolves.toEqual(initiativeBefore)
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -334,8 +331,9 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       if (!root) throw new Error('Missing compatible Equipment root.')
       await ctx.db.patch(root._id, { ownerUserId: other.userId })
     })
+    // The room answers the retry from its held history, without reading the Equipment source.
     await expect(
-      replayInRoom(owner.caller, {
+      executeInRoom(owner.caller, {
         command: {
           ...command.command,
           encounterId: run.id,
@@ -353,8 +351,8 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
   }, 30000)
 
   it('rejects invalid, stale, wrong-kind, and incompatible replacement requests without writes', async () => {
-    const { t, owner, run, creatureActor, customActor } = await setup()
-    const before = await stored(t, run.id)
+    const { t, campaign, owner, run, creatureActor, customActor } = await setup()
+    const before = await stored(t, campaign.id, run.id)
     // Convex redacts its refusals to the room; only a domain rejection keeps its message.
     const rejected: readonly [ReturnType<typeof replace>, string | typeof RoomCommandRefusal][] = [
       [
@@ -390,18 +388,18 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     ]
     for (const [input, message] of rejected)
       await expect(executeInRoom(owner.caller, input)).rejects.toThrow(message)
-    expect(await stored(t, run.id)).toEqual(before)
+    expect(await stored(t, campaign.id, run.id)).toEqual(before)
   }, 30000)
 
   it('rejects unauthorised and unavailable Equipment replacements without writes', async () => {
-    const { t, owner, other, run, creatureActor } = await setup()
-    const before = await stored(t, run.id)
+    const { t, campaign, owner, other, run, creatureActor } = await setup()
+    const before = await stored(t, campaign.id, run.id)
     const command = replace({
       encounterId: run.id,
       actorId: creatureActor.id,
       equipmentId: compatibleClub.id
     })
-    await expect(executeInRoom(other.caller, command)).rejects.toThrow(RoomCommandRefusal)
+    await expect(executeInRoom(other.caller, command)).rejects.toThrow('Campaign not found.')
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -410,7 +408,9 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       if (!root) throw new Error('Missing compatible Equipment root.')
       await ctx.db.patch(root._id, { ownerUserId: other.userId })
     })
+    // The room reads Equipment from the Campaign's content snapshot, so rebuild it after the edit.
+    await attachFixtureRoom(t, campaign.id)
     await expect(executeInRoom(owner.caller, command)).rejects.toThrow(RoomCommandRefusal)
-    expect(await stored(t, run.id)).toEqual(before)
+    expect(await stored(t, campaign.id, run.id)).toEqual(before)
   }, 30000)
 })

@@ -1,20 +1,23 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
+  readCheckpointedTokenPosition,
   setupReactionMovementScene,
-  useMovementReactions
+  useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { api } from '../_generated/api'
 import {
+  checkpointLiveRoom,
   executeInRoom,
-  planMovementDecisionInRoom,
-  planMovementInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
+useLocalRoomWorker()
 
 function command(input: {
   encounterId: string
@@ -33,6 +36,11 @@ function command(input: {
   }
 }
 
+// The planner's cumulative spatial history at the terminal reaction (which effects were executed, and
+// that the prefix settled before the reaction's contact) is read here as the effects the room removed
+// and the token's final position; the prefix-before-contact ordering is covered by the producer test
+// "settles a crossed spatial prefix before the first reaction contact" in apps/session-worker
+// apps/session-worker/test/nativeMovementPlanning.test.ts.
 it.each(['USE', 'DECLINE'] as const)(
   'settles Scene Legendary Resistance %s once and retains spatial history at STOP',
   async (selection) => {
@@ -49,6 +57,7 @@ it.each(['USE', 'DECLINE'] as const)(
         { x: 600, y: 50 }
       ]
     )
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
     const prefix = await seedSpatialEffect(
       { ...base, sceneId: value.sceneId },
       { x: 275, y: 50 },
@@ -59,20 +68,17 @@ it.each(['USE', 'DECLINE'] as const)(
       { x: 475, y: 50 },
       5
     )
-    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-    const initial = await root.publish()
-    const choice = initial.occurrence?.pending
+    const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+    const choice = initial?.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
       throw new Error('Expected a movement reaction choice.')
-    const selectedRequest = await planMovementDecisionInRoom(
-      value.owner.caller,
-      command({
+    const resisted = await executeInRoom(value.owner.caller, {
+      command: command({
         encounterId: base.run.id,
         pending: choice,
         resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
       })
-    )
-    const resisted = await selectedRequest.publish()
+    })
     const pending = resisted.occurrence?.pending
     if (!pending || pending.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
       throw new Error('Expected a Legendary Resistance choice.')
@@ -85,25 +91,16 @@ it.each(['USE', 'DECLINE'] as const)(
           : { kind: 'DECLINE' }
     })
     await expect(
-      planMovementDecisionInRoom(value.player.caller, resistanceCommand)
+      executeInRoom(value.player.caller, { command: resistanceCommand })
     ).rejects.toThrow()
-    const request = await planMovementDecisionInRoom(value.owner.caller, resistanceCommand)
-    const prepared = { outcome: request.outcome }
-    expect(prepared.outcome.kind).toBe('TERMINAL')
-    if (prepared.outcome.kind !== 'TERMINAL' || prepared.outcome.result.status !== 'BATCH_COMPLETE')
-      throw new Error('Expected cumulative spatial history at the terminal reaction.')
-    expect(
-      prepared.outcome.result.executions.map((entry) => entry.candidate.candidate.effectId)
-    ).toEqual(selection === 'USE' ? [prefix.id, suffix.id] : [prefix.id])
-    const reactionDistance =
-      prepared.outcome.result.reactionExecutions[0]!.option.candidate.pathDistance
-    expect(prepared.outcome.result.executions[0]!.candidate.candidate.pathDistance).toBeLessThan(
-      reactionDistance
-    )
-    if (selection === 'DECLINE')
-      expect(prepared.outcome.result.terminalPosition).toEqual({ x: 300, y: 50 })
-    const completed = await request.publish()
+    const completed = await executeInRoom(value.owner.caller, { command: resistanceCommand })
     expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    if (selection === 'DECLINE')
+      expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+        x: 300,
+        y: 50
+      })
+    await checkpointLiveRoom(base.campaign.id)
     const remaining = await value.owner.caller.run((ctx) =>
       ctx.db
         .query('encounterSpatialRuleEffects')
@@ -113,6 +110,8 @@ it.each(['USE', 'DECLINE'] as const)(
         .collect()
     )
     expect(remaining.map((entry) => entry.id)).toEqual(selection === 'USE' ? [] : [suffix.id])
+    // The prefix settled when the move reached the reaction, so neither outcome leaves it behind.
+    expect(remaining.map((entry) => entry.id)).not.toContain(prefix.id)
   },
   30_000
 )
@@ -120,24 +119,19 @@ it.each(['USE', 'DECLINE'] as const)(
 it('issues and settles Legendary Resistance for a used automatic Scene reaction', async () => {
   const base = await setupCreatureReactionRun(null, false, false, 'AUTOMATIC', 'AUTOMATIC', true)
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  const used = await useMovementReactions(value)
-  expect(used.prepared.outcome.kind).toBe('PENDING')
-  const issued = await used.publish()
-  const pending = issued.occurrence?.pending
+  await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
+  const used = await useMovementReactionsInRoom(value)
+  const pending = used.occurrence?.pending
   if (!pending || pending.kind !== 'LEGENDARY_RESISTANCE_CHOICE' || !pending.options[0])
     throw new Error('Expected a Legendary Resistance choice after the reaction Use.')
-  const request = await planMovementDecisionInRoom(
-    value.owner.caller,
-    command({
+  const completed = await executeInRoom(value.owner.caller, {
+    command: command({
       encounterId: base.run.id,
       pending,
       resolution: { kind: 'OPTION', optionId: pending.options[0].optionId }
     })
-  )
-  expect(request.outcome.kind).toBe('TERMINAL')
-  await expect(request.publish()).resolves.toMatchObject({
-    occurrence: { status: 'COMPLETE', pending: null }
   })
+  expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
 }, 30_000)
 
 it('retains assisted TEST evidence before issuing Legendary Resistance', async () => {
@@ -146,26 +140,24 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
   })
   await setAutoRollDice(base.t, base.owner.userId, false)
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-  const initial = await root.publish()
-  const choice = initial.occurrence?.pending
+  await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
+  const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+  const choice = initial?.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
     throw new Error('Expected reaction choice.')
-  const request = await planMovementDecisionInRoom(
-    value.owner.caller,
-    command({
+  const selected = await executeInRoom(value.owner.caller, {
+    command: command({
       encounterId: base.run.id,
       pending: choice,
       resolution: { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
     })
-  )
-  expect(request.outcome.kind).toBe('PENDING')
-  const evidence = (await request.publish()).occurrence?.pending
+  })
+  expect(selected.occurrence).toMatchObject({ status: 'PENDING' })
+  const evidence = selected.occurrence?.pending
   if (!evidence || evidence.kind !== 'D20_EVIDENCE')
     throw new Error('Expected assisted TEST evidence.')
-  const rolledRequest = await planMovementDecisionInRoom(
-    value.owner.caller,
-    command({
+  const rolled = await executeInRoom(value.owner.caller, {
+    command: command({
       encounterId: base.run.id,
       pending: evidence,
       resolution: {
@@ -175,34 +167,27 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
         rollMode: evidence.request.rollMode
       }
     })
-  )
-  expect(rolledRequest.outcome.kind).toBe('PENDING')
-  const resistance = (await rolledRequest.publish()).occurrence?.pending
+  })
+  expect(rolled.occurrence).toMatchObject({ status: 'PENDING' })
+  const resistance = rolled.occurrence?.pending
   if (!resistance || resistance.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
     throw new Error('Expected Legendary Resistance choice.')
-  let replayRequest = await planMovementDecisionInRoom(
-    value.owner.caller,
-    command({
-      encounterId: base.run.id,
-      pending: resistance,
-      resolution: { kind: 'DECLINE' }
-    })
-  )
   // App rolls post to the table roll log, which needs a username.
   await value.owner.caller.mutation(api.account.updateProfile, {
     username: 'MovementGm',
     bio: null
   })
+  let result = await executeInRoom(value.owner.caller, {
+    command: command({
+      encounterId: base.run.id,
+      pending: resistance,
+      resolution: { kind: 'DECLINE' }
+    })
+  })
   let outcomeRequests = 0
-  for (let index = 0; ; index++) {
+  for (let index = 0; result.occurrence?.status !== 'COMPLETE'; index++) {
     expect(index).toBeLessThan(20)
-    expect(['PENDING', 'TERMINAL']).toContain(replayRequest.outcome.kind)
-    const completed = await replayRequest.publish()
-    if (completed.occurrence?.status === 'COMPLETE') {
-      expect(outcomeRequests).toBeGreaterThan(0)
-      break
-    }
-    const pending = completed.occurrence?.pending
+    const pending = result.occurrence?.pending
     if (!pending || pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
       throw new Error('Expected assisted OUTCOME evidence.')
     outcomeRequests++
@@ -221,18 +206,17 @@ it('retains assisted TEST evidence before issuing Legendary Resistance', async (
     })
     if (!appRoll.evidenceRoll) throw new Error('Expected the recorded OUTCOME roll.')
     expect(appRoll.evidenceRoll).toMatchObject({ faces: [pending.request.min], rollMode: null })
-    const rollId = appRoll.evidenceRoll.rollId
-    replayRequest = await planMovementDecisionInRoom(
-      value.owner.caller,
-      command({
+    result = await executeInRoom(value.owner.caller, {
+      command: command({
         encounterId: base.run.id,
         pending,
         resolution: {
           kind: 'SYSTEM_ROLL',
           requestId: pending.request.requestId,
-          rollId
+          rollId: appRoll.evidenceRoll.rollId
         }
       })
-    )
+    })
   }
+  expect(outcomeRequests).toBeGreaterThan(0)
 }, 30_000)

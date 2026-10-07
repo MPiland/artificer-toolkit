@@ -15,9 +15,10 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
-import { requireCampaignAuthority } from '../campaigns/authority'
+import { readCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
 import { reconcileOpenRunsAtRelease } from './releaseReconcile'
 import { reconcileCharacterHolds, releaseCharacterHolds } from './characterHolds'
@@ -269,12 +270,10 @@ export async function claimCampaignLiveAuthority(
 ) {
   if (!Number.isSafeInteger(input.expiresAt) || input.expiresAt <= Date.now())
     throw new Error('Live Session activation expiry is invalid.')
-  const { campaign, membership } = await requireCampaignAuthority(
-    ctx,
-    input.campaignId.toLowerCase(),
-    input.userId
-  )
-  if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
+  const visible = await readCampaignAuthority(ctx, input.campaignId.toLowerCase(), input.userId)
+  if (!visible) rejectDomain('CAMPAIGN_NOT_FOUND')
+  const { campaign, membership } = visible
+  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   const fingerprint = await activationFingerprint(ctx, campaign)
   const current = await readCampaignLiveAuthority(ctx, campaign.id)
   if (current && !isExpiredActivatingAuthority(current)) {

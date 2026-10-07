@@ -6,9 +6,10 @@
 export function isLocalDevelopment(environment: {
   LOCAL_CONTENT_SNAPSHOT_ORIGIN?: string | undefined
 }): boolean {
-  return /^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(
+  const port = /^http:\/\/127\.0\.0\.1:([1-9]\d{0,4})$/.exec(
     environment.LOCAL_CONTENT_SNAPSHOT_ORIGIN ?? ''
-  )
+  )?.[1]
+  return port !== undefined && Number(port) <= 65535
 }
 
 /** The raw R2 surface used by room hydration and browser delivery. */

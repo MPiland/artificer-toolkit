@@ -2,6 +2,12 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { socialBlockStatusSchema } from '@artificer-toolkit/schema/api/socialBlockLists'
+import {
+  socialEligibilityDtoSchema,
+  socialProfileDtoSchema,
+  socialReportReceiptDtoSchema
+} from '@artificer-toolkit/schema/api/socialHub'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialProfilePage } from './SocialProfilePage'
 
@@ -33,23 +39,25 @@ vi.mock('@tanstack/react-query', async (original) => ({
     const name = queryKey[1]
     if (name === 'social/profiles:getEligibility')
       return {
-        data: {
+        data: socialEligibilityDtoSchema.parse({
           profilePublicId: mocks.self ? targetId : actorId,
           eligible: true,
+          adultAttestedAt: null,
+          contentPreference: 'STANDARD',
           status: 'ACTIVE'
-        },
+        }),
         isPending: false,
         isError: false
       }
     if (name === 'social/blocks:getStatus')
       return {
-        data: mocks.pending ? undefined : { blocked: mocks.blocked },
+        data: mocks.pending ? undefined : socialBlockStatusSchema.parse({ blocked: mocks.blocked }),
         isPending: mocks.pending,
         isError: mocks.statusError
       }
     if (name === 'social/discovery:getProfile')
       return {
-        data: { profilePublicId: targetId, username: 'TargetPlayer' },
+        data: socialProfileDtoSchema.parse({ profilePublicId: targetId, username: 'TargetPlayer' }),
         isPending: queryKey[2] === 'skip',
         isError: mocks.profileError
       }
@@ -81,7 +89,13 @@ describe('native Social profile actions', () => {
     mocks.remove.mockImplementation(async () => {
       mocks.blocked = false
     })
-    mocks.report.mockResolvedValue({ status: 'SUBMITTED' })
+    mocks.report.mockResolvedValue(
+      socialReportReceiptDtoSchema.parse({
+        reportPublicId: '33333333-3333-4333-8333-333333333333',
+        status: 'SUBMITTED',
+        createdAt: '2026-09-01T00:00:00.000Z'
+      })
+    )
   })
 
   it('blocks and unblocks through exact native status while skipping blocked profile discovery', async () => {

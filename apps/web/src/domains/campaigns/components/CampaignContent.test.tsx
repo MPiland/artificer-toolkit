@@ -2,8 +2,8 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { createCampaignDetail } from '../campaignDetail.fixtures'
 import { CampaignContent } from './CampaignContent'
 
 const mocks = vi.hoisted(() => ({
@@ -61,46 +61,7 @@ vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
   }
 }))
 
-const campaign = {
-  id: '11111111-1111-4111-8111-111111111111',
-  publicId: 'ashen-road',
-  name: 'The Ashen Road',
-  description: null,
-  format: 'ONGOING',
-  toneTags: ['HEROIC'],
-  toneDetails: null,
-  contentMaturity: 'STANDARD',
-  gameSystemId: '00000000-0000-4000-8000-000000000001',
-  primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
-  additionalRulesCatalogueIds: [],
-  status: 'ACTIVE',
-  role: 'OWNER',
-  version: 1,
-  memberCount: 1,
-  playerCount: 0,
-  createdAt: '2026-09-01T00:00:00.000Z',
-  updatedAt: '2026-09-01T00:00:00.000Z',
-  attunementSlotOverride: null,
-  assignedCharacter: null,
-  memberships: [],
-  capabilities: {
-    edit: true,
-    archive: true,
-    delete: true,
-    invite: true,
-    manageMembers: true,
-    manageCharacters: true,
-    assignOwnCharacter: false,
-    manageSharedContent: true,
-    shareOwnedContent: true,
-    managePartyInventory: true,
-    transferOwnInventory: true,
-    manageNotes: true,
-    contributeSessionNotes: true,
-    readTableChat: true,
-    readPartyChat: true
-  }
-} satisfies CampaignDetailDto
+const campaign = createCampaignDetail()
 
 describe('CampaignContent', () => {
   beforeEach(() => {

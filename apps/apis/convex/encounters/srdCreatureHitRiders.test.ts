@@ -241,6 +241,8 @@ async function lifeDrainCharacter(input: { hidden: boolean }) {
   await checkpointRoom(base.campaign.id)
   return { base, answered }
 }
+// Rider receipts and applied outputs live in the room's history:
+// see apps/session-worker/test/nativeRoomHitRiders.test.ts.
 describe('seeded SRD Creature hit riders in the room', () => {
   it('deals both damage parts of the Hell Hound’s Bite on one hit', async () => {
     const base = await setup({ creature: 'Hell Hound', feature: 'Bite', playerAutoRoll: true })

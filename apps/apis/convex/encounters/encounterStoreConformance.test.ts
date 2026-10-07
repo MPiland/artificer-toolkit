@@ -13,6 +13,7 @@ import { receiptHeaderSchemas } from '@artificer-toolkit/schema/projections/rece
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { PlayerControlFixture } from '../../tests/fixtures/playerControl'
 import { encounterConformanceCorpus } from '../../tests/fixtures/encounterConformanceCorpus'
+import { useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { encounterWriteTransaction } from './encounterPorts'
 
@@ -27,6 +28,10 @@ type StoreSnapshot = { [Table in EncounterTableName]: EncounterDocument<Table>[]
 type Operation<Result> = (transaction: EncounterWriteTransaction) => Promise<Result>
 
 class Rollback extends Error {}
+
+// Registered before the hooks below: hooks after each test run in reverse, so the room closes on
+// restored mocks and real timers.
+useLocalRoomWorker()
 
 // Sequential UUIDs from the fixture on make the golden token order repeatable; both runs of an
 // operation start from the same point in the sequence and at the same fixed time.

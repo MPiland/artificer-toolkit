@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
+import { mergeNativeRulesRevisions, RulesRevisionChangedError } from './nativeRulesRevisions.js'
 
 const systemId = '00000000-0000-4000-8000-000000000001'
 const campaignId = '00000000-0000-4000-8000-000000000002'
@@ -41,9 +41,18 @@ describe('native rules revisions', () => {
 
   it('rejects conflicts within a capture and across Encounter and Character captures atomically', () => {
     let revisions = mergeNativeRulesRevisions([], base)
+    const conflicting = [
+      ...base,
+      { scope: 'CAMPAIGN' as const, id: campaignId, revision: secondRevision }
+    ]
+    expect(() => mergeNativeRulesRevisions(revisions, conflicting)).toThrow(
+      RulesRevisionChangedError
+    )
+    expect(() => mergeNativeRulesRevisions(revisions, conflicting)).toThrow(
+      'Live rules revision changed during preparation.'
+    )
     expect(() =>
       mergeNativeRulesRevisions(revisions, [
-        ...base,
         { scope: 'CAMPAIGN', id: campaignId, revision: secondRevision }
       ])
     ).toThrow('Live rules revision changed during preparation.')

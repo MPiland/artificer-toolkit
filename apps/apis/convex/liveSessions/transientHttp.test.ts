@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { LiveSessionTransientCaptureInput } from '@artificer-toolkit/schema/api/liveSessionTransient'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/localRoomWorker'
 import { createSceneDefinitionFixture } from '../../tests/fixtures/sceneDefinitions'
 
 const secret = 'test-live-session-executor-secret-that-is-long-enough'

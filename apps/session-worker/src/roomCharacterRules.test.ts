@@ -1,342 +1,130 @@
 import { expect, it, vi } from 'vitest'
-import { contentSnapshotDocumentsObjectSchema } from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { EncounterDocument } from '@artificer-toolkit/encounter-persistence/store'
 import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { characterResourceSchema } from '@artificer-toolkit/schema/api/characterResourceRules'
 import { characterPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPlayState'
-import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import {
-  readCharacterPlay,
-  readCharacterSheetStructure
-} from '@artificer-toolkit/schema/projections/characterStoredState'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
-import { characterPageFixture } from './testing/characterPageFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import {
+  srdCharacterScope,
+  srdRoomCharacter,
+  srdRoomHydration
+} from './testing/srdRoomCharacter.js'
 
-type SheetFacts = Awaited<ReturnType<typeof prepareLiveCharacterSheetFacts>>
-type ReconciliationFacts = {
-  active: SheetFacts['active']
-  prepared: {
-    character: {
-      state: Pick<SheetFacts['prepared']['character']['state'], 'hitpoints'> & {
-        equipment: {
-          inventory: Array<
-            Pick<
-              SheetFacts['prepared']['character']['state']['equipment']['inventory'][number],
-              'id'
-            >
-          >
-        }
-      }
-    }
-  }
-  ruleEvaluation: {
-    facts: Pick<SheetFacts['ruleEvaluation']['facts'], 'movementFacts'>
-    output: {
-      resources: SheetFacts['ruleEvaluation']['output']['resources']
-      movement: SheetFacts['ruleEvaluation']['output']['movement']
-      derivedStats: Pick<SheetFacts['ruleEvaluation']['output']['derivedStats'], 'maxHitPoints'>
-    }
-  }
-}
+const identity = { characterId: uuid(0x901), userId: uuid(0x902), campaignId: uuid(0x903) }
 
-// Only the preparation facts consumed by reconciliation are mocked; persistence and input reads are real.
-const prepareFacts = vi.hoisted(() =>
-  vi.fn<
-    (...args: Parameters<typeof prepareLiveCharacterSheetFacts>) => Promise<ReconciliationFacts>
-  >()
-)
-vi.mock('./nativeCharacterRules.js', () => ({ prepareLiveCharacterSheetFacts: prepareFacts }))
-
-it('prepares from the stored inputs and authorized snapshot objects, refusing a foreign source scope', async () => {
-  const part = liveRoomCharacterPartSchema.parse(characterPageFixture)
-  if (part.status !== 'ASSIGNED' || !part.inputs || !part.contentSnapshots)
-    throw new Error('Missing Character fixture.')
-  const { owner, campaign } = part.inputs
-  const roots = [uuid(0x801), uuid(0x802)].map((id, index) => ({
-    kind: 'SPELL' as const,
-    id,
-    label: index === 0 ? 'Referenced Spell' : 'Unreferenced Spell',
-    description: 'Published Spell',
-    castingTime: { unit: 'ROUND', amount: 1 },
-    level: 1,
-    classIds: [],
-    magicSchoolId: uuid(0x803),
-    userId: uuid(0x804),
-    systemId: owner.systemId
-  }))
-  const object = contentSnapshotDocumentsObjectSchema.parse({
-    format: 2,
-    scope: 'CAMPAIGN',
-    scopeId: campaign.id,
-    kind: 'SPELL',
-    part: 'documents',
-    roots,
-    versions: roots.map((root) => ({
-      identity: {
-        subjectKind: 'SPELL',
-        subjectId: root.id,
-        systemId: root.systemId,
-        contentSourceId: uuid(0x804),
-        versionId: root.id,
-        checksum: checksumRuleDocument(root)
-      },
-      version: 1,
-      storedParentId: null
-    }))
-  })
-  const system = systemAuthoredDtoSchema.parse({
-    id: owner.systemId,
-    label: 'Character rules fixture',
-    rulesetCode: 'DND5E',
-    rulesetVersion: '2014',
-    userId: owner.userId,
-    alignments: [],
-    challengeRatings: [],
-    conditionTypes: [],
-    creatureTypes: [],
-    currencies: [],
-    damageTypes: [],
-    heritages: [],
-    languages: [],
-    lifestyles: [],
-    magicSchools: [],
-    passives: [],
-    rarities: [],
-    senses: [],
-    skills: [],
-    speeds: [],
-    terrains: []
-  })
-  const { storage, database } = createNodeSqliteRoomStorage()
-  const store = new RoomEncounterStore(storage)
+it('prepares the stored SRD Character over its authorized snapshot objects, refusing a foreign source scope', async () => {
   const epoch = uuid(0x805)
-  store.hydrate({ epoch, documents: [], records: [] })
-  const room = new RoomInputs(
-    store,
-    async () => {
-      throw new Error('Unexpected backend read.')
-    },
-    async () => [object]
+  const read = vi.fn(async () => {
+    throw new Error('Unexpected backend read.')
+  })
+  const prepare = async (
+    room: ReturnType<typeof srdRoomCharacter>,
+    loadContent: typeof room.loadContent
+  ) => {
+    const { storage, database } = createNodeSqliteRoomStorage()
+    try {
+      const store = new RoomEncounterStore(storage)
+      store.hydrate({ epoch, ...srdRoomHydration(room) })
+      return await prepareRoomLiveCharacterSheet(
+        store,
+        new RoomInputs(store, read, loadContent),
+        srdCharacterScope(room, epoch),
+        room.part.revisions
+      )
+    } finally {
+      database.close()
+    }
+  }
+
+  const room = srdRoomCharacter(identity)
+  const facts = await prepare(room, room.loadContent)
+  expect(facts.active.play).toEqual(room.part.inputs?.owner.play)
+  expect(facts.character.id).toBe(identity.characterId)
+  expect(facts.ruleEvaluation.output.derivedStats.maxHitPoints.effective).toBe(11)
+  expect(facts.ruleEvaluation.output.movement.speeds.map(({ amount }) => amount)).toEqual([30])
+  expect(facts.prepared.character.state.equipment.inventory).toHaveLength(1)
+
+  // A source the Character's manifest does not list, and a Campaign scope that is not its own.
+  const unlisted = srdRoomCharacter({ ...identity, authorizeSource: false })
+  await expect(prepare(unlisted, unlisted.loadContent)).rejects.toThrow(
+    'Room content scope is unauthorized.'
   )
-  vi.spyOn(room, 'character').mockResolvedValue(part)
-  vi.spyOn(room, 'system').mockResolvedValue({
-    kind: 'SYSTEM',
-    revisions: part.revisions,
-    system,
-    vocabulary: null
-  })
-  vi.spyOn(room, 'contentObjects').mockResolvedValue([object])
-  vi.mocked(prepareLiveCharacterSheetFacts).mockImplementation(async (input) => {
-    expect(input.inputs).toEqual(part.inputs)
-    expect(input.system).toEqual(system)
-    expect(input.objects).toEqual([object])
-    throw new Error('Preparation inputs checked.')
-  })
-  const scope = {
-    campaignId: campaign.id,
-    authorityEpoch: epoch,
-    characterId: owner.id,
-    expectedUserId: owner.userId,
-    expectedRole: 'PLAYER' as const
-  }
-  try {
-    await expect(prepareRoomLiveCharacterSheet(store, room, scope, null)).rejects.toThrow(
-      'Preparation inputs checked.'
+  await expect(
+    prepare(room, async () =>
+      (await room.loadContent()).map((object) => ({
+        ...object,
+        scope: 'CAMPAIGN' as const,
+        scopeId: uuid(0x806)
+      }))
     )
-    vi.spyOn(room, 'contentObjects').mockResolvedValue([
-      { ...object, scope: 'SOURCE', scopeId: uuid(0x806) }
-    ])
-    await expect(prepareRoomLiveCharacterSheet(store, room, scope, null)).rejects.toThrow(
-      'Room content scope is unauthorized.'
-    )
-  } finally {
-    vi.restoreAllMocks()
-    vi.mocked(prepareLiveCharacterSheetFacts).mockReset()
-    database.close()
-  }
+  ).rejects.toThrow('Room content scope is unauthorized.')
+  expect(read).not.toHaveBeenCalled()
 })
 
 it('reconciles native play atomically, recovers after eviction and preserves the play clock on warm or stats-only preparation', async () => {
-  const page = liveRoomCharacterPartSchema.parse(characterPageFixture)
-  if (page.status !== 'ASSIGNED' || !page.inputs) throw new Error('Missing Character fixture.')
-  const original = page.inputs.owner
-  const usage = ['retained', 'unresolved', 'removed'].map((resourceGrantId, index) => ({
+  const room = srdRoomCharacter({ ...identity, secondWind: true })
+  const { part } = room
+  if (!part.inputs) throw new Error('Missing Character fixture.')
+  const original = part.inputs.owner
+  const epoch = uuid(0x824)
+  const scope = srdCharacterScope(room, epoch)
+  const baseline = await prepareLiveCharacterSheetFacts({
+    scope,
+    inputs: part.inputs,
+    system: room.system,
+    objects: await room.loadContent()
+  })
+  const [pool, ...otherPools] = baseline.ruleEvaluation.output.resources
+  if (!pool || pool.ownerKind !== 'AUTHORED_SOURCE' || otherPools.length)
+    throw new Error('The SRD Fighter has one authored Resource pool.')
+  const inventoryId = baseline.prepared.character.state.equipment.inventory[0]!.id
+  const usage = [
+    { kind: 'AUTHORED_SOURCE' as const, sourceId: pool.sourceId, chargeId: pool.chargeId },
+    { kind: 'AUTHORED_GRANT' as const, resourceGrantId: 'removed' }
+  ].map((owner, index) => ({
     id: uuid(0x820 + index),
     characterId: original.id,
     createdBy: original.userId,
     updatedBy: original.userId,
     createdAt: original.createdAt,
     updatedAt: original.updatedAt,
-    owner: { kind: 'AUTHORED_GRANT' as const, resourceGrantId },
+    owner,
     used: index + 1
   }))
+  expect(createCharacterResourceOwnerKey(usage[0]!.owner)).toBe(pool.poolId)
   const state = characterPlayStateSchema.parse({
     ...readCharacterPlay(original.play),
     hitpoints: { current: 7, temp: 4, hitDice: [{ die: 10, total: 2, used: 1 }] },
     inspiration: true,
     resources: [{ resourceGrantId: 'legacy-resource', used: 2 }],
-    spellSlots: [{ slotKey: '1', used: 1 }],
+    spellSlots: [{ slotKey: 'STANDARD:1', used: 1 }],
     conditions: [{ conditionTypeId: uuid(0x823), notes: 'Keep this condition.' }],
     exhaustion: { level: 1, notes: 'Keep this exhaustion.' },
-    equipped: ['equipped-item', 'removed-item'],
-    attuned: ['attuned-item', 'removed-item'],
+    equipped: [inventoryId, 'removed-item'],
+    attuned: [inventoryId, 'removed-item'],
     resourceUsage: usage,
     partyVisibility: { health: 'HIDDEN', sheet: true }
   })
-  const owner = characterStoredRowSchema.parse({
+  const owner = {
     ...original,
-    sheetStateChecksum: checksumRuleDocument(readCharacterSheetStructure(original.sheetState)),
     play: { ...original.play, state, checksum: checksumRuleDocument(state) }
-  })
-  const part = liveRoomCharacterPartSchema.parse({
-    ...page,
-    inputs: { ...page.inputs, owner }
-  })
-  if (part.status !== 'ASSIGNED') throw new Error('Missing Character fixture.')
-  const system = systemAuthoredDtoSchema.parse({
-    id: owner.systemId,
-    label: 'Reconciliation fixture',
-    rulesetCode: 'DND5E',
-    rulesetVersion: '2014',
-    userId: owner.userId,
-    alignments: [],
-    challengeRatings: [],
-    conditionTypes: [],
-    creatureTypes: [],
-    currencies: [],
-    damageTypes: [],
-    heritages: [],
-    languages: [],
-    lifestyles: [],
-    magicSchools: [],
-    passives: [],
-    rarities: [],
-    senses: [],
-    skills: [],
-    speeds: [],
-    terrains: []
-  })
-  const epoch = uuid(0x824)
+  }
+  const play = owner.play
   const { storage, database } = createNodeSqliteRoomStorage()
   let store = new RoomEncounterStore(storage)
-  const {
-    _id,
-    _creationTime,
-    documentJson: _documentJson,
-    sheetState: _sheetState,
-    play,
-    ...head
-  } = owner
-  const { _id: playId, _creationTime: playCreationTime, ...playFields } = play
-  store.hydrate({
-    epoch,
-    documents: [
-      { table: 'characters', id: _id, creationTime: _creationTime, fields: head },
-      {
-        table: 'characterPlayStates',
-        id: playId,
-        creationTime: playCreationTime,
-        fields: playFields
-      }
-    ],
-    records: [
-      {
-        kind: 'ROOM_INPUT',
-        key: `CHARACTER:${owner.id}`,
-        revision: JSON.stringify(part.revisions),
-        json: JSON.stringify(part)
-      },
-      {
-        kind: 'ROOM_INPUT',
-        key: 'SYSTEM:SYSTEM',
-        revision: JSON.stringify(part.revisions),
-        json: JSON.stringify({
-          kind: 'SYSTEM',
-          revisions: part.revisions,
-          system,
-          vocabulary: null
-        })
-      }
-    ]
-  })
+  store.hydrate({ epoch, ...srdRoomHydration(room, owner) })
   const read = vi.fn(async () => {
     throw new Error('Unexpected backend read.')
   })
-  const loadContent = vi.fn(async () => [])
-  let room = new RoomInputs(store, read, loadContent)
-  const scope = {
-    campaignId: page.inputs.campaign.id,
-    authorityEpoch: epoch,
-    characterId: owner.id,
-    expectedUserId: owner.userId,
-    expectedRole: 'PLAYER' as const
-  }
-  const hitDice = [{ die: 10, total: 1, used: 1 }]
-  const resources = usage.slice(0, 2).map((entry, index) =>
-    characterResourceSchema.parse({
-      sequence: index,
-      poolId: createCharacterResourceOwnerKey(entry.owner),
-      resourceDefinitionId: uuid(0x825),
-      chargeId: uuid(0x826),
-      chargeCalculationId: createCharacterResourceOwnerKey(entry.owner),
-      state: index === 0 ? 'RESOLVED' : 'UNRESOLVED',
-      maximum: index === 0 ? 3 : null,
-      rawUsed: entry.used,
-      effectiveUsed: index === 0 ? entry.used : null,
-      remaining: index === 0 ? 2 : null,
-      reasonCode: index === 0 ? 'CALCULATED' : 'MISSING_REQUIRED_FACT',
-      baseContribution: null,
-      bonusContributions: [],
-      resetKind: 'LONG_REST',
-      resetResolution: { baseResetKind: 'LONG_REST', appliedGrantId: null, source: null },
-      ownerKind: 'AUTHORED_GRANT',
-      resourceGrantId: entry.owner.resourceGrantId,
-      availableAtLevel: 1,
-      activeSourceLevel: 1
-    })
-  )
-  let maximumHitPoints = 7
-  let staleBase = false
-  prepareFacts.mockImplementation(async ({ inputs }) => {
-    return {
-      active: staleBase
-        ? {
-            ...inputs.owner,
-            play: { ...inputs.owner.play, streamVersion: inputs.owner.play.streamVersion + 1 }
-          }
-        : inputs.owner,
-      prepared: {
-        character: {
-          state: {
-            hitpoints: { ...inputs.owner.play.state.hitpoints, hitDice },
-            equipment: { inventory: [{ id: 'equipped-item' }, { id: 'attuned-item' }] }
-          }
-        }
-      },
-      ruleEvaluation: {
-        facts: {},
-        output: {
-          resources,
-          movement: { speeds: [], primaryMovementSpeedId: null },
-          derivedStats: {
-            maxHitPoints: {
-              base: maximumHitPoints,
-              effective: maximumHitPoints,
-              contributions: [],
-              override: null
-            }
-          }
-        }
-      }
-    }
-  })
+  const loadContent = vi.fn(room.loadContent)
+  let inputs = new RoomInputs(store, read, loadContent)
   const snapshot = () => ({
     head: store.documents('characters'),
     play: store.documents('characterPlayStates'),
@@ -345,28 +133,32 @@ it('reconciles native play atomically, recovers after eviction and preserves the
     checksum: store.checksum,
     logRows: store.logRows
   })
+  const prepare = () =>
+    store.transact((transaction) =>
+      prepareRoomLiveCharacterSheet(store, inputs, scope, part.revisions, transaction)
+    )
   const before = snapshot()
   const expectedState = {
     ...state,
-    hitpoints: { ...state.hitpoints, hitDice },
-    equipped: ['equipped-item'],
-    attuned: ['attuned-item'],
-    resourceUsage: usage.slice(0, 2)
+    hitpoints: { ...state.hitpoints, hitDice: [{ die: 10, total: 1, used: 1 }] },
+    equipped: [inventoryId],
+    attuned: [inventoryId],
+    resourceUsage: usage.slice(0, 1)
   }
   try {
     await expect(
       store.transact(async (transaction) => {
         const facts = await prepareRoomLiveCharacterSheet(
           store,
-          room,
+          inputs,
           scope,
           part.revisions,
           transaction
         )
         expect(facts.active.play.state).toEqual(expectedState)
         expect(facts.active.play).toMatchObject({
-          maximumHitPoints: 7,
-          walkingSpeed: 0,
+          maximumHitPoints: 11,
+          walkingSpeed: 30,
           streamVersion: play.streamVersion + 1
         })
         expect(store.documents('characters')).toEqual(before.head)
@@ -376,12 +168,10 @@ it('reconciles native play atomically, recovers after eviction and preserves the
     ).rejects.toThrow('Caller command failed.')
     expect(snapshot()).toEqual(before)
     store = new RoomEncounterStore(storage)
-    room = new RoomInputs(store, read, loadContent)
+    inputs = new RoomInputs(store, read, loadContent)
     expect(snapshot()).toEqual(before)
 
-    const committed = await store.transact((transaction) =>
-      prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
-    )
+    const committed = await prepare()
     expect(committed.active.play.state).toEqual(expectedState)
     expect(committed.active.play.streamVersion).toBe(play.streamVersion + 1)
     expect(committed.active.play.updatedAt > play.updatedAt).toBe(true)
@@ -389,50 +179,209 @@ it('reconciles native play atomically, recovers after eviction and preserves the
     expect(store.records('ROOM_INPUT')).toEqual(before.records)
     const after = snapshot()
     store = new RoomEncounterStore(storage)
-    room = new RoomInputs(store, read, loadContent)
+    inputs = new RoomInputs(store, read, loadContent)
     expect(snapshot()).toEqual(after)
-    const recovered = await room.character(owner.id, part.revisions)
+    const recovered = await inputs.character(original.id, part.revisions)
     expect(recovered.inputs?.owner.play).toEqual(committed.active.play)
     const fetches = loadContent.mock.calls.length
-    const warm = await store.transact((transaction) =>
-      prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
-    )
+    const warm = await prepare()
     expect(warm.active.play).toEqual(committed.active.play)
     expect(snapshot()).toEqual(after)
     expect(loadContent).toHaveBeenCalledTimes(fetches)
-    expect(read).not.toHaveBeenCalled()
 
-    // A lowered evaluated maximum (a Builder level-down or a removed Campaign adjustment) clamps current HP.
-    maximumHitPoints = 5
-    const lowered = await store.transact((transaction) =>
-      prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
-    )
+    // A removed Campaign adjustment or Builder level-down lowers the evaluated maximum: a -6 Campaign
+    // adjustment makes it 5, which clamps current HP.
+    const characterInputs = part.inputs
+    const hold = (value: number) =>
+      store.transact(async (transaction) => {
+        const adjusted = liveRoomCharacterPartSchema.parse({
+          ...part,
+          inputs: {
+            ...characterInputs,
+            campaign: {
+              ...characterInputs.campaign,
+              state: {
+                ...characterInputs.campaign.state,
+                adjustments: [
+                  {
+                    id: uuid(0x830),
+                    campaignId: identity.campaignId,
+                    characterId: original.id,
+                    adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value },
+                    visibility: 'VISIBLE',
+                    version: 1,
+                    createdBy: identity.userId,
+                    createdAt: original.createdAt,
+                    updatedAt: original.updatedAt
+                  }
+                ]
+              }
+            }
+          }
+        })
+        transaction.setRecord({
+          kind: 'ROOM_INPUT',
+          key: `CHARACTER:${original.id}`,
+          revision: JSON.stringify(part.revisions),
+          json: JSON.stringify(adjusted)
+        })
+      })
+    await hold(-6)
+    const lowered = await prepare()
     expect(lowered.active.play).toMatchObject({ maximumHitPoints: 5 })
     expect(lowered.active.play.state.hitpoints.current).toBe(5)
     expect(store.documents('characters')).toEqual(before.head)
-    expect(store.records('ROOM_INPUT')).toEqual(before.records)
 
     // A raised maximum (a GM adjustment) updates stats and leaves current HP alone.
-    maximumHitPoints = 9
-    const statsOnly = await store.transact((transaction) =>
-      prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
-    )
+    await hold(-2)
+    const statsOnly = await prepare()
     expect(statsOnly.active.play).toEqual({ ...lowered.active.play, maximumHitPoints: 9 })
-    const final = snapshot()
-    store = new RoomEncounterStore(storage)
-    expect(snapshot()).toEqual(final)
-    room = new RoomInputs(store, read, loadContent)
-    staleBase = true
-    await expect(
-      store.transact((transaction) =>
-        prepareRoomLiveCharacterSheet(store, room, scope, part.revisions, transaction)
-      )
-    ).rejects.toThrow('Room Character reconciliation base is stale.')
-    expect(snapshot()).toEqual(final)
     expect(read).not.toHaveBeenCalled()
   } finally {
-    vi.restoreAllMocks()
-    prepareFacts.mockReset()
     database.close()
   }
 })
+
+it('retains play usage of a Resource whose maximum is UNRESOLVED and drops usage of pools the Character no longer has', async () => {
+  const room = srdRoomCharacter({ ...identity, secondWind: 'UNRESOLVED_MAXIMUM' })
+  const { part } = room
+  if (!part.inputs) throw new Error('Missing Character fixture.')
+  const original = part.inputs.owner
+  const epoch = uuid(0x840)
+  const scope = srdCharacterScope(room, epoch)
+  const baseline = await prepareLiveCharacterSheetFacts({
+    scope,
+    inputs: part.inputs,
+    system: room.system,
+    objects: await room.loadContent()
+  })
+  const [pool, ...otherPools] = baseline.ruleEvaluation.output.resources
+  if (!pool || pool.ownerKind !== 'AUTHORED_SOURCE' || otherPools.length)
+    throw new Error('The SRD Fighter has one authored Resource pool.')
+  expect(pool).toMatchObject({ state: 'UNRESOLVED', maximum: null })
+  const usage = [
+    { kind: 'AUTHORED_SOURCE' as const, sourceId: pool.sourceId, chargeId: pool.chargeId },
+    { kind: 'AUTHORED_GRANT' as const, resourceGrantId: 'removed' }
+  ].map((owner, index) => ({
+    id: uuid(0x841 + index),
+    characterId: original.id,
+    createdBy: original.userId,
+    updatedBy: original.userId,
+    createdAt: original.createdAt,
+    updatedAt: original.updatedAt,
+    owner,
+    used: index + 1
+  }))
+  expect(createCharacterResourceOwnerKey(usage[0]!.owner)).toBe(pool.poolId)
+  const state = characterPlayStateSchema.parse({
+    ...readCharacterPlay(original.play),
+    resourceUsage: usage
+  })
+  const owner = {
+    ...original,
+    play: { ...original.play, state, checksum: checksumRuleDocument(state) }
+  }
+  const { storage, database } = createNodeSqliteRoomStorage()
+  try {
+    const store = new RoomEncounterStore(storage)
+    store.hydrate({ epoch, ...srdRoomHydration(room, owner) })
+    const inputs = new RoomInputs(
+      store,
+      vi.fn(async () => {
+        throw new Error('Unexpected backend read.')
+      }),
+      room.loadContent
+    )
+    const facts = await store.transact((transaction) =>
+      prepareRoomLiveCharacterSheet(store, inputs, scope, part.revisions, transaction)
+    )
+    expect(facts.ruleEvaluation.output.resources[0]).toMatchObject({
+      poolId: pool.poolId,
+      state: 'UNRESOLVED'
+    })
+    expect(facts.active.play.state.resourceUsage).toEqual(usage.slice(0, 1))
+    expect(store.documents('characterPlayStates')[0]?.state.resourceUsage).toEqual(
+      usage.slice(0, 1)
+    )
+  } finally {
+    database.close()
+  }
+})
+
+// A concurrent command may commit between the room's reads of a Character's play and the
+// reconciliation write; the changed field is applied to the stored play after the real content read.
+const staleBasePlayChanges: [
+  string,
+  (store: RoomEncounterStore, play: EncounterDocument<'characterPlayStates'>) => Promise<void>
+][] = [
+  ['row is missing', (store, play) => store.store.delete(play._id)],
+  [
+    '_id differs',
+    async (store, { _id, _creationTime, ...fields }) => {
+      await store.store.delete(_id)
+      await store.store.insert('characterPlayStates', fields)
+    }
+  ],
+  ['userId differs', (store, play) => store.store.patch(play._id, { userId: uuid(0x8ff) })],
+  ['checksum differs', (store, play) => store.store.patch(play._id, { checksum: 'f'.repeat(64) })],
+  [
+    'streamVersion differs',
+    (store, play) => store.store.patch(play._id, { streamVersion: play.streamVersion + 1 })
+  ]
+]
+
+it.each(staleBasePlayChanges)(
+  'refuses to reconcile over a stale base when the stored play %s',
+  async (_name, mutate) => {
+    const room = srdRoomCharacter(identity)
+    const { part } = room
+    const epoch = uuid(0x850)
+    const { storage, database } = createNodeSqliteRoomStorage()
+    try {
+      const store = new RoomEncounterStore(storage)
+      store.hydrate({ epoch, ...srdRoomHydration(room) })
+      const inputs = new RoomInputs(
+        store,
+        vi.fn(async () => {
+          throw new Error('Unexpected backend read.')
+        }),
+        room.loadContent
+      )
+      const [play] = store.documents('characterPlayStates')
+      if (!play) throw new Error('Missing play row.')
+      const readObjects = inputs.contentObjects.bind(inputs)
+      vi.spyOn(inputs, 'contentObjects').mockImplementation(async (...args) => {
+        const objects = await readObjects(...args)
+        await mutate(store, play)
+        return objects
+      })
+      const before = {
+        head: store.documents('characters'),
+        records: store.records('ROOM_INPUT'),
+        sequence: store.sequence,
+        logRows: store.logRows
+      }
+      await expect(
+        store.transact((transaction) =>
+          prepareRoomLiveCharacterSheet(
+            store,
+            inputs,
+            srdCharacterScope(room, epoch),
+            part.revisions,
+            transaction
+          )
+        )
+      ).rejects.toThrow('Room Character reconciliation base is stale.')
+      expect({
+        head: store.documents('characters'),
+        records: store.records('ROOM_INPUT'),
+        sequence: store.sequence,
+        logRows: store.logRows
+      }).toEqual(before)
+      expect(store.documents('characterPlayStates')).toEqual([play])
+    } finally {
+      vi.restoreAllMocks()
+      database.close()
+    }
+  }
+)

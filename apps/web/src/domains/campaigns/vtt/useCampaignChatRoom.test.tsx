@@ -3,7 +3,8 @@ import { act, renderHook } from '@testing-library/react'
 import { getFunctionName } from 'convex/server'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
+import { campaignChatEntryDtoSchema } from '@artificer-toolkit/schema/api/campaignCommunication'
+import { rollHistoryEntryDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { getCampaignLiveAuthority } from '#app/data/campaigns/queries'
 import { useCampaignChatRoom } from './useCampaignChatRoom'
 
@@ -35,12 +36,12 @@ vi.mock('./useCampaignLiveSession', () => ({
   }
 }))
 
-const privateRoll = {
+const privateRoll = rollHistoryEntryDtoSchema.parse({
   id: rollId,
   characterId: null,
   characterLabel: 'GM',
   source: { kind: 'MANUAL', label: 'Manual roll' },
-  ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
+  ruleset: { systemId: '00000000-0000-4000-8000-000000000001', code: 'DND5E_2014', version: '1' },
   normalizedExpression: '1d20',
   evidence: {
     terms: [{ count: 1, die: 20, rolls: [14], subtotal: 14 }],
@@ -52,7 +53,26 @@ const privateRoll = {
   },
   createdAt: '2026-09-18T12:00:00.000Z',
   gmCampaignRoll: { campaignId, creature: null, revealedAt: null, noticedAt: null }
-} satisfies RollHistoryEntryDto
+})
+
+const chatEntry = campaignChatEntryDtoSchema.parse({
+  id: '00000000-0000-4000-8000-000000000a01',
+  campaignId,
+  conversationId: '00000000-0000-4000-8000-000000000a02',
+  room: 'TABLE',
+  kind: 'CHAT',
+  mode: 'OOC',
+  body: 'Revealed.',
+  roll: null,
+  revealedByGm: false,
+  authorUserId: '00000000-0000-4000-8000-000000000a03',
+  authorUsername: 'gm',
+  characterId: null,
+  characterLabel: null,
+  editedAt: null,
+  unsentAt: null,
+  createdAt: '2026-09-18T12:00:00.000Z'
+})
 
 const input = {
   campaignId,
@@ -79,10 +99,11 @@ describe('useCampaignChatRoom GM private rolls', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('sends a private roll and a reveal through the room while it holds authority', async () => {
-    const entry = { id: 'entry-1' }
     mocks.live.sendCommand
       .mockResolvedValueOnce({ delta: { scope: 'CAMPAIGN_CHAT', entry: null, privateRoll } })
-      .mockResolvedValueOnce({ delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null } })
+      .mockResolvedValueOnce({
+        delta: { scope: 'CAMPAIGN_CHAT', entry: chatEntry, privateRoll: null }
+      })
     const { result } = renderHook(() => useCampaignChatRoom(campaignId), {
       wrapper: wrapperFor(true)
     })
@@ -94,7 +115,7 @@ describe('useCampaignChatRoom GM private rolls', () => {
     })
 
     await expect(result.current.revealRoll({ campaignId, rollId, mode: 'NOTICE' })).resolves.toBe(
-      entry
+      chatEntry
     )
     expect(mocks.live.sendCommand).toHaveBeenNthCalledWith(2, {
       scope: 'CAMPAIGN_CHAT',
@@ -123,7 +144,7 @@ describe('useCampaignChatRoom GM private rolls', () => {
 
   it('uses the Convex functions without authority', async () => {
     mocks.convexExecutePrivate.mockResolvedValue(privateRoll)
-    mocks.convexReveal.mockResolvedValue({ id: 'entry-1' })
+    mocks.convexReveal.mockResolvedValue(chatEntry)
     const { result } = renderHook(() => useCampaignChatRoom(campaignId), {
       wrapper: wrapperFor(false)
     })

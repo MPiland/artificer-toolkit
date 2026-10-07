@@ -1,7 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
@@ -25,19 +25,25 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
-import { RoomEncounterStore } from '../../../session-worker/src/roomEncounterStore'
 import { sourceImportBatches } from '../content/importBatches'
-import * as rollRandom from '../lib/rollRandom'
-import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readCheckpointedTokenPosition,
+  setupReactionMovementScene
+} from '../../tests/fixtures/automaticSceneMovement'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  planMovementDecisionInRoom,
-  planMovementInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  queueRoomRolls,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+import { rejection } from '../../tests/fixtures/roomRefusals'
 import { grantFixtureActorControl } from '../../tests/fixtures/spatialPreparation'
 import {
   createConvexEncounterStoreReader,
@@ -57,6 +63,8 @@ const pendingRuleOccurrence = makeFunctionReference<
   { encounterId: string },
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
+
+useLocalRoomWorker()
 
 const help = SRD_BASIC_ACTION_DEFINITIONS.find((definition) => definition.label === 'Help')
 
@@ -141,35 +149,44 @@ async function setupPassageScene(
     if (!run) throw new Error('Passage fixture run is unavailable.')
     return run.version
   }
-  const setCurrentActor = async (actorId: string) =>
-    executeInRoom(base.owner.caller, {
-      command: {
-        type: 'SET_CURRENT_ACTOR',
-        encounterId: base.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: await runVersion(),
-        actorId
-      }
-    })
-  await setCurrentActor(helper?.id ?? base.mover.id)
-  if (helper) {
+  if (helper)
     await base.t.mutation(importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions: SRD_BASIC_ACTION_DEFINITIONS
     })
-    await executeInRoom(base.owner.caller, {
+  await attachFixtureRoom(base.t, base.campaign.id)
+  // The room holds the Run from its first command, so its version comes from each answer.
+  let version = await runVersion()
+  const setCurrentActor = async (actorId: string) => {
+    const result = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'SET_CURRENT_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        actorId
+      }
+    })
+    version = result.projection.version
+  }
+  await setCurrentActor(helper?.id ?? base.mover.id)
+  if (helper) {
+    const result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'USE_BASIC_ACTION',
         encounterId: base.run.id,
         commandId: crypto.randomUUID(),
-        expectedVersion: await runVersion(),
+        expectedVersion: version,
         actorId: helper.id,
         definitionId: help!.id,
         allyActorId: base.reactor.id
       }
     })
+    version = result.projection.version
     await setCurrentActor(base.mover.id)
   }
+  // The Scene's token binds are Convex writes the room refuses while it holds the Run (D85).
+  await closeRoom(base.campaign.id)
   const additionalReactor = base.additionalReactorActor
   const actors = [base.reactor, base.mover]
   if (input.laterBlocker) {
@@ -188,22 +205,21 @@ async function setupPassageScene(
   return scene
 }
 
+/** The real room plans and commits a move in one step: the answer is the committed passage choice. */
 async function issuePassage(value: Awaited<ReturnType<typeof setupPassageScene>>) {
-  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-  expect(root.outcome.kind).toBe('PENDING')
-  const initial = await root.publish()
-  const choice = initial.occurrence?.pending
-  if (!choice || choice.kind !== 'MOVEMENT_PASSAGE_CHOICE')
+  const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+  const choice = initial?.occurrence?.pending
+  if (!initial || !choice || choice.kind !== 'MOVEMENT_PASSAGE_CHOICE')
     throw new Error('Expected the native movement passage choice.')
   return { choice, initial }
 }
 
-async function prepareResponse(
+function resolveCommand(
   value: Awaited<ReturnType<typeof setupPassageScene>>,
   choice: { encounterVersion: number; occurrenceId: string; occurrenceVersion: number },
   resolution: ResolveRuleOccurrenceInputDto['resolution']
-) {
-  const command: ResolveRuleOccurrenceInputDto = {
+): ResolveRuleOccurrenceInputDto {
+  return {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
     encounterId: value.base.run.id,
@@ -213,8 +229,6 @@ async function prepareResponse(
     correlationId: null,
     resolution
   }
-  const request = await planMovementDecisionInRoom(value.owner.caller, command)
-  return { command, prepared: { outcome: request.outcome }, request }
 }
 
 async function respond(
@@ -222,16 +236,103 @@ async function respond(
   choice: { encounterVersion: number; occurrenceId: string; occurrenceVersion: number },
   resolution: ResolveRuleOccurrenceInputDto['resolution']
 ) {
-  const response = await prepareResponse(value, choice, resolution)
-  const result = await response.request.publish()
-  return { ...response, result }
+  const command = resolveCommand(value, choice, resolution)
+  return { command, result: await executeInRoom(value.owner.caller, { command }) }
 }
 
+/** Sending a settled command again is a retry: the room answers it from its journal, without rolling. */
 async function replayResponse(
   value: Awaited<ReturnType<typeof setupPassageScene>>,
-  response: Awaited<ReturnType<typeof prepareResponse>>
+  response: Awaited<ReturnType<typeof respond>>
 ) {
-  return (await planMovementDecisionInRoom(value.owner.caller, response.command)).publish()
+  return executeInRoom(value.owner.caller, { command: response.command })
+}
+
+/** Convex's rows after the room checkpoints what it holds (a Run's state is the room's until then, D85). */
+async function checkpointedActors(value: Awaited<ReturnType<typeof setupPassageScene>>) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return value.base.t.run((ctx) =>
+    ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
+      .collect()
+  )
+}
+
+/** The Scene's token and rows as Convex holds them after a checkpoint. */
+async function checkpointedScene(value: Awaited<ReturnType<typeof setupPassageScene>>) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return value.base.t.run(async (ctx) => ({
+    scene: await ctx.db
+      .query('campaignScenes')
+      .withIndex('by_publicId', (q) => q.eq('id', value.sceneId))
+      .unique(),
+    entities: await ctx.db.query('sceneLiveEntities').collect(),
+    states: await ctx.db.query('sceneLiveStates').collect()
+  }))
+}
+
+/** The Rule Occurrence's pending snapshot as Convex holds it after a checkpoint. */
+async function checkpointedPendingSnapshot(
+  value: Awaited<ReturnType<typeof setupPassageScene>>,
+  occurrenceId: string
+) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return value.base.t.run(async (ctx) => {
+    const occurrence = await ctx.db
+      .query('encounterRuleOccurrences')
+      .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
+      .unique()
+    return (
+      occurrence && readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
+    )
+  })
+}
+
+async function checkpointedPending(
+  value: Awaited<ReturnType<typeof setupPassageScene>>,
+  caller: typeof value.owner.caller
+) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
+}
+
+/** Every row a settled passage may change as Convex holds it after a checkpoint, with the room's own history. */
+async function checkpointedRows(value: Awaited<ReturnType<typeof setupPassageScene>>) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  const timeline = await readRoomTimeline(value.owner.caller, value.base.campaign.id)
+  return value.base.t.run(async (ctx) => ({
+    actors: await ctx.db.query('encounterRunActors').collect(),
+    runs: await ctx.db.query('encounterRuns').collect(),
+    scenes: await ctx.db.query('sceneLiveStates').collect(),
+    sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
+    occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+    timeline
+  }))
+}
+
+function usedAllowances(actors: Awaited<ReturnType<typeof checkpointedActors>>) {
+  return actors.reduce(
+    (total, actor) =>
+      total +
+      Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
+        (sum, usage) => sum + usage,
+        0
+      ),
+    0
+  )
+}
+
+/** An unassigned player's answer is refused in the room as a domain rejection, not a redacted failure. */
+async function expectNotActorController(
+  value: Awaited<ReturnType<typeof setupPassageScene>>,
+  command: ResolveRuleOccurrenceInputDto
+) {
+  await expect(executeInRoom(value.player.caller, { command })).rejects.toMatchObject({
+    data: { code: 'DOMAIN_REJECTED', reason: 'NOT_ACTOR_CONTROLLER' }
+  })
 }
 
 async function exhaustFixtureReaction(value: Awaited<ReturnType<typeof setupPassageScene>>) {
@@ -252,12 +353,6 @@ async function exhaustFixtureReaction(value: Awaited<ReturnType<typeof setupPass
   })
 }
 
-afterEach(() => {
-  vi.restoreAllMocks()
-  vi.unstubAllEnvs()
-  vi.unstubAllGlobals()
-})
-
 describe('native Scene movement passage', () => {
   it('publishes a passage choice and declines at the hostile contact without economy', async () => {
     const value = await setupPassageScene()
@@ -269,38 +364,22 @@ describe('native Scene movement passage', () => {
       'TUMBLE',
       'TUMBLE'
     ])
-    const before = await value.base.t.run(async (ctx) => ({
-      actors: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-        .collect(),
-      scene: await ctx.db
-        .query('campaignScenes')
-        .withIndex('by_publicId', (q) => q.eq('id', value.sceneId))
-        .unique()
-    }))
+    const before = { actors: await checkpointedActors(value), ...(await checkpointedScene(value)) }
     const response = await respond(value, choice, { kind: 'PASSAGE_DECLINE' })
-    expect(response.prepared.outcome.kind).toBe('TERMINAL')
-    const result = response.result
-    expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    expect(result.delta).toBeNull()
-    const after = await value.base.t.run(async (ctx) => ({
-      actors: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-        .collect(),
-      scene: await ctx.db
-        .query('campaignScenes')
-        .withIndex('by_publicId', (q) => q.eq('id', value.sceneId))
-        .unique()
-    }))
+    // A completed answer carries no token delta: the token stays at the contact, read from the Scene.
+    expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    const after = { actors: await checkpointedActors(value), ...(await checkpointedScene(value)) }
     expect(after.actors.map((actor) => actor.stateChecksum)).toEqual(
       before.actors.map((actor) => actor.stateChecksum)
     )
     expect(after.scene?.version).toBe(before.scene?.version)
-    await expect(replayResponse(value, response)).resolves.toMatchObject({
-      replayed: true
+    expect(after.states).toEqual(before.states)
+    expect(after.entities).toEqual(before.entities)
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+      x: 250,
+      y: 50
     })
+    await expect(replayResponse(value, response)).resolves.toEqual(response.result)
   }, 30_000)
 
   it('rejects voluntary movement whose endpoint overlaps a hostile footprint', async () => {
@@ -310,9 +389,12 @@ describe('native Scene movement passage', () => {
         { x: 300, y: 50 }
       ]
     })
-    await expect(planMovementInRoom(value.owner.caller, value.rootInput)).rejects.toThrow(
-      'Voluntary movement cannot end inside a hostile occupied footprint.'
-    )
+    // An occupied endpoint is a deliberate refusal; the message names no creature.
+    expect(await rejection(executeSceneInRoom(value.owner.caller, value.rootInput))).toEqual({
+      code: 'DOMAIN_REJECTED',
+      reason: 'MOVEMENT_BLOCKED',
+      message: "You can't end your move there."
+    })
   }, 30_000)
 
   it('resumes an assisted spatial pause into Passage using the original movement distance', async () => {
@@ -329,10 +411,9 @@ describe('native Scene movement passage', () => {
       radius: 5,
       targetActorId: value.base.mover.id
     })
-    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-    expect(root.outcome.kind).toBe('PENDING')
-    const paused = await root.publish()
-    const evidence = paused.occurrence?.pending
+    const paused = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+    expect(paused?.occurrence).toMatchObject({ status: 'PENDING' })
+    const evidence = paused?.occurrence?.pending
     if (!evidence || evidence.kind !== 'D20_EVIDENCE')
       throw new Error(`Expected spatial pause d20 request; received ${evidence?.kind ?? 'none'}.`)
     const resumed = await respond(value, evidence, {
@@ -344,15 +425,7 @@ describe('native Scene movement passage', () => {
     const choice = resumed.result.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_PASSAGE_CHOICE')
       throw new Error('Expected Passage after spatial pause.')
-    const issued = await value.base.t.run(async (ctx) => {
-      const occurrence = await ctx.db
-        .query('encounterRuleOccurrences')
-        .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
-        .unique()
-      return (
-        occurrence && readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
-      )
-    })
+    const issued = await checkpointedPendingSnapshot(value, choice.occurrenceId)
     if (!issued) throw new Error('Resumed Passage choice is unavailable.')
     expect(issued.applicationContext).toMatchObject({
       movement: {
@@ -371,42 +444,32 @@ describe('native Scene movement passage', () => {
     const value = await setupPassageScene()
     await exhaustFixtureReaction(value)
     const { choice } = await issuePassage(value)
-    vi.spyOn(rollRandom, 'nextRollInt').mockReturnValueOnce(19).mockReturnValueOnce(0)
+    // The real room rolls the contest: the first die wins it (face 20), the second stays low.
+    await queueRoomRolls(value.base.campaign.id, { rolls: [19, 0], repeat: 0 })
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
     if (!option) throw new Error('Expected an Overrun passage option.')
-    const before = await value.base.t.run(async (ctx) =>
-      ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-    )
+    const before = await checkpointedActors(value)
     const response = await respond(value, choice, {
       kind: 'PASSAGE_OPTION',
       optionId: option.optionId
     })
-    expect(response.prepared.outcome.kind).toBe('TERMINAL')
-    if (response.prepared.outcome.kind === 'TERMINAL')
-      expect(response.prepared.outcome.result.terminalPosition).toEqual({ x: 650, y: 50 })
     expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    expect(response.result.delta).toMatchObject({
-      kind: 'TOKEN_MOVED',
-      position: { x: 650, y: 50 }
+    const after = await checkpointedActors(value)
+    // The terminal position is the suffix's end; the passage receipt's audit is covered by the
+    // producer test in apps/session-worker/test/nativeMovementPlanning.test.ts.
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+      x: 650,
+      y: 50
     })
-    const after = await value.base.t.run(async (ctx) =>
-      ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-    )
     expect(after.map((actor) => actor.stateChecksum)).not.toEqual(
       before.map((actor) => actor.stateChecksum)
     )
-    vi.spyOn(rollRandom, 'nextRollInt').mockImplementation(() => {
-      throw new Error('random during Scene passage replay')
-    })
-    await expect(replayResponse(value, response)).resolves.toMatchObject({
-      replayed: true
-    })
+    // A retry is answered from the room's journal: other dice would change the answer if it rolled.
+    await queueRoomRolls(value.base.campaign.id, { rolls: [0, 19], repeat: 0 })
+    await expect(replayResponse(value, response)).resolves.toEqual(response.result)
+    expect((await checkpointedActors(value)).map((actor) => actor.stateChecksum)).toEqual(
+      after.map((actor) => actor.stateChecksum)
+    )
   }, 30_000)
 
   it('keeps an assisted passage pending through both canonical d20 requests before consuming its allowance', async () => {
@@ -424,13 +487,8 @@ describe('native Scene movement passage', () => {
     const initiator = selected.result.occurrence?.pending
     if (!initiator || initiator.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the assisted initiator d20 request.')
-    expect(selected.prepared.outcome.kind).toBe('PENDING')
-    const before = await value.base.t.run(async (ctx) =>
-      ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-    )
+    expect(selected.result.occurrence).toMatchObject({ status: 'PENDING' })
+    const before = await checkpointedActors(value)
     const defender = await respond(value, initiator, {
       kind: 'ENTER_DICE',
       requestId: initiator.request.requestId,
@@ -469,12 +527,7 @@ describe('native Scene movement passage', () => {
       rollMode: reaction.request.rollMode
     })
     expect(terminal.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    const after = await value.base.t.run(async (ctx) =>
-      ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-        .collect()
-    )
+    const after = await checkpointedActors(value)
     expect(after.map((actor) => actor.stateChecksum)).not.toEqual(
       before.map((actor) => actor.stateChecksum)
     )
@@ -488,6 +541,7 @@ describe('native Scene movement passage', () => {
     })
     const helper = value.base.additionalReactorActor!
     const helperEffects = async () => {
+      await checkpointLiveRoom(value.base.campaign.id)
       const row = await value.base.t.run((ctx) =>
         ctx.db
           .query('encounterRunActors')
@@ -519,9 +573,7 @@ describe('native Scene movement passage', () => {
     const pending = defender.result.occurrence?.pending
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected the assisted defender d20 request.')
-    await expect(
-      value.owner.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
-    ).resolves.toMatchObject({
+    await expect(checkpointedPending(value, value.owner.caller)).resolves.toMatchObject({
       request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
     })
     expect(await helperEffects()).toHaveLength(1)
@@ -567,80 +619,32 @@ describe('native Scene movement passage', () => {
     const pending = defender.result.occurrence?.pending
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected defender d20 request.')
-    const response = await prepareResponse(value, pending, {
+    const before = await checkpointedRows(value)
+    const response = await respond(value, pending, {
       kind: 'ENTER_DICE',
       requestId: pending.request.requestId,
       rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
       rollMode: pending.request.rollMode
     })
-    expect(response.prepared.outcome.kind).toBe('TERMINAL')
-    const rows = () =>
-      value.base.t.run(async (ctx) => ({
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        runs: await ctx.db.query('encounterRuns').collect(),
-        scenes: await ctx.db.query('sceneLiveStates').collect(),
-        sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-      }))
-    const usedAllowances = (records: Awaited<ReturnType<typeof rows>>) =>
-      records.actors.reduce(
-        (total, actor) =>
-          total +
-          Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
-            (sum, usage) => sum + usage,
-            0
-          ),
-        0
-      )
-    const before = await rows()
-    await expect(response.request.publish()).resolves.toMatchObject({
-      occurrence: { status: 'COMPLETE', pending: null }
-    })
-    const after = await rows()
-    expect(usedAllowances(after)).toBe(usedAllowances(before) + 1)
-    await expect(replayResponse(value, response)).resolves.toMatchObject({
-      replayed: true
-    })
-    expect(await rows()).toEqual(after)
+    expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    const after = await checkpointedRows(value)
+    expect(usedAllowances(after.actors)).toBe(usedAllowances(before.actors) + 1)
+    await expect(replayResponse(value, response)).resolves.toEqual(response.result)
+    expect(await checkpointedRows(value)).toEqual(after)
   }, 60_000)
 
-  it('spends nothing before the terminal step, rolls the room back on a terminal failure and retries and replays the same command (V13.3)', async () => {
+  // A room transaction that fails mid-commit cannot be provoked through the real room (it needs
+  // storage fault injection), so its rollback (no state, identity, record or checksum kept) is proved
+  // at its producer: session-worker roomEncounterStore.test.ts, "discards a failed command and its
+  // identities, records and checksum". Here a terminal answer the room refuses stands in for the
+  // failed attempt, then the retry settles once.
+  it('spends nothing before the terminal step, spends its allowance once at the terminal step and replays the same command (V13.3)', async () => {
     const value = await setupPassageScene({ rolls: 'PROMPT' })
     await exhaustFixtureReaction(value)
-    const actorRows = () =>
-      value.base.t.run((ctx) =>
-        ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-          .collect()
-      )
-    const checksums = async () => (await actorRows()).map((actor) => actor.stateChecksum)
-    const rows = () =>
-      value.base.t.run(async (ctx) => ({
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        runs: await ctx.db.query('encounterRuns').collect(),
-        scenes: await ctx.db.query('sceneLiveStates').collect(),
-        sceneEntities: await ctx.db.query('sceneLiveEntities').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-      }))
-    const usedAllowances = (actors: Awaited<ReturnType<typeof actorRows>>) =>
-      actors.reduce(
-        (total, actor) =>
-          total +
-          Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
-            (sum, usage) => sum + usage,
-            0
-          ),
-        0
-      )
+    const checksums = async () =>
+      (await checkpointedActors(value)).map((actor) => actor.stateChecksum)
     const spentBefore = await checksums()
-    const allowancesBefore = usedAllowances(await actorRows())
+    const allowancesBefore = usedAllowances(await checkpointedActors(value))
 
     // Nothing is spent at the passage choice, the selection or the first contest d20.
     const { choice } = await issuePassage(value)
@@ -665,88 +669,41 @@ describe('native Scene movement passage', () => {
     if (!pending || pending.kind !== 'D20_EVIDENCE')
       throw new Error('Expected defender d20 request.')
     expect(await checksums()).toEqual(spentBefore)
-    expect(usedAllowances(await actorRows())).toBe(allowancesBefore)
+    expect(usedAllowances(await checkpointedActors(value))).toBe(allowancesBefore)
 
-    // The terminal step fails after the room transaction has staged all of its writes.
-    const command: ResolveRuleOccurrenceInputDto = {
-      type: 'RESOLVE_RULE_OCCURRENCE',
-      commandId: crypto.randomUUID(),
-      encounterId: value.base.run.id,
-      expectedVersion: pending.encounterVersion,
-      occurrenceId: pending.occurrenceId,
-      expectedOccurrenceVersion: pending.occurrenceVersion,
-      correlationId: null,
-      resolution: {
-        kind: 'ENTER_DICE',
-        requestId: pending.request.requestId,
-        rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
-        rollMode: pending.request.rollMode
-      }
-    }
-    const convexBefore = await rows()
-    const transact = RoomEncounterStore.prototype.transact
-    const roomState = (store: RoomEncounterStore) => ({
-      sequence: store.sequence,
-      actors: store.documents('encounterRunActors'),
-      runs: store.documents('encounterRuns'),
-      sceneRows: store.records('SCENE_CHECKPOINT_ROW')
-    })
-    const observed: {
-      before: ReturnType<typeof roomState>
-      staged: ReturnType<typeof roomState>
-      after: ReturnType<typeof roomState>
-    }[] = []
-    const failing = vi.spyOn(RoomEncounterStore.prototype, 'transact').mockImplementation(function (
-      this: RoomEncounterStore,
-      ...args
-    ) {
-      const [work, durable] = args
-      // Only the command's journaled transaction carries its durable commit.
-      if (!durable) return transact.apply(this, args)
-      const entry = { before: roomState(this) } as (typeof observed)[number]
-      return transact
-        .call(
-          this,
-          async (transaction) => {
-            await work(transaction)
-            entry.staged = roomState(this)
-            throw new Error('Injected passage terminal failure')
-          },
-          durable
+    // A terminal answer the room refuses (a stale occurrence version) spends and records nothing, and
+    // the real answer then retries.
+    await expect(
+      executeInRoom(value.owner.caller, {
+        command: resolveCommand(
+          value,
+          { ...pending, occurrenceVersion: pending.occurrenceVersion + 1 },
+          {
+            kind: 'ENTER_DICE',
+            requestId: pending.request.requestId,
+            rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+            rollMode: pending.request.rollMode
+          }
         )
-        .finally(() => {
-          entry.after = roomState(this)
-          observed.push(entry)
-        })
-    })
-    await expect(planMovementDecisionInRoom(value.owner.caller, command)).rejects.toThrow(
-      'Injected passage terminal failure'
-    )
-    failing.mockRestore()
-    expect(observed).toHaveLength(1)
-    const [attempt] = observed
-    // The writes were applied inside the transaction, yet the room kept none of them.
-    expect(attempt!.staged.actors).not.toEqual(attempt!.before.actors)
-    expect(attempt!.after).toEqual(attempt!.before)
-    expect(await rows()).toEqual(convexBefore)
+      })
+    ).rejects.toMatchObject({ data: { code: 'DOMAIN_REJECTED' } })
+    expect(await checksums()).toEqual(spentBefore)
+    expect(usedAllowances(await checkpointedActors(value))).toBe(allowancesBefore)
 
-    // The same command retries successfully and spends its allowance once.
-    const retry = await planMovementDecisionInRoom(value.owner.caller, command)
-    expect(retry.outcome.kind).toBe('TERMINAL')
-    await expect(retry.publish()).resolves.toMatchObject({
-      occurrence: { status: 'COMPLETE', pending: null }
+    // The terminal step spends its allowance once.
+    const response = await respond(value, pending, {
+      kind: 'ENTER_DICE',
+      requestId: pending.request.requestId,
+      rawFaces: pending.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+      rollMode: pending.request.rollMode
     })
-    const settled = await rows()
+    expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    const settled = await checkpointedRows(value)
     expect(usedAllowances(settled.actors)).toBe(allowancesBefore + 1)
 
-    // An exact replay through a fresh room, hydrated from the checkpoint, rolls and spends nothing.
-    vi.spyOn(rollRandom, 'nextRollInt').mockImplementation(() => {
-      throw new Error('random during Scene passage replay')
-    })
-    await expect(
-      planMovementDecisionInRoom(value.owner.caller, command).then((replay) => replay.publish())
-    ).resolves.toMatchObject({ replayed: true })
-    expect(await rows()).toEqual(settled)
+    // An exact replay is answered from the room's journal: it rolls and spends nothing.
+    await expect(replayResponse(value, response)).resolves.toEqual(response.result)
+    expect(await checkpointedRows(value)).toEqual(settled)
   }, 60_000)
 
   it.each([
@@ -760,12 +717,7 @@ describe('native Scene movement passage', () => {
       const { choice } = await issuePassage(value)
       const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
       if (!option) throw new Error('Expected an Overrun passage option.')
-      const before = await value.base.t.run((ctx) =>
-        ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-          .collect()
-      )
+      const before = await checkpointedActors(value)
       const selected = await respond(value, choice, {
         kind: 'PASSAGE_OPTION',
         optionId: option.optionId
@@ -788,30 +740,15 @@ describe('native Scene movement passage', () => {
         rawFaces: [...defenderFaces],
         rollMode: 'NORMAL'
       })
-      expect(response.prepared.outcome.kind).toBe('TERMINAL')
-      if (response.prepared.outcome.kind === 'TERMINAL')
-        expect(response.prepared.outcome.result.terminalPosition).toEqual({ x: 250, y: 50 })
-      expect(response.result.delta).toBeNull()
-      const after = await value.base.t.run((ctx) =>
-        ctx.db
-          .query('encounterRunActors')
-          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
-          .collect()
-      )
-      const usage = (actors: typeof after) =>
-        actors.reduce(
-          (total, actor) =>
-            total +
-            Object.values(encounterRuleUsageSnapshot(readStoredRunActor(actor))).reduce(
-              (sum, value) => sum + value,
-              0
-            ),
-          0
-        )
-      expect(usage(after)).toBe(usage(before) + 1)
-      await expect(replayResponse(value, response)).resolves.toMatchObject({
-        replayed: true
+      expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+      // The mover stops at the contact it never passed.
+      expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+        x: 250,
+        y: 50
       })
+      const after = await checkpointedActors(value)
+      expect(usedAllowances(after)).toBe(usedAllowances(before) + 1)
+      await expect(replayResponse(value, response)).resolves.toEqual(response.result)
     },
     30_000
   )
@@ -828,9 +765,7 @@ describe('native Scene movement passage', () => {
     const { choice } = await issuePassage(value)
     // The room acknowledges a member who can't see a Scene change with its version only (D47);
     // the pending read answers by who owes the decision, never by what the Scene showed them.
-    await expect(
-      value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
-    ).resolves.toMatchObject({
+    await expect(checkpointedPending(value, value.player.caller)).resolves.toMatchObject({
       kind: 'MOVEMENT_PASSAGE_CHOICE',
       occurrenceId: choice.occurrenceId,
       occurrenceVersion: choice.occurrenceVersion
@@ -841,21 +776,11 @@ describe('native Scene movement passage', () => {
     const value = await setupPassageScene({ rolls: 'PROMPT' })
     await exhaustFixtureReaction(value)
     const { choice } = await issuePassage(value)
-    expect(
-      await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
-    ).toBeNull()
-    await expect(
-      planMovementDecisionInRoom(value.player.caller, {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        commandId: crypto.randomUUID(),
-        encounterId: value.base.run.id,
-        expectedVersion: choice.encounterVersion,
-        occurrenceId: choice.occurrenceId,
-        expectedOccurrenceVersion: choice.occurrenceVersion,
-        correlationId: null,
-        resolution: { kind: 'PASSAGE_DECLINE' }
-      })
-    ).rejects.toThrow()
+    expect(await checkpointedPending(value, value.player.caller)).toBeNull()
+    await expectNotActorController(
+      value,
+      resolveCommand(value, choice, { kind: 'PASSAGE_DECLINE' })
+    )
     const option = choice.options.find((entry) => entry.ruleKind === 'OVERRUN')
     if (!option) throw new Error('Expected an Overrun passage option.')
     const initiator = await respond(value, choice, {
@@ -865,26 +790,16 @@ describe('native Scene movement passage', () => {
     const first = initiator.result.occurrence?.pending
     if (!first || first.kind !== 'D20_EVIDENCE')
       throw new Error('Expected Creature initiator d20 request.')
-    expect(
-      await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
-    ).toBeNull()
-    await expect(
-      planMovementDecisionInRoom(value.player.caller, {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        commandId: crypto.randomUUID(),
-        encounterId: value.base.run.id,
-        expectedVersion: first.encounterVersion,
-        occurrenceId: first.occurrenceId,
-        expectedOccurrenceVersion: first.occurrenceVersion,
-        correlationId: null,
-        resolution: {
-          kind: 'ENTER_DICE',
-          requestId: first.request.requestId,
-          rawFaces: first.request.rollMode === 'NORMAL' ? [20] : [20, 20],
-          rollMode: first.request.rollMode
-        }
+    expect(await checkpointedPending(value, value.player.caller)).toBeNull()
+    await expectNotActorController(
+      value,
+      resolveCommand(value, first, {
+        kind: 'ENTER_DICE',
+        requestId: first.request.requestId,
+        rawFaces: first.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+        rollMode: first.request.rollMode
       })
-    ).rejects.toThrow()
+    )
     const defender = await respond(value, first, {
       kind: 'ENTER_DICE',
       requestId: first.request.requestId,
@@ -894,26 +809,16 @@ describe('native Scene movement passage', () => {
     const second = defender.result.occurrence?.pending
     if (!second || second.kind !== 'D20_EVIDENCE')
       throw new Error('Expected Creature defender d20 request.')
-    expect(
-      await value.player.caller.query(pendingRuleOccurrence, { encounterId: value.base.run.id })
-    ).toBeNull()
-    await expect(
-      planMovementDecisionInRoom(value.player.caller, {
-        type: 'RESOLVE_RULE_OCCURRENCE',
-        commandId: crypto.randomUUID(),
-        encounterId: value.base.run.id,
-        expectedVersion: second.encounterVersion,
-        occurrenceId: second.occurrenceId,
-        expectedOccurrenceVersion: second.occurrenceVersion,
-        correlationId: null,
-        resolution: {
-          kind: 'ENTER_DICE',
-          requestId: second.request.requestId,
-          rawFaces: second.request.rollMode === 'NORMAL' ? [1] : [1, 1],
-          rollMode: second.request.rollMode
-        }
+    expect(await checkpointedPending(value, value.player.caller)).toBeNull()
+    await expectNotActorController(
+      value,
+      resolveCommand(value, second, {
+        kind: 'ENTER_DICE',
+        requestId: second.request.requestId,
+        rawFaces: second.request.rollMode === 'NORMAL' ? [1] : [1, 1],
+        rollMode: second.request.rollMode
       })
-    ).rejects.toThrow()
+    )
     const completed = await respond(value, second, {
       kind: 'ENTER_DICE',
       requestId: second.request.requestId,
@@ -927,16 +832,8 @@ describe('native Scene movement passage', () => {
     const value = await setupPassageScene({ laterBlocker: true })
     await exhaustFixtureReaction(value)
     const { choice } = await issuePassage(value)
-    vi.spyOn(rollRandom, 'nextRollInt').mockReturnValueOnce(19).mockReturnValueOnce(0)
-    const issued = await value.base.t.run(async (ctx) => {
-      const occurrence = await ctx.db
-        .query('encounterRuleOccurrences')
-        .withIndex('by_publicId', (q) => q.eq('id', choice.occurrenceId))
-        .unique()
-      return (
-        occurrence && readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, occurrence)
-      )
-    })
+    await queueRoomRolls(value.base.campaign.id, { rolls: [19, 0], repeat: 0 })
+    const issued = await checkpointedPendingSnapshot(value, choice.occurrenceId)
     if (!issued) throw new Error('Issued passage choice is unavailable.')
     expect(issued.applicationContext).toMatchObject({
       movement: { nextPassageStop: { contact: { x: 450, y: 50 } } }
@@ -947,26 +844,13 @@ describe('native Scene movement passage', () => {
       kind: 'PASSAGE_OPTION',
       optionId: option.optionId
     })
-    expect(response.prepared.outcome.kind).toBe('TERMINAL')
-    if (response.prepared.outcome.kind === 'TERMINAL')
-      expect(response.prepared.outcome.result.terminalPosition).toEqual({ x: 450, y: 50 })
     expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-    expect(response.result.delta).toMatchObject({
-      kind: 'TOKEN_MOVED',
-      position: { x: 450, y: 50 }
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+      x: 450,
+      y: 50
     })
-    const receipt = await value.base.t.run(async (ctx) => {
-      return await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) =>
-          q.eq('encounterId', value.base.run.id).eq('commandId', response.command.commandId)
-        )
-        .unique()
-    })
-    if (!receipt) throw new Error('Passage terminal receipt is unavailable.')
-    const [resolution] = JSON.parse(receipt.commandMetadataJson).resolutionCommands
-    expect(resolution?.passageContest?.audit.terminalPosition).toEqual({ x: 450, y: 50 })
+    // The passage receipt's audit terminalPosition is held history the room keeps; its producer test
+    // is apps/session-worker/test/nativeMovementPlanning.test.ts, "stops a successful passage at the sealed
+    // next hostile blocker".
   }, 30_000)
 })

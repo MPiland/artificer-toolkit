@@ -3,8 +3,12 @@ import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import type { RaceListResponseDto, RaceResponseDto } from '@artificer-toolkit/schema/api/content'
 import { createRuntimeSelectNode as selectNode } from '../authoredRouteRuntime.fixtures'
 
+const fixtureUserId = '00000000-0000-4000-8000-0000000ace01'
+const fixtureSystemId = '00000000-0000-4000-8000-0000000ace02'
+const elfRaceId = '00000000-0000-4000-8000-0000000ace03'
+
 export const ownedBaseRaceFixture: RaceAuthoredDto = {
-  id: 'dragonborn',
+  id: '00000000-0000-4000-8000-0000000ace04',
   label: 'Dragonborn',
   quote: 'Proud dragonkin shaped by clan and ancestry.',
   description:
@@ -51,18 +55,18 @@ export const ownedBaseRaceFixture: RaceAuthoredDto = {
       order: 1
     }
   ],
-  userId: 'user-1',
-  systemId: 'dnd-5e-srd'
+  userId: fixtureUserId,
+  systemId: fixtureSystemId
 }
 
 export const ownedSubraceFixture: RaceAuthoredDto = {
-  id: 'wood-elf',
+  id: '00000000-0000-4000-8000-0000000ace05',
   label: 'Wood Elf',
   quote: 'Quiet steps beneath old branches.',
   description: 'Wood elves are swift, quiet, and deeply attuned to life in ancient forests.',
   status: 'DRAFT',
   category: 'SUBRACE',
-  parentRaceId: 'elf',
+  parentRaceId: elfRaceId,
   details: [
     {
       id: 'wood-elf-lore',
@@ -79,13 +83,13 @@ export const ownedSubraceFixture: RaceAuthoredDto = {
       order: 1
     }
   ],
-  userId: 'user-1',
-  systemId: 'dnd-5e-srd'
+  userId: fixtureUserId,
+  systemId: fixtureSystemId
 }
 
 export const masterRaceFixture: RaceAuthoredDto = {
   ...ownedBaseRaceFixture,
-  id: 'elf',
+  id: elfRaceId,
   label: 'Elf',
   description: 'Elves are magical people of otherworldly grace.',
   status: 'ACTIVE',
@@ -245,8 +249,8 @@ export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
               ['parentRaceId'],
               'Parent Race',
               [
-                { value: 'elf', label: 'Elf' },
-                { value: 'dragonborn', label: 'Dragonborn' }
+                { value: masterRaceFixture.id, label: 'Elf' },
+                { value: ownedBaseRaceFixture.id, label: 'Dragonborn' }
               ],
               true
             )

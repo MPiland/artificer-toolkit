@@ -51,54 +51,33 @@ import { startLocalR2 } from '../localR2'
  * rooms the test touched, and a Campaign ID a file reuses restarts the Worker, because a closed
  * room's durable state still holds the old Run.
  *
- * MIGRATION RECIPE (from `liveSessionWorker.ts`, the stand-in room, to this fixture)
+ * USAGE
  *
- * 1. Setup. Call `useLocalRoomWorker()` once in the file (or inside one `describe`). After the
- *    Campaign has its content, call `attachRoomWorker(t)` then `seedRoomContentSnapshots(campaignId)`,
- *    or just `attachFixtureRoom(t, campaignId)`, which is a no-op for a file on the stand-in. Shared
+ * 1. Setup. Call `useLocalRoomWorker()` once at the top of the file (or inside one `describe`).
+ *    After the Campaign has its content, call `attachRoomWorker(t)` then
+ *    `seedRoomContentSnapshots(campaignId)`, or just `attachFixtureRoom(t, campaignId)`. Shared
  *    fixtures (`playerControl`, `turnConcentration`, `nativeDisarm`, `movementReactionEffects`,
  *    `spatialPreparation`) call it themselves. Do this before the first room command.
- * 2. Calls (old -> new, same arguments unless noted):
- *    - `executeInRoom`, `executeSheetInRoom` -> the same names here. The room's dice are real.
- *    - `readEncounterSessionInRoom`, `readTimelineInRoom`, `readEncounterInRoom` ->
- *      `readRoomEncounterSession`, `readRoomTimeline`, `readRoomEncounter` (plus `readRoomRollCards`).
- *    - `commitSceneInRoom` -> `executeSceneInRoom(caller, command, replayOfSequence?)`; it returns
- *      `{ result, version, expectedSessionSequence }`.
- *    - `bindActorTokenInRoom` -> the same name here. `inProcessDevelopmentClient` ->
- *      `roomDevelopmentClient(caller)`.
- *    - `replayInRoom` -> call `executeInRoom` again with the same command: the room answers a
- *      retry from its held history.
- *    - `executeRoomEncounterCommand` -> `executeInRoom(caller, { command })`; the room authorizes
- *      the member itself, so there is no `actor`, `authorityEpoch` or `random` argument.
- *    - `planMovementInRoom`, `planMovementDecisionInRoom` -> no plan-then-publish split exists: the
- *      real room plans and commits in one step. Use `executeSceneInRoom` and assert on the commit
- *      result, or `useMovementReactionsInRoom` / `commitSpatialTerminalFixtureInRoom`. An assertion
- *      on a plan's `outcome` internals has no room equivalent: cover it with a rules-runtime test.
- *    - `reconcileDeparturesInRoom` -> `invalidateRoomInputs(campaignId, ['CAMPAIGN'])` while a member
- *      socket is connected (the room reconciles departures after reloading authorization).
- *    - `insertActiveLiveAuthority` -> the same name here, for a test that runs no room. When the
- *      room runs, it claims authority itself on first join: read the epoch with
- *      `readLiveAuthorityEpoch(t, campaignId)` after its first command (and `claimActiveLiveAuthority`
- *      has no equivalent for that reason).
- *    - No equivalent, by design: `readHeldReplayIndex`, `persistHeldHistoryToConvex`
- *      (the room does not expose held history), `discardRoomJournal`, `endRoomEpoch`
- *      (`closeRoom` ends the epoch). Run the operation through the room, or end the Run.
+ * 2. Calls. `executeInRoom` and `executeSheetInRoom` send a member's command; `executeSceneInRoom`
+ *    commits a Scene move (the room plans and commits in one step, so there is no plan to inspect:
+ *    cover a plan's `outcome` internals with a rules-runtime test, or read a pending snapshot with
+ *    `readRoomPendingSnapshot` from `roomPendingSnapshots`). `readRoomEncounterSession`, `readRoomTimeline`,
+ *    `readRoomEncounter` and `readRoomRollCards` read the room. A retry is the same command sent
+ *    again: the room answers it from its held history. `invalidateRoomInputs(campaignId, ['CAMPAIGN'])`
+ *    while a member socket is connected makes the room reconcile departures.
+ *    `insertActiveLiveAuthority` serves a test that runs no room; when the room runs, it claims
+ *    authority itself on first join: read the epoch with `readLiveAuthorityEpoch(t, campaignId)`.
  * 3. Convex writes under a held Run. The room holds a Run's state and history (D85) until the Run
  *    ends, so Convex reads see only checkpointed rows. Before a test reads a Run or its history
  *    from Convex, call `checkpointLiveRoom(campaignId)`. Before a test writes the Run or its
  *    actors straight in Convex (`t.run` patches, direct mutations), call `closeRoom(campaignId)`
  *    so the room drops its held copy, then write; the next room command hydrates from Convex.
  *    `readEncounterHistory(ctx)` reads Convex's rows only.
- * 4. Dice. Queue rolls instead of `setAutoRollDice` or mocking `rollRandom`:
- *    `queueRoomRolls(campaignId, rolls)` before the command that draws them.
+ * 4. Dice. `queueRoomRolls(campaignId, { rolls, repeat })` before the command that draws them.
  * 5. After a Builder or Campaign edit that the room's inputs depend on, call
  *    `invalidateRoomInputs(campaignId, scopes)` (`CAMPAIGN`, `PLAY`, `CHARACTER`, `PREFERENCES`)
  *    so the room reloads them before the next command.
  * 6. Refusals. `RoomCommandRefusal` is the thrown refusal; `expectRedactedRoomRefusal` asserts one.
- *
- * Shared fixtures route through `roomRouting.ts` while the stand-in exists: a file that called
- * `useLocalRoomWorker()` gets this room, every other file the stand-in. `usesRoomWorker()` tells
- * which. Delete `roomRouting.ts` and the stand-in once the last file migrates.
  */
 
 /** An identity-bound convex-test caller (a Campaign member), or the unauthenticated `t` itself. */
@@ -110,6 +89,7 @@ const WORKER_SECRET = 'room-fixture-worker-secret-at-least-32-bytes-long'
 const TICKET_SECRET = 'room-fixture-ticket-secret-at-least-32-bytes-long'
 const CONTENT_TOKEN_SECRET = 'room-fixture-content-secret-at-least-32-bytes-long'
 const STARTUP_TIMEOUT_MS = 120_000
+const ROOM_READ_TIMEOUT_MS = 15_000
 
 const root = fileURLToPath(new URL('../../../../', import.meta.url))
 const stateDirectory = resolve(root, 'local-validation/room-fixture')
@@ -390,21 +370,10 @@ function stubRoomEnvironment(worker: RoomWorker) {
 }
 
 /**
- * Whether the running test file (or the `describe` that called `useLocalRoomWorker`) uses the real
- * room. Shared fixtures that still serve tests on the stand-in room route on this
- * (`roomRouting.ts`); it goes with the stand-in.
- */
-export function usesRoomWorker() {
-  return started !== null
-}
-
-/**
  * For a fixture that drives the room while it builds, once its content is imported: attaches the
- * real room to the fixture's `t` and builds the Campaign's content snapshots. A no-op for a test on
- * the stand-in room.
+ * real room to the fixture's `t` and builds the Campaign's content snapshots.
  */
 export async function attachFixtureRoom(t: TestConvex<typeof schema>, campaignId: string) {
-  if (!usesRoomWorker()) return
   await attachRoomWorker(t)
   await seedRoomContentSnapshots(campaignId)
 }
@@ -490,6 +459,31 @@ export function executeSheetInRoom(caller: RoomCaller, command: RoomSheetCommand
 }
 
 /**
+ * Fails a socket read that waits for a frame the room never sends (a room that never learned of a
+ * change, or one that errored) after `ROOM_READ_TIMEOUT_MS`, with the room's error log, instead of
+ * hanging until the test's own timeout.
+ */
+async function withRoomReadTimeout<T>(read: Promise<T>, description: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `${description} received no frame within ${ROOM_READ_TIMEOUT_MS} ms. Room error logs: ${JSON.stringify(roomErrorLogs())}`
+          )
+        ),
+      ROOM_READ_TIMEOUT_MS
+    )
+  })
+  try {
+    return await Promise.race([read, timeout])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
  * What a member's socket reads from the real room while it holds the Run (D85): the Encounter
  * session frame the room sends after the member subscribes. Held history is visible only through
  * the room's own member messages, never through Convex rows.
@@ -499,7 +493,10 @@ export function readRoomEncounterSession(
   campaignId: string,
   options: { timeline: boolean }
 ) {
-  return roomDevelopmentClient(caller).encounterSession(campaignId, options.timeline)
+  return withRoomReadTimeout(
+    roomDevelopmentClient(caller).encounterSession(campaignId, options.timeline),
+    'The Encounter session read'
+  )
 }
 
 /** The Run's timeline as the real room sends it to this member (newest page; a player's only the table's entries). */
@@ -524,7 +521,10 @@ export async function readRoomRollCards(caller: RoomCaller, campaignId: string) 
 
 /** The real room's answer to this member's `ENCOUNTER_READ`; its refusal rejects. */
 export function readRoomEncounter(caller: RoomCaller, campaignId: string, read: EncounterReadDto) {
-  return roomDevelopmentClient(caller).readEncounter(campaignId, read)
+  return withRoomReadTimeout(
+    roomDevelopmentClient(caller).readEncounter(campaignId, read),
+    'The Encounter read'
+  )
 }
 
 /**

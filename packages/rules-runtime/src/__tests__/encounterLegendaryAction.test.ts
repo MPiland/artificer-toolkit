@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  encounterRunActorStateSchema,
+  type EncounterRunActorState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
   dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema
@@ -9,10 +12,15 @@ import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/r
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
+import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
-import { featureChargeUsed } from '../encounterActorState.js'
+import {
+  encounterRuleUsageUsed,
+  featureChargeUsed,
+  withEncounterRuleUsageUsed
+} from '../encounterActorState.js'
 import {
   applyStagedLegendaryActionRefreshes,
   stageEncounterLegendaryActionRefreshes
@@ -385,6 +393,35 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         })
       ).toEqual([])
   })
+
+  it('loads no targets unless a Creature has a fixed, unscaled Feature charge pool', async () => {
+    const wolves = Array.from({ length: 11 }, () =>
+      srdCreatureActor({ id: crypto.randomUUID(), creature: wolf })
+    )
+    const loaded: string[][] = []
+    const discover = (actors: readonly EncounterRunActorState[]) =>
+      discoverTurnLegendaryWindows({
+        state: srdEncounterState({ actors, currentActorId: actors[0]!.id }),
+        occurrenceId: OCCURRENCE_ID,
+        outgoingActorId: actors[0]!.id,
+        actors,
+        loadTargets: async (actorIds) => {
+          loaded.push([...actorIds])
+          return new Map(
+            actors
+              .filter((actor) => actorIds.includes(actor.id))
+              .map((actor) => [actor.id, srdCreatureTarget(actor)])
+          )
+        },
+        loadSystem: async () => system,
+        definitions: srdDefinitions,
+        createRuntime: createSrdRulesRuntime
+      })
+    expect(await discover(wolves)).toEqual([])
+    expect(loaded).toEqual([])
+    await discover([wolves[0]!, dragon()])
+    expect(loaded).toHaveLength(1)
+  })
 })
 
 describe('Legendary Action pool refresh', () => {
@@ -743,7 +780,10 @@ describe('Legendary Action turn window', () => {
     })
     if (done.kind !== 'COMPLETE') throw new Error('The Tail Attack settles the window.')
     expect(done.root.completedLegendaryActions?.[0]?.resolution).toMatchObject({
-      application: { applications: [{ kind: 'DAMAGE', requestedAmount: 8 + 8 + 10 }] }
+      application: {
+        d20: { rawFaces: [15] },
+        applications: [{ kind: 'DAMAGE', requestedAmount: 8 + 8 + 10 }]
+      }
     })
   })
 
@@ -920,6 +960,77 @@ describe('Legendary Action turn window', () => {
       stunner.id
     ])
   })
+  it('refuses a retained decision, or a decline, once its owner can no longer act', async () => {
+    const actors = [dragon({ used: 1 }), wolfActor]
+    const incapacitated = [
+      dragon({ used: 1, conditions: [srdCondition('Incapacitated')] }),
+      wolfActor
+    ]
+    const paused = await prepare({ actors, turnRoot: root({ currentActorId: DRAGON_ID }) })
+    if (paused.kind !== 'PENDING') throw new Error('Expected the Legendary Action choice.')
+    const context = paused.snapshot.applicationContext
+    if (context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
+      throw new Error('Expected a Legendary Action choice context.')
+    await expect(
+      prepare({
+        actors: incapacitated,
+        turnRoot: context.root,
+        pending: paused.snapshot,
+        resolution: { kind: 'DECLINE' }
+      })
+    ).rejects.toThrow('Legendary Action choice is stale.')
+    const declined = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: paused.snapshot,
+      resolution: { kind: 'DECLINE' }
+    })
+    if (declined.kind !== 'COMPLETE') throw new Error('A declined window completes the turn.')
+    await expect(prepare({ actors: incapacitated, turnRoot: declined.root })).rejects.toThrow(
+      'Retained Legendary Action owner is stale.'
+    )
+  })
+
+  it('stages the incoming actor’s spent action allowance and refuses a different staged refresh', async () => {
+    const spent = encounterRunActorStateSchema.parse({
+      ...wolfActor,
+      resources: withEncounterRuleUsageUsed(wolfActor, SRD_ACTION_ALLOWANCE_DEFINITION_ID, 1)
+    })
+    const allowance = await srdDefinitions.requireCurrent(SRD_ACTION_ALLOWANCE_DEFINITION_ID)
+    const turnRoot = root({ currentActorId: WOLF_ID })
+    const staged = await prepare({ actors: [spent], turnRoot })
+    if (staged.kind !== 'COMPLETE') throw new Error('A turn without owners completes.')
+    const refreshes = [
+      {
+        ordinal: 0,
+        actorId: WOLF_ID,
+        capabilityDefinitionId: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+        definitionVersion: allowance.version,
+        definitionChecksum: allowance.checksum,
+        beforeUsed: 1,
+        afterUsed: 0 as const
+      }
+    ]
+    expect(staged.root.stagedActionEconomyRefreshes).toEqual(refreshes)
+    expect(staged.root.stagedLegendaryActionRefreshes).toBeUndefined()
+    const refreshed = staged.actors.find((actor) => actor.id === WOLF_ID)
+    if (!refreshed) throw new Error('Expected the incoming actor.')
+    expect(encounterRuleUsageUsed(refreshed, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
+    // A replay of the same root reproduces the staged refresh exactly.
+    const replay = await prepare({ actors: [spent], turnRoot: staged.root })
+    if (replay.kind !== 'COMPLETE') throw new Error('A replayed turn completes.')
+    expect(replay.root.stagedActionEconomyRefreshes).toEqual(refreshes)
+    await expect(
+      prepare({
+        actors: [spent],
+        turnRoot: {
+          ...staged.root,
+          stagedActionEconomyRefreshes: [{ ...refreshes[0]!, beforeUsed: 2 }]
+        }
+      })
+    ).rejects.toThrow('Action-economy refresh is stale.')
+  })
+
   it('refuses a target the option does not offer', async () => {
     const actors = [dragon(), wolfActor]
     const { snapshot, context, tailAttack } = await pausedChoice(actors)

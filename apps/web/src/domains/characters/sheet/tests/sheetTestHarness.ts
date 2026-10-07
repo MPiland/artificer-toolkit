@@ -1,296 +1,78 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
-import type {
-  CharacterRestPreviewRequestDto,
-  CharacterRestPreviewResponseDto
+import {
+  prepareFixtureBuilder,
+  prepareFixtureSheet,
+  previewFixtureRest,
+  readyFighterFixture
+} from '@artificer-toolkit/rules-runtime/testing/characterContextFixtures'
+import {
+  characterRestPreviewResponseDtoSchema,
+  type CharacterRestPreviewRequestDto,
+  type CharacterRestPreviewResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
-import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import {
+  characterSheetResponseDtoSchema,
+  type CharacterSheetResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetData'
+import { toCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import { srdCreatures } from '@artificer-toolkit/source-data/srd/creatures/index.js'
+import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
+import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 
-export function createSheet(): CharacterSheetResponseDto {
-  return {
-    publicId: 'character-1',
-    meta: {
-      characterId: 'character-1',
-      viewer: 'CHARACTER_OWNER',
-      capabilities: {
-        managePlayState: true,
-        managePrivateNotes: true,
-        manageInventory: true,
-        openBuilder: true
+const fixture = readyFighterFixture({ resourceLabel: 'Second Wind' })
+const wolf = srdCreatures.find((creature) => creature.label === 'Wolf')
+if (!wolf) throw new Error('Expected the SRD Wolf.')
+const { character: built } = await prepareFixtureBuilder(fixture)
+const playedInput = {
+  streamVersion: 4,
+  character: {
+    ...built,
+    state: {
+      ...built.state,
+      equipment: {
+        ...built.state.equipment,
+        inventory: [
+          { id: crypto.randomUUID(), equipmentId: longsword.id, quantity: 1 },
+          { id: crypto.randomUUID(), equipmentId: backpack.id, quantity: 1 }
+        ]
       },
-      systemId: 'system-1',
-      status: 'ACTIVE',
-      streamVersion: 4
-    },
-    identity: {
-      label: 'Aria',
-      classSummary: 'Fighter 1',
-      totalLevel: 1
-    },
-    overview: {
-      abilities: [
-        { ability: 'STRENGTH', score: 10, modifier: 0, rollMode: 'NORMAL' },
-        { ability: 'DEXTERITY', score: 14, modifier: 2, rollMode: 'NORMAL' },
-        { ability: 'CONSTITUTION', score: 12, modifier: 1, rollMode: 'NORMAL' },
-        { ability: 'INTELLIGENCE', score: 8, modifier: -1, rollMode: 'NORMAL' },
-        { ability: 'WISDOM', score: 13, modifier: 1, rollMode: 'NORMAL' },
-        { ability: 'CHARISMA', score: 11, modifier: 0, rollMode: 'NORMAL' }
-      ],
-      facts: [
-        { label: 'Speed', value: '30 feet' },
-        { label: 'Passive Perception', value: '11' },
-        { label: 'Passive Investigation', value: '9' },
-        { label: 'Passive Insight', value: '11' }
-      ],
-      armorClass: 12,
-      initiative: 2,
-      initiativeRollMode: 'NORMAL',
-      proficiencyBonus: 2,
-      currentHitPoints: 10,
-      maxHitPoints: 12,
-      tempHitPoints: 3,
-      maxHitPointsOverride: null,
-      maxHitPointsModifier: 0,
-      maxHitPointsModifierAdjustmentId: null,
-      maxHitPointsReductions: [],
-      exhaustion: {
-        label: 'Exhaustion',
-        description: 'Exhaustion measures cumulative fatigue.',
-        level: 0,
-        minimumLevel: 0,
-        maximumLevel: 6
-      },
-      conditions: [],
-      hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }],
-      savingThrows: [
+      hitpoints: { ...built.state.hitpoints, current: 10, temp: 3 },
+      creatures: [
         {
-          ability: 'STRENGTH',
-          label: 'Strength',
-          total: 2,
-          rollMode: 'NORMAL',
-          proficiency: 'FULL'
-        },
-        {
-          ability: 'DEXTERITY',
-          label: 'Dexterity',
-          total: 2,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        },
-        {
-          ability: 'CONSTITUTION',
-          label: 'Constitution',
-          total: 3,
-          rollMode: 'NORMAL',
-          proficiency: 'FULL'
-        },
-        {
-          ability: 'INTELLIGENCE',
-          label: 'Intelligence',
-          total: -1,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        },
-        {
-          ability: 'WISDOM',
-          label: 'Wisdom',
-          total: 1,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        },
-        {
-          ability: 'CHARISMA',
-          label: 'Charisma',
-          total: 0,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        }
-      ],
-      skills: [
-        {
-          skillId: 'athletics',
-          code: 'ATHLETICS',
-          label: 'Athletics',
-          ability: 'STRENGTH',
-          total: 2,
-          rollMode: 'NORMAL',
-          proficiency: 'FULL'
-        },
-        {
-          skillId: 'perception',
-          code: 'PERCEPTION',
-          label: 'Perception',
-          ability: 'WISDOM',
-          total: 1,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        },
-        {
-          skillId: 'investigation',
-          code: 'INVESTIGATION',
-          label: 'Investigation',
-          ability: 'INTELLIGENCE',
-          total: -1,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        },
-        {
-          skillId: 'insight',
-          code: 'INSIGHT',
-          label: 'Insight',
-          ability: 'WISDOM',
-          total: 1,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
-        },
-        {
-          skillId: 'stealth',
-          code: 'STEALTH',
-          label: 'Stealth',
-          ability: 'DEXTERITY',
-          total: 2,
-          rollMode: 'NORMAL',
-          proficiency: 'NONE'
+          id: crypto.randomUUID(),
+          creatureId: wolf.id,
+          relationshipKind: 'COMPANION' as const,
+          originKind: 'WORLD' as const,
+          hitDice: [{ die: 8, total: 2, used: 1 }]
         }
       ]
-    },
-    actions: { items: [] },
-    resources: {
-      items: [
-        {
-          id: 'resource-1',
-          label: 'Second Wind',
-          sourceLabel: 'Fighter',
-          used: 0,
-          max: 1,
-          remaining: 1,
-          owner: {
-            kind: 'AUTHORED_GRANT',
-            resourceGrantId: 'resource-1',
-            source: {
-              kind: 'SYSTEM',
-              systemId: '11111111-1111-1111-1111-111111111111'
-            }
-          },
-          recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
-        }
-      ],
-      hitDice: [{ die: 8, total: 1, used: 0, remaining: 1 }]
-    },
-    spells: {
-      saveDc: null,
-      attackBonus: null,
-      slots: [],
-      activeGroups: [],
-      spells: []
-    },
-    inventory: {
-      items: [
-        {
-          id: 'item-1',
-          equipmentId: 'equipment-1',
-          label: 'Longsword',
-          quantity: 1,
-          equipped: false,
-          attuned: false,
-          requiresAttunement: true
-        }
-      ],
-      currencies: []
-    },
-    reference: {
-      features: [],
-      proficiencies: [],
-      defenses: [],
-      senses: [],
-      conditionOptions: [
-        {
-          id: 'condition-1',
-          code: 'POISONED',
-          label: 'Poisoned',
-          description: 'A poisoned creature suffers from toxins affecting its body.'
-        }
-      ],
-      equipmentOptions: [
-        {
-          id: 'equipment-1',
-          label: 'Longsword',
-          isContainer: false,
-          requiresAttunement: true
-        }
-      ],
-      currencyOptions: [{ id: 'currency-1', label: 'Gold' }]
-    },
-    notes: {},
-    extras: {
-      kindOptions: [],
-      originOptions: [],
-      items: []
     }
-  }
+  },
+  documents: { ...fixture.documents, EQUIPMENT: [longsword, backpack], CREATURE: [wolf] }
+}
+const secondWind = (await prepareFixtureSheet(playedInput)).sheet.resources.items[0]
+if (!secondWind) throw new Error('Expected the Second Wind Resource on the Sheet.')
+const played = await prepareFixtureSheet({
+  ...playedInput,
+  resourceUsage: [{ owner: toCharacterResourceOwnerKey(secondWind.owner), used: 1 }]
+})
+const sheet = characterSheetResponseDtoSchema.parse(played.sheet)
+
+/**
+ * The real projected Character Sheet of a played level 1 Fighter: a carried Longsword and Backpack,
+ * a companion Wolf, 10 of 11 hit points, 3 temporary hit points and a spent Second Wind.
+ */
+export function createSheet(): CharacterSheetResponseDto {
+  return structuredClone(sheet)
 }
 
-export function createRestPreview(
+/** The real rest preview for the same Fighter, parsed through the transport schema. */
+export async function createRestPreview(
   request: CharacterRestPreviewRequestDto
-): CharacterRestPreviewResponseDto {
-  const selected = request.selectedHitDice.find((selection) => selection.die === 8)?.count ?? 0
-  const rollEvidence =
-    request.requestRoll || request.rollEvidence
-      ? {
-          expression: '1d8 + 1',
-          terms: [{ die: 8, count: 1, modifierPerDie: 1, rolls: [5] }],
-          total: 6
-        }
-      : undefined
-  const manualReady = request.healingMode === 'AUTOMATIC' || request.manualHealingAccepted
-
-  return {
-    restKind: request.restKind,
-    streamVersion: request.expectedVersion,
-    previewFingerprint: `rest-preview-${request.restKind.toLowerCase()}`,
-    hitPoints: {
-      current: 10,
-      maximum: 12,
-      temporary: 3,
-      missing: 2,
-      maximumHitPointModifier: -2,
-      canResetMaximumHitPointModifier: true
-    },
-    hitDice: [
-      {
-        die: 8,
-        classLabels: ['Fighter'],
-        total: 1,
-        used: 0,
-        remaining: 1,
-        selected,
-        constitutionModifier: 1
-      }
-    ],
-    healingMode: request.healingMode,
-    manualHealingAccepted: request.manualHealingAccepted,
-    ...(selected > 0 ? { canonicalExpression: '1d8 + 1' } : {}),
-    ...(rollEvidence ? { rollEvidence } : {}),
-    stagedHealing: rollEvidence ? 2 : request.restKind === 'LONG' ? 2 : 0,
-    automaticRecoveries: {
-      resources: [{ id: 'resource-1', label: 'Second Wind', recovered: 1 }],
-      spellSlots: []
-    },
-    eligibleCompanions: [
-      {
-        companionInstanceId: '11111111-1111-4111-8111-111111111111',
-        label: 'Clockwork Hound',
-        selected: request.selectedCompanionInstanceIds.includes(
-          '11111111-1111-4111-8111-111111111111'
-        ),
-        hitDice: [{ die: 8, total: 2, used: 1, remaining: 1, recovered: 1 }],
-        resources: [{ id: 'companion-resource-1', label: 'Pounce', recovered: 1 }]
-      }
-    ],
-    canApply:
-      request.restKind === 'LONG' || selected === 0 || (rollEvidence !== undefined && manualReady)
-  }
+): Promise<CharacterRestPreviewResponseDto> {
+  return characterRestPreviewResponseDtoSchema.parse(await previewFixtureRest(played, request))
 }
 
 export async function openHpControls(user: ReturnType<typeof userEvent.setup>) {

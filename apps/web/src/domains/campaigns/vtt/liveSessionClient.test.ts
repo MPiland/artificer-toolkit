@@ -9,7 +9,10 @@ import type {
   CampaignSceneStateDto,
   SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import { ConvexError } from 'convex/values'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { errorMessage } from '#app/lib/errorMessage'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
 import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './liveSessionClient'
 
@@ -1138,6 +1141,56 @@ describe('live-session browser connection', () => {
     connection.close()
     await vi.advanceTimersByTimeAsync(10_000)
     expect(socket.sent).toHaveLength(1)
+  })
+
+  it.each(['CAMPAIGN_NOT_FOUND', 'CAMPAIGN_NOT_ACTIVE'] as const)(
+    'shows a %s ticket refusal and does not retry it',
+    async (reason) => {
+      vi.useFakeTimers()
+      const getTicket = vi.fn(() =>
+        Promise.reject(
+          new ConvexError({
+            code: 'DOMAIN_REJECTED',
+            message: DOMAIN_REJECTION_MESSAGES[reason],
+            reason
+          })
+        )
+      )
+      const errors: string[] = []
+      const statuses: string[] = []
+      const connection = createLiveSessionConnection({
+        createSocket: (url, protocols) => new FakeSocket(url, protocols),
+        getAccessToken: async () => 'access-token',
+        getTicket,
+        onError: (error) => errors.push(errorMessage(error)),
+        onStatus: (status) => statuses.push(status),
+        onTransient: () => undefined,
+        url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+      })
+      await vi.advanceTimersByTimeAsync(120_000)
+      expect(getTicket).toHaveBeenCalledTimes(1)
+      expect(errors).toEqual([DOMAIN_REJECTION_MESSAGES[reason]])
+      expect(statuses.at(-1)).toBe('DISCONNECTED')
+      expect(FakeSocket.instances).toHaveLength(0)
+      connection.close()
+    }
+  )
+
+  it('keeps retrying a ticket failure that is not a terminal refusal', async () => {
+    vi.useFakeTimers()
+    const getTicket = vi.fn(() => Promise.reject(new Error('Server Error')))
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getAccessToken: async () => 'access-token',
+      getTicket,
+      onError: () => undefined,
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', campaignId)
+    })
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(getTicket.mock.calls.length).toBeGreaterThan(1)
+    connection.close()
   })
 
   it('reconnects with a fresh one-use ticket and resets backoff after transient readiness', async () => {

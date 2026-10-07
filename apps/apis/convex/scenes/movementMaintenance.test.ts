@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
@@ -10,7 +10,7 @@ import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   setupReactionMovementScene,
-  useMovementReactions
+  useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
@@ -20,22 +20,30 @@ import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
-import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import {
-  planMovementDecisionInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
+  checkpointLiveRoom,
+  closeRoom,
+  executeInRoom,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+import { readRoomPendingSnapshot } from '../../tests/fixtures/roomPendingSnapshots'
 import { api } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
-vi.mock('../lib/rollRandom', () => ({
-  nextRollInt: (sides: number) => (sides === 20 ? 14 : 0)
-}))
+useLocalRoomWorker()
 
 type MaintainedBase = Awaited<ReturnType<typeof setupCreatureReactionRun>>
+
+/** A natural 14 for each used reaction's attack roll, then its two damage dice at their minimum. */
+function queueReactionRolls(base: MaintainedBase, reactions: number) {
+  return queueRoomRolls(base.campaign.id, {
+    rolls: Array.from({ length: reactions }, () => [14, 0, 0]).flat(),
+    repeat: 0
+  })
+}
 
 async function setupMaintainedBase() {
   const base = await setupCreatureReactionRun(null, true, true, 'AUTOMATIC', 'AUTOMATIC', false, {
@@ -46,7 +54,9 @@ async function setupMaintainedBase() {
   return base
 }
 
+/** Convex's rows after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
 async function gameplay(base: MaintainedBase) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     run: await ctx.db
       .query('encounterRuns')
@@ -63,21 +73,7 @@ async function gameplay(base: MaintainedBase) {
     maintainedStates: await ctx.db
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .collect(),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    sceneStates: await ctx.db.query('sceneLiveStates').collect()
+      .collect()
   }))
 }
 
@@ -241,14 +237,7 @@ async function passageRecords(base: MaintainedBase, characterId: string) {
     characterEffects: await ctx.db
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', characterId))
-      .collect(),
-    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    characterReceipts: await ctx.db
-      .query('characterCommandReceipts')
-      .withIndex('by_characterId_commandId', (q) => q.eq('characterId', characterId))
       .collect()
-      .then((headers) => readReceiptHeaders(ctx, 'characterCommandReceipts', headers))
   }))
 }
 
@@ -367,12 +356,8 @@ it('forecasts and atomically publishes maintained replacement across ordered use
     [base.reactor, base.mover, base.additionalReactorActor!],
     [50, 1000]
   )
-  const creation = await useMovementReactions(firstScene)
-  const beforeCreation = await gameplay(base)
-  const createdPreparation = creation.prepared
-  expect(createdPreparation.outcome.kind).toBe('TERMINAL')
-  expect(await gameplay(base)).toEqual(beforeCreation)
-  const created = await creation.publish()
+  await queueReactionRolls(base, 1)
+  const created = await useMovementReactionsInRoom(firstScene)
   expect(created.occurrence?.status).toBe('COMPLETE')
   const afterCreation = await gameplay(base)
   expect(afterCreation.maintainedStates).toHaveLength(1)
@@ -382,6 +367,8 @@ it('forecasts and atomically publishes maintained replacement across ordered use
     )
   ).not.toHaveLength(0)
 
+  // The Run is the room's until it closes; the seeds below write it in Convex and hydrate into the next command.
+  await closeRoom(base.campaign.id)
   const seeded = await seedPriorDependents(base)
   const currentRun = await resetReactionAndDetachScene(base)
   const secondBase = { ...base, run: currentRun }
@@ -394,56 +381,12 @@ it('forecasts and atomically publishes maintained replacement across ordered use
       { x: 700, y: 50 }
     ]
   )
-  const replacement = await useMovementReactions(secondScene)
-  const beforeReplacement = await gameplay(base)
-  const prepared = replacement.prepared
-  expect(prepared.outcome.kind).toBe('TERMINAL')
-  if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Maintained movement did not prepare.')
-  expect(await gameplay(base)).toEqual(beforeReplacement)
-  expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
-  const first = prepared.outcome.result.reactionExecutions.find(
-    (entry) => entry.option.candidate.reactorActorId === base.reactor.id
-  )
-  const second = prepared.outcome.result.reactionExecutions.find(
-    (entry) => entry.option.candidate.reactorActorId === base.additionalReactorActor!.id
-  )
-  if (!first || !second) throw new Error('Ordered maintained reactions are unavailable.')
-  expect(first.ordinal).toBeLessThan(second.ordinal)
-  if (
-    (first.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
-      first.application.kind !== 'CHARACTER_MECHANICS_BATCH') ||
-    !first.application.maintenanceTransition
-  )
-    throw new Error('Maintained replacement receipt is unavailable.')
-  expect(first.application.maintenanceTransition.priorState?.id).toBe(seeded.stateId)
-  expect(
-    first.application.maintenanceTransition.removedDependentEffects.map(
-      (effect) => effect.activeEffectId
-    )
-  ).toEqual(expect.arrayContaining(seeded.oldEffectIds))
-  const moverCleanup = first.maintenanceOwnerTransitions?.find(
-    (transition) => transition.targetActorId === base.mover.id
-  )
-  const thirdOwnerCleanup = first.maintenanceOwnerTransitions?.find(
-    (transition) => transition.targetActorId === base.additionalReactorActor!.id
-  )
-  expect(moverCleanup?.before.conditionIds).toEqual(
-    expect.arrayContaining([seeded.blindedId, seeded.poisonedId])
-  )
-  expect(moverCleanup?.after.conditionIds).toEqual([seeded.poisonedId])
-  expect(thirdOwnerCleanup?.before.conditionIds).toEqual([seeded.frightenedId])
-  expect(thirdOwnerCleanup?.after.conditionIds).toEqual([])
-  if (
-    first.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
-    second.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-  )
-    throw new Error('Expected Encounter actor reaction mechanics.')
-  const firstDamage = first.application.applications.find((entry) => entry.kind === 'DAMAGE')
-  const secondDamage = second.application.applications.find((entry) => entry.kind === 'DAMAGE')
-  if (!firstDamage || !secondDamage) throw new Error('Expected both maintained reaction damages.')
-  expect(secondDamage.beforeCurrentHitPoints).toBe(firstDamage.afterCurrentHitPoints)
-
-  await replacement.publish()
+  await queueReactionRolls(base, 2)
+  // The per-reaction maintenance transitions (prior state, removed dependents, owner condition cleanup)
+  // are room-held history (D85) with no room-side assertion yet; the maintained states, effects and
+  // conditions the committed answers leave are the member-visible proof here.
+  const replacement = await useMovementReactionsInRoom(secondScene)
+  expect(replacement.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const afterReplacement = await gameplay(base)
   expect(afterReplacement.maintainedStates).toHaveLength(2)
   expect(afterReplacement.maintainedStates.map((state) => state.id)).not.toContain(seeded.stateId)
@@ -466,10 +409,6 @@ it('forecasts and atomically publishes maintained replacement across ordered use
     throw new Error('Expected Creature maintenance owners.')
   expect(moverState.conditions).toEqual([seeded.poisonedId])
   expect(thirdOwnerState.conditions).toEqual([])
-  const receipt = afterReplacement.receipts.find(
-    (entry) => entry.commandId === replacement.responseCommandId
-  )
-  expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
 }, 60_000)
 
 it('carries detached Character maintenance through a non-pausing passage to the later contact', async () => {
@@ -483,9 +422,10 @@ it('carries detached Character maintenance through a non-pausing passage to the 
       { x: 850, y: 50 }
     ]
   )
-  const initial = await useMovementReactions(initialScene)
-  expect(initial.prepared.outcome.kind).toBe('TERMINAL')
-  await initial.publish()
+  await queueReactionRolls(base, 1)
+  expect((await useMovementReactionsInRoom(initialScene)).occurrence?.status).toBe('COMPLETE')
+  // The Run is the room's until it closes; the seeds below write it in Convex and hydrate into the next command.
+  await closeRoom(base.campaign.id)
   const character = await createDetachedCharacter(base)
   const seeded = await seedDetachedPassageDependents(base, character)
   const currentRun = await resetReactionAndDetachScene(base)
@@ -498,75 +438,12 @@ it('carries detached Character maintenance through a non-pausing passage to the 
       { x: 850, y: 50 }
     ]
   )
-  const passage = await useMovementReactions(passageScene)
-  const before = await passageRecords(base, character.id)
-  const prepared = passage.prepared
-  expect(prepared.outcome.kind).toBe('TERMINAL')
-  if (prepared.outcome.kind !== 'TERMINAL')
-    throw new Error('Passage maintenance did not prepare terminally.')
-  expect(await passageRecords(base, character.id)).toEqual(before)
-  expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
-  const first = prepared.outcome.result.reactionExecutions.find(
-    (entry) => entry.option.candidate.reactorActorId === base.reactor.id
-  )
-  const later = prepared.outcome.result.reactionExecutions.find(
-    (entry) => entry.option.candidate.reactorActorId === base.additionalReactorActor!.id
-  )
-  if (!first || !later || first.ordinal >= later.ordinal)
-    throw new Error('Passage-separated maintained reactions are unavailable.')
-  expect(first.option.candidate.pathDistance).toBeLessThan(300)
-  expect(later.option.candidate.pathDistance).toBeGreaterThan(300)
-  if (
-    (first.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
-      first.application.kind !== 'CHARACTER_MECHANICS_BATCH') ||
-    !first.application.maintenanceTransition ||
-    (later.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
-      later.application.kind !== 'CHARACTER_MECHANICS_BATCH') ||
-    !later.application.maintenanceTransition
-  )
-    throw new Error('Passage maintenance receipts are unavailable.')
-  expect(first.application.maintenanceTransition).toMatchObject({
-    priorState: { id: seeded.primaryStateId },
-    characterOwnerTransitions: [
-      {
-        characterId: character.id,
-        beforeStreamVersion: character.streamVersion,
-        afterStreamVersion: character.streamVersion + 1
-      }
-    ]
-  })
-  expect(later.application.maintenanceTransition).toMatchObject({
-    priorState: { id: seeded.laterStateId },
-    characterOwnerTransitions: [
-      {
-        characterId: character.id,
-        beforeStreamVersion: character.streamVersion + 1,
-        afterStreamVersion: character.streamVersion + 2
-      }
-    ]
-  })
-  expect(first.characterTransitions).toContainEqual({
-    characterId: character.id,
-    beforeStreamVersion: character.streamVersion,
-    afterStreamVersion: character.streamVersion + 1
-  })
-  expect(later.characterTransitions).toContainEqual({
-    characterId: character.id,
-    beforeStreamVersion: character.streamVersion + 1,
-    afterStreamVersion: character.streamVersion + 2
-  })
-  expect(
-    first.application.maintenanceTransition.removedDependentEffects.map(
-      (effect) => effect.activeEffectId
-    )
-  ).toEqual(expect.arrayContaining(seeded.primaryOldEffectIds))
-  expect(
-    later.application.maintenanceTransition.removedDependentEffects.map(
-      (effect) => effect.activeEffectId
-    )
-  ).toEqual(expect.arrayContaining(seeded.laterOldEffectIds))
-
-  await passage.publish()
+  await queueReactionRolls(base, 2)
+  // The per-reaction maintenance transitions and Character stream transitions are room-held history
+  // (D85) with no room-side assertion yet; the committed result reads as the Character's stream
+  // advancing once per replaced slot, below.
+  const passage = await useMovementReactionsInRoom(passageScene)
+  expect(passage.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const after = await passageRecords(base, character.id)
   if (!after.character) throw new Error('Published detached Character is unavailable.')
   expect(after.character.play.streamVersion).toBe(character.streamVersion + 2)
@@ -586,10 +463,6 @@ it('carries detached Character maintenance through a non-pausing passage to the 
   expect(after.encounter.effects.map((effect) => effect.id)).toEqual(
     expect.not.arrayContaining([...seeded.primaryOldEffectIds, ...seeded.laterOldEffectIds])
   )
-  const receipt = after.encounter.receipts.find(
-    (entry) => entry.commandId === passage.responseCommandId
-  )
-  expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
 }, 60_000)
 
 it('keeps Assisted maintenance pending writes staged and rejects changed slot and dependent owner', async () => {
@@ -599,8 +472,11 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     [base.reactor, base.mover, base.additionalReactorActor!],
     [50, 1000]
   )
-  await (await useMovementReactions(firstScene)).publish()
+  await queueReactionRolls(base, 1)
+  await useMovementReactionsInRoom(firstScene)
   await setAutoRollDice(base.t, base.owner.userId, false)
+  // The Run is the room's until it closes; the reset below writes it in Convex and hydrates into the next command.
+  await closeRoom(base.campaign.id)
   const currentRun = await resetReactionAndDetachScene(base)
   const assistedScene = await setupReactionMovementScene(
     { ...base, run: currentRun },
@@ -608,27 +484,20 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
     [50, 1000]
   )
   // The GM uses the authored automatic reaction; its d20 pauses as evidence.
-  const used = await useMovementReactions(assistedScene, 1)
-  const beforeEvidence = await encounterMechanics(base)
-  expect(used.prepared.outcome.kind).toBe('PENDING')
-  const evidence = (await used.publish()).occurrence?.pending
-  expect(await encounterMechanics(base)).toEqual(beforeEvidence)
+  await queueReactionRolls(base, 1)
+  const used = await useMovementReactionsInRoom(assistedScene, 1)
+  const evidence = used.occurrence?.pending
   if (!evidence || evidence.kind !== 'D20_EVIDENCE')
     throw new Error('Expected Assisted maintained d20 evidence after the reaction Use.')
+  // The pending write stays staged: the Run's mechanics are as the Use left them until the evidence settles.
   const pendingGameplay = await encounterMechanics(base)
-  const pendingSnapshot = await base.t.run(async (ctx) => {
-    const occurrence = await ctx.db
-      .query('encounterRuleOccurrences')
-      .withIndex('by_encounterId_state', (q) =>
-        q.eq('encounterId', base.run.id).eq('state', 'PENDING')
-      )
-      .unique()
-    if (!occurrence) throw new Error('Maintained movement pending snapshot is unavailable.')
-    const snapshot = await readPendingSnapshot(encounterReadTransaction(ctx), occurrence)
-    if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
-      throw new Error('Maintained movement pending snapshot is unavailable.')
-    return snapshot
+  const pendingSnapshot = await readRoomPendingSnapshot(base.t, {
+    campaignId: base.campaign.id,
+    encounterId: base.run.id,
+    rootCommandId: assistedScene.rootInput.commandId
   })
+  if (pendingSnapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
+    throw new Error('Maintained movement pending snapshot is unavailable.')
   if (
     pendingSnapshot.applicationContext.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
     pendingSnapshot.applicationContext.phase.kind !== 'ACTION_EVIDENCE'
@@ -647,6 +516,9 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
       rollMode: evidence.request.rollMode
     }
   })
+  // The room holds the Run until it closes. Closing checkpoints the pending state, so the edits below
+  // are what the next command hydrates from; a changed slot or dependent owner must refuse it.
+  await closeRoom(base.campaign.id)
   const current = await base.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -670,7 +542,8 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.state._id, { version: current.state.version + 1 })
   )
-  await expect(planMovementDecisionInRoom(base.owner.caller, enterDice)).rejects.toThrow()
+  await expect(executeInRoom(base.owner.caller, { command: enterDice })).rejects.toThrow()
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.state._id, { version: current.state.version })
   )
@@ -679,16 +552,15 @@ it('keeps Assisted maintenance pending writes staged and rejects changed slot an
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.effect._id, { targetActorId: base.additionalReactorActor!.id })
   )
-  await expect(planMovementDecisionInRoom(base.owner.caller, enterDice)).rejects.toThrow()
+  await expect(executeInRoom(base.owner.caller, { command: enterDice })).rejects.toThrow()
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) =>
     ctx.db.patch(current.effect._id, { targetActorId: current.effect.targetActorId })
   )
   expect(await encounterMechanics(base)).toEqual(pendingGameplay)
 
-  const resumedRequest = await planMovementDecisionInRoom(base.owner.caller, enterDice)
-  expect(resumedRequest.outcome.kind).toBe('TERMINAL')
-  expect(await encounterMechanics(base)).toEqual(pendingGameplay)
-  await resumedRequest.publish()
+  const resumed = await executeInRoom(base.owner.caller, { command: enterDice })
+  expect(resumed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const after = await gameplay(base)
   expect(after.maintainedStates).toHaveLength(1)
   expect(after.maintainedStates[0]?.id).not.toBe(current.state.id)

@@ -26,7 +26,14 @@ import {
   setActorControllers,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
-import { executeInRoom, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeInRoom,
+  readRoomTimeline,
+  type RoomCaller,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { internal } from '../_generated/api'
 import { sourceImportBatches } from '../content/importBatches'
 
@@ -59,6 +66,7 @@ async function basicActionFixture(options: Parameters<typeof playerControlFixtur
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions
     })
+  await attachFixtureRoom(base.t, base.campaign.id)
   return base
 }
 
@@ -78,7 +86,9 @@ async function useBasicAction(
   }
 }
 
+/** The actor as the room last published it: the room holds the Run until it checkpoints (D85). */
 async function actorState(base: PlayerControlFixture, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
   const row = await base.t.run((ctx) =>
     ctx.db
       .query('encounterRunActors')
@@ -121,6 +131,7 @@ async function setConditions(base: PlayerControlFixture, actorId: string, condit
 
 /** The actor's walking-speed budget for the current turn, as the tabletop reads it. */
 async function turnBudget(base: PlayerControlFixture, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
   const state = await base.owner.caller.query(sessionState, { campaignId: base.campaign.id })
   return state.turnMovement.find((entry) => entry.actorId === actorId)?.budget
 }
@@ -134,10 +145,13 @@ async function advanceTurn(base: PlayerControlFixture) {
   })
 }
 
+async function pendingFor(base: PlayerControlFixture, caller: RoomCaller) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
+}
+
 async function d20Pending(base: PlayerControlFixture) {
-  const pending = await base.owner.caller.query(pendingRuleOccurrence, {
-    encounterId: base.run.id
-  })
+  const pending = await pendingFor(base, base.owner.caller)
   if (pending?.kind !== 'D20_EVIDENCE') throw new Error('Expected a d20 roll prompt.')
   return pending
 }
@@ -164,6 +178,8 @@ function enterFaces(
 }
 
 describe('basic combat actions in the room (Q11)', () => {
+  useLocalRoomWorker()
+
   it("offers the System's catalogue apart from features and logs an action without mechanics", async () => {
     const base = await basicActionFixture()
     const choices = await base.owner.caller.query(actionChoices, {
@@ -197,7 +213,7 @@ describe('basic combat actions in the room (Q11)', () => {
     const companion = await actorState(base, base.companion.id)
     expect(encounterBasicActionEffects(companion)).toEqual([])
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
-    const { entries } = await readTimelineInRoom(base.owner.caller, base.run.id)
+    const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
     expect(entries[0]).toMatchObject({ commandType: 'USE_BASIC_ACTION', label: 'Hide' })
   })
 
@@ -235,7 +251,7 @@ describe('basic combat actions in the room (Q11)', () => {
       })
     )
     expect(await budget()).toBe(walking! * 3)
-    const { entries } = await readTimelineInRoom(base.owner.caller, base.run.id)
+    const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
     expect(entries[0]).toMatchObject({
       label: 'Dash',
       ruleOverrides: [expect.objectContaining({ code: 'ACTION_ECONOMY_UNAVAILABLE' })]
@@ -289,9 +305,7 @@ describe('basic combat actions in the room (Q11)', () => {
       rollMode: 'DISADVANTAGE',
       derivedRollModeReasons: ['Dodge']
     })
-    const playerPending = await base.player.caller.query(pendingRuleOccurrence, {
-      encounterId: base.run.id
-    })
+    const playerPending = await pendingFor(base, base.player.caller)
     if (playerPending?.kind !== 'D20_EVIDENCE') throw new Error('Expected a player roll prompt.')
     expect(playerPending.request).toMatchObject({
       rollMode: 'DISADVANTAGE',
@@ -385,7 +399,7 @@ describe('basic combat actions in the room (Q11)', () => {
     const companion = await actorState(base, base.companion.id)
     expect(encounterBasicActionEffects(companion)).toEqual([])
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(0)
-    const { entries } = await readTimelineInRoom(base.owner.caller, base.run.id)
+    const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
     expect(entries[0]).toMatchObject({ commandType: 'REVERT_LAST_ACTION' })
     await expect(domainRejection(revertLastAction(base))).resolves.toMatchObject({
       reason: 'REVERT_UNAVAILABLE',

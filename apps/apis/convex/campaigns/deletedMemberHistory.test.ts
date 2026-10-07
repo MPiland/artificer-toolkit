@@ -2,14 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { api, internal } from '../_generated/api'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
-import { executeInRoom, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  executeInRoom,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const page = { cursor: null, numItems: 16 }
 
 describe('deleted member Campaign history', () => {
   it('keeps the Session log and Encounter Run history attributed to the deleted account id', async () => {
     const base = await playerControlFixture()
-    const { t, owner: gm, other: departing, campaign, run } = base
+    const { t, owner: gm, other: departing, campaign } = base
     await departing.caller.mutation(api.account.updateProfile, { username: 'Mira', bio: null })
     await setActorControllers(base, base.companion.id, [departing.userId])
     await executeInRoom(departing.caller, {
@@ -42,7 +48,7 @@ describe('deleted member Campaign history', () => {
     })
     expect(note).toMatchObject({ authorLabel: 'Mira' })
     const readHistory = async () => ({
-      timeline: await readTimelineInRoom(gm.caller, run.id),
+      timeline: await readRoomTimeline(gm.caller, campaign.id),
       notes: await gm.caller.query(api.campaigns.sessionNotes.list, {
         campaignId: campaign.id,
         sessionId: session.id,
@@ -55,7 +61,7 @@ describe('deleted member Campaign history', () => {
       })
     })
     const before = await readHistory()
-    expect(before.timeline.entries).toContainEqual(
+    expect(before.timeline).toContainEqual(
       expect.objectContaining({ commandType: 'RESOLVE_ACTION', actorUserId: departing.userId })
     )
     expect(before.notes.page).toContainEqual(

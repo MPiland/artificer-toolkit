@@ -5,19 +5,13 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { createEncounterInitiativeStore } from '@artificer-toolkit/encounter-persistence/initiativeStore'
 import { persistNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/actionChildPersistence'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
-import { characterRulePolicyInputSchema } from '@artificer-toolkit/schema/api/characterRules'
-import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   characterStoredHeadSchema,
   characterStoredRowSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
-import {
-  readCharacterRecord,
-  readCharacterSheetState,
-  readCharacterSheetStructure
-} from '@artificer-toolkit/schema/projections/characterStoredState'
+import { readCharacterSheetStructure } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -33,23 +27,13 @@ import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/sh
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import {
   createNativeConcentrationContext,
   prepareEncounterConcentrationState
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { nativeConcentrationParentDamage } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import {
-  buildMovementTarget,
-  type CharacterMovementFacts
-} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import { buildCharacterDerivedRuleFacts } from '@artificer-toolkit/rules-runtime/character/characterDerivedRuleFacts'
-import { buildCharacterHitPointRuleFacts } from '@artificer-toolkit/rules-runtime/character/characterHitPointRuleFacts'
-import { compileCharacterGrantFoldRuleFacts } from '@artificer-toolkit/rules-runtime/character/characterGrantFoldRuleFacts'
-import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformCharacterPolicy'
-import { resolveCharacterRulePolicyRollModes } from '@artificer-toolkit/rules-runtime/character/characterRuleRollProjection'
+import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import {
   createStagedInitiativeRoundState,
   hydrateStagedState,
@@ -57,15 +41,8 @@ import {
   serializeStagedInitiativeRoundState
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
 import { settleEncounterInitiativeRound } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
-import {
-  createDnd5eConcentrationCheckDefinition,
-  DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationPolicy'
+import { createDnd5eConcentrationCheckDefinition } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationPolicy'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
-import type {
-  CharacterAssemblyRegistry,
-  CharacterBuildSnapshot
-} from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
@@ -74,29 +51,26 @@ import {
   type RoomTransaction
 } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { executeRoomEncounterCommand } from './roomEncounterCommands.js'
 import { createNativeLiveRulesRuntime } from './nativeRulesRuntime.js'
 import { ROOM_PRIVATE_ROLL } from './roomPrivateRolls.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
-import { characterPageFixture } from './testing/characterPageFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import { srdCharacterScope, srdRoomCharacter } from './testing/srdRoomCharacter.js'
 
-type SheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>>
-type FixtureFacts = Pick<SheetFacts, 'active' | 'character' | 'sheetState' | 'revisions'> &
-  Pick<CharacterMovementFacts, 'campaignContext' | 'prepared' | 'ruleEvaluation'>
-const prepareFacts = vi.hoisted(() =>
-  vi.fn<(...args: Parameters<typeof prepareRoomLiveCharacterSheet>) => Promise<FixtureFacts>>()
-)
-// Only source preparation is bounded here; admission, save execution and every native writer run.
-vi.mock('./roomCharacterRules.js', () => ({ prepareRoomLiveCharacterSheet: prepareFacts }))
 afterEach(() => vi.restoreAllMocks())
 
 it('atomically resolves a failed native Concentration save, retains the private roll, and replays after eviction', async () => {
-  const page = liveRoomCharacterPartSchema.parse(characterPageFixture)
-  if (page.status !== 'ASSIGNED' || !page.inputs) throw new Error('Missing Character fixture.')
+  const room = srdRoomCharacter({
+    characterId: uuid(0x111a),
+    userId: uuid(0x111b),
+    campaignId: uuid(0x111c)
+  })
+  const { part: page, system } = room
+  if (!page.inputs) throw new Error('Missing Character fixture.')
   const owner = characterStoredRowSchema.parse({
     ...page.inputs.owner,
     sheetStateChecksum: checksumRuleDocument(
@@ -137,33 +111,6 @@ it('atomically resolves a failed native Concentration save, retains the private 
   const play = roomInputsResponse({ kind: 'CAMPAIGN_PLAY' }, campaignFixture)
   if (authority.kind !== 'AUTHORITY' || play.kind !== 'CAMPAIGN_PLAY')
     throw new Error('Missing Campaign fixture.')
-  const system = systemAuthoredDtoSchema.parse({
-    schemaVersion: 2,
-    id: owner.systemId,
-    label: 'D&D 5e',
-    rulesetCode: 'DND5E',
-    rulesetVersion: '2014',
-    userId: gmId,
-    abilities: [
-      { id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION', label: 'Constitution' }
-    ],
-    alignments: [],
-    challengeRatings: [],
-    conditionTypes: [],
-    creatureTypes: [],
-    currencies: [],
-    damageTypes: [],
-    heritages: [],
-    languages: [],
-    lifestyles: [],
-    magicSchools: [],
-    passives: [],
-    rarities: [],
-    senses: [],
-    skills: [],
-    speeds: [],
-    terrains: []
-  })
   const vocabularyIdentity = {
     snapshotId: uuid(0x1107),
     systemId: system.id,
@@ -266,71 +213,10 @@ it('atomically resolves a failed native Concentration save, retains the private 
     createdAt: now,
     updatedAt: now
   })
-  const registry: CharacterAssemblyRegistry = {
-    backgrounds: {},
-    classes: {},
-    races: {},
-    equipment: {},
-    feats: {},
-    features: {},
-    spells: {},
-    system: {
-      abilities: [
-        {
-          id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
-          code: 'CONSTITUTION',
-          label: 'Constitution'
-        }
-      ],
-      skills: [],
-      speeds: []
-    }
-  }
-  const snapshot: CharacterBuildSnapshot = {
-    characterId: owner.id,
-    systemId: owner.systemId,
-    totalLevel: 1,
-    classes: [],
-    abilities: { CONSTITUTION: 13 },
-    hitpoints: [{ classId: uuid(0x110a), classLevel: 1, value: 10 }],
-    features: [],
-    equipmentItems: []
-  }
-  const facts = characterRulePolicyInputSchema.parse({
-    contractVersion: 4,
-    totalLevel: 1,
-    abilityDefinitions: [{ id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION' }],
-    grantFoldFacts: compileCharacterGrantFoldRuleFacts({ snapshot, registry }),
-    derivedBaseFacts: buildCharacterDerivedRuleFacts(snapshot, registry),
-    ...buildCharacterHitPointRuleFacts(snapshot),
-    spellAccessCandidates: [],
-    spellClasses: [],
-    spellPreparationClasses: [],
-    spellPreparationCatalog: [],
-    spellPreparationRequest: null,
-    spellCastCandidates: [],
-    spellCastSlots: [],
-    spellCastResources: [],
-    spellcastingClasses: [],
-    chargeCalculations: [],
-    eligibilityFacets: [],
-    rest: { totalHitDice: 1, currentExhaustion: 0, attunementSlotOverride: null }
-  })
-  const output = resolveCharacterRulePolicyRollModes(
-    evaluateInstalledCharacterPolicy({ gameSystemId: system.id, facts }),
-    vocabulary
-  )
-  function sheetFacts(active: SheetFacts['active']): FixtureFacts {
-    return {
-      active,
-      character: characterAuthoredDtoSchema.parse(readCharacterRecord(active)),
-      sheetState: readCharacterSheetState(active),
-      revisions,
-      campaignContext: { attunementSlotOverride: null, adjustments: [], conditions: [] },
-      prepared: { context: { vocabularySnapshot: vocabulary, registry: { system } } },
-      ruleEvaluation: { facts, output, snapshot, registry, actionEntryPoints: [] }
-    }
-  }
+  const scope = srdCharacterScope({ part }, epoch)
+  const objects = await room.loadContent()
+  const prepareSheet = () =>
+    part.inputs && prepareLiveCharacterSheetFacts({ scope, inputs: part.inputs, system, objects })
   const memory = createMemoryEncounterStore({ idPrefix: 'native-concentration-fixture' })
   const ctx = { db: memory.store }
   const {
@@ -536,7 +422,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     gameSystemId: system.id,
     campaignId,
     activeEffects: [],
-    characterFacts: sheetFacts(owner),
+    characterFacts: await prepareSheet(),
     includeReactionSources: true
   })
   const current = await prepareEncounterConcentrationState({
@@ -664,14 +550,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   const fetch = vi
     .spyOn(globalThis, 'fetch')
     .mockRejectedValue(new Error('Hydrated concentration must not fetch.'))
-  let inputs = new RoomInputs(store, read, async () => [])
-  prepareFacts.mockImplementation(async (actualStore, room, scope, observed, transaction) => {
-    expect(actualStore).toBe(store)
-    expect(scope.characterId).toBe(owner.id)
-    const loaded = await room.character(owner.id, observed, transaction)
-    if (!loaded.inputs) throw new Error('Missing native Character inputs.')
-    return sheetFacts(loaded.inputs.owner)
-  })
+  let inputs = new RoomInputs(store, read, room.loadContent)
   const command: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
     encounterId,
@@ -807,7 +686,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     const after = evidence()
     expect(after.sequence).toBe(1)
     store = new RoomEncounterStore(storage)
-    inputs = new RoomInputs(store, read, async () => [])
+    inputs = new RoomInputs(store, read, room.loadContent)
     expect(store.corruption).toBeNull()
     expect(evidence()).toEqual(after)
     const retry = await store.transact(resolve)

@@ -7,7 +7,6 @@ import {
   type EncounterExecuteInput,
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import {
@@ -22,11 +21,16 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  invalidateRoomInputs,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const creatureId = '00000000-0000-4000-8000-0000000008d0'
 const featureId = '00000000-0000-4000-8000-0000000008d1'
@@ -236,6 +240,7 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
   })
+  await attachFixtureRoom(base.t, campaign.id)
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: campaign.gameSystemId,
     name: 'Character condition action fixture',
@@ -301,7 +306,9 @@ async function setup(options: { sameTypeSheetBaseline?: boolean } = {}) {
   }
 }
 
+/** The rows the room last published: it holds the Run and its receipts until it checkpoints (D85). */
 async function stored(base: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -310,12 +317,6 @@ async function stored(base: Awaited<ReturnType<typeof setup>>) {
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (q) => q.eq('characterId', base.character.id))
       .take(3),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(10),
     characterReceipts: await ctx.db
       .query('characterCommandReceipts')
       .withIndex('by_characterId_commandId', (q) => q.eq('characterId', base.character.id))
@@ -409,24 +410,15 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
   expect(rawConditionIds(afterApplied)).toEqual(
     expect.arrayContaining([base.blinded.id, base.frightened.id])
   )
-  const actionReceipt = afterApplied.receipts.find(
-    (receipt) => receipt.commandId === input.commandId
-  )
-  if (!actionReceipt) throw new Error('Character condition action receipt is missing.')
-  expect(
-    storedRuleExecutionResultDtoSchema.parse(JSON.parse(actionReceipt.resultJson))
-  ).toMatchObject({
-    applicationOutputs: {
-      kind: 'CHARACTER_MECHANICS_BATCH',
-      activeEffectTransitions: [expect.objectContaining({ kind: 'CREATE' })]
-    }
-  })
+  // The room holds the action receipt until the Run ends (D85); `nativeRoomEffectReceipts.test.ts`
+  // asserts its CREATE transition. That transition is the one
+  // published effect row asserted above.
   // A retried command replays its journaled original occurrence with the projection as it is now (D78).
-  await expect(replayInRoom(base.owner.caller, { command: input })).resolves.toEqual({
+  await expect(executeInRoom(base.owner.caller, { command: input })).resolves.toEqual({
     ...initial,
     projection: applied.projection
   })
-  await expect(replayInRoom(base.owner.caller, initialResponse)).resolves.toEqual(applied)
+  await expect(executeInRoom(base.owner.caller, initialResponse)).resolves.toEqual(applied)
   expect(await stored(base)).toEqual(afterApplied)
 
   await base.owner.caller.mutation(api.campaigns.gmWrites.deleteCondition, {
@@ -435,6 +427,8 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
     conditionId: base.secretOverlay.id,
     expectedVersion: base.secretOverlay.version
   })
+  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+  await checkpointLiveRoom(base.campaign.id)
   const ownerAfterDmRemoval = await base.owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: base.run.id
   })
@@ -457,6 +451,7 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
     expectedVersion: 0,
     notes: 'secret Campaign condition restored'
   })
+  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
   const setSecondActor = await executeInRoom(base.owner.caller, {
     command: {
       type: 'SET_CURRENT_ACTOR',
@@ -497,7 +492,7 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
   const firstEffectResponse = diceResponse(base.run.id, pendingFirstEffect, 1)
   const pendingSecondEffect = await executeInRoom(base.owner.caller, firstEffectResponse)
   expect(pendingSecondEffect.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
-  await expect(replayInRoom(base.owner.caller, firstEffectResponse)).resolves.toEqual(
+  await expect(executeInRoom(base.owner.caller, firstEffectResponse)).resolves.toEqual(
     pendingSecondEffect
   )
   const secondEffectResponse = diceResponse(base.run.id, pendingSecondEffect, 20)
@@ -506,10 +501,10 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
   expect(rawConditionIds(await stored(base))).toEqual(
     expect.arrayContaining([base.blinded.id, base.frightened.id])
   )
-  await expect(replayInRoom(base.owner.caller, secondEffectResponse)).resolves.toEqual(
+  await expect(executeInRoom(base.owner.caller, secondEffectResponse)).resolves.toEqual(
     oneEffectRemaining
   )
-  await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+  await expect(executeInRoom(base.owner.caller, advance)).resolves.toEqual({
     ...pendingFirstEffect,
     projection: oneEffectRemaining.projection
   })
@@ -537,11 +532,12 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
   const expired = await executeInRoom(base.owner.caller, finalEffectResponse)
   expect((await stored(base)).effects).toEqual([])
   expect(rawConditionIds(await stored(base))).toEqual([base.blinded.id])
-  await expect(replayInRoom(base.owner.caller, finalEffectResponse)).resolves.toEqual(expired)
-  await expect(replayInRoom(base.owner.caller, finalAdvance)).resolves.toEqual({
+  await expect(executeInRoom(base.owner.caller, finalEffectResponse)).resolves.toEqual(expired)
+  await expect(executeInRoom(base.owner.caller, finalAdvance)).resolves.toEqual({
     ...pendingFinalEffect,
     projection: expired.projection
   })
+  await checkpointLiveRoom(base.campaign.id)
   const ownerAfterExpiry = await base.owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: base.run.id
   })
@@ -566,6 +562,7 @@ it('retains a same-type Sheet condition after its real rule effect expires', asy
     conditionId: base.secretOverlay.id,
     expectedVersion: base.secretOverlay.version
   })
+  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
   const input = action(base)
   const pending = await executeInRoom(base.owner.caller, {
     command: input
@@ -601,11 +598,11 @@ it('retains a same-type Sheet condition after its real rule effect expires', asy
   expect(rawConditionIds(await stored(base))).toEqual(
     expect.arrayContaining([base.blinded.id, base.frightened.id])
   )
-  await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+  await expect(executeInRoom(base.owner.caller, advance)).resolves.toEqual({
     ...pendingExpiry,
     projection: expired.projection
   })
-  await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(expired)
+  await expect(executeInRoom(base.owner.caller, response)).resolves.toEqual(expired)
 }, 30000)
 
 it('rejects a pending condition action after its Campaign overlay changes without terminal writes', async () => {
@@ -622,9 +619,14 @@ it('rejects a pending condition action after its Campaign overlay changes withou
     expectedVersion: base.secretOverlay.version,
     notes: 'changed while condition action was pending'
   })
+  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
   const beforeResponse = await stored(base)
   await expectRedactedRoomRefusal(
     executeInRoom(base.owner.caller, diceResponse(base.run.id, initial, 1)),
+    'The Encounter command could not be completed.'
+  )
+  // The room tells a member nothing of the cause; its error log carries it.
+  expect(roomErrorLogs().join('\n')).toMatch(
     /Campaign condition changed|pending action source or target changed/
   )
   expect(await stored(base)).toEqual(beforeResponse)

@@ -29,7 +29,6 @@ export type CharacterSheetPlayableAction = {
     used: number
   }
   limitedUseOnly?: boolean
-  rollable: boolean
   availability: SheetAction['availability']
 }
 
@@ -86,7 +85,6 @@ export function getPlayableActions(
             effect: entry.primaryEffect
           },
           target: entry.target,
-          rollable: true,
           availability: { status: 'AVAILABLE' }
         }
       ]
@@ -152,7 +150,6 @@ function toPlayableSheetAction(
     playFacts: mechanic ? toPlayableActionFacts(mechanic) : undefined,
     description: action.description ? toPlainText(action.description) : undefined,
     resource: toPlayableResource(resource, action.resourceCost),
-    rollable: action.rollable === true,
     availability: action.availability
   }
 }
@@ -197,7 +194,6 @@ function toResourceAction(resource: SheetResource): CharacterSheetPlayableAction
     resource: toPlayableResource(resource),
     description: resource.description ? toPlainText(resource.description) : undefined,
     limitedUseOnly: true,
-    rollable: false,
     availability: { status: 'AVAILABLE' }
   }
 }

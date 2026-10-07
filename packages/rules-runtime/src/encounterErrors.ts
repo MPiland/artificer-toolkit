@@ -11,3 +11,11 @@ export class EncounterConflictError extends Error {
     this.name = 'EncounterConflictError'
   }
 }
+
+/** An issued movement reaction option no longer matches its source's current facts. */
+export class StaleMovementReactionError extends EncounterConflictError {
+  constructor(message: string) {
+    super(message)
+    this.name = 'StaleMovementReactionError'
+  }
+}

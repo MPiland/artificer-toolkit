@@ -16,6 +16,13 @@ import type {
   SpatialMovementRuleRoot
 } from './encounterSpatialMovementRuleService.js'
 
+/** A voluntary move the player chose to end inside a hostile footprint; the caller refuses it. */
+export class MovementEndpointOccupiedError extends Error {
+  constructor() {
+    super('Voluntary movement cannot end inside a hostile occupied footprint.')
+  }
+}
+
 type Movement = OptionalCombatPassageChoicePendingContextDto['movement']
 type Boundary = Extract<SpatialMovementRuleEvaluation, { kind: 'REACTION_BOUNDARY' }>
 
@@ -48,8 +55,7 @@ export function discoverEncounterMovementPassage(input: {
       )
     }
   })
-  if (discovery.kind === 'ENDPOINT_OCCUPIED')
-    throw new Error('Voluntary movement cannot end inside a hostile occupied footprint.')
+  if (discovery.kind === 'ENDPOINT_OCCUPIED') throw new MovementEndpointOccupiedError()
   if (discovery.kind !== 'CROSSING') return null
   const pin = (contact: typeof discovery.contact) => {
     const token = input.sceneTokens.find((entry) => entry.id === contact.blockerTokenId)

@@ -34,7 +34,7 @@ export const sceneStoredDefinitionSaveSchema = lazySchema(() =>
 export const sceneStoredDefinitionEntitySchema = lazySchema(() =>
   z.strictObject({
     saveId: postgresUuidSchema,
-    // Scene entity UUID spelling is retained by the existing shared Scene contract.
+    // Collections other than Tokens and Barriers retain UUID spelling in the shared Scene contract.
     entityId: z.string().check(z.uuid()),
     ordinal: z.number().check(z.int()).check(z.gte(0)).check(z.lt(10000)),
     value: sceneDefinitionEntitySchema,

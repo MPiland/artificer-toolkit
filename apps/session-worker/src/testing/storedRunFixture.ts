@@ -6,6 +6,7 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomDocument } from '../roomEncounterStore.js'
 
@@ -22,14 +23,71 @@ export function memoryRoomDocuments(
 }
 
 /**
- * A Run and its actors as the room stores them: the Run row, each actor's play-state row and the
- * snapshot and source-facts rows it names, all written through the persistence write path.
+ * Writes the manual initiative round an ACTIVE Run projects from: one participant per actor in
+ * `actors` order, those before the current actor already acted.
  */
-export async function storedRunDocuments(
+export async function insertInitiativeRound(
+  memory: ReturnType<typeof createMemoryEncounterStore>,
+  input: {
+    encounterId: string
+    actors: readonly EncounterRunActorState[]
+    currentActorId: string | undefined
+    now: string
+  }
+) {
+  const { encounterId, actors, currentActorId, now } = input
+  const currentOrdinal = actors.findIndex((actor) => actor.id === currentActorId)
+  const initiative = encounterInitiativeRoundStateDtoSchema.parse({
+    round: {
+      encounterId,
+      round: 1,
+      procedure: 'MANUAL',
+      cadence: 'ENCOUNTER_START',
+      status: 'ACTIVE',
+      policySnapshotChecksum: null,
+      nextTurnOrderOrdinal: actors.length,
+      version: 0,
+      createdAt: now,
+      updatedAt: now
+    },
+    sides: [],
+    // The contract stores participants by ascending actor identity; turn order is the ordinal.
+    participants: actors
+      .map((actor, turnOrderOrdinal) => ({
+        encounterId,
+        round: 1,
+        actorId: actor.id,
+        sideId: actor.sideId,
+        status: !currentActorId
+          ? 'READY'
+          : actor.id === currentActorId
+            ? 'ACTIVE'
+            : turnOrderOrdinal < currentOrdinal
+              ? 'ACTED'
+              : 'READY',
+        initiativeScore: null,
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        declaration: null,
+        declarationChecksum: null,
+        turnOrderOrdinal,
+        version: 0,
+        createdAt: now,
+        updatedAt: now
+      }))
+      .sort((left, right) => left.actorId.localeCompare(right.actorId))
+  })
+  await memory.store.insert('encounterInitiativeRounds', initiative.round)
+  for (const participant of initiative.participants)
+    await memory.store.insert('encounterInitiativeParticipants', participant)
+}
+
+/** Writes a Run row and its actors through the persistence write path. */
+export async function insertStoredRun(
+  memory: ReturnType<typeof createMemoryEncounterStore>,
   run: EncounterRunState,
   actors: readonly EncounterRunActorState[]
 ) {
-  const memory = createMemoryEncounterStore({ idPrefix: 'stored-run' })
   await memory.store.insert(
     'encounterRuns',
     encounterStoredRunSchema.parse({
@@ -47,6 +105,18 @@ export async function storedRunDocuments(
     })
   )
   for (const actor of actors) await insertRunActor({ db: memory.store }, actor)
+}
+
+/**
+ * A Run and its actors as the room stores them: the Run row, each actor's play-state row and the
+ * snapshot and source-facts rows it names, all written through the persistence write path.
+ */
+export async function storedRunDocuments(
+  run: EncounterRunState,
+  actors: readonly EncounterRunActorState[]
+) {
+  const memory = createMemoryEncounterStore({ idPrefix: 'stored-run' })
+  await insertStoredRun(memory, run, actors)
   return memoryRoomDocuments(memory, [
     'encounterRuns',
     'encounterRunActors',

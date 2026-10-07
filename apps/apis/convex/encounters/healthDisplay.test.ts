@@ -13,16 +13,19 @@ import type {
   ShareEncounterActorHealthInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import type {
-  CharacterSheetCommandResponseDto,
-  CharacterSheetExecuteInput
-} from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterPartyVisibilityDto } from '@artificer-toolkit/schema/api/healthDisplay'
 import { api } from '../_generated/api'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeInRoom,
+  executeSheetInRoom,
+  RoomCommandRefusal,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 const get = makeFunctionReference<
   'query',
@@ -34,11 +37,6 @@ const share = makeFunctionReference<
   ShareEncounterActorHealthInputDto,
   CampaignChatEntryDto
 >('encounters/healthDisplay:share')
-const sheetExecute = makeFunctionReference<
-  'mutation',
-  CharacterSheetExecuteInput,
-  CharacterSheetCommandResponseDto
->('characters/sheetCommands:execute')
 const chat = makeFunctionReference<
   'query',
   z.input<typeof listCampaignChatEntriesInputSchema>,
@@ -59,12 +57,16 @@ async function setup() {
   await party.join()
   // D87: a player reads only the ACTIVE Encounter.
   await base.t.run((ctx) => activateFixtureRun(ctx, base.run.id))
+  await attachFixtureRoom(base.t, base.campaign.id)
   const enemy = base.run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!enemy) throw new Error('Missing enemy actor.')
-  const gmView = async () =>
-    encounterGmProjectionDtoSchema.parse(
+  // Convex serves the room's committed Run once it checkpoints.
+  const gmView = async () => {
+    await checkpointLiveRoom(base.campaign.id)
+    return encounterGmProjectionDtoSchema.parse(
       await base.owner.caller.query(get, { encounterId: base.run.id })
     )
+  }
   const gm = async (payload: CommandPayload) =>
     executeInRoom(base.owner.caller, {
       command: {
@@ -75,6 +77,7 @@ async function setup() {
       } as EncounterCommandInputDto
     })
   const healthSeenBy = async (viewer: typeof party | typeof base.player, actorId: string) => {
+    await checkpointLiveRoom(base.campaign.id)
     const projection = (await viewer.caller.query(get, {
       encounterId: base.run.id
     })) as EncounterPlayerProjectionDto
@@ -85,8 +88,11 @@ async function setup() {
       id: base.character.id
     })
     if (!sheet) throw new Error('Expected Character Sheet.')
-    await base.player.caller.mutation(sheetExecute, {
-      id: base.character.id,
+    // The room holds the Character, so its play commands go through the room.
+    await executeSheetInRoom(base.player.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: base.character.id,
+      encounterId: base.run.id,
       command: {
         type: 'SET_PARTY_VISIBILITY',
         commandId: crypto.randomUUID(),
@@ -99,6 +105,8 @@ async function setup() {
 }
 
 describe('Encounter health display levels (ADR 0034 decision 5)', () => {
+  useLocalRoomWorker()
+
   it('redacts enemy health for every level, with the actor override over the Encounter default', async () => {
     const base = await setup()
     await base.gm({ type: 'UPDATE_ACTOR', actorId: base.enemy.id, currentHitPoints: 1 })
@@ -185,6 +193,7 @@ describe('Encounter health display levels (ADR 0034 decision 5)', () => {
     const before = await base.gmView()
     const commandId = crypto.randomUUID()
     const input = { encounterId: base.run.id, actorId: base.enemy.id, commandId }
+    await checkpointLiveRoom(base.campaign.id)
 
     await expect(base.party.caller.mutation(share, input)).rejects.toThrow('Campaign not found.')
     const entry = await base.owner.caller.mutation(share, input)
@@ -201,6 +210,7 @@ describe('Encounter health display levels (ADR 0034 decision 5)', () => {
 
     // Sharing a hidden enemy would reveal it; a Character's health is its player's to share.
     await base.gm({ type: 'UPDATE_ACTOR', actorId: base.enemy.id, public: false })
+    await checkpointLiveRoom(base.campaign.id)
     await expect(
       base.owner.caller.mutation(share, { ...input, commandId: crypto.randomUUID() })
     ).rejects.toThrow('Encounter actor was not found.')

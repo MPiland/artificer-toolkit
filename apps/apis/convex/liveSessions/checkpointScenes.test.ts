@@ -24,9 +24,11 @@ import { diffJson } from '@artificer-toolkit/encounter-persistence/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createRun } from '../../tests/fixtures/encounterScene'
 import {
-  commitSceneInRoom,
-  insertActiveLiveAuthority
-} from '../../tests/fixtures/liveSessionWorker'
+  attachFixtureRoom,
+  checkpointRoom,
+  executeSceneInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene,
@@ -37,6 +39,7 @@ import type { Doc } from '../_generated/dataModel'
 import { parseFogLayer, parseFogSave, readFogChunk } from '../scenes/fogDocuments'
 import { parseLiveEntity, readLiveSceneForUser } from '../scenes/liveDocuments'
 
+useLocalRoomWorker()
 afterEach(() => vi.useRealTimers())
 
 const publish = makeFunctionReference<
@@ -131,16 +134,10 @@ async function fixture(withSecondScene = false) {
     campaignId: base.campaign.id,
     sceneId: scene.sceneId
   })
-  await base.t.run((ctx) =>
-    insertActiveLiveAuthority(ctx, {
-      campaignId: base.campaign.id,
-      epoch: crypto.randomUUID(),
-      createdAt: base.campaign.createdAt
-    })
-  )
-  // The room's own checkpoint is the fixture oracle: its rows are normalized into a publication
-  // that these tests then replay through the checkpoint mutation.
-  const result = await commitSceneInRoom(base.owner.caller, base.campaign.id, {
+  await attachFixtureRoom(base.t, base.campaign.id)
+  // The real room's own checkpoint is the fixture oracle: its rows are normalized into a publication
+  // that these tests then replay through the checkpoint mutation, against the authority it claimed.
+  const result = await executeSceneInRoom(base.owner.caller, {
     type: 'MOVE_SCENE_TOKEN',
     commandId: crypto.randomUUID(),
     sceneId: scene.sceneId,
@@ -151,6 +148,7 @@ async function fixture(withSecondScene = false) {
     movementKind: 'VOLUNTARY',
     path: [token.position, { x: 900, y: 100 }]
   })
+  await checkpointRoom(base.campaign.id)
   vi.useFakeTimers()
   const blueprint = await base.owner.caller.mutation(createBlueprint, {
     gameSystemId: base.campaign.gameSystemId,

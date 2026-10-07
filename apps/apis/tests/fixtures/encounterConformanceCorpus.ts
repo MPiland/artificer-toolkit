@@ -9,7 +9,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/mechanicsBatchPersistence'
 import { prepareRuleOccurrenceVoid } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import { recordTurnMovement } from '@artificer-toolkit/encounter-persistence/turnMovement'
-import { persistHeldHistoryToConvex } from './roomRouting'
+import { closeRoom } from './localRoomWorker'
 import { playerControlFixture, type PlayerControlFixture } from './playerControl'
 
 export type EncounterStoreOperation = (transaction: EncounterWriteTransaction) => Promise<unknown>
@@ -17,6 +17,9 @@ export type EncounterStoreOperation = (transaction: EncounterWriteTransaction) =
 /**
  * The Encounter persistence operations the store conformance and projection parity suites run: each
  * scenario builds its fixture, moves it to the operation's starting state, and returns the operation.
+ * REVERT_LAST_ACTION is not here: it reads the action's receipts, which the real room holds until
+ * the Run ends (D85), so no real room action leaves Convex a Run it can undo. `defeat.test.ts` covers
+ * the undo in the room.
  */
 export type EncounterConformanceScenario = {
   name: string
@@ -135,6 +138,8 @@ export const encounterConformanceCorpus: readonly EncounterConformanceScenario[]
       const started = await base.gm(await base.bite(base.companion.id, base.enemy.id))
       const pending = started.occurrence?.pending
       if (!pending) throw new Error('Expected a paused action.')
+      // The operation runs straight in Convex, so the room hands the Run over first (D85).
+      await closeRoom(base.campaign.id)
       return {
         base,
         operation: (transaction) =>
@@ -146,25 +151,6 @@ export const encounterConformanceCorpus: readonly EncounterConformanceScenario[]
             occurrenceId: pending.occurrenceId,
             expectedOccurrenceVersion: pending.occurrenceVersion
           })
-      }
-    }
-  },
-  {
-    name: 'reverts the last action',
-    setup: async () => {
-      const base = await playerControlFixture()
-      await base.gm(await base.bite(base.companion.id, base.enemy.id))
-      // The undo reads the action's receipts, which the room holds; Convex runs the operation here.
-      await persistHeldHistoryToConvex(base.owner.caller, base.campaign.id, base.run.id)
-      const state = await runState(base)
-      return {
-        base,
-        operation: gmTool(base, {
-          type: 'REVERT_LAST_ACTION',
-          encounterId: base.run.id,
-          commandId: '10000000-0000-4000-8000-000000000031',
-          expectedVersion: state.version
-        })
       }
     }
   },

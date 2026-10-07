@@ -27,8 +27,7 @@ import { setupCharacterRun } from './encounterCharacter'
 import { createPartyPlayer } from './partyPlayer'
 import { importedSubject } from './publication'
 import { setAutoRollDice } from './rollPreferences'
-import { attachFixtureRoom, checkpointLiveRoom, usesRoomWorker } from './localRoomWorker'
-import { executeInRoom } from './roomRouting'
+import { attachFixtureRoom, checkpointLiveRoom, executeInRoom } from './localRoomWorker'
 
 /**
  * How the companion's Bite resolves: `ACTIVATED` deals fixed damage with no roll, `ATTACK` needs the
@@ -278,7 +277,7 @@ async function readRunVersion(base: {
   campaign: { id: string }
   run: { id: string }
 }): Promise<number> {
-  if (usesRoomWorker()) await checkpointLiveRoom(base.campaign.id)
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')

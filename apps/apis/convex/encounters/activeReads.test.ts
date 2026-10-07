@@ -29,8 +29,15 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { internal } from '../_generated/api'
 import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  closeRoom,
+  executeInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
+
+useLocalRoomWorker()
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -131,6 +138,7 @@ it('reads the active projection and pending decision together with existing visi
     })
   )
 
+  await attachFixtureRoom(base.t, campaign.id)
   let result = await executeInRoom(base.owner.caller, {
     command: {
       type: 'START',
@@ -178,6 +186,8 @@ it('reads the active projection and pending decision together with existing visi
   expect(paused.projection.status).toBe('ACTIVE')
   const hiddenActor = paused.projection.actors[1]
   if (!hiddenActor) throw new Error('Missing hidden actor.')
+  // The room holds the Run: release it so the direct Convex patches below are the Run's state.
+  await closeRoom(campaign.id)
   await base.t.run(async (ctx) => {
     await updateFixtureRunActors(ctx, run.id, (actor) =>
       actor.id === hiddenActor.id && actor.kind === 'CREATURE'

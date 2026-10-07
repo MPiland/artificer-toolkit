@@ -115,6 +115,7 @@ describe('readNativeLiveMaintenanceSlot', () => {
       createdOrdinal: 1,
       maintainedEffectStateId: testUuid(0x31)
     })
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake((request) =>
       request.kind === 'MAINTENANCE_SLOT'
         ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState }
@@ -135,6 +136,7 @@ describe('readNativeLiveMaintenanceSlot', () => {
   })
 
   it('refuses a repeated dependents cursor', async () => {
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake((request) =>
       request.kind === 'MAINTENANCE_SLOT'
         ? { kind: 'MAINTENANCE_SLOT', ...captureEnvelope, state: slotState }
@@ -157,6 +159,7 @@ describe('readNativeLiveMaintenanceSlot', () => {
       ownerActorId: TARGET_ID,
       definitionId: DEFINITION_ID
     })
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({
       kind: 'MAINTENANCE_SLOT',
       ...captureEnvelope,
@@ -348,6 +351,7 @@ describe('readNativeLiveMaintenanceOwners', () => {
     const owner = characterOwner(CHARACTER_A)
     const row = characterOwnerRowFor({ characterId: CHARACTER_A })
     for (const character of [null, { ...row, systemId: testUuid(0x99) }]) {
+      // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
       const fake = captureFake((request) =>
         request.kind === 'MAINTENANCE_OWNER'
           ? { kind: 'MAINTENANCE_OWNER', ...captureEnvelope, owner, character }
@@ -373,6 +377,7 @@ describe('readNativeLiveMaintenanceOwners', () => {
   })
 
   it('refuses an owner capture answering for another owner', async () => {
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({
       kind: 'MAINTENANCE_OWNER',
       ...captureEnvelope,
@@ -397,6 +402,7 @@ describe('readNativeLiveMaintenanceOwners', () => {
     const page = [0x701, 0x702, 0x703, 0x704].map((id) =>
       activeEffect({ id: testUuid(id), owner, createdOrdinal: id })
     )
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake((request) =>
       request.kind === 'MAINTENANCE_OWNER'
         ? { kind: 'MAINTENANCE_OWNER', ...captureEnvelope, owner, character: row }
@@ -482,6 +488,7 @@ describe('readNativeLiveMovementConcentrationState', () => {
       ownerActorId: TARGET_ID,
       definitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
     })
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({
       kind: 'MAINTENANCE_SLOT',
       ...captureEnvelope,
@@ -495,6 +502,7 @@ describe('readNativeLiveMovementConcentrationState', () => {
   })
 
   it('refuses a slot capture answered with another kind', async () => {
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({ kind: 'DEFINITION', ...captureEnvelope, definition: null }))
 
     await expect(read(fake)).rejects.toThrow('Movement Concentration slot is unavailable.')
@@ -530,6 +538,7 @@ describe('liveEncounterCaptures', () => {
   })
 
   it('refuses a response that answers another request kind', async () => {
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({ kind: 'DEFINITION', ...captureEnvelope, definition: null }))
     const captures = liveEncounterCaptures(initial, fake.reads)
 
@@ -602,6 +611,7 @@ describe('readNativeLiveActorsAndEffects', () => {
 
   it('refuses an actor capture answering for another actor', async () => {
     const state = encounterRunState({ actors: [runActor({ id: sortedFirst })] })
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({
       kind: 'ACTOR',
       ...captureEnvelope,
@@ -622,6 +632,7 @@ describe('readNativeLiveActorsAndEffects', () => {
         runActor({ id: sortedLast, characterId: CHARACTER_A })
       ]
     })
+    // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake((request) => ({
       kind: 'ACTOR',
       ...captureEnvelope,

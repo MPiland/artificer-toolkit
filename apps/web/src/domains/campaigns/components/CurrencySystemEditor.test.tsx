@@ -1,22 +1,19 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import type { CurrencySystemDto } from '@artificer-toolkit/schema/api/campaignInventory'
+import { getFunctionName, type FunctionReference } from 'convex/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), remove: vi.fn() }))
 
-vi.mock('@artificer-toolkit/apis/convex/api', () => ({
-  api: {
-    campaigns: {
-      currencySystems: { save: 'currencySystems/save', remove: 'currencySystems/remove' }
-    }
-  }
-}))
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
-  useMutation: (reference: string) =>
-    reference === 'currencySystems/save' ? mocks.save : mocks.remove
+  useMutation: (reference: FunctionReference<'mutation'>) =>
+    getFunctionName(reference) === getFunctionName(api.campaigns.currencySystems.save)
+      ? mocks.save
+      : mocks.remove
 }))
 
 import { CurrencySystemEditor } from './CurrencySystemEditor'

@@ -19,7 +19,7 @@ import { api, components, internal } from '../../convex/_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../../convex/characters/stateDocuments'
 import { writeCharacterRecord } from './characterRecords'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
-import { executeInRoom } from './roomRouting'
+import { attachFixtureRoom, closeRoom, executeInRoom } from './localRoomWorker'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -43,6 +43,9 @@ const createRun = makeFunctionReference<
 
 export async function turnConcentrationFixture(rolls: FixtureRolls) {
   const base = await turnCharacterEffectFixture()
+  // The room holds the Campaign from the base fixture's first command, and this fixture changes its
+  // System definitions and Characters beneath it: release it, then re-attach before its next command.
+  await closeRoom(base.campaign.id)
   await setAutoRollDice(base.t, base.owner.userId, rolls === 'AUTO_ROLL')
   const target = await base.createCharacter()
   await base.player.caller.mutation(api.characters.commit.commit, {
@@ -156,6 +159,7 @@ export async function turnConcentrationFixture(rolls: FixtureRolls) {
   })
   const observer = run.actors.find((actor) => actor.kind === 'CUSTOM')
   if (!observer) throw new Error('Turn concentration observer is unavailable.')
+  await attachFixtureRoom(base.t, base.campaign.id)
   const removed = await executeInRoom(base.owner.caller, {
     command: {
       type: 'REMOVE_ACTOR',

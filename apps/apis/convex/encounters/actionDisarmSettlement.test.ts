@@ -11,7 +11,10 @@ import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeD
 import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
 import { readCharacterRecord } from '../characters/stateDocuments'
+import { useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { settleDisarm } from './actionDisarmSettlement'
+
+useLocalRoomWorker()
 
 async function settle(
   base: Awaited<ReturnType<typeof nativeDisarmFixture>>,

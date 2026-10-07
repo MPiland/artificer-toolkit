@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import {
   adoptRevisions,
+  adoptSceneVisionRevisions,
   admitsRoomMember,
   RoomAuthorization,
   roomBoundTokenControl,
@@ -276,6 +277,35 @@ describe('room authorization cache', () => {
         { characterId: otherCharacterId, revision: id(311) }
       ]
     })
+  })
+
+  it('moves a cached Scene vision onto a checkpoint-adopted Character revision only from the sent one', () => {
+    const { revisions } = fullResponse()
+    const adopted = {
+      characters: [
+        { characterId, revision: id(310) },
+        { characterId: otherCharacterId, revision: id(311) }
+      ]
+    }
+    expect(
+      adoptSceneVisionRevisions(
+        [
+          { characterId, revision: id(300) },
+          // Built from a revision that is not the one the checkpoint was sent with.
+          { characterId: otherCharacterId, revision: id(399) }
+        ],
+        revisions,
+        adopted
+      )
+    ).toEqual([
+      { characterId, revision: id(310) },
+      { characterId: otherCharacterId, revision: id(399) }
+    ])
+    expect(
+      adoptSceneVisionRevisions([{ characterId, revision: id(300) }], revisions, {
+        characters: []
+      })
+    ).toEqual([{ characterId, revision: id(300) }])
   })
 
   it('keeps a revision the checkpoint did not adopt, so the next read fetches that section', async () => {

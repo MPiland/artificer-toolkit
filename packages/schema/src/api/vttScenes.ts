@@ -31,6 +31,8 @@ import {
 } from '../shared/combatPerception.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
+// Token and Barrier IDs key live Scene entities by lowercase ID, so their spelling is canonical.
+const sceneEntityIdSchema = lazySchema(() => z.string().check(z.uuid()).check(z.lowercase()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const definitionVersionSchema = lazySchema(() => z.number().check(z.int()).check(z.positive()))
 const coordinateSchema = lazySchema(() =>
@@ -139,7 +141,7 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
       controlledByUserIds: z.array(uuidSchema).check(z.maxLength(100)),
       height: positiveDistanceSchema,
       hidden: z.boolean(),
-      id: uuidSchema,
+      id: sceneEntityIdSchema,
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       locked: z.boolean(),
       position: scenePointDtoSchema,
@@ -163,7 +165,7 @@ export const sceneTokenDtoSchema: z.ZodMiniType<SceneToken> = lazySchema(() =>
 const sceneBarrierBase = {
   a: scenePointDtoSchema,
   b: scenePointDtoSchema,
-  id: uuidSchema
+  id: sceneEntityIdSchema
 }
 export const sceneBarrierDtoSchema: z.ZodMiniType<SceneBarrier> = lazySchema(() =>
   z

@@ -96,7 +96,7 @@ describe('native definition workspace', () => {
     mocks.create.mockResolvedValue(created)
     renderWorkspace(initial)
     const user = userEvent.setup()
-    await screen.findByLabelText('Channel')
+    await screen.findByRole('combobox', { name: 'Channel' })
     await user.click(screen.getByRole('button', { name: 'New definition' }))
     await user.type(await screen.findByRole('textbox', { name: 'Label' }), 'Private vision')
     await user.click(screen.getByRole('button', { name: 'Create definition' }))
@@ -117,7 +117,7 @@ describe('native definition workspace', () => {
     mocks.publish.mockResolvedValue(published)
     const { queryClient } = renderWorkspace(workspace)
     const user = userEvent.setup()
-    await screen.findByLabelText('Channel')
+    await screen.findByRole('combobox', { name: 'Channel' })
     await user.click(screen.getByRole('button', { name: 'Save draft' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Publish' })).toBeEnabled())
     expect(mocks.saveDraft).toHaveBeenCalledWith({
@@ -164,7 +164,7 @@ describe('native definition workspace', () => {
     const newer = withDefinitionDraft(saved)
     const { queryClient } = renderWorkspace(saved)
     const user = userEvent.setup()
-    await screen.findByLabelText('Channel')
+    await screen.findByRole('combobox', { name: 'Channel' })
     await user.click(screen.getByText('Advanced', { exact: true }))
     const text = `${JSON.stringify(senseDocument)}\n`
     fireEvent.change(screen.getByRole('textbox', { name: 'Reusable definition document' }), {
@@ -190,7 +190,7 @@ describe('native definition workspace', () => {
   it('retains invalid local text and cannot publish behind unsaved edits', async () => {
     renderWorkspace(withDefinitionDraft(createDefinitionWorkspace()))
     const user = userEvent.setup()
-    await screen.findByLabelText('Channel')
+    await screen.findByRole('combobox', { name: 'Channel' })
     await user.click(screen.getByText('Advanced', { exact: true }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Reusable definition document' }), {
       target: { value: '{' }

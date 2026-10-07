@@ -1,13 +1,20 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
-import type { CampaignCopyProgress } from '@artificer-toolkit/schema/api/campaignCopy'
-import type { CampaignSummaryDto } from '@artificer-toolkit/schema/api/campaignCore'
+import {
+  campaignCopyProgressSchema,
+  type CampaignCopyProgress
+} from '@artificer-toolkit/schema/api/campaignCopy'
+import {
+  campaignSummaryDtoSchema,
+  type CampaignSummaryDto
+} from '@artificer-toolkit/schema/api/campaignCore'
+import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignCopy } from './CampaignCopy'
 
-const campaign: CampaignSummaryDto = {
+const campaign = campaignSummaryDtoSchema.parse({
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   publicId: 'campaign-source',
   name: 'Source Campaign',
@@ -26,27 +33,11 @@ const campaign: CampaignSummaryDto = {
   playerCount: 1,
   createdAt: '2026-09-18T00:00:00.000Z',
   updatedAt: '2026-09-18T00:00:00.000Z',
-  capabilities: {
-    edit: true,
-    archive: true,
-    delete: true,
-    invite: true,
-    manageMembers: true,
-    manageCharacters: true,
-    assignOwnCharacter: false,
-    manageSharedContent: true,
-    shareOwnedContent: true,
-    managePartyInventory: true,
-    transferOwnInventory: true,
-    manageNotes: true,
-    contributeSessionNotes: true,
-    readTableChat: true,
-    readPartyChat: true
-  },
+  capabilities: getCampaignCapabilities('ACTIVE', 'OWNER'),
   assignedCharacter: null
-}
+})
 
-const runningCopy: CampaignCopyProgress = {
+const runningCopy = campaignCopyProgressSchema.parse({
   copyId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
   sourceCampaignId: campaign.id,
   sourceName: campaign.name,
@@ -57,7 +48,7 @@ const runningCopy: CampaignCopyProgress = {
   destination: null,
   createdAt: '2026-09-18T00:00:00.000Z',
   updatedAt: '2026-09-18T00:00:00.000Z'
-}
+})
 
 const mocks = vi.hoisted(() => ({
   begin: vi.fn(),

@@ -256,7 +256,6 @@ export const characterSheetActionDtoSchema = lazySchema(() =>
     kind: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'OTHER']),
     sourceLabel: z.optional(stringSchema),
     description: z.optional(stringSchema),
-    rollable: z.optional(booleanSchema),
     mechanic: z.optional(characterSheetMechanicDtoSchema),
     availability: z.discriminatedUnion('status', [
       z.object({ status: z.literal('AVAILABLE') }),

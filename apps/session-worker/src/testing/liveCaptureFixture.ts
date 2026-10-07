@@ -1,7 +1,8 @@
-import type {
-  LiveSessionEncounterRulesInput,
-  LiveSessionEncounterRulesRequest,
-  LiveSessionEncounterRulesResponse
+import {
+  liveSessionEncounterRulesResponseSchema,
+  type LiveSessionEncounterRulesInput,
+  type LiveSessionEncounterRulesRequest,
+  type LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type {
   ActiveRuleEffectOwner,
@@ -25,7 +26,7 @@ export function testUuid(value: number) {
 }
 
 export const ENCOUNTER_ID = testUuid(0xe000)
-export const SIDE_ID = testUuid(0xe001)
+const SIDE_ID = testUuid(0xe001)
 export const CAMPAIGN_ID = testUuid(0xe004)
 export const USER_ID = testUuid(0xe005)
 /** The System of the captured Character fixture. */
@@ -33,11 +34,18 @@ export const GAME_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 const TIMESTAMP = '2026-09-26T00:00:00.000Z'
 
 /** The envelope every capture response carries; the planners only accumulate it. */
-export const captureEnvelope = { revisions: [] }
+export const captureEnvelope = {
+  revisions: (['SYSTEM', 'CAMPAIGN', 'PLAY'] as const).map((scope, index) => ({
+    scope,
+    id: testUuid(0x7e00 + index),
+    revision: null
+  }))
+}
 
 /**
- * Answers planner captures from `answer` and records every request in the order it was issued,
- * as the room's SQLite reads would see them.
+ * Answers planner captures from `answer`, parsed by the response schema as the room's reads are, and
+ * records every request in the order it was issued. Only tests of the planners' contract handling
+ * (pagination, refusals) use it; movement and rules behavior runs through the real room.
  */
 export function captureFake(
   answer: (
@@ -47,7 +55,7 @@ export function captureFake(
   const requests: LiveSessionEncounterRulesRequest[] = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
     requests.push(request)
-    return answer(request)
+    return liveSessionEncounterRulesResponseSchema.parse(await answer(request))
   }
   const reads: LiveCaptureReads = {
     encounterRules: (input: LiveSessionEncounterRulesInput) => capture(input.request),

@@ -16,7 +16,7 @@ import type {
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { liveSceneHead } from '../../tests/fixtures/liveSceneToken'
-import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/localRoomWorker'
 import {
   createSceneDefinitionFixture,
   publishEmptyScene

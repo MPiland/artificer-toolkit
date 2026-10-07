@@ -2,14 +2,20 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { notifications } from '@mantine/notifications'
 import { getFunctionName } from 'convex/server'
-import type { SocialModerationQueueItemDto } from '@artificer-toolkit/schema/api/socialHub'
-import type { SocialModerationEvidenceDto } from '@artificer-toolkit/schema/api/socialModeration'
+import {
+  socialModerationQueueItemDtoSchema,
+  type SocialModerationQueueItemDto
+} from '@artificer-toolkit/schema/api/socialHub'
+import {
+  socialModerationEvidenceDtoSchema,
+  type SocialModerationEvidenceDto
+} from '@artificer-toolkit/schema/api/socialModeration'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialModerationPage } from './SocialModerationPage'
 
 const reportPublicId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-const queueItem: SocialModerationQueueItemDto = {
+const queueItem = socialModerationQueueItemDtoSchema.parse({
   reportPublicId,
   targetKind: 'PROFILE',
   reason: 'HARASSMENT',
@@ -17,8 +23,8 @@ const queueItem: SocialModerationQueueItemDto = {
   createdAt: '2026-09-01T00:00:00.000Z',
   updatedAt: '2026-09-01T00:00:00.000Z',
   version: 1
-}
-const evidence: SocialModerationEvidenceDto = {
+})
+const evidence = socialModerationEvidenceDtoSchema.parse({
   ...queueItem,
   reporter: { profilePublicId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', username: 'Reporter' },
   details: 'Captured report details.',
@@ -27,7 +33,7 @@ const evidence: SocialModerationEvidenceDto = {
     username: 'ReportedPlayer',
     status: 'ACTIVE'
   }
-}
+})
 
 const mocks = vi.hoisted(() => ({
   queue: {

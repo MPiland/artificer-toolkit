@@ -141,6 +141,31 @@ export function adoptRevisions(
   }
 }
 
+/**
+ * A cached Scene vision's Character revisions after a checkpoint's own writes. Only a revision the
+ * vision was built from at the `sent` revision follows the adoption; a Character someone else
+ * changed in between keeps its old revision, so the vision still rebuilds.
+ */
+export function adoptSceneVisionRevisions(
+  observed: LiveSessionRoomSceneCapture['observedCharacterRevisions'],
+  sent: LiveSessionRoomAuthorizationRevisions,
+  adopted: LiveSessionCheckpointAdoption
+): LiveSessionRoomSceneCapture['observedCharacterRevisions'] {
+  const sentRevisions = new Map(
+    sent.characters.map(({ characterId, revision }) => [characterId, revision])
+  )
+  const adoptedRevisions = new Map(
+    adopted.characters.map(({ characterId, revision }) => [characterId, revision])
+  )
+  return observed.map(({ characterId, revision }) => ({
+    characterId,
+    revision:
+      sentRevisions.get(characterId) === revision
+        ? (adoptedRevisions.get(characterId) ?? revision)
+        : revision
+  }))
+}
+
 /** Whether every Character behind a cached Scene vision still has the revision it was built from. */
 export function roomVisionCurrent(
   authorization: LiveSessionRoomAuthorization,

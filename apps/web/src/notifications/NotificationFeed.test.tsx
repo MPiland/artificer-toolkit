@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { notificationFeedDtoSchema } from '@artificer-toolkit/schema/api/notifications'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const mocks = vi.hoisted(() => ({
@@ -35,30 +36,32 @@ import { NotificationFeed } from './NotificationFeed'
 describe('NotificationFeed', () => {
   it('marks the full feed seen and records a read before the typed deep link', async () => {
     const onNavigate = vi.fn()
-    mocks.feed.mockResolvedValue({
-      items: [
-        {
-          data: {
-            kind: 'SOCIAL_INVITATION_RECEIVED',
-            sourcePublicId: '00000000-0000-4000-8000-000000000001',
-            listingPublicId: '00000000-0000-4000-8000-000000000002',
-            listingTitle: 'The Glass Harbor',
+    mocks.feed.mockResolvedValue(
+      notificationFeedDtoSchema.parse({
+        items: [
+          {
+            data: {
+              kind: 'SOCIAL_INVITATION_RECEIVED',
+              sourcePublicId: '00000000-0000-4000-8000-000000000001',
+              listingPublicId: '00000000-0000-4000-8000-000000000002',
+              listingTitle: 'The Glass Harbor',
+              occurredAt: '2026-08-10T15:00:00.000Z',
+              hostUsername: 'harbormaster',
+              expiresAt: '2026-08-17T15:00:00.000Z'
+            },
+            groupingKey: null,
+            id: '00000000-0000-4000-8000-000000000003',
             occurredAt: '2026-08-10T15:00:00.000Z',
-            hostUsername: 'harbormaster',
-            expiresAt: '2026-08-17T15:00:00.000Z'
-          },
-          groupingKey: null,
-          id: '00000000-0000-4000-8000-000000000003',
-          occurredAt: '2026-08-10T15:00:00.000Z',
-          readAt: null,
-          seenAt: null,
-          sourceKind: 'CAMPAIGN_INVITE',
-          sourcePublicId: '00000000-0000-4000-8000-000000000001',
-          workflowKey: 'social-invitation-received'
-        }
-      ],
-      unseenCount: 1
-    })
+            readAt: null,
+            seenAt: null,
+            sourceKind: 'CAMPAIGN_INVITE',
+            sourcePublicId: '00000000-0000-4000-8000-000000000001',
+            workflowKey: 'social-invitation-received'
+          }
+        ],
+        unseenCount: 1
+      })
+    )
     mocks.markRead.mockResolvedValue({ ok: true })
     mocks.markAllSeen.mockResolvedValue({ ok: true })
     renderWithAppProviders(<NotificationFeed onNavigate={onNavigate} />)

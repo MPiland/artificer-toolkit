@@ -50,6 +50,8 @@ import { insertConversationEntry } from '../campaigns/conversationDocuments'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { requireDefaultUserContentSource } from '../content/sources'
 
+useLocalRoomWorker()
+
 const read = makeFunctionReference<'query', LiveRoomInputsInput, LiveRoomInputsResponse>(
   'liveSessions/roomInputs:read'
 )
@@ -584,8 +586,6 @@ describe('raw room Scene inputs', () => {
 })
 
 describe('raw room Scene inputs from the real room', () => {
-  useLocalRoomWorker()
-
   it('returns all five native families after a committed geometry and fog change', async () => {
     // The Worker's HTTP and socket calls need real timers.
     vi.useRealTimers()
@@ -1186,6 +1186,47 @@ describe('live room inputs (ADR 0035 S2)', () => {
     expect(idsOf('encounterRunActors')).toEqual(stored.actors.map((row) => row._id).sort())
     expect(idsOf('encounterActorSnapshots')).toEqual(stored.snapshots.map((row) => row._id).sort())
     expect(stored.actors.length).toBeGreaterThan(1)
+  })
+
+  // The Worker's `fakeConvex` (apps/session-worker/src/roomInputs.test.ts) mimics these page
+  // properties over mutable state; this proves the real handler has them.
+  it('keeps the page properties the Worker fake relies on: continuation, revision stamping and page shape', async () => {
+    const base = await setup()
+    const scopeRevisions = (revisions: readonly { scope: string }[]) =>
+      revisions.map(({ scope }) => scope).sort()
+
+    const pages = await base.runPages()
+    expect(pages.length).toBeGreaterThan(1)
+    pages.forEach((page, index) => {
+      // Each page names the next table position, or null on the last; the Run rides page one only.
+      expect(page.maintenanceCharacterOwners === null).toBe(index > 0)
+      expect(page.documents.some((document) => document.table === 'encounterRuns')).toBe(
+        index === 0
+      )
+      expect(page.continueCursor === null).toBe(index === pages.length - 1)
+      expect(page.encounterVersion).toBe(pages[0]!.encounterVersion)
+    })
+
+    const authority = await base.t.query(read, base.request({ kind: 'AUTHORITY', cursor: null }))
+    if (authority.kind !== 'AUTHORITY') throw new Error('Expected authority inputs.')
+    expect(authority.documents.map((document) => document.table)).toEqual(['campaigns'])
+    expect(authority.continueCursor).toEqual({ position: 1, paginationCursor: null })
+    expect(scopeRevisions(authority.revisions)).toEqual(['CAMPAIGN', 'SYSTEM'])
+
+    const definitions = await base.t.query(
+      read,
+      base.request({ kind: 'DEFINITIONS', cursor: null })
+    )
+    if (definitions.kind !== 'DEFINITIONS') throw new Error('Expected definition inputs.')
+    expect(scopeRevisions(definitions.revisions)).toEqual(['CAMPAIGN', 'SYSTEM'])
+
+    // Only the play-scoped reads carry the PLAY revision the room's checkpoint moves.
+    const play = await base.t.query(read, base.request({ kind: 'CAMPAIGN_PLAY' }))
+    if (play.kind !== 'CAMPAIGN_PLAY') throw new Error('Expected Campaign play inputs.')
+    expect(scopeRevisions(play.revisions)).toEqual(['CAMPAIGN', 'PLAY', 'SYSTEM'])
+    const system = await base.t.query(read, base.request({ kind: 'SYSTEM', part: 'SYSTEM' }))
+    if (system.kind !== 'SYSTEM') throw new Error('Expected System inputs.')
+    expect(scopeRevisions(system.revisions)).toEqual(['CAMPAIGN', 'PLAY', 'SYSTEM'])
   })
 
   it('rejects a cursor past the table list', async () => {

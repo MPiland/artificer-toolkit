@@ -374,7 +374,8 @@ describe('native Creature actions against Character targets', () => {
             .collect()
         )
       const created = await effects()
-      // The room's held receipt is not sent to members; its activeEffectTransitions are the rows
+      // The room's held receipt (asserted in `nativeRoomEffectReceipts.test.ts`) is not sent to
+      // members; its activeEffectTransitions are the rows
       // the room published for the Character.
       expect(created).toEqual([
         expect.objectContaining({
@@ -423,7 +424,8 @@ describe('native Creature actions against Character targets', () => {
       sourceRevision: null,
       currentHitPoints: afterHitPoints
     })
-    // The source's charge consumption (0 to 1) as the room published the actor, not its held receipt.
+    // The source's charge consumption (0 to 1) as the room published the actor; its held receipt is
+    // asserted in `nativeRoomEffectReceipts.test.ts`.
     const biteId = creature.features!.find((feature) => feature.label === 'Bite')!.id
     expect(featureChargeUsed(readStoredRunActor(before.source), biteId)).toBe(0)
     expect(featureChargeUsed(readStoredRunActor(after.source), biteId)).toBe(1)

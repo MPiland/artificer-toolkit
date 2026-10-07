@@ -287,6 +287,10 @@ describe('native receipt ledger storage', () => {
     })
   })
 
+  // The next three tests (through 'forwards empty native pages') stub only the platform's
+  // `paginate`: convex-test cannot produce Convex's opaque cursors, `pageStatus` split signals,
+  // multi-row windows under a one-row read cap or empty-but-advanced pages. Everything the
+  // ledger code does with the returned page runs for real against stored ledgers.
   it('paginates once, forwards native metadata and hydrates every returned header in order', async () => {
     const t = fixture()
     await t.run((ctx) =>

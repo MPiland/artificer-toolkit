@@ -29,7 +29,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementPreparation'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
-import { revalidateEncounterMovementReactionOption } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
+import {
+  discoverEncounterMovementReactionChoices,
+  revalidateEncounterMovementReactionOption
+} from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
+import { StaleMovementReactionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { prepareEncounterMovementReactionAction } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPreparation'
 import {
   executeEncounterMovementReactionAction,
@@ -58,8 +62,10 @@ import {
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
+  MovementEndpointOccupiedError,
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import type { MovementConcentrationSettlement } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
@@ -178,6 +184,7 @@ export async function prepareNativeLiveMovement(
       maintenanceProjection?: NativeLiveMovementMaintenanceProjection
     }
   ) {
+    // A reaction chosen from options that changed since they were issued is the client's stale view.
     return prepareEncounterMovementReactionAction({
       facts: factsFor(reaction.targets),
       revalidate: reaction,
@@ -218,6 +225,10 @@ export async function prepareNativeLiveMovement(
             [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
           )
         })
+    }).catch((error: unknown) => {
+      if (error instanceof StaleMovementReactionError)
+        rejectDomain('VERSION_STALE', 'This reaction changed; refresh and choose again.')
+      throw error
     })
   }
 
@@ -261,8 +272,15 @@ export async function prepareNativeLiveMovement(
       PreparedSpatialMovementPlan<CharacterFacts>,
       NativeLiveMovementSettlement
     >(step, {
-      discoverPassage: async () =>
-        discoverEncounterMovementPassage({ ...step, actors: captured.actors }),
+      discoverPassage: async () => {
+        try {
+          return discoverEncounterMovementPassage({ ...step, actors: captured.actors })
+        } catch (error) {
+          // The message names no creature, so a fogged hostile at the endpoint stays hidden.
+          if (error instanceof MovementEndpointOccupiedError) rejectDomain('MOVEMENT_BLOCKED')
+          throw error
+        }
+      },
       evaluateSpatial: (spatial, targets, stageTerminalSettlement) =>
         prepareEncounterSpatialMovement({
           input: spatial,
@@ -370,20 +388,47 @@ export async function prepareNativeLiveMovement(
               choice
             )
         ),
-      validateReactionOptions: async ({ next, root, position, targets }) => {
+      currentReactionGroup: async ({ next, root, position, targets }) => {
         const perception = await perceptionFor(targets)
-        for (const option of next.group.options)
-          await revalidateEncounterMovementReactionOption({
-            ...perception.facts,
-            movementKind: root.movementKind,
-            occurrenceId: step.occurrenceId,
-            option,
-            actorIdByTokenId: step.actorIdByTokenId,
-            tokens: step.sceneTokens.map((token) =>
-              token.id === root.tokenId ? { ...token, position } : token
-            ),
-            resolvePerception: perception.resolvePerception
-          })
+        try {
+          for (const option of next.group.options)
+            await revalidateEncounterMovementReactionOption({
+              ...perception.facts,
+              movementKind: root.movementKind,
+              occurrenceId: step.occurrenceId,
+              option,
+              actorIdByTokenId: step.actorIdByTokenId,
+              tokens: step.sceneTokens.map((token) =>
+                token.id === root.tokenId ? { ...token, position } : token
+              ),
+              resolvePerception: perception.resolvePerception
+            })
+          return next
+        } catch (error) {
+          if (!(error instanceof StaleMovementReactionError)) throw error
+        }
+        // The reactor's source changed since this group was issued: discover it again as the move did.
+        const { reactionTimeline } = await discoverEncounterMovementReactionChoices({
+          ...perception.facts,
+          grid: scene.grid,
+          movementKind: root.movementKind,
+          movingTokenId: root.tokenId,
+          occurrenceId: step.occurrenceId,
+          path: root.originalPath,
+          actorIdByTokenId: step.actorIdByTokenId,
+          // The Scene holds the mover at its boundary; the path begins where the move began.
+          tokens: step.sceneTokens.map((token) =>
+            token.id === root.tokenId ? { ...token, position: root.originalPath[0]! } : token
+          ),
+          resolvePerception: perception.resolvePerception
+        })
+        return (
+          reactionTimeline.find(
+            (entry) =>
+              entry.group.reactorActorId === next.group.reactorActorId &&
+              Math.abs(entry.group.pathDistance - next.group.pathDistance) <= 1e-8
+          ) ?? null
+        )
       },
       runtime: async () => runtime
     })

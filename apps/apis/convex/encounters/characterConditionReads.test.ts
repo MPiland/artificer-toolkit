@@ -1,5 +1,9 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { describe, expect, it } from 'vitest'
 import type {
   CampaignConditionDto,
@@ -118,6 +122,8 @@ function characterConditions(projection: EncounterProjection, actorId: string): 
 }
 
 describe('native Encounter current Character conditions', () => {
+  useLocalRoomWorker()
+
   it.each(['Character', 'System', 'Campaign overlay', 'route owner'] as const)(
     'refuses corrupt %s while reading current conditions',
     async (corruption) => {
@@ -180,6 +186,7 @@ describe('native Encounter current Character conditions', () => {
 
   it('reads current Sheet and Campaign conditions without changing the stored Run', async () => {
     const { t, owner, player, campaign, character, run, actor } = await setupCharacterRun()
+    await attachFixtureRoom(t, campaign.id)
     const [personalCondition, visibleCondition] = SRD_CONDITION_TYPES
     if (!personalCondition || !visibleCondition) throw new Error('Missing SRD condition fixture.')
     await setStatus(t, run.id, 'ACTIVE')
@@ -375,10 +382,8 @@ describe('native Encounter current Character conditions', () => {
     await expect(player.caller.query(get, { encounterId: run.id })).rejects.toThrow(
       'Encounter is unavailable.'
     )
-    await expect(readTimelineInRoom(owner.caller, run.id)).resolves.toMatchObject({
-      entries: expect.any(Array),
-      nextCursor: null
-    })
+    // The room holds no finished Run, so it sends the GM no timeline for it.
+    await expect(readRoomTimeline(owner.caller, campaign.id)).resolves.toEqual([])
 
     await expect(t.query(get, { encounterId: run.id })).rejects.toThrow('Unauthenticated')
     await t.run(async (ctx) => {

@@ -5,6 +5,7 @@ import {
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
+import { characterSheetEquipmentOptionsResponseDtoSchema } from '@artificer-toolkit/schema/api/characterSheetData'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createSheet, openEquipmentManager, showCarriedEquipment } from '../tests/sheetTestHarness'
 import { CharacterSheetInventory } from './CharacterSheetInventory'
@@ -15,10 +16,16 @@ vi.mock('#app/data/characters/queries', () => ({
   getCharacterSheetEquipmentOptions: queryMocks.getCharacterSheetEquipmentOptions
 }))
 
-const fullEquipmentOptions = [
-  { id: 'equipment-1', label: 'Longsword', isContainer: false, requiresAttunement: true },
-  { id: 'equipment-2', label: 'Backpack', isContainer: true, requiresAttunement: false }
-]
+const realSheet = createSheet()
+const fullEquipmentOptions = characterSheetEquipmentOptionsResponseDtoSchema.parse(
+  realSheet.reference.equipmentOptions
+)
+const longswordItem = realSheet.inventory.items.find((item) => item.label === 'Longsword')
+const copper = realSheet.reference.currencyOptions.find((option) => option.label === 'Copper Piece')
+const gold = realSheet.reference.currencyOptions.find((option) => option.label === 'Gold Piece')
+if (!longswordItem || !copper || !gold || !fullEquipmentOptions[0]) {
+  throw new Error('Expected the real Sheet to carry a Longsword and offer Copper and Gold Pieces.')
+}
 
 describe('Character Sheet inventory', () => {
   beforeEach(() => {
@@ -76,7 +83,7 @@ describe('Character Sheet inventory', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADJUST_CURRENCY',
-      currencyId: 'currency-1',
+      currencyId: copper.id,
       kind: 'RULESET',
       amount: 1,
       expectedVersion: 4
@@ -88,9 +95,9 @@ describe('Character Sheet inventory', () => {
     const submitCommand = vi.fn()
     const sheet = createSheet()
     sheet.reference.currencyOptions = [
-      { id: 'currency-1', label: 'Gold', kind: 'RULESET' },
+      gold,
       {
-        id: 'currency-1',
+        id: gold.id,
         label: 'Campaign Gold',
         kind: 'CAMPAIGN',
         campaignCurrencySystemId: 'campaign-currency-1'
@@ -109,7 +116,7 @@ describe('Character Sheet inventory', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADJUST_CURRENCY',
-      currencyId: 'currency-1',
+      currencyId: gold.id,
       kind: 'CAMPAIGN',
       campaignCurrencySystemId: 'campaign-currency-1',
       amount: 1,
@@ -149,7 +156,7 @@ describe('Character Sheet inventory', () => {
 
     expect(openPanel).toHaveBeenCalledWith({
       kind: 'ITEM',
-      itemInstanceId: 'item-1'
+      itemInstanceId: longswordItem.id
     })
     expect(screen.queryByRole('button', { name: /^details$/i })).not.toBeInTheDocument()
   })
@@ -254,7 +261,7 @@ describe('Character Sheet inventory', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADD_INVENTORY_ITEM',
-      equipmentId: 'equipment-1',
+      equipmentId: fullEquipmentOptions[0].id,
       quantity: 1,
       expectedVersion: 4
     })
@@ -264,28 +271,17 @@ describe('Character Sheet inventory', () => {
     const user = userEvent.setup()
     const openPanel = vi.fn()
     const sheet = createSheet()
-    sheet.inventory.items = [
-      {
-        id: 'item-1',
-        equipmentId: 'equipment-1',
-        label: 'Moonlit Blade',
-        equipmentLabel: 'Longsword',
-        description: '<p>A balanced knightly blade.</p>',
-        category: 'WEAPON',
-        properties: [
-          { code: 'MARTIAL', label: 'Martial' },
-          { code: 'ONE_HANDED', label: 'One-Handed' }
-        ],
-        cost: { amount: 15, currencyId: 'gp' },
-        costLabel: 'Gold',
-        weight: { amount: 3, unit: 'POUNDS' },
-        customName: 'Moonlit Blade',
-        quantity: 1,
-        equipped: true,
-        attuned: false,
-        requiresAttunement: false
-      }
-    ]
+    sheet.inventory.items = sheet.inventory.items.map((item) =>
+      item.id === longswordItem.id
+        ? {
+            ...item,
+            label: 'Moonlit Blade',
+            customName: 'Moonlit Blade',
+            description: '<p>A balanced knightly blade.</p>',
+            equipped: true
+          }
+        : item
+    )
 
     renderWithAppProviders(
       <CharacterSheetInventory
@@ -302,11 +298,16 @@ describe('Character Sheet inventory', () => {
     expect(within(row).getByText(/longsword/i)).toBeInTheDocument()
     expect(within(row).getByText(/3 pounds/i)).toBeInTheDocument()
     expect(within(row).getByText(/equipped/i)).toBeInTheDocument()
+    expect(longswordItem.properties?.map((property) => property.label)).toEqual([
+      'Martial',
+      'Melee',
+      'Versatile'
+    ])
     expect(screen.queryByText(/properties:/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/martial, one-handed/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/martial|melee|versatile/i)).not.toBeInTheDocument()
 
     await user.click(row)
-    expect(openPanel).toHaveBeenCalledWith({ kind: 'ITEM', itemInstanceId: 'item-1' })
+    expect(openPanel).toHaveBeenCalledWith({ kind: 'ITEM', itemInstanceId: longswordItem.id })
     expect(screen.queryByText(/a balanced knightly blade/i)).not.toBeInTheDocument()
   })
 
@@ -314,25 +315,30 @@ describe('Character Sheet inventory', () => {
     const sheet = createSheet()
     const systemId = '00000000-0000-4000-8000-000000000601'
     sheet.reference.currencyOptions = [
-      { id: 'currency-1', label: 'Gold', kind: 'RULESET' },
+      gold,
       {
-        id: 'currency-1',
+        id: gold.id,
         label: 'Campaign Gold',
         kind: 'CAMPAIGN',
         campaignCurrencySystemId: systemId
       }
     ]
     sheet.inventory.currencies = [
-      { currencyId: 'currency-1', kind: 'RULESET', label: 'Gold', amount: Number.MAX_SAFE_INTEGER },
       {
-        currencyId: 'currency-1',
+        currencyId: gold.id,
         kind: 'RULESET',
-        label: 'Gold',
+        label: gold.label,
+        amount: Number.MAX_SAFE_INTEGER
+      },
+      {
+        currencyId: gold.id,
+        kind: 'RULESET',
+        label: gold.label,
         amount: Number.MAX_SAFE_INTEGER,
         containerId: 'pouch'
       },
       {
-        currencyId: 'currency-1',
+        currencyId: gold.id,
         kind: 'CAMPAIGN',
         campaignCurrencySystemId: systemId,
         label: 'Campaign Gold',
@@ -342,7 +348,7 @@ describe('Character Sheet inventory', () => {
     expect(
       getInventoryCurrencyTotals(sheet).map(({ label, amount }) => ({ label, amount }))
     ).toEqual([
-      { label: 'Gold', amount: '18014398509481982' },
+      { label: gold.label, amount: '18014398509481982' },
       { label: 'Campaign Gold', amount: '3' }
     ])
     expect(getInventoryCurrencyRows(sheet)).toHaveLength(3)
@@ -385,6 +391,6 @@ describe('Character Sheet inventory', () => {
       toContainerId: 'pouch',
       expectedVersion: 4
     })
-    expect(screen.getByRole('combobox', { name: /^currency type$/i })).toHaveValue('Gold')
+    expect(screen.getByRole('combobox', { name: /^currency type$/i })).toHaveValue(copper.label)
   })
 })

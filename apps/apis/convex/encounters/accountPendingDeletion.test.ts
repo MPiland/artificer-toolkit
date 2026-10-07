@@ -21,12 +21,23 @@ import {
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { removeAccountCharacterActors } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
-import { executeInRoom, RoomCommandRefusal } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
+  executeInRoom,
+  RoomCommandRefusal,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { encounterWriteTransaction } from './encounterPorts'
+
+useLocalRoomWorker()
 
 type Fixture = Awaited<ReturnType<typeof turnCharacterEffectFixture>>
 
+/** Convex rows once the room has checkpointed; the room's held history is not among them. */
 async function capture(base: Fixture) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -87,6 +98,9 @@ async function preparePendingDeletion() {
       })
     ]
   })
+  // Rebuild the content snapshots with the Creature just imported, and release the room's older copy.
+  await attachFixtureRoom(fixture.t, fixture.campaign.id)
+  await closeRoom(fixture.campaign.id)
   const reinforced = await executeInRoom(fixture.owner.caller, {
     command: {
       type: 'REINFORCE',
@@ -102,6 +116,8 @@ async function preparePendingDeletion() {
   const other = base.run.actors.find((entry) => entry.sourceId === automaticChargedCreatureId)
   if (!actor || actor.kind !== 'CHARACTER' || !other)
     throw new Error('Expected deleting Character and other pending actor fixtures.')
+  // The room holds the Run: release it so this direct Convex write is the Run's state.
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     const rows = await ctx.db
       .query('encounterRuns')
@@ -125,6 +141,7 @@ async function preparePendingDeletion() {
     const occurrence = current.occurrence
     // A result shows only its submitter's request; the other member reads theirs publicly.
     const hidden = occurrence?.status === 'PENDING' && !occurrence.pending
+    if (hidden) await checkpointLiveRoom(base.campaign.id)
     const read = hidden
       ? ((await base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
           encounterId: base.run.id
@@ -147,6 +164,8 @@ async function preparePendingDeletion() {
         )
       if (current.projection.currentActorId === other.id) {
         if (effect) throw new Error('The seeded Creature end-turn save did not pause.')
+        // The seed writes Convex rows mid-run, so the room must not hold the Run.
+        await closeRoom(base.campaign.id)
         effect = await seedTurnSaveEffect(
           {
             ...base,
@@ -293,6 +312,8 @@ describe('trusted account cleanup during another actor pending turn effect', () 
     await expect(executeInRoom(base.owner.caller, remove)).rejects.toThrow(RoomCommandRefusal)
     expect(await capture(base)).toEqual(before)
 
+    // The trusted cleanup runs against the Run's committed rows, not a held room copy.
+    await closeRoom(base.campaign.id)
     await base.t.run((ctx) =>
       removeAccountCharacterActors(
         encounterWriteTransaction(ctx),

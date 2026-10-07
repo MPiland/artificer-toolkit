@@ -1,13 +1,24 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
+import { z } from 'zod'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
-import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import {
-  planMovementDecisionInRoom,
-  planMovementInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  readCheckpointedHitPoints,
+  readCheckpointedTokenPosition,
+  setupReactionMovementScene
+} from '../../tests/fixtures/automaticSceneMovement'
+import {
+  checkpointLiveRoom,
+  executeInRoom,
+  executeSceneInRoom,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+import { readTestActor } from '../../tests/fixtures/storedActors'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
+useLocalRoomWorker()
+
+const featureChargesSchema = z.object({ featureCharges: z.record(z.string(), z.number()) })
 
 function command(input: {
   encounterId: string
@@ -26,6 +37,11 @@ function command(input: {
   }
 }
 
+// The authored STOP binding, the ON_SAVE_FAIL result path, the Legendary Resistance use and its
+// charge receipt are room-held history, pinned in apps/session-worker/test/nativeMovementEvidence.test.ts
+// ("a failed movement-reaction save against Legendary Resistance"). Here they read as their
+// member-visible effects: where the token ends (the contact at 200 on a failed save, the destination
+// on a resisted one), the mover's hit points (the failed-save damage) and its spent charge.
 it.each(['USE', 'DECLINE'] as const)(
   'applies authored failed-save STOP after Scene LR %s',
   async (selection) => {
@@ -34,31 +50,28 @@ it.each(['USE', 'DECLINE'] as const)(
       stopOnFailedSave: true
     })
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
-    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-    const initial = await root.publish()
-    const reactionChoice = initial.occurrence?.pending
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
+    const startHitPoints = await readCheckpointedHitPoints(value, base.mover.id)
+    const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+    const reactionChoice = initial?.occurrence?.pending
     if (
       !reactionChoice ||
       reactionChoice.kind !== 'MOVEMENT_REACTION' ||
       !reactionChoice.choice.options[0]
     )
       throw new Error('Expected issued Scene reaction choice.')
-    const resisted = await (
-      await planMovementDecisionInRoom(
-        value.owner.caller,
-        command({
-          encounterId: base.run.id,
-          pending: reactionChoice,
-          resolution: { kind: 'OPTION', optionId: reactionChoice.choice.options[0].optionId }
-        })
-      )
-    ).publish()
+    const resisted = await executeInRoom(value.owner.caller, {
+      command: command({
+        encounterId: base.run.id,
+        pending: reactionChoice,
+        resolution: { kind: 'OPTION', optionId: reactionChoice.choice.options[0].optionId }
+      })
+    })
     const resistance = resisted.occurrence?.pending
     if (!resistance || resistance.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
       throw new Error('Expected issued Scene LR choice.')
-    const { outcome, publish } = await planMovementDecisionInRoom(
-      value.owner.caller,
-      command({
+    const completed = await executeInRoom(value.owner.caller, {
+      command: command({
         encounterId: base.run.id,
         pending: resistance,
         resolution:
@@ -66,27 +79,28 @@ it.each(['USE', 'DECLINE'] as const)(
             ? { kind: 'OPTION', optionId: resistance.options[0]!.optionId }
             : { kind: 'DECLINE' }
       })
-    )
-    expect(outcome?.kind).toBe('TERMINAL')
-    if (outcome?.kind !== 'TERMINAL') throw new Error('Expected LR to complete Scene movement.')
-    expect(outcome.result.reactionExecutions).toHaveLength(1)
-    const reaction = outcome.result.reactionExecutions[0]!
-    expect(reaction.option.binding.movementInterruption).toEqual({
-      kind: 'STOP',
-      whenResultPath: 'ON_SAVE_FAIL'
     })
-    expect(reaction.phaseReceipts?.[0]?.execution.outputs.resultPath).toBe('ON_SAVE_FAIL')
-    expect(reaction.legendaryResistance?.use).toBe(selection === 'USE')
-    expect(reaction.application).toMatchObject({
-      targetFeatureResourceConsumption:
-        selection === 'USE' ? expect.objectContaining({ beforeUsed: 0, afterUsed: 1 }) : null
-    })
-    expect(reaction.option.candidate.contact).toEqual({ x: 200, y: 50 })
-    expect(outcome.result.terminalPosition).toEqual(
-      selection === 'USE' ? { x: 450, y: 50 } : reaction.option.candidate.contact
-    )
-    const completed = await publish()
     expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual(
+      selection === 'USE' ? { x: 450, y: 50 } : { x: 200, y: 50 }
+    )
+    const hitPoints = await readCheckpointedHitPoints(value, base.mover.id)
+    if (selection === 'USE') expect(hitPoints).toBe(startHitPoints)
+    // A failed save deals the bite's minimum, 2d4 + 2.
+    else expect(hitPoints).toBe(startHitPoints - 4)
+    await checkpointLiveRoom(base.campaign.id)
+    const spentCharges = await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.mover.id)
+        )
+        .unique()
+      if (!row) throw new Error('Missing Run actor.')
+      const parsed = featureChargesSchema.safeParse((await readTestActor(ctx, row)).resources)
+      return parsed.success ? Object.values(parsed.data.featureCharges) : []
+    })
+    expect(spentCharges).toEqual(selection === 'USE' ? [1] : [])
   },
   30_000
 )

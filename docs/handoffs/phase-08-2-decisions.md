@@ -124,7 +124,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - A decision whose acknowledgement was lost in a crash replays as "already settled". The player already sees the result through their subscription.
 - **D41** Deciding what counts as "rules in the room" (S4B, R06.1):
   - **Dice move to the room:** `ROLL_RULE_EVIDENCE`, `ROLL_ACTOR_INITIATIVE` and `ROLL_ENEMY_ACTION` are planned in the room, which has the secure random source.
-  - **Recording stays in Convex:** GM tools whose only derived work is the deterministic actor recalculation stay Convex-recorded, because Convex recalculates actors at every commit anyway. These are `ADJUST_FEATURE_RESOURCE`, `REPLACE_CREATURE_EQUIPMENT`, `REINFORCE`, `REVERT_LAST_ACTION` and `REMOVE_ACTOR`. `REMOVE_ACTOR`'s cleanup is shared with account deletion, which runs without a room.
+  - **Recording stays in Convex (superseded by D85/D88):** this entry first kept `ADJUST_FEATURE_RESOURCE`, `REPLACE_CREATURE_EQUIPMENT`, `REINFORCE`, `REVERT_LAST_ACTION` and `REMOVE_ACTOR` Convex-recorded. Today no Convex function executes Encounter commands: the room runs all of them through `recordEncounterCommand`, and `REVERT_LAST_ACTION` reads the room-held receipts. `REMOVE_ACTOR`'s cleanup is shared with account deletion, which runs without a room.
   - **Disarm sees what the initiator sees:** a GM's Disarm reads the Scene with the GM's view, and a player's with the player's.
   - **Cards credit the answerer:** a Cleaving answer's Concentration cards are credited to whoever answered (D31).
   - **Old Convex paths go now (S4-d):** the Convex-side action, turn and Concentration resume paths that tests still reach are deleted in this slice, with those fixtures moved to the room path. They are not kept as a second path.
@@ -850,6 +850,10 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 ## Resolved
 
+- **Character aggregate checksums (2026-10-06).** The user adopted the proposal. Aggregate hashes are derived at assembly rather than persisted on the Character head, so a note edit reads only its notes and groups, collection counts, clocks and receipt. Typed records, identity, ownership, order and count checks, and canonical full-capture hashes all remain. Convex transactions are atomic, and per-edit full reads cost free-tier I/O. Tracked as SHEET-7 in the Phase 8 ledger.
+- **D81 departure split (2026-10-06).** Confirmed. GM play history (damage taken, items given, XP) stays with the Character when it leaves a Campaign. GM modifiers (maximum HP and stat adjustments, Run-applied effects, Campaign settings) end at departure.
+- **D81 spell-source customizations (2026-10-06).** Kept. `customName` and `displayAsAttack` survive departure as player-facing presentation.
+- **Better Auth session-read rate limits (2026-10-06).** Kept as they are. The web client's token retry with backoff covers load spikes. Revisit with real usage data.
 - **Combat and the Campaign clock (2026-10-01, A35-S3b).** The clock is the GM's own control and stays in Convex, outside the live room.
   - Combat pauses a running clock automatically. When the last ACTIVE Run ends, it resumes only if combat paused it.
   - If the GM moves time past dawn, dusk or midnight during combat, Characters outside the fight recover as before. For Characters in the fight, the GM gets a prompt that names the condition and lists their matching charges, and decides which to refresh. Nothing in the fight recovers automatically.

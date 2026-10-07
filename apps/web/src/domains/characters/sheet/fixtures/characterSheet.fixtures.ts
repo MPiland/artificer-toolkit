@@ -289,7 +289,6 @@ export const characterSheetFixture = {
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Equipment',
         description: '<p>A sturdy staff marked with research notches and salt stains.</p>',
-        rollable: true,
         mechanic: {
           effectId: 'effect-quarterstaff-attack',
           trigger: 'ATTACK_ROLL',

@@ -4,7 +4,7 @@ import {
 } from '../lib/convexEncounterStore'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -46,11 +46,17 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  invalidateRoomInputs,
+  queueRoomRolls,
+  type RoomCaller,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 const secondRechargeFeatureId = '00000000-0000-4000-8000-0000000008a4'
 const secondRechargeChargeId = '00000000-0000-4000-8000-0000000008a5'
@@ -104,8 +110,10 @@ function rechargeResolution(input: {
   } satisfies EncounterExecuteInput
 }
 
-async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
-  return base.run(async (ctx) => ({
+/** What the room last published: it holds the Run's receipts and commands until it checkpoints (D85). */
+async function stored(base: Awaited<ReturnType<typeof setup>>, encounterId: string) {
+  await checkpointLiveRoom(base.campaign.id)
+  return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     run: await ctx.db
@@ -126,14 +134,21 @@ async function stored(base: Awaited<ReturnType<typeof fixture>>['t'], encounterI
       .collect(),
     occurrences: (await ctx.db.query('encounterRuleOccurrences').collect()).filter(
       (row) => row.encounterId === encounterId
-    ),
-    receipts: (
-      await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-    ).filter((row) => row.encounterId === encounterId),
-    commands: (
-      await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    ).filter((row) => row.encounterId === encounterId)
+    )
   }))
+}
+
+/** The Convex reads a member makes after the room's checkpoint. */
+async function pendingFor(base: Awaited<ReturnType<typeof setup>>, caller: RoomCaller) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+    encounterId: base.run.id
+  })
+}
+
+async function projectionFor(base: Awaited<ReturnType<typeof setup>>, caller: RoomCaller) {
+  await checkpointLiveRoom(base.campaign.id)
+  return caller.query(api.encounters.projectionReads.get, { encounterId: base.run.id })
 }
 
 async function setup(rolls: FixtureRolls, creatures = 1, rechargeFeatures = 1) {
@@ -261,10 +276,11 @@ async function setup(rolls: FixtureRolls, creatures = 1, rechargeFeatures = 1) {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   let expectedVersion = run.version
   for (const actor of run.actors)
     for (const featureId of featureIds) {
-      await executeInRoom(base.owner.caller, {
+      const adjusted = await executeInRoom(base.owner.caller, {
         command: {
           type: 'ADJUST_FEATURE_RESOURCE',
           encounterId: run.id,
@@ -276,8 +292,9 @@ async function setup(rolls: FixtureRolls, creatures = 1, rechargeFeatures = 1) {
           amount: 1
         }
       })
-      expectedVersion += 1
+      expectedVersion = adjusted.projection.version
     }
+  await checkpointLiveRoom(campaign.id)
   const current = await base.owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: run.id
   })
@@ -285,6 +302,8 @@ async function setup(rolls: FixtureRolls, creatures = 1, rechargeFeatures = 1) {
 }
 
 describe('native Encounter turn Recharge', () => {
+  useLocalRoomWorker()
+
   it('automatically rolls a Recharge when START enters a depleted Creature and replays the root', async () => {
     const base = await setup('AUTO_ROLL')
     const start: EncounterExecuteInput = {
@@ -295,28 +314,24 @@ describe('native Encounter turn Recharge', () => {
         expectedVersion: base.run.version
       }
     }
-    const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((values) => {
-      ;(values as Uint32Array)[0] = 5
-      return values
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 5 })
+    const settled = await executeInRoom(base.owner.caller, start)
+    expect(settled).toMatchObject({
+      projection: { status: 'ACTIVE', round: 1, version: base.run.version + 1 },
+      occurrence: { status: 'COMPLETE', pending: null }
     })
-    try {
-      const settled = await executeInRoom(base.owner.caller, start)
-      expect(settled).toMatchObject({
-        projection: { status: 'ACTIVE', round: 1, version: base.run.version + 1 },
-        occurrence: { status: 'COMPLETE', pending: null }
-      })
-      await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(settled)
-      const snapshot = await stored(base.t, base.run.id)
-      expect(snapshot.actors).toHaveLength(1)
-      expect(JSON.parse(snapshot.actors[0]!.stateJson)).toMatchObject({
-        resources: { featureCharges: { [automaticChargedBiteFeatureId]: 0 } }
-      })
-      expect(snapshot.receipts).toHaveLength(1)
-      expect(snapshot.occurrences).toHaveLength(1)
-      expect(snapshot.commands).toHaveLength(3)
-    } finally {
-      entropy.mockRestore()
-    }
+    await expect(executeInRoom(base.owner.caller, start)).resolves.toEqual({
+      ...settled,
+      projection: await projectionFor(base, base.owner.caller)
+    })
+    // The room holds the root's receipt and commands; the occurrence and the recharged Feature
+    // charge are what it published (receipt shape: encounterRecharge.test.ts).
+    const snapshot = await stored(base, base.run.id)
+    expect(snapshot.actors).toHaveLength(1)
+    expect(JSON.parse(snapshot.actors[0]!.stateJson)).toMatchObject({
+      resources: { featureCharges: { [automaticChargedBiteFeatureId]: 0 } }
+    })
+    expect(snapshot.occurrences).toHaveLength(1)
   }, 30000)
 
   it('retains the first of two Recharge candidates until the second response atomically settles both', async () => {
@@ -349,7 +364,7 @@ describe('native Encounter turn Recharge', () => {
     }
     if (!result.occurrence?.pending || result.occurrence.pending.kind !== 'RECHARGE_EVIDENCE')
       throw new Error('Expected first Recharge evidence.')
-    const before = await stored(base.t, base.run.id)
+    const before = await stored(base, base.run.id)
     const first = rechargeResolution({
       encounterId: base.run.id,
       pending: result.occurrence.pending,
@@ -364,7 +379,7 @@ describe('native Encounter turn Recharge', () => {
         occurrenceVersion: result.occurrence.occurrenceVersion + 1
       }
     })
-    expect(await stored(base.t, base.run.id)).toEqual({
+    expect(await stored(base, base.run.id)).toEqual({
       ...before,
       occurrences: [
         expect.objectContaining({
@@ -373,7 +388,10 @@ describe('native Encounter turn Recharge', () => {
         })
       ]
     })
-    await expect(replayInRoom(base.owner.caller, first)).resolves.toEqual(retained)
+    await expect(executeInRoom(base.owner.caller, first)).resolves.toEqual({
+      ...retained,
+      projection: await projectionFor(base, base.owner.caller)
+    })
     if (!retained.occurrence?.pending || retained.occurrence.pending.kind !== 'RECHARGE_EVIDENCE')
       throw new Error('Expected second Recharge evidence.')
     const second = rechargeResolution({
@@ -387,7 +405,10 @@ describe('native Encounter turn Recharge', () => {
       projection: { status: 'ACTIVE', version: base.run.version + 1 },
       occurrence: { status: 'COMPLETE', pending: null }
     })
-    const terminal = await stored(base.t, base.run.id)
+    // The receipt's rechargeExecutions (rawDie 4 failed, afterUsed 1; rawDie 5 recharged,
+    // afterUsed 0) stay in the room: the published Feature charges show both outcomes
+    // (execution shape: encounterRecharge.test.ts).
+    const terminal = await stored(base, base.run.id)
     expect(JSON.parse(terminal.actors[0]!.stateJson)).toMatchObject({
       resources: {
         featureCharges: {
@@ -396,10 +417,6 @@ describe('native Encounter turn Recharge', () => {
         }
       }
     })
-    expect(JSON.parse(terminal.receipts[0]!.resultJson).rechargeExecutions).toEqual([
-      expect.objectContaining({ rawDie: 4, recharged: false, afterUsed: 1 }),
-      expect.objectContaining({ rawDie: 5, recharged: true, afterUsed: 0 })
-    ])
   }, 30000)
 
   it('issues owner-only Assisted Recharge evidence for each entering Creature and keeps a failed die spent', async () => {
@@ -444,12 +461,11 @@ describe('native Encounter turn Recharge', () => {
     if (!result.occurrence?.pending || result.occurrence.pending.kind !== 'RECHARGE_EVIDENCE')
       throw new Error('Expected owner Recharge evidence after initiative settles.')
     if (!orderReplay) throw new Error('Expected tied initiative order evidence.')
-    await expect(replayInRoom(base.owner.caller, orderReplay)).resolves.toEqual(result)
-    await expect(
-      base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: base.run.id
-      })
-    ).rejects.toThrow('Encounter is unavailable.')
+    await expect(executeInRoom(base.owner.caller, orderReplay)).resolves.toEqual({
+      ...result,
+      projection: await projectionFor(base, base.owner.caller)
+    })
+    await expect(pendingFor(base, base.other.caller)).rejects.toThrow('Encounter is unavailable.')
     const firstRecharge = rechargeResolution({
       encounterId: base.run.id,
       pending: result.occurrence.pending,
@@ -469,14 +485,14 @@ describe('native Encounter turn Recharge', () => {
         expectedVersion: started.projection.version
       }
     }
-    const beforeAdvance = await stored(base.t, base.run.id)
+    const beforeAdvance = await stored(base, base.run.id)
     const pendingAdvance = await executeInRoom(base.owner.caller, advance)
     if (
       !pendingAdvance.occurrence?.pending ||
       pendingAdvance.occurrence.pending.kind !== 'RECHARGE_EVIDENCE'
     )
       throw new Error('Expected Recharge evidence for the next Creature turn.')
-    const beforeFailure = await stored(base.t, base.run.id)
+    const beforeFailure = await stored(base, base.run.id)
     expect(beforeFailure.run).toEqual(beforeAdvance.run)
     expect(beforeFailure.actors).toEqual(beforeAdvance.actors)
     expect(beforeFailure.rounds).toEqual(beforeAdvance.rounds)
@@ -492,18 +508,14 @@ describe('native Encounter turn Recharge', () => {
       projection: { status: 'ACTIVE', round: 1, version: base.run.version + 2 },
       occurrence: { status: 'COMPLETE', pending: null }
     })
-    await expect(replayInRoom(base.owner.caller, failed)).resolves.toEqual(settled)
-    const terminal = await stored(base.t, base.run.id)
-    expect(terminal.receipts).toHaveLength(2)
+    await expect(executeInRoom(base.owner.caller, failed)).resolves.toEqual({
+      ...settled,
+      projection: await projectionFor(base, base.owner.caller)
+    })
+    // The two receipts' rechargeExecutions (rawDie 5 recharged, rawDie 4 failed) stay in the room:
+    // the published Feature charges below show both outcomes (encounterRecharge.test.ts).
+    const terminal = await stored(base, base.run.id)
     expect(terminal.occurrences).toHaveLength(2)
-    expect(
-      terminal.receipts.map((receipt) => JSON.parse(receipt.resultJson).rechargeExecutions)
-    ).toEqual(
-      expect.arrayContaining([
-        [expect.objectContaining({ rawDie: 5, recharged: true, afterUsed: 0 })],
-        [expect.objectContaining({ rawDie: 4, recharged: false, afterUsed: 1 })]
-      ])
-    )
     expect(
       terminal.actors.map((row) => JSON.parse(row.stateJson).resources.featureCharges)
     ).toEqual(
@@ -566,11 +578,11 @@ describe('native Encounter turn Recharge', () => {
         expectedVersion
       }
     })
-    const beforeRefusal = await stored(base.t, base.run.id)
+    const beforeRefusal = await stored(base, base.run.id)
     await expect(
       executeInRoom(base.other.caller, advanceBy(started.projection.version))
-    ).rejects.toThrow('NOT_ACTOR_CONTROLLER')
-    expect(await stored(base.t, base.run.id)).toEqual(beforeRefusal)
+    ).rejects.toMatchObject({ data: { code: 'DOMAIN_REJECTED', reason: 'NOT_ACTOR_CONTROLLER' } })
+    expect(await stored(base, base.run.id)).toEqual(beforeRefusal)
     const granted = await executeInRoom(base.owner.caller, {
       command: {
         type: 'UPDATE_ACTOR',
@@ -586,18 +598,11 @@ describe('native Encounter turn Recharge', () => {
     // The player sees the pause but not the GM's Recharge decision or GM-only actor data.
     expect(paused.occurrence).toMatchObject({ status: 'PENDING', pending: null })
     expect(JSON.stringify(paused.projection)).not.toContain('healthBand')
-    expect(
-      await base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-        encounterId: base.run.id
-      })
-    ).toBeNull()
-    const pending = await base.owner.caller.query(
-      api.encounters.pendingReads.pendingRuleOccurrence,
-      { encounterId: base.run.id }
-    )
+    expect(await pendingFor(base, base.other.caller)).toBeNull()
+    const pending = await pendingFor(base, base.owner.caller)
     if (!pending || pending.kind !== 'RECHARGE_EVIDENCE')
       throw new Error('Expected the GM to answer the entering Recharge.')
-    const pausedRoot = (await stored(base.t, base.run.id)).occurrences.find(
+    const pausedRoot = (await stored(base, base.run.id)).occurrences.find(
       (row) => row.state === 'PENDING'
     )
     if (!pausedRoot) throw new Error('Expected the paused Recharge root.')
@@ -615,41 +620,35 @@ describe('native Encounter turn Recharge', () => {
       }
     })
     const answer = rechargeResolution({ encounterId: base.run.id, pending, value: 5 })
-    const beforeAnswer = await stored(base.t, base.run.id)
+    const beforeAnswer = await stored(base, base.run.id)
     await expect(executeInRoom(base.other.caller, answer)).rejects.toThrow()
-    expect(await stored(base.t, base.run.id)).toEqual(beforeAnswer)
+    expect(await stored(base, base.run.id)).toEqual(beforeAnswer)
     const settled = await executeInRoom(base.owner.caller, answer)
     expect(settled).toMatchObject({
       projection: { status: 'ACTIVE', version: granted.projection.version + 1 },
       occurrence: { status: 'COMPLETE', pending: null }
     })
     expect(settled.projection.currentActorId).not.toBe(currentActorId)
-    const terminal = await stored(base.t, base.run.id)
-    expect(
-      terminal.commands.find((row) => row.commandId === advance.command.commandId)
-    ).toMatchObject({ commandType: 'ADVANCE_TURN', actorUserId: base.other.userId })
-    expect(
-      terminal.receipts.find((row) => row.commandId === advance.command.commandId)
-    ).toMatchObject({ actorUserId: base.other.userId })
+    // The command and receipt actorUserId (the player who requested the advance) stay in the
+    // room; the paused root's requestedByUserId above is the published record of it.
+    const terminal = await stored(base, base.run.id)
     // A replay returns the player's own original result over the current player projection.
     const replay = await executeInRoom(base.other.caller, advance)
     expect(replay.occurrence).toEqual(paused.occurrence)
     expect(replay.projection).toEqual(
       projectPlayerEncounterProjection(
-        encounterGmProjectionDtoSchema.parse(
-          await base.owner.caller.query(api.encounters.projectionReads.get, {
-            encounterId: base.run.id
-          })
-        ),
+        encounterGmProjectionDtoSchema.parse(await projectionFor(base, base.owner.caller)),
         { userId: base.other.userId, characters: new Map() }
       )
     )
     for (const hidden of ['healthBand', 'gmNotes', 'statBlock'])
       expect(JSON.stringify(replay)).not.toContain(hidden)
-    await expect(executeInRoom(base.owner.caller, advance)).rejects.toThrow(
-      'The command ID was already used for different input.'
+    await expectRedactedRoomRefusal(
+      executeInRoom(base.owner.caller, advance),
+      'The command ID was already used for different input.',
+      'INVALID_COMMAND'
     )
-    expect(await stored(base.t, base.run.id)).toEqual(terminal)
+    expect(await stored(base, base.run.id)).toEqual(terminal)
   }, 30000)
 
   it('sends a granted Creature Recharge to its controller by their roll preference', async () => {
@@ -657,6 +656,7 @@ describe('native Encounter turn Recharge', () => {
       // The GM prompts, so only the controller's preference can auto-roll this Recharge.
       const base = await setup('PROMPT')
       await setAutoRollDice(base.t, base.other.userId, variant === 'PLAYER_AUTO_ROLL')
+      await invalidateRoomInputs(base.campaign.id, ['PREFERENCES'])
       const creatureId = base.run.actors[0]!.id
       const granted = await executeInRoom(base.owner.caller, {
         command: {
@@ -713,11 +713,7 @@ describe('native Encounter turn Recharge', () => {
         throw new Error('Expected the granted Creature Recharge prompt.')
       expect(pending.rollerActorId).toBe(creatureId)
       for (const member of [base.owner, base.other])
-        await expect(
-          member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
-            encounterId: base.run.id
-          })
-        ).resolves.toEqual(pending)
+        await expect(pendingFor(base, member.caller)).resolves.toEqual(pending)
       const answerer = variant === 'PLAYER_ANSWERS' ? base.other : base.owner
       const settled = await executeInRoom(
         answerer.caller,
@@ -769,7 +765,7 @@ describe('native Encounter turn Recharge', () => {
       throw new Error('Expected Recharge evidence.')
     const pending = result.occurrence.pending
     const invalid = rechargeResolution({ encounterId: base.run.id, pending, value: 5 })
-    const before = await stored(base.t, base.run.id)
+    const before = await stored(base, base.run.id)
     await expect(executeInRoom(base.other.caller, invalid)).rejects.toThrow()
     await expect(
       executeInRoom(base.owner.caller, {
@@ -780,7 +776,9 @@ describe('native Encounter turn Recharge', () => {
         }
       })
     ).rejects.toThrow()
-    expect(await stored(base.t, base.run.id)).toEqual(before)
+    expect(await stored(base, base.run.id)).toEqual(before)
+    // The room holds the Run: release it before editing the stored actor beneath it.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const actor = await ctx.db
         .query('encounterRunActors')
@@ -794,11 +792,12 @@ describe('native Encounter turn Recharge', () => {
       snapshot.payload.features = []
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, actor._id, state)
     })
-    const staleBefore = await stored(base.t, base.run.id)
+    const staleBefore = await stored(base, base.run.id)
     await expectRedactedRoomRefusal(
       executeInRoom(base.owner.caller, invalid),
-      'Recharge evidence has no current candidate.'
+      'The Encounter command could not be completed.'
     )
-    expect(await stored(base.t, base.run.id)).toEqual(staleBefore)
+    expect(roomErrorLogs().join('\n')).toContain('Recharge evidence has no current candidate.')
+    expect(await stored(base, base.run.id)).toEqual(staleBefore)
   }, 30000)
 })

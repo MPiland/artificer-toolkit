@@ -12,6 +12,7 @@ import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
+import { RetryableCommandError } from './nativeRulesRevisions.js'
 import { executeRoomEncounterCommand } from './roomEncounterCommands.js'
 import { createNativeLiveRulesRuntime } from './nativeRulesRuntime.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
@@ -372,6 +373,97 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     { commandId: start.commandId, encounterVersion: 1 },
     { commandId: advance.commandId, encounterVersion: 2 }
   ])
+  // The turn terminal writes each receipt's command metadata and result, and the run command's
+  // result checksum, from the same stored result.
+  const storedResults = committed.receipts.map((receipt) => JSON.parse(receipt.resultJson))
+  expect(committed.receipts.map((receipt) => JSON.parse(receipt.commandMetadataJson))).toEqual([
+    {
+      schemaVersion: 1,
+      transition: 'TURN_EFFECTS',
+      commandType: 'START',
+      expectedAggregateVersion: 0,
+      selectionChecksum: null,
+      initiativeChecksum: '3c46a656bef1526854e3c907f91f1bda3530e72ebab5379b1dadb0b5a9ae30a0',
+      initiativeAdvanceChecksum: null,
+      optionalCombatSnapshotChecksum:
+        'e28cc18bcddb716ccd80910cca46f2a13a2ac9ea6f042ca7df18ccf213250919',
+      terminalOccurrenceVersion: 0,
+      resolutionCommands: []
+    },
+    {
+      schemaVersion: 1,
+      transition: 'TURN_EFFECTS',
+      commandType: 'ADVANCE_TURN',
+      expectedAggregateVersion: 1,
+      selectionChecksum: null,
+      initiativeChecksum: null,
+      initiativeAdvanceChecksum: checksumCanonicalJson(storedResults[1]!.initiativeAdvance),
+      optionalCombatSnapshotChecksum:
+        'e28cc18bcddb716ccd80910cca46f2a13a2ac9ea6f042ca7df18ccf213250919',
+      terminalOccurrenceVersion: 0,
+      resolutionCommands: []
+    }
+  ])
+  expect(storedResults).toEqual([
+    {
+      schemaVersion: 1,
+      status: 'INITIATIVE_COMPLETE',
+      commandType: 'START',
+      encounterId,
+      occurrenceId: committed.receipts[0]!.occurrenceId,
+      occurrenceVersion: 0,
+      initiative: {
+        cadence: 'ENCOUNTER_START',
+        evidence: { orderChoices: [], primaryResults: [], tieAttempts: [] },
+        orderedActorIds: actors.map(({ id }) => id),
+        orderedSideIds: [],
+        policySnapshotChecksum: null,
+        procedure: 'MANUAL',
+        round: 1
+      },
+      initiativeAdvance: null
+    },
+    {
+      schemaVersion: 1,
+      status: 'INITIATIVE_COMPLETE',
+      commandType: 'ADVANCE_TURN',
+      encounterId,
+      occurrenceId: committed.receipts[1]!.occurrenceId,
+      occurrenceVersion: 0,
+      initiative: null,
+      initiativeAdvance: {
+        currentActorId: actors[0]!.id,
+        kind: 'SAME_ROUND',
+        nextActorId: actors[1]!.id,
+        round: 1,
+        stateChecksum: expect.stringMatching(/^[a-f0-9]{64}$/)
+      }
+    }
+  ])
+  const resultChecksums = storedResults.map((result) => checksumCanonicalJson(result))
+  expect(committed.receipts.map(({ resultChecksum }) => resultChecksum)).toEqual(resultChecksums)
+  expect(
+    committed.commands.map((command) => {
+      if (command.commandType !== 'START' && command.commandType !== 'ADVANCE_TURN')
+        throw new Error(`Unexpected ${command.commandType} command.`)
+      return {
+        commandType: command.commandType,
+        ruleOccurrenceId: command.ruleOccurrenceId,
+        ruleResultChecksum: command.ruleResultChecksum
+      }
+    })
+  ).toEqual([
+    {
+      commandType: 'START',
+      ruleOccurrenceId: committed.receipts[0]!.occurrenceId,
+      ruleResultChecksum: resultChecksums[0]
+    },
+    {
+      commandType: 'ADVANCE_TURN',
+      ruleOccurrenceId: committed.receipts[1]!.occurrenceId,
+      ruleResultChecksum: resultChecksums[1]
+    }
+  ])
   room = new RoomEncounterStore(storage)
   inputs = new RoomInputs(room, read, async () => [])
   expect(room.corruption).toBeNull()
@@ -385,6 +477,13 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     ...startedOwner,
     projection: advancedOwner.projection
   })
+  expect(evidence()).toEqual(committed)
+  // A new command still holding the Run's old version is the client's stale view: refused as a domain rejection, never retried.
+  const stale = await execute({ ...advance, commandId: uuid(0xf42) }, playerId).catch(
+    (error: unknown) => error
+  )
+  expect(stale).not.toBeInstanceOf(RetryableCommandError)
+  expect(stale).toMatchObject({ data: { reason: 'VERSION_STALE' } })
   expect(evidence()).toEqual(committed)
   expect(read).not.toHaveBeenCalled()
   expect(fetch).not.toHaveBeenCalled()

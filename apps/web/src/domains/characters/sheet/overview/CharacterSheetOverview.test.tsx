@@ -12,7 +12,9 @@ describe('Character Sheet overview', () => {
   it('renders the overview as a dense digital sheet scan path', async () => {
     const user = userEvent.setup()
     const sheet = createSheet()
-    sheet.overview.conditions = [{ conditionTypeId: 'condition-1', label: 'Poisoned' }]
+    const poisoned = sheet.reference.conditionOptions.find((option) => option.label === 'Poisoned')
+    if (!poisoned) throw new Error('Expected the Poisoned condition option on the Sheet.')
+    sheet.overview.conditions = [{ conditionTypeId: poisoned.id, label: poisoned.label }]
     sheet.reference.features = [
       {
         id: 'feature-1',
@@ -37,6 +39,7 @@ describe('Character Sheet overview', () => {
       .closest('section')
     expect(combatSection).not.toBeNull()
     expect(within(combatSection as HTMLElement).getByText(/armor class/i)).toBeInTheDocument()
+    expect(within(combatSection as HTMLElement).getByText(/initiative/i)).toBeInTheDocument()
     expect(within(combatSection as HTMLElement).getByText(/30 feet/i)).toBeInTheDocument()
     expect(within(combatSection as HTMLElement).getByText(/^hp$/i)).toBeInTheDocument()
 
@@ -271,8 +274,8 @@ describe('Character Sheet overview', () => {
 
       await user.click(screen.getByRole('button', { name: /open sheet section menu/i }))
       const sectionMenu = await screen.findByRole('navigation', { name: /sheet sections/i })
-      expect(screen.queryByRole('button', { name: /^history$/i })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /^resources$/i })).not.toBeInTheDocument()
+      expect(within(sectionMenu).queryByRole('button', { name: /^history$/i })).toBeNull()
+      expect(within(sectionMenu).queryByRole('button', { name: /^resources$/i })).toBeNull()
 
       await user.click(within(sectionMenu).getByRole('button', { name: /^skills$/i }))
       expect(screen.getAllByRole('heading', { name: /^skills$/i }).length).toBeGreaterThan(0)

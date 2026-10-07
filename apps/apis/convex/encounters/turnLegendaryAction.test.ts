@@ -2,7 +2,7 @@ import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -51,12 +51,16 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import { importedSubject } from '../../tests/fixtures/publication'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
-import * as movementTargets from '../../../session-worker/src/nativeEncounterTargets'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom as executeRoomCommand,
-  replayInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  expectRedactedRoomRefusal,
+  invalidateRoomInputs,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 const rechargeFeatureId = '00000000-0000-4000-8000-000000000a21'
 const rechargeChargeId = '00000000-0000-4000-8000-000000000a22'
@@ -82,7 +86,18 @@ const saveSettings = makeFunctionReference<
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
 
+// The room holds the Run's commands and receipts until it ends (D85), so Convex is read after the
+// room publishes what it holds.
 async function stored(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: string) {
+  const campaignId = await t.run(async (ctx) => {
+    const run = await ctx.db
+      .query('encounterRuns')
+      .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+      .unique()
+    if (!run) throw new Error('Missing Legendary Action fixture Run.')
+    return run.campaignId
+  })
+  await checkpointLiveRoom(campaignId)
   return t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -104,13 +119,7 @@ async function stored(t: Awaited<ReturnType<typeof fixture>>['t'], encounterId: 
       .collect(),
     occurrences: (await ctx.db.query('encounterRuleOccurrences').collect()).filter(
       (row) => row.encounterId === encounterId
-    ),
-    receipts: (
-      await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-    ).filter((row) => row.encounterId === encounterId),
-    commands: (
-      await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    ).filter((row) => row.encounterId === encounterId)
+    )
   }))
 }
 
@@ -122,8 +131,6 @@ function unchangedMechanics(
   expect(after.actors).toEqual(before.actors)
   expect(after.rounds).toEqual(before.rounds)
   expect(after.participants).toEqual(before.participants)
-  expect(after.receipts).toEqual(before.receipts)
-  expect(after.commands).toEqual(before.commands)
 }
 
 const allowanceIds = [
@@ -141,6 +148,8 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: allowances
   })
+  // Releases the room so the direct writes below are what its next command hydrates.
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     for (const actorRow of await ctx.db
       .query('encounterRunActors')
@@ -155,6 +164,13 @@ async function seedUsedAllowances(base: Awaited<ReturnType<typeof setup>>) {
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, actorRow._id, actor)
     }
   })
+}
+
+/** The room redacts the cause from the member; the Worker error log still carries it. */
+async function expectRoomCause(command: Promise<unknown>, cause: RegExp) {
+  const seen = roomErrorLogs().length
+  await expectRedactedRoomRefusal(command, 'The Encounter command could not be completed.')
+  expect(roomErrorLogs().slice(seen).join('\n')).toMatch(cause)
 }
 
 function response(
@@ -372,12 +388,13 @@ async function setup(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   let expectedVersion = run.version
   for (const actor of run.actors) {
     for (const featureId of fixedCharges
       ? [automaticChargedBiteFeatureId, ...(recharge ? [rechargeFeatureId] : [])]
       : []) {
-      await executeInRoom(base.owner.caller, {
+      const adjusted = await executeInRoom(base.owner.caller, {
         command: {
           type: 'ADJUST_FEATURE_RESOURCE',
           encounterId: run.id,
@@ -389,9 +406,11 @@ async function setup(
           amount: 1
         }
       })
-      expectedVersion += 1
+      expect(adjusted.projection.version).toBe(expectedVersion + 1)
+      expectedVersion = adjusted.projection.version
     }
   }
+  await checkpointLiveRoom(campaign.id)
   const current = await base.owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: run.id
   })
@@ -408,12 +427,12 @@ async function executeInRoom(...args: Parameters<typeof executeRoomCommand>) {
 
 /** A replay returns the journaled original result with the Run's current projection (D78). */
 async function expectReplays(
-  caller: Parameters<typeof replayInRoom>[0],
+  caller: Parameters<typeof executeRoomCommand>[0],
   inputs: EncounterExecuteInput[],
   current: { projection: unknown }
 ) {
   for (const input of inputs)
-    await expect(replayInRoom(caller, input)).resolves.toEqual({
+    await expect(executeRoomCommand(caller, input)).resolves.toEqual({
       ...issuedResults.get(input.command.commandId),
       projection: current.projection
     })
@@ -475,25 +494,23 @@ async function start(base: Awaited<ReturnType<typeof setup>>) {
 }
 
 describe('native Encounter turn Legendary Actions', () => {
-  it('skips movement target discovery for an 11-Creature Run without fixed unscaled Feature charges', async () => {
+  useLocalRoomWorker()
+
+  // The Worker's target discovery is skipped by `discoverTurnLegendaryWindows`, which the producer
+  // test 'loads no targets unless a Creature has a fixed, unscaled Feature charge pool' covers.
+  it('advances an 11-Creature Run without fixed unscaled Feature charges without a Legendary window', async () => {
     const base = await setup('AUTO_ROLL', 11, false, 'ENCOUNTER_START', 'ACTOR_ROLL', false)
     const started = await start(base)
-    const loadTargets = vi.spyOn(movementTargets, 'prepareNativeLiveMovementTarget')
-    try {
-      const result = await executeInRoom(base.owner.caller, {
-        command: {
-          type: 'ADVANCE_TURN',
-          encounterId: base.run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: started.projection.version
-        }
-      })
+    const result = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: started.projection.version
+      }
+    })
 
-      expect(result.occurrence).toBeNull()
-      expect(loadTargets).not.toHaveBeenCalled()
-    } finally {
-      loadTargets.mockRestore()
-    }
+    expect(result.occurrence).toBeNull()
   }, 30000)
 
   it.each(['ACTOR_ROLL', 'DECLARED_ACTION_ROLL'] as const)(
@@ -632,8 +649,8 @@ describe('native Encounter turn Legendary Actions', () => {
       })
       const terminal = await stored(base.t, base.run.id)
       expect(terminal.rounds).toHaveLength(before.rounds.length + 1)
-      expect(terminal.receipts).toHaveLength(before.receipts.length + 1)
-      expect(terminal.commands).toHaveLength(before.commands.length + 1)
+      // One terminal commit: the Run advanced once, however many responses it took.
+      expect(terminal.run?.version).toBe(before.run!.version + 1)
       // The Legendary attack hit its target, not its owner (D51 option B).
       const hit = readStoredRunActor(
         terminal.actors.find((row) => row.id === legendaryOption(choice).targetActorId)!
@@ -679,6 +696,7 @@ describe('native Encounter turn Legendary Actions', () => {
         targetActorIds: [ownerId],
         ownerFeatureId: automaticChargedBiteFeatureId
       })
+      await checkpointLiveRoom(base.campaign.id)
       await expect(
         base.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
           encounterId: base.run.id
@@ -698,7 +716,7 @@ describe('native Encounter turn Legendary Actions', () => {
       )
       responses.push(command)
       result = await executeInRoom(base.owner.caller, command)
-      await expect(replayInRoom(base.owner.caller, command)).resolves.toEqual(result)
+      await expect(executeRoomCommand(base.owner.caller, command)).resolves.toEqual(result)
     }
     expect(result).toMatchObject({
       projection: { version: started.projection.version + 1, status: 'ACTIVE' },
@@ -706,32 +724,13 @@ describe('native Encounter turn Legendary Actions', () => {
     })
     expect(result.projection.currentActorId).not.toBe(started.projection.currentActorId)
     const terminal = await stored(base.t, base.run.id)
-    expect(terminal.receipts).toHaveLength(before.receipts.length + 1)
-    expect(terminal.commands).toHaveLength(before.commands.length + 1)
-    const receipt = terminal.receipts.find((row) => row.commandId === advance.command.commandId)
-    expect(JSON.parse(receipt!.resultJson)).toMatchObject({
-      legendaryActions: [
-        { choice: { ownerActorId: expectedOwners[0] }, resolution: { kind: 'DECLINED' } },
-        {
-          choice: { ownerActorId: expectedOwners[1] },
-          resolution: {
-            kind: 'EXECUTED',
-            application: { featureResourceConsumption: { beforeUsed: 1, afterUsed: 2, cost: 1 } }
-          }
-        }
-      ],
-      legendaryActionRefreshes: [
-        expect.objectContaining({ actorId: result.projection.currentActorId })
-      ],
-      actionEconomyRefreshes: [...allowanceIds].sort().map((capabilityDefinitionId) =>
-        expect.objectContaining({
-          actorId: result.projection.currentActorId,
-          capabilityDefinitionId,
-          beforeUsed: 1,
-          afterUsed: 0
-        })
-      )
-    })
+    expect(terminal.run?.version).toBe(before.run!.version + 1)
+    // The room's held receipt is not sent to members. Its legendaryActions (DECLINED, then EXECUTED
+    // with a 1 -> 2 pool spend), legendaryActionRefreshes and actionEconomyRefreshes are asserted
+    // room-side in apps/session-worker/test/nativeRoomLegendary.test.ts. The state each receipt
+    // entry produced is below:
+    // the declined owner keeps its pool, the executed owner spent one, the entering owner's pool
+    // and every action allowance (seeded as used) are refreshed.
     for (const row of terminal.actors) {
       const actor = readStoredRunActor(row)
       if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature actor.')
@@ -794,7 +793,7 @@ describe('native Encounter turn Legendary Actions', () => {
         encounterId: base.run.id
       })
     ).resolves.toBeNull()
-    await expect(replayInRoom(base.owner.caller, option)).resolves.toEqual(result)
+    await expect(executeRoomCommand(base.owner.caller, option)).resolves.toEqual(result)
     const dice = response(base.run.id, result, {
       kind: 'ENTER_DICE',
       requestId: dicePending.request.requestId,
@@ -809,7 +808,7 @@ describe('native Encounter turn Legendary Actions', () => {
       throw new Error('Expected the remaining Legendary owner.')
     expect(second.ownerActorId).not.toBe(selectedOwner)
     unchangedMechanics(before, await stored(base.t, base.run.id))
-    await expect(replayInRoom(base.owner.caller, dice)).resolves.toEqual(result)
+    await expect(executeRoomCommand(base.owner.caller, dice)).resolves.toEqual(result)
     const afterDice = await stored(base.t, base.run.id)
     const differentDice: EncounterExecuteInput = {
       command: {
@@ -822,7 +821,11 @@ describe('native Encounter turn Legendary Actions', () => {
         }
       }
     }
-    await expect(executeInRoom(base.owner.caller, differentDice)).rejects.toThrow()
+    await expectRedactedRoomRefusal(
+      executeInRoom(base.owner.caller, differentDice),
+      'The command ID was already used for different input.',
+      'INVALID_COMMAND'
+    )
     expect(await stored(base.t, base.run.id)).toEqual(afterDice)
     const decline = response(base.run.id, result, { kind: 'DECLINE' })
     result = await executeInRoom(base.owner.caller, decline).catch((cause: unknown) => {
@@ -844,33 +847,14 @@ describe('native Encounter turn Legendary Actions', () => {
       occurrence: { status: 'COMPLETE', pending: null }
     })
     const terminal = await stored(base.t, base.run.id)
-    expect(terminal.commands).toHaveLength(before.commands.length + 1)
-    expect(terminal.receipts).toHaveLength(before.receipts.length + 1)
-    const receipt = terminal.receipts.find((row) => row.commandId === advance.command.commandId)
-    expect(JSON.parse(receipt!.resultJson)).toMatchObject({
-      legendaryActions: [
-        {
-          choice: { ownerActorId: selectedOwner },
-          resolution: {
-            kind: 'EXECUTED',
-            application: {
-              d20: { rawFaces: [15] },
-              featureResourceConsumption: { beforeUsed: 1, afterUsed: 2 }
-            }
-          }
-        },
-        { choice: { ownerActorId: second.ownerActorId }, resolution: { kind: 'DECLINED' } }
-      ],
-      rechargeExecutions: [expect.objectContaining({ rawDie: 5, recharged: true })],
-      actionEconomyRefreshes: [...allowanceIds].sort().map((capabilityDefinitionId) =>
-        expect.objectContaining({
-          actorId: result.projection.currentActorId,
-          capabilityDefinitionId,
-          beforeUsed: 1,
-          afterUsed: 0
-        })
-      )
-    })
+    // One terminal commit: the Run advanced once for the d20, both owner choices and Recharge.
+    expect(terminal.run?.version).toBe(before.run!.version + 1)
+    // The room's held receipt is not sent to members. The entered d20 faces ([15]) and the
+    // 1 -> 2 spend are covered at the producer, encounterLegendaryAction.test.ts ('pauses on the
+    // owner's attack roll...'); the DECLINED second window at 'records a declined window...'; the
+    // entering Recharge die (5 recharges) at encounterRecharge.test.ts ('rawDie: 5, recharged:
+    // true'). The state they produced is asserted below: the target's damage, and the entering
+    // actor's recharged Feature pool and refreshed action allowances.
     const hitActor = readStoredRunActor(
       terminal.actors.find((row) => row.id === legendaryOption(first).targetActorId)!
     )
@@ -883,18 +867,10 @@ describe('native Encounter turn Legendary Actions', () => {
       featureCharges: { [automaticChargedBiteFeatureId]: 0, [rechargeFeatureId]: 0 },
       ruleUsage: Object.fromEntries(allowanceIds.map((definitionId) => [definitionId, 0]))
     })
-    const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation(() => {
-      throw new Error('Replay must retain dice.')
-    })
-    try {
-      await expectReplays(
-        base.owner.caller,
-        [advance, option, dice, decline, rechargeInput],
-        result
-      )
-    } finally {
-      entropy.mockRestore()
-    }
+    // Every die here was entered, so a replay that rolled again would change the answer. The
+    // producer keeps recorded dice on replay: encounterLegendaryAction.test.ts ('replays a settled
+    // window from its recorded dice, without rolling again').
+    await expectReplays(base.owner.caller, [advance, option, dice, decline, rechargeInput], result)
     expect(await stored(base.t, base.run.id)).toEqual(terminal)
   }, 30000)
 
@@ -903,6 +879,7 @@ describe('native Encounter turn Legendary Actions', () => {
       // The GM prompts, so only the controller's preference can auto-roll the Legendary d20.
       const base = await setup('PROMPT', 2)
       await setAutoRollDice(base.t, base.other.userId, variant === 'PLAYER_AUTO_ROLL')
+      await invalidateRoomInputs(base.campaign.id, ['PREFERENCES'])
       const started = await start(base)
       const ownerActorId = started.projection.actors.find(
         (actor) => actor.id !== started.projection.currentActorId
@@ -929,6 +906,7 @@ describe('native Encounter turn Legendary Actions', () => {
       if (!choice || choice.kind !== 'LEGENDARY_ACTION_CHOICE')
         throw new Error('Expected the granted Creature Legendary choice.')
       expect(choice.ownerActorId).toBe(ownerActorId)
+      await checkpointLiveRoom(base.campaign.id)
       for (const member of [base.owner, base.other])
         await expect(
           member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -948,6 +926,7 @@ describe('native Encounter turn Legendary Actions', () => {
       if (!dice || dice.kind !== 'D20_EVIDENCE')
         throw new Error('Expected the controller Legendary d20 prompt.')
       expect(dice.rollerActorId).toBe(ownerActorId)
+      await checkpointLiveRoom(base.campaign.id)
       for (const member of [base.owner, base.other])
         await expect(
           member.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
@@ -982,6 +961,7 @@ describe('native Encounter turn Legendary Actions', () => {
     if (!first || first.kind !== 'LEGENDARY_ACTION_CHOICE')
       throw new Error('Expected Legendary choice.')
     // An ungranted Creature's Legendary choice stays with the GM.
+    await checkpointLiveRoom(base.campaign.id)
     await expect(
       base.other.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
         encounterId: base.run.id
@@ -989,8 +969,8 @@ describe('native Encounter turn Legendary Actions', () => {
     ).resolves.toBeNull()
     const valid = response(base.run.id, result, { kind: 'DECLINE' })
     const before = await stored(base.t, base.run.id)
-    await expect(executeInRoom(base.other.caller, valid)).rejects.toThrow()
-    await expect(
+    await expect(executeInRoom(base.other.caller, valid)).rejects.toThrow(/NOT_ACTOR_CONTROLLER/)
+    await expectRoomCause(
       executeInRoom(
         base.owner.caller,
         response(base.run.id, result, {
@@ -998,8 +978,9 @@ describe('native Encounter turn Legendary Actions', () => {
           optionId: 'f'.repeat(64),
           targetActorId: first.ownerActorId
         })
-      )
-    ).rejects.toThrow()
+      ),
+      /Legendary Action choice is stale/
+    )
     expect(await stored(base.t, base.run.id)).toEqual(before)
     result = await executeInRoom(base.owner.caller, valid)
     const remaining = response(base.run.id, result, { kind: 'DECLINE' })
@@ -1007,6 +988,8 @@ describe('native Encounter turn Legendary Actions', () => {
       (row) => row.id === first.ownerActorId
     )!
     const originalActor = await base.t.run((ctx) => readTestActor(ctx, original))
+    // The room holds the Run (D85); release it so the direct writes below are what it hydrates.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const snapshot = originalActor.snapshot as { payload: object }
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, original._id, {
@@ -1015,8 +998,12 @@ describe('native Encounter turn Legendary Actions', () => {
       })
     })
     const changedSource = await stored(base.t, base.run.id)
-    await expect(executeInRoom(base.owner.caller, remaining)).rejects.toThrow()
+    await expectRoomCause(
+      executeInRoom(base.owner.caller, remaining),
+      /Retained Legendary Action owner is stale/
+    )
     expect(await stored(base.t, base.run.id)).toEqual(changedSource)
+    await closeRoom(base.campaign.id)
     await base.t.run((ctx) =>
       writeRunActor({ db: createConvexEncounterStore(ctx) }, original._id, originalActor)
     )
@@ -1034,7 +1021,10 @@ describe('native Encounter turn Legendary Actions', () => {
       })
     })
     const changedDefinition = await stored(base.t, base.run.id)
-    await expect(executeInRoom(base.owner.caller, remaining)).rejects.toThrow()
+    await expectRoomCause(
+      executeInRoom(base.owner.caller, remaining),
+      /Retained Legendary Action owner is stale/
+    )
     expect(await stored(base.t, base.run.id)).toEqual(changedDefinition)
   }, 30000)
 
@@ -1057,8 +1047,8 @@ describe('native Encounter turn Legendary Actions', () => {
     const terminal = await executeInRoom(base.owner.caller, terminalInput)
     expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     expect(terminal.projection.version).toBe(started.projection.version + 1)
-    await expect(replayInRoom(base.owner.caller, terminalInput)).resolves.toEqual(terminal)
-    expect((await stored(base.t, base.run.id)).receipts).toHaveLength(before.receipts.length + 1)
+    await expect(executeRoomCommand(base.owner.caller, terminalInput)).resolves.toEqual(terminal)
+    expect((await stored(base.t, base.run.id)).run?.version).toBe(before.run!.version + 1)
   }, 30000)
 
   it('skips the next Creature’s turn when a Legendary Action at the end of the turn defeats it (D63)', async () => {

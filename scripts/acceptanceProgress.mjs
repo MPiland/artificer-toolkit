@@ -1,315 +1,254 @@
 #!/usr/bin/env node
-// Reports Phase 8.2 acceptance progress and work slices, and validates both files' structure.
+// Reports Phase 8 progress from the single agile ledger and validates its structure.
 // Usage: node scripts/acceptanceProgress.mjs [--json]
 // The --json report is the progress dashboard's data.json; it adds a burn-up history from the
-// ledger's git log.
+// ledger's git log. Validation errors go to stderr and exit 1; the report is still printed.
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const ledgerPath = fileURLToPath(
-  new URL('../docs/roadmap/08-2-convex-cutover-acceptance.json', import.meta.url)
+const ledgerRelative = 'docs/roadmap/08-phase-ledger.json'
+const repoRoot = fileURLToPath(new URL('../', import.meta.url))
+const ledger = JSON.parse(
+  readFileSync(fileURLToPath(new URL(`../${ledgerRelative}`, import.meta.url)), 'utf8')
 )
-const ledger = JSON.parse(readFileSync(ledgerPath, 'utf8'))
-const workPath = fileURLToPath(new URL('../docs/roadmap/08-2-work-slices.json', import.meta.url))
-const work = JSON.parse(readFileSync(workPath, 'utf8'))
-const openSliceStates = ['remaining', 'active', 'integrating', 'waiting']
-const statuses = ledger.statusVocabulary ?? []
-const accepted = 'ACCEPTED'
-// D80: a slice is done once its criteria are READY_FOR_ACCEPTANCE; only earlier states need an owner.
-const closedCriterionStates = ['READY_FOR_ACCEPTANCE', accepted]
+
+const workStatuses = ['TODO', 'IN_PROGRESS', 'DONE']
+const uatStatuses = ['NOT_RUN', 'PASSED', 'FAILED']
+const journeyStatuses = ['verified', 'partial', 'none']
+const historyCap = 200
+
+const count = (items, predicate) => items.filter(predicate).length
+const hasProof = (ac) =>
+  Array.isArray(ac.proof) &&
+  ac.proof.length > 0 &&
+  ac.proof.every((item) => typeof item === 'string' && item.length > 0)
+
+// An absent journeyStatus is derived from whether the PBI lists any journey tests.
+const journeyStatusOf = (pbi) =>
+  pbi.journeyStatus ?? ((pbi.journeyTests ?? []).length === 0 ? 'none' : 'partial')
+
+const isPbiProven = (pbi) =>
+  pbi.acs.length > 0 &&
+  pbi.acs.every((ac) => ac.status === 'DONE' && hasProof(ac)) &&
+  journeyStatusOf(pbi) === 'verified'
+
+const featureStatus = (feature) => {
+  const { pbis, uat = [] } = feature
+  if (
+    (pbis.length > 0 || uat.length > 0) &&
+    pbis.every((pbi) => pbi.status === 'DONE') &&
+    uat.every((item) => item.status === 'PASSED')
+  ) {
+    return 'DONE'
+  }
+  const started =
+    pbis.some((pbi) => pbi.status !== 'TODO' || pbi.acs.some((ac) => ac.status !== 'TODO')) ||
+    uat.some((item) => item.status !== 'NOT_RUN')
+  return started ? 'IN_PROGRESS' : 'TODO'
+}
+
+// Stable Kahn ordering: ledger order among features whose dependencies are already placed.
+// Features on a cycle are appended last so reporting still works; validation reports the cycle.
+const dependencyOrder = (features) => {
+  const byId = new Map(features.map((feature) => [feature.id, feature]))
+  const placed = new Set()
+  const ordered = []
+  let progressed = true
+  while (progressed) {
+    progressed = false
+    for (const feature of features) {
+      if (placed.has(feature.id)) continue
+      if ((feature.dependsOn ?? []).every((id) => placed.has(id) || !byId.has(id))) {
+        placed.add(feature.id)
+        ordered.push(feature)
+        progressed = true
+      }
+    }
+  }
+  return {
+    ordered: [...ordered, ...features.filter((feature) => !placed.has(feature.id))],
+    cyclic: features.filter((feature) => !placed.has(feature.id))
+  }
+}
+
+const addUnique = (seen, id, kind, errors) => {
+  if (seen.has(id)) errors.push(`Duplicate ${kind} id ${id}`)
+  seen.add(id)
+}
+
+const validatePbi = (pbi, seen, errors) => {
+  addUnique(seen.pbis, pbi.id, 'PBI', errors)
+  if (!workStatuses.includes(pbi.status)) errors.push(`${pbi.id} has invalid status ${pbi.status}`)
+  const journey = journeyStatusOf(pbi)
+  if (!journeyStatuses.includes(journey))
+    errors.push(`${pbi.id} has invalid journeyStatus ${journey}`)
+  for (const path of pbi.journeyTests ?? []) {
+    if (!existsSync(`${repoRoot}${path}`)) errors.push(`${pbi.id} journey test not found: ${path}`)
+  }
+  if (!Array.isArray(pbi.acs) || pbi.acs.length === 0) {
+    errors.push(`${pbi.id} has no acceptance criteria`)
+    return
+  }
+  for (const ac of pbi.acs) {
+    addUnique(seen.acs, ac.id, 'AC', errors)
+    if (typeof ac.id !== 'string' || !ac.id.startsWith(`${pbi.id}.`)) {
+      errors.push(`${ac.id} must be prefixed with "${pbi.id}."`)
+    }
+    if (typeof ac.text !== 'string' || ac.text.trim().length === 0)
+      errors.push(`${ac.id} has no text`)
+    if (!workStatuses.includes(ac.status)) errors.push(`${ac.id} has invalid status ${ac.status}`)
+    if (ac.status === 'DONE' && !hasProof(ac)) errors.push(`${ac.id} is DONE without proof`)
+  }
+  if (pbi.status === 'DONE' && !isPbiProven(pbi)) {
+    errors.push(
+      `${pbi.id} is DONE but breaks the definition of done (all ACs DONE with proof and journeyStatus verified)`
+    )
+  }
+}
 
 const validate = () => {
   const errors = []
-  const caseIds = new Set()
-  const criterionIds = new Set()
-  if (!Array.isArray(ledger.statusVocabulary) || !statuses.includes(accepted)) {
-    errors.push(`statusVocabulary must be an array that includes ${accepted}`)
-  }
-  if (typeof ledger.denominatorPolicy !== 'string' || ledger.denominatorPolicy.length === 0) {
-    errors.push('denominatorPolicy is missing')
-  }
-  const cases = (ledger.gates ?? []).flatMap((gate) => {
-    if (!Array.isArray(gate.cases) || gate.cases.length !== gate.total) {
-      errors.push(`Gate ${gate.id} total ${gate.total} does not match its case count`)
+  const seen = { features: new Set(), pbis: new Set(), acs: new Set() }
+  const featureIds = new Set((ledger.features ?? []).map((feature) => feature.id))
+  for (const feature of ledger.features ?? []) {
+    addUnique(seen.features, feature.id, 'feature', errors)
+    for (const id of feature.dependsOn ?? []) {
+      if (!featureIds.has(id)) errors.push(`${feature.id} depends on unknown feature ${id}`)
     }
-    return gate.cases ?? []
+    for (const item of feature.uat ?? []) {
+      if (!uatStatuses.includes(item.status))
+        errors.push(`${item.id} has invalid UAT status ${item.status}`)
+    }
+    for (const pbi of feature.pbis ?? []) validatePbi(pbi, seen, errors)
+  }
+  const { cyclic } = dependencyOrder(ledger.features ?? [])
+  if (cyclic.length > 0)
+    errors.push(
+      `Dependency cycle among features: ${cyclic.map((feature) => feature.id).join(', ')}`
+    )
+  return errors
+}
+
+const buildReport = () => {
+  const { ordered } = dependencyOrder(ledger.features)
+  const statusById = new Map(ordered.map((feature) => [feature.id, featureStatus(feature)]))
+  const features = ordered.map((feature) => {
+    const pbis = feature.pbis.map((pbi) => ({
+      id: pbi.id,
+      title: pbi.title,
+      status: pbi.status,
+      journeyStatus: journeyStatusOf(pbi),
+      journeyGap: pbi.journeyGap ?? null,
+      journeyTests: pbi.journeyTests ?? [],
+      acDone: count(pbi.acs, (ac) => ac.status === 'DONE'),
+      acTotal: pbi.acs.length,
+      acs: pbi.acs.map((ac) => ({
+        id: ac.id,
+        text: ac.text,
+        status: ac.status,
+        proof: ac.proof ?? null,
+        note: ac.note ?? null
+      })),
+      tasks: pbi.tasks ?? []
+    }))
+    return {
+      id: feature.id,
+      title: feature.title,
+      kind: feature.kind,
+      dependsOn: feature.dependsOn ?? [],
+      status: statusById.get(feature.id),
+      readyToStart: (feature.dependsOn ?? []).every((id) => statusById.get(id) === 'DONE'),
+      pbiDone: count(pbis, (pbi) => pbi.status === 'DONE'),
+      pbiTotal: pbis.length,
+      acDone: pbis.reduce((sum, pbi) => sum + pbi.acDone, 0),
+      acTotal: pbis.reduce((sum, pbi) => sum + pbi.acTotal, 0),
+      uat: feature.uat ?? [],
+      pbis
+    }
   })
-  if (cases.length !== ledger.fixedTotal) {
-    errors.push(`Ledger has ${cases.length} cases; fixedTotal is ${ledger.fixedTotal}`)
+  const allPbis = features.flatMap((feature) => feature.pbis)
+  const journeyCount = (status) => count(allPbis, (pbi) => pbi.journeyStatus === status)
+  return {
+    generatedAt: new Date().toISOString(),
+    title: ledger.title,
+    definitionOfDone: ledger.definitionOfDone,
+    totals: {
+      features: features.length,
+      pbis: allPbis.length,
+      pbisDone: count(allPbis, (pbi) => pbi.status === 'DONE'),
+      acs: features.reduce((sum, feature) => sum + feature.acTotal, 0),
+      acsDone: features.reduce((sum, feature) => sum + feature.acDone, 0),
+      journey: {
+        verified: journeyCount('verified'),
+        partial: journeyCount('partial'),
+        none: journeyCount('none')
+      }
+    },
+    features,
+    retired: ledger.retired ?? [],
+    openQuestions: ledger.openQuestions ?? []
   }
-  for (const kase of cases) {
-    if (caseIds.has(kase.id)) errors.push(`Duplicate case id ${kase.id}`)
-    caseIds.add(kase.id)
-    if (!statuses.includes(kase.status)) errors.push(`${kase.id} has invalid status ${kase.status}`)
-    if (!Array.isArray(kase.criteria) || kase.criteria.length === 0) {
-      errors.push(`${kase.id} has no criteria`)
-      continue
-    }
-    for (const criterion of kase.criteria) {
-      const label = `${kase.id} criterion ${criterion.id}`
-      if (typeof criterion.id !== 'string' || !criterion.id.startsWith(`${kase.id}.`)) {
-        errors.push(`${label} must be prefixed with "${kase.id}."`)
-      }
-      if (criterionIds.has(criterion.id)) errors.push(`Duplicate criterion id ${criterion.id}`)
-      criterionIds.add(criterion.id)
-      if (typeof criterion.text !== 'string' || criterion.text.trim().length === 0) {
-        errors.push(`${label} has no text`)
-      }
-      if (!statuses.includes(criterion.status)) {
-        errors.push(`${label} has invalid status ${criterion.status}`)
-      }
-      const validProof =
-        criterion.proof === null ||
-        (Array.isArray(criterion.proof) &&
-          criterion.proof.length > 0 &&
-          criterion.proof.every((item) => typeof item === 'string' && item.length > 0))
-      if (!validProof) errors.push(`${label} proof must be null or a non-empty string array`)
-    }
-    if (
-      kase.status === accepted &&
-      kase.criteria.some((criterion) => criterion.status !== accepted)
-    ) {
-      errors.push(`${kase.id} is ${accepted} but has criteria that are not ${accepted}`)
-    }
-  }
-  return errors
 }
 
-const validateWork = (caseIds, criteria) => {
-  const errors = []
-  const criterionOwners = new Map()
-  const includedBy = new Map()
-  const states = work.stateVocabulary ?? []
-  const streamIds = new Set((work.streams ?? []).map((stream) => stream.id))
-  const slices = new Map()
-  for (const slice of work.slices ?? []) {
-    if (slices.has(slice.id)) errors.push(`Duplicate slice id ${slice.id}`)
-    slices.set(slice.id, slice)
-    if (!streamIds.has(slice.stream)) errors.push(`${slice.id} has unknown stream ${slice.stream}`)
-    if (!slice.id.startsWith(`${slice.stream}-`)) {
-      errors.push(`${slice.id} must be prefixed with its stream "${slice.stream}-"`)
-    }
-    if (!states.includes(slice.state)) errors.push(`${slice.id} has invalid state ${slice.state}`)
-    if (typeof slice.title !== 'string' || slice.title.trim().length === 0) {
-      errors.push(`${slice.id} has no title`)
-    }
-    for (const id of slice.cases ?? []) {
-      if (!caseIds.has(id)) errors.push(`${slice.id} references unknown case ${id}`)
-    }
-    for (const id of slice.criteria ?? []) {
-      const criterion = criteria.get(id)
-      if (!criterion) errors.push(`${slice.id} references unknown criterion ${id}`)
-      else if (!slice.cases.includes(criterion.caseId)) {
-        errors.push(`${slice.id} closes ${id} but does not list case ${criterion.caseId}`)
-      }
-      if (openSliceStates.includes(slice.state)) {
-        criterionOwners.set(id, [...(criterionOwners.get(id) ?? []), slice.id])
-      }
-    }
-    for (const id of slice.includes ?? []) {
-      includedBy.set(id, [...(includedBy.get(id) ?? []), slice.id])
+// Burn-up points: PBI and AC counts at every commit that changed the ledger, oldest first.
+const readHistory = () => {
+  const git = (args) =>
+    execFileSync('git', args, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024
+    }).trim()
+  const toPoint = (commit, date) => {
+    const snapshot = JSON.parse(git(['show', `${commit}:${ledgerRelative}`]))
+    const pbis = (snapshot.features ?? []).flatMap((feature) => feature.pbis ?? [])
+    const acs = pbis.flatMap((pbi) => pbi.acs ?? [])
+    return {
+      date,
+      commit: commit.slice(0, 9),
+      acsDone: count(acs, (ac) => ac.status === 'DONE'),
+      acs: acs.length,
+      pbisDone: count(pbis, (pbi) => pbi.status === 'DONE'),
+      pbis: pbis.length
     }
   }
-  for (const [id, owners] of includedBy) {
-    if (!slices.has(id)) errors.push(`${owners.join(', ')} include unknown slice ${id}`)
-    if (owners.length > 1)
-      errors.push(`${id} is included by more than one slice: ${owners.join(', ')}`)
-  }
-  for (const [id, criterion] of criteria) {
-    const owners = criterionOwners.get(id) ?? []
-    if (!closedCriterionStates.includes(criterion.status) && owners.length !== 1) {
-      errors.push(
-        `Open criterion ${id} must be closed by exactly one open slice (has ${owners.length})`
+  return git(['log', '--reverse', '--format=%H %cI', '--', ledgerRelative])
+    .split('\n')
+    .filter(Boolean)
+    .slice(-historyCap)
+    .map((line) => toPoint(...line.split(' ')))
+    .filter((point) => point.acs > 0)
+}
+
+const formatText = (report) => {
+  const { totals } = report
+  return [
+    `${report.title}: ${totals.pbisDone}/${totals.pbis} PBIs done; ${totals.acsDone}/${totals.acs} ACs done`,
+    `Journey tests: ${totals.journey.verified} verified, ${totals.journey.partial} partial, ` +
+      `${totals.journey.none} none`,
+    '',
+    'Features in dependency order:',
+    ...report.features.map((feature) => {
+      const journey = (status) => count(feature.pbis, (pbi) => pbi.journeyStatus === status)
+      const wait = feature.status === 'DONE' ? '' : feature.readyToStart ? ' ready' : ' waiting'
+      return (
+        `  ${feature.id} [${feature.status}${wait}] ` +
+        `PBIs ${feature.pbiDone}/${feature.pbiTotal}, ACs ${feature.acDone}/${feature.acTotal}, ` +
+        `journey v${journey('verified')} p${journey('partial')} n${journey('none')}`
       )
-    }
-  }
-  for (const slice of slices.values()) {
-    const scheduled = work.queue.includes(slice.id) || includedBy.has(slice.id)
-    if (openSliceStates.includes(slice.state) && !scheduled) {
-      errors.push(`Open slice ${slice.id} is neither queued nor included by a queued slice`)
-    }
-  }
-  if (new Set(work.queue).size !== work.queue.length) errors.push('Queue repeats a slice')
-  for (const id of work.queue ?? []) {
-    const slice = slices.get(id)
-    if (!slice) errors.push(`Queue references unknown slice ${id}`)
-    else if (!openSliceStates.includes(slice.state)) {
-      errors.push(`Queue slice ${id} is ${slice.state}, not open`)
-    }
-  }
-  // Parallel slices are allowed only when they close disjoint acceptance cases. An active slice
-  // inside an active parent is the parent's own work, so it is compared with its siblings only.
-  const activeCases = new Map()
-  for (const slice of slices.values()) {
-    if (slice.state !== 'active') continue
-    const scope =
-      (includedBy.get(slice.id) ?? []).find((id) => slices.get(id)?.state === 'active') ?? ''
-    for (const caseId of slice.cases ?? []) {
-      const key = `${scope}:${caseId}`
-      if (activeCases.has(key)) {
-        errors.push(`Active slices ${activeCases.get(key)} and ${slice.id} share case ${caseId}`)
-      } else activeCases.set(key, slice.id)
-    }
-  }
-  return errors
+    })
+  ].join('\n')
 }
-
-const countByStatus = (items) =>
-  Object.fromEntries(
-    statuses.map((status) => [status, items.filter((item) => item.status === status).length])
-  )
 
 const errors = validate()
-if (errors.length === 0) {
-  errors.push(
-    ...validateWork(
-      new Set(ledger.gates.flatMap((gate) => gate.cases.map((kase) => kase.id))),
-      new Map(
-        ledger.gates.flatMap((gate) =>
-          gate.cases.flatMap((kase) =>
-            kase.criteria.map((criterion) => [
-              criterion.id,
-              { caseId: kase.id, status: criterion.status }
-            ])
-          )
-        )
-      )
-    )
-  )
+const report = buildReport()
+if (process.argv.includes('--json')) {
+  process.stdout.write(`${JSON.stringify({ ...report, history: readHistory() }, null, 2)}\n`)
+} else {
+  console.log(formatText(report))
 }
 if (errors.length > 0) {
-  console.error(`Invalid acceptance ledger or work slices (${ledgerPath}, ${workPath}):`)
+  console.error(`\nInvalid Phase 8 ledger (${ledgerRelative}), ${errors.length} errors:`)
   for (const error of errors) console.error(`- ${error}`)
   process.exit(1)
 }
-
-const allCases = ledger.gates.flatMap((gate) => gate.cases)
-const allCriteria = allCases.flatMap((kase) => kase.criteria)
-const report = {
-  generatedAt: new Date().toISOString(),
-  phase: ledger.phase,
-  fixedTotal: ledger.fixedTotal,
-  cases: countByStatus(allCases),
-  criteria: { total: allCriteria.length, ...countByStatus(allCriteria) },
-  gates: ledger.gates.map((gate) => {
-    const gateCriteria = gate.cases.flatMap((kase) => kase.criteria)
-    return {
-      id: gate.id,
-      title: gate.title,
-      total: gate.total,
-      cases: countByStatus(gate.cases),
-      criteria: { total: gateCriteria.length, ...countByStatus(gateCriteria) },
-      caseProgress: gate.cases.map((kase) => ({
-        id: kase.id,
-        title: kase.title,
-        proofTier: kase.proofTier,
-        status: kase.status,
-        met: kase.criteria.filter((criterion) => criterion.status === accepted).length,
-        total: kase.criteria.length,
-        criteria: kase.criteria.map(({ id, status, text }) => ({ id, status, text }))
-      }))
-    }
-  }),
-  openCases: allCases
-    .filter((kase) => kase.status !== accepted)
-    .map((kase) => ({
-      id: kase.id,
-      title: kase.title,
-      status: kase.status,
-      openCriteria: kase.criteria
-        .filter((criterion) => criterion.status !== accepted)
-        .map(({ id, status, text }) => ({ id, status, text }))
-    })),
-  work: {
-    stateMeaning: work.stateMeaning,
-    streams: work.streams,
-    queue: work.queue,
-    slices: work.slices,
-    metrics: work.metrics
-  }
-}
-
-// Burn-up points: criterion status counts at every commit that changed the ledger, oldest first.
-const readHistory = () => {
-  const git = (args) =>
-    execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim()
-  const ledgerRelative = 'docs/roadmap/08-2-convex-cutover-acceptance.json'
-  return (
-    git(['log', '--reverse', '--format=%H %cI', '--', ledgerRelative])
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => {
-        const [commit, date] = line.split(' ')
-        const snapshot = JSON.parse(git(['show', `${commit}:${ledgerRelative}`]))
-        const criteria = (snapshot.gates ?? []).flatMap((gate) =>
-          (gate.cases ?? []).flatMap((kase) => kase.criteria ?? [])
-        )
-        return {
-          commit: commit.slice(0, 9),
-          date,
-          total: criteria.length,
-          ...countByStatus(criteria)
-        }
-      })
-      // Ledger versions before the per-criterion shape have no criteria to count.
-      .filter((point) => point.total > 0)
-      .concat({ commit: 'working', date: report.generatedAt, ...report.criteria })
-  )
-}
-
-if (process.argv.includes('--json')) {
-  process.stdout.write(`${JSON.stringify({ ...report, history: readHistory() }, null, 2)}\n`)
-  process.exit(0)
-}
-
-const formatCounts = (counts) =>
-  statuses
-    .filter((status) => counts[status] > 0)
-    .map((status) => `${status} ${counts[status]}`)
-    .join(', ')
-
-const lines = [
-  `Phase ${report.phase} acceptance: ${report.cases[accepted]}/${report.fixedTotal} cases accepted; ` +
-    `${report.criteria[accepted]}/${report.criteria.total} criteria accepted`,
-  `Cases: ${formatCounts(report.cases)}`,
-  `Criteria: ${formatCounts(report.criteria)}`,
-  '',
-  'Per gate:',
-  ...report.gates.map(
-    (gate) =>
-      `  Gate ${gate.id} ${gate.title}: cases ${gate.cases[accepted]}/${gate.total} (${formatCounts(gate.cases)}); ` +
-      `criteria ${gate.criteria[accepted]}/${gate.criteria.total} (${formatCounts(gate.criteria)})`
-  ),
-  '',
-  'Per case (criteria met/total):',
-  ...report.gates.map(
-    (gate) =>
-      `  Gate ${gate.id}: ` +
-      gate.caseProgress
-        .map(
-          ({ id, status, met, total }) => `${id} ${met}/${total}${status === accepted ? '' : '*'}`
-        )
-        .join('  ')
-  ),
-  '  (* case not accepted)',
-  '',
-  'Queue (scheduled open slices, the criteria each closes and the slices it includes):',
-  ...work.queue.flatMap((id) => {
-    const slice = work.slices.find((item) => item.id === id)
-    return [
-      `  ${slice.id} [${slice.state}] ${slice.title}`,
-      `    closes: ${(slice.criteria ?? []).join(' ') || 'none'}`,
-      `    includes: ${(slice.includes ?? []).join(' ') || 'none'}`
-    ]
-  }),
-  '',
-  `Open cases (${report.openCases.length}):`,
-  ...report.openCases.flatMap((kase) => [
-    `  ${kase.id} [${kase.status}] ${kase.title}`,
-    ...kase.openCriteria.map(
-      (criterion) => `    ${criterion.id} [${criterion.status}] ${criterion.text}`
-    )
-  ])
-]
-console.log(lines.join('\n'))

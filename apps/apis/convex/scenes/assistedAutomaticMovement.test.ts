@@ -1,25 +1,33 @@
 import { makeFunctionReference } from 'convex/server'
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
-import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
+import {
+  readCheckpointedTokenPosition,
+  setupReactionMovementScene
+} from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
-  planMovementDecisionInRoom,
-  planMovementInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  checkpointLiveRoom,
+  executeInRoom,
+  executeSceneInRoom,
+  queueRoomRolls,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
+useLocalRoomWorker()
 
 const pendingRuleOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
+
+type Setup = Awaited<ReturnType<typeof setupReactionMovementScene>>
 
 function command(input: {
   encounterId: string
@@ -38,7 +46,9 @@ function command(input: {
   }
 }
 
-async function actorChecksums(value: Awaited<ReturnType<typeof setupReactionMovementScene>>) {
+/** Every actor's state checksum as Convex holds it once the room checkpoints. */
+async function actorChecksums(value: Setup) {
+  await checkpointLiveRoom(value.base.campaign.id)
   return value.base.t.run(async (ctx) =>
     (
       await ctx.db
@@ -49,10 +59,8 @@ async function actorChecksums(value: Awaited<ReturnType<typeof setupReactionMove
   )
 }
 
-async function reactorChecksum(
-  value: Awaited<ReturnType<typeof setupReactionMovementScene>>,
-  reactorId: string
-) {
+async function reactorChecksum(value: Setup, reactorId: string) {
+  await checkpointLiveRoom(value.base.campaign.id)
   return value.base.t.run(async (ctx) => {
     const reactor = await ctx.db
       .query('encounterRunActors')
@@ -74,10 +82,11 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
     // The GM controls both Creatures, so it answers the choice and rolls the reaction dice.
     if (rolls === 'PROMPT') await setAutoRollDice(base.t, base.owner.userId, false)
     const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
     const beforePause = await actorChecksums(value)
-    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-    expect(root.outcome.kind).toBe('PENDING')
-    const choice = (await root.publish()).occurrence?.pending
+    const root = await executeSceneInRoom(value.owner.caller, value.rootInput)
+    const choice = root.result?.occurrence?.pending
+    expect(root.result?.occurrence?.status).toBe('PENDING')
     expect(await actorChecksums(value)).toEqual(beforePause)
     if (!choice || choice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
@@ -98,10 +107,10 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
       pending: choice,
       resolution: { kind: 'OPTION', optionId: choice.choice.options[0]!.optionId }
     })
-    await expect(planMovementDecisionInRoom(value.player.caller, use)).rejects.toThrow()
-    const usedRequest = await planMovementDecisionInRoom(value.owner.caller, use)
-    expect(usedRequest.outcome.kind).toBe('PENDING')
-    const initial = (await usedRequest.publish()).occurrence?.pending
+    await expect(executeInRoom(value.player.caller, { command: use })).rejects.toThrow()
+    const used = await executeInRoom(value.owner.caller, { command: use })
+    const initial = used.occurrence?.pending
+    expect(used.occurrence?.status).toBe('PENDING')
     expect(await actorChecksums(value)).toEqual(beforePause)
     let resistance = initial
     if (rolls === 'PROMPT') {
@@ -117,10 +126,10 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
           rollMode: initial.request.rollMode
         }
       })
-      await expect(planMovementDecisionInRoom(value.player.caller, enterTest)).rejects.toThrow()
-      const rolledRequest = await planMovementDecisionInRoom(value.owner.caller, enterTest)
-      expect(rolledRequest.outcome.kind).toBe('PENDING')
-      resistance = (await rolledRequest.publish()).occurrence?.pending
+      await expect(executeInRoom(value.player.caller, { command: enterTest })).rejects.toThrow()
+      const rolled = await executeInRoom(value.owner.caller, { command: enterTest })
+      expect(rolled.occurrence?.status).toBe('PENDING')
+      resistance = rolled.occurrence?.pending
       expect(await actorChecksums(value)).toEqual(beforePause)
     }
     if (!resistance || resistance.kind !== 'LEGENDARY_RESISTANCE_CHOICE')
@@ -130,24 +139,16 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
       pending: resistance,
       resolution: { kind: 'DECLINE' }
     })
-    let request = await planMovementDecisionInRoom(value.owner.caller, declineCommand)
-    let complete: SceneGeometryCommandResult | null = null
+    let result = await executeInRoom(value.owner.caller, { command: declineCommand })
     let outcomeEvidenceCount = 0
-    for (let index = 0; index < 20; index++) {
-      expect(request.outcome.kind).toMatch(/PENDING|TERMINAL/)
-      const result = await request.publish()
-      if (result.occurrence?.status === 'COMPLETE') {
-        complete = result
-        break
-      }
+    for (let index = 0; index < 20 && result.occurrence?.status !== 'COMPLETE'; index++) {
       const outcomeEvidence = result.occurrence?.pending
       if (!outcomeEvidence || outcomeEvidence.kind !== 'ACTION_OUTCOME_EVIDENCE')
         throw new Error('Expected Assisted OUTCOME evidence.')
       expect(await actorChecksums(value)).toEqual(beforePause)
       outcomeEvidenceCount++
-      request = await planMovementDecisionInRoom(
-        value.owner.caller,
-        command({
+      result = await executeInRoom(value.owner.caller, {
+        command: command({
           encounterId: base.run.id,
           pending: outcomeEvidence,
           resolution: {
@@ -156,22 +157,31 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
             value: outcomeEvidence.request.min
           }
         })
-      )
+      })
     }
-    if (!complete) throw new Error('Assisted automatic reaction did not complete.')
+    if (result.occurrence?.status !== 'COMPLETE')
+      throw new Error('Assisted automatic reaction did not complete.')
     if (rolls === 'PROMPT') expect(outcomeEvidenceCount).toBeGreaterThan(0)
     else expect(outcomeEvidenceCount).toBe(0)
-    expect(complete.delta).toMatchObject({
-      tokenId: value.moverTokenId,
-      position: { x: 450, y: 50 }
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+      x: 450,
+      y: 50
     })
-    const retry = await planMovementDecisionInRoom(value.owner.caller, declineCommand)
-    await expect(retry.publish()).resolves.toMatchObject({ replayed: true })
+    // The room journals the command's effects once; a replay answers with the current table state.
+    // The decision result carries no `replayed` flag; the room's timeline not growing is its proof.
+    const settledChecksums = await actorChecksums(value)
+    const settledTimeline = await readRoomTimeline(value.owner.caller, base.campaign.id)
+    const replayed = await executeInRoom(value.owner.caller, { command: declineCommand })
+    expect(replayed.projection.version).toBe(result.projection.version)
+    expect(await actorChecksums(value)).toEqual(settledChecksums)
+    expect(await readRoomTimeline(value.owner.caller, base.campaign.id)).toEqual(settledTimeline)
     await expect(
-      planMovementDecisionInRoom(value.owner.caller, {
-        ...declineCommand,
-        commandId: crypto.randomUUID(),
-        expectedOccurrenceVersion: declineCommand.expectedOccurrenceVersion + 1
+      executeInRoom(value.owner.caller, {
+        command: {
+          ...declineCommand,
+          commandId: crypto.randomUUID(),
+          expectedOccurrenceVersion: declineCommand.expectedOccurrenceVersion + 1
+        }
       })
     ).rejects.toThrow()
   },
@@ -183,22 +193,16 @@ it('skips a declined System-automatic reaction in Assisted mode without rolling 
     outcomeDice: true
   })
   const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
+  await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
   const reactorBefore = await reactorChecksum(value, base.reactor.id)
-  const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-  expect(root.outcome.kind).toBe('PENDING')
-  const choice = (await root.publish()).occurrence?.pending
+  const root = await executeSceneInRoom(value.owner.caller, value.rootInput)
+  const choice = root.result?.occurrence?.pending
   if (!choice || choice.kind !== 'MOVEMENT_REACTION')
     throw new Error('Expected the Assisted Use/Decline choice for the automatic reaction.')
-  const request = await planMovementDecisionInRoom(
-    value.owner.caller,
-    command({ encounterId: base.run.id, pending: choice, resolution: { kind: 'DECLINE' } })
-  )
-  expect(request.outcome.kind).toBe('TERMINAL')
-  const complete = await request.publish()
-  expect(complete.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
-  expect(complete.delta).toMatchObject({
-    tokenId: value.moverTokenId,
-    position: { x: 450, y: 50 }
+  const complete = await executeInRoom(value.owner.caller, {
+    command: command({ encounterId: base.run.id, pending: choice, resolution: { kind: 'DECLINE' } })
   })
+  expect(complete.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+  expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({ x: 450, y: 50 })
   expect(await reactorChecksum(value, base.reactor.id)).toBe(reactorBefore)
 }, 30_000)

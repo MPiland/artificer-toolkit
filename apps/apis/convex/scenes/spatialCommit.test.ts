@@ -1,16 +1,25 @@
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { readEncounterHistory, readTimelineInRoom } from '../../tests/fixtures/liveSessionWorker'
-import { planSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
+import { expect, it } from 'vitest'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeSceneInRoom,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+import { seedSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
-beforeEach(() => vi.stubEnv('BETTER_AUTH_SECRET', 'spatial-commit-test-secret-at-least-32-bytes'))
-afterEach(() => vi.unstubAllEnvs())
+useLocalRoomWorker()
 
-async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixture>>) {
+type Seeded = Awaited<ReturnType<typeof seedSpatialTerminalFixture>>
+
+/** Convex's rows after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
+async function current(value: Seeded) {
+  await checkpointLiveRoom(value.base.campaign.id)
   return value.base.owner.caller.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRuns')
@@ -40,13 +49,6 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
         .query('encounterRuleOccurrences')
         .withIndex('by_encounterId_state', (q) => q.eq('encounterId', state.id))
         .collect(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
-        .collect(),
       liveStates: await ctx.db.query('sceneLiveStates').collect(),
       liveEntities: await ctx.db.query('sceneLiveEntities').collect(),
       fogSaves: await ctx.db.query('sceneFogSaves').collect(),
@@ -56,27 +58,28 @@ async function current(value: Awaited<ReturnType<typeof planSpatialTerminalFixtu
   })
 }
 
-it('publishes a terminal movement once with its Scene move, Run receipt and timeline entry', async () => {
-  const value = await planSpatialTerminalFixture()
-  const { outcome } = value.plan
-  if (outcome.kind !== 'TERMINAL') throw new Error('Expected terminal fixture')
+/** The seeded Assisted move, committed through the real room (no plan step exists to inspect). */
+async function commit(path?: Parameters<typeof seedSpatialTerminalFixture>[0]) {
+  const value = await seedSpatialTerminalFixture(path)
+  await attachFixtureRoom(value.base.t, value.base.campaign.id)
   const before = await current(value)
-  const first = await value.plan.publish()
-  const after = await current(value)
+  const { result } = await executeSceneInRoom(value.base.owner.caller, value.input)
+  if (!result) throw new Error('Expected a committed Scene command result.')
+  return { value, before, result, after: await current(value) }
+}
 
-  expect(first).toMatchObject({
+// The planner's TERMINAL outcome for this move (terminal position, occurrence id) is covered by the
+// producer tests in apps/session-worker; here it is read off the committed result.
+it('commits a terminal movement once with its Scene move, Run state and timeline entry', async () => {
+  const { value, before, result, after } = await commit()
+
+  expect(result).toMatchObject({
     replayed: false,
-    delta: {
-      kind: 'TOKEN_MOVED',
-      tokenId: value.tokenId,
-      position: outcome.result.terminalPosition
-    },
-    occurrence: {
-      occurrenceId: outcome.result.occurrenceId,
-      occurrenceVersion: 0,
-      status: 'COMPLETE'
-    }
+    delta: { kind: 'TOKEN_MOVED', tokenId: value.tokenId },
+    occurrence: { occurrenceVersion: 0, status: 'COMPLETE' }
   })
+  if (result.delta?.kind !== 'TOKEN_MOVED' || !result.occurrence)
+    throw new Error('Expected a committed terminal move.')
   expect(after.runVersion).toBe(before.runVersion + 1)
   expect(after.projection.version).toBe(before.projection.version + 1)
   expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
@@ -85,56 +88,35 @@ it('publishes a terminal movement once with its Scene move, Run receipt and time
     {
       collection: 'tokens',
       entityId: value.tokenId,
-      value: { entity: { position: outcome.result.terminalPosition } }
+      value: { entity: { position: result.delta.position } }
     }
   ])
   const occurrences = after.occurrences.filter(
-    (occurrence) => occurrence.id === outcome.result.occurrenceId
+    (occurrence) => occurrence.id === result.occurrence?.occurrenceId
   )
   expect(occurrences).toMatchObject([
     { state: 'COMPLETED', version: 0, rootCommandId: value.input.commandId }
   ])
   expect(occurrences).toHaveLength(1)
-  const receipts = after.receipts.filter((receipt) => receipt.commandId === value.input.commandId)
-  expect(receipts).toMatchObject([
-    {
-      occurrenceId: outcome.result.occurrenceId,
-      commandType: 'MOVE_SCENE_TOKEN',
-      encounterVersion: after.runVersion
-    }
-  ])
-  expect(receipts).toHaveLength(1)
-  expect(
-    after.commands.filter((command) => command.commandType === 'MOVE_SCENE_TOKEN')
-  ).toHaveLength(1)
-  const history = await readTimelineInRoom(value.base.other.caller, value.base.run.id)
-  expect(history.entries.filter((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')).toHaveLength(
-    1
-  )
+  // The command's receipt and journal entry are room-held (D85); a member sees them as one timeline entry.
+  const history = await readRoomTimeline(value.base.other.caller, value.base.campaign.id)
+  expect(history.filter((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')).toHaveLength(1)
 
-  const playerHistory = await readTimelineInRoom(value.base.owner.caller, value.base.run.id)
-  expect(playerHistory.entries.filter((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')).toEqual(
-    []
-  )
+  const playerHistory = await readRoomTimeline(value.base.owner.caller, value.base.campaign.id)
+  expect(playerHistory.filter((entry) => entry.commandType === 'MOVE_SCENE_TOKEN')).toEqual([])
   expect(
     after.projection.actors.find((actor) => actor.id === after.actor.id)?.currentHitPoints
   ).toBe(after.actor.currentHitPoints)
 })
 
-it('publishes a stationary terminal without moving the token or advancing the Scene', async () => {
-  const value = await planSpatialTerminalFixture([
+it('commits a stationary terminal without moving the token or advancing the Scene', async () => {
+  const { before, result, after } = await commit([
     { x: 0, y: 0 },
     { x: 10, y: 0 },
     { x: 0, y: 0 }
   ])
-  const { outcome } = value.plan
-  if (outcome.kind !== 'TERMINAL') throw new Error('Expected terminal fixture')
-  const before = await current(value)
-  const result = await value.plan.publish()
-  const after = await current(value)
 
   expect(result).toMatchObject({ replayed: false, version: 0, delta: null })
-  expect(outcome.result.sceneVersion).toBe(0)
   expect(after.runVersion).toBe(before.runVersion + 1)
   expect(after.actor.currentHitPoints).toBe(before.actor.currentHitPoints - 1)
   expect(after.effects).toEqual([])

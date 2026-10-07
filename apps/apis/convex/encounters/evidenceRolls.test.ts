@@ -19,7 +19,6 @@ import {
   closeRoom,
   executeInRoom,
   RoomCommandRefusal,
-  readEncounterHistory,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
@@ -207,15 +206,10 @@ describe('Encounter roll prompts', () => {
         occurrences: await ctx.db
           .query('encounterRuleOccurrences')
           .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
-          .collect(),
-        receipts: await (
-          await readEncounterHistory(ctx)
-        )
-          .query('encounterRuleReceipts')
-          .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
           .collect()
       }))
     }
+    // The room's rule receipts stay unchanged too: see nativeRoomEvidence.test.ts (Manual Run).
     const before = await stored()
     // Manual mode runs no rules: neither the controlling player nor the GM can start the action.
     for (const member of [base.other, base.owner])

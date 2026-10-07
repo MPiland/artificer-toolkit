@@ -6,14 +6,6 @@ import type { ImportStoredJob } from '@artificer-toolkit/schema/projections/impo
 import type { Id } from '../_generated/dataModel'
 import { runImportJob } from './runner'
 
-vi.mock('./finalize', async () => {
-  const { makeFunctionReference } = await import('convex/server')
-  return {
-    completeRef: makeFunctionReference<'mutation', { jobId: string }, null>(
-      'imports/finalize:complete'
-    )
-  }
-})
 type RunnerSource = ImportRunnerSource & { command: ImportStoredJob['command'] }
 type RunnerContext = Parameters<typeof runImportJob>[0]
 

@@ -5,6 +5,7 @@ import type {
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { encounterRuleUsageUsed } from './encounterActorState.js'
+import { StaleMovementReactionError } from './encounterErrors.js'
 import { revalidateEncounterMovementReactionOption } from './encounterMovementReactionDiscovery.js'
 import type { PreparedEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import type { buildEncounterMovementReactionFacts } from './encounterMovementReactionFacts.js'
@@ -100,7 +101,7 @@ export async function prepareEncounterMovementReactionAction<
         prepared.source.capability.actionId !== revalidated.action.capability.actionId ||
         prepared.source.capability.ownerFeatureId !== revalidated.action.capability.ownerFeatureId))
   )
-    throw new Error('The selected movement reaction source is stale.')
+    throw new StaleMovementReactionError('The selected movement reaction source is stale.')
   requireReactionTargetPolicy({
     sourceActorId: actor.id,
     targetActorId: target.id,

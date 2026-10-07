@@ -1,5 +1,7 @@
+import { ConvexError } from 'convex/values'
 import { makeFunctionReference } from 'convex/server'
 import { afterEach, expect, it, vi } from 'vitest'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   LIVE_SESSION_TICKET_VERSION,
   LIVE_SESSION_TICKET_TTL_SECONDS,
@@ -104,6 +106,53 @@ it('denies unauthenticated, nonmember, archived, and cross-Campaign ticket reque
   await expect(base.other.caller.action(issue, { campaignId: foreignCampaign.id })).rejects.toThrow(
     'Campaign not found'
   )
+})
+
+it('refuses a departed member and an archived Campaign with user-safe ConvexError data', async () => {
+  vi.stubEnv('LIVE_SESSION_TICKET_SECRET', secret)
+  const refusal = async (promise: Promise<unknown>) => {
+    const error: unknown = await promise.then(
+      () => null,
+      (rejected: unknown) => rejected
+    )
+    if (!(error instanceof ConvexError)) throw new Error('Expected a ConvexError refusal.')
+    return domainRejectionErrorDataSchema.parse(error.data)
+  }
+  const departed = await createEncounterSceneFixture()
+  await departed.t.run(async (ctx) => {
+    const member = await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (q) =>
+        q.eq('campaignId', departed.campaign.id).eq('userId', departed.owner.userId)
+      )
+      .unique()
+    if (!member) throw new Error('Missing player membership.')
+    await ctx.db.patch(member._id, { leftAt: new Date().toISOString(), status: 'LEFT' })
+  })
+  expect(
+    await refusal(departed.owner.caller.action(issue, { campaignId: departed.campaign.id }))
+  ).toEqual({
+    code: 'DOMAIN_REJECTED',
+    message: 'Campaign not found.',
+    reason: 'CAMPAIGN_NOT_FOUND'
+  })
+
+  const archived = await createEncounterSceneFixture()
+  await archived.t.run(async (ctx) => {
+    const campaign = await ctx.db
+      .query('campaigns')
+      .withIndex('by_publicId', (q) => q.eq('id', archived.campaign.id))
+      .unique()
+    if (!campaign) throw new Error('Missing Campaign.')
+    await ctx.db.patch(campaign._id, { status: 'ARCHIVED' })
+  })
+  expect(
+    await refusal(archived.other.caller.action(issue, { campaignId: archived.campaign.id }))
+  ).toEqual({
+    code: 'DOMAIN_REJECTED',
+    message: 'Archived Campaigns are read-only.',
+    reason: 'CAMPAIGN_NOT_ACTIVE'
+  })
 })
 
 it('rejects missing and too-short ticket secrets without claiming authority', async () => {

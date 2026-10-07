@@ -2,11 +2,14 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import type { SocialApplicationDto } from '@artificer-toolkit/schema/api/socialHub'
+import {
+  socialApplicationDtoSchema,
+  type SocialApplicationDto
+} from '@artificer-toolkit/schema/api/socialHub'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialListingApplications } from './SocialListingApplications'
 
-const application = {
+const application = socialApplicationDtoSchema.parse({
   applicationPublicId: 'aaaaaaaa-2222-4222-8222-222222222222',
   listingPublicId: 'abc33333-3333-4333-8333-333333333333',
   listingTitle: 'Ashen Road',
@@ -15,7 +18,7 @@ const application = {
     username: 'Player'
   },
   message: 'Ready to play.',
-  status: 'SUBMITTED' as const,
+  status: 'SUBMITTED',
   listingVersion: 1,
   expectations: {
     contentGuidance: 'Be kind.',
@@ -29,7 +32,7 @@ const application = {
   submittedAt: '2026-09-01T00:00:00.000Z',
   respondedAt: null,
   version: 2
-} satisfies SocialApplicationDto
+})
 
 const mocks = vi.hoisted(() => ({
   pending: {

@@ -14,7 +14,7 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
@@ -40,12 +40,15 @@ import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  invalidateRoomInputs,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -271,6 +274,7 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
       throw new Error('Missing compiled Character action.')
     return candidate.actionId
   })
+  await attachFixtureRoom(base.t, campaign.id)
   return {
     ...base,
     owner,
@@ -285,7 +289,10 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
   }
 }
 
+// The room holds the Run's commands and receipts until it ends (D85), so Convex is read after the
+// room publishes what it holds.
 async function records(fixture: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(fixture.campaign.id)
   return fixture.t.run(async (ctx) =>
     Promise.all([
       readCharacterRow(ctx, fixture.character.id),
@@ -298,16 +305,13 @@ async function records(fixture: Awaited<ReturnType<typeof setup>>) {
       ctx.db
         .query('encounterRuns')
         .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
-        .unique(),
-      (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
-        .collect()
+        .unique()
     ])
   )
 }
 
 async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(fixture.campaign.id)
   return fixture.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -330,18 +334,6 @@ async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', fixture.run.id))
       .take(16),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', fixture.run.id))
-      .take(32),
-    commands: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRunCommands')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', fixture.run.id))
-      .take(32),
     pendingOccurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -361,15 +353,16 @@ async function maintenanceRecords(fixture: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-function executionFor(snapshot: Awaited<ReturnType<typeof maintenanceRecords>>, commandId: string) {
-  const receipt = snapshot.receipts.find((candidate) => candidate.commandId === commandId)
-  if (!receipt) throw new Error('Character maintenance receipt is missing.')
-  const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-  if (execution.status !== 'COMPLETE') throw new Error('Character maintenance did not complete.')
-  return execution
+/** The maintained state's descriptor, as the room published it. */
+function descriptorOf(
+  state: Awaited<ReturnType<typeof maintenanceRecords>>['maintainedStates'][number]
+) {
+  return encounterMaintainedEffectDescriptorDtoSchema.parse(JSON.parse(state.descriptorJson))
 }
 
+/** Releases the room so the direct write below is what its next command hydrates. */
 async function resetActionAllowance(fixture: Awaited<ReturnType<typeof setup>>) {
+  await closeRoom(fixture.campaign.id)
   await fixture.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRunActors')
@@ -399,7 +392,11 @@ function expectLiveCharacterProjection(
   })
 }
 
+// Receipt-level outputs (mechanics batches, maintenance transitions) live in the room's history:
+// see apps/session-worker/test/nativeRoomCharacterSources.test.ts.
 describe('native Character action sources', () => {
+  useLocalRoomWorker()
+
   it.each([true, false])(
     'retains an Assisted Character resource until its terminal evidence (self: %s)',
     async (self) => {
@@ -465,11 +462,11 @@ describe('native Character action sources', () => {
         expect(JSON.parse(target.stateJson).currentHitPoints).toBe(fixture.target.maxHitPoints)
       }
       // The room journals the original occurrence and reads the projection as it is now (D78).
-      await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual({
+      await expect(executeInRoom(fixture.owner.caller, { command })).resolves.toEqual({
         ...pendingResult,
         projection: result.projection
       })
-      await expect(replayInRoom(fixture.owner.caller, { command: response })).resolves.toEqual(
+      await expect(executeInRoom(fixture.owner.caller, { command: response })).resolves.toEqual(
         result
       )
       expect(await records(fixture)).toEqual(after)
@@ -502,36 +499,18 @@ describe('native Character action sources', () => {
       sourceRevision: null,
       currentHitPoints: readCharacterRecord(afterCharacter).state.hitpoints.current
     })
-    const receipt = await fixture.t.run(async (ctx) =>
-      (await readEncounterHistory(ctx))
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) =>
-          q.eq('encounterId', fixture.run.id).eq('commandId', command.commandId)
-        )
-        .unique()
-    )
-    if (!receipt) throw new Error('Missing native action receipt.')
-    const storedExecution = JSON.parse(receipt.resultJson)
-    expect(storedExecution.initialFactsChecksum).toBe(
-      JSON.parse(receipt.commandMetadataJson).factsChecksum
-    )
-    expect(storedExecution.applicationOutputs).toMatchObject({
-      kind: 'CHARACTER_MECHANICS_BATCH',
-      sourceActorId: fixture.actor.id,
-      sourceCharacterId: fixture.character.id,
-      targetActorId: fixture.actor.id,
-      sourceCharacterStreamVersion: null,
-      targetCharacterStreamVersion: afterCharacter.play.streamVersion
-    })
-    await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
+    // The room keeps the receipt until the Run ends; the Character's stream advancing exactly once
+    // (asserted above) is what its targetCharacterStreamVersion records.
+    await expect(executeInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
     expect(await records(fixture)).toEqual(after)
   }, 30000)
 
   it('settles a separate Character resource source and Creature target atomically', async () => {
     const fixture = await setup(false)
     const command = input(fixture, crypto.randomUUID(), fixture.target.id)
-    const snapshot = () =>
-      fixture.t.run(async (ctx) =>
+    const snapshot = async () => {
+      await checkpointLiveRoom(fixture.campaign.id)
+      return fixture.t.run(async (ctx) =>
         Promise.all([
           readCharacterRow(ctx, fixture.character.id),
           ctx.db
@@ -546,6 +525,7 @@ describe('native Character action sources', () => {
             .unique()
         ])
       )
+    }
     const before = await snapshot()
     const result = await executeInRoom(fixture.owner.caller, {
       command
@@ -570,7 +550,7 @@ describe('native Character action sources', () => {
         })
       ])
     )
-    await expect(replayInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
+    await expect(executeInRoom(fixture.owner.caller, { command })).resolves.toEqual(result)
     expect(await snapshot()).toEqual(after)
 
     const rollbackFixture = await setup(false)
@@ -629,23 +609,13 @@ describe('native Character action sources', () => {
     expect(afterCreated.characterEffects[0]?.maintainedEffectStateId).toBe(
       afterCreated.maintainedStates[0]?.id
     )
-    expect(executionFor(afterCreated, root.commandId).applicationOutputs).toMatchObject({
-      kind: 'CHARACTER_MECHANICS_BATCH',
-      sourceActorId: fixture.actor.id,
-      sourceCharacterId: fixture.character.id,
-      targetActorId: fixture.actor.id,
-      sourceCharacterStreamVersion: null,
-      targetCharacterStreamVersion: afterCreated.character.play.streamVersion,
-      maintenanceTransition: {
-        priorState: null,
-        createdState: {
-          id: afterCreated.maintainedStates[0]!.id,
-          sourceActionId: root.actionId,
-          sourceActorId: fixture.actor.id,
-          maintenanceDefinitionId: fixture.maintenanceDefinitionId
-        },
-        createdDependentEffectIds: [afterCreated.characterEffects[0]!.id]
-      }
+    expect(afterCreated.maintainedStates[0]).toMatchObject({
+      ownerActorId: fixture.actor.id,
+      maintenanceDefinitionId: fixture.maintenanceDefinitionId
+    })
+    expect(descriptorOf(afterCreated.maintainedStates[0]!)).toMatchObject({
+      sourceActionId: root.actionId,
+      sourceActorId: fixture.actor.id
     })
     expectLiveCharacterProjection(fixture, afterCreated, created.projection)
 
@@ -678,27 +648,13 @@ describe('native Character action sources', () => {
     expect(afterReplacement.characterEffects[0]?.maintainedEffectStateId).toBe(
       afterReplacement.maintainedStates[0]?.id
     )
-    expect(
-      executionFor(afterReplacement, replacementRoot.commandId).applicationOutputs
-    ).toMatchObject({
-      kind: 'CHARACTER_MECHANICS_BATCH',
-      sourceActorId: fixture.actor.id,
-      sourceCharacterId: fixture.character.id,
-      targetActorId: fixture.actor.id,
-      sourceCharacterStreamVersion: null,
-      targetCharacterStreamVersion: afterReplacement.character.play.streamVersion,
-      maintenanceTransition: {
-        priorState: { id: afterCreated.maintainedStates[0]!.id },
-        removedDependentEffects: [
-          expect.objectContaining({ activeEffectId: afterCreated.characterEffects[0]!.id })
-        ],
-        createdState: { id: afterReplacement.maintainedStates[0]!.id },
-        createdDependentEffectIds: [afterReplacement.characterEffects[0]!.id]
-      }
+    expect(descriptorOf(afterReplacement.maintainedStates[0]!)).toMatchObject({
+      sourceActionId: replacementRoot.actionId,
+      sourceActorId: fixture.actor.id
     })
     expectLiveCharacterProjection(fixture, afterReplacement, replaced.projection)
     await expect(
-      replayInRoom(fixture.owner.caller, {
+      executeInRoom(fixture.owner.caller, {
         command: replacementRoot
       })
     ).resolves.toEqual(replaced)
@@ -728,8 +684,6 @@ describe('native Character action sources', () => {
       actorEffects: before.actorEffects,
       characterEffects: before.characterEffects,
       maintainedStates: before.maintainedStates,
-      receipts: before.receipts,
-      commands: before.commands,
       completedOccurrences: before.completedOccurrences,
       run: before.run
     })
@@ -764,21 +718,12 @@ describe('native Character action sources', () => {
     expect(firstComplete.actorEffects[0]?.maintainedEffectStateId).toBe(
       firstComplete.maintainedStates[0]?.id
     )
-    expect(executionFor(firstComplete, firstRoot.commandId).applicationOutputs).toMatchObject({
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
-      sourceActorId: fixture.actor.id,
-      sourceCharacterId: fixture.character.id,
-      targetActorId: fixture.target.id,
-      sourceCharacterStreamVersion: null,
-      maintenanceTransition: {
-        priorState: null,
-        createdState: { id: firstComplete.maintainedStates[0]!.id },
-        createdDependentEffectIds: [firstComplete.actorEffects[0]!.id]
-      }
-    })
+    expect(firstComplete.maintainedStates[0]).toMatchObject({ ownerActorId: fixture.actor.id })
     expectLiveCharacterProjection(fixture, firstComplete, firstSettled.projection)
 
-    const seededCharacterEffectId = await fixture.t.run(async (ctx) => {
+    // The seed is a direct write, so the room is released and hydrates it with its next command.
+    await closeRoom(fixture.campaign.id)
+    await fixture.t.run(async (ctx) => {
       const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
       const current = await store.list({
         kind: 'ENCOUNTER_ACTOR',
@@ -793,14 +738,13 @@ describe('native Character action sources', () => {
       })
       if (!dependent || !maintained)
         throw new Error('Created Character maintenance records are unavailable.')
-      const seeded = await store.create({
+      await store.create({
         id: crypto.randomUUID(),
         owner: { kind: 'CHARACTER', characterId: fixture.character.id },
         definition: dependent.definition,
         lifecycle: dependent.lifecycle,
         maintainedEffectStateId: maintained.id
       })
-      return seeded.id
     })
 
     await resetActionAllowance(fixture)
@@ -824,8 +768,6 @@ describe('native Character action sources', () => {
       actorEffects: beforeReplacement.actorEffects,
       characterEffects: beforeReplacement.characterEffects,
       maintainedStates: beforeReplacement.maintainedStates,
-      receipts: beforeReplacement.receipts,
-      commands: beforeReplacement.commands,
       completedOccurrences: beforeReplacement.completedOccurrences,
       run: beforeReplacement.run
     })
@@ -847,6 +789,7 @@ describe('native Character action sources', () => {
       }
     }
 
+    await closeRoom(fixture.campaign.id)
     const maintainedVersion = await fixture.t.run(async (ctx) => {
       const state = await ctx.db
         .query('encounterMaintainedEffectStates')
@@ -865,8 +808,10 @@ describe('native Character action sources', () => {
       executeInRoom(fixture.owner.caller, {
         command: replacementResponse
       }),
-      /pending action source or target changed/
+      'The Encounter command could not be completed.'
     )
+    expect(roomErrorLogs().join('\n')).toMatch(/pending action source or target changed/)
+    await closeRoom(fixture.campaign.id)
     await fixture.t.run(async (ctx) => {
       const state = await ctx.db
         .query('encounterMaintainedEffectStates')
@@ -890,11 +835,13 @@ describe('native Character action sources', () => {
       if (!character) throw new Error('Character maintenance owner is unavailable.')
       await ctx.db.patch(character._id, { status: 'DRAFT' })
     })
-    await expect(
+    await expectRedactedRoomRefusal(
       executeInRoom(fixture.owner.caller, {
         command: replacementResponse
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
+      }),
+      'The Encounter changed; review the current state and try again.',
+      'STALE_STATE'
+    )
     await fixture.t.run(async (ctx) => {
       const character = await ctx.db
         .query('characters')
@@ -903,8 +850,7 @@ describe('native Character action sources', () => {
       if (!character) throw new Error('Character maintenance owner is unavailable.')
       await ctx.db.patch(character._id, { status: 'ACTIVE' })
     })
-    expect(await maintenanceRecords(fixture)).toEqual(replacementStaged)
-
+    await invalidateRoomInputs(fixture.campaign.id, ['CHARACTER'])
     expect(await maintenanceRecords(fixture)).toEqual(replacementStaged)
 
     const replaced = await executeInRoom(fixture.owner.caller, {
@@ -931,44 +877,23 @@ describe('native Character action sources', () => {
     expect(replacementComplete.actorEffects[0]?.maintainedEffectStateId).toBe(
       replacementComplete.maintainedStates[0]?.id
     )
-    expect(
-      executionFor(replacementComplete, replacementRoot.commandId).applicationOutputs
-    ).toMatchObject({
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
-      sourceActorId: fixture.actor.id,
-      sourceCharacterId: fixture.character.id,
-      sourceCharacterStreamVersion: replacementComplete.character.play.streamVersion,
-      targetActorId: fixture.target.id,
-      maintenanceTransition: {
-        priorState: { id: firstComplete.maintainedStates[0]!.id },
-        removedDependentEffects: expect.arrayContaining([
-          expect.objectContaining({ activeEffectId: firstComplete.actorEffects[0]!.id }),
-          expect.objectContaining({
-            kind: 'CHARACTER',
-            characterId: fixture.character.id,
-            activeEffectId: seededCharacterEffectId
-          })
-        ]),
-        characterOwnerTransitions: [
-          {
-            characterId: fixture.character.id,
-            beforeStreamVersion: beforeReplacement.character.play.streamVersion,
-            afterStreamVersion: beforeReplacement.character.play.streamVersion + 1
-          }
-        ],
-        createdState: { id: replacementComplete.maintainedStates[0]!.id },
-        createdDependentEffectIds: [replacementComplete.actorEffects[0]!.id]
-      }
-    })
+    // The seeded Character dependent is gone (no Character effects remain) and the old Creature
+    // dependent is replaced; the owner's single stream advance is asserted above.
+    expect(replacementComplete.actorEffects[0]?.id).not.toBe(firstComplete.actorEffects[0]?.id)
     expectLiveCharacterProjection(fixture, replacementComplete, replaced.projection)
-    // The room journals the root's original pending occurrence and reads the projection as it is now.
+    // The room was released while the root was pending (D85/D88), so it no longer holds the root's
+    // journaled answer: the replay index answers with the occurrence as it is now, settled.
     await expect(
-      replayInRoom(fixture.owner.caller, {
+      executeInRoom(fixture.owner.caller, {
         command: replacementRoot
       })
-    ).resolves.toEqual({ ...replacementIssued, projection: replaced.projection })
+    ).resolves.toEqual({
+      ...replacementIssued,
+      occurrence: replaced.occurrence,
+      projection: replaced.projection
+    })
     await expect(
-      replayInRoom(fixture.owner.caller, {
+      executeInRoom(fixture.owner.caller, {
         command: replacementResponse
       })
     ).resolves.toEqual(replaced)

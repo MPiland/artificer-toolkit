@@ -1,5 +1,5 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readCharacterSheetState } from './sheetStateDocuments'
@@ -15,11 +15,14 @@ import {
 } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 import { removeAccountPrivateCharacters } from './accountDeletion'
+import { closeRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
 const encounterTables = tableNames.filter((name) => name.startsWith('encounter'))
 
-beforeEach(() => vi.useFakeTimers())
+// Registered before the timer hook below: hooks after each test run in reverse, so the room closes
+// on real timers.
+useLocalRoomWorker()
 afterEach(() => vi.useRealTimers())
 
 async function fullSnapshot(t: Awaited<ReturnType<typeof turnCharacterEffectFixture>>['t']) {
@@ -33,6 +36,11 @@ async function fullSnapshot(t: Awaited<ReturnType<typeof turnCharacterEffectFixt
 
 async function prepare() {
   const base = await turnCharacterEffectFixture()
+  // The fixture's command ran in the real room, which holds the Run until it closes (D85). Closing
+  // it checkpoints the Run, so the account cleanup below runs against Convex alone. The room's
+  // sockets and its timers need real time, so the pending-schedule baseline starts after this.
+  await closeRoom(base.campaign.id)
+  vi.useFakeTimers()
   const deletingEffect = await seedTurnSaveEffect(base, {
     stage: 'START_OF_TURN',
     ticks: 2,

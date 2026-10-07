@@ -14,7 +14,6 @@ import {
   encounterMaintainedEffectDescriptorDtoSchema,
   type ActiveRuleEffectDefinitionDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
@@ -39,12 +38,17 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { sourceImportBatches } from '../content/importBatches'
 import { withSceneVisionTracking } from '../lib/mutations'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
-  RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  invalidateRoomInputs,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const creatureId = '00000000-0000-4000-8000-0000000008e0'
 const featureId = '00000000-0000-4000-8000-0000000008e1'
@@ -251,6 +255,7 @@ async function setup(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   run = encounterGmProjectionDtoSchema.parse(
     (
       await settleStart(
@@ -337,7 +342,10 @@ function diceResponse(input: unknown, face = 1): EncounterExecuteInput {
   }
 }
 
+// The room holds the Run's commands and receipts until it ends (D85), so Convex is read after the
+// room publishes what it holds.
 async function records(base: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -361,18 +369,6 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
       .query('encounterMaintainedEffectStates')
       .withIndex('by_encounter_owner_definition_order', (q) => q.eq('encounterId', base.run.id))
       .take(16),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .take(32),
-    commands: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRunCommands')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
-      .take(32),
     pendingOccurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) =>
@@ -399,15 +395,14 @@ async function records(base: Awaited<ReturnType<typeof setup>>) {
   }))
 }
 
-function executionFor(snapshot: Awaited<ReturnType<typeof records>>, commandId: string) {
-  const receipt = snapshot.receipts.find((candidate) => candidate.commandId === commandId)
-  if (!receipt) throw new Error('Maintained action receipt is missing.')
-  const execution = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-  if (execution.status !== 'COMPLETE') throw new Error('Maintained action did not complete.')
-  return execution
+/** The maintained state's descriptor, as the room published it. */
+function descriptorOf(state: Awaited<ReturnType<typeof records>>['maintainedStates'][number]) {
+  return encounterMaintainedEffectDescriptorDtoSchema.parse(JSON.parse(state.descriptorJson))
 }
 
+/** Releases the room so the direct write below is what its next command hydrates. */
 async function resetActionAllowance(base: Awaited<ReturnType<typeof setup>>) {
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRunActors')
@@ -425,6 +420,8 @@ async function resetActionAllowance(base: Awaited<ReturnType<typeof setup>>) {
   })
 }
 
+// Receipt-level maintenance outputs live in the room's history:
+// see apps/session-worker/test/nativeRoomCharacterSources.test.ts.
 it('creates and replaces Automatic maintenance atomically while preserving retained conditions', async () => {
   const base = await setup('HEAL', 'AUTO_ROLL')
   const first = action(base, base.run.version, base.actor.id)
@@ -441,30 +438,17 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   expect(afterCreated.actorEffects[0]?.maintainedEffectStateId).toBe(
     afterCreated.maintainedStates[0]?.id
   )
-  const firstExecution = executionFor(afterCreated, first.commandId)
-  expect(firstExecution).toMatchObject({
-    status: 'COMPLETE',
-    applicationOutputs: {
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
-      activeEffectTransitions: [
-        expect.objectContaining({
-          kind: 'CREATE',
-          maintainedEffectStateId: afterCreated.maintainedStates[0]!.id
-        })
-      ],
-      maintenanceTransition: {
-        kind: 'REPLACE_SAME_DEFINITION',
-        priorState: null,
-        createdState: {
-          id: afterCreated.maintainedStates[0]!.id,
-          maintenanceDefinitionId: base.maintenanceDefinitionId,
-          sourceActionId: first.actionId,
-          sourceActorId: base.actor.id
-        }
-      }
-    }
+  // The room's held receipt is not sent to members; the maintained state and its descriptor are.
+  expect(before.maintainedStates).toEqual([])
+  expect(afterCreated.maintainedStates[0]).toMatchObject({
+    ownerActorId: base.actor.id,
+    maintenanceDefinitionId: base.maintenanceDefinitionId
   })
-  await expect(replayInRoom(base.owner.caller, { command: first })).resolves.toEqual(created)
+  expect(descriptorOf(afterCreated.maintainedStates[0]!)).toMatchObject({
+    sourceActionId: first.actionId,
+    sourceActorId: base.actor.id
+  })
+  await expect(executeInRoom(base.owner.caller, { command: first })).resolves.toEqual(created)
   expect(await records(base)).toEqual(afterCreated)
 
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
@@ -474,6 +458,7 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
   if (!blinded || !frightened || !poisoned)
     throw new Error('Maintained condition fixture requires three System conditions.')
+  await closeRoom(base.campaign.id)
   const seeded = await base.t.run(async (ctx) => {
     const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const owner = {
@@ -565,18 +550,16 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   const source = projection.actors.find((actor) => actor.id === base.actor.id)
   expect(source?.conditions).toEqual(expect.arrayContaining([frightened.id, poisoned.id]))
   expect(source?.conditions).not.toEqual(expect.arrayContaining([blinded.id]))
-  const replacementExecution = executionFor(afterReplacement, replacement.commandId)
-  expect(replacementExecution.applicationOutputs).toMatchObject({
-    maintenanceTransition: {
-      priorState: { id: seeded.priorStateId },
-      removedDependentEffects: expect.arrayContaining(
-        seeded.priorEffectIds.map((activeEffectId) => expect.objectContaining({ activeEffectId }))
-      ),
-      createdState: { id: afterReplacement.maintainedStates[0]!.id },
-      createdDependentEffectIds: [replacementDependent!.id]
-    }
+  expect(
+    afterReplacement.actorEffects.filter(
+      (effect) => effect.maintainedEffectStateId === afterReplacement.maintainedStates[0]?.id
+    )
+  ).toEqual([replacementDependent])
+  expect(descriptorOf(afterReplacement.maintainedStates[0]!)).toMatchObject({
+    sourceActionId: replacement.actionId
   })
 
+  await closeRoom(base.campaign.id)
   const emptyPrior = await base.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -620,13 +603,11 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   expect(retainedComplete.actorEffects.map((effect) => effect.id)).toEqual(
     expect.arrayContaining([seeded.independentEffectId])
   )
-  expect(executionFor(retainedComplete, retainedRoot.commandId).applicationOutputs).toMatchObject({
-    maintenanceTransition: {
-      priorState: { id: emptyPrior },
-      removedDependentEffects: [],
-      createdState: { id: retainedComplete.maintainedStates[0]!.id }
-    }
-  })
+  expect(
+    retainedComplete.actorEffects.filter(
+      (effect) => effect.maintainedEffectStateId === retainedComplete.maintainedStates[0]?.id
+    )
+  ).toHaveLength(1)
   expect(retainedReplacement.occurrence?.status).toBe('COMPLETE')
 }, 60000)
 
@@ -636,6 +617,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     (condition) => condition.code === 'FRIGHTENED'
   )
   if (!dmCondition) throw new Error('Maintained Character fixture requires Frightened.')
+  await closeRoom(base.campaign.id)
   await base.owner.caller.mutation(api.campaigns.gmWrites.saveCondition, {
     campaignId: base.campaign.id,
     characterId: base.character.id,
@@ -657,8 +639,6 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     actorEffects: before.actorEffects,
     characterEffects: before.characterEffects,
     maintainedStates: before.maintainedStates,
-    receipts: before.receipts,
-    commands: before.commands,
     character: before.character,
     characterReceipts: before.characterReceipts,
     campaignCharacterState: before.campaignCharacterState
@@ -676,29 +656,16 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(firstComplete.characterEffects[0]?.maintainedEffectStateId).toBe(
     firstComplete.maintainedStates[0]?.id
   )
-  const execution = executionFor(firstComplete, root.commandId)
-  expect(execution.applicationOutputs).toMatchObject({
-    kind: 'CHARACTER_MECHANICS_BATCH',
-    activeEffectTransitions: [
-      expect.objectContaining({
-        maintainedEffectStateId: firstComplete.maintainedStates[0]!.id
-      })
-    ],
-    maintenanceTransition: {
-      priorState: null,
-      createdState: {
-        id: firstComplete.maintainedStates[0]!.id,
-        sourceActionId: root.actionId
-      },
-      createdDependentEffectIds: [firstComplete.characterEffects[0]!.id]
-    }
+  expect(before.maintainedStates).toEqual([])
+  expect(descriptorOf(firstComplete.maintainedStates[0]!)).toMatchObject({
+    sourceActionId: root.actionId
   })
   // The room journal replays each command's own receipt, shown over the current Run.
-  await expect(replayInRoom(base.owner.caller, { command: root })).resolves.toEqual({
+  await expect(executeInRoom(base.owner.caller, { command: root })).resolves.toEqual({
     ...issued,
     projection: settled.projection
   })
-  await expect(replayInRoom(base.owner.caller, response)).resolves.toEqual(settled)
+  await expect(executeInRoom(base.owner.caller, response)).resolves.toEqual(settled)
   expect(await records(base)).toEqual(firstComplete)
 
   await resetActionAllowance(base)
@@ -709,6 +676,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(sameTargetIssued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
   const sameTargetStaged = await records(base)
   const sameTargetResponse = diceResponse(sameTargetIssued)
+  await closeRoom(base.campaign.id)
   const maintainedVersion = await base.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -725,8 +693,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   })
   await expectRedactedRoomRefusal(
     executeInRoom(base.owner.caller, sameTargetResponse),
-    'pending action source or target changed'
+    'The Encounter command could not be completed.'
   )
+  expect(roomErrorLogs().join('\n')).toMatch(/pending action source or target changed/)
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     const state = await ctx.db
       .query('encounterMaintainedEffectStates')
@@ -749,8 +719,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     if (!character) throw new Error('Maintained Character fixture is unavailable.')
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
-  await expect(executeInRoom(base.owner.caller, sameTargetResponse)).rejects.toThrow(
-    RoomCommandRefusal
+  await expectRedactedRoomRefusal(
+    executeInRoom(base.owner.caller, sameTargetResponse),
+    'The Encounter changed; review the current state and try again.',
+    'STALE_STATE'
   )
   await base.t.run(async (ctx) => {
     const character = await ctx.db
@@ -760,6 +732,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     if (!character) throw new Error('Maintained Character fixture is unavailable.')
     await ctx.db.patch(character._id, { status: 'ACTIVE' })
   })
+  await invalidateRoomInputs(base.campaign.id, ['CHARACTER'])
   expect(await records(base)).toEqual(sameTargetStaged)
 
   const beforeSameTargetVersion = sameTargetStaged.character!.play.streamVersion
@@ -771,29 +744,17 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(sameTargetComplete.character?.play.streamVersion).toBe(beforeSameTargetVersion + 1)
   expect(sameTargetComplete.campaignCharacterState).toEqual(beforeDmState)
   expect(sameTargetComplete.maintainedStates[0]?.id).not.toBe(firstComplete.maintainedStates[0]?.id)
-  expect(
-    executionFor(sameTargetComplete, sameTargetRoot.commandId).applicationOutputs
-  ).toMatchObject({
-    maintenanceTransition: {
-      priorState: { id: firstComplete.maintainedStates[0]!.id },
-      removedDependentEffects: [
-        expect.objectContaining({ activeEffectId: firstComplete.characterEffects[0]!.id })
-      ],
-      characterOwnerTransitions: [
-        {
-          characterId: base.character.id,
-          beforeStreamVersion: beforeSameTargetVersion,
-          afterStreamVersion: beforeSameTargetVersion + 1
-        }
-      ],
-      createdDependentEffectIds: [sameTargetComplete.characterEffects[0]!.id]
-    }
+  expect(descriptorOf(sameTargetComplete.maintainedStates[0]!)).toMatchObject({
+    sourceActionId: sameTargetRoot.actionId
   })
-  await expect(replayInRoom(base.owner.caller, { command: sameTargetRoot })).resolves.toEqual({
+  // The root was issued before the room was released (D85/D88), so its replay answers with the
+  // occurrence's current state.
+  await expect(executeInRoom(base.owner.caller, { command: sameTargetRoot })).resolves.toEqual({
     ...sameTargetIssued,
+    occurrence: sameTargetReplaced.occurrence,
     projection: sameTargetReplaced.projection
   })
-  await expect(replayInRoom(base.owner.caller, sameTargetResponse)).resolves.toEqual(
+  await expect(executeInRoom(base.owner.caller, sameTargetResponse)).resolves.toEqual(
     sameTargetReplaced
   )
   expect(await records(base)).toEqual(sameTargetComplete)
@@ -821,6 +782,8 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(detachedIssued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
   const detachedStaged = await records(base)
   const detachedResponse = diceResponse(detachedIssued)
+  // A direct status write is not a revision change the room observes, so it hydrates the DRAFT.
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     const character = await ctx.db
       .query('characters')
@@ -829,8 +792,10 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     if (!character) throw new Error('Detached maintained Character fixture is unavailable.')
     await ctx.db.patch(character._id, { status: 'DRAFT' })
   })
-  await expect(executeInRoom(base.owner.caller, detachedResponse)).rejects.toThrow(
-    RoomCommandRefusal
+  await expectRedactedRoomRefusal(
+    executeInRoom(base.owner.caller, detachedResponse),
+    'The Encounter changed; review the current state and try again.',
+    'STALE_STATE'
   )
   await base.t.run(async (ctx) => {
     const character = await ctx.db
@@ -840,6 +805,7 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
     if (!character) throw new Error('Detached maintained Character fixture is unavailable.')
     await ctx.db.patch(character._id, { status: 'ACTIVE' })
   })
+  await invalidateRoomInputs(base.campaign.id, ['CHARACTER'])
   expect(await records(base)).toEqual(detachedStaged)
   const beforeDetachedVersion = detachedStaged.character!.play.streamVersion
   const detachedReplaced = await executeInRoom(base.owner.caller, detachedResponse)
@@ -857,33 +823,17 @@ it('settles Assisted maintenance only at terminal response and cleans a removed 
   expect(detachedComplete.actorEffects[0]?.maintainedEffectStateId).toBe(
     detachedComplete.maintainedStates[0]?.id
   )
-  const detachedExecution = executionFor(detachedComplete, detachedRoot.commandId)
-  expect(detachedExecution.applicationOutputs).toMatchObject({
-    maintenanceTransition: {
-      priorState: { id: sameTargetComplete.maintainedStates[0]!.id },
-      removedDependentEffects: [
-        expect.objectContaining({
-          kind: 'CHARACTER',
-          characterId: base.character.id,
-          activeEffectId: sameTargetComplete.characterEffects[0]!.id
-        })
-      ],
-      characterOwnerTransitions: [
-        {
-          characterId: base.character.id,
-          beforeStreamVersion: beforeDetachedVersion,
-          afterStreamVersion: beforeDetachedVersion + 1
-        }
-      ],
-      createdState: { id: detachedComplete.maintainedStates[0]!.id },
-      createdDependentEffectIds: [detachedComplete.actorEffects[0]!.id]
-    }
+  expect(descriptorOf(detachedComplete.maintainedStates[0]!)).toMatchObject({
+    sourceActionId: detachedRoot.actionId
   })
-  await expect(replayInRoom(base.owner.caller, { command: detachedRoot })).resolves.toEqual({
+  await expect(executeInRoom(base.owner.caller, { command: detachedRoot })).resolves.toEqual({
     ...detachedIssued,
+    occurrence: detachedReplaced.occurrence,
     projection: detachedReplaced.projection
   })
-  await expect(replayInRoom(base.owner.caller, detachedResponse)).resolves.toEqual(detachedReplaced)
+  await expect(executeInRoom(base.owner.caller, detachedResponse)).resolves.toEqual(
+    detachedReplaced
+  )
   expect(await records(base)).toEqual(detachedComplete)
   expect(projection.version).toBe(detachedComplete.run?.version)
 }, 60000)
@@ -897,6 +847,7 @@ it('rejects a missing current maintenance definition while an Assisted action is
 
   expect(issued.occurrence?.pending?.kind).toBe('D20_EVIDENCE')
   const staged = await records(base)
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     const definition = await ctx.db
       .query('reusableDefinitions')
@@ -907,8 +858,9 @@ it('rejects a missing current maintenance definition while an Assisted action is
   })
   await expectRedactedRoomRefusal(
     executeInRoom(base.owner.caller, diceResponse(issued)),
-    'maintenance definition is no longer current'
+    'The Encounter command could not be completed.'
   )
+  expect(roomErrorLogs().join('\n')).toMatch(/maintenance definition is no longer current/)
   expect(await records(base)).toEqual(staged)
 }, 60000)
 
@@ -925,6 +877,7 @@ async function setupMaintenanceCapture(
     )
   })
   expect(created.occurrence?.status).toBe('COMPLETE')
+  await closeRoom(base.campaign.id)
   const state = await base.t.run(async (ctx) => {
     const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
     const state = await store.findMaintainedState({
@@ -976,12 +929,11 @@ it('commits a maintained Character action from the Worker plan with one atomic r
   expect(after.characterEffects).toHaveLength(1)
   expect(after.characterEffects[0]?.maintainedEffectStateId).toBe(after.maintainedStates[0]?.id)
   expect(after.characterEffects.filter((effect) => priorEffectIds.has(effect.id))).toEqual([])
-  expect(executionFor(after, command.commandId).status).toBe('COMPLETE')
   expect(after.completedOccurrences.map((entry) => entry.id)).toContain(
     committed.occurrence?.occurrenceId
   )
   // A retried acknowledgement replays the original result without committing again.
-  expect(await replayInRoom(base.owner.caller, { command })).toEqual(committed)
+  expect(await executeInRoom(base.owner.caller, { command })).toEqual(committed)
   expect(await records(base)).toEqual(after)
 }, 60_000)
 
@@ -994,6 +946,7 @@ it('commits the post-mechanics maintenance settlement the Worker projects', asyn
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
   if (!blinded || !frightened || !poisoned)
     throw new Error('Projected maintenance fixture requires three System conditions.')
+  await closeRoom(base.campaign.id)
   const seeded = await base.t.run(async (rawCtx) => {
     const ctx = withSceneVisionTracking(rawCtx)
     const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })

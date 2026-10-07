@@ -174,12 +174,13 @@ export async function prepareEncounterMovementContinuation<
       reactionTimeline: FrozenMovementReactionRemainder['reactionTimeline']
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
     }): Promise<Outcome | null>
-    validateReactionOptions(args: {
+    /** The group's options against current facts: itself when current, else its rediscovery (null when none remain). */
+    currentReactionGroup(args: {
       next: FrozenMovementReactionRemainder['reactionTimeline'][number]
       root: SpatialMovementRuleRoot
       position: SceneToken['position']
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-    }): Promise<void>
+    }): Promise<FrozenMovementReactionRemainder['reactionTimeline'][number] | null>
     runtime(): Promise<RulesRuntimeService>
     spatialSettlement(plan: TSpatialPlan): TSettlement
   }
@@ -396,8 +397,14 @@ export async function prepareEncounterMovementContinuation<
       Math.abs(boundary.boundaryDistance - reactionDistance) > 1e-8
     )
       continue
-    await callbacks.validateReactionOptions({ next, root, position, targets })
-    const definitionId = next.group.options[0]?.policy.choiceDefinitionId
+    const current = await callbacks.currentReactionGroup({ next, root, position, targets })
+    if (!current) {
+      // Every retained option is gone, so the group resolves as no reaction and the walk goes on.
+      remainder = { ...remainder, reactionTimeline: timeline.slice(1) }
+      continue
+    }
+    const reactionTimeline = current === next ? timeline : [current, ...timeline.slice(1)]
+    const definitionId = current.group.options[0]?.policy.choiceDefinitionId
     if (!definitionId) throw new Error('The next reaction choice definition is unavailable.')
     const snapshot = await startEncounterMovementReactionAtBoundary({
       runtime: await callbacks.runtime(),
@@ -412,7 +419,7 @@ export async function prepareEncounterMovementContinuation<
         input.sceneVersion +
         (checksumRuleDocument(input.currentPosition) === checksumRuleDocument(position) ? 0 : 1),
       boundary,
-      reactionTimeline: timeline
+      reactionTimeline
     })
     return { outcome: outcomePending(snapshot, position), settlements }
   }

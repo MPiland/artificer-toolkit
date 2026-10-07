@@ -25,7 +25,11 @@ export function deletionCampaignScope(job: Doc<'campaignDeletionJobs'>): Campaig
   return { [internalScope]: true, kind: 'DELETION', campaignId: job.campaignId, job }
 }
 
-export async function requireCampaignAuthority(
+/**
+ * The Campaign and the caller's membership, or null when the caller cannot see the Campaign (no
+ * route, deleting, or not an active member). Integrity failures still throw.
+ */
+export async function readCampaignAuthority(
   ctx: QueryCtx,
   id: string,
   userId: string,
@@ -36,7 +40,7 @@ export async function requireCampaignAuthority(
     ctx,
     uuid.success ? { subjectId: uuid.data } : { publicId: id }
   )
-  if (!route || route.subjectKind !== 'CAMPAIGN') throw new Error('Campaign not found.')
+  if (!route || route.subjectKind !== 'CAMPAIGN') return null
   const publication =
     scope?.[internalScope] === true &&
     scope.kind === 'PUBLICATION' &&
@@ -47,8 +51,7 @@ export async function requireCampaignAuthority(
     .withIndex('by_campaignId', (q) => q.eq('campaignId', route.subjectId))
     .unique()
   if (deletion) {
-    if (!scope || scope[internalScope] !== true || scope.campaignId !== route.subjectId)
-      throw new Error('Campaign not found.')
+    if (!scope || scope[internalScope] !== true || scope.campaignId !== route.subjectId) return null
     if (scope.kind === 'PUBLICATION') {
       const authority = scope.authority
       if (
@@ -81,14 +84,24 @@ export async function requireCampaignAuthority(
       )
       .unique()
   ])
-  if (!campaign || !membership || (membership.status !== 'ACTIVE' && !publication))
-    throw new Error('Campaign not found.')
+  if (!campaign || !membership || (membership.status !== 'ACTIVE' && !publication)) return null
   if (
     campaign.publicId !== route.publicId ||
     (!publication && (membership.role === 'OWNER') !== (campaign.ownerUserId === userId))
   )
     throw new Error('Stored Campaign authority mismatch.')
   return { campaign, membership }
+}
+
+export async function requireCampaignAuthority(
+  ctx: QueryCtx,
+  id: string,
+  userId: string,
+  scope?: CampaignInternalScope
+) {
+  const authority = await readCampaignAuthority(ctx, id, userId, scope)
+  if (!authority) throw new Error('Campaign not found.')
+  return authority
 }
 
 export async function readActiveCampaignMembers(ctx: QueryCtx, campaign: Doc<'campaigns'>) {

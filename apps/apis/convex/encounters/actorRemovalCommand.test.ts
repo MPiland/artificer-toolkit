@@ -20,6 +20,7 @@ import type {
   FinishCampaignSessionInput
 } from '@artificer-toolkit/schema/api/campaignSessions'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { sceneStoredInitialStateSchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -34,12 +35,15 @@ import {
   removeEncounterActor
 } from '@artificer-toolkit/encounter-persistence/actorRemovalCommand'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  replayInRoom,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  readEncounterHistory,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { definition, descriptor, lifecycle } from '../../tests/fixtures/maintainedEffects'
 import { readFightingCharacters } from '../liveSessions/characterHolds'
@@ -125,11 +129,14 @@ async function setup(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, base.campaign.id)
   return { ...base, run }
 }
 
 type Fixture = Awaited<ReturnType<typeof setup>>
+/** The rows Convex holds; while the room holds the Run, they are the checkpointed ones (D85). */
 async function capture(base: Fixture) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
@@ -156,6 +163,8 @@ async function capture(base: Fixture) {
 }
 
 describe('native actor removal transaction', () => {
+  useLocalRoomWorker()
+
   it('removes prepared actors and exact bindings/reminders, preserves Scene identity, and replays historically with current authority', async () => {
     const base = await setup()
     const actor = base.run.actors.find((candidate) => candidate.kind === 'CUSTOM')!
@@ -182,6 +191,8 @@ describe('native actor removal transaction', () => {
     }
     const sceneId = crypto.randomUUID()
     const tokenId = crypto.randomUUID()
+    // Convex writes under a held Run need the room closed first; it re-hydrates on the next command.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const now = new Date().toISOString()
       // The room's checkpoint accepts a binding only to a Scene of the Campaign.
@@ -247,7 +258,9 @@ describe('native actor removal transaction', () => {
       actorId: actor.id
     }
     const before = await capture(base)
-    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow()
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toMatchObject({
+      data: { code: 'DOMAIN_REJECTED', reason: 'GM_ONLY', message: 'Only the GM can do that.' }
+    })
     await expect(executeInRoom(base.t, { command })).rejects.toThrow('Unauthenticated')
     expect(await capture(base)).toEqual(before)
     const result = await executeInRoom(base.owner.caller, { command })
@@ -269,8 +282,9 @@ describe('native actor removal transaction', () => {
       }
     })
     const later = await capture(base)
+    // A retry of a settled command is answered from the room's held history with the current state.
     expect(
-      await replayInRoom(base.owner.caller, {
+      await executeInRoom(base.owner.caller, {
         command: {
           ...command,
           encounterId: command.encounterId.toUpperCase(),
@@ -297,7 +311,12 @@ describe('native actor removal transaction', () => {
       if (!membership) throw new Error('Missing fixture membership')
       await ctx.db.patch(membership._id, { status: 'LEFT' })
     })
-    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow()
+    // A connected socket stays admitted until its token's next challenge (D89); a departed member is
+    // refused when the room next admits them: the join ticket is refused as a plain Error.
+    await closeRoom(base.campaign.id)
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
+      'Campaign not found.'
+    )
   })
 
   it('reconciles active initiative across historical rounds and permits an empty Run to change round', async () => {
@@ -403,13 +422,43 @@ describe('native actor removal transaction', () => {
     const occurrence = after.occurrences.find((row) => row.id === started.occurrence!.occurrenceId)!
     expect(occurrence.state).toBe('COMPLETED')
     expect(occurrence.version).toBe(started.occurrence!.occurrenceVersion + 1)
+    expect(await executeInRoom(base.owner.caller, { command })).toEqual(result)
+    expect(await capture(base)).toEqual(after)
+  })
+
+  // The room keeps a Run's rule receipts for the whole Run (D88), so the receipt this command
+  // writes is observed where the producer writes it: in Convex, with no room holding the Run.
+  it('writes the MAINTENANCE_COMPLETE receipt that supersedes a frozen Assisted initiative', async () => {
+    const base = await setup('PROMPT')
+    const started = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'START',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version
+      }
+    })
+    const actorId = base.run.actors[0]!.id
+    const command = {
+      type: 'REMOVE_ACTOR' as const,
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: started.projection.version,
+      actorId
+    }
+    await closeRoom(base.campaign.id)
+    await base.t.run((ctx) =>
+      removeEncounterActor(encounterWriteTransaction(ctx), command, base.owner.userId)
+    )
+    const after = await capture(base)
+    const occurrence = after.occurrences.find((row) => row.id === started.occurrence!.occurrenceId)!
+    expect(occurrence.state).toBe('COMPLETED')
+    expect(occurrence.version).toBe(started.occurrence!.occurrenceVersion + 1)
     const receipt = after.receipts.find((row) => row.commandId === command.commandId)!
     expect(JSON.parse(receipt.resultJson)).toMatchObject({
       status: 'MAINTENANCE_COMPLETE',
       removedActorId: actorId
     })
-    expect(await replayInRoom(base.owner.caller, { command })).toEqual(result)
-    expect(await capture(base)).toEqual(after)
   })
 
   it('takes a Character out of an automatic SIDE_ROLL round without moving it and preserves replay', async () => {
@@ -491,7 +540,9 @@ describe('native actor removal transaction', () => {
       actorId: removed.id
     }
     const before = await capture(base)
-    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow()
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toMatchObject({
+      data: { code: 'DOMAIN_REJECTED', reason: 'GM_ONLY', message: 'Only the GM can do that.' }
+    })
     expect(await capture(base)).toEqual(before)
     const removedResult = await executeInRoom(base.owner.caller, { command })
     const afterRemoval = await capture(base)
@@ -529,7 +580,7 @@ describe('native actor removal transaction', () => {
     })
     const afterLaterCommands = await capture(base)
     await expect(
-      replayInRoom(base.owner.caller, {
+      executeInRoom(base.owner.caller, {
         command: {
           ...command,
           encounterId: command.encounterId.toUpperCase(),
@@ -570,6 +621,8 @@ describe('native actor removal transaction', () => {
     const stateId = crypto.randomUUID()
     const characterEffectId = crypto.randomUUID()
     const dependentEffectId = crypto.randomUUID()
+    // Convex writes under a held Run need the room closed first; it re-hydrates on the next command.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const effects = createActiveRuleEffectStore({
         db: createConvexEncounterStore(ctx)
@@ -711,6 +764,8 @@ describe('native actor removal transaction', () => {
       })
     ).rejects.toThrow('Encounter version is stale.')
     expect(await capture(base)).toEqual(before)
+    // Convex writes under a held Run need the room closed first; it re-hydrates on the next command.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       const actor = await ctx.db
         .query('encounterRunActors')
@@ -745,14 +800,13 @@ describe('native actor removal transaction', () => {
           manualOrder: index
         }
       })
-    let result = await executeInRoom(base.owner.caller, {
-      command: {
-        type: 'START',
-        encounterId: base.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: version++
-      }
-    })
+    const start = {
+      type: 'START' as const,
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: version++
+    }
+    let result = await executeInRoom(base.owner.caller, { command: start })
     result = await executeInRoom(base.owner.caller, {
       command: {
         type: 'SET_CURRENT_ACTOR',
@@ -779,6 +833,8 @@ describe('native actor removal transaction', () => {
         }
       }
     })
+    // Convex writes under a held Run need the room closed first; it re-hydrates on the next command.
+    await closeRoom(base.campaign.id)
     await base.t.run((ctx) =>
       ctx.db.insert('encounterActorTokenBindings', {
         encounterId: base.run.id,
@@ -812,7 +868,10 @@ describe('native actor removal transaction', () => {
     ).toBe(false)
     expect(after.bindings.some((binding) => binding.actorId === characterActor.id)).toBe(false)
     expect(after.actors.some((actor) => actor.id === characterActor.id)).toBe(false)
-    expect(after.commands).toEqual(expect.arrayContaining(before.commands))
+    // D88: the room holds the Run's history and merges Convex-side cleanup in when it re-hydrates, so
+    // a retry of an earlier command is still answered from that history, not refused as stale.
+    const retried = await executeInRoom(base.owner.caller, { command: start })
+    expect(retried.projection.actors.some((actor) => actor.id === characterActor.id)).toBe(false)
     expect(after.characterReceipts).toEqual(before.characterReceipts)
     expect(
       after.commands.find(
@@ -838,26 +897,6 @@ describe('native actor removal transaction', () => {
       )
     ).rejects.toThrow('player membership')
     expect(await capture(base)).toEqual(beforeScopeFailure)
-    await base.t.run(async (ctx) => {
-      const membership = await ctx.db
-        .query('campaignMemberships')
-        .withIndex('by_campaignId_userId', (q) =>
-          q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
-        )
-        .unique()
-      const campaign = await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
-        .unique()
-      const run = await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
-        .unique()
-      if (!membership || !campaign || !run) throw new Error('Missing lifecycle fixture documents.')
-      await ctx.db.patch(membership._id, { status: 'LEFT' })
-      await ctx.db.patch(campaign._id, { status: 'ARCHIVED' })
-      await ctx.db.patch(run._id, { status: 'COMPLETED' })
-    })
     const command = {
       type: 'REMOVE_ACTOR' as const,
       encounterId: base.run.id,
@@ -865,12 +904,48 @@ describe('native actor removal transaction', () => {
       expectedVersion: base.run.version,
       actorId: characterActor.id
     }
-    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow(RoomCommandRefusal)
-    // An archived Campaign has no live members, so the room refuses even its owner at admission.
-    await expect(executeInRoom(base.owner.caller, { command })).rejects.toMatchObject({
-      name: 'RoomCommandRefusal',
-      code: 'FORBIDDEN'
+    // Convex writes under a held Run need the room closed first; it re-hydrates on the next command.
+    await closeRoom(base.campaign.id)
+    await base.t.run(async (ctx) => {
+      const campaign = await ctx.db
+        .query('campaigns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+        .unique()
+      if (!campaign) throw new Error('Missing lifecycle fixture documents.')
+      await ctx.db.patch(campaign._id, { status: 'ARCHIVED' })
     })
+    // The room's join ticket is refused for an archived Campaign, before any command reaches the Run.
+    await expect(executeInRoom(base.owner.caller, { command })).rejects.toThrow(
+      'Archived Campaigns are read-only.'
+    )
+    await closeRoom(base.campaign.id)
+    await base.t.run(async (ctx) => {
+      const membership = await ctx.db
+        .query('campaignMemberships')
+        .withIndex('by_campaignId_userId', (q) =>
+          q.eq('campaignId', base.campaign.id).eq('userId', base.player.userId)
+        )
+        .unique()
+      const run = await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique()
+      if (!membership || !run) throw new Error('Missing lifecycle fixture documents.')
+      await ctx.db.patch(membership._id, { status: 'LEFT' })
+      const completed = encounterRunStateSchema.parse({
+        ...JSON.parse(run.stateJson),
+        status: 'COMPLETED'
+      })
+      await ctx.db.patch(run._id, {
+        status: 'COMPLETED',
+        stateJson: JSON.stringify(completed),
+        stateChecksum: checksumCanonicalJson(completed)
+      })
+    })
+    // An archived Campaign cannot be joined by its departed player, and no command reaches its Run.
+    await expect(executeInRoom(base.player.caller, { command })).rejects.toThrow(
+      'Campaign not found.'
+    )
     const before = await capture(base)
     const otherRun = before.runs.find((run) => run.id !== base.run.id && run.status !== 'COMPLETED')
     if (!otherRun) throw new Error('Missing non-completed Run for archived cleanup.')

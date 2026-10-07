@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
@@ -12,6 +13,7 @@ import {
 } from '../encounterInitiativeStaging.js'
 import { planEncounterInitiativeAdvance } from '../encounterInitiativeStateSettlement.js'
 import { prepareEncounterTurnInitiative } from '../encounterTurnInitiative.js'
+import { prepareEncounterTurnResponse } from '../encounterTurnResponse.js'
 import type { EncounterResponseAnswer } from '../encounterEvidenceAnswer.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 import {
@@ -26,9 +28,9 @@ import {
   SIDE_FOES,
   SIDE_HEROES,
   creatureSource,
-  initiativePolicySnapshot,
   scriptedDice
 } from './encounterInitiativeFixtures.js'
+import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 
 const GM_USER_ID = '00000000-0000-4000-8000-00000000b001'
 const ROOT_COMMAND_ID = '00000000-0000-4000-8000-00000000b002'
@@ -255,6 +257,94 @@ describe('prepareEncounterTurnInitiative at Encounter start', () => {
       ACTOR_A,
       ACTOR_C
     ])
+  })
+
+  it('records each answered request as an exact resolution command on the occurrence root', async () => {
+    const first = await prepare({
+      state: runState({ policy: actorRoll }),
+      root: coordinatorRoot(),
+      autoRoll: false
+    })
+    if (first.result.kind !== 'PENDING') throw new Error('Expected a pending initiative prompt.')
+    const requestId = evidenceRequest(first.result.snapshot).requestId
+    const command = {
+      type: 'RESOLVE_RULE_OCCURRENCE' as const,
+      encounterId: '00000000-0000-4000-8000-00000000b003',
+      commandId: '00000000-0000-4000-8000-00000000b004',
+      expectedVersion: 0,
+      correlationId: null,
+      occurrenceId: OCCURRENCE_ID,
+      expectedOccurrenceVersion: 0,
+      resolution: { kind: 'ENTER_INTEGER' as const, requestId, value: 11 }
+    }
+    const response = prepareEncounterTurnResponse({
+      pending: first.result.snapshot,
+      command,
+      userId: GM_USER_ID,
+      ownerUserId: GM_USER_ID,
+      responderControlledActorIds: new Set(),
+      occurrence: {
+        id: OCCURRENCE_ID,
+        rootCommandId: ROOT_COMMAND_ID,
+        version: 0,
+        expectedEncounterVersion: 0
+      },
+      encounterVersion: 0
+    })
+    if (response.kind !== 'INITIATIVE') throw new Error('Expected an initiative response.')
+    expect(response.root.resolutionCommands).toEqual([
+      {
+        commandId: command.commandId,
+        commandFingerprint: checksumCanonicalJson(command),
+        actorUserId: GM_USER_ID,
+        correlationId: null,
+        expectedOccurrenceVersion: 0,
+        initiativeActorId: null,
+        kind: 'ENTER_INTEGER',
+        requestId
+      }
+    ])
+  })
+
+  it('reports an answer whose expected Run or occurrence version is behind as stale', async () => {
+    const first = await prepare({
+      state: runState({ policy: actorRoll }),
+      root: coordinatorRoot(),
+      autoRoll: false
+    })
+    if (first.result.kind !== 'PENDING') throw new Error('Expected a pending initiative prompt.')
+    const pending = first.result.snapshot
+    const command = {
+      type: 'RESOLVE_RULE_OCCURRENCE' as const,
+      encounterId: '00000000-0000-4000-8000-00000000b003',
+      commandId: '00000000-0000-4000-8000-00000000b004',
+      expectedVersion: 0,
+      correlationId: null,
+      occurrenceId: OCCURRENCE_ID,
+      expectedOccurrenceVersion: 0,
+      resolution: {
+        kind: 'ENTER_INTEGER' as const,
+        requestId: evidenceRequest(pending).requestId,
+        value: 11
+      }
+    }
+    const respond = (answer: typeof command) =>
+      prepareEncounterTurnResponse({
+        pending,
+        command: answer,
+        userId: GM_USER_ID,
+        ownerUserId: GM_USER_ID,
+        responderControlledActorIds: new Set(),
+        occurrence: {
+          id: OCCURRENCE_ID,
+          rootCommandId: ROOT_COMMAND_ID,
+          version: 0,
+          expectedEncounterVersion: 0
+        },
+        encounterVersion: 0
+      })
+    expect(respond({ ...command, expectedVersion: 1 })).toEqual({ kind: 'STALE' })
+    expect(respond({ ...command, expectedOccurrenceVersion: 1 })).toEqual({ kind: 'STALE' })
   })
 
   it('refuses a resumed answer for another request and a continuation from another command', async () => {

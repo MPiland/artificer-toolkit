@@ -5,7 +5,6 @@ import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/a
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneStoredLiveEntitySchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
-import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 import { ROOM_SCENE_DEFINITION_ENTITY } from './roomSceneDefinition.js'
 import { readRoomScene } from './roomSceneRead.js'
 import type { RoomRecordReader, RoomTransaction } from './roomEncounterStore.js'
@@ -27,14 +26,8 @@ export function roomSceneTokenReaders(transaction: RoomRecordReader) {
           throw new Error('Room Scene definition identity is invalid.')
         return key[0] === saveId && key[1] === 'tokens' ? [{ record, entityId: key[3] }] : []
       })
-      let matches = tokens.filter((token) => token.entityId === tokenId)
+      const matches = tokens.filter((token) => token.entityId === tokenId)
       if (matches.length > 1) throw new Error('Scene token identity is duplicated.')
-      if (!matches.length) {
-        matches = tokens.filter((token) => token.entityId.toLowerCase() === tokenId)
-        if (tokens.length > VTT_SCENE_LIMITS.tokens)
-          throw new Error('Stored Scene tokens exceed the Scene limit.')
-        if (matches.length > 1) throw new Error('Scene token identity is duplicated.')
-      }
       const row = matches[0]?.record
       return row ? sceneStoredDefinitionEntitySchema.parse(JSON.parse(row.json)) : null
     }

@@ -1,8 +1,9 @@
-import type {
-  CharacterRestPreviewRequestDto,
-  CharacterRestPreviewResponseDto,
-  CharacterSheetResponseDto
-} from '@artificer-toolkit/schema/api/characters'
+import {
+  characterRestPreviewResponseDtoSchema,
+  type CharacterRestPreviewRequestDto,
+  type CharacterRestPreviewResponseDto
+} from '@artificer-toolkit/schema/api/characterSheetCommands'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { characterSheetFixture, dnd5e2014ExhaustionDescription } from './characterSheet.fixtures'
 
 export const characterSheetMulticlassFixture = {
@@ -137,7 +138,6 @@ export const characterSheetMulticlassFixture = {
         availability: { status: 'AVAILABLE' },
         sourceLabel: 'Equipment',
         description: '<p>A quick finesse weapon suited to close combat.</p>',
-        rollable: true,
         mechanic: {
           effectId: 'effect-shortsword-attack',
           trigger: 'ATTACK_ROLL',
@@ -343,7 +343,7 @@ export function createCharacterRestPreviewFixture(
         }
       : undefined
 
-  return {
+  return characterRestPreviewResponseDtoSchema.parse({
     restKind: request.restKind,
     streamVersion: request.expectedVersion,
     previewFingerprint: `multiclass-${request.restKind.toLowerCase()}-rest`,
@@ -393,5 +393,5 @@ export function createCharacterRestPreviewFixture(
       request.selectedHitDice.length === 0 ||
       (rollEvidence !== undefined &&
         (request.healingMode === 'AUTOMATIC' || request.manualHealingAccepted))
-  }
+  })
 }

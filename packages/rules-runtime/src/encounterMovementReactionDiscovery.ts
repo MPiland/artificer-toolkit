@@ -13,7 +13,7 @@ import type {
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import { EncounterValidationError, StaleMovementReactionError } from './encounterErrors.js'
 import {
   collectEncounterMovementReactionContacts,
   type EncounterMovementReactionContact
@@ -144,7 +144,7 @@ export async function revalidateEncounterMovementReactionOption(input: {
       checksumRuleDocument(source.source.binding) === checksumRuleDocument(input.option.binding)
   )
   if (matching.length !== 1)
-    throw new EncounterConflictError('The selected movement reaction source is stale.')
+    throw new StaleMovementReactionError('The selected movement reaction source is stale.')
   const source = matching[0]!
   const contact: EncounterMovementReactionContact<EncounterMovementReactionSource> = {
     candidate: input.option.candidate,
@@ -172,6 +172,6 @@ export async function revalidateEncounterMovementReactionOption(input: {
     .flatMap((group) => group.options)
     .find((option) => option.optionId === input.option.optionId)
   if (!sealed || checksumRuleDocument(sealed) !== checksumRuleDocument(input.option))
-    throw new EncounterConflictError('The selected movement reaction is no longer eligible.')
+    throw new StaleMovementReactionError('The selected movement reaction is no longer eligible.')
   return { action: source.action }
 }

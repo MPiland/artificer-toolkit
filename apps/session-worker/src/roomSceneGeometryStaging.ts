@@ -208,6 +208,9 @@ export async function stageRoomSceneGeometry(input: {
     normalized.type === 'MOVE_SCENE_TOKEN' && normalized.expectedEncounterVersion !== null
   if (bound && !resolution) {
     if (!active) throw new Error('Bound Scene movement requires an Encounter binding.')
+    // The client's Run version, behind the room's, is its stale view and is never retried.
+    if (active.run.version !== normalized.expectedEncounterVersion)
+      rejectDomain('VERSION_STALE', 'Encounter version is stale.')
     await requireBoundTokenMoveControl(ctx, {
       campaign,
       membership,

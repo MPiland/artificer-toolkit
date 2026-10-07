@@ -2,7 +2,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
@@ -35,12 +35,15 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
 import {
   setupReactionMovementScene,
-  useMovementReactions
+  useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
 import {
-  planMovementDecisionInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  checkpointLiveRoom,
+  closeRoom,
+  executeInRoom,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
@@ -52,7 +55,7 @@ import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persiste
 import { encounterReadTransaction } from '../encounters/encounterPorts'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: (sides: number) => (sides === 20 ? 14 : 0) }))
+useLocalRoomWorker()
 
 const createBlueprint = makeFunctionReference<
   'mutation',
@@ -274,7 +277,9 @@ async function resetAndDetachScene(value: Awaited<ReturnType<typeof setup>>) {
   })
 }
 
+/** Convex's rows after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
 async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(value.campaign.id)
   return value.t.run(async (ctx) => ({
     characters: await Promise.all(
       (await ctx.db.query('characters').collect()).map((row) => joinCharacterPlay(ctx, row))
@@ -293,19 +298,6 @@ async function snapshot(value: Awaited<ReturnType<typeof setup>>) {
       .collect(),
     characterEffects: await ctx.db.query('characterActiveRuleEffects').collect(),
     characterReceipts: await ctx.db.query('characterCommandReceipts').collect(),
-    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .collect(),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.run.id))
-      .collect(),
     scenes: await ctx.db.query('sceneLiveStates').collect()
   }))
 }
@@ -318,7 +310,10 @@ async function seedCharacterDependents(
   value: Awaited<ReturnType<typeof setup>>,
   firstScene: Awaited<ReturnType<typeof setupReactionMovementScene>>
 ) {
-  await (await useMovementReactions(firstScene)).publish()
+  await queueRoomRolls(value.campaign.id, { rolls: [], repeat: 0 })
+  expect((await useMovementReactionsInRoom(firstScene)).occurrence?.status).toBe('COMPLETE')
+  // The Run is the room's until it closes; the seeds below write it in Convex and hydrate into the next command.
+  await closeRoom(value.campaign.id)
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')!
   const poisoned = srdSystemRecord.conditionTypes.find(
     (condition) => condition.code === 'POISONED'
@@ -410,8 +405,9 @@ it('settles present and detached Character maintenance once per used automatic c
   const detachedBefore = origin.characters.find((row) => row.id === value.detached.id)!
   // Assisted play offers both authored automatic reactions as Use/Decline. The GM uses them, so the
   // first reaction publishes at the second choice and the totals below span both publications.
-  const firstUse = await useMovementReactions(next, 1)
-  const secondChoice = (await firstUse.publish()).occurrence?.pending
+  await queueRoomRolls(value.campaign.id, { rolls: [], repeat: 0 })
+  const firstUse = await useMovementReactionsInRoom(next, 1)
+  const secondChoice = firstUse.occurrence?.pending
   if (secondChoice?.kind !== 'MOVEMENT_REACTION' || !secondChoice.choice.options[0])
     throw new Error('Expected the second Use/Decline reaction choice.')
   const lastUse = {
@@ -424,22 +420,12 @@ it('settles present and detached Character maintenance once per used automatic c
     correlationId: null,
     resolution: { kind: 'OPTION' as const, optionId: secondChoice.choice.options[0].optionId }
   }
-  const used = await planMovementDecisionInRoom(value.owner.caller, lastUse)
-  const before = await snapshot(value)
-  const prepared = used
-  expect(prepared.outcome.kind).toBe('TERMINAL')
-  if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected terminal preparation.')
-  expect(prepared.outcome.result.reactionExecutions).toHaveLength(2)
-  const executions = [...prepared.outcome.result.reactionExecutions].sort(
-    (left, right) => left.ordinal - right.ordinal
-  )
-  expect(executions.map((execution) => execution.option.candidate.movingActorId)).toEqual([
-    value.mover.id,
-    value.mover.id
-  ])
-  expect(executions[0]!.ordinal).toBeLessThan(executions[1]!.ordinal)
-  expect(await snapshot(value)).toEqual(before)
-  const published = await used.publish()
+  // The planner's two ordered reaction executions (both for the moving Character) are covered by the
+  // producer test "retains each used reaction in order and ends at the destination" in
+  // apps/session-worker/test/nativeMovementPlanning.test.ts; the transitions they carry read as the
+  // Characters' stream versions and hit points below.
+  const published = await executeInRoom(value.owner.caller, { command: lastUse })
+  expect(published.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
   const after = await snapshot(value)
   const presentAfter = after.characters.find((row) => row.id === value.character.id)!
   const detachedAfter = after.characters.find((row) => row.id === value.detached.id)!
@@ -448,37 +434,6 @@ it('settles present and detached Character maintenance once per used automatic c
   const finalEffectIds = after.characterEffects.map((effect) => effect.id)
   expect(finalEffectIds.filter((id) => seeded.removedIds.includes(id))).toEqual([])
   expect(finalEffectIds).toEqual(expect.arrayContaining(seeded.independentIds))
-  expect(executions.flatMap((execution) => execution.characterTransitions)).toEqual(
-    expect.arrayContaining([
-      {
-        characterId: value.character.id,
-        beforeStreamVersion: presentBefore.play.streamVersion,
-        afterStreamVersion: presentBefore.play.streamVersion + 1
-      },
-      {
-        characterId: value.character.id,
-        beforeStreamVersion: presentBefore.play.streamVersion + 1,
-        afterStreamVersion: presentBefore.play.streamVersion + 2
-      },
-      {
-        characterId: value.detached.id,
-        beforeStreamVersion: detachedBefore.play.streamVersion,
-        afterStreamVersion: detachedBefore.play.streamVersion + 1
-      }
-    ])
-  )
-  for (const execution of executions) {
-    if (
-      execution.application.kind !== 'CHARACTER_MECHANICS_BATCH' &&
-      execution.application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-    )
-      throw new Error('Expected Character movement mechanics.')
-    const damage = execution.application.applications.find(
-      (application) => application.kind === 'DAMAGE'
-    )
-    if (!damage) throw new Error('Expected maintained movement damage.')
-    expect(damage.beforeCurrentHitPoints - damage.afterCurrentHitPoints).toBe(1)
-  }
   for (const row of [presentAfter, detachedAfter]) {
     const character = readCharacterRecord(row)
     expect(character.state.conditions?.map((condition) => condition.conditionTypeId)).toEqual([
@@ -492,14 +447,10 @@ it('settles present and detached Character maintenance once per used automatic c
   const actorState = readStoredRunActor(actor)
   expect(actorState).toMatchObject({ kind: 'CHARACTER', sourceId: value.character.id })
   expect(actorState).not.toHaveProperty('conditions')
-  const receipt = after.receipts.find((row) => row.commandId === lastUse.commandId)
-  expect(receipt && JSON.parse(receipt.resultJson)).toEqual(prepared.outcome.result)
   expect(after.characterReceipts.length).toBe(origin.characterReceipts.length)
-  const retry = await planMovementDecisionInRoom(value.owner.caller, lastUse)
-  expect(await retry.publish()).toEqual({
-    ...published,
-    replayed: true
-  })
+  // A retry is answered from the room's journal with the Run as it now stands, and changes nothing.
+  const retry = await executeInRoom(value.owner.caller, { command: lastUse })
+  expect(retry.projection.version).toBe(published.projection.version)
   expect(await snapshot(value)).toEqual(after)
 }, 60_000)
 

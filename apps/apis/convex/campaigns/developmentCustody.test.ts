@@ -28,7 +28,7 @@ import {
 import { api, components, internal } from '../_generated/api'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 
 afterEach(() => vi.useRealTimers())
 
@@ -300,8 +300,8 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = inProcessDevelopmentClient
-    const anonymous = inProcessDevelopmentClient(base.t)
+    const client = convexDevelopmentClient
+    const anonymous = convexDevelopmentClient(base.t)
     const proof = await verifyCampaignCurrencyLifecycle(
       {
         owner: client(base.other.caller),
@@ -422,8 +422,8 @@ describe('development custody fixture cleanup', () => {
       mode: 'create',
       character: replacement.character
     })
-    const client = inProcessDevelopmentClient
-    const anonymous = inProcessDevelopmentClient(base.t)
+    const client = convexDevelopmentClient
+    const anonymous = convexDevelopmentClient(base.t)
     await verifyCampaignAssignmentLifecycle(
       {
         owner: client(base.other.caller),
@@ -517,8 +517,8 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = inProcessDevelopmentClient
-    const anonymous = inProcessDevelopmentClient(base.t)
+    const client = convexDevelopmentClient
+    const anonymous = convexDevelopmentClient(base.t)
     const proof = await verifyCampaignAuthoredCustodyDeletion(
       {
         owner: client(base.other.caller),
@@ -617,8 +617,8 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = inProcessDevelopmentClient
-    const anonymous = inProcessDevelopmentClient(base.t)
+    const client = convexDevelopmentClient
+    const anonymous = convexDevelopmentClient(base.t)
     await verifyCampaignCustody(
       {
         owner: client(base.other.caller),
@@ -860,7 +860,7 @@ describe('development custody fixture cleanup', () => {
         })
       ]
     })
-    const client = inProcessDevelopmentClient
+    const client = convexDevelopmentClient
     const lifecycle = await verifyCampaignMembershipLifecycle(
       {
         owner: client(base.other.caller),

@@ -6,11 +6,10 @@ import {
   encounterSceneBindingSchema,
   encounterStoredRunSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { memoryRoomDocuments } from './storedRunFixture.js'
+import { insertInitiativeRound, memoryRoomDocuments } from './storedRunFixture.js'
 
 const NOW = '2026-09-30T00:00:00.000Z'
 
@@ -125,49 +124,8 @@ export async function encounterRunFixture({
   )
   for (const actor of actors) await insertRunActor({ db: memory.store }, actor)
   // An ACTIVE Run projects from its normalized initiative round.
-  const initiative = encounterInitiativeRoundStateDtoSchema.parse({
-    round: {
-      encounterId,
-      round: 1,
-      procedure: 'MANUAL',
-      cadence: 'ENCOUNTER_START',
-      status: 'ACTIVE',
-      policySnapshotChecksum: null,
-      nextTurnOrderOrdinal: actors.length,
-      version: 0,
-      createdAt: NOW,
-      updatedAt: NOW
-    },
-    sides: [],
-    participants: actors.map((actor, turnOrderOrdinal) => ({
-      encounterId,
-      round: 1,
-      actorId: actor.id,
-      sideId,
-      // Actors before the current one have acted, matching the Run's current actor.
-      status: !currentActorId
-        ? 'READY'
-        : actor.id === currentActorId
-          ? 'ACTIVE'
-          : turnOrderOrdinal < actors.findIndex((entry) => entry.id === currentActorId)
-            ? 'ACTED'
-            : 'READY',
-      initiativeScore: null,
-      evaluation: { occurrenceId: null, resultChecksum: null },
-      tie: { occurrenceId: null, resultChecksum: null },
-      declaration: null,
-      declarationChecksum: null,
-      turnOrderOrdinal,
-      version: 0,
-      createdAt: NOW,
-      updatedAt: NOW
-    }))
-  })
-  if (status === 'ACTIVE') {
-    await memory.store.insert('encounterInitiativeRounds', initiative.round)
-    for (const participant of initiative.participants)
-      await memory.store.insert('encounterInitiativeParticipants', participant)
-  }
+  if (status === 'ACTIVE')
+    await insertInitiativeRound(memory, { encounterId, actors, currentActorId, now: NOW })
   if (scene) {
     await memory.store.insert('encounterActorTokenBindings', {
       encounterId,

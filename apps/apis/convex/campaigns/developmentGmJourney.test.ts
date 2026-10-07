@@ -14,7 +14,7 @@ import type { TableNames } from '../_generated/dataModel'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import schema from '../schema'
 import { ensureAuthoredRouteId } from '../content/routeIds'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
 
@@ -79,7 +79,7 @@ it('proves native GM overlays through public Campaign handlers', async () => {
     return id
   })
   const outsider = await createOutsider(base)
-  const client = inProcessDevelopmentClient
+  const client = convexDevelopmentClient
   const inspect = async (): Promise<DevelopmentCampaignInspection> =>
     base.t.run(async (ctx) => {
       const tables = Object.fromEntries(

@@ -1,22 +1,31 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { socialApplicationDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { SocialApplicationsView } from './SocialApplicationsView'
 
-const application = {
+const application = socialApplicationDtoSchema.parse({
   applicationPublicId: 'aaaaaaaa-2222-4222-8222-222222222222',
   listingPublicId: '33333333-3333-4333-8333-333333333333',
   listingTitle: 'Ashen Road',
   applicant: { profilePublicId: '44444444-4444-4444-8444-444444444444', username: 'Player' },
   message: 'Ready to play.',
-  status: 'SUBMITTED' as const,
+  status: 'SUBMITTED',
   listingVersion: 1,
-  expectations: { message: 'Bring dice.' },
+  expectations: {
+    contentGuidance: 'Be kind.',
+    attendancePolicy: 'Attend sessions.',
+    allowedContentRules: 'Ask first.',
+    tableConduct: 'Respect others.',
+    contentBoundaries: 'No harassment.',
+    safetyPractices: ['SESSION_ZERO'],
+    safetyDetails: 'Talk openly.'
+  },
   submittedAt: '2026-09-01T00:00:00.000Z',
   respondedAt: null,
   version: 2
-}
+})
 const mocks = vi.hoisted(() => ({
   pending: {
     results: [] as Array<Record<string, unknown>>,

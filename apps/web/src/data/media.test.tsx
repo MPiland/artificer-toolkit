@@ -4,6 +4,7 @@ import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexProvider, ConvexReactClient } from 'convex/react'
 import type { ReactNode } from 'react'
 import { expect, it, vi } from 'vitest'
+import { signedImageDeliveryDtoSchema } from '@artificer-toolkit/schema/api/media'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { nativeArtwork, useMediaImage } from './media'
 
@@ -60,18 +61,20 @@ it('hides a cached avatar and reports a revoked subscription without throwing du
     }
   })
   vi.spyOn(client, 'query').mockResolvedValue(binding)
-  const image = vi.spyOn(client, 'action').mockResolvedValue({
-    assetId: binding.assetId,
-    variantKind: 'THUMBNAIL',
-    url: 'https://example.com/avatar.webp',
-    expiresAt: '2026-09-05T18:00:00.000Z',
-    width: 320,
-    height: 320,
-    mimeType: 'image/webp',
-    crop: null,
-    altText: null,
-    isDecorative: true
-  })
+  const image = vi.spyOn(client, 'action').mockResolvedValue(
+    signedImageDeliveryDtoSchema.parse({
+      assetId: binding.assetId,
+      variantKind: 'THUMBNAIL',
+      url: 'https://example.com/avatar.webp',
+      expiresAt: '2026-09-05T18:00:00.000Z',
+      width: 320,
+      height: 320,
+      mimeType: 'image/webp',
+      crop: null,
+      altText: null,
+      isDecorative: true
+    })
+  )
   const convex = new ConvexQueryClient(client)
   const queryClient = createAppQueryClient(convex)
   const wrapper = ({ children }: { children: ReactNode }) => (

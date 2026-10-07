@@ -21,9 +21,9 @@ import {
   ACTOR_C,
   SIDE_FOES,
   SIDE_HEROES,
-  initiativePolicySnapshot,
   preparingRound
 } from './encounterInitiativeFixtures.js'
+import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 
 const NONE: ReadonlySet<string> = new Set()

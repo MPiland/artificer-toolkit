@@ -61,7 +61,6 @@ export interface Dnd5eOptionalActionContributor {
   readonly domainKey: string | null
   readonly grantId: string | null
   readonly influence: D20Influence
-  readonly reason?: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' | 'SIZE_RELATION'
   readonly sourceId: string
 }
 
@@ -160,7 +159,7 @@ function resolveMode(contributors: readonly Dnd5eOptionalActionContributor[]): D
 function contributor(input: {
   definition: PolicyDefinition
   influence: D20Influence
-  reason: Dnd5eOptionalActionContributor['reason']
+  reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' | 'SIZE_RELATION'
 }): Dnd5eOptionalActionContributor {
   return {
     sourceId: checksumRuleDocument({
@@ -170,9 +169,8 @@ function contributor(input: {
       reason: input.reason
     }),
     grantId: null,
-    domainKey: input.reason ?? null,
-    influence: input.influence,
-    reason: input.reason
+    domainKey: input.reason,
+    influence: input.influence
   }
 }
 

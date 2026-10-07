@@ -4,7 +4,7 @@ import {
 } from '../lib/convexEncounterStore'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { makeFunctionReference } from 'convex/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   encounterCommandResultDtoSchema,
   encounterGmProjectionDtoSchema,
@@ -20,7 +20,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSettings'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import { runActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { automaticChargedBiteFeatureId } from '../../tests/fixtures/encounterAction'
@@ -36,11 +36,16 @@ import {
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  replayInRoom,
+  queueRoomRolls,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'
@@ -56,7 +61,28 @@ const createRun = makeFunctionReference<
   EncounterGmProjectionDto
 >('encounters/runs:create')
 
+/** The turn-effect fixture with the real room attached. */
+async function roomFixture(...args: Parameters<typeof turnActiveEffectFixture>) {
+  const base = await turnActiveEffectFixture(...args)
+  await attachFixtureRoom(base.t, base.campaign.id)
+  return base
+}
+
+/** Seeds the effect straight in Convex, so the room lets go of the Run and re-hydrates it next. */
+async function seedEffect(
+  base: Awaited<ReturnType<typeof turnActiveEffectFixture>>,
+  input: Parameters<typeof seedTurnSaveEffect>[1]
+) {
+  await closeRoom(base.campaign.id)
+  return seedTurnSaveEffect(base, input)
+}
+
+/**
+ * Convex's rows after the room checkpoints. The Run's command rows and receipts stay in the room
+ * until the Run ends (D85, D88), so they are not part of this snapshot.
+ */
 async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>) {
+  await checkpointLiveRoom(base.campaign.id)
   const characterIds = base.run.actors.flatMap((actor) =>
     actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
   )
@@ -109,18 +135,6 @@ async function stored(base: Awaited<ReturnType<typeof turnActiveEffectFixture>>)
     occurrences: await ctx.db
       .query('encounterRuleOccurrences')
       .withIndex('by_encounterId_state', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', base.run.id))
-      .collect(),
-    commands: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRunCommands')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', base.run.id))
       .collect()
   }))
 }
@@ -237,17 +251,6 @@ async function pendingEffect(
   return snapshot
 }
 
-function effectReceipt(snapshot: Awaited<ReturnType<typeof stored>>, commandId: string) {
-  const receipt = snapshot.receipts.find((row) => row.commandId === commandId)
-  if (!receipt) throw new Error('Expected the root turn receipt.')
-  return storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.unstubAllEnvs()
-})
-
 describe('native public turn active-effect journeys', () => {
   it('uses staged Character damage facts for EACH_ROUND initiative while the turn remains pending', async () => {
     const fixture = await turnCharacterEffectFixture()
@@ -270,6 +273,8 @@ describe('native public turn active-effect journeys', () => {
       initiativePolicyDefinitionId: initiative.policyIds[0]!,
       initiativeTieDefinitionId: null
     })
+    // The room already ran a command in the fixture; it re-reads these Convex-side edits on its next admission.
+    await closeRoom(fixture.campaign.id)
     const created = await fixture.owner.caller.mutation(createRun, {
       campaignId: fixture.campaign.id,
       blueprintId: fixture.run.blueprintId,
@@ -299,7 +304,7 @@ describe('native public turn active-effect journeys', () => {
     })
     const started = await resolveInitiative(base, starting)
     expect(started.occurrence?.status).toBe('COMPLETE')
-    const effect = await seedTurnSaveEffect(base, {
+    const effect = await seedEffect(base, {
       stage: 'END_OF_TURN',
       ticks: 1,
       damage: 1
@@ -333,7 +338,7 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
     expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length)
-    await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, advance)).resolves.toEqual({
       ...pendingOutgoing,
       projection: completed.projection
     })
@@ -347,7 +352,7 @@ describe('native public turn active-effect journeys', () => {
     expect(base.run.actors).toHaveLength(1)
     const actor = base.run.actors[0]!
     expect(actor.kind).toBe('CHARACTER')
-    const effect = await seedTurnSaveEffect(base, { stage: 'START_OF_TURN', ticks: 1, damage: 1 })
+    const effect = await seedEffect(base, { stage: 'START_OF_TURN', ticks: 1, damage: 1 })
     const before = await stored(base)
     const start: EncounterExecuteInput = {
       command: {
@@ -377,6 +382,7 @@ describe('native public turn active-effect journeys', () => {
     expect(encounterPlayerProjectionDtoSchema.safeParse(accepted.projection).success).toBe(true)
     expect(accepted.occurrence?.pending).toBeNull()
     // The GM's initiative prompt is hidden from the player's result, so read it as the owner.
+    await checkpointLiveRoom(base.campaign.id)
     const gmInitiative = {
       ...accepted,
       occurrence: accepted.occurrence && {
@@ -413,7 +419,7 @@ describe('native public turn active-effect journeys', () => {
     const replay = await executeInRoom(base.player.caller, declarationCommand)
     expect(replay).toEqual(expectedReplay)
     expect(replay.projection.actors.every((entry) => !('currentHitPoints' in entry))).toBe(true)
-    await expect(replayInRoom(base.player.caller, declarationCommand)).resolves.toEqual(
+    await expect(executeInRoom(base.player.caller, declarationCommand)).resolves.toEqual(
       expectedReplay
     )
     const dice = diceResponse(base.run.id, pendingIncoming)
@@ -435,20 +441,20 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(actor.currentHitPoints - 1)
     expect(terminal.characterEffects).toEqual([])
     expect(terminal.characterReceipts).toHaveLength(before.characterReceipts.length)
-    const terminalReplay = await replayInRoom(base.player.caller, declarationCommand)
+    const terminalReplay = await executeInRoom(base.player.caller, declarationCommand)
     expect(terminalReplay.occurrence?.pending).toBeNull()
     expect(encounterPlayerProjectionDtoSchema.safeParse(terminalReplay.projection).success).toBe(
       true
     )
-    await expect(replayInRoom(base.player.caller, declarationCommand)).resolves.toEqual(
+    await expect(executeInRoom(base.player.caller, declarationCommand)).resolves.toEqual(
       terminalReplay
     )
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
   it('replays an accepted initiative declaration while START awaits incoming effect dice', async () => {
-    const base = await turnActiveEffectFixture('PROMPT', 'DECLARED_ACTION_ROLL')
-    const effect = await seedTurnSaveEffect(base, {
+    const base = await roomFixture('PROMPT', 'DECLARED_ACTION_ROLL')
+    const effect = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,
       damage: 1
@@ -480,11 +486,11 @@ describe('native public turn active-effect journeys', () => {
     const pendingIncoming = await resolveInitiative(base, pendingInitiative)
     const paused = await pendingEffect(base, effect.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
-    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual({
       ...pendingInitiative,
       projection: pendingIncoming.projection
     })
-    await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, start)).resolves.toEqual({
       ...pendingDeclaration,
       projection: pendingIncoming.projection
     })
@@ -504,7 +510,7 @@ describe('native public turn active-effect journeys', () => {
     ).toBe(base.run.actors[0]!.currentHitPoints - 1)
     const terminal = await stored(base)
     expect(terminal.effects).toEqual([])
-    await expect(replayInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual({
+    await expect(executeInRoom(base.owner.caller, acceptedDeclaration)).resolves.toEqual({
       ...pendingInitiative,
       projection: settled.projection
     })
@@ -512,13 +518,13 @@ describe('native public turn active-effect journeys', () => {
   }, 30000)
 
   it('START rolls incoming effects, updates and expires their lifecycles, and exactly replays without writes or dice', async () => {
-    const base = await turnActiveEffectFixture('AUTO_ROLL')
-    const tick = await seedTurnSaveEffect(base, {
+    const base = await roomFixture('AUTO_ROLL')
+    const tick = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 2,
       damage: 1
     })
-    const expire = await seedTurnSaveEffect(base, {
+    const expire = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,
       damage: 2
@@ -531,72 +537,40 @@ describe('native public turn active-effect journeys', () => {
         expectedVersion: base.run.version
       }
     }
-    const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((values) => {
-      ;(values as Uint32Array)[0] = 0
-      return values
+    // Every d20 lands on 1, so both saves fail. The START batch receipt's executions (lifecycle
+    // UPDATE/EXPIRE, raw faces, stage, createdOrdinal order) stay in the room (D85): the effect
+    // rows and hit points below show the outcome (execution shape: encounterTurnEffects.test.ts).
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 1 })
+    const result = await executeInRoom(base.owner.caller, start)
+    expect(result).toMatchObject({
+      projection: {
+        status: 'ACTIVE',
+        round: 1,
+        version: base.run.version + 1,
+        currentActorId: base.run.actors[0]!.id
+      },
+      occurrence: { status: 'COMPLETE', pending: null }
     })
-    try {
-      const result = await executeInRoom(base.owner.caller, start)
-      expect(result).toMatchObject({
-        projection: {
-          status: 'ACTIVE',
-          round: 1,
-          version: base.run.version + 1,
-          currentActorId: base.run.actors[0]!.id
-        },
-        occurrence: { status: 'COMPLETE', pending: null }
+    expect(
+      encounterGmProjectionDtoSchema.parse(result.projection).actors[0]!.currentHitPoints
+    ).toBe(base.run.actors[0]!.currentHitPoints - 3)
+    const terminal = await stored(base)
+    expect(terminal.effects).toEqual([
+      expect.objectContaining({
+        id: tick.id,
+        version: 2,
+        lifecycle: { schemaVersion: 1, remainingTicks: 1 }
       })
-      expect(
-        encounterGmProjectionDtoSchema.parse(result.projection).actors[0]!.currentHitPoints
-      ).toBe(base.run.actors[0]!.currentHitPoints - 3)
-      const terminal = await stored(base)
-      expect(terminal.effects).toEqual([
-        expect.objectContaining({
-          id: tick.id,
-          version: 2,
-          lifecycle: { schemaVersion: 1, remainingTicks: 1 }
-        })
-      ])
-      const receipt = effectReceipt(terminal, start.command.commandId)
-      if (
-        receipt.status !== 'BATCH_COMPLETE' ||
-        receipt.batchKind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
-      )
-        throw new Error('Expected the START active-effect batch receipt.')
-      expect(receipt.executions).toEqual([
-        expect.objectContaining({
-          activeEffectId: tick.id,
-          stage: 'START_OF_TURN',
-          lifecycle: expect.objectContaining({
-            kind: 'UPDATE',
-            beforeRemainingTicks: 2,
-            afterRemainingTicks: 1
-          })
-        }),
-        expect.objectContaining({
-          activeEffectId: expire.id,
-          stage: 'START_OF_TURN',
-          lifecycle: expect.objectContaining({
-            kind: 'EXPIRE',
-            beforeRemainingTicks: 1,
-            afterRemainingTicks: 0
-          })
-        })
-      ])
-      expect(receipt.executions.map((execution) => execution.d20?.rawFaces)).toEqual([[1], [1]])
-      expect(terminal.receipts).toHaveLength(1)
-      expect(terminal.occurrences).toHaveLength(1)
-      entropy.mockClear()
-      await expect(replayInRoom(base.owner.caller, start)).resolves.toEqual(result)
-      expect(entropy).not.toHaveBeenCalled()
-      expect(await stored(base)).toEqual(terminal)
-    } finally {
-      entropy.mockRestore()
-    }
+    ])
+    expect(terminal.effects.map((row) => row.id)).not.toContain(expire.id)
+    expect(terminal.occurrences).toHaveLength(1)
+    // A retry returns the applied result without rolling or writing again (D88).
+    await expect(executeInRoom(base.owner.caller, start)).resolves.toEqual(result)
+    expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
   it('ADVANCE_TURN applies outgoing then incoming effects to the same actor across the round boundary', async () => {
-    const base = await turnActiveEffectFixture('AUTO_ROLL')
+    const base = await roomFixture('AUTO_ROLL')
     const started = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
@@ -605,12 +579,12 @@ describe('native public turn active-effect journeys', () => {
         expectedVersion: base.run.version
       }
     })
-    const outgoing = await seedTurnSaveEffect(base, {
+    const outgoing = await seedEffect(base, {
       stage: 'END_OF_TURN',
       ticks: 1,
       damage: 2
     })
-    const incoming = await seedTurnSaveEffect(base, {
+    const incoming = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 2,
       damage: 1
@@ -637,31 +611,10 @@ describe('native public turn active-effect journeys', () => {
       encounterGmProjectionDtoSchema.parse(result.projection).actors[0]!.currentHitPoints
     ).toBe(hp - 3)
     const terminal = await stored(base)
-    const receipt = effectReceipt(terminal, advance.command.commandId)
-    if (
-      receipt.status !== 'TURN_LIFECYCLE_COMPLETE' ||
-      receipt.outgoingTurn.kind !== 'EXECUTED' ||
-      receipt.incomingTurn.kind !== 'EXECUTED'
-    )
-      throw new Error('Expected both completed turn-effect phases.')
-    expect([...receipt.outgoingTurn.executions, ...receipt.incomingTurn.executions]).toEqual([
-      expect.objectContaining({
-        activeEffectId: outgoing.id,
-        stage: 'END_OF_TURN',
-        targetTransition: expect.objectContaining({
-          before: expect.objectContaining({ currentHitPoints: hp }),
-          after: expect.objectContaining({ currentHitPoints: hp - 2 })
-        })
-      }),
-      expect.objectContaining({
-        activeEffectId: incoming.id,
-        stage: 'START_OF_TURN',
-        targetTransition: expect.objectContaining({
-          before: expect.objectContaining({ currentHitPoints: hp - 2 }),
-          after: expect.objectContaining({ currentHitPoints: hp - 3 })
-        })
-      })
-    ])
+    // The TURN_LIFECYCLE_COMPLETE receipt's outgoing and incoming executions (stage order and each
+    // target transition, hp to hp - 2 to hp - 3) stay in the room (D85); the effect rows and the
+    // final hit points show the outcome (execution shape: encounterTurnEffects.test.ts).
+    expect(terminal.effects.map((row) => row.id)).not.toContain(outgoing.id)
     expect(terminal.effects).toEqual([
       expect.objectContaining({
         id: incoming.id,
@@ -670,12 +623,12 @@ describe('native public turn active-effect journeys', () => {
       })
     ])
     expect(terminal.rounds.map((round) => round.round)).toEqual([1, 2])
-    await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual(result)
+    await expect(executeInRoom(base.owner.caller, advance)).resolves.toEqual(result)
     expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
   it('retains outgoing effects through initiative, Recharge, and incoming dice; only terminal completion publishes the whole turn', async () => {
-    const base = await turnActiveEffectFixture('PROMPT')
+    const base = await roomFixture('PROMPT')
     const starting = await executeInRoom(base.owner.caller, {
       command: {
         type: 'START',
@@ -698,12 +651,12 @@ describe('native public turn active-effect journeys', () => {
         amount: 1
       }
     })
-    const outgoing = await seedTurnSaveEffect(base, {
+    const outgoing = await seedEffect(base, {
       stage: 'END_OF_TURN',
       ticks: 1,
       damage: 2
     })
-    const incoming = await seedTurnSaveEffect(base, {
+    const incoming = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,
       damage: 1
@@ -723,7 +676,7 @@ describe('native public turn active-effect journeys', () => {
     const pendingInitiative = await executeInRoom(base.owner.caller, outgoingResponse)
     expect(pendingInitiative.occurrence?.pending?.kind).toBe('INITIATIVE_EVIDENCE')
     unchangedMechanics(before, await stored(base))
-    await expect(replayInRoom(base.owner.caller, outgoingResponse)).resolves.toEqual(
+    await expect(executeInRoom(base.owner.caller, outgoingResponse)).resolves.toEqual(
       pendingInitiative
     )
     const retainedInitiative = await stored(base)
@@ -755,67 +708,45 @@ describe('native public turn active-effect journeys', () => {
         encounterId: base.run.id
       })
     ).toEqual(pendingIncoming.occurrence!.pending)
-    const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((values) => {
-      ;(values as Uint32Array)[0] = 0
-      return values
+    // The app roll lands on 1, so the incoming save fails. The terminal receipt's executions (stage
+    // order, raw faces) and rechargeExecutions (rawDie 5, recharged) stay in the room (D85): the
+    // effect rows and the published Feature charges show the outcome (execution shape:
+    // encounterTurnEffects.test.ts and encounterRecharge.test.ts).
+    await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 1 })
+    const terminalResponse = await appRollResponse(base, pendingIncoming)
+    const result = await executeInRoom(base.owner.caller, terminalResponse)
+    expect(result).toMatchObject({
+      projection: { round: 2, version: spent.projection.version + 1 },
+      occurrence: { status: 'COMPLETE', pending: null }
     })
-    try {
-      const terminalResponse = await appRollResponse(base, pendingIncoming)
-      const result = await executeInRoom(base.owner.caller, terminalResponse)
-      expect(result).toMatchObject({
-        projection: { round: 2, version: spent.projection.version + 1 },
-        occurrence: { status: 'COMPLETE', pending: null }
-      })
-      const terminal = await stored(base)
-      const actor = readStoredRunActor(terminal.actors[0]!)
-      if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
-      expect(actor.currentHitPoints).toBe(
-        encounterGmProjectionDtoSchema.parse(spent.projection).actors[0]!.currentHitPoints - 3
-      )
-      expect(actor.resources).toMatchObject({
-        featureCharges: { [automaticChargedBiteFeatureId]: 0 }
-      })
-      expect(terminal.effects).toEqual([])
-      expect(terminal.rounds.map((round) => round.round)).toEqual([1, 2])
-      const receipt = effectReceipt(terminal, advance.command.commandId)
-      if (
-        receipt.status !== 'TURN_LIFECYCLE_COMPLETE' ||
-        receipt.outgoingTurn.kind !== 'EXECUTED' ||
-        receipt.incomingTurn.kind !== 'EXECUTED'
-      )
-        throw new Error('Expected both completed turn-effect phases.')
-      expect(
-        [...receipt.outgoingTurn.executions, ...receipt.incomingTurn.executions].map(
-          (execution) => [execution.activeEffectId, execution.stage, execution.d20?.rawFaces]
-        )
-      ).toEqual([
-        [outgoing.id, 'END_OF_TURN', [1]],
-        [incoming.id, 'START_OF_TURN', [1]]
-      ])
-      expect(receipt.rechargeExecutions).toEqual([
-        expect.objectContaining({ rawDie: 5, recharged: true })
-      ])
-      entropy.mockClear()
-      await expect(replayInRoom(base.owner.caller, terminalResponse)).resolves.toEqual(result)
-      await expect(replayInRoom(base.owner.caller, advance)).resolves.toEqual({
-        ...pendingOutgoing,
-        projection: result.projection
-      })
-      expect(entropy).not.toHaveBeenCalled()
-      expect(await stored(base)).toEqual(terminal)
-    } finally {
-      entropy.mockRestore()
-    }
+    const terminal = await stored(base)
+    const actor = readStoredRunActor(terminal.actors[0]!)
+    if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
+    expect(actor.currentHitPoints).toBe(
+      encounterGmProjectionDtoSchema.parse(spent.projection).actors[0]!.currentHitPoints - 3
+    )
+    expect(actor.resources).toMatchObject({
+      featureCharges: { [automaticChargedBiteFeatureId]: 0 }
+    })
+    expect(terminal.effects).toEqual([])
+    expect(terminal.rounds.map((round) => round.round)).toEqual([1, 2])
+    // A retry of either command returns the applied result without writing again (D88).
+    await expect(executeInRoom(base.owner.caller, terminalResponse)).resolves.toEqual(result)
+    await expect(executeInRoom(base.owner.caller, advance)).resolves.toEqual({
+      ...pendingOutgoing,
+      projection: result.projection
+    })
+    expect(await stored(base)).toEqual(terminal)
   }, 30000)
 
   it('START retains the first effect while the second awaits dice and rejects stale retained lifecycle without writes', async () => {
-    const base = await turnActiveEffectFixture('PROMPT')
-    const first = await seedTurnSaveEffect(base, {
+    const base = await roomFixture('PROMPT')
+    const first = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 2,
       damage: 1
     })
-    const second = await seedTurnSaveEffect(base, {
+    const second = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,
       damage: 1
@@ -834,8 +765,9 @@ describe('native public turn active-effect journeys', () => {
     const pendingSecond = await executeInRoom(base.owner.caller, firstResponse)
     const paused = await pendingEffect(base, second.id, 'START_OF_TURN')
     unchangedMechanics(before, paused)
-    await expect(replayInRoom(base.owner.caller, firstResponse)).resolves.toEqual(pendingSecond)
+    await expect(executeInRoom(base.owner.caller, firstResponse)).resolves.toEqual(pendingSecond)
     expect(await stored(base)).toEqual(paused)
+    await closeRoom(base.campaign.id)
     await base.t.run((ctx) =>
       createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).updateLifecycleCas({
         id: first.id,
@@ -847,19 +779,13 @@ describe('native public turn active-effect journeys', () => {
     // The app roll commits through the room's checkpoint ledger, so capture after it.
     const final = await appRollResponse(base, pendingSecond)
     const stale = await stored(base)
-    const entropy = vi.spyOn(crypto, 'getRandomValues')
-    try {
-      await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()
-      expect(entropy).not.toHaveBeenCalled()
-      expect(await stored(base)).toEqual(stale)
-    } finally {
-      entropy.mockRestore()
-    }
+    await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()
+    expect(await stored(base)).toEqual(stale)
   }, 30000)
 
   it('rejects player evidence, wrong requests, stale target/source and rolls back an induced terminal failure', async () => {
-    const base = await turnActiveEffectFixture('PROMPT')
-    const effect = await seedTurnSaveEffect(base, {
+    const base = await roomFixture('PROMPT')
+    const effect = await seedEffect(base, {
       stage: 'START_OF_TURN',
       ticks: 1,
       damage: 1
@@ -898,6 +824,7 @@ describe('native public turn active-effect journeys', () => {
     const actorRow = before.actors[0]!
     const actor = readStoredRunActor(actorRow)
     if (actor.kind === 'CHARACTER') throw new Error('Expected a non-Character fixture actor.')
+    await closeRoom(base.campaign.id)
     const alteredActor = {
       ...actor,
       currentHitPoints: actor.currentHitPoints - 1
@@ -905,12 +832,13 @@ describe('native public turn active-effect journeys', () => {
     await base.t.run((ctx) =>
       ctx.db.patch(actorRow._id, {
         stateJson: JSON.stringify(alteredActor),
-        stateChecksum: checksumCanonicalJson(alteredActor)
+        stateChecksum: checksumCanonicalJson(runActorPlayState(alteredActor))
       })
     )
     const staleTarget = await stored(base)
     await expect(executeInRoom(base.owner.caller, final)).rejects.toThrow()
     expect(await stored(base)).toEqual(staleTarget)
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       await ctx.db.patch(actorRow._id, {
         stateJson: actorRow.stateJson,

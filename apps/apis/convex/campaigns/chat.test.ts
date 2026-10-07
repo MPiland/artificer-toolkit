@@ -25,7 +25,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { api, components } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
 import { fixture as characterFixture } from '../../tests/fixtures/characters'
-import { claimActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/localRoomWorker'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { requireCampaignAuthority } from './authority'
 import { postCampaignChatEntry, readCampaignChatPage } from './chat'
@@ -612,7 +612,14 @@ describe('native Campaign text chat', () => {
       }
     })
     await owner.caller.mutation(send, chat(campaign.id, 'TABLE', 'before the table'))
-    await claimActiveLiveAuthority(t, { campaignId: campaign.id, userId: owner.userId })
+    // Convex's fence reads only the authority row, so no room runs here.
+    await t.run((ctx) =>
+      insertActiveLiveAuthority(ctx, {
+        campaignId: campaign.id,
+        epoch: crypto.randomUUID(),
+        createdAt: new Date().toISOString()
+      })
+    )
     await expect(
       other.caller.mutation(send, chat(campaign.id, 'TABLE', 'during the table'))
     ).rejects.toThrow(fenced)

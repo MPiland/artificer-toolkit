@@ -18,6 +18,15 @@ import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 const GROUP_ID = '3b74a8d0-eb08-47c9-b103-8d3ec46bd283'
 const OPTION_ID = '319962bb-3446-4b1e-bc19-3f3d5e78a36d'
 
+// A Class the Character never takes, so a Resource maximum scaled by its level cannot be evaluated.
+const UNHELD_CLASS_ID = '00000000-0000-4000-8000-0000000000b1'
+
+/** `true` keeps the SRD fixed one-use charge; `'UNRESOLVED_MAXIMUM'` bases it on the unheld Class's level. */
+type SecondWind = boolean | 'UNRESOLVED_MAXIMUM'
+
+/** A Feature the SRD Fighter can carry. */
+export type ClassFeature = NonNullable<typeof fighter.features>[number]
+
 // The Elf's 60 ft Darkvision Feature, the one way the captured Character gains a Sense.
 const darkvisionFeature = elf.features![1]!
 
@@ -26,7 +35,7 @@ const darkvisionFeature = elf.features![1]!
  * no Features or proficiencies, a Fighter without starting equipment sets, and a Background whose
  * one choice grants two Clubs and 15 gp.
  */
-const roots = (() => {
+function buildRoots(secondWind: SecondWind, extraClassFeatures: readonly ClassFeature[]) {
   if (fighter.category !== 'BASE') throw new Error('The SRD Fighter is a base Class.')
   const background = {
     ...acolyte,
@@ -85,7 +94,27 @@ const roots = (() => {
       subjectKind: 'CLASS' as const,
       document: {
         ...structuredClone(fighter),
-        features: [],
+        features: [
+          ...(secondWind
+            ? (fighter.features ?? [])
+                .filter(({ label }) => label === 'Second Wind')
+                .map((feature) =>
+                  secondWind === 'UNRESOLVED_MAXIMUM' && feature.charges
+                    ? {
+                        ...feature,
+                        charges: {
+                          id: feature.charges.id,
+                          resetKind: 'SHORT_REST' as const,
+                          limitKind: 'CLASS_LEVEL' as const,
+                          scalingKind: 'NONE' as const,
+                          classId: UNHELD_CLASS_ID
+                        }
+                      }
+                    : feature
+                )
+            : []),
+          ...extraClassFeatures
+        ],
         proficiencies: [],
         startingEquipment: { ...fighter.startingEquipment, sets: [] }
       }
@@ -93,7 +122,7 @@ const roots = (() => {
     { subjectKind: 'BACKGROUND' as const, document: background },
     { subjectKind: 'EQUIPMENT' as const, document: club }
   ]
-})()
+}
 
 /**
  * One SRD root as the Convex importer stores it and the snapshot build reads it back: the JSON
@@ -102,7 +131,7 @@ const roots = (() => {
 function listSource({
   subjectKind,
   document: authored
-}: (typeof roots)[number]): ContentSnapshotListSource {
+}: ReturnType<typeof buildRoots>[number]): ContentSnapshotListSource {
   const document = JSON.parse(JSON.stringify(authored))
   const checksum = checksumRuleDocument(document)
   const publication = parsePublicationDocument(subjectKind, document)
@@ -142,9 +171,13 @@ function listSource({
 
 /**
  * The SRD source's snapshot builds, one per kind, as the content snapshot build writes them.
- * `darkvision` gives the Race its Darkvision Feature.
+ * `darkvision` gives the Race its Darkvision Feature; `secondWind` gives the Fighter its Second Wind Feature, the Resource pool the stripped Class otherwise lacks; `classFeatures` are further Features the Fighter carries.
  */
-export function buildSrdSourceKinds(darkvision: boolean) {
+export function buildSrdSourceKinds(
+  darkvision: boolean,
+  secondWind: SecondWind = false,
+  classFeatures: readonly ClassFeature[] = []
+) {
   return (['RACE', 'CLASS', 'BACKGROUND', 'EQUIPMENT'] as const).map((kind) => {
     const header = {
       format: 2 as const,
@@ -154,7 +187,7 @@ export function buildSrdSourceKinds(darkvision: boolean) {
     }
     const built = buildContentSnapshotKind(
       header,
-      roots
+      buildRoots(secondWind, classFeatures)
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'

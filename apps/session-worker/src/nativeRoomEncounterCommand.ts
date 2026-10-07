@@ -5,6 +5,7 @@ import {
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 
 import { LiveSessionDomainRejectionError, LiveSessionRouteError } from './liveSessionRoutes.js'
+import { RetryableCommandError } from './nativeRulesRevisions.js'
 
 /** The admitted room member issuing the command. */
 export interface LiveEncounterActor {
@@ -31,7 +32,7 @@ export function sceneNotPresentedRejection(): LiveSessionDomainRejectionError {
  * change reloaded the cache, a member left, the table moved): nothing was written, so the same
  * command can be retried.
  */
-export class RoomAdmissionExpiredError extends Error {
+export class RoomAdmissionExpiredError extends RetryableCommandError {
   constructor() {
     super('Live Session command admission expired before commit.')
   }
@@ -46,7 +47,7 @@ export function encounterCommandRefusal(error: unknown): {
   code: LiveSessionCommandRejectionCodeDto
   message: string
 } {
-  if (error instanceof RoomAdmissionExpiredError)
+  if (error instanceof RetryableCommandError)
     return { code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE }
   if (!(error instanceof LiveSessionRouteError))
     console.error('Live Session Encounter command failed in the room.', error)

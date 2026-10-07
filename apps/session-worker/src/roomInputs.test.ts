@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   liveRoomCharacterPartSchema,
   liveRoomDefinitionSchema,
+  liveRoomInputsResponseSchema,
   type LiveRoomDefinition,
   type LiveRoomInputsDocument,
   type LiveRoomInputsInput,
@@ -433,7 +434,7 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
   }
   const reads: { epoch: string; scope: LiveRoomInputsScope }[] = []
   const pages: LiveRoomInputsScope[] = []
-  const page = async ({ scope }: LiveRoomInputsInput): Promise<LiveRoomInputsResponse> => {
+  const serve = async ({ scope }: LiveRoomInputsInput): Promise<LiveRoomInputsResponse> => {
     pages.push(scope)
     switch (scope.kind) {
       case 'AUTHORITY': {
@@ -513,7 +514,7 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
           kind: 'RUN',
           encounterVersion: state.runVersion,
           activeEncounterId: null,
-          maintenanceCharacterOwners: [],
+          maintenanceCharacterOwners: pageIndex === 0 ? [] : null,
           documents: state.run.slice(start, next),
           continueCursor:
             next < state.run.length ? { position: pageIndex + 1, paginationCursor: null } : null
@@ -594,6 +595,12 @@ function fakeConvex(actors: readonly ActorSpec[], padding: number, runPageSize: 
       }
     }
   }
+  // Every page crosses the shared contract the real handler and the Worker route both parse, so the
+  // fake cannot emit a shape the real Convex could not. `apps/apis/convex/liveSessions/roomInputs.test.ts`
+  // ("keeps the page properties the Worker fake relies on") proves the real handler's continuation,
+  // revision stamping and page shape.
+  const page = async (input: LiveRoomInputsInput) =>
+    liveRoomInputsResponseSchema.parse(await serve(input))
   const read = (epoch: string, scope: LiveRoomInputsScope) => {
     reads.push({ epoch, scope })
     // Scene responses stay separate to exercise Worker continuation across route batch boundaries.

@@ -134,7 +134,11 @@ it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene bindi
   })
   expect(automated).toHaveLength(4)
   // No `rollback`: the Run is held by the real room, whose bindings are room commands that Convex
-  // fences (D47), so Convex's own binding mutation cannot be forced to roll back through it.
+  // fences (D47: `actorTokenBindings.ts:41` refuses while the room owns the Run), so Convex's own
+  // binding mutation cannot be forced to roll back through it. The rollback arm (`verifyRollback`:
+  // bind, raise the marker, every inspected row unchanged) is proved through the real Convex path,
+  // with no room holding the Run, by `developmentLifecycle.test.ts` ("rolls back a real actor-token
+  // binding and preserves every inspected row").
   await verifyEncounterTransactions({
     checkpoint,
     owner: clients.owner,

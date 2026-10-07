@@ -1,7 +1,6 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { readReceiptHeaders } from '../lib/receiptLedgers'
 import { describe, expect, it } from 'vitest'
-import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   createPlatformRulesRuntime,
@@ -15,11 +14,13 @@ import { writePendingSnapshot } from '@artificer-toolkit/encounter-persistence/p
 import { cleanupRemovedActorEffects } from '@artificer-toolkit/encounter-persistence/actorRemovalEffects'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  replayInRoom,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 import { readCharacterRow } from '../characters/stateDocuments'
 
@@ -34,6 +35,7 @@ async function runState(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) 
   })
 }
 
+/** The rows Convex holds; while the room holds the Run, read them after `checkpointLiveRoom` (D85). */
 async function records(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) {
   return fixture.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
@@ -50,74 +52,66 @@ async function records(fixture: Awaited<ReturnType<typeof setupCharacterRun>>) {
   }))
 }
 
-describe('native actor maintained-effect cleanup', () => {
-  it.each(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'] as const)(
-    'terminates an owned v2 state with %s after deleting Character and actor dependents',
-    async (policy) => {
-      const fixture = await setupCharacterRun()
-      const removedActor = fixture.run.actors.find((actor) => actor.kind === 'CUSTOM')
-      if (!removedActor) throw new Error('Fixture Custom actor is unavailable.')
-      const state = await runState(fixture)
-      const stateId = crypto.randomUUID()
-      const characterEffectId = crypto.randomUUID()
-      const actorEffectId = crypto.randomUUID()
-      await fixture.t.run(async (ctx) => {
-        const effects = createActiveRuleEffectStore({
-          db: createConvexEncounterStore(ctx)
-        })
-        await effects.createMaintainedState({
-          id: stateId,
-          encounterId: state.id,
-          ownerActorId: removedActor.id,
-          descriptor: descriptor(removedActor.id, policy)
-        })
-        await effects.create({
-          id: characterEffectId,
-          owner: { kind: 'CHARACTER', characterId: fixture.character.id },
-          definition: definition(state.id, removedActor.id),
-          lifecycle,
-          maintainedEffectStateId: stateId
-        })
-        await effects.create({
-          id: actorEffectId,
-          owner: {
-            kind: 'ENCOUNTER_ACTOR',
-            encounterId: state.id,
-            targetActorId: fixture.actor.id
-          },
-          definition: definition(state.id, removedActor.id),
-          lifecycle,
-          maintainedEffectStateId: stateId
-        })
-      })
-      const before = await records(fixture)
-      const command = {
-        type: 'REMOVE_ACTOR' as const,
+/** An owned v2 maintained state with one Character dependent and one actor dependent. */
+async function seedOwnedMaintainedState(policy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL') {
+  const fixture = await setupCharacterRun()
+  const removedActor = fixture.run.actors.find((actor) => actor.kind === 'CUSTOM')
+  if (!removedActor) throw new Error('Fixture Custom actor is unavailable.')
+  const state = await runState(fixture)
+  const stateId = crypto.randomUUID()
+  const characterEffectId = crypto.randomUUID()
+  const actorEffectId = crypto.randomUUID()
+  await fixture.t.run(async (ctx) => {
+    const effects = createActiveRuleEffectStore({
+      db: createConvexEncounterStore(ctx)
+    })
+    await effects.createMaintainedState({
+      id: stateId,
+      encounterId: state.id,
+      ownerActorId: removedActor.id,
+      descriptor: descriptor(removedActor.id, policy)
+    })
+    await effects.create({
+      id: characterEffectId,
+      owner: { kind: 'CHARACTER', characterId: fixture.character.id },
+      definition: definition(state.id, removedActor.id),
+      lifecycle,
+      maintainedEffectStateId: stateId
+    })
+    await effects.create({
+      id: actorEffectId,
+      owner: {
+        kind: 'ENCOUNTER_ACTOR',
         encounterId: state.id,
-        actorId: removedActor.id,
-        expectedVersion: state.version,
-        commandId: crypto.randomUUID()
-      }
-      const removed = await executeInRoom(fixture.owner.caller, { command })
-      expect(
-        removed.projection.actors.find((actor) => actor.id === fixture.actor.id)
-      ).toMatchObject({
-        sourceRevision: null,
-        currentHitPoints: fixture.actor.currentHitPoints
-      })
-      const result = await fixture.t.run(async (ctx) => {
-        const receipt = await (
-          await readEncounterHistory(ctx)
-        )
-          .query('encounterRuleReceipts')
-          .withIndex('by_encounterId_commandId', (q) =>
-            q.eq('encounterId', state.id).eq('commandId', command.commandId)
-          )
-          .unique()
-        if (!receipt) throw new Error('Missing maintenance receipt')
-        return maintenanceCompleteRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-      })
-      expect(result).toMatchObject({
+        targetActorId: fixture.actor.id
+      },
+      definition: definition(state.id, removedActor.id),
+      lifecycle,
+      maintainedEffectStateId: stateId
+    })
+  })
+  return { fixture, removedActor, state, stateId, characterEffectId, actorEffectId }
+}
+
+describe('native actor maintained-effect cleanup', () => {
+  useLocalRoomWorker()
+
+  // The room keeps a Run's receipts for the whole Run (D85), so the receipt the cleanup returns
+  // (it becomes the MAINTENANCE_COMPLETE receipt) is observed at the producer, with no room.
+  it.each(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'] as const)(
+    'returns the cleanup receipt for an owned v2 state with %s',
+    async (policy) => {
+      const { fixture, removedActor, state, stateId, characterEffectId, actorEffectId } =
+        await seedOwnedMaintainedState(policy)
+      const before = await records(fixture)
+      const receipt = await fixture.t.run((ctx) =>
+        cleanupRemovedActorEffects(encounterWriteTransaction(ctx), {
+          state,
+          actorId: removedActor.id,
+          occurredAt: new Date().toISOString()
+        })
+      )
+      expect(receipt).toMatchObject({
         terminatedStates: [{ id: stateId, ownerActorId: removedActor.id, expectedVersion: 1 }],
         removedEffects: [
           {
@@ -139,6 +133,37 @@ describe('native actor maintained-effect cleanup', () => {
           }
         ]
       })
+    }
+  )
+
+  it.each(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'] as const)(
+    'terminates an owned v2 state with %s after deleting Character and actor dependents',
+    async (policy) => {
+      const { fixture, removedActor, state, stateId, characterEffectId, actorEffectId } =
+        await seedOwnedMaintainedState(policy)
+      await attachFixtureRoom(fixture.t, fixture.campaign.id)
+      const before = await records(fixture)
+      const command = {
+        type: 'REMOVE_ACTOR' as const,
+        encounterId: state.id,
+        actorId: removedActor.id,
+        expectedVersion: state.version,
+        commandId: crypto.randomUUID()
+      }
+      const removed = await executeInRoom(fixture.owner.caller, { command })
+      expect(
+        removed.projection.actors.find((actor) => actor.id === fixture.actor.id)
+      ).toMatchObject({
+        sourceRevision: null,
+        currentHitPoints: fixture.actor.currentHitPoints
+      })
+      // The room holds the maintenance receipt until the Run ends (D85), so the cleanup's outcome
+      // is read from the rows it published: the exact seeded state and both dependents are gone
+      // and the Character advanced one stream version.
+      expect(before.maintainedStates.map((row) => row.id)).toEqual([stateId])
+      expect(before.characterEffects.map((row) => row.id)).toEqual([characterEffectId])
+      expect(before.actorEffects.map((row) => row.id)).toEqual([actorEffectId])
+      await checkpointLiveRoom(fixture.campaign.id)
       const after = await records(fixture)
       expect(after.character).toEqual({
         ...before.character,
@@ -152,7 +177,8 @@ describe('native actor maintained-effect cleanup', () => {
       expect(after.characterEffects).toEqual([])
       expect(after.actorEffects).toEqual([])
       expect(after.maintainedStates).toEqual([])
-      expect(await replayInRoom(fixture.owner.caller, { command })).toEqual(removed)
+      expect(await executeInRoom(fixture.owner.caller, { command })).toEqual(removed)
+      await checkpointLiveRoom(fixture.campaign.id)
       expect(await records(fixture)).toEqual(after)
       await executeInRoom(fixture.owner.caller, {
         command: {
@@ -297,12 +323,14 @@ describe('native actor maintained-effect cleanup', () => {
       expectedVersion: state.version,
       commandId: crypto.randomUUID()
     }
+    await attachFixtureRoom(fixture.t, fixture.campaign.id)
     const before = await records(fixture)
     await expect(
       executeInRoom(fixture.owner.caller, {
         command: { ...command, actorId: other.id }
       })
     ).rejects.toThrow(RoomCommandRefusal)
+    await checkpointLiveRoom(fixture.campaign.id)
     expect(await records(fixture)).toEqual(before)
     if (snapshot.applicationContext.kind !== 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
       throw new Error('Expected concentration')
@@ -316,6 +344,8 @@ describe('native actor maintained-effect cleanup', () => {
         }
       }
     }
+    // Convex writes under a held Run need the room closed first; it re-hydrates on the next command.
+    await closeRoom(fixture.campaign.id)
     await fixture.t.run(async (ctx) =>
       ctx.db.patch(pendingId, {
         pendingSnapshotChecksum: await writePendingSnapshot(
@@ -328,7 +358,9 @@ describe('native actor maintained-effect cleanup', () => {
     await expect(executeInRoom(fixture.owner.caller, { command })).rejects.toThrow(
       RoomCommandRefusal
     )
+    await checkpointLiveRoom(fixture.campaign.id)
     expect(await records(fixture)).toEqual(before)
+    await closeRoom(fixture.campaign.id)
     await fixture.t.run(async (ctx) =>
       ctx.db.patch(pendingId, {
         pendingSnapshotChecksum: await writePendingSnapshot(
@@ -339,6 +371,7 @@ describe('native actor maintained-effect cleanup', () => {
       })
     )
     const result = await executeInRoom(fixture.owner.caller, { command })
+    await checkpointLiveRoom(fixture.campaign.id)
     const completed = await fixture.t.run((ctx) => ctx.db.get(pendingId))
     expect(completed).toMatchObject({
       state: 'COMPLETED',
@@ -347,7 +380,7 @@ describe('native actor maintained-effect cleanup', () => {
       pendingSnapshotChecksum: null
     })
     expect((await records(fixture)).maintainedStates).toEqual([])
-    expect(await replayInRoom(fixture.owner.caller, { command })).toEqual(result)
+    expect(await executeInRoom(fixture.owner.caller, { command })).toEqual(result)
   })
 
   it.each([

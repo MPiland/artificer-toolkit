@@ -143,15 +143,41 @@ const sheetState = characterSheetStateSchema.parse(capturedPage.inputs.sheetStat
 const updatedAt = capturedPage.inputs.updatedAt
 const capturedRevisions = capturedPage.revisions
 
+/** The play state a room's Character starts with, where it differs from the capture. */
+export interface CharacterPlayOverrides {
+  /** Equips the first inventory item (the Club). */
+  equipped?: boolean
+  currentHitPoints?: number
+  /** Sheet conditions the Character already carries. */
+  conditions?: { conditionTypeId: string; label: string }[]
+}
+
 /** The captured Character's private stored row (structure with its play record), re-keyed to an owner. */
 export function characterOwnerRowFor({
   characterId = capturedPage.characterId,
-  userId = capturedPage.inputs.character.userId
-}: { characterId?: string; userId?: string } = {}) {
+  userId = capturedPage.inputs.character.userId,
+  play: playOverrides = {}
+}: { characterId?: string; userId?: string; play?: CharacterPlayOverrides } = {}) {
+  const {
+    equipped = false,
+    currentHitPoints = capturedPage.inputs.character.state.hitpoints.current,
+    conditions
+  } = playOverrides
   const character = characterDocumentSchema.parse({
     ...capturedPage.inputs.character,
     id: characterId,
-    userId
+    userId,
+    state: {
+      ...capturedPage.inputs.character.state,
+      equipment: {
+        ...capturedPage.inputs.character.state.equipment,
+        equipped: equipped
+          ? capturedPage.inputs.character.state.equipment.inventory.map(({ id }) => id).slice(0, 1)
+          : capturedPage.inputs.character.state.equipment.equipped
+      },
+      hitpoints: { ...capturedPage.inputs.character.state.hitpoints, current: currentHitPoints },
+      ...(conditions && { conditions })
+    }
   })
   const play = splitCharacterPlayState({ state: character.state, sheetState }).play
   return characterStoredRowSchema.parse(
@@ -212,13 +238,15 @@ export function characterPageFixtureFor({
         : revision.scope === 'SYSTEM'
           ? revision.id
           : campaignId
-  }))
+  })),
+  play
 }: {
   characterId?: string
   userId?: string
   campaignId?: string
   contentSnapshots?: unknown
   revisions?: unknown
+  play?: CharacterPlayOverrides
 } = {}): unknown {
   return {
     status: capturedPage.status,
@@ -226,7 +254,7 @@ export function characterPageFixtureFor({
     documents: capturedPage.documents,
     contentSnapshots,
     inputs: {
-      owner: characterOwnerRowFor({ characterId, userId }),
+      owner: characterOwnerRowFor({ characterId, userId, play }),
       campaign: { ...capturedPage.inputs.campaign, id: campaignId },
       sheetState
     },

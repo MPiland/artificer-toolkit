@@ -239,15 +239,6 @@ function toSheetActionKind(
   }
 }
 
-function isRollableSheetMechanic(mechanic: CharacterSheetProjectedMechanic): boolean {
-  return (
-    mechanic.attackBonus !== undefined ||
-    mechanic.outcomes.some(
-      (outcome) => 'expression' in outcome && /\b\d+d\d+\b/i.test(outcome.expression)
-    )
-  )
-}
-
 function formatClassSummary(resolution: CharacterBuilderResolution): string {
   const summary = resolution.summary.classes
     .map((classSummary) => {
@@ -1126,6 +1117,13 @@ export function projectCharacterSheetBundle(
     passives: resolution.registry.system?.passives,
     passiveChecks: ruleProjection.derivedStats.passiveChecks
   })
+  const primarySpeed = ruleProjection.derivedStats.movementSpeeds.find(
+    (speed) => speed.speedId === ruleProjection.derivedStats.primaryMovementSpeedId
+  )
+  const speedValue = formatExtraSpeedLabel(
+    primarySpeed ? [primarySpeed] : undefined,
+    resolution.registry.system?.speeds
+  )
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
   const mechanicPresentation = createCharacterSheetMechanicPresentationSources(resolution)
   const spellReferenceMechanicsBySpellId = new Map(
@@ -1263,7 +1261,6 @@ export function projectCharacterSheetBundle(
       kind: toSheetActionKind(mechanic),
       sourceLabel,
       description: owner.description ?? undefined,
-      rollable: isRollableSheetMechanic(mechanic),
       mechanic,
       availability,
       ...(decision.resourcePoolId && decision.resourceCost
@@ -1447,6 +1444,7 @@ export function projectCharacterSheetBundle(
       facts: [
         { label: 'Initiative', value: formatModifier(ruleProjection.derivedStats.initiative) },
         { label: 'Proficiency', value: formatModifier(proficiencyBonus) },
+        ...(speedValue ? [{ label: 'Speed', value: speedValue }] : []),
         {
           label: 'Hit Dice',
           value:

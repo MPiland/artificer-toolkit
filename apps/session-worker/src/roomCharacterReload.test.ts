@@ -1,8 +1,7 @@
 import { expect, it, vi } from 'vitest'
-import {
-  liveRoomCharacterPartSchema,
-  type LiveRoomInputsResponse,
-  type LiveRoomInputsScope
+import type {
+  LiveRoomInputsResponse,
+  LiveRoomInputsScope
 } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { liveSessionRoomWriteSetSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import {
@@ -10,33 +9,42 @@ import {
   encodeCharacterRecord,
   readCharacterPlay,
   readCharacterRecord,
-  readCharacterSheetState,
-  readCharacterSheetStructure
+  readCharacterSheetState
 } from '@artificer-toolkit/schema/projections/characterStoredState'
-import {
-  characterStoredHeadSchema,
-  characterStoredPlayStateSchema
-} from '@artificer-toolkit/schema/projections/characterPersistence'
+import { characterStoredPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { reconcileCharacterHitDice } from '@artificer-toolkit/rules-runtime/character/builderHitPoints'
-import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import type { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
+import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
-import { characterPageFixture } from './testing/characterPageFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import {
+  srdCharacterScope,
+  srdRoomCharacter,
+  srdRoomHydration
+} from './testing/srdRoomCharacter.js'
 
-const native = vi.hoisted(() => ({ prepare: vi.fn() }))
-vi.mock('./nativeCharacterRules.js', () => ({ prepareLiveCharacterSheetFacts: native.prepare }))
+const srd = srdRoomCharacter({
+  characterId: uuid(0x90c),
+  userId: uuid(0x90d),
+  campaignId: uuid(0x90e),
+  secondWind: true
+})
+
+/** The SRD Fighter fixture's maximum Hit Points per level, as literal expectations. */
+const maximumHitPoints: Record<number, number> = { 1: 11, 2: 18, 3: 25 }
+const maximumHitPointsAt = (level: number) => {
+  const maximum = maximumHitPoints[level]
+  if (maximum === undefined)
+    throw new Error(`No maximum Hit Points expectation for level ${level}.`)
+  return maximum
+}
 
 function builderPart(level: number, revision: string, updatedAt: string, label: string) {
-  const page = liveRoomCharacterPartSchema.parse(characterPageFixture)
-  if (page.status !== 'ASSIGNED' || !page.inputs) throw new Error('Missing Character fixture.')
+  const page = srd.part
+  if (!page.inputs) throw new Error('Missing Character fixture.')
   const previous = page.inputs.owner
   const document = readCharacterRecord(previous)
   const classId = document.intent.classes[0]!.classId
@@ -52,20 +60,23 @@ function builderPart(level: number, revision: string, updatedAt: string, label: 
           classId,
           classLevel: index + 1,
           level: index + 1,
-          value: 11
+          value: index === 0 ? 11 : 7
         }))
       }
     },
     state: {
       ...document.state,
-      hitpoints: { current: level * 11, hitDice: [{ die: 10, total: level, used: 0 }] }
+      hitpoints: {
+        current: maximumHitPointsAt(level),
+        hitDice: [{ die: 10, total: level, used: 0 }]
+      }
     }
   })
   const owner = encodeCharacterRecord(
     {
       ...previous,
       label,
-      play: { ...previous.play, maximumHitPoints: level * 11 }
+      play: { ...previous.play, maximumHitPoints: maximumHitPointsAt(level) }
     },
     { document: edited, sheetState: page.inputs.sheetState, streamVersion: 1, updatedAt }
   )
@@ -100,49 +111,18 @@ it.each([
     const initial = builderPart(2, uuid(0x901), '2026-09-30T00:00:00.000Z', 'Initial Builder')
     const fresh = builderPart(level, uuid(0x902), '2026-09-30T00:00:20.000Z', 'Edited Builder')
     const owner = initial.inputs.owner
-    const campaignId = initial.inputs.campaign.id
     const epoch = uuid(0x903)
-    const classId = readCharacterRecord(owner).intent.classes[0]!.classId
-    const authoredClass: ClassAuthored = {
-      id: classId,
-      systemId: owner.systemId,
-      userId: owner.userId,
-      label: 'Hit-dice fixture class',
-      category: 'BASE',
-      hitpoint: { ability: 'CONSTITUTION', dieConfig: '1d10' },
-      startingGold: { multiplier: 1, currencyId: uuid(0x904), dieConfig: '1d4' },
-      startingEquipment: { id: uuid(0x905), sets: [] },
-      multiclass: { id: uuid(0x906), requirementGroups: { groups: [] } }
-    }
-    const system = systemAuthoredDtoSchema.parse({
-      id: owner.systemId,
-      userId: owner.userId,
-      label: 'Reload fixture System',
-      rulesetCode: 'DND5E',
-      rulesetVersion: '2014',
-      alignments: [],
-      challengeRatings: [],
-      conditionTypes: [],
-      creatureTypes: [],
-      currencies: [],
-      damageTypes: [],
-      heritages: [],
-      languages: [],
-      lifestyles: [],
-      magicSchools: [],
-      passives: [],
-      rarities: [],
-      senses: [],
-      skills: [],
-      speeds: [],
-      terrains: []
-    })
-    const systemInput: Extract<LiveRoomInputsResponse, { kind: 'SYSTEM' }> = {
-      kind: 'SYSTEM',
-      system,
-      vocabulary: null,
-      revisions: initial.revisions.filter(({ scope }) => scope !== 'CHARACTER')
-    }
+    const scope = srdCharacterScope({ part: initial }, epoch)
+    const [pool, ...otherPools] = (
+      await prepareLiveCharacterSheetFacts({
+        scope,
+        inputs: initial.inputs,
+        system: srd.system,
+        objects: await srd.loadContent()
+      })
+    ).ruleEvaluation.output.resources
+    if (!pool || pool.ownerKind !== 'AUTHORED_SOURCE' || otherPools.length)
+      throw new Error('The SRD Fighter has one authored Resource pool.')
     const lifecycle = { schemaVersion: 1, remainingTicks: null }
     const effect = characterActiveRuleEffectStoredSchema.parse({
       id: uuid(0x907),
@@ -160,56 +140,40 @@ it.each([
     })
     const { storage, database } = createNodeSqliteRoomStorage()
     const store = new RoomEncounterStore(storage)
-    const { _id, _creationTime, documentJson: _document, sheetState: _sheet, play, ...head } = owner
-    const { _id: playId, _creationTime: playCreated, ...playFields } = play
+    const hydration = srdRoomHydration({ part: initial, system: srd.system })
     store.hydrate({
       epoch,
       documents: [
-        {
-          table: 'characters',
-          id: _id,
-          creationTime: _creationTime,
-          fields: characterStoredHeadSchema.parse({
-            ...head,
-            sheetStateChecksum: checksumRuleDocument(readCharacterSheetStructure(owner.sheetState))
-          })
-        },
-        { table: 'characterPlayStates', id: playId, creationTime: playCreated, fields: playFields },
+        ...hydration.documents,
         {
           table: 'characterActiveRuleEffects',
           id: 'fixture:effect',
-          creationTime: _creationTime,
+          creationTime: owner._creationTime,
           fields: effect
         }
       ],
-      records: [
-        {
-          kind: 'ROOM_INPUT',
-          key: `CHARACTER:${owner.id}`,
-          revision: JSON.stringify(initial.revisions),
-          json: JSON.stringify(initial)
-        },
-        {
-          kind: 'ROOM_INPUT',
-          key: 'SYSTEM:SYSTEM',
-          revision: JSON.stringify(systemInput.revisions),
-          json: JSON.stringify(systemInput)
-        }
-      ]
+      records: hydration.records
     })
-    const usage = (id: string, resourceGrantId: string, used: number) => ({
-      id,
+    const { _id, _creationTime, ...playFields } = owner.play
+    const usage = {
+      id: uuid(0x908),
       characterId: owner.id,
       createdBy: owner.userId,
       updatedBy: owner.userId,
       createdAt: owner.createdAt,
-      updatedAt: owner.createdAt,
-      owner: { kind: 'AUTHORED_GRANT' as const, resourceGrantId },
-      used
-    })
-    const retainedUsage = usage(uuid(0x908), uuid(0x909), 5)
-    const orphanedUsage = usage(uuid(0x90a), uuid(0x90b), 9)
-    const retainedPool = createCharacterResourceOwnerKey(retainedUsage.owner)
+      updatedAt: owner.createdAt
+    }
+    const retainedUsage = {
+      ...usage,
+      owner: { kind: 'AUTHORED_SOURCE' as const, sourceId: pool.sourceId, chargeId: pool.chargeId },
+      used: 1
+    }
+    const orphanedUsage = {
+      ...usage,
+      id: uuid(0x90a),
+      owner: { kind: 'AUTHORED_GRANT' as const, resourceGrantId: uuid(0x90b) },
+      used: 9
+    }
     const localPlay = characterStoredPlayStateSchema.parse({
       ...playFields,
       state: {
@@ -221,7 +185,7 @@ it.each([
           hitDice: [{ die: 10, total: 2, used: 1 }]
         },
         conditions: [{ conditionTypeId: uuid(0x90c), notes: 'Native condition' }],
-        spellSlots: [{ slotKey: 'spell:1', used: 2 }],
+        spellSlots: [{ slotKey: 'STANDARD:1', used: 2 }],
         resourceUsage: [retainedUsage, orphanedUsage]
       }
     })
@@ -242,7 +206,7 @@ it.each([
                 {
                   table: 'characterActiveRuleEffects',
                   id: 'fixture:effect',
-                  creationTime: _creationTime,
+                  creationTime: owner._creationTime,
                   fields: { ...effect, version: 2 }
                 }
               ]
@@ -251,36 +215,7 @@ it.each([
         }
       }
     )
-    const inputs = new RoomInputs(store, read, async () => [])
-    native.prepare.mockImplementation(
-      async ({ inputs: stored }: Parameters<typeof prepareLiveCharacterSheetFacts>[0]) => {
-        const character = readCharacterRecord(stored.owner)
-        const hitDice = reconcileCharacterHitDice(
-          character.intent.classes,
-          [authoredClass],
-          character.state.hitpoints.hitDice
-        )
-        return {
-          active: stored.owner,
-          prepared: {
-            character: {
-              ...character,
-              state: { ...character.state, hitpoints: { ...character.state.hitpoints, hitDice } }
-            }
-          },
-          ruleEvaluation: {
-            facts: { movementFacts: { speeds: [] } },
-            output: {
-              resources: [{ poolId: retainedPool }],
-              derivedStats: {
-                maxHitPoints: { effective: character.intent.classes[0]!.classLevel * 11 }
-              },
-              movement: { speeds: [] }
-            }
-          }
-        }
-      }
-    )
+    const inputs = new RoomInputs(store, read, srd.loadContent)
     try {
       const storedPlay = store.documents('characterPlayStates')[0]
       if (!storedPlay) throw new Error('Missing native Character play.')
@@ -288,13 +223,6 @@ it.each([
         await store.store.replace(storedPlay._id, localPlay)
       })
       const before = evidence(store)
-      const scope = {
-        campaignId,
-        authorityEpoch: epoch,
-        characterId: owner.id,
-        expectedUserId: owner.userId,
-        expectedRole: 'PLAYER' as const
-      }
       await expect(
         store.transact(async (transaction) => {
           await prepareRoomLiveCharacterSheet(store, inputs, scope, fresh.revisions, transaction)
@@ -327,7 +255,7 @@ it.each([
       expect(document.state.conditions).toEqual(localPlay.state.conditions)
       expect(document.state.spellSlots).toEqual(localPlay.state.spellSlots)
       expect(readCharacterSheetState(part.inputs.owner).resourceUsage).toEqual([retainedUsage])
-      expect(finalPlay.maximumHitPoints).toBe(level * 11)
+      expect(finalPlay.maximumHitPoints).toBe(maximumHitPointsAt(level))
       expect(finalPlay.streamVersion).toBe(localPlay.streamVersion + 1)
       expect(Date.parse(finalPlay.updatedAt)).toBeGreaterThan(Date.parse(localPlay.updatedAt))
       expect(finalPlay.checksum).toBe(checksumRuleDocument(readCharacterPlay(finalPlay)))
@@ -351,7 +279,7 @@ it.each([
       expect(read).toHaveBeenCalledTimes(2)
       const recovered = new RoomEncounterStore(storage)
       expect(evidence(recovered)).toEqual(evidence(store))
-      const recoveredInputs = new RoomInputs(recovered, read, async () => [])
+      const recoveredInputs = new RoomInputs(recovered, read, srd.loadContent)
       const recoveredPart = await recoveredInputs.character(owner.id, fresh.revisions)
       if (!recoveredPart.inputs) throw new Error('Missing recovered Character.')
       expect(readCharacterRecord(recoveredPart.inputs.owner)).toEqual(document)
@@ -360,7 +288,6 @@ it.each([
       ])
       expect(read).toHaveBeenCalledTimes(2)
     } finally {
-      native.prepare.mockReset()
       database.close()
     }
   }

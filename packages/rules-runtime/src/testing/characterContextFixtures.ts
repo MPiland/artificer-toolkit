@@ -6,6 +6,7 @@ import {
   type ContentSnapshotObject,
   type ContentSnapshotScope
 } from '@artificer-toolkit/schema/api/contentSnapshots'
+import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
@@ -30,9 +31,11 @@ import {
   prepareActiveCharacterBuilderContext,
   prepareCharacterRuleContext
 } from '../character/contextPreparation.js'
+import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
 import { createSnapshotReaders } from '../character/snapshotReaders.js'
 import { prepareCharacterSheetFromContext } from '../character/sheetPreparation.js'
 import { projectCharacterSheetBundle } from '../character/sheetProjection.js'
+import { buildCharacterRestPreview } from '../character/sheetRest.js'
 import { buildContentSnapshotKind } from '../contentSnapshots.js'
 
 export const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
@@ -128,11 +131,15 @@ const fighterClass = fighter
  * A ready level 1 Human Fighter with a Short Rest Resource, over the SRD documents the Builder
  * needs. Features and starting equipment are stripped, and so are proficiencies unless
  * `languageChoice` keeps the Acolyte's two chosen languages, which the Character must then select.
+ * `resourceLabel` names the Short Rest Resource.
  */
-export function readyFighterFixture({ languageChoice = false } = {}) {
+export function readyFighterFixture({
+  languageChoice = false,
+  resourceLabel = 'Short Resource'
+} = {}) {
   const shortRestResource = {
     id: crypto.randomUUID(),
-    label: 'Short Resource',
+    label: resourceLabel,
     order: 0,
     availableAtLevel: 1,
     charges: {
@@ -226,6 +233,7 @@ export async function prepareFixtureSheet(input: {
   character: CharacterAuthored
   documents: FixtureDocuments
   resourceUsage?: readonly Pick<CharacterResourceUsage, 'owner' | 'used'>[]
+  streamVersion?: number
 }) {
   const { character } = input
   const context = await prepareFixtureContext(character, input.documents)
@@ -262,7 +270,7 @@ export async function prepareFixtureSheet(input: {
   const { sheet } = projectCharacterSheetBundle({
     character: prepared.prepared.character,
     resolution: prepared.prepared.resolution,
-    streamVersion: 1,
+    streamVersion: input.streamVersion ?? 1,
     adjustments: prepared.adjustments,
     creaturesById: prepared.prepared.context.creaturesById,
     vehiclesById: prepared.prepared.context.vehiclesById,
@@ -270,4 +278,25 @@ export async function prepareFixtureSheet(input: {
     activeEffects: []
   })
   return { ...prepared, sheet }
+}
+
+/** The inputs the rest functions take, from a Sheet prepared by `prepareFixtureSheet`. */
+export function restParamsFromFixtureSheet(
+  prepared: Awaited<ReturnType<typeof prepareFixtureSheet>>
+) {
+  return {
+    character: prepared.prepared.character,
+    resolution: prepared.prepared.resolution,
+    sheet: prepared.sheet,
+    restPolicy: prepared.ruleEvaluation.output.rest,
+    effectiveMaximum: resolveCharacterRecordStats(prepared.ruleEvaluation).maximumHitPoints
+  }
+}
+
+/** The rest preview the Convex `characters/rest:preview` query builds for a prepared fixture Sheet. */
+export function previewFixtureRest(
+  prepared: Awaited<ReturnType<typeof prepareFixtureSheet>>,
+  input: CharacterRestPreviewRequestDto
+) {
+  return buildCharacterRestPreview({ ...restParamsFromFixtureSheet(prepared), input })
 }

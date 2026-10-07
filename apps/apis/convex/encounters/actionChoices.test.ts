@@ -11,7 +11,11 @@ import {
   nativeDisarmFixture
 } from '../../tests/fixtures/nativeDisarm'
 import { domainRejection } from '../../tests/fixtures/playerControl'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  checkpointLiveRoom,
+  executeInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 function inputs(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
   if (!base.command.optionalCombatIntent) throw new Error('Missing Disarm intent.')
@@ -31,6 +35,8 @@ function inputs(base: Awaited<ReturnType<typeof nativeDisarmFixture>>) {
 }
 
 describe('native public Encounter action choices', () => {
+  useLocalRoomWorker()
+
   it.each([
     {
       label: 'Creature source and Creature target',
@@ -119,6 +125,8 @@ describe('native public Encounter action choices', () => {
         controllerUserIds: [base.player.userId]
       }
     })
+    // Convex's queries read the room's committed Run once it checkpoints.
+    await checkpointLiveRoom(base.campaign.id)
     const catalogueInput = {
       ...uncontrolled.catalogue,
       expectedVersion: granted.projection.version
@@ -185,6 +193,7 @@ describe('native public Encounter action choices', () => {
         definitionIds: []
       }
     })
+    await checkpointLiveRoom(base.campaign.id)
     const afterDisable = await disarmRecords(base)
     const expectedVersion = disabled.projection.version
     await expect(

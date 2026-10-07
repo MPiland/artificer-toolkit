@@ -137,8 +137,7 @@ export async function readLiveEncounterTurnAdmission(
       occurrences.length !== 1 ||
       occurrences[0]?._id !== occurrence._id ||
       occurrence.state !== 'PENDING' ||
-      occurrence.completedAt !== null ||
-      row.version !== input.expectedVersion
+      occurrence.completedAt !== null
     )
       throw new Error('Rule occurrence is unavailable.')
     const snapshot = await readPendingSnapshot(ctx, occurrence)
@@ -272,6 +271,7 @@ export async function readLiveEncounterTurnAdmission(
       occurrence,
       encounterVersion: row.version
     })
+    if (prepared.kind === 'STALE') rejectDomain('VERSION_STALE', 'Rule occurrence is unavailable.')
     if (prepared.kind === 'REPLAY') throw new Error('Rule occurrence response is unavailable.')
     await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
     const commandCollision = await ctx.db

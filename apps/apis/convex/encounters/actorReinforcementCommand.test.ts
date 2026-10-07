@@ -7,14 +7,25 @@ import type {
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { reinforceEncounterActors } from '@artificer-toolkit/encounter-persistence/actorReinforcementCommand'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
   RoomCommandRefusal,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { encounterWriteTransaction } from './encounterPorts'
 
-async function manualFixture() {
+useLocalRoomWorker()
+
+async function roomFixture() {
   const base = await setupCharacterRun()
+  await attachFixtureRoom(base.t, base.campaign.id)
+  return base
+}
+
+async function manualFixture() {
+  const base = await roomFixture()
   const {
     version,
     updatedAt: _updatedAt,
@@ -52,13 +63,14 @@ async function manualFixture() {
   }
   return { ...base, executeCommand, projection: () => projection }
 }
+/** Convex rows once the room has checkpointed; the room's held command history is not among them. */
 async function capture(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
     runs: await ctx.db.query('encounterRuns').collect(),
     actors: await ctx.db.query('encounterRunActors').collect(),
-    commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
     rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
     participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
     sides: await ctx.db.query('encounterInitiativeSides').collect()
@@ -67,7 +79,7 @@ async function capture(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
 
 describe('native actor reinforcement transaction', () => {
   it('adds a prepared custom actor to the default Opposition side and replays the sealed actor snapshot', async () => {
-    const base = await setupCharacterRun()
+    const base = await roomFixture()
     const command = {
       type: 'REINFORCE' as const,
       encounterId: base.run.id,
@@ -92,7 +104,8 @@ describe('native actor reinforcement transaction', () => {
     })
     const stored = await capture(base)
     expect(stored.actors).toHaveLength(before.actors.length + 1)
-    expect(stored.commands.some((entry) => entry.commandId === command.commandId)).toBe(true)
+    // The REINFORCE command row (command id, version 2, actor user) lives in the room's history and is
+    // asserted there: `apps/session-worker/test/nativeLiveSessionRoom.test.ts:5060-5067`.
     await executeInRoom(base.owner.caller, {
       command: {
         ...command,
@@ -104,7 +117,7 @@ describe('native actor reinforcement transaction', () => {
   }, 30_000)
 
   it('rejects stale versions and pending occurrences without writes', async () => {
-    const base = await setupCharacterRun()
+    const base = await roomFixture()
     const command = {
       type: 'REINFORCE' as const,
       encounterId: base.run.id,
@@ -118,6 +131,8 @@ describe('native actor reinforcement transaction', () => {
       'Encounter version is stale.'
     )
     expect(await capture(base)).toEqual(before)
+    // Release the room's copy so the next command hydrates the pending occurrence seeded here.
+    await closeRoom(base.campaign.id)
     await base.t.run(async (ctx) => {
       await ctx.db.insert('encounterRuleOccurrences', {
         id: crypto.randomUUID(),
@@ -242,7 +257,7 @@ describe('native actor reinforcement transaction', () => {
   }, 60_000)
 
   it('rolls back an injected post-write failure', async () => {
-    const base = await setupCharacterRun()
+    const base = await roomFixture()
     const command = {
       type: 'REINFORCE' as const,
       encounterId: base.run.id,
@@ -261,6 +276,8 @@ describe('native actor reinforcement transaction', () => {
       commandId: crypto.randomUUID(),
       expectedVersion: result.projection.version
     }
+    // The Convex transaction below runs against the Run's committed rows, not the room's copy.
+    await closeRoom(base.campaign.id)
     const before = await capture(base)
     await expect(
       base.t.run(async (ctx) => {

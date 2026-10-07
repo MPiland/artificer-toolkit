@@ -2,8 +2,6 @@ import { makeFunctionReference } from 'convex/server'
 import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGeometryCommandResult } from '@artificer-toolkit/schema/api/sceneGeometry'
-import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   sceneStoredDefinitionEntitySchema,
@@ -12,8 +10,13 @@ import {
   sceneStoredPresentationSchema
 } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { setupCreatureReactionRun } from './movementReaction'
-import { executeInRoom, executeSceneInRoom } from './localRoomWorker'
-import { planMovementDecisionInRoom, planMovementInRoom } from './liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeInRoom,
+  executeSceneInRoom
+} from './localRoomWorker'
+import { readTestActor } from './storedActors'
 
 const bindActorToken = makeFunctionReference<
   'mutation',
@@ -207,6 +210,7 @@ export async function setupReactionMovementScene<
     })
     version = result.projection.version
   }
+  await attachFixtureRoom(base.t, base.campaign.id)
   const rootInput = {
     type: 'MOVE_SCENE_TOKEN' as const,
     sceneId,
@@ -235,80 +239,47 @@ export async function setupReactionMovementScene<
 }
 
 /**
- * Assisted play offers every authored reaction, "automatic" ones included, to its controller as a
- * Use/Decline choice. Plans the root movement in the room (`planMovementInRoom`) or continues
- * from a planned decision (`start`), publishes its reaction choice, then answers Use with the first
- * option as the GM through the room (the fixture reactors are Creatures) for each further choice.
- * Stops after `maxUses` Uses or at the first plan that is not a reaction choice, and returns that
- * plan's outcome with `publish` to commit it.
+ * An actor's current hit points as Convex holds them once the real room checkpoints (it needs
+ * `useLocalRoomWorker`; the room keeps a Run's actor state until then, D85).
  */
-export async function useMovementReactions(
-  value: Pick<
-    Awaited<ReturnType<typeof setupReactionMovementScene>>,
-    'base' | 'owner' | 'rootInput'
-  >,
-  maxUses = 10,
-  /** A planned decision to continue from instead of the root movement. */
-  start?: Awaited<ReturnType<typeof planMovementDecisionInRoom>>
-): Promise<{
-  prepared: Pick<SceneSpatialPreparation, 'outcome'>
-  publish: () => Promise<SceneGeometryCommandResult>
-  /** The last Use response command, which sources the continued movement's mechanics. */
-  responseCommandId: string | null
-}> {
-  const { owner } = value
-  const plan = start ?? (await planMovementInRoom(owner.caller, value.rootInput))
-  let prepared: Pick<SceneSpatialPreparation, 'outcome'> = { outcome: plan.outcome }
-  let publish = plan.publish
-  let responseCommandId: string | null = null
-  for (let uses = 0; ; uses++) {
-    const context =
-      prepared.outcome.kind === 'PENDING'
-        ? prepared.outcome.pendingSnapshot.applicationContext
-        : null
-    if (
-      uses === maxUses ||
-      context?.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
-      context.phase.kind !== 'CHOICE'
-    )
-      return { prepared, publish, responseCommandId }
-    const published = await publish()
-    const pending = published.occurrence?.pending
-    if (!pending || pending.kind !== 'MOVEMENT_REACTION' || !pending.choice.options[0])
-      throw new Error('Expected the Assisted Use/Decline reaction choice.')
-    responseCommandId = crypto.randomUUID()
-    const plan = await planMovementDecisionInRoom(owner.caller, {
-      type: 'RESOLVE_RULE_OCCURRENCE',
-      commandId: responseCommandId,
-      encounterId: value.base.run.id,
-      expectedVersion: pending.encounterVersion,
-      occurrenceId: pending.occurrenceId,
-      expectedOccurrenceVersion: pending.occurrenceVersion,
-      correlationId: null,
-      resolution: { kind: 'OPTION', optionId: pending.choice.options[0].optionId }
-    })
-    prepared = { outcome: plan.outcome }
-    publish = plan.publish
-  }
+export async function readCheckpointedHitPoints(
+  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner'>,
+  actorId: string
+) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return value.owner.caller.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) =>
+        q.eq('encounterId', value.base.run.id).eq('id', actorId)
+      )
+      .unique()
+    if (!row) throw new Error('Missing Run actor.')
+    const actor = await readTestActor(ctx, row)
+    if (!('currentHitPoints' in actor)) throw new Error('Expected a Creature actor.')
+    return actor.currentHitPoints
+  })
 }
 
 /**
- * The real-room twin of `useMovementReactions` (it needs `useLocalRoomWorker`). The real room plans
- * and commits a move in one step, so there is no plan or `publish` to inspect: the move commits
+ * Assisted play offers every authored reaction to its controller as a Use/Decline choice (it needs
+ * `useLocalRoomWorker`). The real room plans and commits a move in one step: the move commits
  * through `executeSceneInRoom`, then each Use/Decline choice is answered Use with the first option
  * as the GM through `executeInRoom`. Stops after `maxUses` Uses or at the first result whose pending
- * request is not a reaction choice, and returns that result's occurrence.
+ * request is not a reaction choice, and returns that result's occurrence. `afterDecision` continues
+ * from an answer the test already sent instead of committing the root move.
  */
 export async function useMovementReactionsInRoom(
   value: Pick<
     Awaited<ReturnType<typeof setupReactionMovementScene>>,
     'base' | 'owner' | 'rootInput'
   >,
-  maxUses = 10
+  maxUses = 10,
+  afterDecision?: { occurrence: Awaited<ReturnType<typeof executeInRoom>>['occurrence'] } | null
 ) {
   const { owner } = value
-  const commit = await executeSceneInRoom(owner.caller, value.rootInput)
-  let occurrence = commit.result?.occurrence ?? null
+  const commit = afterDecision ?? (await executeSceneInRoom(owner.caller, value.rootInput)).result
+  let occurrence = commit?.occurrence ?? null
   let responseCommandId: string | null = null
   for (let uses = 0; uses < maxUses; uses++) {
     const pending = occurrence?.pending
@@ -329,4 +300,25 @@ export async function useMovementReactionsInRoom(
     occurrence = answered.occurrence
   }
   return { occurrence, responseCommandId }
+}
+
+/**
+ * A Scene token's position as Convex holds it once the real room checkpoints (it needs
+ * `useLocalRoomWorker`). A completed answer to a movement choice carries no token delta.
+ */
+export async function readCheckpointedTokenPosition(
+  value: Pick<Awaited<ReturnType<typeof setupReactionMovementScene>>, 'base' | 'owner' | 'sceneId'>,
+  tokenId: string
+) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return value.owner.caller.run(async (ctx) => {
+    const row = await ctx.db
+      .query('sceneLiveEntities')
+      .withIndex('by_sceneId_collection_entityId', (q) =>
+        q.eq('sceneId', value.sceneId).eq('collection', 'tokens').eq('entityId', tokenId)
+      )
+      .unique()
+    if (row?.value?.collection !== 'tokens') throw new Error('Missing Scene token.')
+    return row.value.entity.position
+  })
 }

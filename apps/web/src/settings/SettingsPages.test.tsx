@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type { AuthSessionUserDto } from '@artificer-toolkit/schema/api/auth'
+import { socialEligibilityDtoSchema } from '@artificer-toolkit/schema/api/socialHub'
 import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { vi } from 'vitest'
@@ -77,13 +78,15 @@ const authoringUser: AuthSessionUserDto = {
 describe('settings pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.updateSocialContentPreference.mockResolvedValue({
-      eligible: false,
-      profilePublicId: '00000000-0000-4000-8000-000000000001',
-      adultAttestedAt: '2026-08-10T12:00:00.000Z',
-      contentPreference: 'MATURE',
-      status: 'ACTIVE'
-    })
+    mocks.updateSocialContentPreference.mockResolvedValue(
+      socialEligibilityDtoSchema.parse({
+        eligible: false,
+        profilePublicId: '00000000-0000-4000-8000-000000000001',
+        adultAttestedAt: '2026-08-10T12:00:00.000Z',
+        contentPreference: 'MATURE',
+        status: 'ACTIVE'
+      })
+    )
     window.localStorage.clear()
   })
 

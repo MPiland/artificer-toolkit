@@ -4,6 +4,8 @@ import {
   type CharacterSheetCommandInputDto,
   type CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
+import { CharacterSheetCommandError } from '@artificer-toolkit/rules-runtime/character/sheetCommandError'
 import { characterStoredCommandReceiptSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { presentCampaignCharacterHistory } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
@@ -37,7 +39,7 @@ export async function readCharacterCommandReplay(
     throw new Error('Stored Sheet command receipt identity mismatch.')
   const historyEntry = readCharacterReceiptHistory(receipt)
   if (receipt.commandFingerprint !== fingerprint(scope.command))
-    throw new Error('Sheet command replay does not match the original command.')
+    throw new CharacterSheetCommandError(DOMAIN_REJECTION_MESSAGES.COMMAND_ID_REUSED)
   return characterSheetCommandResponseDtoSchema.parse({
     characterId: scope.characterId,
     streamVersion: scope.streamVersion,

@@ -1,7 +1,7 @@
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -12,6 +12,7 @@ import type {
 } from '@artificer-toolkit/schema/api/campaignSettings'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
+  encounterExecuteInputSchema,
   encounterGmProjectionDtoSchema,
   type CreateEncounterBlueprintInputDto,
   type CreateEncounterInputDto,
@@ -49,15 +50,27 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { requireEncounterPolicySources } from './sourceDependencies'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { executeEncounterCommand } from '../../tests/developmentClient'
 import {
-  discardRoomJournal,
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  expectRedactedRoomRefusal,
-  replayInRoom,
-  RoomCommandRefusal,
-  readTimelineInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  invalidateRoomInputs,
+  queueRoomRolls,
+  readRoomRollCards,
+  readRoomTimeline,
+  roomDevelopmentClient,
+  seedRoomContentSnapshots,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+import {
+  expectReusedCommandRefusal,
+  expectUnavailableRefusal,
+  rejection
+} from '../../tests/fixtures/roomRefusals'
+
+useLocalRoomWorker()
 
 // Content the room loads must be publishable, so Creatures carry the seed's ATTACK rolls.
 const airElemental = srdCreatureRecord(rawAirElemental.id)
@@ -255,6 +268,7 @@ async function setup(
     blueprintId: blueprint.id,
     commandId: createCommandId
   })
+  await attachFixtureRoom(base.t, campaign.id)
   return { ...base, campaign, blueprint, run, createCommandId }
 }
 
@@ -328,6 +342,48 @@ async function resolveAssistedSideRoll(
   return current
 }
 
+/** Starts an Assisted EACH_ROUND Run and ends its first turn, leaving the wrap's initiative pending. */
+async function pauseAssistedWrap(base: RoomFixture) {
+  const { owner, run } = base
+  let started = await executeInRoom(owner.caller, {
+    command: {
+      type: 'START',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 0
+    }
+  })
+  for (const value of [12, 11])
+    started = await executeInRoom(owner.caller, assistedResolution(started, 0, value))
+  expect(started.projection).toMatchObject({ version: 1, status: 'ACTIVE' })
+  const first = await executeInRoom(owner.caller, {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 1
+    }
+  })
+  const wrapInput: EncounterExecuteInput = {
+    command: {
+      type: 'ADVANCE_TURN',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 2
+    }
+  }
+  const pending = await executeInRoom(owner.caller, wrapInput)
+  expect(pending).toMatchObject({
+    projection: {
+      version: 2,
+      round: 1,
+      currentActorId: first.projection.currentActorId
+    },
+    occurrence: { status: 'PENDING' }
+  })
+  return { first, wrapInput, pending }
+}
+
 async function setupCharacterAutomatic(classOptions?: Parameters<typeof readyCharacterFixture>[0]) {
   const base = await readyCharacterFixture(classOptions)
   const campaign = await base.other.caller.mutation(createCampaign, {
@@ -385,6 +441,7 @@ async function setupCharacterAutomatic(classOptions?: Parameters<typeof readyCha
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  await attachFixtureRoom(base.t, campaign.id)
   return {
     ...base,
     owner: base.other,
@@ -429,14 +486,60 @@ function remove(
   }
 }
 
-async function receipts(t: Awaited<ReturnType<typeof setup>>['t']) {
-  return t.run(async (ctx) =>
-    (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-  )
+type RoomFixture = {
+  t: Awaited<ReturnType<typeof fixture>>['t']
+  campaign: { id: string; createdAt: string }
+  run: { id: string; version: number }
+  owner: Awaited<ReturnType<typeof fixture>>['owner']
 }
 
-async function runs(t: Awaited<ReturnType<typeof setup>>['t']) {
-  return t.run((ctx) => ctx.db.query('encounterRuns').collect())
+/** What Convex holds once the room checkpoints: the Run's rows, never the history the room keeps until the Run ends (D85). */
+async function rows({ t, campaign }: Pick<RoomFixture, 't' | 'campaign'>) {
+  await checkpointLiveRoom(campaign.id)
+  return t.run(async (ctx) => ({
+    receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
+    receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
+    runs: await ctx.db.query('encounterRuns').collect(),
+    actors: await ctx.db.query('encounterRunActors').collect(),
+    rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
+    participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
+    sides: await ctx.db.query('encounterInitiativeSides').collect(),
+    occurrences: await ctx.db.query('encounterRuleOccurrences').collect()
+  }))
+}
+
+/** The command types the room committed past the Run's setup version, oldest first, as it sends them to the GM (D85). */
+async function committedTypes({ owner, campaign, run }: RoomFixture) {
+  return (await readRoomTimeline(owner.caller, campaign.id))
+    .filter((entry) => entry.version > run.version)
+    .sort((left, right) => left.version - right.version)
+    .map((entry) => entry.commandType)
+}
+
+async function actorState(base: RoomFixture, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
+  return base.t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id).eq('id', actorId))
+      .unique()
+    if (!row) throw new Error('Missing Encounter actor.')
+    return readTestActor(ctx, row)
+  })
+}
+
+async function addPlayer({ t, campaign }: Pick<RoomFixture, 't' | 'campaign'>, userId: string) {
+  return t.run((ctx) =>
+    ctx.db.insert('campaignMemberships', {
+      campaignId: campaign.id,
+      userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: campaign.createdAt,
+      joinedAt: campaign.createdAt,
+      leftAt: null
+    })
+  )
 }
 
 async function replaceActorResources(
@@ -461,7 +564,7 @@ async function replaceActorResources(
 
 describe('native Encounter Run commands', () => {
   it('allows only one active Run per Campaign and preserves START replay', async () => {
-    const { owner, campaign, blueprint, run } = await setup({ automatic: true })
+    const { t, owner, campaign, blueprint, run } = await setup({ automatic: true })
     const sibling = await owner.caller.mutation(createRun, {
       campaignId: campaign.id,
       blueprintId: blueprint.id,
@@ -479,9 +582,11 @@ describe('native Encounter Run commands', () => {
       command: { ...start.command, encounterId: sibling.id, commandId: crypto.randomUUID() }
     }
     const started = await executeInRoom(owner.caller, start)
-    await expect(executeInRoom(owner.caller, siblingStart)).rejects.toThrow(
-      'Campaign already has an active Encounter.'
-    )
+    expect(await rejection(executeInRoom(owner.caller, siblingStart))).toMatchObject({
+      reason: 'ACTIVE_ENCOUNTER_EXISTS',
+      message: 'Campaign already has an active Encounter.'
+    })
+    await checkpointLiveRoom(campaign.id)
     expect(await owner.caller.query(getEncounter, { encounterId: sibling.id })).toEqual(sibling)
     const completed = await executeInRoom(owner.caller, {
       command: {
@@ -493,17 +598,23 @@ describe('native Encounter Run commands', () => {
     })
     const siblingStarted = await executeInRoom(owner.caller, siblingStart)
     expect(siblingStarted.projection.status).toBe('ACTIVE')
-    await expect(replayInRoom(owner.caller, start)).resolves.toEqual({
+    await expect(executeInRoom(owner.caller, start)).resolves.toEqual({
       ...started,
       projection: completed.projection
     })
+    await checkpointLiveRoom(campaign.id)
     expect(
       (await owner.caller.query(getActiveSession, { campaignId: campaign.id })).encounter
     ).toEqual(siblingStarted.projection)
-  })
+    expect((await rows({ t, campaign })).runs.map((row) => row.status).sort()).toEqual([
+      'ACTIVE',
+      'COMPLETED'
+    ])
+  }, 30000)
 
   it('rechecks Campaign activation when pending initiative settles and rolls back a rejected response', async () => {
-    const { t, owner, campaign, blueprint, run } = await setup({ assisted: true })
+    const base = await setup({ assisted: true })
+    const { owner, campaign, blueprint, run } = base
     const sibling = await owner.caller.mutation(createRun, {
       campaignId: campaign.id,
       blueprintId: blueprint.id,
@@ -519,32 +630,12 @@ describe('native Encounter Run commands', () => {
     expect(first.projection.status).toBe('ACTIVE')
     second = await executeInRoom(owner.caller, assistedResolution(second, 0, 15))
     const response = assistedResolution(second, 0, 10)
-    const before = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      runs: await ctx.db.query('encounterRuns').collect(),
-      actors: await ctx.db.query('encounterRunActors').collect(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    await expect(executeInRoom(owner.caller, response)).rejects.toThrow(
-      'Campaign already has an active Encounter.'
-    )
-    const after = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      runs: await ctx.db.query('encounterRuns').collect(),
-      actors: await ctx.db.query('encounterRunActors').collect(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(after).toEqual(before)
+    const before = await rows(base)
+    expect(await rejection(executeInRoom(owner.caller, response))).toMatchObject({
+      reason: 'ACTIVE_ENCOUNTER_EXISTS',
+      message: 'Campaign already has an active Encounter.'
+    })
+    expect(await rows(base)).toEqual(before)
     await executeInRoom(owner.caller, {
       command: {
         type: 'COMPLETE',
@@ -555,11 +646,12 @@ describe('native Encounter Run commands', () => {
     })
     const settled = await executeInRoom(owner.caller, response)
     expect(settled.projection.status).toBe('ACTIVE')
-    await expect(replayInRoom(owner.caller, response)).resolves.toEqual(settled)
-  })
+    await expect(executeInRoom(owner.caller, response)).resolves.toEqual(settled)
+  }, 30000)
 
   it('adjusts Creature feature resources from durable rule facts', async () => {
-    const { t, owner, run } = await setup({ manual: true, resource: true })
+    const base = await setup({ manual: true, resource: true })
+    const { owner, campaign, run } = base
     const actor = run.actors[0]!
     const featureId = airElemental.features?.[1]?.id
     if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
@@ -592,43 +684,19 @@ describe('native Encounter Run commands', () => {
         resetKind: 'MANUAL'
       })
     )
-    await expect(replayInRoom(owner.caller, use)).resolves.toEqual(used)
-    const beforeBound = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    await expect(
+    await expect(executeInRoom(owner.caller, use)).resolves.toEqual(used)
+    const beforeBound = await rows(base)
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           ...use.command,
           commandId: crypto.randomUUID(),
           expectedVersion: 1
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    const afterBound = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(afterBound).toEqual(beforeBound)
+      }),
+      'Encounter feature resource usage is outside its available range.'
+    )
+    expect(await rows(base)).toEqual(beforeBound)
     await executeInRoom(owner.caller, {
       command: {
         type: 'SET_INITIATIVE',
@@ -661,25 +729,15 @@ describe('native Encounter Run commands', () => {
       }
     })
     expect(restored.projection).toMatchObject({ status: 'ACTIVE', version: 4 })
-    const stored = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-      ruleReceipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-    }))
-    expect(JSON.parse(stored.actor!.stateJson)).toMatchObject({
-      resources: { featureCharges: { [featureId]: 0 } }
+    expect((await actorState(base, actor.id)).resources).toMatchObject({
+      featureCharges: { [featureId]: 0 }
     })
+    // The room keeps each command's receipt until the Run ends (D85), so the timeline is where both adjustments show.
+    const timeline = await readRoomTimeline(owner.caller, campaign.id)
     expect(
-      stored.commands.filter((command) => command.commandType === 'ADJUST_FEATURE_RESOURCE')
+      timeline.filter((entry) => entry.commandType === 'ADJUST_FEATURE_RESOURCE')
     ).toHaveLength(2)
-    expect(stored.ruleReceipts).toHaveLength(1)
-    const timeline = await readTimelineInRoom(owner.caller, run.id)
-    expect(timeline.entries).toContainEqual(
+    expect(timeline).toContainEqual(
       expect.objectContaining({
         commandType: 'ADJUST_FEATURE_RESOURCE',
         visibility: 'PRIVATE'
@@ -688,10 +746,12 @@ describe('native Encounter Run commands', () => {
   }, 30000)
 
   it('rolls immutable enemy actions privately or to TABLE with atomic charge use and replay', async () => {
-    const { t, owner, other, run } = await setup({ manual: true, resource: true })
+    const base = await setup({ manual: true, resource: true })
+    const { owner, other, campaign, run } = base
     const actor = run.actors[0]!
     const featureId = airElemental.features?.[1]?.id
     if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
+    await addPlayer(base, other.userId)
     await executeInRoom(owner.caller, {
       command: {
         type: 'SET_INITIATIVE',
@@ -711,11 +771,7 @@ describe('native Encounter Run commands', () => {
         expectedVersion: 1
       }
     })
-    const samples = [4, 15]
-    const privateEntropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = samples.shift() ?? 0
-      return array
-    })
+    await queueRoomRolls(campaign.id, { rolls: [4, 15] })
     const privateResult = await executeInRoom(owner.caller, {
       command: {
         type: 'ROLL_ENEMY_ACTION',
@@ -728,7 +784,6 @@ describe('native Encounter Run commands', () => {
         visibility: 'PRIVATE'
       }
     })
-    privateEntropy.mockRestore()
     expect(privateResult).toMatchObject({
       projection: { status: 'ACTIVE', version: 3 },
       roll: {
@@ -743,9 +798,10 @@ describe('native Encounter Run commands', () => {
         evidence: { mode: 'ADVANTAGE', total: 19 }
       }
     })
-    expect(
-      await t.run((ctx) => ctx.db.query('campaignConversationEntries').collect())
-    ).toHaveLength(0)
+    // A private roll posts no card: the table chat was never opened.
+    await expect(readRoomRollCards(owner.caller, campaign.id)).rejects.toThrow(
+      'Conversation not found.'
+    )
     const privateActor = encounterGmProjectionDtoSchema
       .parse(privateResult.projection)
       .actors.find((candidate) => candidate.id === actor.id)
@@ -773,13 +829,8 @@ describe('native Encounter Run commands', () => {
         visibility: 'PUBLIC'
       }
     }
-    const tableSamples = [3, 4]
-    const tableEntropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = tableSamples.shift() ?? 0
-      return array
-    })
+    await queueRoomRolls(campaign.id, { rolls: [3, 4] })
     const tableResult = await executeInRoom(owner.caller, tableInput)
-    tableEntropy.mockRestore()
     expect(tableResult).toMatchObject({
       projection: { status: 'ACTIVE', version: 4 },
       roll: {
@@ -803,82 +854,31 @@ describe('native Encounter Run commands', () => {
         maximum: 1
       }
     )
-    const stored = await t.run(async (ctx) => {
-      const entry = await ctx.db.query('campaignConversationEntries').unique()
-      if (!entry) throw new Error('Missing TABLE roll entry.')
-      const payload = await ctx.db
-        .query('campaignConversationEntryPayloads')
-        .withIndex('by_entryId', (q) => q.eq('entryId', entry.id))
-        .unique()
-      return {
-        actor: await ctx.db.query('encounterRunActors').unique(),
-        entry,
-        payload
-      }
+    expect(await readRoomRollCards(owner.caller, campaign.id)).toEqual([tableResult.roll])
+    expect((await actorState(base, actor.id)).resources).toMatchObject({
+      featureCharges: { [featureId]: 1 }
     })
-    expect(stored.payload).toMatchObject({
-      kind: 'ROLL',
-      roll: tableResult.roll,
-      characterId: null,
-      characterLabel: actor.label
-    })
-    expect(JSON.parse(stored.actor!.stateJson)).toMatchObject({
-      resources: { featureCharges: { [featureId]: 1 } }
-    })
-    const timeline = await readTimelineInRoom(owner.caller, run.id)
-    expect(timeline.entries).toContainEqual(
+    const timeline = await readRoomTimeline(owner.caller, campaign.id)
+    expect(timeline).toContainEqual(
       expect.objectContaining({
         commandType: 'ROLL_ENEMY_ACTION',
         visibility: 'TABLE'
       })
     )
-    await t.run((ctx) =>
-      ctx.db.insert('campaignMemberships', {
-        campaignId: run.campaignId,
-        userId: other.userId,
-        role: 'PLAYER',
-        status: 'ACTIVE',
-        accessStartedAt: run.createdAt,
-        joinedAt: run.createdAt,
-        leftAt: null
-      })
-    )
-    const playerTimeline = await readTimelineInRoom(other.caller, run.id)
-    expect(playerTimeline).toEqual({
-      entries: timeline.entries.filter((entry) => entry.visibility === 'TABLE'),
-      nextCursor: null
-    })
-    expect(playerTimeline.entries).toHaveLength(1)
-    expect(playerTimeline.entries[0]?.roll).toEqual(tableResult.roll)
-    // After storage recovery the room's receipts are gone: the replay index answers "applied at V" with the
-    // current projection, no reroll and no second charge. The roll card stays in the conversation.
-    discardRoomJournal()
-    let replayEntropy = 0
-    const replayRandom = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      replayEntropy += 1
-      return array
-    })
-    await expect(replayInRoom(owner.caller, tableInput)).resolves.toEqual({
-      ...tableResult,
-      roll: null
-    })
-    replayRandom.mockRestore()
-    expect(replayEntropy).toBe(0)
-    expect(
-      await t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        actor: await ctx.db.query('encounterRunActors').unique(),
-        entries: await ctx.db.query('campaignConversationEntries').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-      }))
-    ).toEqual({
-      actor: stored.actor,
-      entries: [stored.entry],
-      receiptLedgers: expect.any(Array),
-      receiptLedgerParts: expect.any(Array),
-      commands: expect.any(Array)
-    })
+    const playerTimeline = await readRoomTimeline(other.caller, campaign.id)
+    expect(playerTimeline).toEqual(timeline.filter((entry) => entry.visibility === 'TABLE'))
+    expect(playerTimeline).toHaveLength(1)
+    expect(playerTimeline[0]?.roll).toEqual(tableResult.roll)
+    // After the room releases the Run its history is gone, yet the retry still answers with the recorded
+    // roll (rebuilt from the TABLE roll card in the conversation): no reroll (the queue holds 19) and no
+    // second charge.
+    const charged = await rows(base)
+    await closeRoom(campaign.id)
+    await queueRoomRolls(campaign.id, { rolls: [19], repeat: 19 })
+    await expect(executeInRoom(owner.caller, tableInput)).resolves.toEqual(tableResult)
+    expect(await rows(base)).toEqual(charged)
+    expect(await readRoomRollCards(owner.caller, campaign.id)).toEqual([tableResult.roll])
+    await queueRoomRolls(campaign.id, { rolls: [] })
     const boundaryFeatureId = airElemental.features?.[0]?.id
     if (!boundaryFeatureId) throw new Error('Missing Air Elemental boundary feature.')
     const boundaryInput: EncounterExecuteInput = {
@@ -895,44 +895,26 @@ describe('native Encounter Run commands', () => {
     }
     const boundaryResult = await executeInRoom(owner.caller, boundaryInput)
     expect(boundaryResult.roll?.source.label).toBe(`${'x'.repeat(78)}:`)
-    await expect(replayInRoom(owner.caller, boundaryInput)).resolves.toEqual(boundaryResult)
-    expect(
-      await t.run(async (ctx) => ({
-        actor: await ctx.db.query('encounterRunActors').unique(),
-        entries: await ctx.db.query('campaignConversationEntries').collect()
-      }))
-    ).toEqual({ actor: stored.actor, entries: [stored.entry] })
-    const beforeExhausted = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db.query('encounterRuns').unique(),
-      actor: await ctx.db.query('encounterRunActors').unique(),
-      entries: await ctx.db.query('campaignConversationEntries').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    await expect(
+    await expect(executeInRoom(owner.caller, boundaryInput)).resolves.toEqual(boundaryResult)
+    expect((await rows(base)).actors).toEqual(charged.actors)
+    expect(await readRoomRollCards(owner.caller, campaign.id)).toEqual([tableResult.roll])
+    const beforeExhausted = await rows(base)
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           ...tableInput.command,
           commandId: crypto.randomUUID(),
           expectedVersion: 5
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    expect(
-      await t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        run: await ctx.db.query('encounterRuns').unique(),
-        actor: await ctx.db.query('encounterRunActors').unique(),
-        entries: await ctx.db.query('campaignConversationEntries').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-      }))
-    ).toEqual(beforeExhausted)
+      }),
+      'The enemy feature does not have enough charges.'
+    )
+    expect(await rows(base)).toEqual(beforeExhausted)
+    expect(await readRoomRollCards(owner.caller, campaign.id)).toEqual([tableResult.roll])
   }, 30000)
 
   it('rolls an actor initiative in the room from its own dice and replays the recorded roll', async () => {
-    const { owner, run } = await setup({ manual: true, resource: true })
+    const { owner, campaign, run } = await setup({ manual: true, resource: true })
     const actor = run.actors[0]!
     await executeInRoom(owner.caller, {
       command: {
@@ -960,123 +942,126 @@ describe('native Encounter Run commands', () => {
       expectedVersion: 2,
       actorId: actor.id
     }
-    const rolled = await executeInRoom(owner.caller, { command }, () => 13)
+    // Every later die is a 1, so a retry that rolled again would differ from the recorded 14.
+    await queueRoomRolls(campaign.id, { rolls: [13], repeat: 0 })
+    const rolled = await executeInRoom(owner.caller, { command })
     expect(rolled.roll?.evidence.terms[0]?.rolls).toEqual([14])
-    expect(await replayInRoom(owner.caller, { command })).toEqual(rolled)
-  })
+    expect(await executeInRoom(owner.caller, { command })).toEqual(rolled)
+  }, 30000)
 
-  it('rejects enemy actions before activation, for Character actors, and for missing definitions', async () => {
-    const prepared = await setup({ manual: true, resource: true })
-    const preparedActor = prepared.run.actors[0]!
+  it('rejects enemy actions before activation and for missing or malformed definitions', async () => {
+    const base = await setup({ manual: true, resource: true })
+    const { owner, campaign, run } = base
+    const actor = run.actors[0]!
     const featureId = airElemental.features?.[1]?.id
     if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
-    await expect(
-      executeInRoom(prepared.owner.caller, {
-        command: {
-          type: 'ROLL_ENEMY_ACTION',
-          encounterId: prepared.run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 0,
-          actorId: preparedActor.id,
-          featureId,
-          rollDefinitionId: 'whirlwind-private',
-          visibility: 'PRIVATE'
-        }
-      })
-    ).rejects.toThrow('Enemy actions require an active Encounter.')
-    await executeInRoom(prepared.owner.caller, {
+    expect(
+      await rejection(
+        executeInRoom(owner.caller, {
+          command: {
+            type: 'ROLL_ENEMY_ACTION',
+            encounterId: run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: 0,
+            actorId: actor.id,
+            featureId,
+            rollDefinitionId: 'whirlwind-private',
+            visibility: 'PRIVATE'
+          }
+        })
+      )
+    ).toMatchObject({
+      reason: 'ENCOUNTER_NOT_ACTIVE',
+      message: 'Enemy actions require an active Encounter.'
+    })
+    await executeInRoom(owner.caller, {
       command: {
         type: 'SET_INITIATIVE',
-        encounterId: prepared.run.id,
+        encounterId: run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: 0,
-        actorId: preparedActor.id,
+        actorId: actor.id,
         initiative: 1,
         manualOrder: 0
       }
     })
-    await executeInRoom(prepared.owner.caller, {
+    await executeInRoom(owner.caller, {
       command: {
         type: 'START',
-        encounterId: prepared.run.id,
+        encounterId: run.id,
         commandId: crypto.randomUUID(),
         expectedVersion: 1
       }
     })
-    await expect(
-      executeInRoom(prepared.owner.caller, {
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, {
         command: {
           type: 'ROLL_ENEMY_ACTION',
-          encounterId: prepared.run.id,
+          encounterId: run.id,
           commandId: crypto.randomUUID(),
           expectedVersion: 2,
-          actorId: preparedActor.id,
+          actorId: actor.id,
           featureId,
           rollDefinitionId: 'missing',
           visibility: 'PRIVATE'
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    await replaceActorResources(prepared.t, prepared.run.id, preparedActor.id, {
+      }),
+      'Encounter enemy action is unavailable.'
+    )
+    // The room holds the Run, so Convex's copy is written only after the room releases it.
+    await closeRoom(campaign.id)
+    await replaceActorResources(base.t, run.id, actor.id, {
       featureCharges: { [featureId]: 0, stale: -1 }
     })
-    const beforeMalformed = await prepared.t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db.query('encounterRuns').unique(),
-      actor: await ctx.db.query('encounterRunActors').unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    await expect(
-      executeInRoom(prepared.owner.caller, {
+    const beforeMalformed = await rows(base)
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, {
         command: {
           type: 'ROLL_ENEMY_ACTION',
-          encounterId: prepared.run.id,
+          encounterId: run.id,
           commandId: crypto.randomUUID(),
           expectedVersion: 2,
-          actorId: preparedActor.id,
+          actorId: actor.id,
           featureId,
           rollDefinitionId: 'whirlwind-private',
           visibility: 'PRIVATE'
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    expect(
-      await prepared.t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        run: await ctx.db.query('encounterRuns').unique(),
-        actor: await ctx.db.query('encounterRunActors').unique(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-      }))
-    ).toEqual(beforeMalformed)
-    const character = await setupCharacterAutomatic()
-    const characterActor = character.run.actors.find((candidate) => candidate.kind === 'CHARACTER')
-    if (!characterActor) throw new Error('Missing Character actor.')
-    await character.t.run((ctx) =>
-      activateFixtureRun(ctx, character.run.id, { round: 1, currentActorId: characterActor.id })
+      }),
+      'Encounter feature resource state is invalid.'
     )
-    await expect(
-      executeInRoom(character.owner.caller, {
+    expect(await rows(base)).toEqual(beforeMalformed)
+  }, 30000)
+
+  it('rejects enemy actions for Character actors', async () => {
+    const { t, owner, run } = await setupCharacterAutomatic()
+    const featureId = airElemental.features?.[1]?.id
+    if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
+    const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+    if (!actor) throw new Error('Missing Character actor.')
+    // The room has not loaded the Run yet, so Convex's copy is the one it will read.
+    await t.run((ctx) => activateFixtureRun(ctx, run.id, { round: 1, currentActorId: actor.id }))
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, {
         command: {
           type: 'ROLL_ENEMY_ACTION',
-          encounterId: character.run.id,
+          encounterId: run.id,
           commandId: crypto.randomUUID(),
           expectedVersion: 0,
-          actorId: characterActor.id,
+          actorId: actor.id,
           featureId,
           rollDefinitionId: 'whirlwind-private',
           visibility: 'PRIVATE'
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
+      }),
+      'Character actions must be rolled through the Character Sheet.'
+    )
   }, 30000)
 
   it('rejects Character feature resource changes', async () => {
     const { owner, run } = await setupCharacterAutomatic()
     const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
     if (!actor) throw new Error('Missing Character actor.')
-    await expect(
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           type: 'ADJUST_FEATURE_RESOURCE',
@@ -1088,12 +1073,14 @@ describe('native Encounter Run commands', () => {
           direction: 'USE',
           amount: 1
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-  })
+      }),
+      'Character resources must be changed through the Character Sheet.'
+    )
+  }, 30000)
 
   it('restores from reconciled feature usage after a maximum decreases', async () => {
-    const { t, owner, run } = await setup({ resource: true })
+    const base = await setup({ resource: true })
+    const { t, owner, run } = base
     const actor = run.actors[0]!
     const featureId = airElemental.features?.[1]?.id
     if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
@@ -1117,112 +1104,53 @@ describe('native Encounter Run commands', () => {
         .parse(result.projection)
         .actors[0]?.features.find((feature) => feature.id === featureId)?.resource
     ).toMatchObject({ used: 0, remaining: 1, maximum: 1 })
-    const stored = await t.run(async (ctx) =>
-      ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique()
-    )
-    expect(JSON.parse(stored!.stateJson)).toMatchObject({
-      resources: { featureCharges: { [featureId]: 0 } }
+    expect((await actorState(base, actor.id)).resources).toMatchObject({
+      featureCharges: { [featureId]: 0 }
     })
   }, 30000)
 
   it('rejects malformed feature charge state without writes', async () => {
-    const { t, owner, run } = await setup({ resource: true })
+    const base = await setup({ resource: true })
+    const { t, owner, campaign, run } = base
     const actor = run.actors[0]!
     const featureId = airElemental.features?.[1]?.id
     if (!featureId) throw new Error('Missing Air Elemental Whirlwind feature.')
+    const use = (): EncounterExecuteInput => ({
+      command: {
+        type: 'ADJUST_FEATURE_RESOURCE',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 0,
+        actorId: actor.id,
+        featureId,
+        direction: 'USE',
+        amount: 1
+      }
+    })
     await replaceActorResources(t, run.id, actor.id, { featureCharges: [] })
-    const before = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    await expect(
-      executeInRoom(owner.caller, {
-        command: {
-          type: 'ADJUST_FEATURE_RESOURCE',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 0,
-          actorId: actor.id,
-          featureId,
-          direction: 'USE',
-          amount: 1
-        }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    const after = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(after).toEqual(before)
+    const before = await rows(base)
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, use()),
+      'Encounter feature resource state is invalid.'
+    )
+    expect(await rows(base)).toEqual(before)
+    // The refused command loaded the Run into the room, so Convex's copy is rewritten after it releases the Run.
+    await closeRoom(campaign.id)
     await replaceActorResources(t, run.id, actor.id, {
       featureCharges: { [featureId]: 0, stale: -1 }
     })
-    const staleBefore = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    await expect(
-      executeInRoom(owner.caller, {
-        command: {
-          type: 'ADJUST_FEATURE_RESOURCE',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 0,
-          actorId: actor.id,
-          featureId,
-          direction: 'USE',
-          amount: 1
-        }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    const staleAfter = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      run: await ctx.db
-        .query('encounterRuns')
-        .withIndex('by_publicId', (q) => q.eq('id', run.id))
-        .unique(),
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(staleAfter).toEqual(staleBefore)
+    const staleBefore = await rows(base)
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, use()),
+      'Encounter feature resource state is invalid.'
+    )
+    expect(await rows(base)).toEqual(staleBefore)
   }, 30000)
 
   it('pauses and resolves Assisted initiative without exposing partial Run state', async () => {
-    const { t, owner, other, campaign, run } = await setup({ assisted: true })
+    const base = await setup({ assisted: true })
+    const { owner, other, campaign, run } = base
+    await addPlayer(base, other.userId)
     const startInput: EncounterExecuteInput = {
       command: {
         type: 'START',
@@ -1249,6 +1177,7 @@ describe('native Encounter Run commands', () => {
         request: { min: 1, max: 20 }
       }
     })
+    const pendingRows = await rows(base)
     expect(await owner.caller.query(getEncounter, { encounterId: run.id })).toEqual(
       pending.projection
     )
@@ -1261,17 +1190,6 @@ describe('native Encounter Run commands', () => {
     expect(await owner.caller.query(getPendingOccurrence, { encounterId: run.id })).toEqual(
       pending.occurrence?.pending
     )
-    await t.run((ctx) =>
-      ctx.db.insert('campaignMemberships', {
-        campaignId: campaign.id,
-        userId: other.userId,
-        role: 'PLAYER',
-        status: 'ACTIVE',
-        accessStartedAt: campaign.createdAt,
-        joinedAt: campaign.createdAt,
-        leftAt: null
-      })
-    )
     // D87: a PREPARED Run paused on a GM decision is unavailable to a player.
     await expect(other.caller.query(getEncounter, { encounterId: run.id })).rejects.toThrow(
       'Encounter is unavailable.'
@@ -1280,27 +1198,20 @@ describe('native Encounter Run commands', () => {
     await expect(other.caller.query(getPendingOccurrence, { encounterId: run.id })).rejects.toThrow(
       'Encounter is unavailable.'
     )
-    const pendingStored = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(pendingStored.rounds).toEqual([])
-    expect(pendingStored.participants).toEqual([])
-    expect(pendingStored.receipts).toEqual([])
-    expect(pendingStored.commands).toHaveLength(1)
-    expect(pendingStored.occurrence).toMatchObject({
-      rootCommandId: startInput.command.commandId,
-      state: 'PENDING',
-      version: 0,
-      expectedEncounterVersion: 0,
-      completedAt: null
-    })
-    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual(pending)
+    expect(pendingRows.rounds).toEqual([])
+    expect(pendingRows.participants).toEqual([])
+    expect(pendingRows.occurrences).toMatchObject([
+      {
+        rootCommandId: startInput.command.commandId,
+        state: 'PENDING',
+        version: 0,
+        expectedEncounterVersion: 0,
+        completedAt: null
+      }
+    ])
+    // A paused START commits nothing: the room's timeline holds no command past setup.
+    expect(await committedTypes(base)).toEqual([])
+    await expect(executeInRoom(owner.caller, startInput)).resolves.toEqual(pending)
 
     if (!pending.occurrence?.pending || pending.occurrence.pending.kind !== 'INITIATIVE_EVIDENCE')
       throw new Error('Missing Assisted initiative request.')
@@ -1332,23 +1243,12 @@ describe('native Encounter Run commands', () => {
       status: 'PENDING',
       pending: { kind: 'INITIATIVE_EVIDENCE', encounterVersion: 0 }
     })
-    const continuedStored = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(continuedStored).toMatchObject({
+    expect(await rows(base)).toMatchObject({
       rounds: [],
       participants: [],
-      receipts: [],
-      commands: expect.arrayContaining([expect.objectContaining({ commandType: 'CREATE' })]),
-      occurrence: { state: 'PENDING', version: 1, expectedEncounterVersion: 0 }
+      occurrences: [{ state: 'PENDING', version: 1, expectedEncounterVersion: 0 }]
     })
-    await expect(replayInRoom(owner.caller, resolveInput)).resolves.toEqual(continued)
+    await expect(executeInRoom(owner.caller, resolveInput)).resolves.toEqual(continued)
     if (
       !continued.occurrence?.pending ||
       continued.occurrence.pending.kind !== 'INITIATIVE_EVIDENCE'
@@ -1385,6 +1285,7 @@ describe('native Encounter Run commands', () => {
       outcome: null,
       pending: null
     })
+    const settledRows = await rows(base)
     expect(
       (await owner.caller.query(getActiveSession, { campaignId: campaign.id })).encounter
     ).toEqual(settled.projection)
@@ -1397,59 +1298,38 @@ describe('native Encounter Run commands', () => {
         characters: new Map()
       })
     )
-    const settledStored = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      round: await ctx.db.query('encounterInitiativeRounds').unique(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipt: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(settledStored.round).toMatchObject({ status: 'ACTIVE', version: 1 })
-    expect(settledStored.participants).toHaveLength(2)
-    const activeParticipant = settledStored.participants.find(
-      (participant) => participant.status === 'ACTIVE'
-    )
-    expect(activeParticipant).toMatchObject({
+    expect(settledRows.rounds).toMatchObject([{ status: 'ACTIVE', version: 1 }])
+    expect(settledRows.participants).toHaveLength(2)
+    expect(
+      settledRows.participants.find((participant) => participant.status === 'ACTIVE')
+    ).toMatchObject({
       actorId: settled.projection.currentActorId,
       initiativeScore: 14,
       turnOrderOrdinal: 0
     })
     expect(
-      settledStored.participants.find((participant) => participant.status === 'READY')
+      settledRows.participants.find((participant) => participant.status === 'READY')
     ).toMatchObject({ initiativeScore: 13, turnOrderOrdinal: 1 })
-    expect(settledStored.occurrence).toMatchObject({
-      state: 'COMPLETED',
-      version: 2,
-      expectedEncounterVersion: 1,
-      pendingSnapshotChecksum: null,
-      completedAt: expect.any(String)
-    })
-    expect(JSON.parse(settledStored.receipt?.commandMetadataJson ?? '')).toMatchObject({
-      transition: 'TURN_EFFECTS',
-      terminalOccurrenceVersion: 2,
-      resolutionCommands: [
-        {
-          commandId: resolveInput.command.commandId,
-          kind: 'ENTER_INTEGER',
-          expectedOccurrenceVersion: 0
-        },
-        {
-          commandId: finalResolveInput.command.commandId,
-          kind: 'ENTER_INTEGER',
-          expectedOccurrenceVersion: 1
-        }
-      ]
-    })
-    expect(settledStored.commands).toHaveLength(2)
-    // The room journal replays each command's own receipt, shown over the current Run.
-    await expect(replayInRoom(owner.caller, resolveInput)).resolves.toEqual({
+    expect(settledRows.occurrences).toMatchObject([
+      {
+        state: 'COMPLETED',
+        version: 2,
+        expectedEncounterVersion: 1,
+        pendingSnapshotChecksum: null,
+        completedAt: expect.any(String)
+      }
+    ])
+    expect(await committedTypes(base)).toEqual(['START'])
+    // The room journal replays each command's own receipt, shown over the current Run. Each retry is
+    // checked against the stored receipt (terminal occurrence version, the resolution commands, the
+    // initiative checksums) by `commandReplay.ts:180-210` and `turnResponseReplay.ts:60-95`, so the
+    // receipt fields are exercised here rather than read.
+    await expect(executeInRoom(owner.caller, resolveInput)).resolves.toEqual({
       ...continued,
       projection: settled.projection
     })
-    await expect(replayInRoom(owner.caller, finalResolveInput)).resolves.toEqual(settled)
-    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
+    await expect(executeInRoom(owner.caller, finalResolveInput)).resolves.toEqual(settled)
+    await expect(executeInRoom(owner.caller, startInput)).resolves.toEqual({
       ...pending,
       projection: settled.projection
     })
@@ -1462,9 +1342,9 @@ describe('native Encounter Run commands', () => {
       }
     }
     // A player ends only a turn they control; the GM's actors stay the GM's.
-    await expect(executeInRoom(other.caller, firstAdvanceInput)).rejects.toThrow(
-      'NOT_ACTOR_CONTROLLER'
-    )
+    expect(await rejection(executeInRoom(other.caller, firstAdvanceInput))).toMatchObject({
+      reason: 'NOT_ACTOR_CONTROLLER'
+    })
     const progressed = await executeInRoom(owner.caller, firstAdvanceInput)
     expect(progressed.projection).toMatchObject({
       status: 'ACTIVE',
@@ -1472,30 +1352,11 @@ describe('native Encounter Run commands', () => {
       round: 1
     })
     // A replay by command ID returns only to the user who issued it.
-    await expect(executeInRoom(other.caller, firstAdvanceInput)).rejects.toThrow(
-      'The command ID was already used for different input.'
-    )
+    await expectReusedCommandRefusal(executeInRoom(other.caller, firstAdvanceInput))
     expect(progressed.projection.currentActorId).not.toBe(settled.projection.currentActorId)
-    const advancedStored = await t.run(async (ctx) => ({
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      receipt: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRuleReceipts')
-        .withIndex('by_encounterId_commandId', (q) =>
-          q.eq('encounterId', run.id).eq('commandId', firstAdvanceInput.command.commandId)
-        )
-        .unique(),
-      command: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRunCommands')
-        .withIndex('by_campaignId_commandId', (q) =>
-          q.eq('campaignId', run.campaignId).eq('commandId', firstAdvanceInput.command.commandId)
-        )
-        .unique()
-    }))
-    expect(advancedStored.participants).toEqual(
+    // The receipt's `initiativeAdvance` for this same-round advance (`SAME_ROUND`, no new
+    // initiative) is asserted in `apps/session-worker/src/roomEncounterTurns.test.ts:426-442`.
+    expect((await rows(base)).participants).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           actorId: settled.projection.currentActorId,
@@ -1507,18 +1368,7 @@ describe('native Encounter Run commands', () => {
         })
       ])
     )
-    expect(JSON.parse(advancedStored.receipt?.resultJson ?? '')).toMatchObject({
-      status: 'INITIATIVE_COMPLETE',
-      commandType: 'ADVANCE_TURN',
-      initiative: null,
-      initiativeAdvance: { kind: 'SAME_ROUND' }
-    })
-    expect(advancedStored.command).toMatchObject({
-      commandType: 'ADVANCE_TURN',
-      ruleOccurrenceId: expect.any(String),
-      ruleResultChecksum: expect.stringMatching(/^[a-f0-9]{64}$/)
-    })
-    await expect(replayInRoom(owner.caller, resolveInput)).resolves.toEqual({
+    await expect(executeInRoom(owner.caller, resolveInput)).resolves.toEqual({
       ...continued,
       projection: progressed.projection
     })
@@ -1537,37 +1387,30 @@ describe('native Encounter Run commands', () => {
       round: 2,
       currentActorId: settled.projection.currentActorId
     })
-    const wrappedStored = await t.run(async (ctx) => ({
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect()
-    }))
-    expect(wrappedStored.rounds).toEqual(
+    const wrappedRows = await rows(base)
+    expect(wrappedRows.rounds).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ round: 1, status: 'COMPLETED' }),
         expect.objectContaining({ round: 2, status: 'ACTIVE' })
       ])
     )
     expect(
-      wrappedStored.participants
+      wrappedRows.participants
         .filter((participant) => participant.round === 2)
         .sort((left, right) => (left.turnOrderOrdinal ?? -1) - (right.turnOrderOrdinal ?? -1))
         .map((participant) => participant.actorId)
     ).toEqual([settled.projection.currentActorId, progressed.projection.currentActorId])
-    await expect(replayInRoom(owner.caller, firstAdvanceInput)).resolves.toEqual({
+    await expect(executeInRoom(owner.caller, firstAdvanceInput)).resolves.toEqual({
       ...progressed,
       projection: wrapped.projection
     })
-    await expect(replayInRoom(owner.caller, secondAdvanceInput)).resolves.toEqual(wrapped)
-    const firstTimelinePage = await readTimelineInRoom(owner.caller, run.id)
+    await expect(executeInRoom(owner.caller, secondAdvanceInput)).resolves.toEqual(wrapped)
     expect(
-      firstTimelinePage.entries
+      (await readRoomTimeline(owner.caller, campaign.id))
         .map((entry) => entry.commandType)
         .filter((type) => type === 'ADVANCE_TURN')
     ).toEqual(['ADVANCE_TURN', 'ADVANCE_TURN'])
-    await expect(readTimelineInRoom(other.caller, run.id)).resolves.toEqual({
-      entries: [],
-      nextCursor: null
-    })
+    expect(await readRoomTimeline(other.caller, campaign.id)).toEqual([])
     const currentActorId = wrapped.projection.currentActorId
     if (!currentActorId) throw new Error('Expected a current actor.')
     const granted = await executeInRoom(owner.caller, {
@@ -1594,6 +1437,7 @@ describe('native Encounter Run commands', () => {
       version: granted.projection.version + 1,
       currentActorId: progressed.projection.currentActorId
     })
+    await checkpointLiveRoom(campaign.id)
     expect(playerAdvanced.projection).toEqual(
       projectPlayerEncounterProjection(
         encounterGmProjectionDtoSchema.parse(
@@ -1602,26 +1446,17 @@ describe('native Encounter Run commands', () => {
         { userId: other.userId, characters: new Map() }
       )
     )
-    const playerAdvanceRow = await t.run(async (ctx) =>
-      (await readEncounterHistory(ctx))
-        .query('encounterRunCommands')
-        .withIndex('by_campaignId_commandId', (q) =>
-          q.eq('campaignId', run.campaignId).eq('commandId', playerAdvanceInput.command.commandId)
-        )
-        .unique()
-    )
-    expect(playerAdvanceRow).toMatchObject({
-      commandType: 'ADVANCE_TURN',
-      actorUserId: other.userId
-    })
-    await expect(replayInRoom(other.caller, playerAdvanceInput)).resolves.toEqual(playerAdvanced)
-    await expect(executeInRoom(owner.caller, playerAdvanceInput)).rejects.toThrow(
-      'The command ID was already used for different input.'
-    )
+    // The room alone holds the command rows and receipts (D85, D88). The ADVANCE_TURN row's player
+    // actor, its `ruleOccurrenceId` and `ruleResultChecksum`, the receipt's `commandMetadataJson`
+    // (`TURN_EFFECTS`, `terminalOccurrenceVersion`, `resolutionCommands`) and START's `commandType`
+    // and `resultChecksum` are asserted in `apps/session-worker/src/roomEncounterTurns.test.ts:360-466`.
+    await expect(executeInRoom(other.caller, playerAdvanceInput)).resolves.toEqual(playerAdvanced)
+    await expectReusedCommandRefusal(executeInRoom(owner.caller, playerAdvanceInput))
   }, 30000)
 
   it('starts an Automatic Run through native sources, rules, and normalized initiative', async () => {
-    const { t, owner, run } = await setup({ automatic: true })
+    const base = await setup({ automatic: true })
+    const { owner, run } = base
     const input: EncounterExecuteInput = {
       command: {
         type: 'START',
@@ -1639,67 +1474,57 @@ describe('native Encounter Run commands', () => {
       round: 1,
       currentActorId: run.actors[0]!.id
     })
-    const stored = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      round: await ctx.db.query('encounterInitiativeRounds').unique(),
-      participant: await ctx.db.query('encounterInitiativeParticipants').unique(),
-      occurrence: await ctx.db.query('encounterRuleOccurrences').unique(),
-      receipt: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').unique(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
-    expect(stored.round).toMatchObject({
-      encounterId: run.id,
-      procedure: 'ACTOR_ROLL',
-      status: 'ACTIVE',
-      nextTurnOrderOrdinal: 1,
-      version: 1
-    })
-    expect(stored.participant).toMatchObject({
-      actorId: run.actors[0]!.id,
-      status: 'ACTIVE',
-      turnOrderOrdinal: 0,
-      version: 3
-    })
-    expect(stored.participant?.initiativeScore).toBeGreaterThanOrEqual(3)
-    expect(stored.participant?.initiativeScore).toBeLessThanOrEqual(22)
-    expect(stored.participant?.evaluation.occurrenceId).toMatch(/^[a-f0-9-]{36}$/)
-    expect(stored.participant?.evaluation.resultChecksum).toMatch(/^[a-f0-9]{64}$/)
-    expect(stored.occurrence).toMatchObject({
-      encounterId: run.id,
-      rootCommandId: input.command.commandId,
-      state: 'COMPLETED',
-      version: 0,
-      expectedEncounterVersion: 1,
-      pendingSnapshotChecksum: null,
-      completedAt: expect.any(String)
-    })
-    expect(stored.receipt).toMatchObject({
-      encounterId: run.id,
-      occurrenceId: stored.occurrence?.id,
-      commandId: input.command.commandId,
-      commandType: 'START',
-      encounterVersion: 1,
-      resultChecksum: expect.stringMatching(/^[a-f0-9]{64}$/)
-    })
-    expect(JSON.parse(stored.receipt?.resultJson ?? '')).toMatchObject({
-      status: 'INITIATIVE_COMPLETE',
-      occurrenceId: stored.occurrence?.id,
-      encounterId: run.id,
-      commandType: 'START'
-    })
-    expect(stored.commands).toHaveLength(2)
-    await expect(replayInRoom(owner.caller, input)).resolves.toEqual(started)
-  })
+    const stored = await rows(base)
+    expect(stored.rounds).toMatchObject([
+      {
+        encounterId: run.id,
+        procedure: 'ACTOR_ROLL',
+        status: 'ACTIVE',
+        nextTurnOrderOrdinal: 1,
+        version: 1
+      }
+    ])
+    expect(stored.participants).toMatchObject([
+      {
+        actorId: run.actors[0]!.id,
+        status: 'ACTIVE',
+        turnOrderOrdinal: 0,
+        version: 3
+      }
+    ])
+    const participant = stored.participants[0]!
+    expect(participant.initiativeScore).toBeGreaterThanOrEqual(3)
+    expect(participant.initiativeScore).toBeLessThanOrEqual(22)
+    expect(participant.evaluation.occurrenceId).toMatch(/^[a-f0-9-]{36}$/)
+    expect(participant.evaluation.resultChecksum).toMatch(/^[a-f0-9]{64}$/)
+    expect(stored.occurrences).toMatchObject([
+      {
+        encounterId: run.id,
+        rootCommandId: input.command.commandId,
+        state: 'COMPLETED',
+        version: 0,
+        expectedEncounterVersion: 1,
+        pendingSnapshotChecksum: null,
+        completedAt: expect.any(String)
+      }
+    ])
+    // The START receipt (its occurrence, version 1 and result checksum) lives in the room until the Run
+    // ends: `apps/session-worker/src/roomEncounterTurns.test.ts:364-466` asserts its command row
+    // (actor, `ruleOccurrenceId`, `ruleResultChecksum`), `commandMetadataJson` and result checksum, and the retry below is validated against it by `commandReplay.ts:180-210`.
+    expect(await committedTypes(base)).toEqual(['START'])
+    await expect(executeInRoom(owner.caller, input)).resolves.toEqual(started)
+  }, 30000)
 
-  it('runs native SIDE_ROLL start, side transitions, correction, and both cadence wraps', async () => {
-    for (const eachRound of [false, true]) {
-      const { t, owner, run } = await setup({
+  it.each([false, true])(
+    'runs native SIDE_ROLL start, side transitions, correction, and the %s EACH_ROUND wrap',
+    async (eachRound) => {
+      const base = await setup({
         assisted: true,
         sideRoll: true,
         actorCount: 3,
         eachRound
       })
+      const { t, owner, run } = base
       const [first, second, third] = run.actors
       const storedRun = await t.run((ctx) => ctx.db.query('encounterRuns').unique())
       const [firstSide, secondSide] = encounterRunStateSchema.parse(
@@ -1737,49 +1562,37 @@ describe('native Encounter Run commands', () => {
       }
       const startedPending = await executeInRoom(owner.caller, startInput)
       const started = await resolveAssistedSideRoll(owner, startedPending, 2)
-      const initial = await t.run(async (ctx) => ({
-        sides: await ctx.db
-          .query('encounterInitiativeSides')
-          .withIndex('by_encounterId_round_sideId', (q) =>
-            q.eq('encounterId', run.id).eq('round', 1)
-          )
-          .collect(),
-        participants: await ctx.db
-          .query('encounterInitiativeParticipants')
-          .withIndex('by_encounterId_round_actorId', (q) =>
-            q.eq('encounterId', run.id).eq('round', 1)
-          )
-          .collect()
-      }))
-      expect(initial.sides).toHaveLength(2)
-      expect(initial.sides.map((side) => side.sideId)).toEqual([firstSide.id, secondSide.id].sort())
-      expect(initial.sides.map((side) => side.sideOrderOrdinal).sort()).toEqual([0, 1])
+      const initial = await rows(base)
+      const initialSides = initial.sides.filter((side) => side.round === 1)
+      const initialParticipants = initial.participants.filter(
+        (participant) => participant.round === 1
+      )
+      expect(initialSides).toHaveLength(2)
+      expect(initialSides.map((side) => side.sideId)).toEqual([firstSide.id, secondSide.id].sort())
+      expect(initialSides.map((side) => side.sideOrderOrdinal).sort()).toEqual([0, 1])
+      expect(initialParticipants.map((participant) => participant.turnOrderOrdinal).sort()).toEqual(
+        [0, 1, 2]
+      )
       expect(
-        initial.participants.map((participant) => participant.turnOrderOrdinal).sort()
-      ).toEqual([0, 1, 2])
-      expect(
-        initial.participants.filter((participant) => participant.sideId === firstSide.id)
+        initialParticipants.filter((participant) => participant.sideId === firstSide.id)
       ).toHaveLength(2)
-      const orderedParticipants = [...initial.participants].sort(
+      const orderedParticipants = [...initialParticipants].sort(
         (left, right) => left.turnOrderOrdinal! - right.turnOrderOrdinal!
       )
       expect(started.projection.currentActorId).toBe(orderedParticipants[0]!.actorId)
-      expect(initial.participants.filter((participant) => participant.status === 'ACTIVE')).toEqual(
-        [orderedParticipants[0]]
-      )
+      expect(initialParticipants.filter((participant) => participant.status === 'ACTIVE')).toEqual([
+        orderedParticipants[0]
+      ])
       expect(
-        initial.sides.filter((side) => side.status === 'ACTIVE').map((side) => side.sideId)
+        initialSides.filter((side) => side.status === 'ACTIVE').map((side) => side.sideId)
       ).toEqual([orderedParticipants[0]!.sideId])
       const compactSides = orderedParticipants
         .map((participant) => participant.sideId)
         .filter((sideId, index, values) => index === 0 || values[index - 1] !== sideId)
       expect(compactSides).toEqual(
-        [...initial.sides]
+        [...initialSides]
           .sort((left, right) => left.sideOrderOrdinal! - right.sideOrderOrdinal!)
           .map((side) => side.sideId)
-      )
-      expect([...initial.participants].map((participant) => participant.actorId)).toEqual(
-        [...initial.participants].map((participant) => participant.actorId).sort()
       )
       let current = started
       for (let version = 3; version <= 4; version += 1) {
@@ -1810,13 +1623,8 @@ describe('native Encounter Run commands', () => {
         status: 'ACTIVE',
         version: 6
       })
-      const roundTwo = await t.run((ctx) =>
-        ctx.db
-          .query('encounterInitiativeParticipants')
-          .withIndex('by_encounterId_round_actorId', (q) =>
-            q.eq('encounterId', run.id).eq('round', 2)
-          )
-          .collect()
+      const roundTwo = (await rows(base)).participants.filter(
+        (participant) => participant.round === 2
       )
       const lastActorId = [...roundTwo].sort(
         (left, right) => right.turnOrderOrdinal! - left.turnOrderOrdinal!
@@ -1846,7 +1654,7 @@ describe('native Encounter Run commands', () => {
           projection: { round: 2, version: corrected.projection.version },
           occurrence: { status: 'PENDING' }
         })
-        const pendingRun = await t.run((ctx) => ctx.db.query('encounterRuns').unique())
+        const [pendingRun] = (await rows(base)).runs
         expect(
           encounterRunStateSchema.parse(JSON.parse(pendingRun?.stateJson ?? ''))
         ).toMatchObject({
@@ -1873,123 +1681,106 @@ describe('native Encounter Run commands', () => {
         status: 'COMPLETED',
         currentActorId: null
       })
-      await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
+      await expect(executeInRoom(owner.caller, startInput)).resolves.toEqual({
         ...startedPending,
         projection: completed.projection
       })
-      await expect(replayInRoom(owner.caller, correctionInput)).resolves.toEqual({
+      await expect(executeInRoom(owner.caller, correctionInput)).resolves.toEqual({
         ...corrected,
         projection: completed.projection
       })
-    }
-  }, 60000)
+    },
+    60000
+  )
 
   it('resumes Automatic GM order choices at START and EACH_ROUND without manual score entry', async () => {
-    const { t, owner, run } = await setup({
+    const base = await setup({
       automatic: true,
       eachRound: true,
       actorCount: 2
     })
-    const random = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = 4
-      return array
-    })
-    const capture = () =>
-      t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        runs: await ctx.db.query('encounterRuns').collect(),
-        rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-        participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-      }))
-    try {
-      let version = 0
-      for (const type of ['START', 'ADVANCE_TURN'] as const) {
-        if (type === 'ADVANCE_TURN') {
-          const sameRound = await executeInRoom(owner.caller, {
-            command: {
-              type,
-              encounterId: run.id,
-              commandId: crypto.randomUUID(),
-              expectedVersion: version
-            }
-          })
-          version = sameRound.projection.version
-        }
-        const rootInput: EncounterExecuteInput = {
+    const { owner, campaign, run } = base
+    // Every initiative d20 lands on 5, so the two Creatures tie and the GM chooses the order.
+    await queueRoomRolls(campaign.id, { rolls: [4], repeat: 4 })
+    let version = 0
+    for (const type of ['START', 'ADVANCE_TURN'] as const) {
+      if (type === 'ADVANCE_TURN') {
+        const sameRound = await executeInRoom(owner.caller, {
           command: {
             type,
             encounterId: run.id,
             commandId: crypto.randomUUID(),
             expectedVersion: version
           }
+        })
+        version = sameRound.projection.version
+      }
+      const rootInput: EncounterExecuteInput = {
+        command: {
+          type,
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: version
         }
-        const pending = await executeInRoom(owner.caller, rootInput)
-        const summary = pending.occurrence?.pending
-        if (!pending.occurrence || !summary || summary.kind !== 'INITIATIVE_ORDER')
-          throw new Error('Expected Automatic GM ordering choice.')
-        expect(summary.optionIds).toHaveLength(2)
-        const before = await capture()
-        const resolution: EncounterExecuteInput = {
-          command: {
-            type: 'RESOLVE_RULE_OCCURRENCE',
-            encounterId: run.id,
-            commandId: crypto.randomUUID(),
-            expectedVersion: version,
-            correlationId: null,
-            occurrenceId: pending.occurrence.occurrenceId,
-            expectedOccurrenceVersion: pending.occurrence.occurrenceVersion,
-            resolution: {
-              kind: 'INITIATIVE_ENTITY',
-              requestId: summary.requestId,
-              entityId: summary.optionIds[0]!
-            }
+      }
+      const pending = await executeInRoom(owner.caller, rootInput)
+      const summary = pending.occurrence?.pending
+      if (!pending.occurrence || !summary || summary.kind !== 'INITIATIVE_ORDER')
+        throw new Error('Expected Automatic GM ordering choice.')
+      expect(summary.optionIds).toHaveLength(2)
+      const before = await rows(base)
+      const resolution = {
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE' as const,
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: version,
+          correlationId: null,
+          occurrenceId: pending.occurrence.occurrenceId,
+          expectedOccurrenceVersion: pending.occurrence.occurrenceVersion,
+          resolution: {
+            kind: 'INITIATIVE_ENTITY' as const,
+            requestId: summary.requestId,
+            entityId: summary.optionIds[0]!
           }
         }
-        await expect(
-          executeInRoom(owner.caller, {
-            command: {
-              ...resolution.command,
-              type: 'RESOLVE_RULE_OCCURRENCE',
-              occurrenceId: pending.occurrence.occurrenceId,
-              expectedOccurrenceVersion: pending.occurrence.occurrenceVersion,
-              correlationId: null,
-              resolution: {
-                kind: 'ENTER_INTEGER',
-                requestId: summary.requestId,
-                value: 0
-              }
-            }
-          })
-        ).rejects.toThrow(RoomCommandRefusal)
-        await expect(replayInRoom(owner.caller, rootInput)).resolves.toEqual(pending)
-        expect(await capture()).toEqual(before)
-        const settled = await executeInRoom(owner.caller, resolution)
-        expect(settled.projection).toMatchObject({
-          version: version + 1,
-          round: type === 'START' ? 1 : 2,
-          currentActorId: summary.optionIds[0]
-        })
-        expect(settled.occurrence?.status).toBe('COMPLETE')
-        version = settled.projection.version
-        const after = await capture()
-        await expect(replayInRoom(owner.caller, rootInput)).resolves.toEqual({
-          ...pending,
-          projection: settled.projection
-        })
-        await expect(replayInRoom(owner.caller, resolution)).resolves.toEqual(settled)
-        expect(await capture()).toEqual(after)
       }
-    } finally {
-      random.mockRestore()
+      await expectUnavailableRefusal(
+        executeInRoom(owner.caller, {
+          command: {
+            ...resolution.command,
+            resolution: {
+              kind: 'ENTER_INTEGER',
+              requestId: summary.requestId,
+              value: 0
+            }
+          }
+        }),
+        'Initiative evidence is unavailable.'
+      )
+      await expect(executeInRoom(owner.caller, rootInput)).resolves.toEqual(pending)
+      expect(await rows(base)).toEqual(before)
+      const settled = await executeInRoom(owner.caller, resolution)
+      expect(settled.projection).toMatchObject({
+        version: version + 1,
+        round: type === 'START' ? 1 : 2,
+        currentActorId: summary.optionIds[0]
+      })
+      expect(settled.occurrence?.status).toBe('COMPLETE')
+      version = settled.projection.version
+      const after = await rows(base)
+      await expect(executeInRoom(owner.caller, rootInput)).resolves.toEqual({
+        ...pending,
+        projection: settled.projection
+      })
+      await expect(executeInRoom(owner.caller, resolution)).resolves.toEqual(settled)
+      expect(await rows(base)).toEqual(after)
     }
   }, 30000)
 
   it('reevaluates an Automatic EACH_ROUND wrap and records both settlement and advance', async () => {
-    const { t, owner, run } = await setup({ automatic: true, eachRound: true })
+    const base = await setup({ automatic: true, eachRound: true })
+    const { owner, run } = base
     const started = await executeInRoom(owner.caller, {
       command: {
         type: 'START',
@@ -2007,31 +1798,15 @@ describe('native Encounter Run commands', () => {
       }
     })
     expect(advanced.projection).toMatchObject({ status: 'ACTIVE', round: 2 })
-    const receipt = await t.run(async (ctx) =>
-      (await readEncounterHistory(ctx)).query('encounterRuleReceipts').order('desc').first()
-    )
-    expect(JSON.parse(receipt?.resultJson ?? '')).toMatchObject({
-      commandType: 'ADVANCE_TURN',
-      initiative: { round: 2, cadence: 'EACH_ROUND' },
-      initiativeAdvance: {
-        kind: 'ROUND_WRAP',
-        cadence: 'EACH_ROUND',
-        nextRound: 2
-      }
-    })
-    const capture = () =>
-      t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        run: await ctx.db.query('encounterRuns').unique(),
-        rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-        participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-        sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-      }))
-    const originalTarget = (await capture()).rounds.find((row) => row.round === 2)!
+    // The wrap's receipt lives in the room until the Run ends. Its ROUND_WRAP `initiativeAdvance`
+    // (next round, first actor) and the command row are asserted in the real room by
+    // `apps/session-worker/test/nativeRoomTurnEffects.test.ts` ("a room ADVANCE_TURN that ends the
+    // round", ENCOUNTER_START cadence); the plan is also asserted where the turn is chosen
+    // (`packages/rules-runtime/src/__tests__/encounterTurnPreparation.test.ts:210-220`). Only the
+    // EACH_ROUND receipt itself is not asserted anywhere; here the new round is rolled and stored
+    // under that cadence.
+    const originalTarget = (await rows(base)).rounds.find((row) => row.round === 2)!
+    expect(originalTarget).toMatchObject({ cadence: 'EACH_ROUND', status: 'ACTIVE' })
     await executeInRoom(owner.caller, {
       command: {
         type: 'SET_ROUND',
@@ -2049,11 +1824,11 @@ describe('native Encounter Run commands', () => {
         expectedVersion: 3
       }
     }
-    const beforeRevisit = await capture()
-    expect(await capture()).toEqual(beforeRevisit)
+    const beforeRevisit = await rows(base)
+    expect(await rows(base)).toEqual(beforeRevisit)
     const revisited = await executeInRoom(owner.caller, revisit)
     expect(revisited.projection).toMatchObject({ round: 2, version: 4 })
-    const afterRevisit = await capture()
+    const afterRevisit = await rows(base)
     expect(afterRevisit.rounds.find((row) => row.round === 2)).toMatchObject({
       _id: originalTarget._id,
       createdAt: originalTarget.createdAt,
@@ -2065,123 +1840,56 @@ describe('native Encounter Run commands', () => {
         createdAt: previous.createdAt,
         version: previous.version + 1
       })
-    await expect(replayInRoom(owner.caller, revisit)).resolves.toEqual(revisited)
-    expect(await capture()).toEqual(afterRevisit)
+    await expect(executeInRoom(owner.caller, revisit)).resolves.toEqual(revisited)
+    expect(await rows(base)).toEqual(afterRevisit)
   }, 30000)
 
   it('pauses an Assisted EACH_ROUND wrap without moving the source cursor, then resolves and replays', async () => {
-    const { t, owner, run } = await setup({ assisted: true, eachRound: true })
-    const startedPending = await executeInRoom(owner.caller, {
-      command: {
-        type: 'START',
-        encounterId: run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: 0
-      }
-    })
-    let started = startedPending
-    for (const value of [12, 11])
-      started = await executeInRoom(owner.caller, assistedResolution(started, 0, value))
-    expect(started.projection).toMatchObject({ version: 1, status: 'ACTIVE' })
-    const first = await executeInRoom(owner.caller, {
-      command: {
-        type: 'ADVANCE_TURN',
-        encounterId: run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: 1
-      }
-    })
-    const wrapInput: EncounterExecuteInput = {
-      command: {
-        type: 'ADVANCE_TURN',
-        encounterId: run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: 2
-      }
-    }
-    const pending = await executeInRoom(owner.caller, wrapInput)
-    expect(pending).toMatchObject({
-      projection: {
-        version: 2,
-        round: 1,
-        currentActorId: first.projection.currentActorId
-      },
-      occurrence: { status: 'PENDING' }
-    })
-    const capture = () =>
-      t.run(async (ctx) => ({
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        run: await ctx.db.query('encounterRuns').unique(),
-        rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-        participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-        sides: await ctx.db.query('encounterInitiativeSides').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect()
-      }))
-    const before = await capture()
-    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual(pending)
-    expect(await capture()).toEqual(before)
+    const base = await setup({ assisted: true, eachRound: true })
+    const { owner, run } = base
+    const { first, wrapInput, pending } = await pauseAssistedWrap(base)
+    const before = await rows(base)
+    await expect(executeInRoom(owner.caller, wrapInput)).resolves.toEqual(pending)
+    expect(await rows(base)).toEqual(before)
     const firstResolution = assistedResolution(pending, 2, 9)
-    const source = before.rounds.find((row) => row.round === 1)!
-    await t.run((ctx) => ctx.db.patch(source._id, { version: source.version + 1 }))
-    const corrupt = await capture()
-    await expectRedactedRoomRefusal(
-      executeInRoom(owner.caller, firstResolution),
-      'Initiative outgoing advancement is stale.'
-    )
-    expect(await capture()).toEqual(corrupt)
-    await t.run((ctx) => ctx.db.patch(source._id, { version: source.version }))
-    await expect(
-      executeInRoom(owner.caller, {
-        command: {
-          type: 'SET_ROUND',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 2,
-          round: 3
-        }
-      })
-    ).rejects.toThrow('awaiting resolution')
-    expect(await capture()).toEqual(before)
+    expect(
+      await rejection(
+        executeInRoom(owner.caller, {
+          command: {
+            type: 'SET_ROUND',
+            encounterId: run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: 2,
+            round: 3
+          }
+        })
+      )
+    ).toMatchObject({
+      reason: 'PENDING_DECISION',
+      message: 'An Encounter rule occurrence is awaiting resolution.'
+    })
+    expect(await rows(base)).toEqual(before)
     const secondPending = await executeInRoom(owner.caller, firstResolution)
     const terminalInput = assistedResolution(secondPending, 2, 8)
-    const beforeTerminal = await capture()
-    expect(await capture()).toEqual(beforeTerminal)
     const settled = await executeInRoom(owner.caller, terminalInput)
     expect(settled.projection).toMatchObject({
       status: 'ACTIVE',
       version: 3,
       round: 2
     })
-    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual({
+    expect(first.projection.currentActorId).not.toBe(settled.projection.currentActorId)
+    await expect(executeInRoom(owner.caller, wrapInput)).resolves.toEqual({
       ...pending,
       projection: settled.projection
     })
-    const after = await t.run(async (ctx) => ({
-      run: await ctx.db.query('encounterRuns').unique(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      receipt: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRuleReceipts')
-        .order('desc')
-        .first()
-    }))
-    expect(before.run?.version).toBe(2)
+    const after = await rows(base)
+    expect(before.runs[0]?.version).toBe(2)
     expect(after.rounds).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ round: 1, status: 'COMPLETED' }),
-        expect.objectContaining({ round: 2, status: 'ACTIVE' })
+        expect.objectContaining({ round: 2, status: 'ACTIVE', cadence: 'EACH_ROUND' })
       ])
     )
-    expect(JSON.parse(after.receipt?.resultJson ?? '')).toMatchObject({
-      commandType: 'ADVANCE_TURN',
-      initiative: { round: 2, cadence: 'EACH_ROUND' },
-      initiativeAdvance: { kind: 'ROUND_WRAP', cadence: 'EACH_ROUND' }
-    })
     const corrected = await executeInRoom(owner.caller, {
       command: {
         type: 'SET_ROUND',
@@ -2191,25 +1899,45 @@ describe('native Encounter Run commands', () => {
         round: 3
       }
     })
-    const beforeReplay = await capture()
-    await expect(replayInRoom(owner.caller, wrapInput)).resolves.toEqual({
+    const beforeReplay = await rows(base)
+    await expect(executeInRoom(owner.caller, wrapInput)).resolves.toEqual({
       ...pending,
       projection: corrected.projection
     })
-    await expect(replayInRoom(owner.caller, terminalInput)).resolves.toMatchObject({
+    await expect(executeInRoom(owner.caller, terminalInput)).resolves.toMatchObject({
       projection: corrected.projection,
       occurrence: settled.occurrence
     })
-    expect(await capture()).toEqual(beforeReplay)
+    expect(await rows(base)).toEqual(beforeReplay)
+  }, 30000)
+
+  it('refuses a paused Assisted wrap whose source round moved, then resolves once it is restored', async () => {
+    const base = await setup({ assisted: true, eachRound: true })
+    const { t, owner } = base
+    const { pending } = await pauseAssistedWrap(base)
+    const before = await rows(base)
+    const firstResolution = assistedResolution(pending, 2, 9)
+    const source = before.rounds.find((row) => row.round === 1)!
+    // The room holds the Run, so Convex's copy is changed only after the room releases it.
+    await closeRoom(base.campaign.id)
+    await t.run((ctx) => ctx.db.patch(source._id, { version: source.version + 1 }))
+    const corrupt = await rows(base)
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, firstResolution),
+      'Initiative outgoing advancement is stale.'
+    )
+    expect(await rows(base)).toEqual(corrupt)
+    await t.run((ctx) => ctx.db.patch(source._id, { version: source.version }))
+    const secondPending = await executeInRoom(owner.caller, firstResolution)
+    const settled = await executeInRoom(owner.caller, assistedResolution(secondPending, 2, 8))
+    expect(settled.projection).toMatchObject({ status: 'ACTIVE', version: 3, round: 2 })
   }, 30000)
 
   it('rolls Creature initiative with its authoritative modifier and rejects stale source identity', async () => {
-    const { t, owner, run } = await setup({ automatic: true })
+    const base = await setup({ automatic: true })
+    const { t, owner, campaign, run } = base
     const actor = run.actors[0]!
-    const getRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = 4
-      return array
-    })
+    await queueRoomRolls(campaign.id, { rolls: [4] })
     const rolled = await executeInRoom(owner.caller, {
       command: {
         type: 'ROLL_ACTOR_INITIATIVE',
@@ -2219,7 +1947,6 @@ describe('native Encounter Run commands', () => {
         actorId: actor.id
       }
     })
-    getRandomValues.mockRestore()
     // The log records the roll as made: 1d20 plus the initiative modifier.
     expect(rolled.roll).toMatchObject({
       characterId: null,
@@ -2231,16 +1958,10 @@ describe('native Encounter Run commands', () => {
     expect(rolled.projection.actors).toContainEqual(
       expect.objectContaining({ id: actor.id, initiative: 7 })
     )
-    const stored = await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique()
-      if (!row) throw new Error('Missing Creature actor.')
-      return JSON.parse(row.stateJson) as { initiative: number }
-    })
-    expect(stored.initiative).toBe(7)
+    expect((await actorState(base, actor.id)).initiative).toBe(7)
 
+    // The room holds the Run, so Convex's copy is changed only after the room releases it.
+    await closeRoom(campaign.id)
     await t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRunActors')
@@ -2252,7 +1973,7 @@ describe('native Encounter Run commands', () => {
       snapshot.sourceRevision += 1
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, state)
     })
-    await expect(
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           type: 'ROLL_ACTOR_INITIATIVE',
@@ -2261,18 +1982,17 @@ describe('native Encounter Run commands', () => {
           expectedVersion: 1,
           actorId: actor.id
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-  })
+      }),
+      'Encounter initiative actor source identity is stale.'
+    )
+  }, 30000)
 
   it('rolls Character initiative with its effective modifier and rejects stale source identity', async () => {
-    const { t, owner, run, character } = await setupCharacterAutomatic()
+    const base = await setupCharacterAutomatic()
+    const { t, owner, campaign, run, character } = base
     const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
     if (!actor) throw new Error('Missing Character actor.')
-    const getRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = 4
-      return array
-    })
+    await queueRoomRolls(campaign.id, { rolls: [4] })
     const rolled = await executeInRoom(owner.caller, {
       command: {
         type: 'ROLL_ACTOR_INITIATIVE',
@@ -2282,7 +2002,6 @@ describe('native Encounter Run commands', () => {
         actorId: actor.id
       }
     })
-    getRandomValues.mockRestore()
     expect(rolled.roll).toMatchObject({
       characterId: character.id,
       characterLabel: actor.label,
@@ -2293,16 +2012,9 @@ describe('native Encounter Run commands', () => {
     expect(rolled.projection.actors).toContainEqual(
       expect.objectContaining({ id: actor.id, initiative: 7 })
     )
-    const stored = await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actor.id))
-        .unique()
-      if (!row) throw new Error('Missing Character actor.')
-      return JSON.parse(row.stateJson) as { initiative: number }
-    })
-    expect(stored.initiative).toBe(7)
+    expect((await actorState(base, actor.id)).initiative).toBe(7)
 
+    await closeRoom(campaign.id)
     await t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRunActors')
@@ -2314,7 +2026,7 @@ describe('native Encounter Run commands', () => {
       snapshot.id = crypto.randomUUID()
       await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, state)
     })
-    await expect(
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           type: 'ROLL_ACTOR_INITIATIVE',
@@ -2323,23 +2035,20 @@ describe('native Encounter Run commands', () => {
           expectedVersion: 1,
           actorId: actor.id
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-  })
+      }),
+      'Encounter initiative actor source identity is stale.'
+    )
+  }, 30000)
 
   it('rolls initiative with advantage for a Character with Feral Instinct', async () => {
     const feralInstinct = barbarian.features?.find((feature) => feature.label === 'Feral Instinct')
     if (!feralInstinct) throw new Error('Missing SRD Feral Instinct.')
-    const { owner, run } = await setupCharacterAutomatic({
+    const { owner, campaign, run } = await setupCharacterAutomatic({
       features: [{ ...feralInstinct, availableAtLevel: 1, effects: [] }]
     })
     const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
     if (!actor) throw new Error('Missing Character actor.')
-    const faces = [2, 15]
-    const getRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = faces.shift() ?? 0
-      return array
-    })
+    await queueRoomRolls(campaign.id, { rolls: [2, 15] })
     const rolled = await executeInRoom(owner.caller, {
       command: {
         type: 'ROLL_ACTOR_INITIATIVE',
@@ -2349,7 +2058,6 @@ describe('native Encounter Run commands', () => {
         actorId: actor.id
       }
     })
-    getRandomValues.mockRestore()
     // Two d20s (3 and 16), keeping the higher, plus the +2 initiative modifier.
     expect(rolled.roll?.evidence).toMatchObject({
       mode: 'ADVANTAGE',
@@ -2360,10 +2068,11 @@ describe('native Encounter Run commands', () => {
     expect(rolled.projection.actors).toContainEqual(
       expect.objectContaining({ id: actor.id, initiative: 18 })
     )
-  })
+  }, 30000)
 
   it('starts a Manual Run through normalized initiative and replays the terminal command', async () => {
-    const { t, owner, run } = await setup({ manual: true })
+    const base = await setup({ manual: true })
+    const { owner, campaign, run } = base
     const actorId = run.actors[0]!.id
     const setInitiative: EncounterExecuteInput = {
       command: {
@@ -2381,12 +2090,11 @@ describe('native Encounter Run commands', () => {
       version: 1,
       actors: [{ id: actorId, initiative: 15, manualOrder: 0 }]
     })
-    const commandId = crypto.randomUUID()
     const input: EncounterExecuteInput = {
       command: {
         type: 'START',
         encounterId: run.id,
-        commandId,
+        commandId: crypto.randomUUID(),
         expectedVersion: 1
       }
     }
@@ -2404,20 +2112,7 @@ describe('native Encounter Run commands', () => {
       occurrence: null
     })
 
-    const stored = await t.run(async (ctx) => ({
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect(),
-      sides: await ctx.db.query('encounterInitiativeSides').collect(),
-      occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      ruleReceipts: await (
-        await readEncounterHistory(ctx)
-      )
-        .query('encounterRuleReceipts')
-        .collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-    }))
+    const stored = await rows(base)
     expect(stored.rounds).toHaveLength(1)
     expect(stored.rounds[0]).toMatchObject({
       encounterId: run.id,
@@ -2439,29 +2134,33 @@ describe('native Encounter Run commands', () => {
     })
     expect(stored.sides).toHaveLength(0)
     expect(stored.occurrences).toHaveLength(1)
-    expect(stored.ruleReceipts).toHaveLength(1)
-    expect(stored.commands).toHaveLength(3)
+    // The receipt and command rows live in the room; the room committed both commands.
+    expect(await committedTypes(base)).toEqual(['SET_INITIATIVE', 'START'])
 
-    await expect(replayInRoom(owner.caller, setInitiative)).resolves.toEqual({
+    await expect(executeInRoom(owner.caller, setInitiative)).resolves.toEqual({
       ...set,
       projection: started.projection
     })
 
-    const rollCommandId = crypto.randomUUID()
-    const getRandomValues = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      ;(array as Uint32Array)[0] = 4
-      return array
-    })
+    const rollInput = {
+      command: {
+        type: 'ROLL_ACTOR_INITIATIVE' as const,
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 2,
+        actorId
+      }
+    }
+    await queueRoomRolls(campaign.id, { rolls: [4], repeat: 0 })
+    // The wire schema lowercases ids before the room sees them, so mixed-case ids reach it normalized.
     const rolled = await executeInRoom(owner.caller, {
       command: {
-        type: 'ROLL_ACTOR_INITIATIVE',
+        ...rollInput.command,
         encounterId: run.id.toUpperCase(),
-        commandId: rollCommandId.toUpperCase(),
-        expectedVersion: 2,
+        commandId: rollInput.command.commandId.toUpperCase(),
         actorId: actorId.toUpperCase()
       }
     })
-    getRandomValues.mockRestore()
     expect(rolled.roll).toMatchObject({
       characterId: null,
       characterLabel: run.actors[0]!.label,
@@ -2476,54 +2175,27 @@ describe('native Encounter Run commands', () => {
       version: 3,
       actors: [{ id: actorId, initiative: 5, manualOrder: 0 }]
     })
-    const afterRoll = await t.run(async (ctx) => ({
-      actor: await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id).eq('id', actorId))
-        .unique(),
-      participants: await ctx.db.query('encounterInitiativeParticipants').collect()
-    }))
-    expect(JSON.parse(afterRoll.actor!.stateJson)).toMatchObject({
-      initiative: 5,
-      manualOrder: 0
-    })
-    expect(afterRoll.participants[0]).toMatchObject({
+    expect((await actorState(base, actorId)).initiative).toBe(5)
+    expect((await actorState(base, actorId)).manualOrder).toBe(0)
+    expect((await rows(base)).participants[0]).toMatchObject({
       initiativeScore: null,
       turnOrderOrdinal: 0
     })
-    const timeline = await readTimelineInRoom(owner.caller, run.id)
-    expect(timeline.entries).toContainEqual(
+    expect(await readRoomTimeline(owner.caller, campaign.id)).toContainEqual(
       expect.objectContaining({
         commandType: 'ROLL_ACTOR_INITIATIVE',
         roll: rolled.roll
       })
     )
-    let entropyDraws = 0
-    const replayRandom = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
-      entropyDraws += 1
-      ;(array as Uint32Array)[0] = 19
-      return array
-    })
-    await expect(
-      replayInRoom(owner.caller, {
-        command: {
-          type: 'ROLL_ACTOR_INITIATIVE',
-          encounterId: run.id,
-          commandId: rollCommandId,
-          expectedVersion: 2,
-          actorId
-        }
-      })
-    ).resolves.toEqual(rolled)
-    replayRandom.mockRestore()
-    expect(entropyDraws).toBe(0)
+    // The retry answers from the receipt: a re-rolled die (19) would differ from the recorded 5.
+    await queueRoomRolls(campaign.id, { rolls: [19], repeat: 19 })
+    await expect(executeInRoom(owner.caller, rollInput)).resolves.toEqual(rolled)
 
-    const completeCommandId = crypto.randomUUID()
     const completeInput: EncounterExecuteInput = {
       command: {
         type: 'COMPLETE',
         encounterId: run.id,
-        commandId: completeCommandId,
+        commandId: crypto.randomUUID(),
         expectedVersion: 3
       }
     }
@@ -2534,25 +2206,28 @@ describe('native Encounter Run commands', () => {
       currentActorId: null
     })
     // COMPLETE drops the initiative rows with the rest of the Run's children (Amendment 30).
-    expect(
-      await t.run(async (ctx) => ({
-        rounds: await ctx.db.query('encounterInitiativeRounds').collect(),
-        participants: await ctx.db.query('encounterInitiativeParticipants').collect()
-      }))
-    ).toEqual({ rounds: [], participants: [] })
-    await expect(replayInRoom(owner.caller, completeInput)).resolves.toEqual(completed)
+    const afterComplete = await rows(base)
+    expect({
+      rounds: afterComplete.rounds,
+      participants: afterComplete.participants
+    }).toEqual({ rounds: [], participants: [] })
+    await expect(executeInRoom(owner.caller, completeInput)).resolves.toEqual(completed)
 
-    // The wire schema lowercases ids before the room sees them, so the retry arrives normalized.
-    await expect(replayInRoom(owner.caller, input)).resolves.toEqual({
+    await expect(executeInRoom(owner.caller, input)).resolves.toEqual({
       ...started,
       projection: completed.projection
     })
-    await expect(
-      executeInRoom(owner.caller, {
-        command: { ...input.command, commandId: crypto.randomUUID() }
-      })
-    ).rejects.toThrow('Completed Encounters are read-only.')
-  })
+    expect(
+      await rejection(
+        executeInRoom(owner.caller, {
+          command: { ...input.command, commandId: crypto.randomUUID() }
+        })
+      )
+    ).toMatchObject({
+      reason: 'ENCOUNTER_NOT_ACTIVE',
+      message: 'Completed Encounters are read-only.'
+    })
+  }, 30000)
 
   it('adds, edits, removes, and orders reminders while advancing once per command', async () => {
     const { owner, run } = await setup()
@@ -2615,7 +2290,8 @@ describe('native Encounter Run commands', () => {
   }, 30000)
 
   it('replays a receipt after later reminder writes and rejects changed expectedVersion', async () => {
-    const { t, owner, campaign, run } = await setup()
+    const base = await setup()
+    const { t, owner, campaign, run } = base
     const command = upsert(run.id, 0, {
       label: 'Replay me',
       timing: 'ROUND_START',
@@ -2638,15 +2314,18 @@ describe('native Encounter Run commands', () => {
         order: 0
       })
     )
-    expect(await replayInRoom(owner.caller, command)).toEqual({
+    expect(await executeInRoom(owner.caller, command)).toEqual({
       ...original,
       projection: later.projection
     })
-    await expect(
+    // The same command ID with another expected version is different input, not a stale write.
+    await expectReusedCommandRefusal(
       executeInRoom(owner.caller, {
         command: { ...command.command, expectedVersion: 999 }
       })
-    ).rejects.toThrow()
+    )
+    // The room holds the Run and its members, so Convex's membership is changed only after it releases them.
+    await closeRoom(campaign.id)
     await t.run(async (ctx) => {
       const membership = await ctx.db
         .query('campaignMemberships')
@@ -2660,7 +2339,7 @@ describe('native Encounter Run commands', () => {
         leftAt: new Date().toISOString()
       })
     })
-    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(RoomCommandRefusal)
+    await expect(executeInRoom(owner.caller, command)).rejects.toThrow('Campaign not found.')
   }, 30000)
 
   it('treats UUID casing as equivalent for the Run, command, reminder, and actor IDs', async () => {
@@ -2696,7 +2375,8 @@ describe('native Encounter Run commands', () => {
   }, 30000)
 
   it('replaces the prepared Run optional-combat snapshot without changing Campaign settings', async () => {
-    const { t, owner, campaign, run } = await setup()
+    const base = await setup()
+    const { t, owner, campaign, run } = base
     const optional = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
@@ -2705,6 +2385,8 @@ describe('native Encounter Run commands', () => {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions: [optional]
     })
+    // The room reads the content snapshots that are current when it first activates.
+    await seedRoomContentSnapshots(campaign.id)
     const settings = await owner.caller.query(getPlaySettings, {
       campaignId: campaign.id
     })
@@ -2723,18 +2405,18 @@ describe('native Encounter Run commands', () => {
       optionalCombatRules: [{ definitionId: optional.id, label: optional.label, kind: 'DISARM' }]
     })
     expect(await owner.caller.query(getPlaySettings, { campaignId: campaign.id })).toEqual(settings)
-    const stored = (await runs(t))[0]
-    if (!stored) throw new Error('Missing Encounter Run.')
-    const state = encounterRunStateSchema.parse(JSON.parse(stored.stateJson))
+    const stored = await rows(base)
+    const storedRun = stored.runs[0]
+    if (!storedRun) throw new Error('Missing Encounter Run.')
+    const state = encounterRunStateSchema.parse(JSON.parse(storedRun.stateJson))
     expect(state.optionalCombatSnapshot.definitions[0]).toMatchObject({
       definitionId: optional.id
     })
     expect(state.optionalCombatSnapshotChecksum).toBe(
       checksumCanonicalJson(state.optionalCombatSnapshot)
     )
-    const receiptCount = (await receipts(t)).length
     await expect(
-      replayInRoom(owner.caller, {
+      executeInRoom(owner.caller, {
         command: {
           ...command.command,
           encounterId: run.id,
@@ -2743,7 +2425,8 @@ describe('native Encounter Run commands', () => {
         }
       })
     ).resolves.toEqual(result)
-    expect((await receipts(t)).length).toBe(receiptCount)
+    expect(await rows(base)).toEqual(stored)
+    // Convex owns this policy-source check, so it stays a direct call.
     await expect(
       t.run(async (ctx) => {
         const row = await ctx.db
@@ -2757,7 +2440,8 @@ describe('native Encounter Run commands', () => {
   }, 30000)
 
   it('replaces optional combat rules while active and rejects invalid or stale replacements', async () => {
-    const { t, owner, run } = await setup({ automatic: true })
+    const base = await setup({ automatic: true })
+    const { t, owner, campaign, run } = base
     const optional = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
@@ -2766,6 +2450,7 @@ describe('native Encounter Run commands', () => {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions: [optional]
     })
+    await seedRoomContentSnapshots(campaign.id)
     const startInput: EncounterExecuteInput = {
       command: {
         type: 'START',
@@ -2776,9 +2461,14 @@ describe('native Encounter Run commands', () => {
     }
     const started = await executeInRoom(owner.caller, startInput)
     expect(started.projection.status).toBe('ACTIVE')
-    const startedState = encounterRunStateSchema.parse(JSON.parse((await runs(t))[0]!.stateJson))
+    await expect(executeInRoom(owner.caller, startInput)).resolves.toEqual(started)
+    const startedState = encounterRunStateSchema.parse(
+      JSON.parse((await rows(base)).runs[0]!.stateJson)
+    )
     const evaluationGraphId = startedState.initiativePolicySnapshot?.evaluationGraph.definitionId
     if (!evaluationGraphId) throw new Error('Missing frozen initiative graph.')
+    // The room holds the Run and its content, so the new revision is published once it releases them.
+    await closeRoom(campaign.id)
     await t.run(async (ctx) => {
       const graph = await ctx.db
         .query('reusableDefinitions')
@@ -2793,7 +2483,8 @@ describe('native Encounter Run commands', () => {
         publishedBy: srdSystemRecord.userId
       })
     })
-    const replaced = await executeInRoom(owner.caller, {
+    await seedRoomContentSnapshots(campaign.id)
+    const replaceInput: EncounterExecuteInput = {
       command: {
         type: 'REPLACE_OPTIONAL_COMBAT_RULES',
         encounterId: run.id,
@@ -2801,17 +2492,15 @@ describe('native Encounter Run commands', () => {
         expectedVersion: 1,
         definitionIds: [optional.id]
       }
-    })
+    }
+    const replaced = await executeInRoom(owner.caller, replaceInput)
     expect(replaced.projection).toMatchObject({
       version: 2,
       optionalCombatRules: [{ definitionId: optional.id, kind: 'DISARM' }]
     })
-    await expect(replayInRoom(owner.caller, startInput)).resolves.toEqual({
-      ...started,
-      projection: replaced.projection
-    })
-    const before = { receipts: await receipts(t), runs: await runs(t) }
-    await expect(
+    await expect(executeInRoom(owner.caller, replaceInput)).resolves.toEqual(replaced)
+    const before = await rows(base)
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           type: 'REPLACE_OPTIONAL_COMBAT_RULES',
@@ -2820,44 +2509,53 @@ describe('native Encounter Run commands', () => {
           expectedVersion: 2,
           definitionIds: [crypto.randomUUID()]
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    await expect(
-      executeInRoom(owner.caller, {
-        command: {
-          type: 'REPLACE_OPTIONAL_COMBAT_RULES',
-          encounterId: run.id,
-          commandId: crypto.randomUUID(),
-          expectedVersion: 1,
-          definitionIds: []
-        }
-      })
-    ).rejects.toThrow('Encounter version is stale.')
-    expect({ receipts: await receipts(t), runs: await runs(t) }).toEqual(before)
+      }),
+      'Optional combat definition is not currently available.'
+    )
+    expect(
+      await rejection(
+        executeInRoom(owner.caller, {
+          command: {
+            type: 'REPLACE_OPTIONAL_COMBAT_RULES',
+            encounterId: run.id,
+            commandId: crypto.randomUUID(),
+            expectedVersion: 1,
+            definitionIds: []
+          }
+        })
+      )
+    ).toMatchObject({ reason: 'VERSION_STALE', message: 'Encounter version is stale.' })
+    expect(await rows(base)).toEqual(before)
   }, 30000)
 
   it('rejects conflicting shared command IDs across CREATE and Runs', async () => {
     const first = await setup()
-    await expect(
-      executeInRoom(first.owner.caller, {
-        command: {
-          ...upsert(first.run.id, 0, {
-            label: 'Conflict',
-            timing: 'ROUND_START',
-            round: null,
-            actorId: null,
-            public: false,
-            notes: null,
-            order: 0
-          }).command,
-          commandId: first.createCommandId
-        }
-      })
-    ).rejects.toThrow()
+    // The second Run exists before the room's first command, so the room hydrates both.
     const secondRun = await first.owner.caller.mutation(createRun, {
       campaignId: first.campaign.id,
       blueprintId: first.blueprint.id,
       commandId: crypto.randomUUID()
+    })
+    expect(
+      await rejection(
+        executeInRoom(first.owner.caller, {
+          command: {
+            ...upsert(first.run.id, 0, {
+              label: 'Conflict',
+              timing: 'ROUND_START',
+              round: null,
+              actorId: null,
+              public: false,
+              notes: null,
+              order: 0
+            }).command,
+            commandId: first.createCommandId
+          }
+        })
+      )
+    ).toMatchObject({
+      reason: 'COMMAND_ID_REUSED',
+      message: 'Command ID was already used with different input.'
     })
     const command = upsert(
       first.run.id,
@@ -2874,32 +2572,34 @@ describe('native Encounter Run commands', () => {
       crypto.randomUUID()
     )
     await executeInRoom(first.owner.caller, command)
-    await expect(
+    await expectReusedCommandRefusal(
       executeInRoom(first.owner.caller, {
         command: { ...command.command, encounterId: secondRun.id }
       })
-    ).rejects.toThrow()
+    )
   }, 30000)
 
   it('rejects stale, unknown-actor, and missing-reminder commands without writes', async () => {
-    const { t, owner, run } = await setup()
-    const before = await receipts(t)
-    const runsBefore = await runs(t)
-    await expect(
-      executeInRoom(
-        owner.caller,
-        upsert(run.id, 1, {
-          label: 'Stale',
-          timing: 'ROUND_START',
-          round: null,
-          actorId: null,
-          public: false,
-          notes: null,
-          order: 0
-        })
+    const base = await setup()
+    const { owner, run } = base
+    const before = await rows(base)
+    expect(
+      await rejection(
+        executeInRoom(
+          owner.caller,
+          upsert(run.id, 1, {
+            label: 'Stale',
+            timing: 'ROUND_START',
+            round: null,
+            actorId: null,
+            public: false,
+            notes: null,
+            order: 0
+          })
+        )
       )
-    ).rejects.toThrow()
-    await expect(
+    ).toMatchObject({ reason: 'VERSION_STALE', message: 'Encounter version is stale.' })
+    await expectUnavailableRefusal(
       executeInRoom(
         owner.caller,
         upsert(run.id, 0, {
@@ -2911,17 +2611,19 @@ describe('native Encounter Run commands', () => {
           notes: null,
           order: 0
         })
-      )
-    ).rejects.toThrow()
-    await expect(
-      executeInRoom(owner.caller, remove(run.id, 0, crypto.randomUUID()))
-    ).rejects.toThrow()
-    expect(await receipts(t)).toEqual(before)
-    expect(await runs(t)).toEqual(runsBefore)
+      ),
+      'Encounter actor was not found.'
+    )
+    await expectUnavailableRefusal(
+      executeInRoom(owner.caller, remove(run.id, 0, crypto.randomUUID())),
+      'Encounter reminder was not found.'
+    )
+    expect(await rows(base)).toEqual(before)
   }, 30000)
 
   it('rejects anonymous, player, revoked, archived, and completed-run commands', async () => {
-    const { t, owner, other, campaign, run } = await setup()
+    const base = await setup()
+    const { t, owner, other, campaign, run } = base
     const command = upsert(run.id, 0, {
       label: 'Denied',
       timing: 'ROUND_START',
@@ -2931,44 +2633,42 @@ describe('native Encounter Run commands', () => {
       notes: null,
       order: 0
     })
-    await expect(executeInRoom(t, command)).rejects.toThrow('Unauthenticated')
-    await expect(executeInRoom(other.caller, command)).rejects.toThrow()
-    const membershipId = await t.run((ctx) =>
-      ctx.db.insert('campaignMemberships', {
-        campaignId: campaign.id,
-        userId: other.userId,
-        role: 'PLAYER',
-        status: 'ACTIVE',
-        accessStartedAt: campaign.createdAt,
-        joinedAt: campaign.createdAt,
-        leftAt: null
-      })
-    )
-    await expect(executeInRoom(other.caller, command)).rejects.toThrow()
+    await expect(
+      roomDevelopmentClient(null).mutation(
+        executeEncounterCommand,
+        encounterExecuteInputSchema.parse(command)
+      )
+    ).rejects.toThrow('Unauthenticated')
+    // Not a member yet: the Campaign is hidden from this caller.
+    await expect(executeInRoom(other.caller, command)).rejects.toThrow('Campaign not found.')
+    const membershipId = await addPlayer(base, other.userId)
+    await invalidateRoomInputs(campaign.id, ['CAMPAIGN'])
+    await expect(executeInRoom(other.caller, command)).rejects.toThrow('Encounter is unavailable.')
     await t.run((ctx) =>
       ctx.db.patch(membershipId, {
         status: 'LEFT',
         leftAt: new Date().toISOString()
       })
     )
-    await expect(executeInRoom(other.caller, command)).rejects.toThrow()
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
-        .unique()
-      if (!row) throw new Error('Missing Campaign.')
-      await ctx.db.patch(row._id, { status: 'ARCHIVED' })
-    })
-    await expect(executeInRoom(owner.caller, command)).rejects.toThrow()
-    await t.run(async (ctx) => {
-      const row = await ctx.db
-        .query('campaigns')
-        .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
-        .unique()
-      if (!row) throw new Error('Missing Campaign.')
-      await ctx.db.patch(row._id, { status: 'ACTIVE' })
-    })
+    await invalidateRoomInputs(campaign.id, ['CAMPAIGN'])
+    await expect(executeInRoom(other.caller, command)).rejects.toThrow('Campaign not found.')
+    const setCampaignStatus = (status: 'ARCHIVED' | 'ACTIVE') =>
+      t.run(async (ctx) => {
+        const row = await ctx.db
+          .query('campaigns')
+          .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+          .unique()
+        if (!row) throw new Error('Missing Campaign.')
+        await ctx.db.patch(row._id, { status })
+      })
+    await setCampaignStatus('ARCHIVED')
+    await invalidateRoomInputs(campaign.id, ['CAMPAIGN'])
+    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(
+      'Archived Campaigns are read-only.'
+    )
+    await setCampaignStatus('ACTIVE')
+    await invalidateRoomInputs(campaign.id, ['CAMPAIGN'])
+    await closeRoom(campaign.id)
     await t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -2986,13 +2686,14 @@ describe('native Encounter Run commands', () => {
         stateChecksum: checksumCanonicalJson(completed)
       })
     })
-    await expect(executeInRoom(owner.caller, command)).rejects.toThrow(
-      'Completed Encounters are read-only.'
-    )
+    expect(await rejection(executeInRoom(owner.caller, command))).toMatchObject({
+      reason: 'ENCOUNTER_NOT_ACTIVE',
+      message: 'Completed Encounters are read-only.'
+    })
   }, 30000)
 
   it('rejects corrupt Run state', async () => {
-    const { t, owner, run } = await setup()
+    const { t, owner, campaign, run } = await setup()
     const command = upsert(run.id, 0, {
       label: 'Corrupt',
       timing: 'ROUND_START',
@@ -3003,6 +2704,11 @@ describe('native Encounter Run commands', () => {
       order: 0
     })
     const original = await executeInRoom(owner.caller, command)
+    expect(original.projection.version).toBe(1)
+    // The room serves an exact retry from its history while the Run is unchanged.
+    await expect(executeInRoom(owner.caller, command)).resolves.toEqual(original)
+    // The room holds the Run, so Convex's copy is corrupted only after it releases it.
+    await closeRoom(campaign.id)
     await t.run(async (ctx) => {
       const row = await ctx.db
         .query('encounterRuns')
@@ -3011,17 +2717,15 @@ describe('native Encounter Run commands', () => {
       if (!row) throw new Error('Missing Run.')
       await ctx.db.patch(row._id, { stateChecksum: '0'.repeat(64) })
     })
-    await expect(
+    await expectUnavailableRefusal(
       executeInRoom(owner.caller, {
         command: {
           ...command.command,
           commandId: crypto.randomUUID(),
           expectedVersion: 1
         }
-      })
-    ).rejects.toThrow(RoomCommandRefusal)
-    // The room journal, not the Convex receipt record, serves an exact retry.
-    await expect(executeInRoom(owner.caller, command)).resolves.toEqual(original)
-    expect(original.projection.version).toBe(1)
+      }),
+      'Stored Encounter policy snapshot mismatch.'
+    )
   }, 30000)
 })

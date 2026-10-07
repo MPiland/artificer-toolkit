@@ -10,7 +10,14 @@ vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useConvex: () => client
 }))
-vi.mock('#app/data/imports/importClient', () => mocks)
+vi.mock('#app/data/imports/importClient', async () => {
+  const { artificerPortableContentDtoSchema } =
+    await import('@artificer-toolkit/schema/api/imports')
+  return {
+    exportAuthoredContent: async (...args: unknown[]) =>
+      artificerPortableContentDtoSchema.parse(await mocks.exportAuthoredContent(...args))
+  }
+})
 
 describe('useAuthoredExportAction', () => {
   beforeEach(() => {

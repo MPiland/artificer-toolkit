@@ -197,7 +197,14 @@ describe('native character sheet mutations', () => {
         { id: 'public-alias', slice: 'ACTIONS' },
         expect.objectContaining({
           data: expect.objectContaining({
-            resources: { items: [expect.objectContaining({ used: 1, remaining: 0 })] }
+            resources: {
+              items: [
+                expect.objectContaining({
+                  used: sheet.resources.items[0]!.used + 1,
+                  remaining: sheet.resources.items[0]!.remaining - 1
+                })
+              ]
+            }
           })
         })
       )

@@ -15,7 +15,7 @@ import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReader
 import { importedSubject } from '../../tests/fixtures/publication'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { api, components, internal } from '../_generated/api'
-import { inProcessDevelopmentClient } from '../../tests/fixtures/liveSessionWorker'
+import { convexDevelopmentClient } from '../../tests/fixtures/convexDevelopmentClient'
 
 const removeFixtureState = makeFunctionReference<
   'mutation',
@@ -90,8 +90,8 @@ it('proves the authenticated Campaign inventory subset through public handlers',
       leftAt: null
     })
   )
-  const client = inProcessDevelopmentClient
-  const anonymous = inProcessDevelopmentClient(base.t)
+  const client = convexDevelopmentClient
+  const anonymous = convexDevelopmentClient(base.t)
   await verifyCampaignInventory({
     owner: client(base.other.caller),
     player: client(base.owner.caller),

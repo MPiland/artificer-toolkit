@@ -180,7 +180,6 @@ describe('character sheet command contracts', () => {
               kind: 'BONUS_ACTION',
               sourceLabel: 'Fighter',
               description: '<p>Regain hit points.</p>',
-              rollable: true,
               availability: { status: 'AVAILABLE' },
               mechanic: {
                 effectId: 'effect-second-wind',

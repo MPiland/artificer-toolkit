@@ -1,19 +1,25 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import {
+  readCheckpointedHitPoints,
+  readCheckpointedTokenPosition,
   setupAutomaticSceneMovement,
-  useMovementReactions
+  useMovementReactionsInRoom
 } from '../../tests/fixtures/automaticSceneMovement'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import {
+  checkpointLiveRoom,
   executeInRoom,
-  planMovementDecisionInRoom,
-  planMovementInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  queueRoomRolls,
+  readEncounterHistory,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
+useLocalRoomWorker()
 
+// Reaction order, ordinals and source commands are room-held history, pinned in
+// apps/session-worker/test/nativeMovementEvidence.test.ts ("used automatic reactions of a Creature walking east").
 it.each(['DECLINE', 'OPTION'] as const)(
   'continues %s into a used automatic reaction at the next contact',
   async (selection) => {
@@ -25,8 +31,14 @@ it.each(['DECLINE', 'OPTION'] as const)(
         { x: 450, y: 50 }
       ]
     })
-    const snapshot = () =>
-      value.base.t.run(async (ctx) => ({
+    await queueRoomRolls(value.base.campaign.id, {
+      rolls: Array.from({ length: 2 }, () => [14, 0, 0]).flat(),
+      repeat: 0
+    })
+    /** Convex's rows, after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
+    const snapshot = async () => {
+      await checkpointLiveRoom(value.base.campaign.id)
+      return value.base.t.run(async (ctx) => ({
         runs: await ctx.db.query('encounterRuns').collect(),
         actors: await ctx.db.query('encounterRunActors').collect(),
         occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
@@ -37,9 +49,9 @@ it.each(['DECLINE', 'OPTION'] as const)(
         scenes: await ctx.db.query('campaignScenes').collect(),
         entities: await ctx.db.query('sceneLiveEntities').collect()
       }))
-    const root = await planMovementInRoom(value.owner.caller, value.rootInput)
-    const initial = await root.publish()
-    const choice = initial.occurrence?.pending
+    }
+    const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+    const choice = initial?.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
       throw new Error('Expected the authored first controller choice.')
     const command: ResolveRuleOccurrenceInputDto = {
@@ -55,35 +67,23 @@ it.each(['DECLINE', 'OPTION'] as const)(
           ? { kind: 'DECLINE' }
           : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
     }
+    const startHitPoints = await readCheckpointedHitPoints(value, value.base.mover.id)
     // Assisted play offers the next authored automatic reaction as Use/Decline; the GM uses it.
-    const used = await useMovementReactions(
-      value,
-      10,
-      await planMovementDecisionInRoom(value.owner.caller, command)
-    )
-    const { prepared } = used
+    const decided = await executeInRoom(value.owner.caller, { command })
+    expect(decided.occurrence).toMatchObject({ status: 'PENDING' })
     const before = await snapshot()
-    if (prepared.outcome.kind !== 'TERMINAL')
-      throw new Error('Expected the automatic suffix to complete.')
-    const reactions = prepared.outcome.result.reactionExecutions
-    expect(reactions).toHaveLength(selection === 'DECLINE' ? 1 : 2)
-    expect(reactions.at(-1)?.option.candidate.reactorActorId).toBe(
-      value.base.additionalReactorActor!.id
-    )
-    expect(reactions.map((entry) => entry.sourceCommandId)).toEqual(
-      selection === 'DECLINE'
-        ? [used.responseCommandId]
-        : [command.commandId, used.responseCommandId]
-    )
-    expect(prepared.outcome.result.terminalPosition).toEqual({ x: 450, y: 50 })
-    const result = await used.publish()
-    expect(result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    const used = await useMovementReactionsInRoom(value, 10, decided)
+    expect(used.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+      x: 450,
+      y: 50
+    })
     const after = await snapshot()
     expect(after.runs[0]!.version).toBe(before.runs[0]!.version + 1)
-    expect(after.commands.length).toBe(before.commands.length + 1)
-    expect(
-      after.receipts.filter((receipt) => receipt.occurrenceId === choice.occurrenceId).length
-    ).toBeGreaterThan(1)
+    // Declining spends one reaction (the automatic one); using the first spends both.
+    expect(await readCheckpointedHitPoints(value, value.base.mover.id)).toBe(
+      startHitPoints - (selection === 'DECLINE' ? 4 : 8)
+    )
     // A fresh answer to the settled decision is stale (D78).
     await expect(
       executeInRoom(value.owner.caller, {
@@ -111,8 +111,10 @@ it.each(['DECLINE', 'OPTION'] as const)(
       { x: 275, y: 50 },
       5
     )
-    const effects = () =>
-      value.base.t.run((ctx) =>
+    await queueRoomRolls(value.base.campaign.id, { rolls: [], repeat: 0 })
+    const effects = async () => {
+      await checkpointLiveRoom(value.base.campaign.id)
+      return value.base.t.run((ctx) =>
         ctx.db
           .query('encounterSpatialRuleEffects')
           .withIndex('by_encounterId_sceneId_id', (q) =>
@@ -120,10 +122,10 @@ it.each(['DECLINE', 'OPTION'] as const)(
           )
           .collect()
       )
-    const prepared = await planMovementInRoom(value.owner.caller, value.rootInput)
-    expect(prepared.outcome.kind).toBe('PENDING')
-    const initial = await prepared.publish()
-    const choice = initial.occurrence?.pending
+    }
+    const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+    expect(initial?.occurrence).toMatchObject({ status: 'PENDING' })
+    const choice = initial?.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
       throw new Error('Expected first mixed movement choice.')
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
@@ -140,30 +142,27 @@ it.each(['DECLINE', 'OPTION'] as const)(
           ? { kind: 'DECLINE' }
           : { kind: 'OPTION', optionId: choice.choice.options[0].optionId }
     }
-    const request = await planMovementDecisionInRoom(value.owner.caller, command)
-    const responsePrepared = { outcome: request.outcome }
-    expect(responsePrepared.outcome.kind).toBe('PENDING')
-    const next = await request.publish()
+    const next = await executeInRoom(value.owner.caller, { command })
+    expect(next.occurrence).toMatchObject({ status: 'PENDING' })
     const nextChoice = next.occurrence?.pending
     if (!nextChoice || nextChoice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the second mixed movement choice.')
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
-    const terminalCommand: ResolveRuleOccurrenceInputDto = {
-      type: 'RESOLVE_RULE_OCCURRENCE',
-      commandId: crypto.randomUUID(),
-      encounterId: value.base.run.id,
-      expectedVersion: nextChoice.encounterVersion,
-      occurrenceId: nextChoice.occurrenceId,
-      expectedOccurrenceVersion: nextChoice.occurrenceVersion,
-      correlationId: null,
-      resolution: { kind: 'DECLINE' }
-    }
-    const terminalRequest = await planMovementDecisionInRoom(value.owner.caller, terminalCommand)
-    expect(terminalRequest.outcome.kind).toBe('TERMINAL')
-    const terminal = await terminalRequest.publish()
+    const terminal = await executeInRoom(value.owner.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        commandId: crypto.randomUUID(),
+        encounterId: value.base.run.id,
+        expectedVersion: nextChoice.encounterVersion,
+        occurrenceId: nextChoice.occurrenceId,
+        expectedOccurrenceVersion: nextChoice.occurrenceVersion,
+        correlationId: null,
+        resolution: { kind: 'DECLINE' }
+      }
+    })
     expect(terminal.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
     expect((await effects()).find((entry) => entry.id === effect.id)).toBeUndefined()
-    if (initial.delta?.kind !== 'TOKEN_MOVED')
+    if (initial?.delta?.kind !== 'TOKEN_MOVED')
       throw new Error('Expected a committed first segment.')
     expect(initial.delta.position).not.toEqual(value.rootInput.path[0])
   },

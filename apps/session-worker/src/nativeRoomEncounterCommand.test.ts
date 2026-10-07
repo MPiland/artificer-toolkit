@@ -2,8 +2,18 @@ import { describe, expect, it, vi } from 'vitest'
 import { LIVE_SESSION_TRY_AGAIN_MESSAGE } from '@artificer-toolkit/schema/api/liveSessionCommands'
 import { LiveSessionRouteError } from './liveSessionRoutes.js'
 import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
+import { RulesRevisionChangedError } from './nativeRulesRevisions.js'
 
 describe('encounterCommandRefusal', () => {
+  it('offers a retry when an input kept changing during preparation, and logs nothing', () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(
+      encounterCommandRefusal(new RulesRevisionChangedError('Live rules revision changed.'))
+    ).toEqual({ code: 'UNAVAILABLE', message: LIVE_SESSION_TRY_AGAIN_MESSAGE })
+    expect(logged).not.toHaveBeenCalled()
+    logged.mockRestore()
+  })
+
   it('offers a retry when Convex ran out of time and keeps STALE_STATE for real staleness (D47)', () => {
     expect(encounterCommandRefusal(new LiveSessionRouteError(503))).toEqual({
       code: 'UNAVAILABLE',

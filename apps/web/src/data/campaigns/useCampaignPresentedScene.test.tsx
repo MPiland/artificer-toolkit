@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@artificer-toolkit/apis/convex/api'
-import type { CampaignScenePresentationDto } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  campaignScenePresentationDtoSchema,
+  setCampaignLiveScenePresentationResultDtoSchema,
+  type CampaignScenePresentationDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import { useCampaignPresentedScene } from './useCampaignPresentedScene'
 
 const mocks = vi.hoisted(() => ({
@@ -37,19 +41,25 @@ function wrapper(client: QueryClient) {
 
 describe('useCampaignPresentedScene', () => {
   beforeEach(() => {
-    mocks.presentation = { campaignId, sceneId: sceneA, version: 7 }
+    mocks.presentation = campaignScenePresentationDtoSchema.parse({
+      campaignId,
+      sceneId: sceneA,
+      version: 7
+    })
     mocks.read.mockReset().mockImplementation((reference: unknown) => {
       const name = getFunctionName(reference as Parameters<typeof getFunctionName>[0])
       if (name === getFunctionName(api.scenes.presentations.get)) return mocks.presentation
       throw new Error(`Unexpected native read: ${name}`)
     })
-    mocks.action.mockReset().mockResolvedValue({
-      commandId: '00000000-0000-4000-8000-000000000007',
-      replayed: false,
-      campaignId,
-      sceneId: null,
-      version: 8
-    })
+    mocks.action.mockReset().mockResolvedValue(
+      setCampaignLiveScenePresentationResultDtoSchema.parse({
+        commandId: '00000000-0000-4000-8000-000000000007',
+        replayed: false,
+        campaignId,
+        sceneId: null,
+        version: 8
+      })
+    )
     mocks.mutation.mockReset()
   })
 

@@ -1,10 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { describe, expect, it } from 'vitest'
-import type {
-  PendingEncounterRuleOccurrenceSummaryDto,
-  ResolveRuleOccurrenceInputDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterActorTokenBindingCommandInputDto,
   SceneDefinitionDto
@@ -19,14 +16,16 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { SRD_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { readCheckpointedTokenPosition } from '../../tests/fixtures/automaticSceneMovement'
 import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
   executeInRoom,
-  expectRedactedRoomRefusal,
-  planMovementDecisionInRoom,
-  planMovementInRoom,
-  readTimelineInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  readRoomTimeline,
+  roomErrorLogs,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 // Keep handler compilation outside the per-operation test timer.
 import '../content/import'
 import '../betterAuth/adapter'
@@ -37,18 +36,15 @@ import '../encounters/blueprints'
 import '../encounters/runs'
 import '../encounters/actorTokenBindings'
 
+useLocalRoomWorker()
+
+const versionStale = { code: 'DOMAIN_REJECTED', reason: 'VERSION_STALE' }
+
 const bindActorToken = makeFunctionReference<
   'mutation',
   { input: EncounterActorTokenBindingCommandInputDto },
   { projection: { version: number } }
 >('encounters/actorTokenBindings:execute')
-// A racing loser reads the winner's occurrence version, Encounter scope or Scene binding, or an
-// unavailable occurrence, and the room reports it as a redacted refusal. Once the winner completes
-// the occurrence, a loser's answer is a stale Encounter version.
-const staleResponse =
-  /Movement response (?:occurrence|Encounter scope|Scene binding) is stale\.|Rule occurrence is unavailable\./
-const versionStale = { code: 'DOMAIN_REJECTED', reason: 'VERSION_STALE' }
-
 async function setup(selected = false) {
   const base = await setupCreatureReactionRun(null, selected, true)
   // The GM selects the reaction and rolls its dice; prompt for them as evidence.
@@ -198,6 +194,7 @@ async function setup(selected = false) {
     })
     version = result.projection.version
   }
+  await attachFixtureRoom(base.t, base.campaign.id)
   const rootInput = {
     type: 'MOVE_SCENE_TOKEN' as const,
     sceneId,
@@ -215,13 +212,24 @@ async function setup(selected = false) {
   return { base, sceneId, tokens, rootInput }
 }
 
+/** Convex's rows after the room checkpoints what it holds (a Run's history is the room's until then, D85). */
+async function stored(value: Awaited<ReturnType<typeof setup>>) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  return value.base.t.run(async (ctx) => ({
+    runs: await ctx.db.query('encounterRuns').collect(),
+    actors: await ctx.db.query('encounterRunActors').collect(),
+    occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
+    fog: await ctx.db.query('sceneFogLayers').collect()
+  }))
+}
+
 describe('room movement response publication', () => {
   it('settles a selected GM Creature reaction through its issued evidence and replays the current occurrence', async () => {
     const value = await setup(true)
-    const rootPlan = await planMovementInRoom(value.base.owner.caller, value.rootInput)
-    expect(rootPlan.outcome.kind).toBe('PENDING')
-    const root = await rootPlan.publish()
-    const choice = root.occurrence?.pending
+    const { owner } = value.base
+    const rootMove = await executeSceneInRoom(owner.caller, value.rootInput)
+    const root = rootMove.result
+    const choice = root?.occurrence?.pending
     if (!choice || choice.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected issued movement reaction choice.')
     const option = choice.choice.options[0]
@@ -236,32 +244,13 @@ describe('room movement response publication', () => {
       correlationId: null,
       resolution: { kind: 'OPTION', optionId: option.optionId }
     }
-    const beforePreparation = await value.base.t.run(async (ctx) => ({
-      runs: await ctx.db.query('encounterRuns').collect(),
-      actors: await ctx.db.query('encounterRunActors').collect(),
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      // Preparing a decision stages in the room only: Convex holds no new receipt.
-      receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-      commands: await ctx.db.query('encounterRunCommands').collect()
-    }))
+    const beforePreparation = await stored(value)
     let lastCommand = selected
-    let plan = await planMovementDecisionInRoom(value.base.owner.caller, selected)
-    expect(plan.outcome.kind).toBe('PENDING')
-    expect(
-      await value.base.t.run(async (ctx) => ({
-        runs: await ctx.db.query('encounterRuns').collect(),
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await ctx.db.query('encounterRuleReceipts').collect(),
-        commands: await ctx.db.query('encounterRunCommands').collect()
-      }))
-    ).toEqual(beforePreparation)
-    let result = await plan.publish()
+    let result = await executeInRoom(owner.caller, { command: selected })
+    expect(result.occurrence?.status).toBe('PENDING')
     const beforeCompletion = beforePreparation.runs[0]
     if (!beforeCompletion) throw new Error('Expected encounter Run.')
-    const evidenceKinds: PendingEncounterRuleOccurrenceSummaryDto['kind'][] = []
+    const evidenceKinds: string[] = []
     let sawSubsequentReactor = false
     while (result.occurrence?.status === 'PENDING') {
       const pending = result.occurrence.pending
@@ -299,9 +288,11 @@ describe('room movement response publication', () => {
                 }
       }
       lastCommand = command
-      plan = await planMovementDecisionInRoom(value.base.owner.caller, command)
-      expect(plan.outcome.kind).toBe(pending.kind === 'MOVEMENT_REACTION' ? 'TERMINAL' : 'PENDING')
-      result = await plan.publish()
+      result = await executeInRoom(owner.caller, { command })
+      // Declining the last reactor completes the move; evidence and Use answers leave it pending.
+      expect(result.occurrence?.status).toBe(
+        pending.kind === 'MOVEMENT_REACTION' ? 'COMPLETE' : 'PENDING'
+      )
     }
     // The natural 20 is a critical hit: the reaction's two damage dice are each rolled twice (D58).
     expect(evidenceKinds).toEqual([
@@ -316,18 +307,12 @@ describe('room movement response publication', () => {
       status: 'COMPLETE',
       pending: null
     })
-    const completed = await value.base.t.run(async (ctx) => ({
-      runs: await ctx.db.query('encounterRuns').collect(),
-      actors: await ctx.db.query('encounterRunActors').collect(),
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-      fog: await ctx.db.query('sceneFogLayers').collect()
-    }))
+    const completed = await stored(value)
     expect(completed.runs[0]?.version).toBe(beforeCompletion.version + 2)
     expect(completed.actors).not.toEqual(beforePreparation.actors)
-    expect(completed.receipts.length).toBeGreaterThan(beforePreparation.receipts.length)
+    // The command receipts are room-held (D85); a member sees them as the Run's timeline entries.
+    const timeline = await readRoomTimeline(owner.caller, value.base.campaign.id)
+    expect(timeline.some((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')).toBe(true)
     const source = completed.actors.find((actor) => actor.id === choice.choice.reactorActorId)
     const target = completed.actors.find((actor) => actor.id === value.base.mover.id)
     const priorTarget = beforePreparation.actors.find((actor) => actor.id === value.base.mover.id)
@@ -340,46 +325,25 @@ describe('room movement response publication', () => {
     if (targetState.kind === 'CHARACTER' || priorTargetState.kind === 'CHARACTER')
       throw new Error('Expected a Creature reaction target.')
     expect(targetState.currentHitPoints).toBeLessThan(priorTargetState.currentHitPoints)
+    // A retry is answered with the Run as it now stands, and the root move from its journal.
+    const retry = await executeInRoom(owner.caller, { command: lastCommand })
+    expect(retry).toEqual(result)
+    expect(retry.projection.version).toBe(completed.runs[0]?.version)
     await expect(
-      (await planMovementDecisionInRoom(value.base.owner.caller, lastCommand)).publish()
-    ).resolves.toMatchObject({
-      replayed: true,
-      occurrence: { status: 'COMPLETE' }
-    })
-    await expect(
-      (await planMovementInRoom(value.base.owner.caller, value.rootInput)).publish()
-    ).resolves.toEqual({ ...root, replayed: true })
-    expect(
-      await value.base.t.run(async (ctx) => ({
-        runs: await ctx.db.query('encounterRuns').collect(),
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-        fog: await ctx.db.query('sceneFogLayers').collect()
-      }))
-    ).toEqual(completed)
+      executeSceneInRoom(owner.caller, value.rootInput, rootMove.expectedSessionSequence)
+    ).resolves.toEqual({ ...rootMove, result: { ...root, replayed: true } })
+    expect(await stored(value)).toEqual(completed)
   })
 
   it('races every reaction response to one winner and one stale loser, spending the reaction once', async () => {
     const value = await setup(true)
-    const { t, owner, run } = value.base
-    const root = await (await planMovementInRoom(owner.caller, value.rootInput)).publish()
-    const stored = () =>
-      t.run(async (ctx) => ({
-        runs: await ctx.db.query('encounterRuns').collect(),
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-        commands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect()
-      }))
-    const reactionStart = await stored()
+    const { owner, run, campaign } = value.base
+    const rootMove = await executeSceneInRoom(owner.caller, value.rootInput)
+    const root = rootMove.result
+    const reactionStart = await stored(value)
     const losers: string[] = []
     let selected = false
-    let pending = root.occurrence?.pending ?? null
+    let pending = root?.occurrence?.pending ?? null
     while (pending) {
       if (
         pending.kind !== 'MOVEMENT_REACTION' &&
@@ -419,6 +383,7 @@ describe('room movement response publication', () => {
           resolution
         }
       }))
+      const logsBeforeRace = roomErrorLogs().length
       const raced = await Promise.allSettled(
         contenders.map((input) => executeInRoom(owner.caller, input))
       )
@@ -427,27 +392,37 @@ describe('room movement response publication', () => {
       const loser = raced[1 - winnerIndex]
       if (winner?.status !== 'fulfilled' || loser?.status !== 'rejected')
         throw new Error('Reaction response contention needs one winner and one stale loser.')
-      const expectStaleLoser = (attempt: Promise<unknown>) =>
-        winner.value.occurrence?.status === 'COMPLETE'
-          ? expect(attempt).rejects.toMatchObject({ data: versionStale })
-          : expectRedactedRoomRefusal(attempt, staleResponse)
-      await expectStaleLoser(Promise.reject(loser.reason))
+      // A stale answer is a domain rejection whether the winner completed the occurrence (moving
+      // the Encounter version) or only advanced the occurrence: neither logs a cause.
+      const expectStaleRefusal = (failure: unknown, causes: readonly string[]) => {
+        expect(failure).toMatchObject({
+          data: { ...versionStale, message: 'Encounter version is stale.' }
+        })
+        expect(causes).toEqual([])
+      }
+      expectStaleRefusal(loser.reason, roomErrorLogs().slice(logsBeforeRace))
       losers.push(contenders[1 - winnerIndex]!.command.commandId)
-      const settled = await stored()
-      // The room commits a movement decision with its Scene and refuses a settled one's retry.
-      await expectRedactedRoomRefusal(
-        executeInRoom(owner.caller, contenders[winnerIndex]!),
-        'This decision was already settled.',
-        'STALE_STATE'
+      const settled = await stored(value)
+      // The room answers the winner's retry from its held history: the exact stored result, at
+      // every step (live-sessions.md, "Every command takes the same path").
+      await expect(executeInRoom(owner.caller, contenders[winnerIndex]!)).resolves.toEqual(
+        winner.value
       )
-      await expectStaleLoser(executeInRoom(owner.caller, contenders[1 - winnerIndex]!))
-      expect(await stored()).toEqual(settled)
+      const logsBeforeRetry = roomErrorLogs().length
+      const retried = await executeInRoom(owner.caller, contenders[1 - winnerIndex]!).then(
+        () => {
+          throw new Error('Expected the stale answer to be refused.')
+        },
+        (failure: unknown) => failure
+      )
+      expectStaleRefusal(retried, roomErrorLogs().slice(logsBeforeRetry))
+      expect(await stored(value)).toEqual(settled)
       pending =
         winner.value.occurrence?.status === 'PENDING' ? winner.value.occurrence.pending : null
     }
     expect(selected).toBe(true)
-    const final = await stored()
-    const choice = root.occurrence?.pending
+    const final = await stored(value)
+    const choice = root?.occurrence?.pending
     if (choice?.kind !== 'MOVEMENT_REACTION')
       throw new Error('Expected the issued reaction choice.')
     const reactor = final.actors.find((actor) => actor.id === choice.choice.reactorActorId)
@@ -455,32 +430,33 @@ describe('room movement response publication', () => {
     expect(readStoredRunActor(reactor).resources).toMatchObject({
       ruleUsage: { [SRD_REACTION_ALLOWANCE_DEFINITION_ID]: 1 }
     })
-    // A stale loser leaves no command, receipt, occurrence or Scene trace.
-    expect(JSON.stringify(final)).not.toMatch(new RegExp(losers.join('|')))
-    // Each Run version the winners committed carries exactly one command receipt.
+    // A stale loser leaves no command, occurrence or timeline trace.
+    const timeline = await readRoomTimeline(owner.caller, campaign.id)
+    expect(JSON.stringify([final, timeline])).not.toMatch(new RegExp(losers.join('|')))
+    // Each Run version the winners committed carries exactly one command: the receipts are
+    // room-held (D85), so the timeline is where a member sees them.
     const committed = final.runs[0]!.version - reactionStart.runs[0]!.version
     expect(committed).toBeGreaterThan(0)
-    expect(final.commands.length - reactionStart.commands.length).toBe(committed)
-    // The timeline re-parses every stored receipt against its checksum.
-    const timeline = await readTimelineInRoom(owner.caller, run.id)
-    expect(timeline.entries.map((entry) => entry.version)).toContain(final.runs[0]!.version)
+    expect(
+      timeline.filter((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')
+    ).toHaveLength(committed)
     await expect(
-      (await planMovementInRoom(owner.caller, value.rootInput)).publish()
-    ).resolves.toEqual({ ...root, replayed: true })
-    expect(await stored()).toEqual(final)
+      executeSceneInRoom(owner.caller, value.rootInput, rootMove.expectedSessionSequence)
+    ).resolves.toEqual({ ...rootMove, result: { ...root, replayed: true } })
+    expect(await stored(value)).toEqual(final)
   }, 90_000)
 
   it('publishes repeated GM declines and replays the current complete occurrence', async () => {
     const value = await setup()
-    const initial = await planMovementInRoom(value.base.owner.caller, value.rootInput)
-    expect(initial.outcome.kind).toBe('PENDING')
-    const root = await initial.publish()
-    expect(root.occurrence).toMatchObject({
+    const { owner, other } = value.base
+    const rootMove = await executeSceneInRoom(owner.caller, value.rootInput)
+    const root = rootMove.result
+    expect(root?.occurrence).toMatchObject({
       status: 'PENDING',
       occurrenceVersion: 0
     })
-    const rootOccurrence = root.occurrence
-    if (!rootOccurrence?.pending) throw new Error('Expected response pending summary.')
+    const rootOccurrence = root?.occurrence
+    if (!root || !rootOccurrence?.pending) throw new Error('Expected response pending summary.')
     const command: ResolveRuleOccurrenceInputDto = {
       type: 'RESOLVE_RULE_OCCURRENCE',
       commandId: crypto.randomUUID(),
@@ -491,21 +467,14 @@ describe('room movement response publication', () => {
       correlationId: null,
       resolution: { kind: 'DECLINE' }
     }
-    await expect(
-      planMovementDecisionInRoom(value.base.other.caller, command)
-    ).rejects.toMatchObject({ data: { reason: 'NOT_ACTOR_CONTROLLER' } })
-    const plan = await planMovementDecisionInRoom(value.base.owner.caller, command)
-    expect(plan.outcome.kind).toBe('PENDING')
-    const before = await value.base.t.run((ctx) => ctx.db.query('encounterRuns').collect())
-    const first = await plan.publish()
-    expect(first).toMatchObject({
-      replayed: false,
-      version: root.version,
-      delta: null,
-      occurrence: { status: 'PENDING', occurrenceVersion: 1 }
+    await expect(executeInRoom(other.caller, { command })).rejects.toMatchObject({
+      data: { code: 'DOMAIN_REJECTED', reason: 'NOT_ACTOR_CONTROLLER' }
     })
-    const after = await value.base.t.run((ctx) => ctx.db.query('encounterRuns').collect())
-    expect(after[0]!.version).toBe(before[0]!.version)
+    const before = await stored(value)
+    const first = await executeInRoom(owner.caller, { command })
+    expect(first.occurrence).toMatchObject({ status: 'PENDING', occurrenceVersion: 1 })
+    const after = await stored(value)
+    expect(after.runs[0]!.version).toBe(before.runs[0]!.version)
     if (!first.occurrence?.pending) throw new Error('Expected second pending choice.')
     const secondCommand: ResolveRuleOccurrenceInputDto = {
       ...command,
@@ -513,49 +482,25 @@ describe('room movement response publication', () => {
       expectedVersion: first.occurrence.pending.encounterVersion,
       expectedOccurrenceVersion: first.occurrence.occurrenceVersion
     }
-    const second = await planMovementDecisionInRoom(value.base.owner.caller, secondCommand)
-    expect(second.outcome.kind).toBe('TERMINAL')
-    const result = await second.publish()
+    const result = await executeInRoom(owner.caller, { command: secondCommand })
     // The reach contact is at x = 200, so the declined move finishes its remaining path.
-    expect(result).toMatchObject({
-      delta: { kind: 'TOKEN_MOVED', position: { x: 300, y: 50 } },
-      version: first.version + 1,
-      occurrence: { status: 'COMPLETE', occurrenceVersion: 2 }
-    })
+    expect(result.occurrence).toMatchObject({ status: 'COMPLETE', occurrenceVersion: 2 })
     expect(
-      (await value.base.t.run((ctx) => ctx.db.query('encounterRuns').collect()))[0]!.version
-    ).toBe(before[0]!.version + 1)
-    const retryState = await value.base.t.run(async (ctx) => ({
-      runs: await ctx.db.query('encounterRuns').collect(),
-      actors: await ctx.db.query('encounterRunActors').collect(),
-      occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-      receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-      receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-      receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-      runCommands: await (await readEncounterHistory(ctx)).query('encounterRunCommands').collect(),
-      fogRows: await ctx.db.query('sceneFogLayers').collect()
-    }))
+      await readCheckpointedTokenPosition(
+        { base: value.base, owner, sceneId: value.sceneId },
+        value.tokens[1]!.id
+      )
+    ).toEqual({ x: 300, y: 50 })
+    const retryState = await stored(value)
+    expect(retryState.runs[0]!.version).toBe(before.runs[0]!.version + 1)
+    // The first decision's journaled receipt (pending, occurrence version 1) is shown over the Run as
+    // it now stands, as every Encounter command's retry is (replayRoomEncounterCommand).
+    const replayed = await executeInRoom(owner.caller, { command })
+    expect(replayed).toEqual({ ...first, projection: result.projection })
+    expect(replayed.projection.version).toBe(result.projection.version)
     await expect(
-      (await planMovementDecisionInRoom(value.base.owner.caller, command)).publish()
-    ).resolves.toEqual({ ...first, replayed: true })
-    await expect(
-      (await planMovementInRoom(value.base.owner.caller, value.rootInput)).publish()
-    ).resolves.toEqual({ ...root, replayed: true })
-    expect(
-      await value.base.t.run(async (ctx) => ({
-        runs: await ctx.db.query('encounterRuns').collect(),
-        actors: await ctx.db.query('encounterRunActors').collect(),
-        occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
-        receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
-        receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-        receipts: await (await readEncounterHistory(ctx)).query('encounterRuleReceipts').collect(),
-        runCommands: await (
-          await readEncounterHistory(ctx)
-        )
-          .query('encounterRunCommands')
-          .collect(),
-        fogRows: await ctx.db.query('sceneFogLayers').collect()
-      }))
-    ).toEqual(retryState)
+      executeSceneInRoom(owner.caller, value.rootInput, rootMove.expectedSessionSequence)
+    ).resolves.toEqual({ ...rootMove, result: { ...root, replayed: true } })
+    expect(await stored(value)).toEqual(retryState)
   })
 })

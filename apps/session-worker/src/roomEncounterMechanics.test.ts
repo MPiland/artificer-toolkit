@@ -1,62 +1,43 @@
 import { expect, it, vi } from 'vitest'
 import type { EncounterCharacterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { characterPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPlayState'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  readCharacterPlay,
-  readCharacterRecord,
-  readCharacterSheetState,
-  readCharacterSheetStructure
-} from '@artificer-toolkit/schema/projections/characterStoredState'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { roomAuthorizationResponse } from '../test/roomAuthorizationFixture.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { writeRoomCharacterPlay } from './roomCharacterWrites.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import { RoomEncounterStore, type RoomTransaction } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
-import { characterPageFixture } from './testing/characterPageFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
 import { uuid } from './testing/roomAggregateFixture.js'
+import { srdRoomCharacter, srdRoomHydration } from './testing/srdRoomCharacter.js'
 import { storedRunDocuments } from './testing/storedRunFixture.js'
+import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 
-type SheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>>
-type MechanicsFacts = Pick<SheetFacts, 'active' | 'character' | 'sheetState'> & {
-  campaignContext: Pick<SheetFacts['campaignContext'], 'conditions'>
-  ruleEvaluation: {
-    facts: Pick<SheetFacts['ruleEvaluation']['facts'], 'movementFacts'>
-    output: {
-      movement: SheetFacts['ruleEvaluation']['output']['movement']
-      derivedStats: Pick<SheetFacts['ruleEvaluation']['output']['derivedStats'], 'maxHitPoints'>
-    }
-  }
-}
-const prepareFacts = vi.hoisted(() =>
-  vi.fn<(...args: Parameters<typeof prepareRoomLiveCharacterSheet>) => Promise<MechanicsFacts>>()
-)
-vi.mock('./roomCharacterRules.js', () => ({ prepareRoomLiveCharacterSheet: prepareFacts }))
+// Passes through to the real preparation so the test can read the facts it produced.
+vi.mock('./nativeCharacterRules.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./nativeCharacterRules.js')>()
+  return { ...actual, prepareLiveCharacterSheetFacts: vi.fn(actual.prepareLiveCharacterSheetFacts) }
+})
 
 it('settles Character and Creature mechanics from native play with private receipts and atomic rollback', async () => {
-  const page = liveRoomCharacterPartSchema.parse(characterPageFixture)
-  if (page.status !== 'ASSIGNED' || !page.inputs) throw new Error('Missing Character fixture.')
-  const owner = characterStoredRowSchema.parse({
-    ...page.inputs.owner,
-    sheetStateChecksum: checksumRuleDocument(
-      readCharacterSheetStructure(page.inputs.owner.sheetState)
-    )
+  const room = srdRoomCharacter({
+    characterId: uuid(0xb10),
+    userId: uuid(0xb11),
+    campaignId: uuid(0xb12)
   })
-  const part = { ...page, inputs: { ...page.inputs, owner } }
+  const { part } = room
+  if (!part.inputs) throw new Error('Missing Character fixture.')
+  const { owner } = part.inputs
   const campaignId = part.inputs.campaign.id
   const epoch = uuid(0xb00)
   const gmId = uuid(0xb01)
@@ -160,17 +141,9 @@ it('settles Character and Creature mechanics from native play with private recei
     streamVersion: owner.play.streamVersion + 2,
     updatedAt: now
   }
-  const {
-    _id,
-    _creationTime,
-    documentJson: _documentJson,
-    sheetState: _sheetState,
-    play: _play,
-    ...head
-  } = owner
-  const { _id: playId, _creationTime: playCreationTime, ...playFields } = nativePlay
   const { storage, database } = createNodeSqliteRoomStorage()
   let store = new RoomEncounterStore(storage)
+  const hydration = srdRoomHydration(room, { ...owner, play: nativePlay })
   const authorityRevisions = part.revisions.filter(
     (revision) => revision.scope === 'SYSTEM' || revision.scope === 'CAMPAIGN'
   )
@@ -178,87 +151,29 @@ it('settles Character and Creature mechanics from native play with private recei
     epoch,
     documents: [
       ...authority.documents,
-      { table: 'characters', id: _id, creationTime: _creationTime, fields: head },
-      {
-        table: 'characterPlayStates',
-        id: playId,
-        creationTime: playCreationTime,
-        fields: playFields
-      },
+      ...hydration.documents,
       ...(await storedRunDocuments(run, [characterActor, creatureActor]))
     ],
     records: [
+      ...hydration.records,
       {
         kind: 'ROOM_INPUT',
         key: 'AUTHORITY',
         revision: JSON.stringify(authorityRevisions),
         json: JSON.stringify({ ...authority, revisions: authorityRevisions, documents: [] })
-      },
-      {
-        kind: 'ROOM_INPUT',
-        key: `CHARACTER:${owner.id}`,
-        revision: JSON.stringify(part.revisions),
-        json: JSON.stringify(part)
       }
     ]
   })
   const read = vi.fn(async () => {
     throw new Error('Unexpected backend read.')
   })
-  let inputs = new RoomInputs(store, read, async () => [])
-  let stalePrepared = false
-  prepareFacts.mockImplementation(async (actualStore, room, scope, observed, transaction) => {
-    expect(actualStore).toBe(store)
-    expect(scope).toMatchObject({
-      campaignId,
-      authorityEpoch: epoch,
-      characterId: owner.id,
-      expectedUserId: gmId,
-      expectedRole: 'OWNER'
-    })
-    const loaded = await room.character(owner.id, observed, transaction)
-    if (!loaded.inputs) throw new Error('Missing native Character inputs.')
-    const active = loaded.inputs.owner
-    const walkingId = uuid(0xb08)
-    return {
-      active: stalePrepared
-        ? { ...active, play: { ...active.play, streamVersion: active.play.streamVersion - 1 } }
-        : active,
-      character: characterAuthoredDtoSchema.parse(readCharacterRecord(active)),
-      sheetState: readCharacterSheetState(active),
-      campaignContext: { conditions: loaded.inputs.campaign.state.conditions },
-      ruleEvaluation: {
-        facts: {
-          movementFacts: {
-            speeds: [
-              { speedId: walkingId, code: 'WALK', baseAmount: 30, unit: 'FEET', override: null }
-            ],
-            preference: { mode: 'AUTO', speedId: null }
-          }
-        },
-        output: {
-          movement: {
-            speeds: [
-              {
-                speedId: walkingId,
-                amount: 30,
-                unit: 'FEET',
-                calculation: { base: 30, effective: 30, contributions: [], override: null }
-              }
-            ],
-            primaryMovementSpeedId: walkingId
-          },
-          derivedStats: {
-            maxHitPoints: { base: 11, effective: 11, contributions: [], override: null }
-          }
-        }
-      }
-    }
-  })
+  let inputs = new RoomInputs(store, read, room.loadContent)
   let caller = gmId
   async function apply(
     transaction: RoomTransaction,
-    batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+    batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>,
+    // A concurrent command's commit, landing between the room's preparation and its identity re-read.
+    concurrently?: () => Promise<void>
   ) {
     const readContext = await roomEncounterReadTransaction({
       store,
@@ -274,6 +189,10 @@ it('settles Character and Creature mechanics from native play with private recei
       ...readContext,
       ports: {
         ...readContext.ports,
+        readCharacterRow: async (characterId) => {
+          await concurrently?.()
+          return readContext.ports.readCharacterRow(characterId)
+        },
         writeCharacterRecord: (write) =>
           writeRoomCharacterPlay({
             store,
@@ -373,13 +292,22 @@ it('settles Character and Creature mechanics from native play with private recei
     ).rejects.toThrow('Caller command failed.')
     expect(snapshot()).toEqual(before)
     store = new RoomEncounterStore(storage)
-    inputs = new RoomInputs(store, read, async () => [])
+    inputs = new RoomInputs(store, read, room.loadContent)
     expect(snapshot()).toEqual(before)
 
     const committed = await store.transact(async (transaction) => ({
       character: await apply(transaction, characterBatch),
       creature: await apply(transaction, creatureBatch)
     }))
+    // The GM-admitted mechanics prepare the Character's sheet as the Campaign owner, not its player.
+    expect(owner.userId).not.toBe(gmId)
+    const prepared = await Promise.all(
+      vi.mocked(prepareLiveCharacterSheetFacts).mock.results.map((result) => result.value)
+    )
+    expect(prepared.length).toBeGreaterThan(0)
+    expect(prepared.map(({ campaignContext }) => campaignContext.viewer)).toEqual(
+      prepared.map(() => 'CAMPAIGN_OWNER')
+    )
     expect(committed.character.characterStreamVersion).toBe(nativePlay.streamVersion + 1)
     expect(committed.character.updatedActor).toEqual(characterActor)
     expect(committed.creature.characterStreamVersion).toBeNull()
@@ -399,15 +327,65 @@ it('settles Character and Creature mechanics from native play with private recei
     expect(store.logRows).toBe(before.logRows + 1)
     const after = snapshot()
     store = new RoomEncounterStore(storage)
-    inputs = new RoomInputs(store, read, async () => [])
+    inputs = new RoomInputs(store, read, room.loadContent)
     expect(snapshot()).toEqual(after)
 
-    stalePrepared = true
+    // The Character's stored owner no longer matches the Campaign assignment the room admitted.
     await expect(
-      store.transact((transaction) => apply(transaction, characterBatch))
+      store.transact(async (transaction) => {
+        const [head] = store.documents('characters')
+        if (!head) throw new Error('Missing Character head.')
+        await store.store.patch(head._id, { userId: uuid(0xb0f) })
+        await apply(transaction, characterBatch)
+      })
     ).rejects.toThrow('Room mechanics Character identity is stale.')
-    stalePrepared = false
     expect(snapshot()).toEqual(after)
+
+    // Each of the other identity fields, changed by a concurrent commit after the room prepared the sheet.
+    const concurrentChanges = [
+      async () => {
+        const [play] = store.documents('characterPlayStates')
+        if (!play) throw new Error('Missing Character play.')
+        await store.store.patch(play._id, { streamVersion: play.streamVersion + 1 })
+      },
+      async () => {
+        const [play] = store.documents('characterPlayStates')
+        if (!play) throw new Error('Missing Character play.')
+        const state = {
+          ...play.state,
+          hitpoints: { ...play.state.hitpoints, temp: (play.state.hitpoints.temp ?? 0) + 1 }
+        }
+        await store.store.patch(play._id, { state, checksum: checksumRuleDocument(state) })
+      },
+      async () => {
+        const [head] = store.documents('characters')
+        if (!head) throw new Error('Missing Character head.')
+        await store.store.delete(head._id)
+      },
+      async () => {
+        const [head] = store.documents('characters')
+        if (!head) throw new Error('Missing Character head.')
+        const { _id, _creationTime, ...fields } = head
+        await store.store.delete(_id)
+        await store.store.insert('characters', fields)
+      },
+      async () => {
+        const [head] = store.documents('characters')
+        if (!head) throw new Error('Missing Character head.')
+        await store.store.patch(head._id, { systemId: uuid(0xb0f) })
+      },
+      async () => {
+        const [head] = store.documents('characters')
+        if (!head) throw new Error('Missing Character head.')
+        await store.store.patch(head._id, { status: 'DRAFT' })
+      }
+    ]
+    for (const concurrently of concurrentChanges) {
+      await expect(
+        store.transact((transaction) => apply(transaction, characterBatch, concurrently))
+      ).rejects.toThrow('Room mechanics Character identity is stale.')
+      expect(snapshot()).toEqual(after)
+    }
     caller = uuid(0xb0e)
     await expect(
       store.transact((transaction) => apply(transaction, characterBatch))
@@ -428,7 +406,6 @@ it('settles Character and Creature mechanics from native play with private recei
     expect(snapshot()).toEqual(after)
     expect(read).not.toHaveBeenCalled()
   } finally {
-    prepareFacts.mockReset()
     database.close()
   }
 })

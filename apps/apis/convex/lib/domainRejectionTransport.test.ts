@@ -2,8 +2,10 @@ import { ConvexError } from 'convex/values'
 import { describe, expect, it } from 'vitest'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { domainRejection, playerControlFixture } from '../../tests/fixtures/playerControl'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import { executeInRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { api } from '../_generated/api'
+
+useLocalRoomWorker()
 
 /** Exactly the data a Convex domain rejection has always carried to clients. */
 const expected = (reason: keyof typeof DOMAIN_REJECTION_MESSAGES) => ({

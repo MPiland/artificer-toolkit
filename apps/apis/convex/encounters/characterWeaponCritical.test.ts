@@ -107,6 +107,8 @@ async function setup() {
   }
 }
 
+// The critical's d20 and damage dice live in the room's receipt:
+// see apps/session-worker/test/nativeRoomCharacterWeapon.test.ts.
 describe('a Character weapon critical hit in the room', () => {
   it('rolls the Longsword’s damage die twice and adds the Strength modifier once', async () => {
     const base = await setup()

@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CampaignDeletionStatus } from '@artificer-toolkit/schema/api/campaignDeletion'
+import { campaignDeletionStatusSchema } from '@artificer-toolkit/schema/api/campaignDeletion'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createTabletopCampaign } from './vtt/CampaignTabletop.stories.fixtures'
 import { CampaignListPage } from './CampaignListPage'
@@ -10,13 +10,13 @@ import { campaignListSearchSchema } from './campaignListSearch'
 
 const campaign = createTabletopCampaign('OWNER')
 const deletedCampaignId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-const failedStatus = {
+const failedStatus = campaignDeletionStatusSchema.parse({
   campaignId: deletedCampaignId,
   expectedVersion: 7,
   status: 'FAILED',
   error: 'Campaign cleanup failed. Retry deletion to resume.',
   updatedAt: '2026-09-23T00:00:00.000Z'
-} satisfies CampaignDeletionStatus
+})
 
 const mocks = vi.hoisted(() => ({
   status: vi.fn(),
@@ -61,7 +61,9 @@ describe('Campaign deletion progress', () => {
     const user = userEvent.setup()
     renderWithAppProviders(<CampaignListPage deletingCampaignId={deletedCampaignId} />)
 
-    expect(await screen.findByText(failedStatus.error)).toBeVisible()
+    expect(
+      await screen.findByText('Campaign cleanup failed. Retry deletion to resume.')
+    ).toBeVisible()
     expect(screen.getByTestId(`campaign-${campaign.publicId}`)).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Retry deletion' }))
     await waitFor(() =>

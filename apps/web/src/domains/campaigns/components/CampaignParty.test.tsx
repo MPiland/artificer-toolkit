@@ -6,6 +6,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import type { LiveCampaignSummaryDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { createCampaignDetail } from '../campaignDetail.fixtures'
 import { CampaignParty } from './CampaignParty'
 
 const mocks = vi.hoisted(() => ({
@@ -89,46 +90,7 @@ vi.mock('#domains/characters/sheet/core/CharacterSheetView', () => ({
   CharacterSheetView: () => null
 }))
 
-const campaign = {
-  id: '11111111-1111-4111-8111-111111111111',
-  publicId: 'ashen-road',
-  name: 'The Ashen Road',
-  description: null,
-  format: 'ONGOING',
-  toneTags: ['HEROIC'],
-  toneDetails: null,
-  contentMaturity: 'STANDARD',
-  gameSystemId: '00000000-0000-4000-8000-000000000001',
-  primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
-  additionalRulesCatalogueIds: [],
-  status: 'ACTIVE',
-  role: 'OWNER',
-  version: 1,
-  memberCount: 1,
-  playerCount: 0,
-  createdAt: '2026-09-01T00:00:00.000Z',
-  updatedAt: '2026-09-01T00:00:00.000Z',
-  attunementSlotOverride: null,
-  assignedCharacter: null,
-  memberships: [],
-  capabilities: {
-    edit: true,
-    archive: true,
-    delete: true,
-    invite: true,
-    manageMembers: true,
-    manageCharacters: true,
-    assignOwnCharacter: false,
-    manageSharedContent: true,
-    shareOwnedContent: true,
-    managePartyInventory: true,
-    transferOwnInventory: true,
-    manageNotes: true,
-    contributeSessionNotes: true,
-    readTableChat: true,
-    readPartyChat: true
-  }
-} satisfies CampaignDetailDto
+const campaign = createCampaignDetail()
 
 const convexQueryNames = () =>
   mocks.campaignSheet.mock.calls.map(([reference]) =>
@@ -145,16 +107,7 @@ const playerMembership = {
   acceptedAt: accessStartedAt,
   assignedCharacter: null
 }
-const playerCampaign: CampaignDetailDto = {
-  ...campaign,
-  role: 'PLAYER',
-  memberships: [playerMembership],
-  capabilities: {
-    ...campaign.capabilities,
-    manageMembers: false,
-    assignOwnCharacter: true
-  }
-}
+const playerCampaign = createCampaignDetail({ role: 'PLAYER', memberships: [playerMembership] })
 
 describe('CampaignParty native transport', () => {
   beforeEach(() => {

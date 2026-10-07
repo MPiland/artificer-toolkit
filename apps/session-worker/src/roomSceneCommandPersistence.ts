@@ -167,6 +167,8 @@ export function persistRoomSceneCommand(args: {
     ...fields,
     checksum: checksumCanonicalJson(fields)
   })
+  // Direct commands never derive fog (`isStagedSceneCommand`); fog-deriving ones stage and publish
+  // through `publishSceneGeometry`, which stores the real patches that undo reads.
   const retainedResult = sceneGeometryCommandResultSchema.parse({ ...result, fogPatches: [] })
   const inputChecksum = checksumCanonicalJson(input)
   const save = sceneStoredGeometrySaveSchema.parse({

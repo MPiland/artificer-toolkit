@@ -14,16 +14,18 @@ import type {
   SetCampaignLiveScenePresentationInputDto,
   SetCampaignLiveScenePresentationResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { StagedSceneCommand } from '../../../session-worker/src/roomSceneGeometryPlan'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
 import {
-  commitSceneInRoom,
+  attachFixtureRoom,
+  checkpointLiveRoom,
   executeInRoom,
-  insertActiveLiveAuthority,
-  planMovementDecisionInRoom,
-  planMovementInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  RoomCommandRefusal,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
+
+useLocalRoomWorker()
 
 const setPresentation = makeFunctionReference<
   'mutation',
@@ -53,18 +55,9 @@ const twoChoices = {
   ]
 }
 
-/** The Campaign's live authority, which the room's checkpoints advance and these tests then read. */
-async function activateRoom(base: Base) {
-  await base.t.run((ctx) =>
-    insertActiveLiveAuthority(ctx, {
-      campaignId: base.campaign.id,
-      epoch: crypto.randomUUID(),
-      createdAt: base.campaign.createdAt
-    })
-  )
-}
-
+/** The Campaign's live authority as the room's checkpoint leaves it for Convex. */
 async function persisted(base: Base) {
+  await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('campaignLiveAuthorities')
@@ -76,15 +69,16 @@ async function persisted(base: Base) {
 
 it('settles a bound move, its answer and a GM skip through the room, naming who settled each (D26, D39)', async () => {
   const value = await setupAutomaticSceneMovement(twoChoices)
-  const moved = await planMovementInRoom(value.owner.caller, {
-    ...value.rootInput,
-    commandId: crypto.randomUUID()
-  })
-  const first = await moved.publish()
+  const first = (
+    await executeSceneInRoom(value.owner.caller, {
+      ...value.rootInput,
+      commandId: crypto.randomUUID()
+    })
+  ).result
   expect(first).toMatchObject({
     occurrence: { status: 'PENDING', pending: { kind: 'MOVEMENT_REACTION' } }
   })
-  const choice = first.occurrence?.pending
+  const choice = first?.occurrence?.pending
   if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
   const answer: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
@@ -96,7 +90,7 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
     correlationId: null,
     resolution: { kind: 'DECLINE' }
   }
-  const second = await (await planMovementDecisionInRoom(value.owner.caller, answer)).publish()
+  const second = await executeInRoom(value.owner.caller, { command: answer })
   expect(second.occurrence).toMatchObject({ occurrenceId: choice.occurrenceId })
 
   const next = second.occurrence?.pending
@@ -112,6 +106,7 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
   const third = await executeInRoom(value.owner.caller, { command: skip })
   // The void declined the choice: the move finished and the void is on the timeline.
   expect(third.occurrence).toMatchObject({ status: 'COMPLETE' })
+  await checkpointLiveRoom(value.base.campaign.id)
   const chat = await value.base.t.run((ctx) =>
     ctx.db
       .query('campaignConversationEntries')
@@ -155,15 +150,15 @@ it("refuses a player moving a reactor's token, answering the GM's decision, or a
   if (!reactorToken) throw new Error('Expected a reactor token.')
   // The player controls only the mover; a reactor's token follows its actor's controllers.
   await expect(
-    planMovementInRoom(value.player.caller, {
+    executeSceneInRoom(value.player.caller, {
       ...value.rootInput,
       commandId: crypto.randomUUID(),
       tokenId: value.reactorTokenIds[0]!,
       path: [reactorToken.position, { x: reactorToken.position.x, y: 450 }]
     })
   ).rejects.toThrow()
-  const choice = (await (await planMovementInRoom(value.owner.caller, value.rootInput)).publish())
-    .occurrence?.pending
+  const choice = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result?.occurrence
+    ?.pending
   if (choice?.kind !== 'MOVEMENT_REACTION') throw new Error('Expected a reaction choice.')
   const answer: ResolveRuleOccurrenceInputDto = {
     type: 'RESOLVE_RULE_OCCURRENCE',
@@ -175,15 +170,18 @@ it("refuses a player moving a reactor's token, answering the GM's decision, or a
     correlationId: null,
     resolution: { kind: 'DECLINE' }
   }
-  await expect(planMovementDecisionInRoom(value.player.caller, answer)).rejects.toThrow()
+  await expect(executeInRoom(value.player.caller, { command: answer })).rejects.toThrow()
   await expect(
-    planMovementDecisionInRoom(value.owner.caller, { ...answer, occurrenceId: crypto.randomUUID() })
+    executeInRoom(value.owner.caller, {
+      command: { ...answer, occurrenceId: crypto.randomUUID() }
+    })
   ).rejects.toThrow()
-  // The refusals staged nothing: the GM's answer still settles the same choice.
-  expect(
-    (await (await planMovementDecisionInRoom(value.owner.caller, answer)).publish()).occurrence
-  ).toMatchObject({ occurrenceId: choice.occurrenceId })
+  // The refusals committed nothing: the GM's answer still settles the same choice.
+  expect((await executeInRoom(value.owner.caller, { command: answer })).occurrence).toMatchObject({
+    occurrenceId: choice.occurrenceId
+  })
 }, 120_000)
+
 it('commits an unbound fog-deriving move under live authority and stages its owner layer', async () => {
   const base = await createSceneDefinitionFixture()
   const token = {
@@ -208,8 +206,8 @@ it('commits an unbound fog-deriving move under live authority and stages its own
     sceneId,
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
-  await activateRoom(base)
-  const committed = await commitSceneInRoom(base.owner.caller, base.campaign.id, {
+  await attachFixtureRoom(base.t, base.campaign.id)
+  const { result: committed } = await executeSceneInRoom(base.owner.caller, {
     type: 'MOVE_SCENE_TOKEN',
     commandId: crypto.randomUUID(),
     sceneId,
@@ -220,15 +218,20 @@ it('commits an unbound fog-deriving move under live authority and stages its own
     movementKind: 'VOLUNTARY',
     path: [token.position, { x: 900, y: 100 }]
   })
-  // The owner's explored layer is staged in the commit's own room transaction (D52).
   expect(committed).toMatchObject({
     version: 1,
     delta: { kind: 'TOKEN_MOVED', tokenId: token.id, position: { x: 900, y: 100 } }
   })
-  expect(committed.fogPatches).toEqual([
-    expect.objectContaining({ ownerUserId: base.other.userId, mode: 'REPLACE' })
-  ])
+  // The room stages the owner's explored layer in the commit's own transaction (D52) and returns no
+  // `fogPatches` to the caller, so the REPLACE patch is observable only as the persisted layer below.
   expect((await persisted(base)).sequence).toBe(1)
+  const layers = await base.t.run((ctx) =>
+    ctx.db
+      .query('sceneFogLayers')
+      .withIndex('by_sceneId_ownerUserId', (q) => q.eq('sceneId', sceneId))
+      .collect()
+  )
+  expect(layers).toEqual([expect.objectContaining({ ownerUserId: base.other.userId })])
 }, 120_000)
 
 it('counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)', async () => {
@@ -248,20 +251,23 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
     path: { x: number; y: number }[],
     movementKind: 'VOLUNTARY' | 'FORCED',
     expectedSceneVersion: number
-  ) =>
-    (
-      await planMovementInRoom(value.owner.caller, {
-        ...value.rootInput,
-        commandId: crypto.randomUUID(),
-        expectedSceneVersion,
-        movementKind,
-        path
-      })
-    ).publish()
-  const moverMovement = async () =>
-    (
+  ) => {
+    const { result } = await executeSceneInRoom(value.owner.caller, {
+      ...value.rootInput,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion,
+      movementKind,
+      path
+    })
+    if (!result) throw new Error('Expected the move to commit.')
+    return result
+  }
+  const moverMovement = async () => {
+    await checkpointLiveRoom(value.base.campaign.id)
+    return (
       await value.owner.caller.query(activeState, { campaignId: value.base.campaign.id })
     ).turnMovement.find((entry) => entry.actorId === moverId)
+  }
   const before = await readRun()
 
   const first = await move(
@@ -295,6 +301,7 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
   )
   expect(await moverMovement()).toMatchObject({ used: 15 })
   // The record bumps nothing on the Run: no version, no state change.
+  await checkpointLiveRoom(value.base.campaign.id)
   const after = await readRun()
   expect({ version: after.version, stateChecksum: after.stateChecksum }).toEqual({
     version: before.version,
@@ -354,9 +361,9 @@ async function setupPlayerScene() {
     sceneId,
     type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
   })
-  await activateRoom(base)
-  const player = (command: StagedSceneCommand) =>
-    commitSceneInRoom(base.other.caller, base.campaign.id, command)
+  await attachFixtureRoom(base.t, base.campaign.id)
+  const player = async (command: Parameters<typeof executeSceneInRoom>[1]) =>
+    (await executeSceneInRoom(base.other.caller, command)).result
   return { base, sceneId, scout, sentry, closed, locked, version, player }
 }
 
@@ -370,18 +377,53 @@ it("commits a player's door change on a fog-on Scene through the room, refusing 
     barrierId,
     state: 'OPEN' as const
   })
-  // The player's opened door explores through it: the commit stages the fog as it publishes.
-  const committed = await value.player(door(value.closed.id, value.version))
-  expect(committed).toMatchObject({
-    version: value.version + 1,
-    delta: { kind: 'DOOR_STATE_SET', barrierId: value.closed.id, state: 'OPEN' },
-    fogPatches: [expect.objectContaining({ ownerUserId: value.base.other.userId })]
+  // A player acts only on doors their explored fog shows, so the scout steps and explores first.
+  const step = await value.player({
+    type: 'MOVE_SCENE_TOKEN',
+    commandId: crypto.randomUUID(),
+    sceneId: value.sceneId,
+    tokenId: value.scout.id,
+    expectedSceneVersion: value.version,
+    expectedEncounterVersion: null,
+    correlationId: null,
+    movementKind: 'VOLUNTARY',
+    path: [value.scout.position, { x: value.scout.position.x + 50, y: value.scout.position.y }]
   })
+  expect(step).toMatchObject({ version: value.version + 1 })
   expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
+  const readLayers = () =>
+    value.base.t.run((ctx) =>
+      ctx.db
+        .query('sceneFogLayers')
+        .withIndex('by_sceneId_ownerUserId', (q) => q.eq('sceneId', value.sceneId))
+        .collect()
+    )
+  const [explored] = await readLayers()
+  expect(explored).toMatchObject({ ownerUserId: value.base.other.userId })
+  // The player's opened door explores through it: the commit stages the fog as it publishes.
+  const committed = await value.player(door(value.closed.id, value.version + 1))
+  expect(committed).toMatchObject({
+    version: value.version + 2,
+    delta: { kind: 'DOOR_STATE_SET', barrierId: value.closed.id, state: 'OPEN' }
+  })
+  expect(await persisted(value.base)).toMatchObject({ sequence: 2 })
+  // Opening the door, with no move between, is what extended the owner's explored layer.
+  const layers = await readLayers()
+  expect(layers).toEqual([expect.objectContaining({ ownerUserId: value.base.other.userId })])
+  expect(layers[0]!.checksum).not.toBe(explored!.checksum)
+  expect(layers[0]!.version).toBeGreaterThan(explored!.version)
 
   // Only the GM changes a locked door; the room refuses the player and nothing advances.
-  await expect(value.player(door(value.locked.id, value.version + 1))).rejects.toThrow()
-  expect(await persisted(value.base)).toMatchObject({ sequence: 1 })
+  const refusal = await value.player(door(value.locked.id, value.version + 2)).then(
+    () => null,
+    (failure: unknown) => failure
+  )
+  if (!(refusal instanceof RoomCommandRefusal)) throw new Error('Expected a room refusal.')
+  expect({ code: refusal.code, message: refusal.message }).toEqual({
+    code: 'FORBIDDEN',
+    message: 'FORBIDDEN: Only the GM can lock or unlock doors.'
+  })
+  expect(await persisted(value.base)).toMatchObject({ sequence: 2 })
 }, 120_000)
 
 it('commits a player move of a controlled unbound token through the room, refusing others (V07.4)', async () => {

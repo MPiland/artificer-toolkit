@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouterState } from '@tanstack/react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { authoredCatalogueItemSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
   nodeRuntimeNormalizeValuesResponseDtoSchema,
@@ -18,7 +19,7 @@ import {
   authoredRouteStorySystem,
   createEditLoaderData
 } from '#domains/authoredRouteStory.fixtures'
-import { raceListResponseFixture } from '#domains/races/race.fixtures'
+import { masterRaceFixture, raceListResponseFixture } from '#domains/races/race.fixtures'
 import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
@@ -105,7 +106,6 @@ const copiedRaceAuthoringData = {
 }
 const ownedResponse = { ...authoredRouteStoryResponses.race, draft: null, hasDraft: false }
 const ownedRace = ownedResponse.item!
-const catalogueRaceId = '00000000-0000-4000-8000-000000000001'
 
 beforeEach(() => {
   convexMocks.loadMore.mockClear()
@@ -113,16 +113,18 @@ beforeEach(() => {
   convexMocks.query.mockReset().mockImplementation(resolveStaticNormalization)
   convexMocks.usePaginatedQuery.mockClear()
   contentCatalogueMock.mockReturnValue({
-    items: raceListResponseFixture.items.map((item) => ({
-      id: item.label === 'Elf' ? catalogueRaceId : item.id,
-      publicId: item.publicId,
-      systemId: item.systemId,
-      label: item.label,
-      description: item.description,
-      category: item.category,
-      provenance: item.provenance,
-      permissions: item.permissions
-    })),
+    items: raceListResponseFixture.items.map((item) =>
+      authoredCatalogueItemSchema.parse({
+        id: item.id,
+        publicId: item.publicId,
+        systemId: item.systemId,
+        label: item.label,
+        description: item.description,
+        category: item.category,
+        provenance: item.provenance,
+        permissions: item.permissions
+      })
+    ),
     summary: { activeCount: 1, masterCount: 1, ownedCount: 0, categories: ['BASE'] },
     updating: false,
     isPending: false,
@@ -218,7 +220,7 @@ describe('Guided authored entry journeys', () => {
     expect(convexMocks.mutation).toHaveBeenCalledOnce()
     expect(convexMocks.mutation).toHaveBeenCalledWith(expect.anything(), {
       subjectKind: 'RACE',
-      subjectId: catalogueRaceId
+      subjectId: masterRaceFixture.id
     })
 
     expect(await screen.findByRole('heading', { name: 'Start with the basics' })).toHaveFocus()

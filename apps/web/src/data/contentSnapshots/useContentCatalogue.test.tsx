@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type {
-  ContentSnapshotCatalogueManifestDto,
-  ContentSnapshotHead
+import {
+  contentSnapshotAccessDtoSchema,
+  type ContentSnapshotCatalogueManifestDto,
+  type ContentSnapshotHead
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { buildContentSnapshotPart } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { clearPrivateContentSnapshots } from './privateContent'
@@ -121,10 +122,12 @@ beforeEach(() => {
   served.clear()
   fetchMock.mockClear()
   catalogue.manifest.mockReset()
-  catalogue.issueAccess.mockReset().mockResolvedValue({
-    token: 'content-token',
-    expiresAt: new Date(Date.now() + 3_600_000).toISOString()
-  })
+  catalogue.issueAccess.mockReset().mockResolvedValue(
+    contentSnapshotAccessDtoSchema.parse({
+      token: 'content-token',
+      expiresAt: new Date(Date.now() + 3_600_000).toISOString()
+    })
+  )
   vi.stubGlobal('fetch', fetchMock)
 })
 

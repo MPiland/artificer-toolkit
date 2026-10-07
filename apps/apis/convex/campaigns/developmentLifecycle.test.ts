@@ -20,7 +20,12 @@ import { fixture } from '../../tests/fixtures/characters'
 import { api, components } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import { assertAbsent } from './developmentLifecycle'
-import { executeInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  checkpointRoom,
+  executeInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
 const inspect = makeFunctionReference<
   'query',
@@ -131,6 +136,7 @@ async function setup(withRun = true) {
       blueprintId: blueprint.id,
       commandId: crypto.randomUUID()
     })
+    await attachFixtureRoom(base.t, campaign.id)
   }
   const target: DevelopmentCampaignFixture = {
     ownerUserId: base.owner.userId,
@@ -147,6 +153,7 @@ async function setup(withRun = true) {
 }
 
 describe('reserved native Campaign lifecycle proof', () => {
+  useLocalRoomWorker()
   it('starts the deletion fixture through public manual initiative commands and retains its active native Run', async () => {
     const base = await setup()
     let run = base.run
@@ -176,6 +183,8 @@ describe('reserved native Campaign lifecycle proof', () => {
       }
     })
     expect(result.projection.status).toBe('ACTIVE')
+    // The room holds the Run (D85); Convex sees it once the room checkpoints.
+    await checkpointRoom(base.campaign.id)
     const state = await base.t.query(inspect, base.target)
     const decoded: unknown = jsonToConvex(JSON.parse(state.campaignStateJson))
     expect(decoded).toMatchObject({

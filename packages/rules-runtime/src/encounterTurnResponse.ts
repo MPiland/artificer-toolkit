@@ -63,6 +63,8 @@ export function prepareEncounterTurnResponse(input: {
   encounterVersion: number
 }):
   | { kind: 'REPLAY' }
+  /** The responder's expected Run or occurrence version is behind; the caller refuses it as retryable. */
+  | { kind: 'STALE' }
   | {
       kind: 'INITIATIVE'
       root: EncounterInitiativeOccurrenceRoot
@@ -111,7 +113,7 @@ export function prepareEncounterTurnResponse(input: {
     command.expectedVersion !== encounterVersion ||
     command.expectedOccurrenceVersion !== occurrence.version
   )
-    throw new Error('Rule occurrence is unavailable.')
+    return { kind: 'STALE' }
   const base = {
     commandId: command.commandId,
     commandFingerprint: fingerprint,

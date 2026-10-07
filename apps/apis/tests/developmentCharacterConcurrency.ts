@@ -165,7 +165,7 @@ export async function verifyCharacterConcurrency({
         ...originalNoteInput,
         command: { ...originalNoteInput.command, title: 'Mismatch' }
       }),
-    /Sheet command replay does not match the original command\./
+    /Command ID was already used with different input\./
   )
   await assert.rejects(
     () =>

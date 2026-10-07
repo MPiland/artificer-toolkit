@@ -21,11 +21,14 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { characterPageFixtureFor } from '../src/testing/characterPageFixture.js'
+import {
+  characterPageFixtureFor,
+  type CharacterPlayOverrides
+} from '../src/testing/characterPageFixture.js'
 import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
-import { buildSrdSourceKinds } from '../src/testing/srdCharacterSource.js'
+import { buildSrdSourceKinds, type ClassFeature } from '../src/testing/srdCharacterSource.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
 
 const NOW = '2026-09-30T00:00:00.000Z'
@@ -57,9 +60,12 @@ export const darkvisionDefinition = liveRoomDefinitionSchema.parse({
 })
 
 /** Builds the SRD source's snapshot objects, stores them in R2 as the build does, and returns its head. */
-async function publishSrdSource(darkvision: boolean): Promise<ContentSnapshotHead> {
+async function publishSrdSource(
+  darkvision: boolean,
+  classFeatures: readonly ClassFeature[]
+): Promise<ContentSnapshotHead> {
   const kinds: ContentSnapshotHead['kinds'] = {}
-  for (const { kind, header, built } of buildSrdSourceKinds(darkvision)) {
+  for (const { kind, header, built } of buildSrdSourceKinds(darkvision, false, classFeatures)) {
     const store = async (part: ContentSnapshotPart) => {
       const { json, sha256, byteLength, rootCount } = built[part]
       const body = await new Response(
@@ -83,6 +89,95 @@ async function publishSrdSource(darkvision: boolean): Promise<ContentSnapshotHea
     revision: 1,
     builtRevision: 1,
     kinds
+  }
+}
+
+/**
+ * The Character and System reads of one assigned SRD Character: its Character page and published
+ * content in R2, and the SRD System. `darkvision` gives the Character a 60 ft Darkvision Sense.
+ */
+export async function characterRoomInputs({
+  campaignId,
+  characterId,
+  ownerUserId,
+  darkvision = false,
+  classFeatures = [],
+  play
+}: {
+  campaignId: string
+  characterId: string
+  ownerUserId: string
+  darkvision?: boolean
+  /** Further Features the Character's Class carries. */
+  classFeatures?: readonly ClassFeature[]
+  /** The play state the Character starts with, where it differs from the capture. */
+  play?: CharacterPlayOverrides
+}) {
+  const systemId = srdSystemRecord.id
+  const characterRevision = crypto.randomUUID()
+  const manifest: ContentSnapshotManifestDto = {
+    systemId,
+    sources: [
+      {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        kind: SRD_CONTENT_SOURCE.kind,
+        head: await publishSrdSource(darkvision, classFeatures)
+      }
+    ],
+    campaign: {
+      id: campaignId,
+      contentMaturity: 'STANDARD',
+      head: {
+        scope: 'CAMPAIGN',
+        scopeId: campaignId,
+        revision: 0,
+        builtRevision: 0,
+        kinds: {}
+      }
+    }
+  }
+  const part = liveRoomCharacterPartSchema.parse(
+    characterPageFixtureFor({
+      characterId,
+      userId: ownerUserId,
+      campaignId,
+      contentSnapshots: manifest,
+      play,
+      revisions: [
+        { scope: 'SYSTEM', id: systemId, revision: null },
+        { scope: 'CAMPAIGN', id: campaignId, revision: null },
+        { scope: 'PLAY', id: campaignId, revision: null },
+        { scope: 'CHARACTER', id: characterId, revision: characterRevision }
+      ]
+    })
+  )
+
+  return { parts: [part], system: srdSystemRoomInputs(campaignId), characterRevision, systemId }
+}
+
+/** The SRD System and its vocabulary snapshot as a room reads them for the Campaign. */
+export function srdSystemRoomInputs(campaignId: string): RoomCharacterInputs['system'] {
+  const systemId = srdSystemRecord.id
+  const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
+  const vocabularyIdentity = {
+    snapshotId: crypto.randomUUID(),
+    systemId,
+    snapshotVersion: 1,
+    schemaVersion: 1,
+    document: system
+  }
+  return {
+    kind: 'SYSTEM',
+    revisions: [
+      { scope: 'SYSTEM', id: systemId, revision: null },
+      { scope: 'CAMPAIGN', id: campaignId, revision: null },
+      { scope: 'PLAY', id: campaignId, revision: null }
+    ],
+    system,
+    vocabulary: systemVocabularySnapshotSchema.parse({
+      ...vocabularyIdentity,
+      checksum: checksumCanonicalJson(vocabularyIdentity)
+    })
   }
 }
 
@@ -113,66 +208,12 @@ export async function characterSheetInputsFixture({
   /** Holds the Run on a PENDING movement decision addressed to the Character's owner. */
   pendingDecision?: boolean
 }) {
-  const systemId = srdSystemRecord.id
-  const characterRevision = crypto.randomUUID()
-  const manifest: ContentSnapshotManifestDto = {
-    systemId,
-    sources: [
-      {
-        contentSourceId: SRD_CONTENT_SOURCE.id,
-        kind: SRD_CONTENT_SOURCE.kind,
-        head: await publishSrdSource(darkvision)
-      }
-    ],
-    campaign: {
-      id: campaignId,
-      contentMaturity: 'STANDARD',
-      head: {
-        scope: 'CAMPAIGN',
-        scopeId: campaignId,
-        revision: 0,
-        builtRevision: 0,
-        kinds: {}
-      }
-    }
-  }
-  const part = liveRoomCharacterPartSchema.parse(
-    characterPageFixtureFor({
-      characterId,
-      userId: ownerUserId,
-      campaignId,
-      contentSnapshots: manifest,
-      revisions: [
-        { scope: 'SYSTEM', id: systemId, revision: null },
-        { scope: 'CAMPAIGN', id: campaignId, revision: null },
-        { scope: 'PLAY', id: campaignId, revision: null },
-        { scope: 'CHARACTER', id: characterId, revision: characterRevision }
-      ]
-    })
-  )
-
-  const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
-  const vocabularyIdentity = {
-    snapshotId: crypto.randomUUID(),
-    systemId,
-    snapshotVersion: 1,
-    schemaVersion: 1,
-    document: system
-  }
-  const systemInputs: RoomCharacterInputs['system'] = {
-    kind: 'SYSTEM',
-    revisions: [
-      { scope: 'SYSTEM', id: systemId, revision: null },
-      { scope: 'CAMPAIGN', id: campaignId, revision: null },
-      { scope: 'PLAY', id: campaignId, revision: null }
-    ],
-    system,
-    vocabulary: systemVocabularySnapshotSchema.parse({
-      ...vocabularyIdentity,
-      checksum: checksumCanonicalJson(vocabularyIdentity)
-    })
-  }
-
+  const { parts, system, characterRevision, systemId } = await characterRoomInputs({
+    campaignId,
+    characterId,
+    ownerUserId,
+    darkvision
+  })
   const { encounterId, actorIds, documents, version } = await encounterRunFixture({
     campaignId,
     systemId,
@@ -201,8 +242,8 @@ export async function characterSheetInputsFixture({
   }
 
   const characterInputs: RoomCharacterInputs = {
-    parts: [part],
-    system: systemInputs,
+    parts,
+    system,
     run: {
       kind: 'RUN',
       encounterVersion: version,

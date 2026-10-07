@@ -17,9 +17,9 @@ const hitDieRoll = {
   characterLabel: 'Test Character',
   source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
   ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
-  normalizedExpression: '1d8 + 1',
+  normalizedExpression: '1d10 + 1',
   evidence: {
-    terms: [{ count: 1, die: 8, rolls: [5], subtotal: 5 }],
+    terms: [{ count: 1, die: 10, rolls: [5], subtotal: 5 }],
     modifier: 1,
     mode: 'NORMAL',
     subtotal: 6,
@@ -104,35 +104,44 @@ describe('Character Sheet rests', () => {
 
     await user.click(screen.getByRole('button', { name: /^short rest$/i }))
     const dialog = await screen.findByRole('dialog', { name: /^short rest$/i })
-    expect(within(dialog).getByText(/fighter d8/i)).toBeInTheDocument()
-    await user.click(within(dialog).getByRole('button', { name: /add one d8 hit die/i }))
-    expect(within(dialog).getByRole('button', { name: /1d8 \+ 1/i })).toBeInTheDocument()
+    expect(within(dialog).getByText(/fighter d10/i)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: /add one d10 hit die/i }))
+    expect(within(dialog).getByRole('button', { name: /1d10 \+ 1/i })).toBeInTheDocument()
     expect(within(dialog).getByRole('radio', { name: 'Table' })).toBeChecked()
     expect(within(dialog).getByRole('radio', { name: 'To GM' })).toBeInTheDocument()
     expect(within(dialog).queryByRole('radio', { name: 'Just me' })).not.toBeInTheDocument()
 
-    await user.click(within(dialog).getByRole('button', { name: /1d8 \+ 1/i }))
+    await user.click(within(dialog).getByRole('button', { name: /1d10 \+ 1/i }))
     expect(within(dialog).queryByText(/6 rolled/i)).not.toBeInTheDocument()
     await act(async () => revealRoll(hitDieRoll))
     expect((await within(dialog).findAllByText(/6 rolled/i)).length).toBeGreaterThan(0)
-    expect(within(dialog).getByText(/2 hp selected/i)).toBeInTheDocument()
+    // The played Fighter is at 10 of 11 hit points, so the 6 rolled heals only the 1 missing.
+    expect(within(dialog).getByText(/1 hp selected/i)).toBeInTheDocument()
+    // Short rests recover companion hit dice only after a long rest (sheetRest.ts eligibleCompanions),
+    // and the Wolf has no short-rest resource, so no companion choice is offered.
+    expect(
+      within(dialog).queryByLabelText(createSheet().extras.items[0]!.displayName)
+    ).not.toBeInTheDocument()
 
-    await user.click(within(dialog).getByLabelText(/clockwork hound/i))
     await user.click(within(dialog).getByRole('button', { name: /take short rest/i }))
 
+    const query = vi.mocked(ConvexReactClient.prototype.query)
+    const { previewFingerprint } = await createRestPreview(
+      characterRestPreviewInputSchema.parse(query.mock.lastCall![1]).input
+    )
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'COMPLETE_REST',
       restKind: 'SHORT',
-      previewFingerprint: 'rest-preview-short',
-      selectedHitDice: [{ die: 8, count: 1 }],
+      previewFingerprint,
+      selectedHitDice: [{ die: 10, count: 1 }],
       resetMaximumHitPointModifier: false,
       healingMode: 'AUTOMATIC',
       manualHealingAccepted: false,
-      selectedCompanionInstanceIds: ['11111111-1111-4111-8111-111111111111'],
+      selectedCompanionInstanceIds: [],
       rollId,
       rollEvidence: {
-        expression: '1d8 + 1',
-        terms: [{ die: 8, count: 1, modifierPerDie: 1, rolls: [5] }],
+        expression: '1d10 + 1',
+        terms: [{ die: 10, count: 1, modifierPerDie: 1, rolls: [5] }],
         total: 6
       },
       expectedVersion: 4
@@ -179,15 +188,15 @@ describe('Character Sheet rests', () => {
     )
     await user.click(screen.getByRole('button', { name: /^short rest$/i }))
     const dialog = await screen.findByRole('dialog', { name: /^short rest$/i })
-    await user.click(within(dialog).getByRole('button', { name: /add one d8 hit die/i }))
-    await user.click(await within(dialog).findByRole('button', { name: /1d8 \+ 1/i }))
+    await user.click(within(dialog).getByRole('button', { name: /add one d10 hit die/i }))
+    await user.click(await within(dialog).findByRole('button', { name: /1d10 \+ 1/i }))
     await within(dialog).findAllByText(/6 rolled/i)
     await waitFor(() =>
       expect(within(dialog).getByRole('button', { name: /take short rest/i })).toBeEnabled()
     )
 
     query.mockRejectedValueOnce(new Error('Clearing the previous roll failed.'))
-    await user.click(within(dialog).getByRole('button', { name: /1d8 \+ 1/i }))
+    await user.click(within(dialog).getByRole('button', { name: /1d10 \+ 1/i }))
     await within(dialog).findByRole('alert')
     await act(async () => cancelRoll())
     expect(within(dialog).queryAllByText(/6 rolled/i)).toHaveLength(0)
@@ -198,14 +207,14 @@ describe('Character Sheet rests', () => {
 
     query.mockClear()
     await user.click(within(dialog).getByRole('button', { name: /refresh preview/i }))
-    const refreshedRoll = await within(dialog).findByRole('button', { name: /1d8 \+ 1/i })
+    const refreshedRoll = await within(dialog).findByRole('button', { name: /1d10 \+ 1/i })
     await waitFor(() => expect(refreshedRoll).toBeEnabled())
     expect(within(dialog).getByRole('button', { name: /take short rest/i })).toBeDisabled()
     expect(query).toHaveBeenCalledTimes(1)
     const refreshedInput = characterRestPreviewInputSchema.parse(query.mock.calls[0]![1]).input
     expect(refreshedInput.rollId).toBeUndefined()
     expect(refreshedInput.rollEvidence).toBeUndefined()
-    expect(refreshedInput.selectedHitDice).toEqual([{ die: 8, count: 1 }])
+    expect(refreshedInput.selectedHitDice).toEqual([{ die: 10, count: 1 }])
   })
 
   it('ignores a hit-die roll from an earlier rest overlay', async () => {
@@ -246,8 +255,8 @@ describe('Character Sheet rests', () => {
       </CharacterSheetRollContext.Provider>
     )
     await user.click(screen.getByRole('button', { name: /^short rest$/i }))
-    await user.click(await screen.findByRole('button', { name: /add one d8 hit die/i }))
-    const roll = await screen.findByRole('button', { name: /1d8 \+ 1/i })
+    await user.click(await screen.findByRole('button', { name: /add one d10 hit die/i }))
+    const roll = await screen.findByRole('button', { name: /1d10 \+ 1/i })
     await waitFor(() => expect(roll).toBeEnabled())
     await user.click(roll)
     await waitFor(() => expect(executeRoll).toHaveBeenCalledTimes(1))
@@ -306,10 +315,37 @@ describe('Character Sheet rests', () => {
     await user.click(screen.getByRole('button', { name: /^long rest$/i }))
     const dialog = await screen.findByRole('dialog', { name: /^long rest$/i })
 
-    expect(within(dialog).getByText('Restores to 12 / 12')).toBeInTheDocument()
+    const { maxHitPoints } = sheet.overview
+    expect(
+      within(dialog).getByText(`Restores to ${maxHitPoints} / ${maxHitPoints}`)
+    ).toBeInTheDocument()
     expect(within(dialog).getByText('Recovery is calculated automatically')).toBeInTheDocument()
     expect(within(dialog).getByText(/reduces from level 1/i)).toBeInTheDocument()
     expect(within(dialog).getByText(/temp hp clears/i)).toBeInTheDocument()
+  })
+
+  it('sends the companions selected for a long rest', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+    const companion = sheet.extras.items[0]!
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewVitals pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^long rest$/i }))
+    const dialog = await screen.findByRole('dialog', { name: /^long rest$/i })
+    await user.click(await within(dialog).findByLabelText(companion.displayName))
+    await user.click(within(dialog).getByRole('button', { name: /take long rest/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'COMPLETE_REST',
+        restKind: 'LONG',
+        selectedCompanionInstanceIds: [companion.id]
+      })
+    )
   })
 
   it.each(['success', 'error'] as const)(
@@ -324,13 +360,13 @@ describe('Character Sheet rests', () => {
       const query = vi
         .mocked(ConvexReactClient.prototype.query)
         .mockImplementationOnce(async (...[, args]) => {
-          const preview = createRestPreview(characterRestPreviewInputSchema.parse(args).input)
+          const preview = await createRestPreview(characterRestPreviewInputSchema.parse(args).input)
           await earlier
           if (outcome === 'error') throw new Error('Old preview failed')
           return { ...preview, previewFingerprint: 'older-preview' }
         })
         .mockImplementationOnce(async (...[, args]) => ({
-          ...createRestPreview(characterRestPreviewInputSchema.parse(args).input),
+          ...(await createRestPreview(characterRestPreviewInputSchema.parse(args).input)),
           previewFingerprint: 'current-preview'
         }))
       renderWithAppProviders(

@@ -1,12 +1,16 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   createSpatialPreparationFixture,
   grantFixtureActorControl
 } from '../../tests/fixtures/spatialPreparation'
-import { planMovementInRoom } from '../../tests/fixtures/liveSessionWorker'
+import {
+  attachFixtureRoom,
+  executeSceneInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
+useLocalRoomWorker()
 
 type Fixture = Awaited<ReturnType<typeof createSpatialPreparationFixture>>
 
@@ -66,51 +70,60 @@ async function setup() {
   await patchTokens(fixture, (ordinal) =>
     ordinal === 0 ? { controlledByUserIds: [base.owner.userId] } : {}
   )
+  await attachFixtureRoom(base.t, base.campaign.id)
   return fixture
 }
 
 it('lets a controlling player move their bound token but refuses a token bound to another actor', async () => {
   const { base, input } = await setup()
   await expect(
-    planMovementInRoom(base.owner.caller, {
+    executeSceneInRoom(base.owner.caller, {
       ...input,
       commandId: crypto.randomUUID(),
       tokenId: base.tokens[1]!.id.toLowerCase(),
       path: [base.tokens[1]!.position, { x: 10, y: 0 }]
     })
   ).rejects.toThrow('NOT_ACTOR_CONTROLLER')
-  const plan = await planMovementInRoom(base.owner.caller, input)
-  expect(plan.outcome.kind).toBe('UNINTERRUPTED')
-  expect((await plan.publish()).version).toBe(1)
+  const move = await executeSceneInRoom(base.owner.caller, input)
+  expect(move.version).toBe(1)
+  // The baseline's UNINTERRUPTED plan outcome: no occurrence opened, a plain token move.
+  expect(move.result).toMatchObject({ occurrence: null, replayed: false })
+  expect(move.result?.delta).toMatchObject({ kind: 'TOKEN_MOVED' })
 })
 
 it('refuses a player move of a locked token', async () => {
   const fixture = await setup()
   await patchTokens(fixture, (ordinal) => (ordinal === 0 ? { locked: true } : {}))
-  await expect(planMovementInRoom(fixture.base.owner.caller, fixture.input)).rejects.toThrow(
-    'unlocked token'
+  await expect(executeSceneInRoom(fixture.base.owner.caller, fixture.input)).rejects.toThrow(
+    'The token is missing or locked.'
   )
 })
 
 it('refuses a move whose path starts away from the token, committing nothing', async () => {
   const { base, input } = await setup()
   await expect(
-    planMovementInRoom(base.owner.caller, {
+    executeSceneInRoom(base.owner.caller, {
       ...input,
       path: [
         { x: 1, y: 0 },
         { x: 10, y: 0 }
       ]
     })
-  ).rejects.toThrow('position is stale')
+  ).rejects.toThrow('Token movement must follow a path from its current position.')
 })
 
 it('refuses a move against a stale Scene version', async () => {
   const { base, input } = await setup()
+  expect((await executeSceneInRoom(base.owner.caller, input)).version).toBe(1)
+  // A client sends only once the room's Scene has caught up, so a stale version is an older one.
   await expect(
-    planMovementInRoom(base.owner.caller, {
+    executeSceneInRoom(base.owner.caller, {
       ...input,
-      expectedSceneVersion: 1
+      commandId: crypto.randomUUID(),
+      path: [
+        { x: 10, y: 0 },
+        { x: 20, y: 0 }
+      ]
     })
-  ).rejects.toThrow()
+  ).rejects.toThrow('STALE_STATE')
 })

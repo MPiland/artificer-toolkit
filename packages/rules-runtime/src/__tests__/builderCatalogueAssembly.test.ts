@@ -43,7 +43,7 @@ import {
   scopeObjects,
   system,
   type PublicationKind as Kind
-} from './characterContextFixtures.js'
+} from '../testing/characterContextFixtures.js'
 
 // ADR 0036 S9: the Builder's picker pools come only from content snapshots, so the catalogue
 // rules the server once asserted over Convex reads are asserted here over snapshot objects.

@@ -6,7 +6,7 @@ Target: local Docker Convex backend `phase82-local-linux` at http://127.0.0.1:32
 
 - Command: `pwsh -File scripts/runLocalConvexProof.ps1 -Name p15-recovery-20261002 -Proof session-control` (drives `yarn tsx apps/apis/tests/developmentDrafts.ts --session-control` -> `verifySessionControl`). Exit code 0; collector completed, 257 native log entries.
 - Source: HEAD `3d0c8a358e4832b740216e61d6403b30a2d3f0fe`. `git status --short apps/apis/convex packages` showed no `apps/apis/convex` changes; two uncommitted `packages/rules-runtime/src/character/` edits (`sheetAdjustmentCommands.ts`, `sheetResourceUsage.ts`).
-- Source parity reported `matches: false`: `apps/apis/tests/fixtures/liveSessionWorker.ts` and `apps/session-worker/test/characterSheetInputsFixture.ts` changed and `apps/session-worker/src/testing/encounterRunFixture.ts` was added during the run (concurrent work by another agent). None are on the Clock path (apps/apis/convex/campaigns/clock*.ts).
+- Source parity reported `matches: false`: `apps/apis/tests/fixtures/liveSessionWorker.ts` (since deleted; the real room fixture is `localRoomWorker.ts`) and `apps/session-worker/test/characterSheetInputsFixture.ts` changed and `apps/session-worker/src/testing/encounterRunFixture.ts` was added during the run (concurrent work by another agent). None are on the Clock path (apps/apis/convex/campaigns/clock*.ts).
 
 ## Clock executions (native function log, 16 completions)
 

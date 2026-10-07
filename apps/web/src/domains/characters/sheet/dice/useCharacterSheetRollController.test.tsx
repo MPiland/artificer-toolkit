@@ -4,7 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { type ReactNode } from 'react'
 import { afterEach, expect, vi } from 'vitest'
-import type { RollRecordDto, RollVisibilityDto } from '@artificer-toolkit/schema/api/rolls'
+import {
+  rollRecordDtoSchema,
+  type RollRecordDto,
+  type RollVisibilityDto
+} from '@artificer-toolkit/schema/api/rolls'
 import { getFunctionName } from 'convex/server'
 import { useCharacterSheetRollController } from './useCharacterSheetRollController'
 
@@ -47,13 +51,16 @@ vi.mock('convex/react', () => ({
   useConvex: () => ({ action: vi.fn(), query: vi.fn() })
 }))
 
+const characterId = '00000000-0000-4000-8000-000000000125'
+const systemId = '00000000-0000-4000-8000-000000000126'
+
 function createRoll(id: string): RollRecordDto {
-  return {
+  return rollRecordDtoSchema.parse({
     id,
-    characterId: 'character-1',
+    characterId,
     characterLabel: 'Aria',
     source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
-    ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
+    ruleset: { systemId, code: 'DND5E_2014', version: '1' },
     normalizedExpression: '1d8 + 1',
     evidence: {
       terms: [{ count: 1, die: 8, rolls: [5], subtotal: 5 }],
@@ -64,7 +71,7 @@ function createRoll(id: string): RollRecordDto {
       total: 6
     },
     createdAt: '2026-07-31T12:00:00.000Z'
-  }
+  })
 }
 
 function createWrapper(gmRollVisibility: RollVisibilityDto = 'PUBLIC') {
@@ -106,7 +113,7 @@ describe('useCharacterSheetRollController', () => {
         resolveNetwork = resolve
       })
     )
-    const { result } = renderHook(() => useCharacterSheetRollController('character-1'), {
+    const { result } = renderHook(() => useCharacterSheetRollController(characterId), {
       wrapper: createWrapper()
     })
 
@@ -131,7 +138,7 @@ describe('useCharacterSheetRollController', () => {
         resolveSecond = resolve
       })
     )
-    const { result } = renderHook(() => useCharacterSheetRollController('character-1'), {
+    const { result } = renderHook(() => useCharacterSheetRollController(characterId), {
       wrapper: createWrapper()
     })
 
@@ -157,7 +164,7 @@ describe('useCharacterSheetRollController', () => {
 
   it('settles on unmount and discards an unrevealed private result', async () => {
     rollMutationMocks.execute.mockResolvedValue(createRoll('unmounted-roll'))
-    const { result, unmount } = renderHook(() => useCharacterSheetRollController('character-1'), {
+    const { result, unmount } = renderHook(() => useCharacterSheetRollController(characterId), {
       wrapper: createWrapper()
     })
 
@@ -174,7 +181,7 @@ describe('useCharacterSheetRollController', () => {
   it('routes a player "Just me" roll through the campaign Character endpoint', async () => {
     rollMutationMocks.executeCampaignPrivate.mockResolvedValue(createRoll('campaign-private-roll'))
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: false }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
     )
 
@@ -186,7 +193,7 @@ describe('useCharacterSheetRollController', () => {
     await waitFor(() => expect(result.current.presentedRoll?.id).toBe('campaign-private-roll'))
     expect(rollMutationMocks.executeCampaignPrivate).toHaveBeenCalledWith({
       campaignId,
-      characterId: 'character-1',
+      characterId,
       ...manualRequest
     })
     expect(rollMutationMocks.execute).not.toHaveBeenCalled()
@@ -196,7 +203,7 @@ describe('useCharacterSheetRollController', () => {
   })
 
   it('offers no destinations outside a Campaign and keeps rolls private', () => {
-    const { result } = renderHook(() => useCharacterSheetRollController('character-1'), {
+    const { result } = renderHook(() => useCharacterSheetRollController(characterId), {
       wrapper: createWrapper()
     })
     expect(result.current.destination).toBe('PRIVATE')
@@ -208,7 +215,7 @@ describe('useCharacterSheetRollController', () => {
       .mockResolvedValueOnce({ roll: createRoll('table-roll') })
       .mockResolvedValueOnce({ roll: createRoll('gm-roll') })
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: false }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
     )
     expect(result.current.destination).toBe('TABLE')
@@ -224,7 +231,7 @@ describe('useCharacterSheetRollController', () => {
         expect.objectContaining({
           campaignId,
           destination,
-          roll: { characterId: 'character-1', ...request }
+          roll: { characterId, ...request }
         })
       )
     expect(result.current.presentedRollPrivate).toBe(false)
@@ -234,7 +241,7 @@ describe('useCharacterSheetRollController', () => {
   it('defaults a GM Campaign roll to public and rolls it to the table', async () => {
     rollMutationMocks.executeTable.mockResolvedValueOnce({ roll: createRoll('gm-public-roll') })
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
     expect(result.current.destination).toBe('TABLE')
@@ -252,7 +259,7 @@ describe('useCharacterSheetRollController', () => {
   it('remembers the GM private choice on the profile and rolls privately with a retry nonce', async () => {
     rollMutationMocks.executeGmPrivate.mockResolvedValueOnce(createRoll('gm-private-roll'))
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
     act(() => result.current.setDestination('PRIVATE'))
@@ -272,7 +279,7 @@ describe('useCharacterSheetRollController', () => {
 
   it('starts a GM whose stored choice is private on private', () => {
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper('PRIVATE') }
     )
     expect(result.current.destination).toBe('PRIVATE')
@@ -281,7 +288,7 @@ describe('useCharacterSheetRollController', () => {
   it('keeps player hit-die rolls on Table or To GM, never Just me', async () => {
     rollMutationMocks.executeTable.mockResolvedValue({ roll: createRoll('hit-die-roll') })
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: false }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
     )
     expect(optionLabels(result.current.stateRollDestinationOptions)).toEqual(['Table', 'To GM'])
@@ -300,7 +307,7 @@ describe('useCharacterSheetRollController', () => {
   it('keeps GM hit-die rolls on Public or Private', async () => {
     rollMutationMocks.executeTable.mockResolvedValue({ roll: createRoll('gm-hit-die-roll') })
     const { result } = renderHook(
-      () => useCharacterSheetRollController('character-1', { id: campaignId, isGm: true }),
+      () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
     expect(optionLabels(result.current.stateRollDestinationOptions)).toEqual(['Public', 'Private'])

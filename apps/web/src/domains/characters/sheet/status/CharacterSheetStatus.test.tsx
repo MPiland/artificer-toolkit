@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -6,6 +6,11 @@ import { CharacterSheetOverview } from '../overview/CharacterSheetOverview'
 import { createSheet } from '../tests/sheetTestHarness'
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 import { CharacterSheetOverviewStatusStrip } from './CharacterSheetOverviewStatusStrip'
+
+const poisoned = createSheet().reference.conditionOptions.find(
+  (option) => option.label === 'Poisoned'
+)
+if (!poisoned) throw new Error('Expected the Poisoned condition option on the Sheet.')
 
 describe('Character Sheet status', () => {
   it('locks overview health and status controls while a sheet command is pending', () => {
@@ -40,13 +45,13 @@ describe('Character Sheet status', () => {
     await user.click(screen.getByRole('button', { name: /add condition/i }))
     await user.click(await screen.findByPlaceholderText(/add condition/i))
     await user.click(await screen.findByText(/poisoned/i))
-    expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
+    expect(screen.getByText(/disadvantage on attack rolls and ability checks/i)).toBeInTheDocument()
     await user.type(screen.getByLabelText(/condition notes/i), 'Spider venom')
     await user.click(screen.getByRole('button', { name: /^add$/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADD_CONDITION',
-      conditionTypeId: 'condition-1',
+      conditionTypeId: poisoned.id,
       notes: 'Spider venom',
       expectedVersion: 4
     })
@@ -180,7 +185,7 @@ describe('Character Sheet status', () => {
     await user.keyboard(' ')
 
     expect(disclosure).toHaveAccessibleName(/collapse exhaustion details/i)
-    expect(screen.getByText('Effects by level')).toBeVisible()
+    await waitFor(() => expect(screen.getByText('Effects by level')).toBeVisible())
   })
 
   it('commits exhaustion notes on blur and preserves them when saving fails', async () => {
@@ -220,9 +225,9 @@ describe('Character Sheet status', () => {
     const sheet = createSheet()
     sheet.overview.conditions = [
       {
-        conditionTypeId: 'condition-1',
-        label: 'Poisoned',
-        description: '<p>A poisoned creature suffers from toxins affecting its body.</p>',
+        conditionTypeId: poisoned.id,
+        label: poisoned.label,
+        description: poisoned.description,
         notes: 'Spider venom'
       }
     ]
@@ -245,7 +250,7 @@ describe('Character Sheet status', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'ADD_CONDITION',
-      conditionTypeId: 'condition-1',
+      conditionTypeId: poisoned.id,
       notes: 'Wyvern sting',
       expectedVersion: 4
     })
@@ -257,8 +262,8 @@ describe('Character Sheet status', () => {
     const sheet = createSheet()
     sheet.overview.conditions = [
       {
-        conditionTypeId: 'condition-1',
-        label: 'Poisoned',
+        conditionTypeId: poisoned.id,
+        label: poisoned.label,
         notes: 'Spider venom'
       }
     ]
@@ -276,7 +281,7 @@ describe('Character Sheet status', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'REMOVE_CONDITION',
-      conditionTypeId: 'condition-1',
+      conditionTypeId: poisoned.id,
       expectedVersion: 4
     })
   })

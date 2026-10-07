@@ -105,7 +105,6 @@ export async function readEncounterActionChoices(
         (action.availability.status === 'AVAILABLE' ||
           action.availability.reasonCode === 'SOURCE_NOT_EQUIPPED' ||
           action.availability.reasonCode === 'INSUFFICIENT_RESOURCE') &&
-        action.rollable &&
         action.mechanic &&
         mechanics.compiledActionEntryPoints.some(
           (entry) =>

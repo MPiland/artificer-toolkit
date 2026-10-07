@@ -29,6 +29,17 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   })
 }
 
+// jsdom implements no object URLs. Vitest 4.1 bridges `URL.createObjectURL` to Node by reading jsdom
+// 29 Blob internals (`_buffer`) that jsdom 30 replaced, so it throws for every jsdom File or Blob.
+if (typeof window !== 'undefined') {
+  let objectUrlCount = 0
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    writable: true,
+    value: () => `blob:http://localhost/${(objectUrlCount += 1)}`
+  })
+}
+
 if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = class ResizeObserver {
     observe() {}

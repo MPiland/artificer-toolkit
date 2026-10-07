@@ -375,7 +375,8 @@ export async function prepareTurnLegendaryActions<
 
   for (const [ordinal, evidence] of completed.entries()) {
     const ownerId = evidence.choice.ownerActorId
-    if (seen.has(ownerId) || !same((await windowFor(ownerId))?.choice, evidence.choice))
+    const owner = seen.has(ownerId) ? undefined : await windowFor(ownerId)
+    if (!owner || !same(owner.choice, evidence.choice))
       throw new Error('Retained Legendary Action owner is stale.')
     seen.add(ownerId)
     const decision = root.resolutionCommands.find(
@@ -443,7 +444,8 @@ export async function prepareTurnLegendaryActions<
         input.resolution?.kind === 'DECLINE' &&
         context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE'
       ) {
-        if (!same((await windowFor(choice.ownerActorId))?.choice, choice))
+        const owner = await windowFor(choice.ownerActorId)
+        if (!owner || !same(owner.choice, choice))
           throw new Error('Legendary Action choice is stale.')
         completed.push({
           choice,

@@ -1,7 +1,7 @@
 import { makeFunctionReference } from 'convex/server'
 import { readTestActor } from '../../tests/fixtures/storedActors'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
-import { expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type {
   EncounterCommandInputDto,
   PendingEncounterRuleOccurrenceSummaryDto,
@@ -16,14 +16,18 @@ import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import {
+  checkpointLiveRoom,
+  closeRoom,
   executeInRoom,
-  planMovementDecisionInRoom,
-  planMovementInRoom
-} from '../../tests/fixtures/liveSessionWorker'
+  executeSceneInRoom,
+  invalidateRoomInputs,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { internal } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
+useLocalRoomWorker()
 
 const [, disengage, , help] = SRD_BASIC_ACTION_DEFINITIONS
 const pendingRuleOccurrence = makeFunctionReference<
@@ -33,8 +37,8 @@ const pendingRuleOccurrence = makeFunctionReference<
 >('encounters/pendingReads:pendingRuleOccurrence')
 
 /**
- * An Assisted Run on the mover's turn: a Creature next to a reactor with an opportunity attack.
- * With `withHelper`, the reactor's ally (off the Scene) acts first instead.
+ * An Assisted Run on the mover's turn: a Creature next to a reactor with an opportunity attack,
+ * with the move's Scene bound. With `withHelper`, the reactor's ally (off the Scene) acts first.
  */
 async function moverTurn(withHelper = false) {
   const base = await setupCreatureReactionRun(null, true, withHelper)
@@ -42,13 +46,15 @@ async function moverTurn(withHelper = false) {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_BASIC_ACTION_DEFINITIONS
   })
+  const value = await setupReactionMovementScene(base, [base.reactor, base.mover], [50])
+  await queueRoomRolls(base.campaign.id, { rolls: [], repeat: 0 })
   await setCurrentActor(base, base.additionalReactorActor?.id ?? base.mover.id)
-  return base
+  return { ...base, value }
 }
 
 type MoverTurn = Awaited<ReturnType<typeof moverTurn>>
 
-async function gm(base: MoverTurn, command: EncounterCommandInputDto) {
+async function gm(base: Pick<MoverTurn, 'owner'>, command: EncounterCommandInputDto) {
   return executeInRoom(base.owner.caller, { command })
 }
 
@@ -70,7 +76,10 @@ async function basicAction(
   })
 }
 
-async function setCurrentActor(base: MoverTurn, actorId: string) {
+async function setCurrentActor(
+  base: Pick<MoverTurn, 'owner' | 'run' | 't' | 'campaign'>,
+  actorId: string
+) {
   return gm(base, {
     type: 'SET_CURRENT_ACTOR',
     encounterId: base.run.id,
@@ -81,6 +90,7 @@ async function setCurrentActor(base: MoverTurn, actorId: string) {
 }
 
 async function effectsOf(base: MoverTurn, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
   const row = await base.t.run((ctx) =>
     ctx.db
       .query('encounterRunActors')
@@ -91,13 +101,13 @@ async function effectsOf(base: MoverTurn, actorId: string) {
   return encounterBasicActionEffects(readStoredRunActor(row))
 }
 
-/** Answers the room's pending movement decision as the GM and publishes the next plan. */
+/** Answers the room's pending movement decision as the GM. */
 async function answer(
   base: MoverTurn,
   pending: { encounterVersion: number; occurrenceId: string; occurrenceVersion: number },
   resolution: ResolveRuleOccurrenceInputDto['resolution']
 ) {
-  const plan = await planMovementDecisionInRoom(base.owner.caller, {
+  return gm(base, {
     type: 'RESOLVE_RULE_OCCURRENCE',
     commandId: crypto.randomUUID(),
     encounterId: base.run.id,
@@ -107,10 +117,11 @@ async function answer(
     correlationId: null,
     resolution
   })
-  return plan.publish()
 }
 
-async function runVersion(base: MoverTurn) {
+/** The Run's version as Convex holds it once the room checkpoints. */
+async function runVersion(base: Pick<MoverTurn, 'run' | 't' | 'campaign'>) {
+  await checkpointLiveRoom(base.campaign.id)
   const row = await base.t.run((ctx) =>
     ctx.db
       .query('encounterRuns')
@@ -121,23 +132,24 @@ async function runVersion(base: MoverTurn) {
   return row.version
 }
 
-/** Plans the mover's move out of the reactor's reach in the room. */
+/** Commits the mover's move out of the reactor's reach through the real room. */
 async function moveAwayFromReactor(base: MoverTurn) {
-  const version = await runVersion(base)
-  const value = await setupReactionMovementScene(
-    { ...base, run: { ...base.run, version } },
-    [base.reactor, base.mover],
-    [50]
-  )
-  return planMovementInRoom(value.owner.caller, value.rootInput)
+  const { result } = await executeSceneInRoom(base.owner.caller, {
+    ...base.value.rootInput,
+    expectedEncounterVersion: await runVersion(base)
+  })
+  if (!result) throw new Error('Expected a committed Scene command result.')
+  return result
 }
 
 it('offers the reactor its opportunity attack when the mover leaves its reach', async () => {
-  expect((await moveAwayFromReactor(await moverTurn())).outcome.kind).toBe('PENDING')
+  expect((await moveAwayFromReactor(await moverTurn())).occurrence?.status).toBe('PENDING')
 })
 
 it('a defeated reactor takes no opportunity attack (D63)', async () => {
   const base = await moverTurn()
+  // The Run is the room's until it closes; the direct write below hydrates into its next command.
+  await closeRoom(base.campaign.id)
   await base.t.run(async (ctx) => {
     const row = await ctx.db
       .query('encounterRunActors')
@@ -153,13 +165,13 @@ it('a defeated reactor takes no opportunity attack (D63)', async () => {
     })
     await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, defeated)
   })
-  expect((await moveAwayFromReactor(base)).outcome.kind).not.toBe('PENDING')
+  expect((await moveAwayFromReactor(base)).occurrence?.status).not.toBe('PENDING')
 })
 
 it('a Disengaged mover provokes no opportunity attack prompt in Assisted mode (Q11)', async () => {
   const base = await moverTurn()
   await basicAction(base, base.mover.id, disengage!.id)
-  expect((await moveAwayFromReactor(base)).outcome.kind).not.toBe('PENDING')
+  expect((await moveAwayFromReactor(base)).occurrence?.status).not.toBe('PENDING')
 })
 
 it("a Disengage ends with its turn: setting the mover current again doesn't revive it", async () => {
@@ -171,7 +183,7 @@ it("a Disengage ends with its turn: setting the mover current again doesn't revi
   expect((await effectsOf(base, base.mover.id)).map((effect) => effect.mechanic)).toEqual([
     'NO_OPPORTUNITY_ATTACKS'
   ])
-  expect((await moveAwayFromReactor(base)).outcome.kind).toBe('PENDING')
+  expect((await moveAwayFromReactor(base)).occurrence?.status).toBe('PENDING')
 })
 
 it("an ally's Help gives the reactor's opportunity attack advantage, used once (Q11)", async () => {
@@ -179,10 +191,11 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
   const helper = base.additionalReactorActor
   if (!helper) throw new Error('Missing the reactor ally.')
   await setAutoRollDice(base.t, base.owner.userId, false)
+  await invalidateRoomInputs(base.campaign.id, ['PREFERENCES'])
   await basicAction(base, helper.id, help!.id, base.reactor.id)
   await setCurrentActor(base, base.mover.id)
 
-  const choice = (await (await moveAwayFromReactor(base)).publish()).occurrence?.pending
+  const choice = (await moveAwayFromReactor(base)).occurrence?.pending
   if (choice?.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
     throw new Error('Expected the opportunity attack choice.')
   const attack = (
@@ -190,6 +203,7 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
   ).occurrence?.pending
   if (attack?.kind !== 'D20_EVIDENCE') throw new Error('Expected the opportunity attack roll.')
   // The tabletop reads the prompt with its reasons.
+  await checkpointLiveRoom(base.campaign.id)
   const prompt = await base.owner.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
   expect(prompt).toMatchObject({
     kind: 'D20_EVIDENCE',

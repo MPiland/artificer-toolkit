@@ -1,46 +1,44 @@
 import { makeFunctionReference } from 'convex/server'
-import { afterEach, expect, it, vi } from 'vitest'
+import { expect, it } from 'vitest'
 import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import {
-  concentrationCommandId,
-  concentrationOccurrenceId
-} from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_CONCENTRATION_DEFINITIONS,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
-import { useMovementReactions } from '../../tests/fixtures/automaticSceneMovement'
+import { useMovementReactionsInRoom } from '../../tests/fixtures/automaticSceneMovement'
 import { seedConcentration } from '../../tests/fixtures/concentration'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
-import { internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { sourceImportBatches } from '../content/importBatches'
-import * as rollRandom from '../lib/rollRandom'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import {
-  planMovementDecisionInRoom,
-  planMovementInRoom,
-  readEncounterHistory
-} from '../../tests/fixtures/liveSessionWorker'
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  closeRoom,
+  executeInRoom,
+  executeSceneInRoom,
+  invalidateRoomInputs,
+  queueRoomRolls,
+  readRoomTimeline,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import {
   createConvexEncounterStoreReader,
   createConvexEncounterStore
 } from '../lib/convexEncounterStore'
 
-vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.unstubAllEnvs()
-})
+useLocalRoomWorker()
 
 type MovementFixture = Awaited<ReturnType<typeof setupAutomaticCharacterMovement>>
 
@@ -102,6 +100,8 @@ async function installConcentration(
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions
     })
+  // The room reads the definitions from its content snapshots, which were seeded before the import.
+  await attachFixtureRoom(value.base.t, value.base.campaign.id)
   return seedConcentration({
     t: value.base.t,
     run: value.base.run,
@@ -151,8 +151,32 @@ async function seedMovingSpatialEffect(
   })
 }
 
+type SpatialScope = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof createSpatialRuleEffectStore>['scope']>>
+>
+
+function withSpatialScope(
+  value: MovementFixture,
+  write: (scope: SpatialScope) => Promise<unknown>
+) {
+  return value.base.t.run(async (ctx) => {
+    const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(
+      { encounterId: value.base.run.id, sceneId: value.sceneId }
+    )
+    if (!scope) throw new Error('Movement Concentration spatial scope is unavailable.')
+    await write(scope)
+  })
+}
+
+/**
+ * Convex's rows after the room checkpoints what it holds (a Run's state is the room's until then,
+ * D85), with the room's own command timeline: its receipts are held history that Convex never sees.
+ */
 async function records(value: MovementFixture) {
+  await checkpointLiveRoom(value.base.campaign.id)
+  const timeline = await readRoomTimeline(value.owner.caller, value.base.campaign.id)
   return value.base.t.run(async (ctx) => ({
+    timeline,
     character: await readCharacterRow(ctx, value.base.character.id),
     characterEffects: await ctx.db
       .query('characterActiveRuleEffects')
@@ -176,85 +200,40 @@ async function records(value: MovementFixture) {
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
     receiptLedgers: await ctx.db.query('receiptLedgers').collect(),
     receiptLedgerParts: await ctx.db.query('receiptLedgerParts').collect(),
-    receiptHeaders: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .collect(),
-    receipts: await (
-      await readEncounterHistory(ctx)
-    )
-      .query('encounterRuleReceipts')
-      .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', value.base.run.id))
-      .collect(),
     sceneStates: await ctx.db.query('sceneLiveStates').collect()
   }))
 }
 
 it('settles a used automatic reaction Concentration check once with its damage receipt', async () => {
-  const random = vi.mocked(rollRandom.nextRollInt)
-  random.mockReset()
-  random.mockReturnValueOnce(14).mockReturnValue(0)
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC'], false, {
     features: [concentrationAdvantageFeature]
   })
   const seeded = await installConcentration(value)
-  const { publish, prepared, responseCommandId } = await useMovementReactions(value)
+  // The reaction's attack roll is 15; every later die (damage, Concentration advantage) lands on 1.
+  await queueRoomRolls(value.base.campaign.id, { rolls: [14], repeat: 0 })
   const before = await records(value)
   if (!before.character) throw new Error('Concentrating Character is unavailable.')
 
-  expect(prepared.outcome.kind).toBe('TERMINAL')
-  if (prepared.outcome.kind !== 'TERMINAL') throw new Error('Expected Automatic terminal movement.')
-  const reaction = prepared.outcome.result.reactionExecutions[0]
-  const concentration = reaction?.concentrationChecks?.[0]
-  if (!reaction || !concentration) throw new Error('Expected the reaction Concentration child.')
-  // The Use response continues the movement and sources its mechanics.
-  expect(concentration.sourceCommandId).toBe(responseCommandId)
-  expect(concentration.result.applicationOutputs).toMatchObject({
-    parentOccurrenceId: prepared.outcome.result.occurrenceId,
-    application: { targetActorId: value.base.mover.id },
-    outcome: 'SAVE_FAILURE',
-    d20: { rawFaces: [1, 1], rollMode: 'ADVANTAGE', dc: 10, modifier: 1 },
-    cleanup: {
-      maintainedStateId: seeded.state.id,
-      removedDependentEffectIds: expect.arrayContaining([seeded.dependent.id]),
-      characterOwnerTransitions: [
-        {
-          characterId: value.base.character.id,
-          beforeStreamVersion: before.character.play.streamVersion + 1,
-          afterStreamVersion: before.character.play.streamVersion + 2
-        }
-      ]
-    }
-  })
-  expect(concentration.ownerTransitions).toMatchObject([
-    { characterId: value.base.character.id, targetActorId: value.base.mover.id }
-  ])
-  expect(random).toHaveBeenCalledTimes(3)
-  expect(await records(value)).toEqual(before)
+  const { occurrence, responseCommandId } = await useMovementReactionsInRoom(value)
 
-  await publish()
+  expect(responseCommandId).not.toBeNull()
+  expect(occurrence?.status).toBe('COMPLETE')
   const after = await records(value)
-  expect(random).toHaveBeenCalledTimes(3)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
   // The damage and the Concentration cleanup reach Convex in one checkpoint as two ordered stream
   // bumps: the damage settles first, and the check's cleanup then advances the damaged version.
   expect(after.character?.play.streamVersion).toBe(before.character.play.streamVersion + 2)
-  // The Use response continues the paused movement, so its receipt holds the terminal result.
-  const receipts = after.receipts.filter((entry) => entry.commandId === responseCommandId)
-  expect(receipts).toHaveLength(1)
-  const [receipt] = receipts
-  if (!receipt) throw new Error('Movement Concentration receipt is unavailable.')
-  expect(storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))).toEqual(
-    prepared.outcome.result
-  )
+  // The Concentration child's receipt (sourceCommandId, the d20 faces, the cleanup and owner
+  // transitions) is room-held history: apps/session-worker/test/nativeMovementEvidence.test.ts
+  // ("a used automatic reaction followed by a failed Concentration save") pins those fields.
+  // The one Use is the GM's only decision answer on the room's timeline.
+  expect(
+    after.timeline.filter((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')
+  ).toMatchObject([{ actorUserId: value.owner.userId }])
 }, 60_000)
 
 it('consumes a moving one-shot effect once across a Concentration pause and later target', async () => {
-  const random = vi.mocked(rollRandom.nextRollInt)
-  random.mockReset()
-  random.mockReturnValue(0)
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC', 'AUTOMATIC'], false, {}, true)
   if (!value.additionalCharacter || !value.additionalCharacterActor)
     throw new Error('Expected the stationary Concentration Character.')
@@ -263,54 +242,24 @@ it('consumes a moving one-shot effect once across a Concentration pause and late
     value.additionalCharacterActor,
     value.additionalCharacter
   )
-  const effect = await seedMovingSpatialEffect(value, { activation: 'ONE_SHOT', hidden: false })
-  const { publish, prepared } = await useMovementReactions(value)
-  const before = await records(value)
+  await seedMovingSpatialEffect(value, { activation: 'ONE_SHOT', hidden: false })
+  await queueRoomRolls(value.base.campaign.id, { rolls: [], repeat: 0 })
 
-  expect(prepared.outcome.kind).toBe('TERMINAL')
-  if (
-    prepared.outcome.kind !== 'TERMINAL' ||
-    prepared.outcome.result.status !== 'BATCH_COMPLETE' ||
-    prepared.outcome.result.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT'
-  )
-    throw new Error('Expected automatic shared-effect spatial terminal.')
-  const executions = prepared.outcome.result.executions.filter(
-    (execution) => execution.candidate.candidate.effectId === effect.id
-  )
-  expect(executions).toHaveLength(2)
-  const concentrationTarget = executions.find(
-    (execution) =>
-      execution.candidate.candidate.targetActorId === value.additionalCharacterActor!.id
-  )
-  const laterTarget = executions.find(
-    (execution) => execution.candidate.candidate.targetActorId === value.base.reactors[1]!.id
-  )
-  expect(concentrationTarget?.concentrationChecks).toMatchObject([
-    {
-      result: {
-        applicationOutputs: {
-          outcome: 'SAVE_FAILURE',
-          cleanup: { maintainedStateId: seeded.state.id }
-        }
-      }
-    }
-  ])
-  expect(laterTarget?.concentrationChecks).toBeUndefined()
-  expect(await records(value)).toEqual(before)
+  const { occurrence } = await useMovementReactionsInRoom(value)
 
-  const published = await publish()
+  // Which target's execution carries the Concentration check (the damaged Character's, never the
+  // later Creature's) and the executions' count are room-held receipt history, pinned in
+  // apps/session-worker/test/nativeMovementEvidence.test.ts ("a moving spatial effect shared by a Concentration Character and a later target"). Only the net state reaches Convex.
+  expect(occurrence?.status).toBe('COMPLETE')
   const after = await records(value)
   expect(after.spatialEffects).toEqual([])
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.allCharacterEffects.map((entry) => entry.id)).not.toContain(seeded.dependent.id)
-  expect(JSON.stringify(published)).not.toContain('consumedSpatialEffects')
-  expect(JSON.stringify(published)).not.toContain('frozenGraph')
+  expect(JSON.stringify(occurrence)).not.toContain('consumedSpatialEffects')
+  expect(JSON.stringify(occurrence)).not.toContain('frozenGraph')
 }, 60_000)
 
 it('reveals a moving hidden repeatable effect once across several targets', async () => {
-  const random = vi.mocked(rollRandom.nextRollInt)
-  random.mockReset()
-  random.mockReturnValue(0)
   const value = await setupAutomaticCharacterMovement(['AUTOMATIC', 'AUTOMATIC'], false, {}, true)
   if (!value.additionalCharacter || !value.additionalCharacterActor)
     throw new Error('Expected the stationary Concentration Character.')
@@ -320,29 +269,22 @@ it('reveals a moving hidden repeatable effect once across several targets', asyn
     value.additionalCharacter
   )
   const effect = await seedMovingSpatialEffect(value, { activation: 'REPEATABLE', hidden: true })
+  await queueRoomRolls(value.base.campaign.id, { rolls: [], repeat: 0 })
   const hidden = await records(value)
-  const { publish, prepared } = await useMovementReactions(value)
 
-  if (
-    prepared.outcome.kind !== 'TERMINAL' ||
-    prepared.outcome.result.status !== 'BATCH_COMPLETE' ||
-    prepared.outcome.result.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT'
-  )
-    throw new Error('Expected hidden repeatable shared-effect spatial terminal.')
-  expect(
-    prepared.outcome.result.executions.filter(
-      (execution) => execution.candidate.candidate.effectId === effect.id
-    )
-  ).toHaveLength(2)
-  const published = await publish()
+  const { occurrence } = await useMovementReactionsInRoom(value)
+
+  // The executions' count (two targets of the one effect) is room-held receipt history, pinned in
+  // apps/session-worker/test/nativeMovementEvidence.test.ts ("a moving spatial effect shared by a Concentration Character and a later target").
+  expect(occurrence?.status).toBe('COMPLETE')
   const after = await records(value)
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   // The first crossing, before the reactions paused the movement, revealed the effect once.
   expect(after.spatialEffects).toMatchObject([
     { id: effect.id, version: effect.version + 1, spatialState: { revealed: true } }
   ])
-  expect(JSON.stringify(published)).not.toContain('consumedSpatialEffects')
-  expect(JSON.stringify(published)).not.toContain('frozenGraph')
+  expect(JSON.stringify(occurrence)).not.toContain('consumedSpatialEffects')
+  expect(JSON.stringify(occurrence)).not.toContain('frozenGraph')
   expect(hidden.spatialEffects).toMatchObject([
     { id: effect.id, spatialState: { revealed: false } }
   ])
@@ -369,10 +311,8 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   await setAutoRollDice(value.base.t, value.additionalPlayer.userId, false)
   await setAutoRollDice(value.base.t, value.player.userId, false)
 
-  const prepared = await planMovementInRoom(value.owner.caller, value.rootInput)
-  expect(prepared.outcome.kind).toBe('PENDING')
-  const initial = await prepared.publish()
-  const pending = initial.occurrence?.pending
+  const initial = (await executeSceneInRoom(value.owner.caller, value.rootInput)).result
+  const pending = initial?.occurrence?.pending
   if (!pending || pending.kind !== 'D20_EVIDENCE')
     throw new Error('Expected the shared-effect Concentration evidence.')
   const answer = response({
@@ -385,7 +325,8 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
       rollMode: pending.request.rollMode
     }
   })
-  await expect(planMovementDecisionInRoom(value.player.caller, answer)).rejects.toThrow()
+  await expect(executeInRoom(value.player.caller, { command: answer })).rejects.toThrow()
+  await checkpointLiveRoom(value.base.campaign.id)
   expect(
     await value.player.caller.query(pendingOccurrence, { encounterId: value.base.run.id })
   ).toBeNull()
@@ -401,19 +342,18 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
   expect(wire).not.toContain('consumedSpatialEffects')
   expect(wire).not.toContain('frozenGraph')
 
-  const concentrationResponse = await (
-    await planMovementDecisionInRoom(value.additionalPlayer.caller, answer)
-  ).publish()
-  let completed = concentrationResponse
+  let completed = await executeInRoom(value.additionalPlayer.caller, { command: answer })
   let lastAnswer = answer
   let sawHazardPause = false
   for (let index = 0; completed.occurrence?.status === 'PENDING'; index += 1) {
     if (index >= 20) throw new Error('Shared-effect continuation did not settle.')
     const next =
       completed.occurrence.pending ??
-      (await value.owner.caller.query(pendingOccurrence, {
-        encounterId: value.base.run.id
-      }))
+      (await checkpointLiveRoom(value.base.campaign.id).then(() =>
+        value.owner.caller.query(pendingOccurrence, {
+          encounterId: value.base.run.id
+        })
+      ))
     if (!next) throw new Error('Shared-effect continuation pending summary is unavailable.')
     // Reactions now pause for Use and their rolls, so find the hazard save by its sealed context.
     let respondingToHazard = false
@@ -479,82 +419,60 @@ it('resumes an Assisted moving one-shot effect only from the damaged Character c
     if (!resolution) throw new Error('Unexpected shared-effect continuation request.')
     const nextAnswer = response({ encounterId: value.base.run.id, pending: next, resolution })
     if (respondingToHazard) {
-      await value.base.t.run(async (ctx) => {
-        const scope = await createSpatialRuleEffectStore({
-          db: createConvexEncounterStore(ctx)
-        }).scope({
-          encounterId: value.base.run.id,
-          sceneId: value.sceneId
-        })
-        if (!scope) throw new Error('E/H spatial effect scope is unavailable.')
-        await scope.create({
+      // E, consumed by the committed prefix, reappears in the Scene: the owner's answer to the
+      // hazard must refuse and write nothing. The room holds the Run, so it closes (checkpointing)
+      // before each write to Convex and re-hydrates with the next command.
+      await closeRoom(value.base.campaign.id)
+      await withSpatialScope(value, (scope) =>
+        scope.create({
           id: effect.id,
           definition: effect.definition,
           lifecycle: effect.lifecycle,
           placement: effect.placement,
           spatialState: effect.spatialState
         })
-      })
-      const beforeRejectedPreparation = await records(value)
-      await expect(planMovementDecisionInRoom(value.owner.caller, nextAnswer)).rejects.toThrow()
-      expect(await records(value)).toEqual(beforeRejectedPreparation)
-      await value.base.t.run(async (ctx) => {
-        const scope = await createSpatialRuleEffectStore({
-          db: createConvexEncounterStore(ctx)
-        }).scope({
-          encounterId: value.base.run.id,
-          sceneId: value.sceneId
-        })
-        const recreated = await scope?.get(effect.id)
-        if (!scope || !recreated) throw new Error('Recreated E spatial effect is unavailable.')
+      )
+      const beforeRejection = await records(value)
+      await expect(executeInRoom(value.owner.caller, { command: nextAnswer })).rejects.toThrow()
+      await closeRoom(value.base.campaign.id)
+      expect(await records(value)).toEqual(beforeRejection)
+      // Reading the room re-hydrates it, so it closes again before the next write to Convex.
+      await closeRoom(value.base.campaign.id)
+      await withSpatialScope(value, async (scope) => {
+        const recreated = await scope.get(effect.id)
+        if (!recreated) throw new Error('Recreated E spatial effect is unavailable.')
         await scope.deleteCas({ id: recreated.id, expectedVersion: recreated.version })
       })
     }
-    completed = await (await planMovementDecisionInRoom(value.owner.caller, nextAnswer)).publish()
+    completed = await executeInRoom(value.owner.caller, { command: nextAnswer })
     lastAnswer = nextAnswer
   }
   if (completed.occurrence?.status !== 'COMPLETE')
     throw new Error('Expected the shared-effect suffix to settle after Concentration.')
   expect(sawHazardPause).toBe(true)
   const after = await records(value)
-  const receipt = after.receipts.find((entry) => {
-    const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(entry.resultJson))
-    return result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-  })
-  if (!receipt) throw new Error('Assisted shared-effect movement receipt is unavailable.')
-  const stored = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
-  if (stored.status !== 'BATCH_COMPLETE' || stored.batchKind !== 'ENCOUNTER_SPATIAL_MOVEMENT')
-    throw new Error('Expected the completed shared-effect spatial history.')
-  expect(
-    stored.executions.filter((execution) => execution.candidate.candidate.effectId === effect.id)
-  ).toHaveLength(2)
-  expect(
-    stored.executions.filter((execution) => execution.candidate.candidate.effectId === hazard.id)
-  ).toHaveLength(1)
+  // The completed spatial history (two executions of the effect, one of the hazard) is room-held
+  // receipt history; the retained snapshot assertions at the hazard pause pin its prefix. The effect's
+  // two executions are pinned room-side by the shared-effect test in nativeMovementEvidence.test.ts;
+  // the hazard's own execution has no room-side assertion yet.
   expect(after.spatialEffects).toEqual([])
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(JSON.stringify(completed)).not.toContain('consumedSpatialEffects')
   expect(JSON.stringify(completed)).not.toContain('frozenGraph')
-  await expect(
-    planMovementDecisionInRoom(value.owner.caller, lastAnswer).then((replay) => replay.publish())
-  ).resolves.toEqual({
-    ...completed,
-    replayed: true
-  })
+  // A retried decision is answered from the room's journal, identical and without rolling again.
+  await expect(executeInRoom(value.owner.caller, { command: lastAnswer })).resolves.toEqual(
+    completed
+  )
   // Settled decisions are no longer routable.
   await expect(
-    planMovementDecisionInRoom(value.additionalPlayer.caller, {
-      ...answer,
-      commandId: crypto.randomUUID()
+    executeInRoom(value.additionalPlayer.caller, {
+      command: { ...answer, commandId: crypto.randomUUID() }
     })
   ).rejects.toThrow()
   expect(await records(value)).toEqual(after)
 }, 60_000)
 
 it('continues Automatic same-contact hazards after a failed Concentration cleanup', async () => {
-  const random = vi.mocked(rollRandom.nextRollInt)
-  random.mockReset()
-  random.mockReturnValue(0)
   const value = await setupAutomaticCharacterMovement(['CHOICE'])
   const seeded = await installConcentration(value)
   const firstHazard = await seedSpatialEffect(
@@ -567,11 +485,21 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
     { x: 230, y: 50 },
     5
   )
-  const before = await records(value)
-  const prepared = await planMovementInRoom(value.owner.caller, value.rootInput)
-  expect(prepared.outcome.kind).toBe('PENDING')
-  if (prepared.outcome.kind !== 'PENDING') throw new Error('Expected the later reaction choice.')
-  const context = prepared.outcome.pendingSnapshot.applicationContext
+  await queueRoomRolls(value.base.campaign.id, { rolls: [], repeat: 0 })
+  const move = await executeSceneInRoom(value.owner.caller, value.rootInput)
+  const published = move.result
+  expect(published?.occurrence?.pending).toMatchObject({ kind: 'MOVEMENT_REACTION' })
+  const staged = await records(value)
+  const root = staged.occurrences.find(
+    (occurrence) => occurrence.id === published?.occurrence?.pending?.occurrenceId
+  )
+  if (!root) throw new Error('Expected the retained reaction-choice occurrence.')
+  const snapshot = await value.base.t.run((ctx) =>
+    readPendingSnapshot({ db: createConvexEncounterStoreReader(ctx) }, root)
+  )
+  if (snapshot?.snapshotKind !== 'KERNEL_EVIDENCE')
+    throw new Error('Expected the retained reaction-choice snapshot.')
+  const context = snapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' || context.phase.kind !== 'CHOICE')
     throw new Error('Expected hazards to continue to the reaction choice.')
   const executions = [...context.completedSpatialExecutions].sort(
@@ -593,22 +521,14 @@ it('continues Automatic same-contact hazards after a failed Concentration cleanu
     }
   ])
   expect(executions[1]?.concentrationChecks).toBeUndefined()
-  expect(random).toHaveBeenCalledTimes(1)
-  expect(await records(value)).toEqual(before)
 
-  const published = await prepared.publish()
   const after = await records(value)
-  expect(published.occurrence?.pending).toMatchObject({ kind: 'MOVEMENT_REACTION' })
   expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
   expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
-  expect(random).toHaveBeenCalledTimes(1)
+  // A retried root move is answered from the room's journal and rolls nothing again.
   await expect(
-    planMovementInRoom(value.owner.caller, value.rootInput).then((replay) => replay.publish())
-  ).resolves.toEqual({
-    ...published,
-    replayed: true
-  })
-  expect(random).toHaveBeenCalledTimes(1)
+    executeSceneInRoom(value.owner.caller, value.rootInput, move.expectedSessionSequence)
+  ).resolves.toEqual({ ...move, result: { ...published, replayed: true } })
   expect(await records(value)).toEqual(after)
 }, 60_000)
 
@@ -619,8 +539,8 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
   // The mover's Concentration check is its controller's roll.
   await setAutoRollDice(value.base.t, value.player.userId, false)
   // The GM uses the authored automatic reaction; its dice pause as evidence.
-  const used = await useMovementReactions(value)
-  const actionEvidence = (await used.publish()).occurrence?.pending
+  const used = await useMovementReactionsInRoom(value)
+  const actionEvidence = used.occurrence?.pending
   if (!actionEvidence || actionEvidence.kind !== 'D20_EVIDENCE')
     throw new Error('Expected reaction d20 evidence after its Use.')
   const action = response({
@@ -633,12 +553,11 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
       rollMode: actionEvidence.request.rollMode
     }
   })
-  await expect(planMovementDecisionInRoom(value.player.caller, action)).rejects.toThrow()
+  await expect(executeInRoom(value.player.caller, { command: action })).rejects.toThrow()
   let answer = action
   let pending: PendingEncounterRuleOccurrenceSummaryDto | null | undefined
   for (;;) {
-    pending = (await (await planMovementDecisionInRoom(value.owner.caller, answer)).publish())
-      .occurrence?.pending
+    pending = (await executeInRoom(value.owner.caller, { command: answer })).occurrence?.pending
     // The GM enters the reaction's damage before its target's Concentration check.
     if (pending?.kind !== 'ACTION_OUTCOME_EVIDENCE') break
     answer = response({
@@ -693,62 +612,45 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
       return readCharacterRecord(character).state.hitpoints.current
     })
   const damagedHitPoints = await moverHitPoints()
-  const assignment = await value.base.t.run(async (ctx) =>
-    ctx.db
-      .query('campaignCharacterAssignments')
-      .withIndex('by_campaignId_userId', (q) =>
-        q.eq('campaignId', value.base.campaign.id).eq('userId', value.player.userId)
-      )
-      .unique()
-  )
-  if (!assignment) throw new Error('Concentration controller assignment is unavailable.')
-  await value.base.t.run((ctx) => ctx.db.delete(assignment._id))
-  await expect(planMovementDecisionInRoom(value.player.caller, concentration)).rejects.toThrow()
-  expect(await records(value)).toEqual(staged)
-  await value.base.t.run((ctx) => {
-    const { _id: _assignmentId, _creationTime: _assignmentTime, ...saved } = assignment
-    return ctx.db.insert('campaignCharacterAssignments', saved)
+  // The controller leaves the Campaign through the real mutation (D81). A Run the room holds
+  // keeps its actors in the room (D74), so Convex sends the notice convex-test's scheduler does not.
+  await value.player.caller.mutation(api.campaigns.assignments.unassign, {
+    campaignId: value.base.campaign.id
   })
-  const plan = await planMovementDecisionInRoom(value.player.caller, concentration)
-  expect(plan.outcome.kind).toBe('TERMINAL')
-  expect(await records(value)).toEqual(staged)
-  const completed = await plan.publish()
-  const after = await records(value)
-  expect(await moverHitPoints()).toBe(damagedHitPoints)
-  const childOccurrenceId = concentrationOccurrenceId(
-    root.id,
-    context.phase.concentration.application
-  )
-  expect(after.occurrences.map((occurrence) => occurrence.id).sort()).toEqual(
-    [root.id, childOccurrenceId].sort()
-  )
-  expect(after.occurrences.find((occurrence) => occurrence.id === childOccurrenceId)).toMatchObject(
-    {
-      state: 'COMPLETED',
-      pendingSnapshotChecksum: null,
-      rootCommandId: concentrationCommandId(childOccurrenceId)
-    }
-  )
-  expect(after.receipts).toEqual(expect.arrayContaining(staged.receipts))
-  const child = after.receipts.find(
-    (entry) => entry.commandId === concentrationCommandId(childOccurrenceId)
-  )
-  if (!child) throw new Error('Movement Concentration child receipt is unavailable.')
-  expect(child.actorUserId).toBe(value.player.userId)
-  expect(staged.receipts.some((entry) => entry.commandId === child.commandId)).toBe(false)
-  expect(after.receipts.filter((entry) => entry.commandId === child.commandId)).toHaveLength(1)
-  expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
-  expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
-  expect(after.occurrences.find((occurrence) => occurrence.id === root.id)).toMatchObject({
-    state: 'COMPLETED'
-  })
+  await invalidateRoomInputs(value.base.campaign.id, ['CAMPAIGN'])
+  // The room reloads authorization before it admits the answer, so the departed player is no
+  // longer the actor's controller; the Character-unavailable refusal is for commands that read it.
   await expect(
-    planMovementDecisionInRoom(value.player.caller, concentration).then((replay) =>
-      replay.publish()
-    )
-  ).resolves.toEqual({
-    ...completed,
-    replayed: true
+    executeInRoom(value.player.caller, { command: concentration })
+  ).rejects.toMatchObject({
+    data: {
+      code: 'DOMAIN_REJECTED',
+      reason: 'NOT_ACTOR_CONTROLLER',
+      message: "This decision isn't yours to answer."
+    }
   })
-  expect(await records(value)).toEqual(after)
+  const departed = await records(value)
+  // The room froze the departed actor (the only write besides the departure itself); the refused
+  // answer wrote nothing: no child, no settlement, no Concentration outcome.
+  const actors = await value.base.t.run(async (ctx) =>
+    (
+      await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', value.base.run.id))
+        .collect()
+    ).map(readStoredRunActor)
+  )
+  const departedActor = actors.find(
+    (actor) => actor.kind === 'CHARACTER' && actor.sourceId === value.base.character.id
+  )
+  expect(departedActor?.kind === 'CHARACTER' && departedActor.frozenState).toBeTruthy()
+  expect(await moverHitPoints()).toBe(damagedHitPoints)
+  expect(departed.occurrences).toEqual(staged.occurrences)
+  expect(departed.occurrences.map((occurrence) => occurrence.id)).not.toContain(
+    concentrationOccurrenceId(root.id, context.phase.concentration.application)
+  )
+  expect(departed.maintained).toEqual(staged.maintained)
+  expect(departed.receiptLedgers).toEqual(staged.receiptLedgers)
+  expect(departed.receiptLedgerParts).toEqual(staged.receiptLedgerParts)
+  expect(departed.sceneStates).toEqual(staged.sceneStates)
 }, 120_000)
