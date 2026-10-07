@@ -78,6 +78,8 @@ async function sheetRoom(
       status?: 'ACTIVE' | 'PREPARED'
       pendingDecision?: boolean
     }
+    /** Whose Character the room's one assigned Character is; the GM may play one too (CAMPAIGN-7). */
+    characterOwner?: 'PLAYER' | 'GM'
   } = {}
 ) {
   const campaignId = crypto.randomUUID()
@@ -94,20 +96,21 @@ async function sheetRoom(
     { membershipEpoch, role: 'PLAYER' as const, userId: strangerId }
   ]
   let members = everyone
-  let assignments = [{ characterId, userId: ownerId }]
+  const characterUserId = options.characterOwner === 'GM' ? gmId : ownerId
+  let assignments = [{ characterId, userId: characterUserId }]
   let characterDeleted = false
   const checkpoints: ReturnType<typeof liveSessionCheckpointRequestSchema.parse>[] = []
   const inputs = await characterSheetInputsFixture({
     campaignId,
     characterId,
-    ownerUserId: ownerId,
+    ownerUserId: characterUserId,
     ...options.run
   })
   /** The Character after a GM edit grants it Darkvision: another revision and Sheet content. */
   const edited = await characterSheetInputsFixture({
     campaignId,
     characterId,
-    ownerUserId: ownerId,
+    ownerUserId: characterUserId,
     darkvision: true
   })
   let characterEdited = false
@@ -1270,6 +1273,67 @@ it("never shows a player another member's Character unless its Sheet is party-vi
       expect.objectContaining({ characterId: room.characterId, currentHitPoints: 8 })
     ])
   )
+})
+
+function roleplay(room: SheetRoom, commandId: string) {
+  return chatFrame({
+    type: 'SEND_CHAT',
+    commandId,
+    input: {
+      campaignId: room.campaignId,
+      room: 'TABLE',
+      mode: 'ROLEPLAY',
+      assignedCharacterId: room.characterId,
+      body: 'In character',
+      clientNonce: commandId
+    }
+  })
+}
+
+it("plays the GM's own Character in the room as a player's: Sheet, party summary and in-character chat (CAMPAIGN-7)", async () => {
+  const room = await sheetRoom({ characterOwner: 'GM' })
+  const [damaged] = await room.play(
+    room.gm,
+    { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 3 },
+    crypto.randomUUID(),
+    1
+  )
+  expect(damaged).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  const [shared] = await room.play(
+    room.gm,
+    { type: 'SET_PARTY_VISIBILITY', visibility: { sheet: true, health: 'HIDDEN' } },
+    crypto.randomUUID(),
+    2
+  )
+  expect(shared).toMatchObject({ type: 'COMMAND_COMMITTED' })
+  subscribeSummary(room.stranger)
+  await vi.waitFor(() =>
+    expect(summariesOf(room.stranger).at(-1)?.summary.characters).toEqual([
+      expect.objectContaining({ characterId: room.characterId, currentHitPoints: 8 })
+    ])
+  )
+
+  const spokenId = crypto.randomUUID()
+  room.gm.socket.send(roleplay(room, spokenId))
+  await vi.waitFor(() => expect(repliesTo(room.gm, spokenId)).toHaveLength(1))
+  expect(repliesTo(room.gm, spokenId)[0]).toMatchObject({
+    type: 'COMMAND_COMMITTED',
+    delta: { entry: { mode: 'ROLEPLAY', characterId: room.characterId, authorUserId: room.gmId } }
+  })
+})
+
+it("refuses the GM speaking in character as a player's Character (CAMPAIGN-7)", async () => {
+  const room = await sheetRoom()
+  const refusedId = crypto.randomUUID()
+  room.gm.socket.send(roleplay(room, refusedId))
+  await vi.waitFor(() => expect(repliesTo(room.gm, refusedId)).toHaveLength(1))
+  expect(repliesTo(room.gm, refusedId)[0]).toMatchObject({ type: 'COMMAND_REJECTED' })
+  expect((await roomChatEvidence(room)).entries).toBe(0)
+
+  const spokenId = crypto.randomUUID()
+  room.owner.socket.send(roleplay(room, spokenId))
+  await vi.waitFor(() => expect(repliesTo(room.owner, spokenId)).toHaveLength(1))
+  expect(repliesTo(room.owner, spokenId)[0]).toMatchObject({ type: 'COMMAND_COMMITTED' })
 })
 
 it('withholds a hidden current actor from players but not the GM (ADR 0034)', async () => {

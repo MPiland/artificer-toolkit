@@ -229,7 +229,6 @@ export async function removeCampaignSharesAndReconcile(input: {
     const record = await readCharacterRow(ctx, assignment.characterId)
     if (
       !member ||
-      member.role !== 'PLAYER' ||
       !record ||
       record.userId !== assignment.userId ||
       record.systemId !== campaign.gameSystemId

@@ -53,7 +53,10 @@ export function CampaignParty({
     { kind: 'REMOVE'; userId: string; username: string } | { kind: 'LEAVE' } | null
   >(null)
   const currentMembership = campaign.memberships.find((member) => member.userId === currentUserId)
-  const rosterMembers = campaign.memberships.filter((member) => member.role === 'PLAYER')
+  // The GM joins the roster only while playing a Character of their own.
+  const rosterMembers = campaign.memberships.filter(
+    (member) => member.role === 'PLAYER' || member.assignedCharacter
+  )
   const assignedCharacters = rosterMembers.flatMap((member) =>
     member.assignedCharacter ? [{ member, character: member.assignedCharacter }] : []
   )
@@ -184,7 +187,10 @@ export function CampaignParty({
                         ) : null}
                       </div>
                     </Group>
-                    <Badge variant='light'>{character ? 'Ready' : 'Needs Character'}</Badge>
+                    <Group gap='xs' wrap='nowrap'>
+                      {member.role === 'OWNER' ? <Badge variant='light'>GM</Badge> : null}
+                      <Badge variant='light'>{character ? 'Ready' : 'Needs Character'}</Badge>
+                    </Group>
                   </Group>
                   {!character ? (
                     <Text c='dimmed' size='sm'>
@@ -233,7 +239,7 @@ export function CampaignParty({
                       View Sheet
                     </Button>
                   ) : null}
-                  {campaign.capabilities.manageMembers ? (
+                  {campaign.capabilities.manageMembers && member.role === 'PLAYER' ? (
                     <Group gap='xs'>
                       {character ? (
                         <Button

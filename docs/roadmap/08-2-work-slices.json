@@ -821,10 +821,11 @@
     {
       "id": "PLT-9",
       "stream": "PLT",
-      "state": "remaining",
+      "state": "done",
       "title": "GM plays a Character: a Campaign owner may assign their own Character, and that Character acts as any other player's (inventory transfers, party chat, Encounter control, Sheet visibility)",
       "cases": [],
       "refs": [
+        "D92",
         "Agreed with the user during VS-9: if the GM plays a Character it acts as any other Character",
         "packages/shared/src/domains/campaign/campaignCapabilities.ts"
       ]

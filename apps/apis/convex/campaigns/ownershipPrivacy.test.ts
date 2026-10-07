@@ -140,10 +140,10 @@ it('excludes pre-transfer PARTY traffic at the same millisecond and retains subs
   ).toEqual([result.id])
 })
 
-it('detaches the incoming owner Character atomically and rolls the detachment back on a later failure', async () => {
+it('keeps the incoming owner Character in play and rolls a failed transfer back atomically (CAMPAIGN-7)', async () => {
   const { owner: player, other: gm, t, character } = await readySheetFixture()
   const campaign = await gm.caller.mutation(api.campaigns.create.create, {
-    name: 'Ownership detachment',
+    name: 'Ownership keeps the Character',
     format: 'ONGOING',
     toneTags: ['HEROIC'],
     contentMaturity: 'STANDARD',
@@ -193,8 +193,8 @@ it('detaches the incoming owner Character atomically and rolls the detachment ba
     role: 'OWNER'
   })
   const after = await snapshot()
-  expect(after.assignments).toEqual([])
-  expect(after.overlays).toEqual([])
+  expect(after.assignments).toEqual(before.assignments)
+  expect(after.overlays).toEqual(before.overlays)
   expect(after.characters).toEqual(before.characters)
   expect(after.shares).toEqual(before.shares)
 })

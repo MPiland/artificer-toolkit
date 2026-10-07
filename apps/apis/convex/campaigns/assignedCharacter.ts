@@ -29,7 +29,6 @@ export async function readCampaignAssignedCharacter(
     !route ||
     uniqueAssignment?._id !== assignment._id ||
     route.subjectKind !== 'CHARACTER' ||
-    member.role !== 'PLAYER' ||
     record.userId !== member.userId ||
     route.ownerUserId !== member.userId ||
     record.systemId !== campaign.gameSystemId

@@ -11,7 +11,6 @@ import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { requireCampaignAuthority, readCampaignDetail } from './documents'
-import { removeCampaignCharacterAssignment } from './characterDeparture'
 import { readCampaignAccessTime } from './conversationDocuments'
 import { closeCampaignAdmission } from '../social/admissionClosure'
 import { scheduleLiveSessionUserEviction } from '../liveSessions/controlScheduling'
@@ -93,20 +92,6 @@ export const accept = mutation({
       if (owned.length >= limit)
         throw new Error('Your account has reached its activeHostedCampaigns limit.')
     }
-    const assignment = await ctx.db
-      .query('campaignCharacterAssignments')
-      .withIndex('by_campaignId_userId', (q) =>
-        q.eq('campaignId', campaign.id).eq('userId', userId)
-      )
-      .unique()
-    if (assignment)
-      await removeCampaignCharacterAssignment({
-        ctx,
-        campaign,
-        assignment,
-        actorUserId: userId,
-        reason: 'OWNERSHIP_TRANSFER'
-      })
     // Strictly advance past all prior same-millisecond traffic; subsequent senders use this clock.
     const now = new Date((await readCampaignAccessTime(ctx, campaign)) + 1).toISOString()
     await closeCampaignAdmission(ctx, campaign, userId, now)

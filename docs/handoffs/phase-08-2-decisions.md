@@ -471,6 +471,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Effect:** a private note is visible to its author and the GM (D87), so private notebook entries and private Session notes are Campaign history. Account deletion keeps them, and leaving a Campaign already did. The purge (`purgeAuthorPrivateNotes`) is removed. Players still never see another member's private notes; the GM reads them under "Deleted user".
   - **Unchanged:** the account's profile, homebrew, drafts and Characters are still deleted (D74, D81).
 
+* **D92** (2026-10-07) The GM plays a Character of their own like any player (CAMPAIGN-7, PLT-9). Party chat scope decided by the product owner.
+  - **Rule:** the Campaign owner may assign, change and remove their own Character. It trades inventory, shares its Sheet through "Party can view", reads its own SUBJECT history and appears on the party roster and live summary exactly as a player's Character does.
+  - **Chat:** "party chat" here means the public TABLE chat, where the GM's Character speaks in ROLEPLAY mode. The private PARTY room and PARTY announcements stay players-only (ADR 0013); DIRECT messages are unchanged. A member speaks in character only as their own Character: the GM's authority over other Characters does not extend to speaking as them, in Convex or in the room.
+  - **GM authority:** the owner keeps full GM control of Encounters, other Characters and party inventory; owning a Character adds the player paths, it removes none.
+  - **Ownership transfer:** the incoming owner keeps their assigned Character; acceptance no longer detaches it. The former owner keeps theirs as a player.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

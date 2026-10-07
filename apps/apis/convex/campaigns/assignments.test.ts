@@ -248,8 +248,8 @@ describe('native Campaign Character assignments', () => {
       }
     }
   })
-  it('enforces authority and rejects archived, departed, foreign, and owner-self bindings', async () => {
-    const { t, owner: player, other: gm, campaign, character } = await setup()
+  it('enforces authority, rejects archived, departed and foreign bindings, and lets the GM bind their own Character', async () => {
+    const { t, owner: player, other: gm, campaign, character, createCharacter } = await setup()
     await expect(
       t.mutation(assign, {
         campaignId: campaign.id,
@@ -316,20 +316,19 @@ describe('native Campaign Character assignments', () => {
       ...campaignInput,
       name: 'Owner character campaign'
     })
-    await t.run(async (ctx) => {
-      const storedCharacter = await readCharacterRow(ctx, character.id)
-      if (!storedCharacter) throw new Error('Missing Character.')
-      await writeCharacterRecord(ctx, storedCharacter, {
-        document: readCharacterRecord(storedCharacter),
-        userId: gm.userId
-      })
+    // CAMPAIGN-7: the GM plays a Character of their own like any player.
+    const gmDraft = await createCharacter(undefined, gm.caller)
+    const gmCharacter = await gm.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: gmDraft.draft.id,
+      mode: 'create',
+      character: gmDraft.character
     })
     await expect(
       gm.caller.mutation(assign, {
         campaignId: ownerCampaign.id,
-        characterId: character.id
+        characterId: gmCharacter.character.id
       })
-    ).rejects.toThrow()
+    ).resolves.toEqual({ ok: true })
   })
 
   it('keeps a Character bound to one Campaign under concurrent assignment attempts', async () => {
@@ -521,9 +520,11 @@ describe('native Campaign Character assignments', () => {
       }
     })
     const before = await base.readState()
+    // Without a Character the GM removes only their own, which they do not have here (CAMPAIGN-7).
     await expect(
       base.other.caller.mutation(unassign, { campaignId: base.campaign.id })
-    ).rejects.toThrow('Character is required')
+    ).resolves.toEqual({ ok: true })
+    expect(await base.readState()).toEqual(before)
     await base.other.caller.mutation(unassign, {
       campaignId: base.campaign.id,
       characterId: base.character.id

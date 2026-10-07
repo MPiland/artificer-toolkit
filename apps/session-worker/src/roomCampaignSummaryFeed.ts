@@ -179,7 +179,7 @@ export class RoomCampaignSummaryFeed {
         authorityEpoch: scope.authorityEpoch,
         characterId,
         expectedUserId: ownerUserId,
-        expectedRole: 'PLAYER'
+        expectedRole: ownerUserId === authorization.campaign.ownerUserId ? 'OWNER' : 'PLAYER'
       },
       inputs.revisions(scope.campaignId, authorization.revisions)
     )

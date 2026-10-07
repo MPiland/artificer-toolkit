@@ -381,7 +381,8 @@ export async function verifyCampaignMembershipLifecycle(
   )
   assert.equal(forwardOwner?.role, 'OWNER')
   assert.equal(forwardFormerOwner?.role, 'PLAYER')
-  assert.equal(forwardOwner?.assignedCharacter, null)
+  // The new GM keeps playing their Character (CAMPAIGN-7).
+  assert.equal(forwardOwner?.assignedCharacter?.id, player0CharacterId)
   assert.ok(
     Date.parse(forwardOwner?.accessStartedAt ?? '') > Date.parse(beforePlayer0Epoch) &&
       Date.parse(forwardFormerOwner?.accessStartedAt ?? '') > Date.parse(beforeOwnerEpoch),

@@ -515,10 +515,15 @@ export async function verifyCampaignAssignmentLifecycle(
         }),
       /unavailable|character/i
     )
-    await refuse(
-      'owner missing unassignment',
-      () => owner.mutation(api.campaigns.assignments.unassign, { campaignId }),
-      /character.*required/i
+    // Without a Character the GM removes only their own, which they do not have (CAMPAIGN-7).
+    const noOwnerCharacter = await snapshot()
+    assert.deepEqual(await owner.mutation(api.campaigns.assignments.unassign, { campaignId }), {
+      ok: true
+    })
+    assert.deepEqual(
+      await snapshot(),
+      noOwnerCharacter,
+      'Owner unassignment without their own Character must not write.'
     )
     await refuse(
       'invalid assignment UUID',

@@ -32,8 +32,6 @@ export const assign = mutation({
     if (!record || (membership.role === 'PLAYER' && record.userId !== userId))
       throw new Error('Character is unavailable.')
     const { membership: player } = await requireCampaignAuthority(ctx, campaign.id, record.userId)
-    if (player.role !== 'PLAYER')
-      throw new Error('The Campaign owner cannot assign their own Character.')
     const current = await ctx.db
       .query('campaignCharacterAssignments')
       .withIndex('by_campaignId_userId', (q) =>
@@ -114,14 +112,14 @@ export const unassign = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     let characterId = input.characterId?.toLowerCase()
-    if (membership.role === 'PLAYER') {
+    // Without a Character, members remove their own; only the GM may name another's.
+    if (membership.role === 'PLAYER' || !characterId) {
       const current = await readCampaignAssignedCharacter(ctx, campaign, membership)
       if (characterId && current?.id !== characterId)
         throw new Error('Assigned Character not found.')
       if (!current) return { ok: true as const }
       characterId = current.id
     }
-    if (!characterId) throw new Error('Character is required for owner unassignment.')
     const { assignment } = await requireCampaignCharacterAuthority(
       ctx,
       campaign.id,

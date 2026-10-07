@@ -5,6 +5,8 @@ describe('Campaign capabilities', () => {
   it('keeps role and archive policy consistent', () => {
     expect(getCampaignCapabilities('ACTIVE', 'OWNER')).toMatchObject({
       edit: true,
+      assignOwnCharacter: true,
+      transferOwnInventory: true,
       readTableChat: true,
       readPartyChat: false
     })

@@ -2336,15 +2336,28 @@
         {
           "id": "CAMPAIGN-7",
           "title": "The GM plays a Character like any other player",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/campaigns/gmCharacter.test.ts",
+            "apps/session-worker/test/nativeCharacterSheet.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
-              "text": "GM plays a Character: a Campaign owner may assign their own Character, and that Character acts as any other player's (inventory transfers, party chat, Encounter control, Sheet visibility)",
-              "status": "TODO",
-              "proof": [],
+              "text": "GM plays a Character: a Campaign owner may assign their own Character, and that Character acts as any other player's (inventory transfers, in-character speech in the public TABLE chat, Encounter control, Sheet visibility). The private PARTY chat stays players-only, and the incoming owner keeps their Character on an ownership transfer (D92).",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/campaigns/gmCharacter.test.ts › assigns the GM’s own Character, which then trades, speaks and shares its Sheet as a player Character does",
+                "apps/apis/convex/campaigns/gmCharacter.test.ts › keeps the new GM’s Character in play when Campaign ownership changes hands",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › plays the GM's own Character in the room as a player's: Sheet, party summary and in-character chat (CAMPAIGN-7)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › refuses the GM speaking in character as a player's Character (CAMPAIGN-7)",
+                "apps/apis/convex/campaigns/ownershipPrivacy.test.ts › keeps the incoming owner Character in play and rolls a failed transfer back atomically (CAMPAIGN-7)",
+                "apps/web/src/domains/campaigns/components/CampaignParty.test.tsx › lists the GM on the roster only while they play their own Character (CAMPAIGN-7)",
+                "apps/web/src/domains/campaigns/CampaignListPage.test.tsx › lets the GM play their own assigned Character, as a player does (CAMPAIGN-7)",
+                "packages/shared/src/__tests__/campaign-capabilities.test.ts (ACTIVE owner assignOwnCharacter and transferOwnInventory)",
+                "impl: apps/apis/convex/campaigns/assignments.ts, assignedCharacter.ts, events.ts, ownership.ts; apps/session-worker/src/roomChatCommands.ts, roomCampaignSummaryFeed.ts, roomEncounterReadPorts.ts"
+              ],
               "origin": ["PLT-9"],
               "id": "CAMPAIGN-7.1"
             }

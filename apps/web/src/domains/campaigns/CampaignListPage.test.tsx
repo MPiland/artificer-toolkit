@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import { campaignDeletionStatusSchema } from '@artificer-toolkit/schema/api/campaignDeletion'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { createTabletopCampaign } from './vtt/CampaignTabletop.stories.fixtures'
@@ -20,11 +21,12 @@ const failedStatus = campaignDeletionStatusSchema.parse({
 
 const mocks = vi.hoisted(() => ({
   status: vi.fn(),
-  remove: vi.fn()
+  remove: vi.fn(),
+  campaigns: null as CampaignDetailDto[] | null
 }))
 
 vi.mock('#app/data/campaigns/queries', () => ({
-  useGetCampaignList: () => ({ data: [campaign], isLoading: false })
+  useGetCampaignList: () => ({ data: mocks.campaigns ?? [campaign], isLoading: false })
 }))
 
 vi.mock('./components/CampaignCopy', () => ({ CampaignCopy: () => null }))
@@ -50,6 +52,7 @@ vi.mock('convex/react', async (importOriginal) => ({
 describe('Campaign deletion progress', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.campaigns = null
     mocks.status.mockResolvedValue(failedStatus)
     mocks.remove.mockResolvedValue({ ok: true })
   })
@@ -103,5 +106,23 @@ describe('Campaign deletion progress', () => {
     })
     renderWithAppProviders(<CampaignListPage />)
     expect(mocks.status).not.toHaveBeenCalled()
+  })
+})
+
+describe('Campaign list play entry', () => {
+  beforeEach(() => {
+    mocks.campaigns = null
+  })
+
+  it('lets the GM play their own assigned Character, as a player does (CAMPAIGN-7)', () => {
+    const player = createTabletopCampaign('PLAYER')
+    mocks.campaigns = [{ ...campaign, assignedCharacter: player.assignedCharacter }]
+    const view = renderWithAppProviders(<CampaignListPage />)
+    expect(screen.getByRole('button', { name: 'Play Character' })).toBeVisible()
+
+    mocks.campaigns = [campaign]
+    view.rerender(<CampaignListPage />)
+    expect(screen.queryByRole('button', { name: 'Play Character' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add Character' })).not.toBeInTheDocument()
   })
 })

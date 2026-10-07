@@ -83,7 +83,6 @@ export async function roomEncounterReadTransaction(input: {
     const row = part.inputs?.owner
     if (
       !row ||
-      member.role !== 'PLAYER' ||
       unique?._id !== assignment._id ||
       row.userId !== member.userId ||
       row.systemId !== campaign.gameSystemId

@@ -246,12 +246,13 @@ export async function executeRoomCampaignChatCommand(input: {
         requirePeer,
         chat.directUserId
       )
-      if (chat.mode === 'ROLEPLAY' && membership.role !== 'PLAYER')
-        throw new CampaignChatCommandError('Assigned Character is unavailable.')
       const character =
         chat.mode === 'ROLEPLAY'
           ? await assignedCharacterId(chat.assignedCharacterId!.toLowerCase())
           : null
+      // Members speak only as their own Character; the GM's authority over others' does not extend here.
+      if (character && character.userId !== userId)
+        throw new CampaignChatCommandError('Assigned Character is unavailable.')
       return {
         access,
         content: {

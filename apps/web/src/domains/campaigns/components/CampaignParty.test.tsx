@@ -448,4 +448,47 @@ describe('CampaignParty native transport', () => {
       within(screen.getByText('Borin').closest('article')!).queryByText(/HP/)
     ).not.toBeInTheDocument()
   })
+
+  it('lists the GM on the roster only while they play their own Character (CAMPAIGN-7)', async () => {
+    const user = userEvent.setup()
+    const gmId = 'owner-1'
+    const gmMembership = {
+      ...playerMembership,
+      userId: gmId,
+      username: 'gamemaster',
+      role: 'OWNER' as const
+    }
+    const bram = {
+      id: 'character-3',
+      publicId: 'bram',
+      label: 'Bram',
+      systemId: campaign.gameSystemId
+    }
+    const view = renderWithAppProviders(
+      <CampaignParty
+        campaign={{ ...campaign, memberships: [gmMembership, playerMembership] }}
+        currentUserId={gmId}
+      />
+    )
+    expect(screen.queryByText('@gamemaster')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add Character' })).toBeEnabled()
+
+    view.rerender(
+      <CampaignParty
+        campaign={{
+          ...campaign,
+          memberships: [{ ...gmMembership, assignedCharacter: bram }, playerMembership]
+        }}
+        currentUserId={gmId}
+      />
+    )
+    const card = screen.getByText('Bram').closest('article')!
+    expect(within(card).getByText('@gamemaster')).toBeVisible()
+    expect(within(card).getByText('GM')).toBeVisible()
+    expect(within(card).queryByRole('button', { name: 'Remove player' })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Unassign' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Change Character' })).toBeEnabled()
+    await user.click(within(card).getByRole('button', { name: 'Remove Character' }))
+    await waitFor(() => expect(mocks.unassign).toHaveBeenCalledWith({ campaignId: campaign.id }))
+  })
 })

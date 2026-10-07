@@ -483,7 +483,10 @@ export async function verifyCampaignMembershipBrowser<T>(
     await page.getByRole('tab', { name: 'Party', exact: true }).click()
     const roster = page.getByRole('region', { name: 'Party roster', exact: true })
     await expect(roster).toBeVisible()
-    const players = campaign.memberships.filter((member) => member.role === 'PLAYER')
+    // The GM is on the roster only while playing their own Character (CAMPAIGN-7).
+    const players = campaign.memberships.filter(
+      (member) => member.role === 'PLAYER' || member.assignedCharacter
+    )
     await expect(roster.getByRole('article')).toHaveCount(players.length, { timeout: 30_000 })
     for (const member of players) {
       const card = roster
@@ -496,10 +499,12 @@ export async function verifyCampaignMembershipBrowser<T>(
       if (member.assignedCharacter)
         await expect(card.getByText(member.assignedCharacter.label, { exact: true })).toBeVisible()
       await expect(card.getByRole('button', { name: 'Remove player', exact: true })).toHaveCount(
-        campaign.capabilities.manageMembers ? 1 : 0
+        campaign.capabilities.manageMembers && member.role === 'PLAYER' ? 1 : 0
       )
       await expect(card.getByRole('button', { name: 'Unassign', exact: true })).toHaveCount(
-        campaign.capabilities.manageMembers && member.assignedCharacter ? 1 : 0
+        campaign.capabilities.manageMembers && member.role === 'PLAYER' && member.assignedCharacter
+          ? 1
+          : 0
       )
       await expect(card.getByRole('button', { name: 'Inspect Sheet', exact: true })).toHaveCount(
         campaign.role === 'OWNER' && member.assignedCharacter ? 1 : 0

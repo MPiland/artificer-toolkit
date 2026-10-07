@@ -97,9 +97,7 @@ export function CampaignListPage({ deletingCampaignId }: { deletingCampaignId?: 
                 </Text>
               ) : null}
               <Group gap='xs'>
-                {campaign.status === 'ACTIVE' &&
-                campaign.role === 'PLAYER' &&
-                campaign.assignedCharacter ? (
+                {campaign.status === 'ACTIVE' && campaign.assignedCharacter ? (
                   <Button
                     onClick={() =>
                       campaign.assignedCharacter

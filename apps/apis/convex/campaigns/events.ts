@@ -21,16 +21,19 @@ export const list = query({
   handler: async (ctx, args): Promise<CampaignEventPageTransportDto> => {
     const input = listCampaignEventsInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
-    const { campaign, membership } = await requireCampaignCharacterAuthority(
+    const { campaign, membership, assignment } = await requireCampaignCharacterAuthority(
       ctx,
       input.campaignId,
       input.characterId,
       userId
     )
     const characterId = input.characterId.toLowerCase()
-    // Preserve the established projections: TABLE + OWNER, or TABLE + this Character's SUBJECT.
-    const visibility: CampaignEventDto['visibility'][] =
-      membership.role === 'OWNER' ? ['TABLE', 'OWNER'] : ['TABLE', 'SUBJECT']
+    // TABLE, plus OWNER for the GM and this Character's SUBJECT for its player (the GM included).
+    const visibility: CampaignEventDto['visibility'][] = [
+      'TABLE',
+      ...(membership.role === 'OWNER' ? (['OWNER'] as const) : []),
+      ...(assignment.userId === userId ? (['SUBJECT'] as const) : [])
+    ]
     const cursor = input.cursor
       ? await ctx.db
           .query('campaignEvents')
