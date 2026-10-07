@@ -120,7 +120,6 @@ async function resolveActionCommand(
       occurrenceId: '77777777-7777-4777-8777-777777777799',
       occurrenceVersion: 0,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     },
     evidenceRoll: null

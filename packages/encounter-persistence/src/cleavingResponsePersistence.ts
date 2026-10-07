@@ -225,7 +225,6 @@ export async function persistEncounterCleavingResponse(
       occurrenceId: occurrence.id,
       occurrenceVersion: execution.occurrenceVersion,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     }
   })

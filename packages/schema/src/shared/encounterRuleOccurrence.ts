@@ -325,7 +325,6 @@ export const encounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
       occurrenceId: uuidSchema,
       occurrenceVersion: versionSchema,
       status: z.enum(['PENDING', 'COMPLETE', 'VOIDED']),
-      outcome: z.nullable(z.enum(['SAVE_SUCCESS', 'SAVE_FAILURE'])),
       pending: z.nullable(pendingEncounterRuleOccurrenceSummaryDtoSchema)
     })
     .check(

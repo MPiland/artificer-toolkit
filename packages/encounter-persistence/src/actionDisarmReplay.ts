@@ -104,7 +104,6 @@ export async function readNativeDisarmReplay(
     replayReceipt.occurrence.occurrenceVersion !== occurrence.version ||
     replayReceipt.occurrence.status !== 'COMPLETE' ||
     replayReceipt.occurrence.pending !== null ||
-    replayReceipt.occurrence.outcome !== null ||
     replayReceipt.roll !== null
   )
     throw new Error('Stored Disarm rule receipt mismatch.')
@@ -160,7 +159,6 @@ export function readNativeDisarmEvidenceReplay(input: {
     replayReceipt.occurrence?.occurrenceId !== occurrence.id ||
     replayReceipt.occurrence.occurrenceVersion !== payload.occurrenceVersion ||
     replayReceipt.occurrence.status !== (payload.status === 'COMPLETE' ? 'COMPLETE' : 'PENDING') ||
-    replayReceipt.occurrence.outcome !== null ||
     replayReceipt.roll !== null
   )
     throw new Error('Stored Disarm evidence receipt mismatch.')

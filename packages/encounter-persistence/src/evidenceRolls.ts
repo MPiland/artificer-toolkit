@@ -266,7 +266,6 @@ export async function rollEncounterRuleEvidence(
         occurrenceId: pending.occurrenceId,
         occurrenceVersion: pending.occurrenceVersion,
         status: 'PENDING',
-        outcome: null,
         pending
       },
       evidenceRoll: presentEvidenceRoll(roll)

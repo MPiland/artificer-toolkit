@@ -630,16 +630,24 @@
         },
         {
           "id": "PLATFORM-15",
-          "title": "Remove the dead outcome field from the rule occurrence summary contract",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "title": "Remove the redundant outcome field from the rule occurrence summary contract",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/encounters/turnConcentration.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
-              "text": "Remove the dead `outcome` field from the Encounter rule occurrence summary contract and every producer and consumer (pre-launch: no compatibility shim)",
-              "status": "TODO",
-              "proof": [],
+              "text": "Remove the redundant `outcome` field from the Encounter rule occurrence summary contract and every producer and consumer (pre-launch: no compatibility shim); save results are asserted on the Concentration roll card",
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/shared/encounterRuleOccurrence.ts",
+                "apps/apis/convex/encounters/turnConcentration.test.ts",
+                "apps/apis/convex/encounters/concentration.test.ts",
+                "apps/apis/convex/encounters/cleaving.test.ts",
+                "apps/session-worker/src/roomEncounterConcentrationResponse.test.ts"
+              ],
               "origin": [
                 "REL-11"
               ],

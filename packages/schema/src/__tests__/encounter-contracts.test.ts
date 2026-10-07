@@ -142,8 +142,7 @@ describe('encounter contracts', () => {
     const baseOccurrence = {
       occurrenceId: encounterId,
       occurrenceVersion: 5,
-      status: 'PENDING' as const,
-      outcome: null
+      status: 'PENDING' as const
     }
     const evidencePending = {
       ...baseOccurrence,
@@ -325,7 +324,6 @@ describe('encounter contracts', () => {
       occurrenceId: encounterId,
       occurrenceVersion: 2,
       status: 'PENDING' as const,
-      outcome: null,
       pending: {
         kind: 'D20_EVIDENCE' as const,
         occurrenceId: encounterId,
@@ -378,7 +376,6 @@ describe('encounter contracts', () => {
       occurrenceId: encounterId,
       occurrenceVersion: 4,
       status: 'PENDING' as const,
-      outcome: null,
       pending: {
         kind: 'MOVEMENT_REACTION' as const,
         occurrenceId: encounterId,
@@ -1072,7 +1069,6 @@ describe('encounter contracts', () => {
         occurrenceId: encounterId,
         occurrenceVersion: 0,
         status: 'PENDING',
-        outcome: null,
         pending: {
           kind: 'D20_EVIDENCE',
           occurrenceId: encounterId,
@@ -1105,7 +1101,6 @@ describe('encounter contracts', () => {
           occurrenceId: encounterId,
           occurrenceVersion: 0,
           status: 'PENDING',
-          outcome: null,
           pending: {
             kind: 'D20_EVIDENCE',
             occurrenceId: encounterId,

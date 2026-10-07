@@ -250,7 +250,6 @@ export async function persistEncounterDisarmCommit(
       occurrenceId: execution.occurrenceId,
       occurrenceVersion,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     }
   })

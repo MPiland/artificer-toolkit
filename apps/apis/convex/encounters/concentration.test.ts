@@ -134,7 +134,18 @@ it('pauses an Assisted concentration child and settles success without cleanup',
   expect(await readRoomRollCards(fixture.owner.caller, fixture.campaign.id)).toHaveLength(rollCards)
   expect(await records(fixture)).toEqual(staged)
   const settled = await executeInRoom(fixture.owner.caller, command)
-  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_SUCCESS' })
+  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+  // The save's outcome is the Concentration roll card of the roll the owner answered with.
+  expect(await readRoomRollCards(fixture.owner.caller, fixture.campaign.id)).toContainEqual(
+    expect.objectContaining({
+      ruleCheck: expect.objectContaining({
+        kind: 'CONCENTRATION',
+        actorId: pending.rollerActorId,
+        faces: rolled.evidenceRoll!.faces,
+        outcome: 'KEPT'
+      })
+    })
+  )
   const after = await records(fixture)
   expect(after.run?.version).toBe(staged.run?.version)
   expect(after.states.map((state) => state.id)).toContain(seeded.state.id)
@@ -240,7 +251,18 @@ it('cleans the exact concentration state on failure and preserves an independent
   await expect(executeInRoom(fixture.player.caller, malformed)).rejects.toThrow()
   expect(await records(fixture)).toEqual(staged)
   const settled = await executeInRoom(fixture.player.caller, command)
-  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
+  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+  // The save's outcome is the Concentration roll card of the die the target's controller entered.
+  expect(await readRoomRollCards(fixture.player.caller, fixture.campaign.id)).toContainEqual(
+    expect.objectContaining({
+      ruleCheck: expect.objectContaining({
+        kind: 'CONCENTRATION',
+        actorId: pending.rollerActorId,
+        faces: [1],
+        outcome: 'LOST'
+      })
+    })
+  )
   const after = await records(fixture)
   expect(after.run?.version).toBe(staged.run!.version + 1)
   expect(after.character?.play.streamVersion).toBe(staged.character!.play.streamVersion + 1)

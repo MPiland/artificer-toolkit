@@ -233,7 +233,6 @@ export async function publishSpatialTerminal(
       replayReceipt.occurrence.occurrenceId !== preparation.occurrenceId ||
       replayReceipt.occurrence.occurrenceVersion !== retained.occurrenceVersion ||
       replayReceipt.occurrence.pending !== null ||
-      replayReceipt.occurrence.outcome !== null ||
       replayReceipt.roll !== null
     )
       throw new Error('Spatial terminal replay summary is inconsistent.')
@@ -262,7 +261,6 @@ export async function publishSpatialTerminal(
       occurrenceId: preparation.occurrenceId,
       occurrenceVersion: retained.occurrenceVersion,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     }
   })

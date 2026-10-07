@@ -193,7 +193,6 @@ async function recordVoid(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status,
-      outcome: null,
       pending: null
     }
   })
@@ -345,7 +344,6 @@ export async function recordRuleOccurrenceVoid(
         occurrenceId: pending.occurrenceId,
         occurrenceVersion: pending.occurrenceVersion,
         status: 'PENDING',
-        outcome: null,
         pending
       }
     })

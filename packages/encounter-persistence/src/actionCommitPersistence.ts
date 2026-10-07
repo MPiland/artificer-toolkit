@@ -423,7 +423,6 @@ export async function persistEncounterActionCommit(
       occurrenceId: execution.occurrenceId,
       occurrenceVersion,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     }
   })

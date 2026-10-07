@@ -509,7 +509,6 @@ describe('VTT scene contracts', () => {
       occurrenceId: ids.map,
       occurrenceVersion: 2,
       status: 'PENDING' as const,
-      outcome: null,
       pending: {
         kind: 'D20_EVIDENCE' as const,
         occurrenceId: ids.map,

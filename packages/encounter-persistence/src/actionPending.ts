@@ -137,7 +137,6 @@ export async function nativeActionPendingResult(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      outcome: null,
       pending: projectNativeActionPending(
         occurrence,
         await readNativeActionPending(ctx, occurrence)

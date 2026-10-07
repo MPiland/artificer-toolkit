@@ -94,9 +94,7 @@ export async function readNativeEncounterCommandReplay(
         receipt.occurrence !== null) ||
       ((prior.commandType === 'START' || prior.commandType === 'ADVANCE_TURN') &&
         receipt.occurrence !== null &&
-        (receipt.occurrence.status !== 'COMPLETE' ||
-          receipt.occurrence.pending !== null ||
-          receipt.occurrence.outcome !== null)) ||
+        (receipt.occurrence.status !== 'COMPLETE' || receipt.occurrence.pending !== null)) ||
       (prior.commandType === 'UPDATE_ACTOR' && input.type !== 'UPDATE_ACTOR')
     )
       throw new Error('Stored Encounter command receipt mismatch.')

@@ -631,7 +631,6 @@ export async function publishMovementResponse(
       occurrenceId: current.occurrence.id,
       occurrenceVersion: retained.occurrenceVersion,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     }
   }).occurrence!

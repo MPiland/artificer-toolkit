@@ -137,7 +137,6 @@ async function resolveDecisionCommand(
       occurrenceId: command.occurrenceId,
       occurrenceVersion: command.expectedOccurrenceVersion + 1,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     },
     evidenceRoll: null

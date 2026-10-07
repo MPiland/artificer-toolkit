@@ -34,7 +34,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: occurrence.state === 'VOIDED' ? 'VOIDED' : 'COMPLETE',
-      outcome: null,
       pending: null
     }
   }
@@ -50,7 +49,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      outcome: null,
       pending: canView
         ? {
             kind: 'MOVEMENT_PASSAGE_CHOICE',
@@ -81,7 +79,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      outcome: null,
       pending: canView
         ? {
             kind: 'D20_EVIDENCE',
@@ -118,7 +115,6 @@ export function projectEncounterSpatialOccurrenceSummary(
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         status: 'PENDING',
-        outcome: null,
         pending: null
       }
     }
@@ -126,7 +122,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      outcome: null,
       pending: {
         kind: 'D20_EVIDENCE',
         occurrenceId: occurrence.id,
@@ -160,7 +155,6 @@ export function projectEncounterSpatialOccurrenceSummary(
           occurrenceId: occurrence.id,
           occurrenceVersion: occurrence.version,
           status: 'PENDING',
-          outcome: null,
           pending: null
         }
       }
@@ -168,7 +162,6 @@ export function projectEncounterSpatialOccurrenceSummary(
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         status: 'PENDING',
-        outcome: null,
         pending: {
           kind: 'LEGENDARY_RESISTANCE_CHOICE',
           occurrenceId: occurrence.id,
@@ -194,7 +187,6 @@ export function projectEncounterSpatialOccurrenceSummary(
           occurrenceId: occurrence.id,
           occurrenceVersion: occurrence.version,
           status: 'PENDING',
-          outcome: null,
           pending: null
         }
       }
@@ -202,7 +194,6 @@ export function projectEncounterSpatialOccurrenceSummary(
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         status: 'PENDING',
-        outcome: null,
         pending:
           context.phase.d20Policy === null
             ? {
@@ -245,7 +236,6 @@ export function projectEncounterSpatialOccurrenceSummary(
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         status: 'PENDING',
-        outcome: null,
         pending: null
       }
     }
@@ -253,7 +243,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      outcome: null,
       pending: {
         kind: 'MOVEMENT_REACTION',
         occurrenceId: occurrence.id,
@@ -281,7 +270,6 @@ export function projectEncounterSpatialOccurrenceSummary(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      outcome: null,
       pending: null
     }
   }
@@ -289,7 +277,6 @@ export function projectEncounterSpatialOccurrenceSummary(
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     status: 'PENDING',
-    outcome: null,
     pending: {
       kind: 'D20_EVIDENCE',
       occurrenceId: occurrence.id,

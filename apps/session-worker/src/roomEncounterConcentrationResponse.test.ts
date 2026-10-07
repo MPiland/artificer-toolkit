@@ -632,7 +632,6 @@ it('atomically resolves a failed native Concentration save, retains the private 
     expect(gmResult.occurrence).toMatchObject({
       occurrenceId,
       status: 'COMPLETE',
-      outcome: 'SAVE_FAILURE',
       pending: null
     })
     expect(gmResult.projection.actors).toHaveLength(2)
@@ -679,7 +678,10 @@ it('atomically resolves a failed native Concentration save, retains the private 
         revealedAt: null,
         noticedAt: null
       },
-      record: { characterLabel: actor.label }
+      record: {
+        characterLabel: actor.label,
+        ruleCheck: { kind: 'CONCENTRATION', actorId: actor.id, outcome: 'LOST' }
+      }
     })
     expect(store.records(ROOM_PRIVATE_ROLL)).toHaveLength(1)
     expect(store.documents('campaignConversationEntries')).toEqual([])

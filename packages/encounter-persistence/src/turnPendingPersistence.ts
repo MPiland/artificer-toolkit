@@ -213,7 +213,6 @@ export async function persistEncounterTurnPending(
       occurrenceId: snapshot.occurrenceId,
       occurrenceVersion,
       status: 'PENDING',
-      outcome: null,
       pending: turnPending
         ? projectNativeTurnPending({
             snapshot,

@@ -67,7 +67,6 @@ export async function readNativeTurnCommandPending(
         occurrenceId: rootCommandOccurrence.id,
         occurrenceVersion: rootCommandOccurrence.version,
         status: 'PENDING',
-        outcome: null,
         pending:
           pendingContext.kind === 'ENCOUNTER_TURN_RECHARGE' ||
           pendingContext.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||

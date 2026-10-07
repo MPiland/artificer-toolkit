@@ -38129,7 +38129,6 @@ export declare const api: {
           occurrence?: {
             occurrenceId: string;
             occurrenceVersion: number;
-            outcome: "SAVE_SUCCESS" | "SAVE_FAILURE" | null;
             pending:
               | {
                   allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;

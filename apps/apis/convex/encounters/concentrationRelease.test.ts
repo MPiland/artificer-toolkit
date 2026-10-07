@@ -11,6 +11,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  readRoomRollCards,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 
@@ -52,5 +53,16 @@ it('answers a pending Assisted concentration check after the room releases and a
       }
     }
   })
-  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', outcome: 'SAVE_FAILURE' })
+  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+  // The save's outcome is the Concentration roll card of the die the target's controller entered.
+  expect(await readRoomRollCards(fixture.player.caller, fixture.campaign.id)).toContainEqual(
+    expect.objectContaining({
+      ruleCheck: expect.objectContaining({
+        kind: 'CONCENTRATION',
+        actorId: pending.rollerActorId,
+        faces: [1],
+        outcome: 'LOST'
+      })
+    })
+  )
 }, 90_000)

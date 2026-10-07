@@ -300,10 +300,10 @@ const pbis = [
   {
     f: 'PLATFORM',
     n: 15,
-    title: 'Remove the dead outcome field from the rule occurrence summary contract',
+    title: 'Remove the redundant outcome field from the rule occurrence summary contract',
     slices: ['REL-11'],
     sliceAcs: true,
-    journey: []
+    journey: [`${AP}encounters/turnConcentration.test.ts`]
   },
   {
     f: 'PLATFORM',
@@ -1841,6 +1841,8 @@ const review = {
   ),
   'PLATFORM-5': V,
   // A removal has no new user flow: the real-room Encounter journeys run with evidence rolls held only in the room.
+  // Concentration saves run on the real room and their results are read from the players' roll cards.
+  'PLATFORM-15': V,
   'PLATFORM-16': V,
   'PLATFORM-11': P(
     'roomInputs.test.ts is one room-routed suite on the real Session Worker; the stand-in fixtures are deleted, but no test asserts none returns (REL-9 is still active).'

@@ -308,7 +308,6 @@ export async function persistEncounterConcentrationResponse(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version + 1,
       status: 'COMPLETE',
-      outcome: output.outcome,
       pending: null
     }
   })

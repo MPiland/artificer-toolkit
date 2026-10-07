@@ -122,7 +122,6 @@ export async function readNativeTurnResponseReplay(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     }
   })

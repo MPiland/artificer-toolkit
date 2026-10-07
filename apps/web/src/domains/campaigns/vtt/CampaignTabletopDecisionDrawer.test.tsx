@@ -178,7 +178,6 @@ function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
       occurrenceId,
       occurrenceVersion,
       status: 'COMPLETE' as const,
-      outcome: null,
       pending: null
     },
     evidenceRoll: null

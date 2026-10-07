@@ -805,7 +805,18 @@ describe('native Cleaving action settlement', () => {
       const concentration = encounterCommandResultDtoSchema.parse(
         await executeInRoom(base.other.caller, input)
       )
-      expect(concentration.occurrence).toMatchObject({ status: 'COMPLETE', outcome })
+      expect(concentration.occurrence).toMatchObject({ status: 'COMPLETE' })
+      // The save's outcome is the Concentration roll card of the die the target's controller entered.
+      expect(await readRoomRollCards(base.other.caller, base.campaign.id)).toContainEqual(
+        expect.objectContaining({
+          ruleCheck: expect.objectContaining({
+            kind: 'CONCENTRATION',
+            actorId: pending.rollerActorId,
+            faces: [face],
+            outcome: outcome === 'SAVE_SUCCESS' ? 'KEPT' : 'LOST'
+          })
+        })
+      )
       const afterConcentration = await records(base)
       expect(
         afterConcentration.occurrences.filter((entry) => entry.state === 'PENDING')

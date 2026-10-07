@@ -163,7 +163,7 @@ describe('room Disarm commands', () => {
     await expect(disarmInRoom(base.player, second)).rejects.toThrow()
     expect(await records(base)).toEqual(staged)
     const completed = await disarmInRoom(base.owner, second)
-    expect(completed.occurrence).toMatchObject({ status: 'COMPLETE', outcome: null })
+    expect(completed.occurrence).toMatchObject({ status: 'COMPLETE' })
     const after = await records(base)
     expect(heldItemDisarmed(base, before)).toBe(false)
     expect(heldItemDisarmed(base, after)).toBe(true)
@@ -198,7 +198,7 @@ describe('room Disarm commands', () => {
       const result = await disarmInRoom(base.owner, base.command)
       expect(result).toMatchObject({
         projection: { version: base.command.expectedVersion + 1 },
-        occurrence: { status: 'COMPLETE', outcome: null }
+        occurrence: { status: 'COMPLETE' }
       })
       const after = await records(base)
       expect(heldItemDisarmed(base, after)).toBe(outcome === 'win')
@@ -348,8 +348,7 @@ describe('room Disarm commands', () => {
       }
       const result = await disarmInRoom(responder, second)
       expect(result.occurrence).toMatchObject({
-        status: 'COMPLETE',
-        outcome: null
+        status: 'COMPLETE'
       })
       const after = await records(base)
       expect(heldItemDisarmed(base, before)).toBe(false)

@@ -977,10 +977,16 @@
     {
       "id": "REL-11",
       "stream": "REL",
-      "state": "remaining",
-      "title": "Remove the dead `outcome` field from the Encounter rule occurrence summary contract and every producer and consumer (pre-launch: no compatibility shim)",
+      "state": "done",
+      "title": "Remove the redundant `outcome` field from the Encounter rule occurrence summary contract and every producer and consumer (pre-launch: no compatibility shim); save results are asserted on the Concentration roll card",
       "cases": [],
-      "refs": ["packages/schema/src/shared/encounterRuleOccurrence.ts:328"]
+      "refs": [
+        "packages/schema/src/shared/encounterRuleOccurrence.ts",
+        "apps/apis/convex/encounters/turnConcentration.test.ts",
+        "apps/apis/convex/encounters/concentration.test.ts",
+        "apps/apis/convex/encounters/cleaving.test.ts",
+        "apps/session-worker/src/roomEncounterConcentrationResponse.test.ts"
+      ]
     },
     {
       "id": "REL-6",

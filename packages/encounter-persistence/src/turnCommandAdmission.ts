@@ -228,7 +228,6 @@ export async function readLiveEncounterTurnAdmission(
           occurrenceId: occurrence.id,
           occurrenceVersion: occurrence.version,
           status: 'PENDING',
-          outcome: null,
           pending:
             context.kind === 'ENCOUNTER_INITIATIVE' ||
             context.kind === 'ENCOUNTER_INITIATIVE_DECLARATION'

@@ -1282,7 +1282,6 @@ describe('native Encounter Run commands', () => {
       occurrenceId: pending.occurrence.occurrenceId,
       occurrenceVersion: 2,
       status: 'COMPLETE',
-      outcome: null,
       pending: null
     })
     const settledRows = await rows(base)

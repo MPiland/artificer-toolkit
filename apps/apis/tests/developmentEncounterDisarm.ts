@@ -565,7 +565,6 @@ export async function verifyEncounterDisarm({
     }
     assert.equal(completed.occurrence?.status, 'COMPLETE')
     assert.equal(completed.occurrence?.pending, null)
-    assert.equal(completed.occurrence?.outcome, null)
     const after = await snapshot()
     assert.deepEqual(completed.projection, after.playerRun)
     assert.equal(after.run.version, run.version + 1)

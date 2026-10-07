@@ -81,7 +81,6 @@ export async function completeNativeInitiativeOccurrence(input: {
             occurrenceId: input.occurrence.id,
             occurrenceVersion: input.occurrenceVersion,
             status: 'COMPLETE',
-            outcome: null,
             pending: null
           }
   })
