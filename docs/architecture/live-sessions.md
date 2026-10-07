@@ -763,6 +763,15 @@ unclamped, then an optional repeat value, ahead of `secureRandomInt`) and the ro
 queue when it is not local. `apps/apis/tests/fixtures/localRoomWorker.ts` runs the real Worker in local
 workerd with these routes, loopback R2 and a Convex bridge, so tests fake the platform and never the room.
 
+**Room test fixtures (current).**
+
+- apis tests that route through a room drive the real Session room in local workerd through
+  `apps/apis/tests/fixtures/localRoomWorker.ts`, with a file-level `useLocalRoomWorker()`.
+- Receipt-level evidence (command receipts, rule receipts, evidence rolls) belongs in session-worker room
+  tests, because Encounter history lives only in the room (D85, D88). Convex tests assert only
+  `encounterReplayIndex` rows and checkpointed state.
+- There are no stand-in room fixtures: a test either runs the real room or does not touch room behavior.
+
 `scripts/v15Budgets.mjs <proofName>` judges the `v15-workload` proof and `validatePreStagingLocal` runs it
 after that stage. The driver (`developmentEncounterCutover.ts`) brackets measured windows: each Run's
 START (`start`, one window per aggregate, in its preparation), combat, the COMPLETE of every Run

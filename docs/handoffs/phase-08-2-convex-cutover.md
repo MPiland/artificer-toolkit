@@ -1,134 +1,46 @@
 # Phase 8.2 Convex cutover handoff
 
-**Status:** active; acceptance authority and current remaining work are summarized below.
-**Updated:** 2026-09-30.
-**Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup. The relocation is committed (`85443906`); later slices are separate commits. No phase completion is claimed.
+**Status:** active; current state below, older records follow under explicit "Historical" headings.
+**Updated:** 2026-10-07.
+**Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
-## Current authority and remaining work (2026-09-30)
+## Current state (2026-10-07)
 
-The [acceptance JSON](../roadmap/08-2-convex-cutover-acceptance.json) is the status authority: **51/75 cases accepted; 24 open** — F12, P02, P06, P15, V03, V05, V07–V15, R01–R06 and R08–R10. Counts and implementation results elsewhere in this handoff are dated historical checkpoints and do not establish current integrated acceptance.
+**Latest commit:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
-Convex remains the backend. Cloudflare remains responsible for web hosting, room execution and R2. Remaining scope includes Character typed persistence and narrow Sheet queries; snapshot local-bridge and room integration; ADR 0035 S3 checkpoints, S5 shadow parity and S6 authority switch, followed by S7 held Sheet and S8 live-view/chat work. Run the full final-source local lifecycle before separately approved managed promotions. See [ADR 0029](../adr/0029-convex-backend-cutover.md), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [persistence](../architecture/persistence.md), [Character](../architecture/character.md), [live-session coordination](../architecture/live-sessions.md), and the [release runbook](../runbooks/phase-8-2-release.md).
+**Combined validation on that tree, all green:**
 
-**Foundation progress:** Character typed play-state persistence, removal of the full Builder-draft query from the active Sheet path, and the local R2 snapshot fixture bridge have focused local checks recorded. The local codegen and affected typechecks passed; the guarded reset left local data requiring reseed. These checks accept no ledger case and do not certify final-source lifecycle or promotion. See the [foundation validation note](../validation/phase82-foundation-2026-09-29.md).
+- lint and format;
+- Turbo typecheck, web typecheck and Convex typecheck;
+- packages tests;
+- session-worker: 365 tests;
+- apis: 2122 tests;
+- web: 1643 tests;
+- local codegen push.
 
-**Current local checkpoint:** compact Spell preparation uses authorized snapshot metadata, browser pages of 40 and virtualization. Full mechanics load for selected or inspected Spells. The three frozen native Builder-to-Sheet journeys pass, and observed maximum Sheet/preparation reads fell from about 6.64 MB/1,101 documents to about 5.01 MB/492 documents. Other authored-input reads remain broad; this is no Q16 or latency gate pass. The native source, failed fixture attempt, restored object hashes and focused checks are retained in the [compact Spell validation record](../validation/phase-08-2/compact-spell-picker-2026-09-30.md). Packed receipt storage and bounded private payload retirement have separate [native evidence](../validation/phase-08-2/private-receipt-retirement-2026-09-30.md). The full final-source lifecycle remains pending.
+**Product fixes in that commit:**
 
-**Checkpoint foundation:** room-store compaction now requires an acknowledged epoch/sequence/checksum
-prefix and retains commands committed after it, including across eviction. The [prefix validation
-record](../validation/phase-08-2/checkpoint-prefix-2026-09-30.md) records 58 focused checks, 10 native
-SQLite checks and the Worker typecheck. The subsequent source integration is described below;
-this foundation does not complete S3 or prove the integrated command lifecycle.
+- The D74 reload and reconcile now run on the room chain.
+- The Disarm contributor `reason` key is removed.
+- Fixed-outcome authored Character actions are offered, and `rollable` is removed.
+- Nested command ID reuse is refused as `COMMAND_ID_REUSED`.
+- Join-ticket refusals are typed, and the web client stops reconnecting.
 
-**Integrated Scene/checkpoint source (execution proof pending):** raw `SCENE` hydration now reads
-all seven native families with definition/presentation and Scene-version fences, preserving
-tombstones, counters, published saves/chunks and receipt evidence. Shared pure Scene geometry
-parsers, values and live-state helpers live in `packages/encounter-persistence`, independent of
-Convex. Standalone move/door/undo stage native records in `RoomEncounterStore.transact` and commit
-the `DurableCommandJournal` head/receipt in the same SQLite transaction. The authority checksum is
-the cumulative write-set chain; stored display Scene JSON has its own shared-schema content hash.
+**Next work:** the PBIs registered in the [Phase 8 ledger](../roadmap/08-phase-ledger.json) (built by `scripts/phase8/buildPhaseLedger.mjs`), then the remaining ledger work:
 
-[RoomCheckpoints](../../apps/session-worker/src/roomCheckpoints.ts) retains a fixed prefix input in
-bounded SQLite chunks and retries its exact ID and pins through the existing inline/staged publisher.
-Acknowledgement and snapshot compaction share one SQLite transaction, retaining concurrent suffix
-commands. The earliest unpublished receipt timestamp drives the unchanged 120-second alarm;
-checkpoint responses renew the existing 240-second authorization lease. Admission, presentation and
-drain boundaries flush checkpoints. See [live-session coordination](../architecture/live-sessions.md)
-and the [Worker README](../../apps/session-worker/README.md).
+- PLATFORM-16: remove the Convex-held Encounter history tables;
+- PLATFORM-17: test fixtures use typed parses and one shared builder;
+- CAMPAIGN-8: user-safe Campaign authority refusals;
+- ROOM-6: room fixtures for multi-Character and multi-controller scenarios;
+- RELEASE-5: staging and production can never enable the dev-only test-rolls route.
 
-**Authority/Character/reducer source (validation pending):** `AUTHORITY` pages now hydrate the
-native Campaign, all membership statuses, assignments and actual account-profile presence.
-Room authorization carries the canonical SYSTEM revision; held System reads remain revision-bound.
-Cached Character Builder structure joins local typed head/play/effects, and a Builder refresh
-preserves existing room play/effects. Authorized input `RESTORE` establishes or rebases an already
-durable Convex base, rejects dirty mutable/history replacement and emits no false `INSERT` history.
-[Room Encounter commands](../../apps/session-worker/src/roomEncounterCommands.ts) now execute
-the deterministic tools in [the shared `ROOM_LOCAL_ENCOUNTER_COMMAND_TYPES` list](../../packages/schema/src/api/liveSessionEncounterCommand.ts)
-with existing reducers and blueprint enemy builder, atomic room journal receipts and per-recipient
-projections, including action undo through the existing shared action-revert reducer. Since S6c1
-(D78) the list covers every ACTIVE-Run command except decisions, which the room routes from its
-own Run: TABLE rolls post their card through the room `insertTableRoll` port and spend the D72
-TABLE bucket in the commit, a GM `UPDATE_ACTOR` with `characterCommand` commits on the held Sheet,
-an unrouted decision is refused as Convex refused it, and the Convex `encounter-command`, route and
-roll fallback is no longer called (deleted in S6c3). Since A36-S10 `nativeCharacterRules` prepares
-Characters directly over the room's snapshot readers; the Character capture protocol is deleted.
-Initiative rolls now use secure room RNG and the native transaction. Only the initiator receives
-roll evidence; other recipients receive privacy-filtered projections with `roll: null`. Replay
-retains evidence without another draw. PRIVATE `ROLL_ENEMY_ACTION` now follows the same local
-transaction and private replay-evidence path; TABLE rolls remain transitional until native chat
-ports are integrated.
-These current source changes await validation and do not complete S6/S7, chat or the
-Character hold lifecycle.
+The final `yarn validate:pre-staging:local` runs once, at the end of Phase 8.
 
-**Receipt/publication safeguards (current source; evidence pending):** Character actor removal,
-`COMPLETE` and any actual Run round change persist a receipt barrier that checkpoints before
-acknowledgement on both commit and recovered replay. Local reducer retries recheck current
-admission/privacy and return the original projection
-at its version or the current Run projection after later work. Checkpoint responses apply changed
-authorization sections and renew the lease without another warm read. After eviction, a retry response
-that omits required sections falls back to a complete authorization read. An unpublished native
-suffix rebuilds actor control and health-display permissions from SQLite rather than older Convex
-play state. Unchanged Scene fog chunks reuse
-their published references and payloads. Direct Convex execution of every command accepted by the shared predicate
-is refused under held Campaign authority. Their protected Convex comparator remains for
-S5 shadow parity and backend fixtures, outside steady-state room dispatch, and retires in step 6 after S5.
-No integrated execution or gate acceptance is claimed for these safeguards.
+**Operating notes for the next session:**
 
-**Current source batch (Codex, execution pending):** Builder reload now reconciles against the
-native play record inside the caller's transaction, preserving play and effects, clamping only
-a reduced Character maximum and removing orphan resource usage. Storage corruption/loss now
-requests an idempotent new authority epoch through the protected Worker route and clears abandoned
-local authority/checkpoint state atomically. Failed recovery keeps the prior evidence for retry.
-Room mechanics apply the existing shared planner and typed play writer to current native play;
-native START/ADVANCE and stored turn-owned resolution now bind that callback to the existing
-planner and shared pending/terminal writers in SQLite. Native basic actions use the existing planner
-and extracted persistence reducer. Scene and local Encounter journal commits recheck the caller's
-admission, current authorization and matching lease revisions immediately before SQLite commit.
-Replay uses the canonical current-member presenter for player projections and occurrences.
-
-Turn admission, pending/terminal persistence, initiative settlement, effect/resource writes,
-maintenance reads and concentration child/cleanup/owner persistence now use shared algorithms.
-Existing Convex handlers use actual transaction adapters and owning callbacks. Immutable
-`SCENE_DEFINITION` hydration retains source-pinned header/entities; native reads reuse the canonical
-current-entity algorithm over the base and live overrides. `DEFINITION` hydration carries
-`sourceKind: PLATFORM | USER | null`, preserving platform basic actions independently of Campaign
-catalogue membership. Shared Concentration logging stages paired chat or native private roll records;
-checkpoints append immutable evidence into the owner's global twenty-roll history without
-cross-Campaign replacement. Ordinary action pending/terminal/evidence responses, Concentration,
-Cleaving and Disarm now bind shared planners and writers to native production dispatch in source.
-Retained occurrence/receipt ownership selects a response planner before canonical admission runs
-again. GM cancellation/refusal uses the existing void classifier; TURN/CLEAVING declining voids
-use their real response paths. State, Character play, effects, paired rules chat, private rolls and
-receipts share the SQLite command/journal transaction. Convex adapters retain real callbacks and
-logical receipt inserts through the packed ledger writer. Movement/bound fog, general
-chat/public/evidence rolls, held Sheets/lifecycle and cold definition hydration remain open;
-cold `DEFINITION` misses still reach Convex after hydration. Runnable source checks
-cover reload, recovery, mechanics and admission rollback, but were not executed in this batch,
-following the user's instruction to finish known source work first. See the
-[source batch record](../validation/phase-08-2/room-command-source-batch-2026-09-30.md).
-
-These are source implementation claims only. Integrated execution proof, Scene receipt payload
-packing, S5 parity, complete S6/S7, chat, budgets and the final-source local lifecycle remain open.
-Bound/fog/movement-decision paths remain Convex-first transitional. Focused HP/Common reads remain
-open. Acceptance remains **51/75**, with the frozen 190-criteria scope unchanged; no S3/S6 completion
-or new native proof is claimed.
-The note-write aggregate-checksum proposal awaits the user's decision; current integrity checks
-remain in place. Final-source execution remains deferred under the user's source-first steering.
-
-**Inline checkpoint application (focused proof, 2026-09-30):** typed record deltas, actor mutable
-keys scoped by `[encounterId, id]`, a Character-scoped ledger, one play-clock advance per checkpoint
-outside the canonical digest, and atomic state/history/fence rollback passed focused tests and a
-native local Convex proof. The response renews authorization; checkpoint-originated writes suppress
-self input invalidation. Native source
-parity matched 5,382 entries. The later staged-upload and inline-retry native proofs both matched
-5,392 source entries and passed; their fixture performance sample is not a gate and the near-4 MiB
-ceiling remains unproven. See the [checkpoint staging validation record](../validation/phase-08-2/checkpoint-staging-2026-09-30.md).
-The initial
-public-HTTP transport attempt failed and remains recorded, while the corrected internal Convex call
-passed. Authorization response and no self-invalidation also passed. This is not a gate acceptance:
-the ledger remains 51/75. Integrated proof of Scene/fog publication, room alarms/final drain/unified
-global sequence, S5/S6/S7, Q16 and the final-source lifecycle remain open. See the [checkpoint
-application validation record](../validation/phase-08-2/checkpoint-application-2026-09-30.md).
+- The dashboard is https://claude.ai/artifact/Qcho6LKSBVJtVg2PKv36jv, built from `node scripts/acceptanceProgress.mjs --json`.
+- The `.agents/` deletions stay unstaged and uncommitted.
+- Authority is the ledger, not the older counts below; see [ADR 0029](../adr/0029-convex-backend-cutover.md), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [persistence](../architecture/persistence.md), [live-session coordination](../architecture/live-sessions.md) and the [release runbook](../runbooks/phase-8-2-release.md).
 
 ## Historical checkpoint (2026-09-24, later session)
 

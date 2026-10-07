@@ -275,6 +275,8 @@ receipt; a matching replay returns the stored projection before loading sources.
 `sceneDefinitions` holds the current settings and save ID of a Scene definition. An owner save uploads typed
 entities through begin, append and publish (`sceneDefinitionSaves`, immutable `sceneDefinitionEntities`) and
 publication installs the header atomically and creates one initial `campaignScenes` live snapshot reference.
+Token and Barrier IDs (every Scene entity ID, `sceneEntityIdSchema` in
+`packages/schema/src/api/vttScenes.ts`) must be lowercase UUIDs; uppercase IDs are rejected.
 Abandoned uploads expire after 24 hours and scheduled cleanup removes unreferenced entities. Owner reads page a
 definition pinned to its save ID. `campaignScenePresentations` stores one versioned Scene selection per
 Campaign, with exact replay through the Campaign event receipt; finishing a Session clears the derived active

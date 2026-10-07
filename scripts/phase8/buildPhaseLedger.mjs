@@ -305,6 +305,37 @@ const pbis = [
     sliceAcs: true,
     journey: []
   },
+  {
+    f: 'PLATFORM',
+    n: 16,
+    title: 'Remove Convex-held Encounter history tables',
+    journey: [],
+    extra: [
+      X(
+        'The encounterRunCommands, encounterRuleReceipts and encounterEvidenceRolls tables are removed (no writer since D88; the contract rejects them), and the roomInputs union, runs.ts, the receiptLedgers cases, campaignDeletion and developmentLifecycle/Checkpoint no longer read them.',
+        [],
+        'Depends on ROOM-5 (Encounter history lives only in the room).'
+      ),
+      X('docs/architecture/persistence.md and the ADR 0035 note describe the tables as removed.')
+    ]
+  },
+  {
+    f: 'PLATFORM',
+    n: 17,
+    title: 'Test fixtures use typed parses and one shared builder',
+    journey: [],
+    extra: [
+      X(
+        'The `as CreatureAuthored` casts in the session-worker biteWolf/withBite and the apis srdCreatures fixture are replaced by typed parses, and the reason the schema parse output type is incompatible with CreatureAuthored is investigated and recorded.'
+      ),
+      X(
+        'The spatial save-graph construction in apps/session-worker/src/testing/movementPlannerFixture.ts and apps/apis/tests/fixtures/spatialSaveEffect.ts is one shared builder.'
+      ),
+      X(
+        'The 17 captureFake uses in apps/session-worker/test/nativeLiveCaptureReads.test.ts are audited and only true malformed-input cases remain.'
+      )
+    ]
+  },
 
   // ACCOUNTS
   {
@@ -712,6 +743,22 @@ const pbis = [
     sliceAcs: true,
     journey: []
   },
+  {
+    f: 'CAMPAIGN',
+    n: 8,
+    title: 'Campaign access refusals explain themselves on deployed Convex',
+    journey: [],
+    extra: [
+      X(
+        'Every requireCampaignAuthority caller in apps/apis/convex throws a typed domain rejection (rejectDomain CAMPAIGN_NOT_FOUND) instead of a plain Error, so deployed Convex no longer redacts it to "Server Error". The join-ticket path is already done.',
+        [],
+        'Depends on PLATFORM and ACCOUNTS authorization contracts.'
+      ),
+      X(
+        'The exact-message match at notifications/source.ts:20 and the apps/web/tests/live-backend regexes match the typed rejection.'
+      )
+    ]
+  },
 
   // SOCIAL
   {
@@ -817,6 +864,37 @@ const pbis = [
       SW + 'test/nativeLiveSessionRoom.test.ts',
       AP + 'liveSessions/checkpoint.test.ts',
       AP + 'liveSessions/encounterJourneys.test.ts'
+    ]
+  },
+  {
+    f: 'ROOM',
+    n: 6,
+    title: 'Room tests cover multi-Character and multi-controller scenarios',
+    journey: [],
+    extra: [
+      X(
+        'movementRoomFixture offers a player-socket (asPlayer) reactor, proved by a room test that a player socket drives its own Character.',
+        [],
+        'Depends on ROOM-5 (real Session Worker room tests).'
+      ),
+      X('A room-side spatial save-effect hazard execution is proved against the real room.'),
+      X(
+        'Maintenance has multi-Character and detached-Character variants, plus the CHARACTER-owner maintenance producer test.'
+      ),
+      X('encounterMovementPending receipts increase by one, asserted room-side.'),
+      X('Empty-prior maintenance (RETAIN_UNTIL_TERMINAL) is proved room-side.'),
+      X('Assisted maintenance pauses and stale refusals are proved, using a room seed route.'),
+      X('Character-initiator Disarm is proved room-side.'),
+      X('A Longsword EQUIPMENT root is used in the room fixtures (Club is used today).'),
+      X('turnConcentration is proved with two Characters.'),
+      X('equipmentCommands are proved with R2 content seeding in the room fixtures.'),
+      X(
+        'The srdLegendaryAction player-controller and GM-override cases are proved with a two-controller fixture.'
+      ),
+      X(
+        'Movement coverage includes the concentration advantage case and a shared spatial effect across two targets.'
+      ),
+      X('Initiative receipt metadata echoes a non-empty resolutionCommands, asserted room-side.')
     ]
   },
 
@@ -1571,6 +1649,19 @@ const pbis = [
     title: 'Production deployment and smoke check',
     cases: ['R10'],
     journey: []
+  },
+  {
+    f: 'RELEASE',
+    n: 5,
+    title: 'Staging and production can never enable the dev-only test-rolls route',
+    journey: [],
+    extra: [
+      X(
+        'A release check proves staging and production deployments can never carry the loopback Convex URL marker that enables the dev-only test-rolls route (docs/architecture/live-sessions.md, test-dice route), and fails the release if they do.',
+        [],
+        'Depends on PERF and every other feature (RELEASE dependencies); registered after the real-room fixture work.'
+      )
+    ]
   }
 ]
 for (const p of pbis) p.id = `${p.f}-${p.n}`
