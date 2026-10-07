@@ -6,7 +6,7 @@
 
 ## Current state (2026-10-07)
 
-**Latest slice commit:** CAMPAIGN-7 (seventh session below).
+**Latest slice commit:** `70f65ca23` (CAMPAIGN-7, seventh session below).
 
 **Last full validation:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
