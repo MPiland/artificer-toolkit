@@ -50,6 +50,7 @@ describe('grant detail presenters', () => {
         selectionKind: 'CHOSEN',
         level: 'FULL',
         count: 2,
+        selectionDuplicatePolicy: 'UNIQUE',
         authoringModeKind: 'SELECTED',
         languageIds: ['common', 'elvish'],
         order: 1
@@ -125,6 +126,7 @@ describe('grant detail presenters', () => {
         selectionKind: 'CHOSEN',
         level: 'FULL',
         count: 2,
+        selectionDuplicatePolicy: 'UNIQUE',
         authoringModeKind: 'SELECTED',
         skillIds: ['insight', 'religion', 'stealth'],
         order: 4

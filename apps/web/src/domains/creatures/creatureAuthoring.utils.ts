@@ -4,7 +4,6 @@ import type {
 } from '@artificer-toolkit/schema/subjects/creature'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
 import type { SpeedDto } from '@artificer-toolkit/schema/shared'
 import {
   CREATURE_CATEGORY_CODE,
@@ -105,18 +104,6 @@ export function createEmptySpeed(): SpeedDto {
     speedId: '',
     amount: 30,
     unit: MEASUREMENT_UNIT_CODE.FEET
-  }
-}
-
-export function createEmptyProficiency(): ProficiencyGrantDto {
-  return {
-    id: crypto.randomUUID(),
-    order: 1,
-    grantKind: 'PROFICIENCY_GRANT',
-    proficiencyKind: 'SKILL',
-    selectionKind: 'GRANTED',
-    scalingKind: 'NONE',
-    level: 'FULL'
   }
 }
 

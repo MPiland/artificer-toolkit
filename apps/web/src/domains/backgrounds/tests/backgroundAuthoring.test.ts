@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod/mini'
+import { proficiencyGrantDtoSchema } from '@artificer-toolkit/schema/grants'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
 import {
   addStartingEquipmentItem,
   createEmptyBackground,
+  createEmptyProficiency,
   createEmptyStartingEquipment,
   getStartingEquipmentItems,
   normalizeBackgroundForSubmit,
@@ -23,6 +26,10 @@ type GrantedEquipmentStartingEquipmentItemDto = Extract<
 describe('background authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('creates an empty proficiency grant that satisfies the grant contract', () => {
+    expect(z.safeParse(proficiencyGrantDtoSchema, createEmptyProficiency(0)).success).toBe(true)
   })
 
   it('creates a draft background with editable collection defaults', () => {

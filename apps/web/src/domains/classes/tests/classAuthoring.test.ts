@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
+import { z } from 'zod/mini'
+import { proficiencyGrantDtoSchema } from '@artificer-toolkit/schema/grants'
 import {
   createEmptyClass,
   createEmptyDetail,
   createEmptyFeature,
   createEmptyMulticlass,
+  createEmptyProficiency,
   createEmptySpecialization,
   normalizeClassForSubmit,
   resolveClassEditReadOnly,
@@ -13,6 +16,10 @@ import {
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
 describe('class authoring utilities', () => {
+  it('creates an empty proficiency grant that satisfies the grant contract', () => {
+    expect(z.safeParse(proficiencyGrantDtoSchema, createEmptyProficiency(0)).success).toBe(true)
+  })
+
   it('creates draft-safe empty classes without forcing a category', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
