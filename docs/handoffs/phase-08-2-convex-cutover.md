@@ -41,10 +41,21 @@
 - Local Convex was deployed, reseeded and the SRD audit passes (backup `local-validation/convex-reset/plt17-reseed.before.zip`, a no-op reset; delete once this tree is trusted).
 - Ledger: 58/124 PBIs, 280/401 ACs.
 
-**Next work:** the PBIs registered in the [Phase 8 ledger](../roadmap/08-phase-ledger.json) (built by `scripts/phase8/buildPhaseLedger.mjs`), then the remaining ledger work:
+**Next work: WSJF ranking first (user direction, 2026-10-07).** Do not take PBIs in registration or handoff order.
 
-- ROOM-6: room fixtures for multi-Character and multi-controller scenarios;
-- RELEASE-6: observe the typed Campaign refusal on the next live-backend run and confirm its regexes.
+1. Rank all open PBIs in the [Phase 8 ledger](../roadmap/08-phase-ledger.json) (built by `scripts/phase8/buildPhaseLedger.mjs`) by WSJF, within dependency order:
+   - Cost of delay is user/business value plus time criticality plus risk reduction or opportunity enablement.
+   - Divide by job size.
+   - A PBI cannot start before its dependencies, whatever its score.
+2. Record the ranked list in this section, replacing this step. Post it to the user before starting the next PBI.
+3. Then work the list top down.
+
+Expectations going in, to be confirmed by the ranking:
+
+- ATTACK-5 ("Every SRD monster attack runs": 41 of 551 attacks are allowlisted as unsupported) likely ranks near the top. It is high user value, needs no live run, and is provable with fast real-rules tests.
+- ROOM-6 (13 test-fixture ACs, no user-visible change) likely ranks low.
+
+**Live runs:** do not schedule a live-backend run for a single check. Prefer work that needs no live run. Batch live-only proofs, such as RELEASE-6 (confirm the typed Campaign refusal regexes in `apps/web/tests/live-backend`), into the next live run that happens for another reason.
 
 The final `yarn validate:pre-staging:local` runs once, at the end of Phase 8.
 
