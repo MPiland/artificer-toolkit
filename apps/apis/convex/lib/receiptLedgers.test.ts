@@ -117,23 +117,6 @@ function encounterEntries() {
       actorUserId: uuid(3),
       correlationId: null,
       createdAt: timestamp
-    }),
-    historyEntry('encounterEvidenceRolls', {
-      id: uuid(14),
-      campaignId,
-      encounterId: uuid(4),
-      occurrenceId: uuid(5),
-      occurrenceVersion: 1,
-      requestId: 'attack',
-      userId: uuid(3),
-      commandId: uuid(15),
-      commandFingerprint: checksum,
-      attempt: 1,
-      faces: [12],
-      value: 12,
-      rollMode: null,
-      derivedRollMode: null,
-      createdAt: timestamp
     })
   ]
 }
@@ -148,7 +131,6 @@ async function snapshot(t: ReturnType<typeof fixture>) {
     parts: await ctx.db.query('receiptLedgerParts').take(40),
     run: await ctx.db.query('encounterRunCommands').take(10),
     rule: await ctx.db.query('encounterRuleReceipts').take(10),
-    roll: await ctx.db.query('encounterEvidenceRolls').take(10),
     character: await ctx.db.query('characterCommandReceipts').take(10),
     state: await ctx.db.query('sceneVisionRevisions').take(10)
   }))
@@ -162,10 +144,6 @@ async function headers(t: ReturnType<typeof fixture>): Promise<ReceiptHeaderRef[
     })),
     ...(await ctx.db.query('encounterRuleReceipts').take(10)).map((header) => ({
       table: 'encounterRuleReceipts' as const,
-      header
-    })),
-    ...(await ctx.db.query('encounterEvidenceRolls').take(10)).map((header) => ({
-      table: 'encounterEvidenceRolls' as const,
       header
     })),
     ...(await ctx.db.query('characterCommandReceipts').take(10)).map((header) => ({
@@ -230,7 +208,7 @@ describe('native receipt ledger storage', () => {
   it('refuses a valid checksum pointer into another family or command identity', async () => {
     const t = fixture()
     const entries = [characterReceipt(1), characterReceipt(2)]
-    const otherFamily = encounterEntries()[2]!
+    const otherFamily = encounterEntries()[1]!
     await t.run((ctx) => createReceiptLedger(ctx, identity(), entries))
     await t.run((ctx) => createReceiptLedger(ctx, campaignIdentity(), [otherFamily]))
     for (const target of [
@@ -615,7 +593,6 @@ describe('native receipt ledger storage', () => {
             .withIndex('by_characterId_commandId', (q) => q.eq('characterId', characterId))
             .collect()
         ).toEqual(page)
-        expect((await store.query('encounterEvidenceRolls').first())?.id).toBe(uuid(14))
         expect(query.mock.calls.filter(([table]) => table === 'receiptLedgers')).toHaveLength(2)
         expect(query.mock.calls.filter(([table]) => table === 'receiptLedgerParts')).toHaveLength(2)
       } finally {
@@ -826,17 +803,6 @@ describe('native receipt ledger storage', () => {
     expect(await snapshot(t)).toEqual(before)
   })
 
-  it('refuses two Evidence rows sharing a command identity and rolls back preceding headers', async () => {
-    const t = fixture()
-    const first = encounterEntries()[2]!
-    const second = historyEntry('encounterEvidenceRolls', { ...first.value, id: uuid(999) })
-    const before = await snapshot(t)
-    await expect(
-      t.run((ctx) => createReceiptLedger(ctx, campaignIdentity(), [first, second]))
-    ).rejects.toThrow(/identity/)
-    expect(await snapshot(t)).toEqual(before)
-  })
-
   it('rejects wrong scope before writes and rejects reused ledger IDs', async () => {
     const t = fixture()
     await expect(
@@ -889,10 +855,10 @@ describe('native receipt ledger storage', () => {
     const selected = refs.filter((ref) => ref.table === 'encounterRunCommands')
     await t.run((ctx) => deleteReceiptHeaders(ctx, selected))
     const surviving = await headers(t)
-    expect(surviving).toHaveLength(3)
+    expect(surviving).toHaveLength(2)
     await t.run(async (ctx) => {
       const shared = await readReceiptLedger(ctx, campaignIdentity().id)
-      expect(shared.entries).toEqual([null, encounter[1], encounter[2]])
+      expect(shared.entries).toEqual([null, encounter[1]])
       for (const ref of surviving.filter((ref) => ref.table !== 'characterCommandReceipts')) {
         expect(ref.header.entryIndex).toBeGreaterThan(0)
         expect(await readReceiptHeader(ctx, ref.table, ref.header)).toMatchObject({

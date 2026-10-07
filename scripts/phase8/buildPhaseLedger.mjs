@@ -308,15 +308,36 @@ const pbis = [
   {
     f: 'PLATFORM',
     n: 16,
-    title: 'Remove Convex-held Encounter history tables',
-    journey: [],
+    title: 'Remove the Convex-held Encounter evidence roll table',
+    journey: [`${AP}liveSessions/encounterJourneys.test.ts`],
     extra: [
       X(
-        'The encounterRunCommands, encounterRuleReceipts and encounterEvidenceRolls tables are removed (no writer since D88; the contract rejects them), and the roomInputs union, runs.ts, the receiptLedgers cases, campaignDeletion and developmentLifecycle/Checkpoint no longer read them.',
+        'The Convex encounterEvidenceRolls table is removed (no Convex writer since D88; checkpoints reject it) with its roomInputs union arm, receiptLedgers case, header schema, checkpoint key and campaignDeletion read. encounterRunCommands and encounterRuleReceipts stay: D88 keeps Convex-side Run creation and REMOVE_ACTOR departure writes there, and the room merges them at hydrate.',
         [],
-        'Depends on ROOM-5 (Encounter history lives only in the room).'
+        'Rescoped 2026-10-07: the original AC said all three tables had no writer, which contradicts D88.',
+        {
+          status: 'DONE',
+          proof: [
+            `${AP}encounters/encounterStoreConformance.test.ts`,
+            `${AP}liveSessions/roomInputs.test.ts`,
+            `${AP}lib/receiptLedgers.test.ts`,
+            `${AP}campaigns/deletion.test.ts`,
+            `${SW}src/roomInputs.test.ts`
+          ]
+        }
       ),
-      X('docs/architecture/persistence.md and the ADR 0035 note describe the tables as removed.')
+      X(
+        'docs/architecture/persistence.md and the ADR 0035 note describe the evidence roll table as removed and the other two as the Convex-side write inbox.',
+        [],
+        undefined,
+        {
+          status: 'DONE',
+          proof: [
+            'docs/architecture/persistence.md',
+            'docs/adr/0035-room-authoritative-live-encounters.md'
+          ]
+        }
+      )
     ]
   },
   {
@@ -1819,6 +1840,8 @@ const review = {
     }
   ),
   'PLATFORM-5': V,
+  // A removal has no new user flow: the real-room Encounter journeys run with evidence rolls held only in the room.
+  'PLATFORM-16': V,
   'PLATFORM-11': P(
     'roomInputs.test.ts is one room-routed suite on the real Session Worker; the stand-in fixtures are deleted, but no test asserts none returns (REL-9 is still active).'
   ),

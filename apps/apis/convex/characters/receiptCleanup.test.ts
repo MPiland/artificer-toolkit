@@ -66,7 +66,6 @@ async function snapshot(t: ReturnType<typeof fixture>) {
     headers: await ctx.db.query('characterCommandReceipts').take(10),
     runHeaders: await ctx.db.query('encounterRunCommands').take(10),
     ruleHeaders: await ctx.db.query('encounterRuleReceipts').take(10),
-    rollHeaders: await ctx.db.query('encounterEvidenceRolls').take(10),
     jobs: await ctx.db.query('characterReceiptPurgeJobs').take(10),
     schedules: await ctx.db.system.query('_scheduled_functions').collect()
   }))
@@ -297,12 +296,7 @@ describe('private Character receipt retirement', () => {
     }
   )
 
-  it.each([
-    'encounterRunCommands',
-    'encounterRuleReceipts',
-    'encounterEvidenceRolls',
-    'characterCommandReceipts'
-  ] as const)(
+  it.each(['encounterRunCommands', 'encounterRuleReceipts', 'characterCommandReceipts'] as const)(
     'refuses any live header family referencing the private ledger: %s',
     async (table) => {
       const t = fixture()
@@ -334,15 +328,6 @@ describe('private Character receipt retirement', () => {
             actorUserId: ownerUserId,
             commandType: 'RESOLVE_RULE_OCCURRENCE',
             encounterVersion: 1
-          })
-        if (table === 'encounterEvidenceRolls')
-          await ctx.db.insert(table, {
-            ...common,
-            occurrenceId: uuid(34),
-            occurrenceVersion: 1,
-            requestId: 'attack',
-            userId: ownerUserId,
-            attempt: 1
           })
         if (table === 'characterCommandReceipts')
           await ctx.db.insert(table, {

@@ -5,11 +5,11 @@ import type { MutationCtx } from '../_generated/server'
 
 /**
  * Deletes one bounded page of the Convex-held rows a Run stops needing, and reports whether none
- * was found: the command, rule receipt and evidence headers with their receipt ledgers, then
+ * was found: the command and rule receipt headers with their receipt ledgers, then
  * every other child row a finished Run no longer needs (`removeFinishedRunRowsPage`).
  */
 async function removeFinishedRunPage(ctx: MutationCtx, encounterId: string, limit: number) {
-  const [commands, rules, evidence] = await Promise.all([
+  const [commands, rules] = await Promise.all([
     ctx.db
       .query('encounterRunCommands')
       .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
@@ -17,23 +17,18 @@ async function removeFinishedRunPage(ctx: MutationCtx, encounterId: string, limi
     ctx.db
       .query('encounterRuleReceipts')
       .withIndex('by_encounterId_commandId', (q) => q.eq('encounterId', encounterId))
-      .take(limit),
-    ctx.db
-      .query('encounterEvidenceRolls')
-      .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
       .take(limit)
   ])
   await deleteReceiptHeaders(ctx, [
     ...commands.map((header) => ({ table: 'encounterRunCommands' as const, header })),
-    ...rules.map((header) => ({ table: 'encounterRuleReceipts' as const, header })),
-    ...evidence.map((header) => ({ table: 'encounterEvidenceRolls' as const, header }))
+    ...rules.map((header) => ({ table: 'encounterRuleReceipts' as const, header }))
   ])
   const rowsFinished = await removeFinishedRunRowsPage(
     { db: createConvexEncounterStore(ctx) },
     encounterId,
     limit
   )
-  return rowsFinished && ![commands, rules, evidence].some((rows) => rows.length)
+  return rowsFinished && ![commands, rules].some((rows) => rows.length)
 }
 
 /**

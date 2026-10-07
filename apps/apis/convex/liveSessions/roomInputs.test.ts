@@ -1153,11 +1153,7 @@ describe('live room inputs (ADR 0035 S2)', () => {
     // Empty tables are skipped. Receipt bodies use one row per page plus a terminal empty page;
     // other small fixture tables fit one page, the Run rides the first, and one final page skips
     // any remaining empty tables.
-    const receiptTables = new Set([
-      'encounterRunCommands',
-      'encounterRuleReceipts',
-      'encounterEvidenceRolls'
-    ])
+    const receiptTables = new Set(['encounterRunCommands', 'encounterRuleReceipts'])
     const receipts = documents.filter((row) => receiptTables.has(row.table))
     const otherTables = new Set(
       documents

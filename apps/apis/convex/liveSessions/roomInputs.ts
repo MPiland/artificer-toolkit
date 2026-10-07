@@ -209,17 +209,6 @@ export const RUN_TABLES: ReadonlyArray<{ table: EncounterTableName; query: RunTa
       )
   },
   {
-    table: 'encounterEvidenceRolls',
-    query: (ctx, encounterId) =>
-      receiptRunTableQuery(
-        ctx,
-        'encounterEvidenceRolls',
-        ctx.db
-          .query('encounterEvidenceRolls')
-          .withIndex('by_encounterId', (q) => q.eq('encounterId', encounterId))
-      )
-  },
-  {
     table: 'encounterReplayIndex',
     query: (ctx, encounterId) =>
       ctx.db
@@ -472,9 +461,7 @@ async function readRunPage(
   assertAdvances(
     page,
     paginationCursor,
-    ['encounterRunCommands', 'encounterRuleReceipts', 'encounterEvidenceRolls'].includes(
-      entry.table
-    )
+    ['encounterRunCommands', 'encounterRuleReceipts'].includes(entry.table)
   )
   const continueCursor: LiveRoomInputsCursor = !page.isDone
     ? { position: tableIndex, paginationCursor: page.continueCursor }

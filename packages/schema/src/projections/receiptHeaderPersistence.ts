@@ -73,22 +73,6 @@ export const encounterRuleReceiptHeaderSchema = lazySchema(() =>
   })
 )
 
-export const encounterEvidenceRollHeaderSchema = lazySchema(() =>
-  z.extend(receiptLedgerPointerSchema, {
-    id: postgresUuidSchema,
-    campaignId: postgresUuidSchema,
-    encounterId: postgresUuidSchema,
-    occurrenceId: postgresUuidSchema,
-    occurrenceVersion: z.number().check(z.int()).check(z.nonnegative()),
-    requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-    userId: postgresUuidSchema,
-    commandId: postgresUuidSchema,
-    commandFingerprint: projectionChecksumSchema,
-    attempt: z.number().check(z.int()).check(z.positive()),
-    createdAt: z.iso.datetime()
-  })
-)
-
 const characterUuidSchema = lazySchema(() =>
   z.pipe(
     z.uuid(),
@@ -110,13 +94,11 @@ export const characterCommandReceiptHeaderSchema = lazySchema(() =>
 export const receiptHeaderSchemas = {
   encounterRunCommands: encounterRunCommandHeaderSchema,
   encounterRuleReceipts: encounterRuleReceiptHeaderSchema,
-  encounterEvidenceRolls: encounterEvidenceRollHeaderSchema,
   characterCommandReceipts: characterCommandReceiptHeaderSchema
 }
 
 export type EncounterRunCommandHeader = z.infer<typeof encounterRunCommandHeaderSchema>
 export type EncounterRuleReceiptHeader = z.infer<typeof encounterRuleReceiptHeaderSchema>
-export type EncounterEvidenceRollHeader = z.infer<typeof encounterEvidenceRollHeaderSchema>
 export type CharacterCommandReceiptHeader = z.infer<typeof characterCommandReceiptHeaderSchema>
 export type ReceiptHeaderTable = keyof typeof receiptHeaderSchemas
 export type ReceiptHeaderDocuments = {

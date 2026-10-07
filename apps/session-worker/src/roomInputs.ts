@@ -137,16 +137,18 @@ function expectAssigned(part: LiveRoomCharacterPart) {
   return part
 }
 
-/** The Encounter history tables the room keeps for the whole Run (ADR 0035 Amendment 22). */
-const HISTORY_TABLES = [
-  'encounterRunCommands',
-  'encounterRuleReceipts',
-  'encounterEvidenceRolls'
-] as const
+/** The history tables Convex writers also record, so a reload can read the same row twice. */
+const CONVEX_HISTORY_TABLES = ['encounterRunCommands', 'encounterRuleReceipts'] as const
 
-/** A history row's ledger identity, shared by the carry at hydrate and the lazy Run load. */
+/**
+ * The Encounter history tables the room keeps for the whole Run (ADR 0035 Amendment 22). Evidence
+ * rolls are room-only (D88): Convex never returns them, so they need no duplicate key.
+ */
+const HISTORY_TABLES = [...CONVEX_HISTORY_TABLES, 'encounterEvidenceRolls'] as const
+
+/** A Convex-recorded history row's ledger identity, shared by the carry at hydrate and the lazy Run load. */
 function historyKey({ table, fields }: RoomDocument) {
-  const history = HISTORY_TABLES.find((candidate) => candidate === table)
+  const history = CONVEX_HISTORY_TABLES.find((candidate) => candidate === table)
   return history
     ? canonicalizeJson([
         history,

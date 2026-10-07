@@ -98,23 +98,6 @@ function encounterEntries(): ReceiptLedgerEntry[] {
       actorUserId: uuid(3),
       correlationId: null,
       createdAt: timestamp
-    }),
-    historyEntry('encounterEvidenceRolls', {
-      id: uuid(14),
-      campaignId,
-      encounterId: uuid(4),
-      occurrenceId: uuid(5),
-      occurrenceVersion: 1,
-      requestId: 'attack',
-      userId: uuid(3),
-      commandId: uuid(15),
-      commandFingerprint: checksum,
-      attempt: 1,
-      faces: [12],
-      value: 12,
-      rollMode: null,
-      derivedRollMode: null,
-      createdAt: timestamp
     })
   ]
 }

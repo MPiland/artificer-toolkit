@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  encounterStoredEvidenceRollSchema,
   encounterStoredRuleReceiptSchema,
   encounterStoredRunCommandSchema
 } from '../projections/encounterRunPersistence.js'
@@ -8,7 +7,6 @@ import { characterStoredCommandReceiptSchema } from '../projections/characterPer
 import { encounterStoreIndexes } from '../projections/encounterStore.js'
 import {
   characterCommandReceiptHeaderSchema,
-  encounterEvidenceRollHeaderSchema,
   encounterRuleReceiptHeaderSchema,
   encounterRunCommandHeaderSchema,
   receiptHeaderSchemas
@@ -60,24 +58,6 @@ const cases = [
     }
   },
   {
-    table: 'encounterEvidenceRolls',
-    logicalSchema: encounterStoredEvidenceRollSchema,
-    metadata: {
-      id,
-      campaignId: id,
-      encounterId: id,
-      occurrenceId: id,
-      occurrenceVersion: 0,
-      requestId: 'd20',
-      userId: actorId,
-      commandId,
-      commandFingerprint: checksum,
-      attempt: 1,
-      createdAt
-    },
-    body: { faces: [17], value: 17, rollMode: 'NORMAL', derivedRollMode: 'NORMAL' }
-  },
-  {
     table: 'characterCommandReceipts',
     logicalSchema: characterStoredCommandReceiptSchema,
     metadata: {
@@ -93,7 +73,7 @@ const cases = [
 ] as const
 
 describe('receipt persistence headers', () => {
-  it('maps exactly the four physical receipt tables', () => {
+  it('maps exactly the three physical receipt tables', () => {
     expect(Object.keys(receiptHeaderSchemas).sort()).toEqual(cases.map(({ table }) => table).sort())
   })
 
@@ -201,7 +181,7 @@ describe('receipt persistence headers', () => {
   )
 
   it('preserves Character RFC UUID validation and lowercase normalization', () => {
-    const fixture = cases[3]
+    const fixture = cases[2]
     const uppercaseId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
     const metadata = { ...fixture.metadata, actorId: uppercaseId }
     expect(characterCommandReceiptHeaderSchema.parse({ ...metadata, ...pointer }).actorId).toBe(
@@ -227,7 +207,7 @@ describe('receipt persistence headers', () => {
     ).toBe(false)
   })
 
-  it('preserves rule command labels and evidence version/request/attempt bounds', () => {
+  it('preserves rule command labels', () => {
     const rule = { ...cases[1].metadata, ...pointer }
     expect(
       encounterRuleReceiptHeaderSchema.parse({ ...rule, commandType: ' START ' }).commandType
@@ -238,18 +218,6 @@ describe('receipt persistence headers', () => {
       { encounterVersion: -1 }
     ]) {
       expect(encounterRuleReceiptHeaderSchema.safeParse({ ...rule, ...invalid }).success).toBe(
-        false
-      )
-    }
-    const evidence = { ...cases[2].metadata, ...pointer }
-    for (const invalid of [
-      { occurrenceVersion: -1 },
-      { requestId: '' },
-      { requestId: 'a'.repeat(257) },
-      { attempt: 0 },
-      { attempt: 1.5 }
-    ]) {
-      expect(encounterEvidenceRollHeaderSchema.safeParse({ ...evidence, ...invalid }).success).toBe(
         false
       )
     }

@@ -289,22 +289,6 @@ async function insertHeader(
         )
       }
     }
-    case 'encounterEvidenceRolls': {
-      const fields = receiptHeaderSchemas.encounterEvidenceRolls.parse(header)
-      const commandCollision = await ctx.db
-        .query(entry.table)
-        .withIndex('by_campaignId_commandId', (q) =>
-          q.eq('campaignId', fields.campaignId).eq('commandId', fields.commandId)
-        )
-        .take(1)
-      const idCollision = await ctx.db
-        .query(entry.table)
-        .withIndex('by_publicId', (q) => q.eq('id', fields.id))
-        .take(1)
-      if (commandCollision.length || idCollision.length)
-        throw new Error('Receipt header identity already exists.')
-      return { table: entry.table, entryIndex, id: await ctx.db.insert(entry.table, fields) }
-    }
   }
 }
 

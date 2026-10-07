@@ -399,8 +399,7 @@ describe('Encounter history stays in the room (D85)', () => {
         all.filter((row) => row.encounterId === encounterId)
       return [
         ...ofRun(await ctx.db.query('encounterRunCommands').collect()),
-        ...ofRun(await ctx.db.query('encounterRuleReceipts').collect()),
-        ...ofRun(await ctx.db.query('encounterEvidenceRolls').collect())
+        ...ofRun(await ctx.db.query('encounterRuleReceipts').collect())
       ]
     })
     expect(rows).toEqual([])

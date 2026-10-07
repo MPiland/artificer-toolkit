@@ -54,7 +54,6 @@ export const liveSessionCheckpointHistoryKeyFields = {
 export const receiptLedgerEntryKeyFields = {
   encounterRunCommands: ['campaignId', 'commandId'],
   encounterRuleReceipts: ['campaignId', 'commandId'],
-  encounterEvidenceRolls: ['id'],
   ...liveSessionCheckpointHistoryKeyFields
 } as const
 

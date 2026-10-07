@@ -28,8 +28,7 @@ const droppedTables = [
   'encounterMaintainedEffectStates',
   'encounterSpatialRuleEffects',
   'encounterRunCommands',
-  'encounterRuleReceipts',
-  'encounterEvidenceRolls'
+  'encounterRuleReceipts'
 ] as const
 
 it('keeps only the finished view of a Run with a Character and a Creature (ADR 0035 Amendment 30)', async () => {

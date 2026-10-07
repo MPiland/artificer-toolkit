@@ -23,7 +23,10 @@ import { encounterWriteTransaction } from './encounterPorts'
  * must return the same result and make the same store changes; the Convex outcome is the golden.
  */
 
-const tables = Object.keys(encounterStoreSchemas) as EncounterTableName[]
+// Evidence rolls are room-only (D88): Convex holds no such table, so there is nothing to compare.
+const tables = (Object.keys(encounterStoreSchemas) as EncounterTableName[]).filter(
+  (table) => table !== 'encounterEvidenceRolls'
+)
 type StoreSnapshot = { [Table in EncounterTableName]: EncounterDocument<Table>[] }
 type Operation<Result> = (transaction: EncounterWriteTransaction) => Promise<Result>
 

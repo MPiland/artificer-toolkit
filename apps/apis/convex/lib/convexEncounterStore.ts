@@ -36,7 +36,14 @@ import {
   type ReceiptHeaderRef
 } from './receiptLedgers'
 
-type NativeEncounterTable = Exclude<EncounterTableName, ReceiptHeaderTable>
+/** Room-only store tables (D88): Convex holds no such table, so the Convex store refuses them. */
+type RoomOnlyEncounterTable = 'encounterEvidenceRolls'
+
+type NativeEncounterTable = Exclude<EncounterTableName, ReceiptHeaderTable | RoomOnlyEncounterTable>
+
+function isRoomOnlyTable(table: EncounterTableName): table is RoomOnlyEncounterTable {
+  return table === 'encounterEvidenceRolls'
+}
 
 function isHistoryTable(table: EncounterTableName): table is ReceiptHeaderTable {
   return Object.hasOwn(receiptHeaderSchemas, table)
@@ -128,13 +135,13 @@ export function createConvexEncounterStoreReader(ctx: QueryCtx): EncounterStoreR
       // normalizeId checked the requested native family; hydration checked its complete body.
       return document as unknown as EncounterDocument<Table>
     }
-    const document = await ctx.db.get(id)
+    const document = await ctx.db.get(id as Id<NativeEncounterTable>)
     // Four native-family checks exclude physical headers. All other logical/native shapes agree.
     return document as EncounterDocument<Table> | null
   }
 
   function query<Table extends EncounterTableName>(table: Table): EncounterQueryInitializer<Table> {
-    if (!Object.hasOwn(encounterStoreSchemas, table))
+    if (!Object.hasOwn(encounterStoreSchemas, table) || isRoomOnlyTable(table))
       throw new Error('Encounter store table is unavailable.')
     if (isHistoryTable(table)) {
       const query = historyQueryInitializer(ctx, table, loadLedger)
@@ -154,7 +161,7 @@ export function createConvexEncounterStore(ctx: MutationCtx): EncounterStore {
     table: Table,
     value: EncounterStoreDocuments[Table]
   ): Promise<EncounterId<Table>> {
-    if (!Object.hasOwn(encounterStoreSchemas, table))
+    if (!Object.hasOwn(encounterStoreSchemas, table) || isRoomOnlyTable(table))
       throw new Error('Encounter store table is unavailable.')
     if (isHistoryTable(table)) {
       const logical = encounterStoreSchemas[table].parse(
@@ -199,7 +206,7 @@ export function createConvexEncounterStore(ctx: MutationCtx): EncounterStore {
 
   async function remove(id: EncounterId<EncounterTableName>): Promise<void> {
     const table = historyTableForId(ctx, id)
-    if (!table) return ctx.db.delete(id)
+    if (!table) return ctx.db.delete(id as Id<NativeEncounterTable>)
     const nativeId = ctx.db.normalizeId(table, id)
     if (!nativeId) throw new Error('Encounter receipt native identity is invalid.')
     const header = await ctx.db.get(nativeId)

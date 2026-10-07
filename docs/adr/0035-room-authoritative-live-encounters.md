@@ -542,7 +542,10 @@ Convex as delta deletes; `removeFinishedRunRows` also frees the Convex receipt l
   `encounterRuleOccurrences`, `encounterPendingSnapshotParts`, `encounterReplayIndex`,
   `encounterTurnMovements`, `encounterDecisionSkips`, `encounterActiveRuleEffects`,
   `encounterMaintainedEffectStates`, `encounterSpatialRuleEffects`, and the history tables
-  `encounterRunCommands`, `encounterRuleReceipts` and `encounterEvidenceRolls`. The shared page helper is
+  `encounterRunCommands`, `encounterRuleReceipts` and `encounterEvidenceRolls` (the last in the room's
+  store only: the Convex table is removed, since no Convex writer records evidence rolls after D88; the
+  other two remain in Convex as the inbox for Run CREATE and REMOVE_ACTOR departure writes that the
+  room merges at hydrate). The shared page helper is
   `removeFinishedRunRowsPage` (`packages/encounter-persistence/src/finishedRunRows.ts`); Campaign and
   prepared-Run deletion reuse it.
 - _Scene binding:_ deleting the binding at COMPLETE means the Scene's Play authorization, transient capture

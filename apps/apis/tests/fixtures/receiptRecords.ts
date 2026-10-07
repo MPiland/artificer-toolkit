@@ -89,12 +89,6 @@ export async function replaceReceiptRecord<Table extends ReceiptHeaderTable>(
       const id = ctx.db.normalizeId('encounterRuleReceipts', headerNativeId)
       if (!id) throw new Error('Receipt fixture header identity is invalid.')
       await ctx.db.replace(id, receiptHeaderSchemas.encounterRuleReceipts.parse(projected))
-      break
-    }
-    case 'encounterEvidenceRolls': {
-      const id = ctx.db.normalizeId('encounterEvidenceRolls', headerNativeId)
-      if (!id) throw new Error('Receipt fixture header identity is invalid.')
-      await ctx.db.replace(id, receiptHeaderSchemas.encounterEvidenceRolls.parse(projected))
     }
   }
   // Multiple deliberate edits in one fixture transaction may share the same ledger.

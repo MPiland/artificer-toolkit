@@ -24,8 +24,7 @@ import {
 } from '@artificer-toolkit/schema/shared/initiativeState'
 import {
   encounterRunCommandHeaderSchema,
-  encounterRuleReceiptHeaderSchema,
-  encounterEvidenceRollHeaderSchema
+  encounterRuleReceiptHeaderSchema
 } from '@artificer-toolkit/schema/projections/receiptHeaderPersistence'
 
 export const encounterTables = {
@@ -89,18 +88,6 @@ export const encounterTables = {
     .index('by_encounterId_commandId', ['encounterId', 'commandId'])
     .index('by_encounterId_encounterVersion', ['encounterId', 'encounterVersion'])
     .index('by_occurrenceId', ['occurrenceId']),
-  encounterEvidenceRolls: defineTable(zodToConvexFields(encounterEvidenceRollHeaderSchema.shape))
-    .index('by_ledgerId_entryIndex', ['ledgerId', 'entryIndex'])
-    .index('by_publicId', ['id'])
-    .index('by_campaignId_commandId', ['campaignId', 'commandId'])
-    .index('by_encounterId', ['encounterId'])
-    .index('by_occurrenceId_version_requestId_userId', [
-      'occurrenceId',
-      'occurrenceVersion',
-      'requestId',
-      'userId',
-      'attempt'
-    ]),
   encounterReplayIndex: defineTable(zodToConvexFields(encounterStoredReplayIndexSchema.shape))
     .index('by_campaignId_commandId', ['campaignId', 'commandId'])
     .index('by_encounterId', ['encounterId']),
