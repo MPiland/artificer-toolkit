@@ -41,19 +41,56 @@
 - Local Convex was deployed, reseeded and the SRD audit passes (backup `local-validation/convex-reset/plt17-reseed.before.zip`, a no-op reset; delete once this tree is trusted).
 - Ledger: 58/124 PBIs, 280/401 ACs.
 
-**Next work: WSJF ranking first (user direction, 2026-10-07).** Do not take PBIs in registration or handoff order.
+**Done 2026-10-07 (fourth session):**
 
-1. Rank all open PBIs in the [Phase 8 ledger](../roadmap/08-phase-ledger.json) (built by `scripts/phase8/buildPhaseLedger.mjs`) by WSJF, within dependency order:
-   - Cost of delay is user/business value plus time criticality plus risk reduction or opportunity enablement.
-   - Divide by job size.
-   - A PBI cannot start before its dependencies, whatever its score.
-2. Record the ranked list in this section, replacing this step. Post it to the user before starting the next PBI.
-3. Then work the list top down.
+- WSJF ranking below.
+- PLATFORM-11 (REL-9): fixture audit found no stand-in room and no copied authorization, rules or route logic. The fixture rules are recorded in [live sessions](../architecture/live-sessions.md); the room-only `GM_ONLY` refusal in `actorReorderCommand.test.ts` is the guard. Ledger 59/124 PBIs, 281/401 ACs.
 
-Expectations going in, to be confirmed by the ranking:
+**Next work: the WSJF ranking below, top down (ranked 2026-10-07).** WSJF = (user/business value + time criticality + risk reduction or enablement) / job size, Fibonacci scores. A PBI never starts before the PBIs it is marked "after".
 
-- ATTACK-5 ("Every SRD monster attack runs": 41 of 551 attacks are allowlisted as unsupported) likely ranks near the top. It is high user value, needs no live run, and is provable with fast real-rules tests.
-- ROOM-6 (13 test-fixture ACs, no user-visible change) likely ranks low.
+| #   | PBI                                     | WSJF | Note                                                                                                                                             |
+| --- | --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                           |
+| 2   | PRIVACY-3                               | 5.3  | Journey: GM-revealed hidden Campaign content other than Scenes.                                                                                  |
+| 3   | SHEET-6                                 | 5.0  | Speed fix is committed with a unit proof; needs the Sheet journey proof.                                                                         |
+| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Assisted and Manual modes end to end.                                                                                                            |
+| 5   | CAMPAIGN-7                              | 4.3  | The GM plays a Character.                                                                                                                        |
+| 6   | ATTACK-8                                | 4.2  | Multiattack and Extra Attack.                                                                                                                    |
+| 7   | ATTACK-3                                | 4.0  | Journey: disposition and bendable-check warnings.                                                                                                |
+| 8   | PLATFORM-5 (5.6)                        | 4.0  | Stale or partial SRD manifest fails the audit.                                                                                                   |
+| 9   | "Needs proof" audit                     | 4.0  | PLATFORM-13.1–13.4, PLATFORM-14, PERF-3.1–3.13, PERF-4, SPELLS-3.1: link existing proofs; anything not actually built is re-sized and re-ranked. |
+| 10  | SPELLS-2                                | 3.3  | Condition mechanics; the main enabler.                                                                                                           |
+| 11  | SPELLS-9                                | 4.5  | After SPELLS-2.                                                                                                                                  |
+| 12  | SPELLS-3 (3.2)                          | 4.2  | Death saves; after SPELLS-2.                                                                                                                     |
+| 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                                     |
+| 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                           |
+| 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                                  |
+| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Journey gaps.                                                                                                                                    |
+| 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                           |
+| 18  | AUTHORING-14                            | 2.7  | All-domain duplication conformance.                                                                                                              |
+| 19  | ATTACK-7                                | 2.6  | Grapple and shove.                                                                                                                               |
+| 20  | VTT_UI-2                                | 2.6  |                                                                                                                                                  |
+| 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                         |
+| 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                               |
+| 23  | PLATFORM-2                              | 2.3  | Journey gap.                                                                                                                                     |
+| 24  | SHEET-7                                 | 2.0  |                                                                                                                                                  |
+| 25  | AUTHORING-12 (12.4)                     | 1.8  |                                                                                                                                                  |
+| 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                        |
+| 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                                  |
+| 28  | REACTION-4                              | 1.5  | After SPELLS-8.                                                                                                                                  |
+| 29  | SPELLS-4                                | 1.5  |                                                                                                                                                  |
+| 30  | ATTACK-6                                | 1.3  |                                                                                                                                                  |
+| 31  | ATTACK-5                                | 1.2  | After SPELLS-2 and ATTACK-7: 35 of its 41 allowlisted attacks are grapple, swallow, attach, drain and condition riders (`OUTCOME_KIND`).         |
+| 32  | AUTHORING-1 (1.4, 1.5)                  | 1.1  |                                                                                                                                                  |
+| 33  | VTT_UI-3                                | 1.0  |                                                                                                                                                  |
+| 34  | ROOM-6                                  | 0.9  | Test fixtures only.                                                                                                                              |
+| 35  | ENCOUNTER-4                             | 0.8  | Speed Factor (optional rule).                                                                                                                    |
+| 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                                   |
+| 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                                    |
+
+Batched into one local live run (not scheduled for any single item): ACCOUNTS-1, 2, 3, 5 and 8 browser journeys; PLATFORM-4 uploads (needs the local R2 fixture); RELEASE-6; ENCOUNTER-5.
+
+End of phase: PLATFORM-6.2, 7.2, 8.2, 9.2, 10.2; PLATFORM-13.5 dependency refresh; PERF-1, PERF-2, PERF-3.14; RELEASE-1 to RELEASE-4.
 
 **Live runs:** do not schedule a live-backend run for a single check. Prefer work that needs no live run. Batch live-only proofs, such as RELEASE-6 (confirm the typed Campaign refusal regexes in `apps/web/tests/live-backend`), into the next live run that happens for another reason.
 

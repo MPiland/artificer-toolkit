@@ -780,6 +780,16 @@ workerd with these routes, loopback R2 and a Convex bridge, so tests fake the pl
   tests, because Encounter history lives only in the room (D85, D88). Convex tests assert only
   `encounterReplayIndex` rows and checkpointed state.
 - There are no stand-in room fixtures: a test either runs the real room or does not touch room behavior.
+  Room-routed refusals the room alone decides, such as the `GM_ONLY` refusal in
+  `apps/apis/convex/encounters/actorReorderCommand.test.ts`, would fail under a stand-in that skipped them.
+- Session-worker tests fake the Convex side with data only (audit 2026-10-07, PLATFORM-11):
+  `liveRoomFixture.ts` answers `LIVE_SESSION_ROUTE_PATHS` by exact path and validates bodies with the real
+  schemas, while `roomInputsFixture.ts` and `roomAuthorizationFixture.ts` return canned rows parsed by the
+  real schemas. They make no authorization or rules decision. The real producers' page properties are
+  proved against the real Worker in `apps/apis/convex/liveSessions/roomInputs.test.ts`.
+- `activateFixtureRun` (`apps/apis/tests/fixtures/activeInitiative.ts`) seeds an ACTIVE Run as data
+  and settles its initiative round with the real `settleEncounterInitiativeRound`. The START command
+  itself is proved through the room, for example in `encounters/commands.test.ts`.
 
 `scripts/v15Budgets.mjs <proofName>` judges the `v15-workload` proof and `validatePreStagingLocal` runs it
 after that stage. The driver (`developmentEncounterCutover.ts`) brackets measured windows: each Run's

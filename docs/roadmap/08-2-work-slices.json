@@ -957,13 +957,17 @@
     {
       "id": "REL-9",
       "stream": "REL",
-      "state": "active",
+      "state": "done",
       "title": "Backend tests run real code: room-routed Convex tests run the real Session Worker locally (workerd) over in-memory Convex and the stand-in room is deleted; Session Worker and Convex test doubles that copy rules, authorization or route logic are replaced; no assertion is weakened without verified real coverage",
       "cases": [],
       "refs": [
         "Agreed with the user during VS-9: the stand-in skipped the room's GM_ONLY check",
         "apps/apis/tests/fixtures/localRoomWorker.ts",
-        "Found by the real room: a re-hydrate wiped held history of a Run not bound to the presented Scene (apps/session-worker/src/roomInputs.ts)"
+        "Found by the real room: a re-hydrate wiped held history of a Run not bound to the presented Scene (apps/session-worker/src/roomInputs.ts)",
+        "eca5bbc76",
+        "apps/apis/convex/liveSessions/roomInputs.test.ts",
+        "apps/apis/convex/encounters/actorReorderCommand.test.ts",
+        "Fixture audit 2026-10-07: docs/architecture/live-sessions.md (Room test fixtures)"
       ]
     },
     {

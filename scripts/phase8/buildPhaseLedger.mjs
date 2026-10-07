@@ -271,7 +271,7 @@ const pbis = [
     title: 'Backend tests run real code',
     slices: ['REL-9'],
     sliceAcs: true,
-    journey: [AP + 'liveSessions/roomInputs.test.ts']
+    journey: [AP + 'liveSessions/roomInputs.test.ts', AP + 'encounters/actorReorderCommand.test.ts']
   },
   {
     f: 'PLATFORM',
@@ -1933,9 +1933,8 @@ const review = {
   'CAMPAIGN-8': V,
   'RELEASE-5': V,
   'ROOM-7': V,
-  'PLATFORM-11': P(
-    'roomInputs.test.ts is one room-routed suite on the real Session Worker; the stand-in fixtures are deleted, but no test asserts none returns (REL-9 is still active).'
-  ),
+  // Room-routed suites run the real Session Worker; a room-only GM_ONLY refusal fails under any stand-in.
+  'PLATFORM-11': V,
   'ACCOUNTS-1': P(
     'No browser SSR sign-in, hydration and reload, and no HTTP-level native bearer call; convex-test covers identity and key pinning only.'
   ),
