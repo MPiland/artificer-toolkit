@@ -1,3 +1,4 @@
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   campaignSessionDtoSchema,
@@ -82,7 +83,7 @@ export const create = mutation({
     const input = createCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const previous = await ctx.db
       .query('campaignSessions')
@@ -124,7 +125,7 @@ export const update = mutation({
     const input = updateCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const existing = await requireSession(ctx, campaign.id, input.sessionId)
     if (existing.version !== input.expectedVersion) throw new Error('Session version conflict.')

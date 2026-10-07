@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   campaignSessionNoteSectionDtoSchema,
@@ -114,7 +115,7 @@ export const create = mutation({
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     if (input.visibility === 'SHARED') requireCampaignAuthorUsername(actor.username)
-    if (input.kind !== 'NOTE' && membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (input.kind !== 'NOTE' && membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     const session = await requireSession(ctx, campaign.id, input.sessionId)
     const now = new Date().toISOString()
     const note = campaignStoredSessionNoteSchema.parse({
@@ -163,8 +164,7 @@ export const update = mutation({
       sortOrder: input.sortOrder ?? existing.sortOrder
     })
     if (merged.visibility === 'SHARED') requireCampaignAuthorUsername(actor.username)
-    if (merged.kind !== 'NOTE' && membership.role !== 'OWNER')
-      throw new Error('Campaign not found.')
+    if (merged.kind !== 'NOTE' && membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     const patch = {
       ...merged,
       version: existing.version + 1,

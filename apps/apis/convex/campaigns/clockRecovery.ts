@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvexFields } from 'convex-helpers/server/zod4'
 import { recoverCampaignClockBoundaryInputSchema } from '@artificer-toolkit/schema/api/campaignSessions'
 import type { MutationCtx } from '../_generated/server'
@@ -166,7 +167,7 @@ export const recover = internalMutation({
     const { userId } = await requireIdentity(ctx)
     if (userId !== input.actorUserId) throw new Error('Campaign not found.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     await recoverClockBoundary({ ctx, ...input })
     return null

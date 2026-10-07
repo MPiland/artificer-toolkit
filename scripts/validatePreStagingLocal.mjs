@@ -933,6 +933,12 @@ const stages = [
     '@artificer-toolkit/session-worker',
     'test'
   ]),
+  stage(
+    'session-worker-deployed-config',
+    'Deployed Worker config carries no local marker',
+    'yarn',
+    ['workspace', '@artificer-toolkit/session-worker', 'check:deployed-config']
+  ),
   ...[1, 2, 3, 4].map((shard) =>
     stage(`web-unit-tests-${shard}`, `Web unit tests shard ${shard} of 4`, 'yarn', [
       'workspace',

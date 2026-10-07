@@ -1,6 +1,7 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { nullable } from 'zod/mini'
 import { v } from 'convex/values'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import {
   campaignSceneShowingDtoSchema,
   campaignSceneShowingInputSchema,
@@ -29,7 +30,7 @@ function readShowing(ctx: QueryCtx, campaignId: string) {
 async function requireOwnedCampaign(ctx: MutationCtx, campaignId: string) {
   const { userId } = await requireIdentity(ctx)
   const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   return { campaign, userId }
 }
 

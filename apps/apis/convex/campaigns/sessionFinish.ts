@@ -1,3 +1,4 @@
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   campaignSessionDtoSchema,
@@ -18,7 +19,7 @@ export const finish = mutation({
     const input = finishCampaignSessionInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const commandId = input.commandId.toLowerCase()
     const inputFingerprint = checksumCanonicalJson(input)

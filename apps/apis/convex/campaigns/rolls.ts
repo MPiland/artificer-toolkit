@@ -145,10 +145,10 @@ async function insertRollEntry(
     username: entry.username,
     content: entry.content
   })
-  await insertConversationEntry(ctx, header, payload)
+  const stored = await insertConversationEntry(ctx, header, payload)
   return presentChatEntry(
     ctx,
-    header,
+    stored,
     payload,
     access.conversation,
     authority.campaign.contentMaturity

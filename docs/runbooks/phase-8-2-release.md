@@ -123,6 +123,9 @@ Worker, R2, and email targets plus the final local manifest. Then:
 2. Build the Worker staging package with
    `yarn workspace @artificer-toolkit/session-worker build:staging`; deploy only through the pinned,
    official project tooling. Record the exact commands and native exits in the promotion manifest.
+   `build:staging` and the `deploy:*` scripts first run `check:deployed-config`, which fails the release if
+   any deployed Worker environment sets `LOCAL_CONTENT_SNAPSHOT_ORIGIN` (it enables the dev-only
+   test-rolls route); also confirm in the Cloudflare dashboard that the variable is not set.
    The web app is its own Worker (ADR 0037); deploy it only through the manual `Deploy web Worker`
    workflow, as the [web Worker hosting runbook](web-worker-hosting.md) describes.
 3. Verify managed environment variables, secrets, private R2 permissions/CORS, Resend delivery,

@@ -142,7 +142,7 @@ export async function insertConversationEntry(
   identity: ReturnType<typeof campaignStoredEntryIdentitySchema.parse>,
   payload: Omit<Doc<'campaignConversationEntryPayloads'>, '_id' | '_creationTime'>
 ) {
-  await insertStoredConversationEntry({ db: createConvexEncounterStore(ctx) }, identity, payload)
+  return insertStoredConversationEntry({ db: createConvexEncounterStore(ctx) }, identity, payload)
 }
 
 type StoredEntry = {

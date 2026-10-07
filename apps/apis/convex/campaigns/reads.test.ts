@@ -1,5 +1,7 @@
+import { ConvexError } from 'convex/values'
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -34,6 +36,21 @@ const input: CreateCampaignInput = {
 }
 
 describe('native Campaign read boundaries', () => {
+  it('refuses a non-member Campaign read with a typed domain rejection that survives redaction', async () => {
+    const { owner, other } = await fixture()
+    const campaign = await owner.caller.mutation(create, input)
+    const error: unknown = await other.caller.query(get, { id: campaign.id }).then(
+      () => null,
+      (rejected: unknown) => rejected
+    )
+    if (!(error instanceof ConvexError)) throw new Error('Expected a ConvexError refusal.')
+    expect(domainRejectionErrorDataSchema.parse(error.data)).toEqual({
+      code: 'DOMAIN_REJECTED',
+      message: 'Campaign not found.',
+      reason: 'CAMPAIGN_NOT_FOUND'
+    })
+  })
+
   it('exposes only assigned Character identity and rejects foreign or duplicate assignments', async () => {
     const { t, owner: player, other: gm, createCharacter } = await readyCharacterFixture()
     const campaign = await gm.caller.mutation(create, input)

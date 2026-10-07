@@ -1,4 +1,10 @@
-import { NODE_SUBJECT, PREDICATE_REGISTRY, RELATION_CODES } from '@artificer-toolkit/shared/core'
+import {
+  NODE_SUBJECT,
+  PREDICATE_REGISTRY,
+  RELATIONS,
+  RELATION_CODES,
+  type SubjectWithRelations
+} from '@artificer-toolkit/shared/core'
 import { describe, expect, it } from 'vitest'
 
 import { nodeSubjectCodeSchema, predicateCodeSchema, relationCodeSchema } from '../shared/enums.js'
@@ -73,6 +79,7 @@ describe('facet predicate contract parity', () => {
                   id: 'context-1',
                   order: 1,
                   subject,
+                  authoringModeKind: 'ALL',
                   conditions: [
                     {
                       id: 'condition-1',
@@ -88,6 +95,46 @@ describe('facet predicate contract parity', () => {
           ]
         })
       ).not.toThrow()
+    }
+  })
+
+  it('accepts exactly the relations the shared RELATIONS table defines for each subject', () => {
+    const facetFor = (subject: string, relationCode: string) => ({
+      id: 'relation-facet',
+      groups: [
+        {
+          id: 'group-1',
+          order: 1,
+          contexts: [
+            {
+              id: 'context-1',
+              order: 1,
+              subject,
+              ...(subject === 'CHARACTER' ? {} : { authoringModeKind: 'ALL' }),
+              conditions: [
+                {
+                  id: 'condition-1',
+                  order: 1,
+                  kind: 'EXISTS',
+                  constraint: 'INCLUDE',
+                  relationCode,
+                  authoringModeKind: 'ALL'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+
+    for (const subject of nodeSubjectCodeSchema.options) {
+      const related = Object.keys(RELATIONS[subject as SubjectWithRelations] ?? {})
+      for (const relationCode of relationCodeSchema.options) {
+        expect(
+          facetDtoSchema.safeParse(facetFor(subject, relationCode)).success,
+          `${subject} -> ${relationCode}`
+        ).toBe(related.includes(relationCode))
+      }
     }
   })
 })

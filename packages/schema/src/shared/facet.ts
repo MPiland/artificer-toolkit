@@ -1,5 +1,11 @@
-import { getPredicateOptionsForSubject, RELATIONS } from '@artificer-toolkit/shared/core'
-import { z, lazySchema } from '../zod.js'
+import {
+  getPredicateOptionsForSubject,
+  type NodeSubjectCode,
+  type PredicateCode,
+  type PredicatePayloadByCode
+} from '@artificer-toolkit/shared/core'
+import type { FacetBodyAuthored, FacetContextAuthored } from '@artificer-toolkit/shared/authored'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
   abilityCodeSchema,
@@ -12,11 +18,9 @@ import {
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
   measurementUnitCodeSchema,
-  nodeSubjectCodeSchema,
   predicateCodeSchema,
   proficiencyKindSchema,
   rangeKindSchema,
-  relationCodeSchema,
   scalingAmountKindSchema,
   sizeCodeSchema,
   vehicleCategoryCodeSchema
@@ -34,94 +38,78 @@ export const unknownObjectArraySchema = lazySchema(() =>
   authoredNestedCollectionSchema(unknownObjectSchema)
 )
 
-const selectableRootSchema = lazySchema(() =>
-  z.object({
-    authoringModeKind: z.optional(authoringModeKindSchema)
-  })
-)
+type AllMode = { authoringModeKind: z.ZodMiniLiteral<'ALL'> }
+type SelectedMode = { authoringModeKind: z.ZodMiniLiteral<'SELECTED'> }
+type SelectableSchema<Selected extends z.core.$ZodShape> = z.ZodMiniUnion<
+  readonly [
+    z.ZodMiniObject<AllMode, z.core.$strip>,
+    z.ZodMiniObject<z.core.util.Extend<SelectedMode, Selected>, z.core.$strip>
+  ]
+>
+type SelectableWithSchema<
+  Selected extends z.core.$ZodShape,
+  Extra extends z.core.$ZodShape
+> = z.ZodMiniUnion<
+  readonly [
+    z.ZodMiniObject<z.core.util.Extend<AllMode, Extra>, z.core.$strip>,
+    z.ZodMiniObject<
+      z.core.util.Extend<z.core.util.Extend<SelectedMode, Selected>, Extra>,
+      z.core.$strip
+    >
+  ]
+>
 
-const subjectSelectionSchema = lazySchema(() =>
-  z.extend(selectableRootSchema, {
-    classIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    featureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    spellIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    equipmentIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    featIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    raceIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    backgroundIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    creatureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    vehicleIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    optionIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    subraceIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    subclassIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    resourceIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    ancestryOptionIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-    proficiencyKind: z.optional(proficiencyKindSchema)
-  })
-)
-
-const selectableSchema = (
-  selectedSchema: z.ZodMiniObject<z.core.$ZodShape>,
-  extraSchema?: z.ZodMiniObject<z.core.$ZodShape>
-) =>
-  z.union([
-    z.extend(
-      z.object({
-        authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
-      }),
-      (extraSchema ?? z.object({})).shape
-    ),
-    z.extend(
-      z.extend(
-        z.object({
-          authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED)
-        }),
-        selectedSchema.shape
-      ),
-      (extraSchema ?? z.object({})).shape
-    )
+/** The shared `Selectable`: ALL, or SELECTED with its fields; the mode is always stated. */
+function selectableSchema<Selected extends z.core.$ZodShape>(
+  selected: Selected
+): SelectableSchema<Selected>
+function selectableSchema<Selected extends z.core.$ZodShape, Extra extends z.core.$ZodShape>(
+  selected: Selected,
+  extra: Extra
+): SelectableWithSchema<Selected, Extra>
+function selectableSchema(selected: z.core.$ZodShape, extra: z.core.$ZodShape = {}) {
+  const mode = authoringModeKindSchema._zod.def.entries
+  return z.union([
+    z.object({ authoringModeKind: z.literal(mode.ALL), ...extra }),
+    z.object({ authoringModeKind: z.literal(mode.SELECTED), ...selected, ...extra })
   ])
-
+}
 const rangePredicatePayloadSchema = lazySchema(() =>
   z.union([
+    selectableSchema({
+      rangeKind: authoredReferenceCollectionSchema(
+        z.enum([
+          rangeKindSchema._zod.def.entries.SELF,
+          rangeKindSchema._zod.def.entries.TOUCH,
+          rangeKindSchema._zod.def.entries.SIGHT,
+          rangeKindSchema._zod.def.entries.UNLIMITED
+        ])
+      )
+    }),
     selectableSchema(
-      z.object({
-        rangeKind: authoredReferenceCollectionSchema(
-          z.enum([
-            rangeKindSchema._zod.def.entries.SELF,
-            rangeKindSchema._zod.def.entries.TOUCH,
-            rangeKindSchema._zod.def.entries.SIGHT,
-            rangeKindSchema._zod.def.entries.UNLIMITED
-          ])
-        )
-      })
-    ),
-    selectableSchema(
-      z.object({
+      {
         rangeKind: authoredReferenceCollectionSchema(
           z.literal(rangeKindSchema._zod.def.entries.DISTANCE)
         )
-      }),
-      z.object({
+      },
+      {
         min: z.number(),
         max: z.optional(z.number()),
         unit: measurementUnitCodeSchema
-      })
+      }
     )
   ])
 )
 
 const durationPredicatePayloadSchema = lazySchema(() =>
   z.union([
+    selectableSchema({
+      durationKind: authoredReferenceCollectionSchema(
+        z.literal(durationKindSchema._zod.def.entries.INSTANTANEOUS)
+      )
+    }),
     selectableSchema(
-      z.object({
-        durationKind: authoredReferenceCollectionSchema(
-          z.literal(durationKindSchema._zod.def.entries.INSTANTANEOUS)
-        )
-      })
-    ),
-    selectableSchema(
-      z.object({
+      {
         durationKind: authoredReferenceCollectionSchema(
           z.enum([
             durationKindSchema._zod.def.entries.TURN,
@@ -134,435 +122,368 @@ const durationPredicatePayloadSchema = lazySchema(() =>
             durationKindSchema._zod.def.entries.YEAR
           ])
         )
-      }),
-      z.object({
+      },
+      {
         min: z.number(),
         max: z.optional(z.number())
-      })
+      }
     )
   ])
 )
 
-const predicatePayloadSchema = lazySchema(() =>
-  z.union([
-    // Equipment modifiers commonly use this leaf; avoid trying each deeper predicate first.
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_EQUIPPED)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SUBCLASS_SPECIALIZATION)
+const predicatePayloadSchemas = lazySchemaParts(
+  () =>
+    ({
+      WHILE_SOURCE_EQUIPPED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_EQUIPPED)
       }),
-      selectableSchema(
+      SUBCLASS_SPECIALIZATION: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SUBCLASS_SPECIALIZATION)
+        }),
+        selectableSchema({
           specializationIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.RANGE)
+      ),
+      SPELLCASTING: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING)
       }),
-      rangePredicatePayloadSchema
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.DURATION)
-      }),
-      durationPredicatePayloadSchema
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONCENTRATION)
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.RITUAL)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SIZE)
-      }),
-      selectableSchema(
+      RANGE: z.intersection(
         z.object({
-          sizes: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.RANGE)
+        }),
+        rangePredicatePayloadSchema
+      ),
+      DURATION: z.intersection(
+        z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.DURATION)
+        }),
+        durationPredicatePayloadSchema
+      ),
+      CONCENTRATION: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONCENTRATION)
+      }),
+      RITUAL: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.RITUAL)
+      }),
+      SIZE: z.intersection(
+        z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SIZE)
+        }),
+        selectableSchema({
+          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
         })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FEATURE_OBTAINED),
-      featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.OPTION_OBTAINED),
-      featureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-      optionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.MAGIC_SCHOOL)
+      ),
+      FEATURE_OBTAINED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FEATURE_OBTAINED),
+        featureIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
       }),
-      selectableSchema(
+      OPTION_OBTAINED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.OPTION_OBTAINED),
+        featureIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+        optionIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      MAGIC_SCHOOL: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.MAGIC_SCHOOL)
+        }),
+        selectableSchema({
           magicSchoolIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING_ABILITY)
-      }),
-      selectableSchema(
+      ),
+      SPELLCASTING_ABILITY: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING_ABILITY)
+        }),
+        selectableSchema({
           abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
         })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELL_LEVEL),
-      min: z.number(),
-      max: z.optional(z.number())
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY)
+      ),
+      SPELL_LEVEL: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELL_LEVEL),
+        min: z.number(),
+        max: z.optional(z.number())
       }),
-      selectableSchema(
+      SAVING_THROW_ABILITY: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY)
+        }),
+        selectableSchema({
           abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
         })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_DC),
-      min: z.number(),
-      max: z.optional(z.number())
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_CATEGORY),
-      category: equipmentCategoryCodeSchema
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROPERTY)
+      ),
+      SAVING_THROW_DC: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_DC),
+        min: z.number(),
+        max: z.optional(z.number())
       }),
-      selectableSchema(
-        z.object({
-          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
-        }),
-        z.object({
-          category: z.optional(equipmentCategoryCodeSchema)
-        })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SOLE_WIELDED_WEAPON)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)
+      EQUIPMENT_CATEGORY: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_CATEGORY),
+        category: equipmentCategoryCodeSchema
       }),
-      selectableSchema(
+      EQUIPMENT_PROPERTY: z.intersection(
         z.object({
-          equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROPERTY)
         }),
-        z.object({
-          category: z.optional(equipmentCategoryCodeSchema),
-          properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(
-          predicateCodeSchema._zod.def.entries.EQUIPMENT_PROPERTY_PROFICIENCY
+        selectableSchema(
+          {
+            properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
+          },
+          {
+            category: z.optional(equipmentCategoryCodeSchema)
+          }
         )
+      ),
+      SOLE_WIELDED_WEAPON: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SOLE_WIELDED_WEAPON)
       }),
-      selectableSchema(
+      EQUIPMENT_PROFICIENCY: z.intersection(
         z.object({
-          properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)
         }),
+        selectableSchema(
+          {
+            equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          },
+          {
+            category: z.optional(equipmentCategoryCodeSchema),
+            properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)),
+            level: scalingAmountKindSchema
+          }
+        )
+      ),
+      EQUIPMENT_PROPERTY_PROFICIENCY: z.intersection(
         z.object({
-          category: z.optional(equipmentCategoryCodeSchema)
-        })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVE_ABILITY_PROFICIENCY)
-      }),
-      selectableSchema(
-        z.object({
-          abilities: abilityCodeSchema
+          predicateCode: z.literal(
+            predicateCodeSchema._zod.def.entries.EQUIPMENT_PROPERTY_PROFICIENCY
+          )
         }),
+        selectableSchema(
+          {
+            properties: authoredReferenceCollectionSchema(equipmentPropertyCodeSchema)
+          },
+          {
+            category: z.optional(equipmentCategoryCodeSchema)
+          }
+        )
+      ),
+      SAVE_ABILITY_PROFICIENCY: z.intersection(
         z.object({
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.LANGUAGE_PROFICIENCY)
-      }),
-      selectableSchema(
-        z.object({
-          languageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVE_ABILITY_PROFICIENCY)
         }),
+        selectableSchema(
+          {
+            abilities: abilityCodeSchema
+          },
+          {
+            level: scalingAmountKindSchema
+          }
+        )
+      ),
+      LANGUAGE_PROFICIENCY: z.intersection(
         z.object({
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_EQUIPPED)
-      }),
-      selectableSchema(
-        z.object({
-          equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.LANGUAGE_PROFICIENCY)
         }),
+        selectableSchema(
+          {
+            languageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          },
+          {
+            level: scalingAmountKindSchema
+          }
+        )
+      ),
+      EQUIPMENT_EQUIPPED: z.intersection(
         z.object({
-          category: z.optional(equipmentCategoryCodeSchema),
-          properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema))
-        })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ARMOR_CLASS),
-      min: z.number(),
-      max: z.optional(z.number())
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.DAMAGE_TYPE)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_EQUIPPED)
+        }),
+        selectableSchema(
+          {
+            equipmentIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          },
+          {
+            category: z.optional(equipmentCategoryCodeSchema),
+            properties: z.optional(authoredReferenceCollectionSchema(equipmentPropertyCodeSchema))
+          }
+        )
+      ),
+      ARMOR_CLASS: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ARMOR_CLASS),
+        min: z.number(),
+        max: z.optional(z.number())
       }),
-      selectableSchema(
+      DAMAGE_TYPE: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.DAMAGE_TYPE)
+        }),
+        selectableSchema({
           damageTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONDITION_TYPE)
-      }),
-      selectableSchema(
+      ),
+      CONDITION_TYPE: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONDITION_TYPE)
+        }),
+        selectableSchema({
           conditionTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARGE_LIMIT_KIND)
-      }),
-      selectableSchema(
+      ),
+      CHARGE_LIMIT_KIND: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARGE_LIMIT_KIND)
+        }),
+        selectableSchema({
           chargeLimitKind: authoredReferenceCollectionSchema(chargeLimitKindSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARGE_RESET_KIND)
-      }),
-      selectableSchema(
+      ),
+      CHARGE_RESET_KIND: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARGE_RESET_KIND)
+        }),
+        selectableSchema({
           chargeResetKind: authoredReferenceCollectionSchema(chargeResetKindSchema)
         })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CAN_CAST_SPELL)
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARACTER_LEVEL),
-      min: z.number(),
-      max: z.optional(z.number())
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CLASS_LEVEL),
-      classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).check(z.minLength(1)),
-      min: z.number(),
-      max: z.optional(z.number())
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELL_OBTAINED),
-      spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FEAT_OBTAINED),
-      featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HERITAGE)
+      ),
+      CAN_CAST_SPELL: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CAN_CAST_SPELL)
       }),
-      selectableSchema(
+      CHARACTER_LEVEL: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CHARACTER_LEVEL),
+        min: z.number(),
+        max: z.optional(z.number())
+      }),
+      CLASS_LEVEL: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CLASS_LEVEL),
+        classIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).check(z.minLength(1)),
+        min: z.number(),
+        max: z.optional(z.number())
+      }),
+      SPELL_OBTAINED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELL_OBTAINED),
+        spellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      FEAT_OBTAINED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.FEAT_OBTAINED),
+        featIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
+      HERITAGE: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HERITAGE)
+        }),
+        selectableSchema({
           heritageIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SKILL_PROFICIENCY)
-      }),
-      selectableSchema(
+      ),
+      SKILL_PROFICIENCY: z.intersection(
         z.object({
-          skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SKILL_PROFICIENCY)
         }),
+        selectableSchema(
+          {
+            skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+          },
+          {
+            level: scalingAmountKindSchema
+          }
+        )
+      ),
+      SKILL_SCORE: z.intersection(
         z.object({
-          level: scalingAmountKindSchema
-        })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SKILL_SCORE)
-      }),
-      selectableSchema(
-        z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SKILL_SCORE)
+        }),
+        selectableSchema({
           skillIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ABILITY_SCORE)
-      }),
-      selectableSchema(
+      ),
+      ABILITY_SCORE: z.intersection(
         z.object({
-          abilities: abilityCodeSchema
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ABILITY_SCORE)
         }),
+        selectableSchema(
+          {
+            abilities: abilityCodeSchema
+          },
+          {
+            min: z.number(),
+            max: z.optional(z.number())
+          }
+        )
+      ),
+      SAVING_THROW_ABILITY_BONUS: z.intersection(
         z.object({
-          min: z.number(),
-          max: z.optional(z.number())
-        })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY_BONUS)
-      }),
-      selectableSchema(
-        z.object({
-          abilities: abilityCodeSchema
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY_BONUS)
         }),
-        z.object({
-          min: z.number(),
-          max: z.optional(z.number())
-        })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_CARRIED)
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_ATTUNED)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_CATEGORY)
+        selectableSchema(
+          {
+            abilities: abilityCodeSchema
+          },
+          {
+            min: z.number(),
+            max: z.optional(z.number())
+          }
+        )
+      ),
+      WHILE_SOURCE_CARRIED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_CARRIED)
       }),
-      selectableSchema(
+      WHILE_SOURCE_ATTUNED: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.WHILE_SOURCE_ATTUNED)
+      }),
+      CREATURE_CATEGORY: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_CATEGORY)
+        }),
+        selectableSchema({
           categories: authoredReferenceCollectionSchema(creatureCategoryCodeSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_TYPE)
-      }),
-      selectableSchema(
+      ),
+      CREATURE_TYPE: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_TYPE)
+        }),
+        selectableSchema({
           creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_SIZE)
-      }),
-      selectableSchema(
+      ),
+      CREATURE_SIZE: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_SIZE)
+        }),
+        selectableSchema({
           sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
         })
-      )
-    ),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_IS_MOUNT)
-    }),
-    z.object({
-      predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_IS_COMPANION)
-    }),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_CATEGORY)
+      ),
+      CREATURE_IS_MOUNT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_IS_MOUNT)
       }),
-      selectableSchema(
+      CREATURE_IS_COMPANION: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_IS_COMPANION)
+      }),
+      VEHICLE_CATEGORY: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_CATEGORY)
+        }),
+        selectableSchema({
           categories: authoredReferenceCollectionSchema(vehicleCategoryCodeSchema)
         })
-      )
-    ),
-    z.intersection(
-      z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_SIZE)
-      }),
-      selectableSchema(
+      ),
+      VEHICLE_SIZE: z.intersection(
         z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_SIZE)
+        }),
+        selectableSchema({
           sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
         })
       )
-    )
-  ])
+    }) satisfies {
+      [C in PredicateCode]: z.ZodMiniType<{ predicateCode: C } & PredicatePayloadByCode[C]>
+    }
 )
-
-type SubjectSelectionDto = z.infer<typeof subjectSelectionSchema>
-
-type FacetPredicateConditionDto = {
-  id: string
-  order: number
-  kind: 'PREDICATE'
-  constraint: z.infer<typeof authoringConstraintCodeSchema>
-} & z.infer<typeof predicatePayloadSchema>
-
-type FacetExistsConditionDto = {
-  id: string
-  order: number
-  kind: 'EXISTS'
-  constraint: z.infer<typeof authoringConstraintCodeSchema>
-  relationCode: z.infer<typeof relationCodeSchema>
-  where?: FacetBodyDto
-} & SubjectSelectionDto
-
-type FacetConditionDto = FacetPredicateConditionDto | FacetExistsConditionDto
-
-type FacetBodyGroupDto = {
-  id: string
-  order: number
-  conditions?: FacetConditionDto[]
-}
-
-type FacetBodyDto = SubjectSelectionDto & {
-  groups: FacetBodyGroupDto[]
-}
-
-type FacetContextDto = SubjectSelectionDto & {
-  id: string
-  order: number
-  subject: z.infer<typeof nodeSubjectCodeSchema>
-  conditions?: FacetConditionDto[]
-}
 
 type FacetGroupDto = {
   id: string
   order: number
-  contexts: FacetContextDto[]
+  contexts: FacetContextAuthored[]
 }
 
 export type FacetDto = {
@@ -570,83 +491,247 @@ export type FacetDto = {
   groups: FacetGroupDto[]
 }
 
-export type CharacterFacetDto = {
+export type SubjectFacetDto<S extends NodeSubjectCode> = {
   id: string
   groups: Array<{
     id: string
     order: number
-    contexts: Array<Omit<FacetContextDto, 'subject'> & { subject: 'CHARACTER' }>
+    contexts: FacetContextAuthored<S>[]
   }>
 }
+const subjectSelectionShapes = lazySchemaParts(() => {
+  const ids = authoredReferenceCollectionSchema(authoredIdentifierSchema)
+  return {
+    CLASS: { classIds: ids },
+    FEATURE: { featureIds: ids },
+    SPELL: { spellIds: ids },
+    EQUIPMENT: { equipmentIds: ids },
+    FEAT: { featIds: ids },
+    RACE: { raceIds: ids },
+    BACKGROUND: { backgroundIds: ids },
+    CREATURE: { creatureIds: ids },
+    VEHICLE: { vehicleIds: ids },
+    PROFICIENCY_GRANT: { proficiencyKind: proficiencyKindSchema },
+    OPTION: { optionIds: ids },
+    SUBRACE: { subraceIds: ids },
+    SUBCLASS: { subclassIds: ids },
+    RESOURCE: { resourceIds: ids },
+    RACE_ANCESTRY_OPTION: { ancestryOptionIds: ids },
+    CHARACTER: {}
+  } satisfies { [S in NodeSubjectCode]: z.core.$ZodShape }
+})
 
-export type ScopedFacetDto = FacetBodyDto & {
-  id: string
-  subject: z.infer<typeof nodeSubjectCodeSchema>
-}
+const conditionBaseShape = lazySchemaParts(() => ({
+  id: authoredIdentifierSchema,
+  order: z.number(),
+  constraint: authoringConstraintCodeSchema
+}))
 
-const facetBodySchema: z.ZodMiniType<FacetBodyDto> = lazySchema(() =>
-  z.lazy(() =>
-    z.extend(subjectSelectionSchema, {
-      groups: authoredNestedCollectionSchema(facetBodyGroupSchema)
-    })
-  )
-)
-
-const facetPredicateConditionSchema = lazySchema(() =>
-  z.intersection(
-    z.object({
-      id: authoredIdentifierSchema,
-      order: z.number(),
-      kind: z.literal('PREDICATE'),
-      constraint: authoringConstraintCodeSchema
-    }),
-    predicatePayloadSchema
-  )
-)
-
-const facetExistsConditionSchema: z.ZodMiniType<FacetExistsConditionDto> = lazySchema(() =>
-  z.lazy(() =>
-    z.intersection(
-      z.object({
-        id: authoredIdentifierSchema,
-        order: z.number(),
-        kind: z.literal('EXISTS'),
-        constraint: authoringConstraintCodeSchema,
-        relationCode: relationCodeSchema,
-        where: z.optional(facetBodySchema)
-      }),
-      subjectSelectionSchema
+/** Predicate conditions are limited to the predicate codes the shared registry allows for `subject`. */
+function predicateConditionFor<S extends NodeSubjectCode>(subject: S) {
+  const payloads = predicatePayloadSchemas()
+  return z.intersection(
+    z.object({ ...conditionBaseShape(), kind: z.literal('PREDICATE') }),
+    z.union(
+      getPredicateOptionsForSubject(subject).map((option) => payloads[option.code]),
+      {
+        error: (issue) => {
+          const input = issue.input
+          const code =
+            typeof input === 'object' && input !== null && 'predicateCode' in input
+              ? input.predicateCode
+              : undefined
+          const allowed = getPredicateOptionsForSubject(subject).some(
+            (option) => option.code === code
+          )
+          return typeof code === 'string' && !allowed
+            ? `Predicate "${code}" is not valid for ${subject}.`
+            : undefined
+        }
+      }
     )
   )
-)
+}
 
-const facetConditionSchema: z.ZodMiniType<FacetConditionDto> = lazySchema(() =>
-  z.union([facetPredicateConditionSchema, facetExistsConditionSchema])
-)
+/** An EXISTS hop to `target`, whose `where` body and selection are those of the target subject. */
+function existsConditionTo<T extends NodeSubjectCode>(target: T) {
+  return z.intersection(
+    z.object({
+      ...conditionBaseShape(),
+      kind: z.literal('EXISTS'),
+      relationCode: z.literal(target),
+      where: z.optional(z.lazy(() => subjectFacetSchemas()[target].body))
+    }),
+    selectableSchema(subjectSelectionShapes()[target])
+  )
+}
 
-const facetBodyGroupSchema: z.ZodMiniType<FacetBodyGroupDto> = lazySchema(() =>
-  z.object({
+function facetBodyFor<S extends NodeSubjectCode, C extends z.ZodMiniType>(
+  subject: S,
+  condition: C
+) {
+  return z.intersection(
+    z.object({
+      groups: authoredNestedCollectionSchema(
+        z.object({
+          id: authoredIdentifierSchema,
+          order: z.number(),
+          conditions: z.optional(authoredNestedCollectionSchema(condition))
+        })
+      )
+    }),
+    selectableSchema(subjectSelectionShapes()[subject])
+  )
+}
+
+function facetContextBaseShape<S extends NodeSubjectCode, C extends z.ZodMiniType>(
+  subject: S,
+  condition: C
+) {
+  return {
     id: authoredIdentifierSchema,
     order: z.number(),
-    conditions: z.optional(authoredNestedCollectionSchema(facetConditionSchema))
-  })
-)
+    subject: z.literal(subject),
+    conditions: z.optional(authoredNestedCollectionSchema(condition))
+  }
+}
 
-const facetContextSchema: z.ZodMiniType<FacetContextDto> = lazySchema(() =>
-  z.intersection(
+/** A context states its subject, then ALL of it or SELECTED ids of it; the mode is always explicit. */
+function facetContextFor<S extends Exclude<NodeSubjectCode, 'CHARACTER'>, C extends z.ZodMiniType>(
+  subject: S,
+  condition: C
+) {
+  const base = facetContextBaseShape(subject, condition)
+  const mode = authoringModeKindSchema._zod.def.entries
+  return z.union([
+    z.object({ ...base, authoringModeKind: z.literal(mode.ALL) }),
     z.object({
-      id: authoredIdentifierSchema,
-      order: z.number(),
-      subject: nodeSubjectCodeSchema,
-      conditions: z.optional(authoredNestedCollectionSchema(facetConditionSchema))
-    }),
-    z.partial(subjectSelectionSchema, {
-      authoringModeKind: true
+      ...base,
+      authoringModeKind: z.literal(mode.SELECTED),
+      ...subjectSelectionShapes()[subject]
     })
-  )
-)
+  ])
+}
 
-const facetGroupSchema: z.ZodMiniType<FacetGroupDto> = lazySchema(() =>
+function subjectFacetSchemaFor<
+  S extends Exclude<NodeSubjectCode, 'CHARACTER'>,
+  C extends z.ZodMiniType
+>(subject: S, condition: C) {
+  return { body: facetBodyFor(subject, condition), context: facetContextFor(subject, condition) }
+}
+
+type SubjectFacetSchemas = {
+  [S in NodeSubjectCode]: {
+    body: z.ZodMiniType<FacetBodyAuthored<S>>
+    context: z.ZodMiniType<FacetContextAuthored<S>>
+  }
+}
+
+/**
+ * The facet schemas of every subject, mirroring the shared `FacetContextAuthored` /
+ * `FacetBodyAuthored`: a context's conditions are the predicates of its own subject plus EXISTS hops
+ * to the subjects it relates to (`RELATIONS`), and every selection states its authoring mode.
+ */
+const subjectFacetSchemas = lazySchemaParts((): SubjectFacetSchemas => {
+  const characterCondition = z.union([
+    predicateConditionFor('CHARACTER'),
+    existsConditionTo('CREATURE'),
+    existsConditionTo('VEHICLE')
+  ])
+  return {
+    CLASS: subjectFacetSchemaFor(
+      'CLASS',
+      z.union([
+        predicateConditionFor('CLASS'),
+        existsConditionTo('FEATURE'),
+        existsConditionTo('SUBCLASS'),
+        existsConditionTo('RESOURCE'),
+        existsConditionTo('PROFICIENCY_GRANT')
+      ])
+    ),
+    SUBCLASS: subjectFacetSchemaFor(
+      'SUBCLASS',
+      z.union([
+        predicateConditionFor('SUBCLASS'),
+        existsConditionTo('FEATURE'),
+        existsConditionTo('RESOURCE'),
+        existsConditionTo('PROFICIENCY_GRANT')
+      ])
+    ),
+    FEATURE: subjectFacetSchemaFor(
+      'FEATURE',
+      z.union([
+        predicateConditionFor('FEATURE'),
+        existsConditionTo('OPTION'),
+        existsConditionTo('PROFICIENCY_GRANT')
+      ])
+    ),
+    FEAT: subjectFacetSchemaFor(
+      'FEAT',
+      z.union([
+        predicateConditionFor('FEAT'),
+        existsConditionTo('FEATURE'),
+        existsConditionTo('PROFICIENCY_GRANT')
+      ])
+    ),
+    EQUIPMENT: subjectFacetSchemaFor(
+      'EQUIPMENT',
+      z.union([predicateConditionFor('EQUIPMENT'), existsConditionTo('FEATURE')])
+    ),
+    OPTION: subjectFacetSchemaFor(
+      'OPTION',
+      z.union([predicateConditionFor('OPTION'), existsConditionTo('PROFICIENCY_GRANT')])
+    ),
+    BACKGROUND: subjectFacetSchemaFor(
+      'BACKGROUND',
+      z.union([
+        predicateConditionFor('BACKGROUND'),
+        existsConditionTo('FEATURE'),
+        existsConditionTo('PROFICIENCY_GRANT')
+      ])
+    ),
+    RACE: subjectFacetSchemaFor(
+      'RACE',
+      z.union([
+        predicateConditionFor('RACE'),
+        existsConditionTo('FEATURE'),
+        existsConditionTo('SUBRACE'),
+        existsConditionTo('RACE_ANCESTRY_OPTION')
+      ])
+    ),
+    SUBRACE: subjectFacetSchemaFor(
+      'SUBRACE',
+      z.union([
+        predicateConditionFor('SUBRACE'),
+        existsConditionTo('FEATURE'),
+        existsConditionTo('RACE_ANCESTRY_OPTION')
+      ])
+    ),
+    RACE_ANCESTRY_OPTION: subjectFacetSchemaFor(
+      'RACE_ANCESTRY_OPTION',
+      z.union([predicateConditionFor('RACE_ANCESTRY_OPTION'), existsConditionTo('FEATURE')])
+    ),
+    SPELL: subjectFacetSchemaFor('SPELL', predicateConditionFor('SPELL')),
+    CREATURE: subjectFacetSchemaFor('CREATURE', predicateConditionFor('CREATURE')),
+    VEHICLE: subjectFacetSchemaFor('VEHICLE', predicateConditionFor('VEHICLE')),
+    RESOURCE: subjectFacetSchemaFor('RESOURCE', predicateConditionFor('RESOURCE')),
+    PROFICIENCY_GRANT: subjectFacetSchemaFor(
+      'PROFICIENCY_GRANT',
+      predicateConditionFor('PROFICIENCY_GRANT')
+    ),
+    CHARACTER: {
+      body: facetBodyFor('CHARACTER', characterCondition),
+      context: z.object(facetContextBaseShape('CHARACTER', characterCondition))
+    }
+  }
+})
+
+const facetContextSchema: z.ZodMiniType<FacetContextAuthored> = lazySchema(() => {
+  const schemas = subjectFacetSchemas()
+  return z.union(Object.values(schemas).map((subjectSchemas) => subjectSchemas.context))
+})
+
+const facetGroupSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
     order: z.number(),
@@ -655,113 +740,47 @@ const facetGroupSchema: z.ZodMiniType<FacetGroupDto> = lazySchema(() =>
 )
 
 /**
- * Facet schemas stay intentionally recursive because they model authored rule
- * targeting, not a UI-only filter helper. We validate the correlated predicate
- * payloads that drive SRD rules today, while still keeping the recursive
- * structure generic enough for later homebrew extensions.
+ * A facet is OR-groups of AND-contexts; each context is typed by its subject exactly as the shared
+ * `FacetAuthored`. Invariant: a context, an EXISTS hop and every selectable predicate state their
+ * `authoringModeKind` (ALL or SELECTED) explicitly, a SELECTED one carries its ids, and conditions
+ * are limited to the predicates and relations of the context's subject. Nesting is bounded by
+ * `AUTHORED_LIMITS.facetNestingDepth`.
  */
-const facetDtoSchemaBase = lazySchema(() =>
-  z.object({
-    id: authoredIdentifierSchema,
-    groups: authoredNestedCollectionSchema(facetGroupSchema)
-  })
-)
-
 export const facetDtoSchema: z.ZodMiniType<FacetDto> = lazySchema(() =>
-  z.pipe(z.transform(rejectExcessiveFacetNesting), facetDtoSchemaBase)
-)
-
-const characterFacetContextSchema: z.ZodMiniType<
-  CharacterFacetDto['groups'][number]['contexts'][number]
-> = lazySchema(() =>
-  z.intersection(
+  z.pipe(
+    z.transform(rejectExcessiveFacetNesting),
     z.object({
       id: authoredIdentifierSchema,
-      order: z.number(),
-      subject: z.literal('CHARACTER'),
-      conditions: z.optional(authoredNestedCollectionSchema(facetConditionSchema))
-    }),
-    z.partial(subjectSelectionSchema, {
-      authoringModeKind: true
+      groups: authoredNestedCollectionSchema(facetGroupSchema)
     })
   )
 )
 
-const characterFacetDtoSchemaBase: z.ZodMiniType<CharacterFacetDto> = lazySchema(() =>
-  z
-    .object({
+function subjectFacetDtoSchema<S extends NodeSubjectCode>(
+  contextSchema: z.ZodMiniType<FacetContextAuthored<S>>
+): z.ZodMiniType<SubjectFacetDto<S>> {
+  return z.pipe(
+    z.transform(rejectExcessiveFacetNesting),
+    z.object({
       id: authoredIdentifierSchema,
       groups: authoredNestedCollectionSchema(
         z.object({
           id: authoredIdentifierSchema,
           order: z.number(),
-          contexts: authoredNestedCollectionSchema(characterFacetContextSchema)
+          contexts: authoredNestedCollectionSchema(contextSchema)
         })
       )
     })
-    .check(
-      z.superRefine((facet, context) => {
-        const predicateCodes = new Set<string>(
-          getPredicateOptionsForSubject('CHARACTER').map((option) => option.code)
-        )
-        const relationCodes = new Set<string>(Object.keys(RELATIONS.CHARACTER))
-
-        facet.groups.forEach((group, groupIndex) => {
-          group.contexts.forEach((characterContext, contextIndex) => {
-            characterContext.conditions?.forEach((condition, conditionIndex) => {
-              if (condition.kind === 'PREDICATE' && !predicateCodes.has(condition.predicateCode)) {
-                context.addIssue({
-                  code: 'custom',
-                  message: `Predicate "${condition.predicateCode}" is not valid for CHARACTER.`,
-                  path: [
-                    'groups',
-                    groupIndex,
-                    'contexts',
-                    contextIndex,
-                    'conditions',
-                    conditionIndex,
-                    'predicateCode'
-                  ]
-                })
-              }
-
-              if (condition.kind === 'EXISTS' && !relationCodes.has(condition.relationCode)) {
-                context.addIssue({
-                  code: 'custom',
-                  message: `Relation "${condition.relationCode}" is not valid for CHARACTER.`,
-                  path: [
-                    'groups',
-                    groupIndex,
-                    'contexts',
-                    contextIndex,
-                    'conditions',
-                    conditionIndex,
-                    'relationCode'
-                  ]
-                })
-              }
-            })
-          })
-        })
-      })
-    )
-)
-
-export const characterFacetDtoSchema: z.ZodMiniType<CharacterFacetDto> = lazySchema(() =>
-  z.pipe(z.transform(rejectExcessiveFacetNesting), characterFacetDtoSchemaBase)
-)
-
-const scopedFacetDtoSchemaBase = lazySchema(() =>
-  z.intersection(
-    z.object({ id: authoredIdentifierSchema, subject: nodeSubjectCodeSchema }),
-    facetBodySchema
   )
+}
+
+export const characterFacetDtoSchema: z.ZodMiniType<SubjectFacetDto<'CHARACTER'>> = lazySchema(() =>
+  subjectFacetDtoSchema(subjectFacetSchemas().CHARACTER.context)
 )
 
-export const scopedFacetDtoSchema: z.ZodMiniType<ScopedFacetDto> = lazySchema(() =>
-  z.pipe(z.transform(rejectExcessiveFacetNesting), scopedFacetDtoSchemaBase)
+export const spellFacetDtoSchema: z.ZodMiniType<SubjectFacetDto<'SPELL'>> = lazySchema(() =>
+  subjectFacetDtoSchema(subjectFacetSchemas().SPELL.context)
 )
-
 function rejectExcessiveFacetNesting(value: unknown, context: z.core.ParsePayload): unknown {
   if (!exceedsFacetNestingDepth(value)) return value
 

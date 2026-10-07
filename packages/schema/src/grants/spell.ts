@@ -10,17 +10,13 @@ import {
   authoringModeKindSchema,
   spellGrantAttributeSchema
 } from '../shared/enums.js'
-import { facetDtoSchema } from '../shared/facet.js'
-import {
-  createGrantProgressionFieldsDtoSchema,
-  scalingGrantBaseDtoSchema,
-  validateGrantProgressionSelectionFields
-} from './grant.js'
+import { spellFacetDtoSchema } from '../shared/facet.js'
+import { createScalingGrantDtoSchema, staticGrantBaseDtoSchema } from './grant.js'
 
 const spellGrantTargetDtoSchema = lazySchema(() =>
   z.union([
     z.object({
-      authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+      authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.ALL)
     }),
     z.object({
       authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
@@ -28,37 +24,19 @@ const spellGrantTargetDtoSchema = lazySchema(() =>
     })
   ])
 )
-const spellGrantProgressionFieldsDtoSchema = lazySchema(() =>
-  createGrantProgressionFieldsDtoSchema(spellGrantTargetDtoSchema)
-)
 
 export const spellGrantDtoSchema = lazySchema(() =>
-  z
-    .intersection(
-      z.intersection(
-        z.extend(scalingGrantBaseDtoSchema, {
-          grantKind: z.literal('SPELL_GRANT'),
-          castAtLevel: z.optional(z.number().check(z.int()).check(z.positive())),
-          castingAbility: z.optional(abilityCodeSchema),
-          attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
-          filters: z.optional(facetDtoSchema),
-          charges: z.optional(chargeUseDtoSchema)
-        }),
-        spellGrantTargetDtoSchema
-      ),
-      z.union([
-        z.object({
-          scalingKind: z.literal('NONE')
-        }),
-        z.intersection(
-          z.object({
-            scalingKind: z.literal('PER_LEVEL')
-          }),
-          spellGrantProgressionFieldsDtoSchema
-        )
-      ])
-    )
-    .check(z.superRefine(validateGrantProgressionSelectionFields))
+  z.intersection(
+    z.extend(staticGrantBaseDtoSchema, {
+      grantKind: z.literal('SPELL_GRANT'),
+      castAtLevel: z.optional(z.number().check(z.int()).check(z.positive())),
+      castingAbility: z.optional(abilityCodeSchema),
+      attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
+      filters: z.optional(spellFacetDtoSchema),
+      charges: z.optional(chargeUseDtoSchema)
+    }),
+    createScalingGrantDtoSchema(spellGrantTargetDtoSchema)
+  )
 )
 
 export type SpellGrantDto = z.infer<typeof spellGrantDtoSchema>

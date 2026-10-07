@@ -1,7 +1,9 @@
 /** Reads a departed player's still-open subscriptions or reload retry; the Campaign is gone for them (D81, D87). */
 const departedPlayerReads =
   '(?:campaigns\\/(?:queries:get|sessions:get)|encounters\\/(?:activeReads:active|projectionReads:(?:list|pendingPrepared)|pendingReads:pendingRuleOccurrence|sceneBindings:get)|scenes\\/(?:presentations:get|recipientReads:header|showings:current))'
-const campaignNotFound = 'Server Error\\nUncaught Error: (?:Uncaught Error: )?Campaign not found\\.'
+/** A Campaign-not-found domain rejection reaches the console as its ConvexError data (JSON, key order not relied on). */
+const campaignNotFound =
+  'Server Error\\nUncaught ConvexError: \\{[^\\n]*"reason":\\s*"CAMPAIGN_NOT_FOUND"[^\\n]*\\}'
 /** The browser console's rendering of a failed query. */
 const consoleDeparture = new RegExp(
   `^player verify departed player refusal: console (?:Error: )?\\[CONVEX Q\\(${departedPlayerReads}\\)\\](?: \\[Request ID: [a-f0-9]+\\])? ${campaignNotFound}(?:\\n\\s+(?:Called by client|at [^\\n]+))*\\s*$`

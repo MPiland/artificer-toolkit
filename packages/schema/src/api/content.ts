@@ -443,7 +443,16 @@ export const authoredDetailReadInputSchema = lazySchema(() =>
   )
 )
 
-export const authoredDetailResponseSchemas = {
+export const authoredDetailResponseSchemas: {
+  BACKGROUND: typeof backgroundResponseDtoSchema
+  CLASS: typeof classResponseDtoSchema
+  CREATURE: typeof creatureResponseDtoSchema
+  EQUIPMENT: typeof equipmentResponseDtoSchema
+  FEAT: typeof featResponseDtoSchema
+  RACE: typeof raceResponseDtoSchema
+  SPELL: typeof spellResponseDtoSchema
+  VEHICLE: typeof vehicleResponseDtoSchema
+} = {
   BACKGROUND: backgroundResponseDtoSchema,
   CLASS: classResponseDtoSchema,
   CREATURE: creatureResponseDtoSchema,

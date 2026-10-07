@@ -1,4 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
+import { ConvexError } from 'convex/values'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
@@ -355,6 +357,20 @@ it('protects the room presentation endpoint and validates its commit fence', asy
   const response = await base.t.fetch('/live-sessions/present', request(input, secret))
   expect(response.status).toBe(200)
   expect(await response.json()).toMatchObject({ commandId: input.input.commandId, replayed: false })
+})
+
+it('refuses a player presentation write with the typed Campaign-not-found data', async () => {
+  const base = await setup()
+  const error: unknown = await base.other.caller.mutation(set, presentationInput(base)).then(
+    () => null,
+    (rejected: unknown) => rejected
+  )
+  if (!(error instanceof ConvexError)) throw new Error('Expected a ConvexError refusal.')
+  expect(domainRejectionErrorDataSchema.parse(error.data)).toEqual({
+    code: 'DOMAIN_REJECTED',
+    message: 'Campaign not found.',
+    reason: 'CAMPAIGN_NOT_FOUND'
+  })
 })
 
 it('rejects player and archived Campaign presentation writes before replay', async () => {

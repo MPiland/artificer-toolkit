@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 import { isNotFound } from '@tanstack/react-router'
+import { ConvexError } from 'convex/values'
 import { expect, it, vi } from 'vitest'
 import { Route } from './_authed/tabletop/campaigns/$campaignPublicId/index'
 
@@ -15,7 +16,11 @@ it('renders missing Campaign access as not found while preserving unrelated load
     params: { campaignPublicId: 'fixture' }
   } as Parameters<typeof loader>[0]
   query.mockRejectedValueOnce(
-    new Error('[CONVEX Q(campaigns/queries:get)] Server Error\nUncaught Error: Campaign not found.')
+    new ConvexError({
+      code: 'DOMAIN_REJECTED',
+      reason: 'CAMPAIGN_NOT_FOUND',
+      message: 'Campaign not found.'
+    })
   )
   await expect(loader(input)).rejects.toSatisfy(isNotFound)
   const failure = new Error('Stored Campaign authority mismatch.')

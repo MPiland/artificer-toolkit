@@ -92,9 +92,9 @@ export async function recordConcentrationCheckRoll(
     unsentAt: null,
     consumedAt: null
   })
-  await insertConversationEntry(ctx, header, payload)
+  const stored = await insertConversationEntry(ctx, header, payload)
   const [entry] = presentChatEntries(
-    [{ header, payload }],
+    [{ header: stored, payload }],
     conversation,
     campaign.contentMaturity,
     [ruleCheckAuthorLabel]

@@ -2443,7 +2443,6 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
       "occurrence": {
         "occurrenceId": "<uuid:0>",
         "occurrenceVersion": 1,
-        "outcome": null,
         "pending": null,
         "status": "VOIDED",
       },

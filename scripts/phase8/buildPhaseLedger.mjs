@@ -344,16 +344,49 @@ const pbis = [
     f: 'PLATFORM',
     n: 17,
     title: 'Test fixtures use typed parses and one shared builder',
-    journey: [],
+    journey: [
+      `${AP}encounters/actionCharacterSources.test.ts`,
+      `${SW}test/nativeRoomCharacterSources.test.ts`
+    ],
     extra: [
       X(
-        'The `as CreatureAuthored` casts in the session-worker biteWolf/withBite and the apis srdCreatures fixture are replaced by typed parses, and the reason the schema parse output type is incompatible with CreatureAuthored is investigated and recorded.'
+        'The `as CreatureAuthored` casts in the session-worker biteWolf/withBite and the apis srdCreatures fixture are replaced by typed parses, and the reason the schema parse output type is incompatible with CreatureAuthored is investigated and recorded.',
+        [],
+        'Cause recorded in docs/architecture/data-lifecycle.md: the grant, facet and modifier DTOs were looser than the shared authored types; they now mirror them (scalingKind NONE vs PER_LEVEL, per-subject facet contexts, required modes and modifier domains).',
+        {
+          status: 'DONE',
+          proof: [
+            'packages/schema/src/__tests__/grant-facet-schema-parsing.test.ts',
+            'packages/schema/src/__tests__/facet-predicate-parity.test.ts',
+            'packages/schema/src/__tests__/authored-limits.test.ts',
+            `${AP}encounters/actionCharacterSources.test.ts`,
+            `${SW}test/nativeRoomCharacterSources.test.ts`
+          ]
+        }
       ),
       X(
-        'The spatial save-graph construction in apps/session-worker/src/testing/movementPlannerFixture.ts and apps/apis/tests/fixtures/spatialSaveEffect.ts is one shared builder.'
+        'The spatial save-graph construction in apps/session-worker/src/testing/movementPlannerFixture.ts and apps/apis/tests/fixtures/spatialSaveEffect.ts is one shared builder.',
+        [],
+        'packages/rules-runtime/src/testing/spatialDamageEffectFixture.ts',
+        {
+          status: 'DONE',
+          proof: [
+            `${AP}scenes/movementConcentration.test.ts`,
+            `${SW}test/nativeMovementEvidence.test.ts`
+          ]
+        }
       ),
       X(
-        'The 17 captureFake uses in apps/session-worker/test/nativeLiveCaptureReads.test.ts are audited and only true malformed-input cases remain.'
+        'The 17 captureFake uses in apps/session-worker/test/nativeLiveCaptureReads.test.ts are audited and only true malformed-input cases remain.',
+        [],
+        'The 10 well-formed cases moved to real room captures; 11 malformed-input cases remain.',
+        {
+          status: 'DONE',
+          proof: [
+            `${SW}src/nativeLiveCaptureReadsRoom.test.ts`,
+            `${SW}test/nativeLiveCaptureReads.test.ts`
+          ]
+        }
       )
     ]
   },
@@ -768,15 +801,28 @@ const pbis = [
     f: 'CAMPAIGN',
     n: 8,
     title: 'Campaign access refusals explain themselves on deployed Convex',
-    journey: [],
+    journey: [`${AP}campaigns/reads.test.ts`, 'apps/web/src/routes/-tabletopAccess.test.ts'],
     extra: [
       X(
         'Every requireCampaignAuthority caller in apps/apis/convex throws a typed domain rejection (rejectDomain CAMPAIGN_NOT_FOUND) instead of a plain Error, so deployed Convex no longer redacts it to "Server Error". The join-ticket path is already done.',
         [],
-        'Depends on PLATFORM and ACCOUNTS authorization contracts.'
+        'Exceptions stay plain by design: turnResponseAuthority (anti-oracle), Worker-secret route contracts and Worker-internal invariants (docs/architecture/live-sessions.md).',
+        {
+          status: 'DONE',
+          proof: [`${AP}campaigns/reads.test.ts`, `${AP}scenes/presentations.test.ts`]
+        }
       ),
       X(
-        'The exact-message match at notifications/source.ts:20 and the apps/web/tests/live-backend regexes match the typed rejection.'
+        'The exact-message match at notifications/source.ts:20 and the apps/web/tests/live-backend regexes match the typed rejection.',
+        [],
+        'The live-backend console regexes are updated but not yet observed on a live run (registered under RELEASE-6).',
+        {
+          status: 'DONE',
+          proof: [
+            `${AP}notifications/source.test.ts`,
+            'apps/web/src/routes/-tabletopAccess.test.ts'
+          ]
+        }
       )
     ]
   },
@@ -916,6 +962,27 @@ const pbis = [
         'Movement coverage includes the concentration advantage case and a shared spatial effect across two targets.'
       ),
       X('Initiative receipt metadata echoes a non-empty resolutionCommands, asserted room-side.')
+    ]
+  },
+  {
+    f: 'ROOM',
+    n: 7,
+    title: 'Chat reads back in the order it was posted',
+    journey: [`${AP}encounters/actionCommands.test.ts`],
+    extra: [
+      X(
+        'Conversation entries posted in the same millisecond (rules roll cards from one command, or user chat) read back in insertion order on Convex and in the Session Worker, proved by a regression test that fails before the fix.',
+        [],
+        'Found as a flaky roll-card order in encounters/actionCommands.test.ts during the PLATFORM-17 validation.',
+        {
+          status: 'DONE',
+          proof: [
+            'packages/encounter-persistence/src/__tests__/conversationEntryOrder.test.ts',
+            `${AP}campaigns/chat.test.ts`,
+            `${AP}encounters/actionCommands.test.ts`
+          ]
+        }
+      )
     ]
   },
 
@@ -1675,12 +1742,29 @@ const pbis = [
     f: 'RELEASE',
     n: 5,
     title: 'Staging and production can never enable the dev-only test-rolls route',
-    journey: [],
+    journey: [`${SW}src/deployedEnvironmentGuard.test.ts`],
     extra: [
       X(
         'A release check proves staging and production deployments can never carry the loopback Convex URL marker that enables the dev-only test-rolls route (docs/architecture/live-sessions.md, test-dice route), and fails the release if they do.',
         [],
-        'Depends on PERF and every other feature (RELEASE dependencies); registered after the real-room fixture work.'
+        'check:deployed-config runs before build:staging, deploy:staging and deploy:production, and as a validate:pre-staging:local stage.',
+        {
+          status: 'DONE',
+          proof: [`${SW}src/deployedEnvironmentGuard.test.ts`]
+        }
+      )
+    ]
+  },
+  {
+    f: 'RELEASE',
+    n: 6,
+    title: 'Live-backend tests read the typed Campaign refusal',
+    journey: [],
+    extra: [
+      X(
+        'A live-backend run (apps/web/tests/live-backend campaignMembership and sceneLiveDiagnostics) observes the deployed console shape of the typed CAMPAIGN_NOT_FOUND rejection and the regexes match it.',
+        [],
+        'Registered from CAMPAIGN-8: the regexes were updated from the transport contract, not from an observed live run.'
       )
     ]
   }
@@ -1844,6 +1928,11 @@ const review = {
   // Concentration saves run on the real room and their results are read from the players' roll cards.
   'PLATFORM-15': V,
   'PLATFORM-16': V,
+  // Test infrastructure: the real SRD Creature fixtures now parse without casts in the action journeys.
+  'PLATFORM-17': V,
+  'CAMPAIGN-8': V,
+  'RELEASE-5': V,
+  'ROOM-7': V,
   'PLATFORM-11': P(
     'roomInputs.test.ts is one room-routed suite on the real Session Worker; the stand-in fixtures are deleted, but no test asserts none returns (REL-9 is still active).'
   ),

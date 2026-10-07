@@ -373,6 +373,10 @@ the web routes chat and rolls through the room (`useCampaignChatRoom`) and merge
 Convex history. Edit and unsend remain Convex-only; Convex fences `campaigns/chat:send` and
 `campaigns/rolls:execute` while authority exists.
 
+Conversation entries read back in insertion order: the shared `insertConversationEntry` (used by
+Convex and the room) stamps `createdAt` strictly after the conversation's newest entry, at the cost of
+one indexed header read per insert, so same-millisecond writers never fall to the random id tiebreak.
+
 The GM's private roll (`EXECUTE_PRIVATE_ROLL`) and both reveals (`REVEAL_ROLL`, `FULL` or `NOTICE`) are
 `CAMPAIGN_CHAT` commands. A private roll is answered to the GM alone and carried in the checkpoint
 `retainedRolls`. A private roll made before the live table started exists only in Convex, and the room
@@ -760,7 +764,12 @@ meter, barrier and test-rolls routes require the `LOCAL_CONTENT_SNAPSHOT_ORIGIN`
 `http://127.0.0.1:<port>`; see `isLocalDevelopment`), a loopback host and the worker secret header. The
 test-rolls route queues the room's next dice (`LiveSessionTestRollsInputDto`: consumed in order and
 unclamped, then an optional repeat value, ahead of `secureRandomInt`) and the room itself ignores any
-queue when it is not local. `apps/apis/tests/fixtures/localRoomWorker.ts` runs the real Worker in local
+queue when it is not local. `yarn workspace @artificer-toolkit/session-worker check:deployed-config`
+(`scripts/assertNoLocalMarker.mjs`) fails when the top-level (production) or any `env` entry of
+`wrangler.jsonc` sets the marker as a var or required secret; `build:staging`, both `deploy:*` scripts and the
+pre-staging lifecycle run it. It cannot see dashboard-set values (`keep_vars`), which the loopback-host and
+worker-secret checks above still refuse: the dice queue can only be filled through the test-rolls route,
+so a dashboard-set marker cannot rig dice. `apps/apis/tests/fixtures/localRoomWorker.ts` runs the real Worker in local
 workerd with these routes, loopback R2 and a Convex bridge, so tests fake the platform and never the room.
 
 **Room test fixtures (current).**
@@ -999,7 +1008,9 @@ Encounter already in the Campaign) throw `ConvexError` data matching `domainReje
 Worker-secret routes in `liveSessions/stateHttp.ts` return that data as JSON with status 422; every other
 failure keeps the redacted 409 text. A nested Convex function stopped at its execution limit changed
 nothing, so the route answers 503 and the room refuses with `UNAVAILABLE` and
-`LIVE_SESSION_TRY_AGAIN_MESSAGE` (D47). A command whose authorization, admission or table changed
+`LIVE_SESSION_TRY_AGAIN_MESSAGE` (D47). A Campaign the caller cannot see is refused the same way
+(`CAMPAIGN_NOT_FOUND`) by `requireCampaignAuthority`, so deployed Convex redaction cannot hide it from
+the web. A command whose authorization, admission or table changed
 between its start and its commit (`RoomAdmissionExpiredError`, thrown by every commit-time fence in
 `nativeLiveSessionRoom.ts`: Encounter, Encounter binding, Character Sheet, Scene edit, Scene geometry
 and Scene commands, and by their pre-commit admission checks) wrote nothing and is refused the same

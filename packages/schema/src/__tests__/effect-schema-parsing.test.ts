@@ -617,6 +617,7 @@ describe('effect schema parsing', () => {
                   order: 1,
                   selectionKind: 'GRANTED',
                   valueDomainCode: 'ARMOR_CLASS',
+                  domain: {},
                   modifierKind: 'BONUS',
                   scope: 'GLOBAL',
                   payload: {

@@ -1,4 +1,6 @@
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { createFileRoute, notFound } from '@tanstack/react-router'
+import { ConvexError } from 'convex/values'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { CampaignTabletopWindow } from '#domains/campaigns'
 
@@ -7,7 +9,10 @@ export const Route = createFileRoute('/_authed/tabletop/campaigns/$campaignPubli
     const campaign = await context.queryClient
       .ensureQueryData(getCampaignDetail(params.campaignPublicId))
       .catch((error: unknown) => {
-        if (error instanceof Error && error.message.includes('Campaign not found.'))
+        if (
+          error instanceof ConvexError &&
+          domainRejectionErrorDataSchema.safeParse(error.data).data?.reason === 'CAMPAIGN_NOT_FOUND'
+        )
           throw notFound()
         throw error
       })

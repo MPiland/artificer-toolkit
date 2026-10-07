@@ -53,33 +53,31 @@ const chargeFixedPerLevelDtoSchema = lazySchema(() =>
 
 export const chargeDtoSchema = lazySchema(() =>
   z.union([
-    z
-      .object({
-        id: authoredIdentifierSchema,
-        resetKind: chargeResetKindSchema,
-        bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
-        limitKind: z.enum([
-          chargeLimitKindSchema._zod.def.entries.CHARACTER_LEVEL,
-          chargeLimitKindSchema._zod.def.entries.CLASS_LEVEL,
-          chargeLimitKindSchema._zod.def.entries.PARENT_CLASS_LEVEL,
-          chargeLimitKindSchema._zod.def.entries.SPELL_CAST_LEVEL
-        ]),
-        scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-        classId: z.optional(authoredIdentifierSchema),
-        multiplier: z.optional(z.number()),
-        min: z.optional(z.number()),
-        max: z.optional(z.number())
-      })
-      .check(
-        z.superRefine((value, ctx) => {
-          if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'classId is required for CLASS_LEVEL charge limits'
-            })
-          }
-        })
-      ),
+    z.object({
+      id: authoredIdentifierSchema,
+      resetKind: chargeResetKindSchema,
+      bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
+      limitKind: z.enum([
+        chargeLimitKindSchema._zod.def.entries.CHARACTER_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.PARENT_CLASS_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.SPELL_CAST_LEVEL
+      ]),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
+    }),
+    z.object({
+      id: authoredIdentifierSchema,
+      resetKind: chargeResetKindSchema,
+      bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
+      limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.CLASS_LEVEL),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      classId: authoredIdentifierSchema,
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
+    }),
     z.object({
       id: authoredIdentifierSchema,
       resetKind: chargeResetKindSchema,

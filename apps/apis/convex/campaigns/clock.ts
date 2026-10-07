@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   advanceCampaignClockInputSchema,
@@ -100,7 +101,7 @@ function assertClockBounds(clock: CampaignClockDto): CampaignClockDto {
 
 async function requireClockOwner(ctx: MutationCtx, campaignId: string, userId: string) {
   const authority = await requireCampaignAuthority(ctx, campaignId, userId)
-  if (authority.membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (authority.membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   if (authority.campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   return authority.campaign
 }
@@ -232,7 +233,7 @@ export const recoveryPrompts = query({
     const { campaignId } = campaignIdInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     const assignedCharacterIds = new Set(
       (
         await ctx.db

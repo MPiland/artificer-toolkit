@@ -1,3 +1,4 @@
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   deleteCampaignInputSchema,
@@ -22,7 +23,7 @@ export const status = query({
       .query('campaignDeletionJobs')
       .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
       .unique()
-    if (!job || job.ownerUserId !== userId) throw new Error('Campaign not found.')
+    if (!job || job.ownerUserId !== userId) rejectDomain('CAMPAIGN_NOT_FOUND')
     return {
       campaignId,
       expectedVersion: job.expectedVersion,

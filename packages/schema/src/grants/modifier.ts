@@ -124,30 +124,39 @@ const chargeLimitLevelDtoSchema = lazySchema(() =>
 
 const modifyChargeLimitPayloadDtoSchema = lazySchema(() =>
   z.union([
-    z
-      .object({
-        limitKind: z.enum([
-          chargeLimitKindSchema._zod.def.entries.CHARACTER_LEVEL,
-          chargeLimitKindSchema._zod.def.entries.CLASS_LEVEL,
-          chargeLimitKindSchema._zod.def.entries.PARENT_CLASS_LEVEL,
-          chargeLimitKindSchema._zod.def.entries.SPELL_CAST_LEVEL
-        ]),
-        scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-        classId: z.optional(authoredIdentifierSchema),
-        multiplier: z.optional(z.number()),
-        min: z.optional(z.number()),
-        max: z.optional(z.number())
-      })
-      .check(
-        z.superRefine((value, ctx) => {
-          if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
-            ctx.addIssue({
-              code: 'custom',
-              message: 'classId is required for CLASS_LEVEL charge-limit modifiers'
-            })
-          }
-        })
-      ),
+    z.object({
+      limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.CHARACTER_LEVEL),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
+    }),
+    z.object({
+      limitKind: z.enum([
+        chargeLimitKindSchema._zod.def.entries.PARENT_CLASS_LEVEL,
+        chargeLimitKindSchema._zod.def.entries.SPELL_CAST_LEVEL
+      ]),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
+    }),
+    z.object({
+      limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.CLASS_LEVEL),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      classId: authoredIdentifierSchema,
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
+    }),
+    z.object({
+      limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.ABILITY_MODIFIER),
+      scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+      ability: abilityCodeSchema,
+      multiplier: z.optional(z.number()),
+      min: z.optional(z.number()),
+      max: z.optional(z.number())
+    }),
     z.object({
       limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.FIXED_AMOUNT),
       scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
@@ -169,19 +178,54 @@ const modifierGrantBaseDtoSchema = lazySchema(() =>
   })
 )
 
-const buildModifierGrantVariant = <V extends string, K extends z.infer<typeof modifierKindSchema>>(
+const noPayloadDtoSchema = z.optional(z.undefined())
+
+function buildModifierGrantVariant<
+  V extends string,
+  K extends z.infer<typeof modifierKindSchema>,
+  D extends z.ZodMiniType
+>(
   valueDomainCode: V,
   modifierKind: K,
+  domain: D
+): ReturnType<typeof extendModifierGrantVariant<V, K, D, typeof noPayloadDtoSchema>>
+function buildModifierGrantVariant<
+  V extends string,
+  K extends z.infer<typeof modifierKindSchema>,
+  D extends z.ZodMiniType,
+  P extends z.ZodMiniType
+>(
+  valueDomainCode: V,
+  modifierKind: K,
+  domain: D,
+  payload: P
+): ReturnType<typeof extendModifierGrantVariant<V, K, D, P>>
+function buildModifierGrantVariant(
+  valueDomainCode: string,
+  modifierKind: z.infer<typeof modifierKindSchema>,
   domain: z.ZodMiniType,
-  payload?: z.ZodMiniType
+  payload: z.ZodMiniType = noPayloadDtoSchema
+) {
+  return extendModifierGrantVariant(valueDomainCode, modifierKind, domain, payload)
+}
+
+const extendModifierGrantVariant = <
+  V extends string,
+  K extends z.infer<typeof modifierKindSchema>,
+  D extends z.ZodMiniType,
+  P extends z.ZodMiniType
+>(
+  valueDomainCode: V,
+  modifierKind: K,
+  domain: D,
+  payload: P
 ) =>
   z.extend(modifierGrantBaseDtoSchema, {
     valueDomainCode: z.literal(valueDomainCode),
     modifierKind: z.literal(modifierKind),
     domain,
-    ...(payload ? { payload } : { payload: z.optional(z.undefined()) })
+    payload
   })
-
 const buildModifierGrantVariants = () => {
   const optionPayloadByDomainDtoSchema = {
     DAMAGE_RESISTANCE: z.object({ damageTypeId: authoredIdentifierSchema }),
@@ -196,38 +240,38 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'HIT_POINTS_MAX',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'HIT_POINTS_MAX',
       'PENALTY',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'HIT_POINTS_MAX',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'ARMOR_CLASS',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'ARMOR_CLASS',
       'PENALTY',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     // An armor class formula: the amount plus each listed ability modifier ("10 + DEX + CON").
     buildModifierGrantVariant(
       'ARMOR_CLASS',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({
         amount: z.number(),
         abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
@@ -236,13 +280,13 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'ARMOR_CLASS',
       'ABILITY_MODIFIER_BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       abilityModifierBonusPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'ARMOR_CLASS',
       'OPTIONAL_ABILITY_MODIFIER_BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({
         abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
       })
@@ -250,35 +294,35 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'INITIATIVE',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'INITIATIVE',
       'PENALTY',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
-    buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', z.optional(emptyDomainDtoSchema)),
-    buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', z.optional(emptyDomainDtoSchema)),
+    buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema),
+    buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', abilityCheckParamDtoSchema),
     buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', abilityCheckParamDtoSchema),
     buildModifierGrantVariant(
       'SAVE_DC',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'SAVE_DC',
       'PENALTY',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'SAVE_DC',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
@@ -358,13 +402,13 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'PROFICIENCY_BONUS',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'PROFICIENCY_BONUS',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
@@ -408,37 +452,37 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'DAMAGE_RESISTANCE',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_RESISTANCE
     ),
     buildModifierGrantVariant(
       'DAMAGE_RESISTANCE',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_RESISTANCE
     ),
     buildModifierGrantVariant(
       'DAMAGE_IMMUNITY',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_IMMUNITY
     ),
     buildModifierGrantVariant(
       'DAMAGE_IMMUNITY',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_IMMUNITY
     ),
     buildModifierGrantVariant(
       'DAMAGE_VULNERABILITY',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_VULNERABILITY
     ),
     buildModifierGrantVariant(
       'DAMAGE_VULNERABILITY',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.DAMAGE_VULNERABILITY
     ),
     buildModifierGrantVariant('SPEED', 'BONUS', speedParamDtoSchema, modifierScalarValueDtoSchema),
@@ -457,13 +501,13 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'MOVEMENT_MODE',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.MOVEMENT_MODE
     ),
     buildModifierGrantVariant(
       'MOVEMENT_MODE',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.MOVEMENT_MODE
     ),
     buildModifierGrantVariant(
@@ -481,7 +525,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'RANGE',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.union([
         z.object({
           amount: z.number(),
@@ -501,7 +545,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'RANGE',
       'REPLACE_RANGE_KIND',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({
         rangeKind: rangeKindSchema
       })
@@ -509,7 +553,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'DURATION',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.union([
         z.object({
           durationKind: z.literal(durationKindSchema._zod.def.entries.INSTANTANEOUS)
@@ -533,7 +577,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'DURATION',
       'REPLACE_DURATION_KIND',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({
         durationKind: durationKindSchema
       })
@@ -541,7 +585,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'SHAPE',
       'REPLACE_SHAPE_KIND',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({
         shapeKind: shapeKindSchema
       })
@@ -561,85 +605,85 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'SPELL_SLOT_LEVEL_MAX',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'SPELLS_KNOWN',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'SPELLS_KNOWN',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'SPELLS_PREPARED',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'SPELLS_PREPARED',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'ACTION_COUNT',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'ACTION_COUNT',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'BONUS_ACTION_COUNT',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'BONUS_ACTION_COUNT',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'REACTION_COUNT',
       'BONUS',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'REACTION_COUNT',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'CHARGE_LIMIT',
       'MODIFY_CHARGE_LIMIT',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       modifyChargeLimitPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'CHARGE_LIMIT',
       'SET_VALUE',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
       'CHARGE_RESET',
       'REPLACE_CHARGE_RESET_KIND',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       z.object({
         resetKind: chargeResetKindSchema
       })
@@ -647,37 +691,37 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant(
       'CONDITION',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.CONDITION
     ),
     buildModifierGrantVariant(
       'CONDITION',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.CONDITION
     ),
     buildModifierGrantVariant(
       'CONDITION_IMMUNITY',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.CONDITION_IMMUNITY
     ),
     buildModifierGrantVariant(
       'CONDITION_IMMUNITY',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.CONDITION_IMMUNITY
     ),
     buildModifierGrantVariant(
       'ATTRIBUTE',
       'ADD_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.ATTRIBUTE
     ),
     buildModifierGrantVariant(
       'ATTRIBUTE',
       'REMOVE_OPTION',
-      z.optional(emptyDomainDtoSchema),
+      emptyDomainDtoSchema,
       optionPayloadByDomainDtoSchema.ATTRIBUTE
     )
   ] as const

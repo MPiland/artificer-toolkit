@@ -249,15 +249,39 @@ describe('authored input limits', () => {
     ).toBe(expected)
   })
 
-  it('accepts the facet nesting limit and rejects limit + 1 without overflowing the stack', () => {
+  it('accepts the deepest relation chain the shared RELATIONS table allows', () => {
     expect(
-      facetDtoSchema.safeParse(createNestedFacet(AUTHORED_LIMITS.facetNestingDepth)).success
+      facetDtoSchema.safeParse(
+        createNestedFacet('RACE', [
+          'SUBRACE',
+          'RACE_ANCESTRY_OPTION',
+          'FEATURE',
+          'OPTION',
+          'PROFICIENCY_GRANT'
+        ])
+      ).success
     ).toBe(true)
-    expect(
-      facetDtoSchema.safeParse(createNestedFacet(AUTHORED_LIMITS.facetNestingDepth + 1)).success
-    ).toBe(false)
   })
 
+  it('rejects facet nesting beyond the limit without overflowing the stack', () => {
+    const nestingMessage = `Facet nesting must be at most ${AUTHORED_LIMITS.facetNestingDepth} levels`
+    const beyondLimit = facetDtoSchema.safeParse(
+      createNestedFacet(
+        'CLASS',
+        Array.from({ length: AUTHORED_LIMITS.facetNestingDepth + 1 }, () => 'FEATURE')
+      )
+    )
+    const atLimit = facetDtoSchema.safeParse(
+      createNestedFacet(
+        'CLASS',
+        Array.from({ length: AUTHORED_LIMITS.facetNestingDepth }, () => 'FEATURE')
+      )
+    )
+
+    expect(beyondLimit.success).toBe(false)
+    expect(JSON.stringify(beyondLimit.error?.issues)).toContain(nestingMessage)
+    expect(JSON.stringify(atLimit.error?.issues)).not.toContain(nestingMessage)
+  })
   it('counts malformed tag-like rich text that the renderer displays', () => {
     expect(
       authoredRichTextSchema.safeParse(
@@ -426,18 +450,20 @@ describe('authored nonnegative magnitudes', () => {
   })
 })
 
-function createNestedFacet(depth: number): Record<string, unknown> {
+function createNestedFacet(subject: string, relationCodes: string[]): Record<string, unknown> {
   let where: Record<string, unknown> = {
-    groups: [{ id: `body-${depth}`, order: 0 }]
+    authoringModeKind: 'ALL',
+    groups: [{ id: 'body-leaf', order: 0 }]
   }
 
-  for (let index = depth - 2; index >= 0; index -= 1) {
+  for (let index = relationCodes.length - 1; index >= 1; index -= 1) {
     where = {
+      authoringModeKind: 'ALL',
       groups: [
         {
           id: `body-${index}`,
           order: index,
-          conditions: [createExistsCondition(index, where)]
+          conditions: [createExistsCondition(index, relationCodes[index], where)]
         }
       ]
     }
@@ -453,8 +479,9 @@ function createNestedFacet(depth: number): Record<string, unknown> {
           {
             id: 'context-1',
             order: 0,
-            subject: 'CHARACTER',
-            conditions: [createExistsCondition(-1, where)]
+            subject,
+            authoringModeKind: 'ALL',
+            conditions: [createExistsCondition(0, relationCodes[0], where)]
           }
         ]
       }
@@ -462,13 +489,18 @@ function createNestedFacet(depth: number): Record<string, unknown> {
   }
 }
 
-function createExistsCondition(index: number, where: Record<string, unknown>) {
+function createExistsCondition(
+  index: number,
+  relationCode: string,
+  where: Record<string, unknown>
+) {
   return {
     id: `exists-${index}`,
     order: index,
     kind: 'EXISTS',
     constraint: 'INCLUDE',
-    relationCode: 'FEATURE',
+    relationCode,
+    authoringModeKind: 'ALL',
     where
   }
 }

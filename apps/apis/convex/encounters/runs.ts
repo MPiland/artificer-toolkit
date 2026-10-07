@@ -62,7 +62,7 @@ export async function createEncounterRun(
   })
   const { userId } = await requireIdentity(ctx)
   const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
 
   const commandFingerprint = checksumCanonicalJson(input)
@@ -272,7 +272,7 @@ export const deletePrepared = mutation({
     })
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
     const inputFingerprint = checksumCanonicalJson(input)
     const [prior, encounterCommand] = await Promise.all([

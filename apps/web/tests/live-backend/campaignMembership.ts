@@ -4,6 +4,8 @@ import { chromium, expect, type BrowserContext, type Page } from '@playwright/te
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
+import { ConvexError } from 'convex/values'
 import type { DevelopmentClient } from '../../../apis/tests/developmentClient'
 import type { CampaignMembershipLifecycleStage } from '../../../apis/tests/developmentCampaignMembershipLifecycle'
 import {
@@ -169,18 +171,18 @@ export async function verifyCampaignMembershipBrowser<T>(
           (index === 2 && ['BEFORE_REMOVE', 'AFTER_REMOVE'].includes(currentStage))
         const denialWindow = index === 3 || departureWindow
         const queryDenial =
-          /^(?:Error: )?\[CONVEX Q\(campaigns\/(?:queries:get|clock:get)\)\](?: \[Request ID: [a-f0-9]+\])? Server Error\nUncaught Error: (?:Uncaught Error: )?Campaign not found\.(?:\n\s+(?:Called by client|at [^\n]+))*\s*$/.test(
+          /^(?:Error: )?\[CONVEX Q\(campaigns\/(?:queries:get|clock:get)\)\](?: \[Request ID: [a-f0-9]+\])? Server Error\nUncaught ConvexError: \{[^\n]*"reason":\s*"CAMPAIGN_NOT_FOUND"[^\n]*\}(?:\n\s+(?:Called by client|at [^\n]+))*\s*$/.test(
             detail
           )
         const denialBoundary =
-          /^%o\n\n%s\n\n%s\n Error: \[Request ID: [a-f0-9]+\] Server Error\nUncaught Error: Campaign not found\./.test(
+          /^%o\n\n%s\n\n%s\n Error: \[Request ID: [a-f0-9]+\] Server Error\nUncaught ConvexError: \{[^\n]*"reason":\s*"CAMPAIGN_NOT_FOUND"/.test(
             detail
           ) &&
           detail.endsWith(
             'The above error occurred in the <MatchInnerImpl> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl.'
           )
         const liveDenialBoundary =
-          /^%o\n\n%s\n\n%s\n Error: \[CONVEX Q\(campaigns\/queries:get\)\] \[Request ID: [a-f0-9]+\] Server Error\nUncaught Error: Campaign not found\./.test(
+          /^%o\n\n%s\n\n%s\n Error: \[CONVEX Q\(campaigns\/queries:get\)\] \[Request ID: [a-f0-9]+\] Server Error\nUncaught ConvexError: \{[^\n]*"reason":\s*"CAMPAIGN_NOT_FOUND"/.test(
             detail
           ) &&
           detail.endsWith(
@@ -359,10 +361,8 @@ export async function verifyCampaignMembershipBrowser<T>(
               account.client.query(api.campaigns.queries.get, { id: input.campaignId })
             ),
           (error: unknown) =>
-            error instanceof Error &&
-            /(?:^|\n)Uncaught Error: (?:Uncaught Error: )?Campaign not found\.(?:\n|$)/.test(
-              error.message
-            ),
+            error instanceof ConvexError &&
+            domainRejectionErrorDataSchema.parse(error.data).reason === 'CAMPAIGN_NOT_FOUND',
           `Account ${index} must receive the specific native Campaign-not-found denial`
         )
         campaigns.push('CAMPAIGN_NOT_FOUND')

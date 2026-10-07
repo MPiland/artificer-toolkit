@@ -17,6 +17,7 @@ describe('grant and facet schema parsing', () => {
       order: 1,
       selectionKind: 'GRANTED',
       valueDomainCode: 'CONDITION_IMMUNITY',
+      domain: {},
       modifierKind: 'REMOVE_OPTION',
       get scope() {
         scopeReads += 1
@@ -56,24 +57,28 @@ describe('grant and facet schema parsing', () => {
       {
         ...base,
         valueDomainCode: 'ATTRIBUTE',
+        domain: {},
         modifierKind: 'ADD_OPTION',
         payload: { attributeId: 'a' }
       },
       {
         ...base,
         valueDomainCode: 'MOVEMENT_MODE',
+        domain: {},
         modifierKind: 'ADD_OPTION',
         payload: { movementModeId: 'm' }
       },
       {
         ...base,
         valueDomainCode: 'CONDITION',
+        domain: {},
         modifierKind: 'REMOVE_OPTION',
         payload: { conditionTypeId: 'c' }
       },
       {
         ...base,
         valueDomainCode: 'HIT_POINTS_MAX',
+        domain: {},
         modifierKind: 'SET_VALUE',
         payload: { amount: 30 }
       },
@@ -228,6 +233,7 @@ describe('grant and facet schema parsing', () => {
             scalingKind: 'NONE',
             count: 1,
             selectionDuplicatePolicy: 'UNIQUE',
+            authoringModeKind: 'SELECTED',
             featIds: ['archery']
           }
         ]
@@ -287,9 +293,9 @@ describe('grant and facet schema parsing', () => {
                   order: 2,
                   kind: 'EXISTS',
                   constraint: 'INCLUDE',
-                  relationCode: 'FEATURE',
+                  relationCode: 'CREATURE',
                   authoringModeKind: 'SELECTED',
-                  featureIds: ['fighting-style'],
+                  creatureIds: ['war-horse'],
                   where: {
                     authoringModeKind: 'ALL',
                     groups: [
@@ -302,8 +308,7 @@ describe('grant and facet schema parsing', () => {
                             order: 1,
                             kind: 'PREDICATE',
                             constraint: 'INCLUDE',
-                            predicateCode: 'FEATURE_OBTAINED',
-                            featureIds: ['fighting-style']
+                            predicateCode: 'CREATURE_IS_MOUNT'
                           }
                         ]
                       }
@@ -323,7 +328,6 @@ describe('grant and facet schema parsing', () => {
   it('parses explicit ALL facet authoring mode', () => {
     const parsed = facetDtoSchema.parse({
       id: 'explicit-all-facet',
-      authoringModeKind: 'ALL',
       groups: [
         {
           id: 'group-1',
@@ -333,6 +337,7 @@ describe('grant and facet schema parsing', () => {
               id: 'context-1',
               order: 1,
               subject: 'SPELL',
+              authoringModeKind: 'ALL',
               conditions: [
                 {
                   id: 'condition-1',
@@ -504,6 +509,53 @@ describe('grant and facet schema parsing', () => {
     })
 
     expect(parsed.id).toBe('explicit-all-bonus-feat')
+  })
+
+  it('refuses an ALL-targeted grant that omits authoringModeKind', () => {
+    expect(
+      featGrantDtoSchema.safeParse({
+        grantKind: 'FEAT_GRANT',
+        id: 'implicit-all-bonus-feat',
+        order: 1,
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE'
+      }).success
+    ).toBe(false)
+  })
+
+  it('refuses a per-level grant that carries a top-level target', () => {
+    const perLevelGrant = {
+      grantKind: 'FEAT_GRANT',
+      id: 'per-level-feat',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scalingKind: 'PER_LEVEL',
+      progression: {
+        scalingSource: 'CHARACTER_LEVEL',
+        levels: [
+          { id: 'level-1', level: 1, order: 1, authoringModeKind: 'SELECTED', featIds: ['alert'] }
+        ]
+      }
+    }
+
+    expect(featGrantDtoSchema.safeParse(perLevelGrant).success).toBe(true)
+    expect(
+      featGrantDtoSchema.safeParse({ ...perLevelGrant, authoringModeKind: 'ALL' }).success
+    ).toBe(false)
+  })
+
+  it('refuses a facet context that omits its authoringModeKind', () => {
+    const facetWithContext = (context: Record<string, unknown>) => ({
+      id: 'context-mode-facet',
+      groups: [{ id: 'group-1', order: 1, contexts: [context] }]
+    })
+    const spellContext = { id: 'context-1', order: 1, subject: 'SPELL' }
+
+    expect(
+      facetDtoSchema.safeParse(facetWithContext({ ...spellContext, authoringModeKind: 'ALL' }))
+        .success
+    ).toBe(true)
+    expect(facetDtoSchema.safeParse(facetWithContext(spellContext)).success).toBe(false)
   })
 
   it('rejects selected grant targets that omit their required ids', () => {

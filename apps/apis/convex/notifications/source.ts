@@ -8,19 +8,10 @@ import {
 } from '@artificer-toolkit/schema/projections/socialPersistence'
 import type { QueryCtx } from '../_generated/server'
 import { isPartyMember, readParty } from '../campaigns/announcements'
-import { requireCampaignAuthority } from '../campaigns/authority'
+import { readCampaignAuthority } from '../campaigns/authority'
 import { readProfile } from '../social/profiles'
 import { hasSocialBlock } from '../social/visibility'
 import { readAdmissionInvalidation } from '../social/admissionInvalidation'
-
-async function readSourceCampaign(ctx: QueryCtx, campaignId: string, userId: string) {
-  try {
-    return await requireCampaignAuthority(ctx, campaignId, userId)
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Campaign not found.') return null
-    throw error
-  }
-}
 
 async function readSocialSource(ctx: QueryCtx, listingId: string) {
   const listingRow = await ctx.db
@@ -31,7 +22,7 @@ async function readSocialSource(ctx: QueryCtx, listingId: string) {
   const { _id: _listingId, _creationTime: _listingCreated, ...listingStored } = listingRow
   const listing = socialStoredListingSchema.parse(listingStored)
   const [authority, host] = await Promise.all([
-    readSourceCampaign(ctx, listing.campaignId, listing.ownerUserId),
+    readCampaignAuthority(ctx, listing.campaignId, listing.ownerUserId),
     readProfile(ctx, listing.ownerUserId)
   ])
   if (
@@ -170,7 +161,7 @@ async function announcementEligible(
   recipientUserId: string,
   data: Extract<NotificationIntentData, { kind: 'CAMPAIGN_ANNOUNCEMENT' }>
 ) {
-  const authority = await readSourceCampaign(ctx, data.campaignPublicId, recipientUserId)
+  const authority = await readCampaignAuthority(ctx, data.campaignPublicId, recipientUserId)
   if (!authority) return false
   const { campaign, membership } = authority
   if (campaign.publicId !== data.campaignPublicId && campaign.id !== data.campaignPublicId)

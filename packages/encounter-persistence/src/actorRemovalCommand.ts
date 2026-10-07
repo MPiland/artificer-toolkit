@@ -86,7 +86,7 @@ export async function removeAccountCharacterActors(
     .query('campaigns')
     .withIndex('by_publicId', (q) => q.eq('id', campaignId))
     .unique()
-  if (!storedCampaign) throw new Error('Campaign not found.')
+  if (!storedCampaign) rejectDomain('CAMPAIGN_NOT_FOUND')
   const { campaign } = await ctx.ports.requireCampaignAuthority(
     storedCampaign.id,
     storedCampaign.ownerUserId

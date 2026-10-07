@@ -184,8 +184,8 @@ export async function postCampaignChatEntry(
     username,
     content: { kind: 'CHAT', mode: input.mode, body: input.body, character }
   })
-  await insertConversationEntry(ctx, header, payload)
-  return presentChatEntry(ctx, header, payload, conversation, authority.campaign.contentMaturity)
+  const stored = await insertConversationEntry(ctx, header, payload)
+  return presentChatEntry(ctx, stored, payload, conversation, authority.campaign.contentMaturity)
 }
 
 async function mutableChatEntry(

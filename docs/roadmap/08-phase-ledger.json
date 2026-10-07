@@ -694,30 +694,48 @@
         {
           "id": "PLATFORM-17",
           "title": "Test fixtures use typed parses and one shared builder",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/encounters/actionCharacterSources.test.ts",
+            "apps/session-worker/test/nativeRoomCharacterSources.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The `as CreatureAuthored` casts in the session-worker biteWolf/withBite and the apis srdCreatures fixture are replaced by typed parses, and the reason the schema parse output type is incompatible with CreatureAuthored is investigated and recorded.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/grant-facet-schema-parsing.test.ts",
+                "packages/schema/src/__tests__/facet-predicate-parity.test.ts",
+                "packages/schema/src/__tests__/authored-limits.test.ts",
+                "apps/apis/convex/encounters/actionCharacterSources.test.ts",
+                "apps/session-worker/test/nativeRoomCharacterSources.test.ts"
+              ],
               "origin": [],
+              "note": "Cause recorded in docs/architecture/data-lifecycle.md: the grant, facet and modifier DTOs were looser than the shared authored types; they now mirror them (scalingKind NONE vs PER_LEVEL, per-subject facet contexts, required modes and modifier domains).",
               "id": "PLATFORM-17.1"
             },
             {
               "text": "The spatial save-graph construction in apps/session-worker/src/testing/movementPlannerFixture.ts and apps/apis/tests/fixtures/spatialSaveEffect.ts is one shared builder.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/scenes/movementConcentration.test.ts",
+                "apps/session-worker/test/nativeMovementEvidence.test.ts"
+              ],
               "origin": [],
+              "note": "packages/rules-runtime/src/testing/spatialDamageEffectFixture.ts",
               "id": "PLATFORM-17.2"
             },
             {
               "text": "The 17 captureFake uses in apps/session-worker/test/nativeLiveCaptureReads.test.ts are audited and only true malformed-input cases remain.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts",
+                "apps/session-worker/test/nativeLiveCaptureReads.test.ts"
+              ],
               "origin": [],
+              "note": "The 10 well-formed cases moved to real room captures; 11 malformed-input cases remain.",
               "id": "PLATFORM-17.3"
             }
           ]
@@ -3131,24 +3149,34 @@
         {
           "id": "CAMPAIGN-8",
           "title": "Campaign access refusals explain themselves on deployed Convex",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/campaigns/reads.test.ts",
+            "apps/web/src/routes/-tabletopAccess.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Every requireCampaignAuthority caller in apps/apis/convex throws a typed domain rejection (rejectDomain CAMPAIGN_NOT_FOUND) instead of a plain Error, so deployed Convex no longer redacts it to \"Server Error\". The join-ticket path is already done.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/campaigns/reads.test.ts",
+                "apps/apis/convex/scenes/presentations.test.ts"
+              ],
               "origin": [],
-              "note": "Depends on PLATFORM and ACCOUNTS authorization contracts.",
+              "note": "Exceptions stay plain by design: turnResponseAuthority (anti-oracle), Worker-secret route contracts and Worker-internal invariants (docs/architecture/live-sessions.md).",
               "id": "CAMPAIGN-8.1"
             },
             {
               "text": "The exact-message match at notifications/source.ts:20 and the apps/web/tests/live-backend regexes match the typed rejection.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/notifications/source.test.ts",
+                "apps/web/src/routes/-tabletopAccess.test.ts"
+              ],
               "origin": [],
+              "note": "The live-backend console regexes are updated but not yet observed on a live run (registered under RELEASE-6).",
               "id": "CAMPAIGN-8.2"
             }
           ]
@@ -3940,6 +3968,30 @@
               "proof": [],
               "origin": [],
               "id": "ROOM-6.13"
+            }
+          ]
+        },
+        {
+          "id": "ROOM-7",
+          "title": "Chat reads back in the order it was posted",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/encounters/actionCommands.test.ts"
+          ],
+          "journeyStatus": "verified",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Conversation entries posted in the same millisecond (rules roll cards from one command, or user chat) read back in insertion order on Convex and in the Session Worker, proved by a regression test that fails before the fix.",
+              "status": "DONE",
+              "proof": [
+                "packages/encounter-persistence/src/__tests__/conversationEntryOrder.test.ts",
+                "apps/apis/convex/campaigns/chat.test.ts",
+                "apps/apis/convex/encounters/actionCommands.test.ts"
+              ],
+              "origin": [],
+              "note": "Found as a flaky roll-card order in encounters/actionCommands.test.ts during the PLATFORM-17 validation.",
+              "id": "ROOM-7.1"
             }
           ]
         }
@@ -6750,18 +6802,40 @@
         {
           "id": "RELEASE-5",
           "title": "Staging and production can never enable the dev-only test-rolls route",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/src/deployedEnvironmentGuard.test.ts"
+          ],
+          "journeyStatus": "verified",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A release check proves staging and production deployments can never carry the loopback Convex URL marker that enables the dev-only test-rolls route (docs/architecture/live-sessions.md, test-dice route), and fails the release if they do.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/src/deployedEnvironmentGuard.test.ts"
+              ],
+              "origin": [],
+              "note": "check:deployed-config runs before build:staging, deploy:staging and deploy:production, and as a validate:pre-staging:local stage.",
+              "id": "RELEASE-5.1"
+            }
+          ]
+        },
+        {
+          "id": "RELEASE-6",
+          "title": "Live-backend tests read the typed Campaign refusal",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
-              "text": "A release check proves staging and production deployments can never carry the loopback Convex URL marker that enables the dev-only test-rolls route (docs/architecture/live-sessions.md, test-dice route), and fails the release if they do.",
+              "text": "A live-backend run (apps/web/tests/live-backend campaignMembership and sceneLiveDiagnostics) observes the deployed console shape of the typed CAMPAIGN_NOT_FOUND rejection and the regexes match it.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Depends on PERF and every other feature (RELEASE dependencies); registered after the real-room fixture work.",
-              "id": "RELEASE-5.1"
+              "note": "Registered from CAMPAIGN-8: the regexes were updated from the transport contract, not from an observed live run.",
+              "id": "RELEASE-6.1"
             }
           ]
         }

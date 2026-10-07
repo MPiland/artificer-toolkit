@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "wrangler deploy --dry-run --outdir dist",
-    "build:staging": "wrangler deploy --env staging --dry-run --outdir dist-staging",
-    "deploy:staging": "wrangler deploy --env staging --keep-vars",
-    "deploy:production": "wrangler deploy --keep-vars",
+    "build:staging": "yarn check:deployed-config && wrangler deploy --env staging --dry-run --outdir dist-staging",
+    "check:deployed-config": "node scripts/assertNoLocalMarker.mjs",
+    "deploy:staging": "yarn check:deployed-config && wrangler deploy --env staging --keep-vars",
+    "deploy:production": "yarn check:deployed-config && wrangler deploy --keep-vars",
     "dev": "wrangler dev --host localhost",
     "preflight:managed": "node scripts/managedPreflight.mjs",
     "test": "vitest run --config vitest.config.ts --maxWorkers=1 --no-isolate",

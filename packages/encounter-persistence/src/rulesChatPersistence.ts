@@ -52,9 +52,9 @@ export async function postRulesChatMessage(
     unsentAt: null,
     consumedAt: null
   })
-  await insertConversationEntry(ctx, identity, payload)
+  const stored = await insertConversationEntry(ctx, identity, payload)
   const [entry] = presentChatEntries(
-    [{ header: identity, payload }],
+    [{ header: stored, payload }],
     conversation,
     campaign.contentMaturity,
     [ruleCheckAuthorLabel]

@@ -2,6 +2,7 @@ import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { nullable } from 'zod/mini'
 import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type {
   LiveSessionPresentationCommitInput,
   LiveSessionPresentationControlInput
@@ -85,7 +86,7 @@ export const preflight = internalQuery({
     const input = setCampaignLiveScenePresentationInputDtoSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
     const authority = await readLiveCampaignAuthority(ctx, campaign.id)
     return { campaignId: campaign.id, actorUserId: userId, epoch: authority?.epoch ?? null }
@@ -144,7 +145,7 @@ async function setPresentation(
 ): Promise<SetCampaignLiveScenePresentationResultDto> {
   const commandId = input.commandId.toLowerCase()
   const { campaign, membership } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
   const commandFingerprint = checksumCanonicalJson(input)
   const prior = await ctx.db

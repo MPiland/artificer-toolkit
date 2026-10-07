@@ -40,7 +40,7 @@ export async function bindEncounterToPresentedScene(
     encounter.campaignId,
     userId
   )
-  if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (encounter.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')

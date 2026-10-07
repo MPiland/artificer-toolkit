@@ -1,21 +1,5 @@
-import {
-  activeRuleEffectDefinitionDtoSchema,
-  type EncounterMaintainedEffectDescriptorDto
-} from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
-import {
-  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
-  DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
-  DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-  DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
-  DND5E_SAVE_DC_FACT_KEY,
-  DND5E_SAVE_MODIFIER_FACT_KEY,
-  DND5E_SAVE_TEST_OPERATION_KEY,
-  DND5E_TARGET_ACTOR_FACT_KEY,
-  DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
-  DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/effectActionCompiler'
 import {
   createDnd5eMovementReactionChoiceDefinition,
   createDnd5eOpportunityReactionEligibilityDefinition,
@@ -28,17 +12,13 @@ import {
   srdDefinitions,
   testUuid
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
+import { buildSpatialDamageEffect } from '@artificer-toolkit/rules-runtime/testing/spatialDamageEffectFixture'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
-import {
-  SRD_ABILITY_DEFINITION_IDS,
-  SRD_DAMAGE_TYPES,
-  SRD_SYSTEM_ID
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 /** The SRD rule definition the Legendary Resistance Feature names. */
 const LEGENDARY_RESISTANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e4'
@@ -172,15 +152,9 @@ export const reactionPolicyDefinitions = [
   })
 )
 
-/** No d20 reaches it, so a spatial save effect always fails its save. */
-const SPATIAL_SAVE_DC = 30
-
-type GraphNode = RuleGraphDefinition['nodes'][number]
-
 /**
- * The Encounter-store input of a one-shot, public spatial effect that deals 1 fire damage to whoever
- * crosses its circle, or, with `save`, to whoever fails a Dexterity save against DC 30 (no one
- * passes). Its graph is frozen by the installed rules runtime, as casting freezes it.
+ * The Encounter-store input of a spatial effect (see `buildSpatialDamageEffect`) lasting 3 ticks,
+ * its graph frozen by the installed rules runtime, as casting freezes it.
  */
 export async function spatialDamageEffect(input: {
   encounterId: string
@@ -198,165 +172,25 @@ export async function spatialDamageEffect(input: {
     hidden: boolean
   }
 }) {
-  const fire = SRD_DAMAGE_TYPES.find((type) => type.code === 'FIRE')
-  if (!fire) throw new Error('The SRD fire damage type is missing.')
-  const variant = input.variant ?? 0
-  const definitionId = testUuid(0x6001 + variant * 0x10)
-  const entryId = testUuid(0x6002 + variant * 0x10)
-  const occurrenceId = testUuid(0x6003 + variant * 0x10)
-  const damageNodeId = input.save ? 'proposal-on_save_fail' : 'damage'
-  const d20Node = {
-    id: 'd20',
-    operation: { key: 'evidence.integer-range', contractVersion: 1 },
-    inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
-  } satisfies GraphNode
-  const saveTestNode = {
-    id: 'test',
-    operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
-    inputs: {
-      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-      naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
-      modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-      threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
-      contributorChecksum: { kind: 'FACT', factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY }
-    }
-  } satisfies GraphNode
-  const saveDamageNode = {
-    id: damageNodeId,
-    operation: { key: DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
-    inputs: {
-      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-      resolvedPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
-      authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_FAIL' },
-      targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
-      amount: { kind: 'LITERAL', value: 1 },
-      damageTypeId: { kind: 'LITERAL', value: fire.id }
-    }
-  } satisfies GraphNode
-  const damageNode = {
-    id: damageNodeId,
-    operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
-    inputs: {
-      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-      targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
-      amount: { kind: 'LITERAL', value: 1 },
-      damageTypeId: { kind: 'LITERAL', value: fire.id }
-    }
-  } satisfies GraphNode
-  const saveOutputs = {
-    targetActorId: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'targetActorId' },
-    naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'naturalD20' },
-    total: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'total' },
-    resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
-    contributorChecksum: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'contributorChecksum' }
-  } satisfies RuleGraphDefinition['outputs']
-  const damageOutputs = {
-    targetActorId: { kind: 'NODE_OUTPUT', nodeId: 'damage', port: 'targetActorId' },
-    amount: { kind: 'NODE_OUTPUT', nodeId: 'damage', port: 'amount' },
-    damageTypeId: { kind: 'NODE_OUTPUT', nodeId: 'damage', port: 'damageTypeId' }
-  } satisfies RuleGraphDefinition['outputs']
-  const graph = {
-    schemaVersion: 1,
-    id: definitionId,
-    gameSystemId: SRD_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: input.save ? [d20Node, saveTestNode, saveDamageNode] : [damageNode],
-    outputs: input.save ? saveOutputs : damageOutputs,
-    sourceEntryBindings: [{ sourceEntryId: entryId, nodeId: damageNodeId }]
-  } satisfies RuleGraphDefinition
-  const runtime = await createSrdRulesRuntime()
-  const prepared = await runtime.executeResolvedWithGraph?.({
-    command: {
-      definitionId,
-      occurrenceId,
-      facts: {
-        [DND5E_TARGET_ACTOR_FACT_KEY]: input.targetActorId,
-        ...(input.save && {
-          [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
-          [DND5E_SAVE_DC_FACT_KEY]: SPATIAL_SAVE_DC,
-          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([])
-        }),
-        [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
-          targetActorId: input.targetActorId,
-          currentHitPoints: 1,
-          temporaryHitPoints: 0,
-          maximumHitPoints: 1,
-          conditionIds: []
-        })
-      }
+  const offset = (input.variant ?? 0) * 0x10
+  return buildSpatialDamageEffect({
+    runtime: await createSrdRulesRuntime(),
+    encounterId: input.encounterId,
+    targetActorId: input.targetActorId,
+    targetHitPoints: 1,
+    center: input.center,
+    radius: input.radius,
+    ids: {
+      definitionId: testUuid(0x6001 + offset),
+      entryId: testUuid(0x6002 + offset),
+      occurrenceId: testUuid(0x6003 + offset),
+      rootCommandId: testUuid(0x6004 + offset),
+      effectId: testUuid(0x6005 + offset)
     },
-    published: {
-      id: definitionId,
-      gameSystemId: SRD_SYSTEM_ID,
-      definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-      checksum: checksumRuleDocument(graph),
-      definition: graph
-    }
+    save: input.save ?? false,
+    remainingTicks: 3,
+    moving: input.moving
   })
-  if (!prepared) throw new Error('Frozen graph compilation is unavailable.')
-  const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: 1,
-    origin: {
-      kind: 'ENCOUNTER',
-      sourceAggregateId: input.encounterId,
-      sourceOccurrenceId: occurrenceId,
-      rootCommandId: testUuid(0x6004 + variant * 0x10),
-      sourceActorId: null
-    },
-    authoredEffectId: definitionId,
-    compiledEntryId: entryId,
-    frozenGraphNodeId: damageNodeId,
-    frozenGraph: prepared.graph,
-    adapterFacts: input.save
-      ? {
-          [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
-            SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
-          [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'd20',
-          [DND5E_SAVE_DC_FACT_KEY]: SPATIAL_SAVE_DC
-        }
-      : {},
-    perceptionContributions: [],
-    recurrence: {
-      recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
-      endOnEvents: [],
-      lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
-    }
-  })
-  const lifecycle = { schemaVersion: 1 as const, remainingTicks: 3 }
-  const { moving } = input
-  const spatialState = { schemaVersion: 1 as const, revealed: !moving?.hidden }
-  const placement = moving
-    ? {
-        schemaVersion: 1 as const,
-        anchorKind: 'TOKEN' as const,
-        sourceTokenId: moving.sourceTokenId,
-        geometry: {
-          frame: 'TOKEN_LOCAL' as const,
-          shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: input.radius }
-        },
-        triggerModes: ['CROSS' as const],
-        movementKinds: ['VOLUNTARY' as const],
-        activation: moving.activation,
-        visibility: moving.hidden ? ('HIDDEN' as const) : ('PUBLIC' as const),
-        revealOnTrigger: moving.hidden
-      }
-    : {
-        schemaVersion: 1 as const,
-        anchorKind: 'FIXED' as const,
-        sourceTokenId: null,
-        geometry: {
-          frame: 'SCENE_ABSOLUTE' as const,
-          shape: { kind: 'CIRCLE' as const, center: input.center, radius: input.radius }
-        },
-        triggerModes: ['CROSS' as const],
-        movementKinds: ['VOLUNTARY' as const],
-        activation: 'ONE_SHOT' as const,
-        visibility: 'PUBLIC' as const,
-        revealOnTrigger: false
-      }
-  return { id: testUuid(0x6005 + variant * 0x10), definition, lifecycle, placement, spatialState }
 }
 
 /** A Character's maintained Concentration, matching the SRD maintenance definition. */

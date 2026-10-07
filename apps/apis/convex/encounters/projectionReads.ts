@@ -1,4 +1,5 @@
 import * as zMini from 'zod/mini'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import type { Validator } from 'convex/values'
 import type { z } from 'zod'
@@ -155,7 +156,7 @@ export const actorSides = query({
       .unique()
     if (!row) throw new Error('Encounter is unavailable.')
     const { campaign, membership } = await requireCampaignAuthority(ctx, row.campaignId, userId)
-    if (membership.role !== 'OWNER') throw new Error('Campaign not found.')
+    if (membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
     if (row.version !== input.expectedVersion) return null
     return readEncounterActorSides(encounterReadTransaction(ctx), row, campaign)
   }

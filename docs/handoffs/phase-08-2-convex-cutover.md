@@ -30,14 +30,21 @@
 
 - PLATFORM-16 (`bf06db27b`), rescoped to D88: only the Convex `encounterEvidenceRolls` table is removed. `encounterRunCommands` and `encounterRuleReceipts` stay as the Convex-side inbox for Run CREATE and REMOVE_ACTOR departure writes.
 - PLATFORM-15 (`8a3d3c410`): the redundant summary `outcome` is removed (user decision). Save results are asserted on the Concentration roll card's `ruleCheck.outcome`.
-- Ledger: 54/122 PBIs, 273/399 ACs.
+
+**Done 2026-10-07 (third session), one commit:**
+
+- PLATFORM-17: the `as CreatureAuthored` casts are gone. The grant, facet and modifier DTOs now mirror the shared authored types (see [data lifecycle](../architecture/data-lifecycle.md)); the spatial damage effect is one builder in `packages/rules-runtime/src/testing`.
+- CAMPAIGN-8: Campaign access refusals throw `rejectDomain('CAMPAIGN_NOT_FOUND')`; the deliberate plain-throw exceptions are listed in [live sessions](../architecture/live-sessions.md).
+- RELEASE-5: `check:deployed-config` refuses a Worker config whose production or named environment carries `LOCAL_CONTENT_SNAPSHOT_ORIGIN`.
+- ROOM-7 (found in validation): chat entries read back in insertion order; the shared insert stamps `createdAt` after the conversation's newest entry.
+- The stale PLATFORM-15 `outcome` snapshots are regenerated.
+- Local Convex was deployed, reseeded and the SRD audit passes (backup `local-validation/convex-reset/plt17-reseed.before.zip`, a no-op reset; delete once this tree is trusted).
+- Ledger: 58/124 PBIs, 280/401 ACs.
 
 **Next work:** the PBIs registered in the [Phase 8 ledger](../roadmap/08-phase-ledger.json) (built by `scripts/phase8/buildPhaseLedger.mjs`), then the remaining ledger work:
 
-- PLATFORM-17: test fixtures use typed parses and one shared builder;
-- CAMPAIGN-8: user-safe Campaign authority refusals;
 - ROOM-6: room fixtures for multi-Character and multi-controller scenarios;
-- RELEASE-5: staging and production can never enable the dev-only test-rolls route.
+- RELEASE-6: observe the typed Campaign refusal on the next live-backend run and confirm its regexes.
 
 The final `yarn validate:pre-staging:local` runs once, at the end of Phase 8.
 
@@ -45,6 +52,8 @@ The final `yarn validate:pre-staging:local` runs once, at the end of Phase 8.
 
 - The dashboard is https://claude.ai/artifact/Qcho6LKSBVJtVg2PKv36jv, built from `node scripts/acceptanceProgress.mjs --json`.
 - The `.agents/` deletions stay unstaged and uncommitted.
+- Convex and Session Worker tests resolve `packages/schema` and `packages/encounter-persistence` through `dist`: rebuild them after source changes before running those tests.
+- `gate.ps1`, `vt.ps1` and `nt.ps1` take `local-validation/.validation.lock` themselves; never wrap them in the lock. Format with `yarn format` (oxfmt).
 - Authority is the ledger, not the older counts below; see [ADR 0029](../adr/0029-convex-backend-cutover.md), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [persistence](../architecture/persistence.md), [live-session coordination](../architecture/live-sessions.md) and the [release runbook](../runbooks/phase-8-2-release.md).
 
 ## Historical checkpoint (2026-09-24, later session)

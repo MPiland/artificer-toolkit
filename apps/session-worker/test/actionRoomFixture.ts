@@ -30,8 +30,7 @@ export function biteWolf(
 ): CreatureAuthored {
   const dexterityId = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')?.id
   if (!dexterityId) throw new Error('Missing Dexterity ability fixture.')
-  // The real Creature schema checks the rewritten stat block; the parsed DTO and the shared
-  // authored type describe the same record, only inference differs.
+  // The real Creature schema checks the rewritten stat block.
   return creatureAuthoredDtoSchema.parse({
     ...plainWolf,
     features: plainWolf.features?.map((feature) =>
@@ -107,7 +106,7 @@ export function biteWolf(
             }))
           }
     )
-  }) as CreatureAuthored
+  })
 }
 
 export interface ActionRoomConfig extends Pick<

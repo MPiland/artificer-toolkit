@@ -97,6 +97,8 @@ export function activeEffect(input: {
   owner: ActiveRuleEffectOwner
   createdOrdinal: number
   maintainedEffectStateId?: string
+  /** `ENCOUNTER` ties a Character-owned effect to the Run, as a maintained dependent is. */
+  lifetimeScope?: 'OWNER' | 'ENCOUNTER'
 }): ActiveRuleEffectRecord {
   const authoredEffectId = testUuid(0xb004)
   const compiledEntryId = testUuid(0xb005)
@@ -132,7 +134,7 @@ export function activeEffect(input: {
       recurrenceStage: 'NONE',
       consumeOnFirstEvent: null,
       endOnEvents: [],
-      lifetimeScope: 'OWNER',
+      lifetimeScope: input.lifetimeScope ?? 'OWNER',
       expiration: { kind: 'INDEFINITE' }
     },
     stateContributions: [

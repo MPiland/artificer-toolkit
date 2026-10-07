@@ -19,7 +19,10 @@ import {
   sendCampaignChatEntryInputSchema,
   unsendCampaignChatEntryInputSchema
 } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { campaignStoredEntryPayloadSchema } from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
+import {
+  campaignStoredEntryPayloadSchema,
+  createCampaignEntryHeader
+} from '@artificer-toolkit/schema/projections/campaignCommunicationPersistence'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api, components } from '../_generated/api'
@@ -768,7 +771,7 @@ describe('native Campaign text chat', () => {
     expect(await unread(other.caller)).toBe(0)
   })
 
-  it('costs a reader one page per new message and sends without reading history', async () => {
+  it('costs a reader one page per new message and a send reads only the newest header', async () => {
     vi.useFakeTimers()
     const baseTime = new Date('2026-01-01T00:00:00.000Z')
     vi.setSystemTime(baseTime)
@@ -837,8 +840,8 @@ describe('native Campaign text chat', () => {
       seeded.slice(950, 1_000).toReversed()
     )
     expect(rooms.result.unreadCount).toBe(campaignChatUnreadCountLimit)
-    // Send touches only its own nonce key: no history header or payload is read or deleted.
-    expect(sent.reads.byTable.campaignConversationEntries?.documents ?? 0).toBe(0)
+    // Send reads only the newest header (to stamp createdAt after it): no history payload is read or deleted.
+    expect(sent.reads.byTable.campaignConversationEntries?.documents).toBe(1)
     expect(sent.reads.byTable.campaignConversationEntryPayloads).toBeUndefined()
     expect(sent.writes.byTable.delete).toBeUndefined()
     const page = 50
@@ -894,7 +897,12 @@ async function seedHistory(
           unsentAt: null,
           consumedAt: null
         })
-        await insertConversationEntry(ctx, identity, payload)
+        // Raw rows: the product insert keeps timestamps strictly increasing, and this fixture needs ties.
+        await ctx.db.insert(
+          'campaignConversationEntries',
+          createCampaignEntryHeader(identity, payload)
+        )
+        await ctx.db.insert('campaignConversationEntryPayloads', payload)
       }
     })
   return ids

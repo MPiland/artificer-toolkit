@@ -1,3 +1,4 @@
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   deleteCampaignInputSchema,
@@ -22,7 +23,7 @@ export const remove = internalMutation({
       .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
       .unique()
     if (prior) {
-      if (prior.ownerUserId !== userId) throw new Error('Campaign not found.')
+      if (prior.ownerUserId !== userId) rejectDomain('CAMPAIGN_NOT_FOUND')
       if (prior.expectedVersion !== expectedVersion)
         throw new Error('Campaign changed before this action completed.')
       if (prior.status === 'FAILED') {

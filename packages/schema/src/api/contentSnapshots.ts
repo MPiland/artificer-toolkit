@@ -300,36 +300,61 @@ const documentsShape = <Kind extends z.infer<typeof contentSnapshotKindSchema>, 
   versions: z.array(contentSnapshotPublicationVersionSchema)
 })
 
+type ContentSnapshotDocumentsOf<
+  Kind extends z.infer<typeof contentSnapshotKindSchema>,
+  Root
+> = Omit<ContentSnapshotHeader, 'kind' | 'part'> & {
+  kind: Kind
+  part: 'documents'
+  roots: Root[]
+  versions: ContentSnapshotPublicationVersion[]
+}
+
+/**
+ * Written out because the inferred union of every authored aggregate exceeds what declaration
+ * emit can serialize (TS7056). The assignment below checks it against the schema it describes.
+ */
+export type ContentSnapshotDocumentsObject =
+  | ContentSnapshotDocumentsOf<'BACKGROUND', z.infer<typeof backgroundAuthoredDtoSchema>>
+  | ContentSnapshotDocumentsOf<'CLASS', z.infer<typeof classAuthoredDtoSchema>>
+  | ContentSnapshotDocumentsOf<'CREATURE', z.infer<typeof creaturePublicationDtoSchema>>
+  | ContentSnapshotDocumentsOf<'EQUIPMENT', z.infer<typeof equipmentAuthoredDtoSchema>>
+  | ContentSnapshotDocumentsOf<'FEAT', z.infer<typeof featAuthoredDtoSchema>>
+  | ContentSnapshotDocumentsOf<'RACE', z.infer<typeof raceAuthoredDtoSchema>>
+  | ContentSnapshotDocumentsOf<'SPELL', z.infer<typeof spellAuthoredDtoSchema>>
+  | ContentSnapshotDocumentsOf<'VEHICLE', z.infer<typeof vehicleAuthoredDtoSchema>>
+
 /** Full published documents and their original versions, in matching root order. */
-export const contentSnapshotDocumentsObjectSchema = lazySchema(() =>
-  z
-    .discriminatedUnion('kind', [
-      z.strictObject(documentsShape('BACKGROUND', z.array(backgroundAuthoredDtoSchema))),
-      z.strictObject(documentsShape('CLASS', z.array(classAuthoredDtoSchema))),
-      z.strictObject(documentsShape('CREATURE', z.array(creaturePublicationDtoSchema))),
-      z.strictObject(documentsShape('EQUIPMENT', z.array(equipmentAuthoredDtoSchema))),
-      z.strictObject(documentsShape('FEAT', z.array(featAuthoredDtoSchema))),
-      z.strictObject(documentsShape('RACE', z.array(raceAuthoredDtoSchema))),
-      z.strictObject(documentsShape('SPELL', z.array(spellAuthoredDtoSchema))),
-      z.strictObject(documentsShape('VEHICLE', z.array(vehicleAuthoredDtoSchema)))
-    ])
-    .check(
-      z.refine(
-        (object) =>
-          object.versions.length === object.roots.length &&
-          object.roots.every((root, index) => {
-            const pin = object.versions[index]!
-            return (
-              pin.identity.subjectId === root.id &&
-              pin.identity.subjectKind === object.kind &&
-              pin.identity.systemId === root.systemId &&
-              (object.scope !== 'SOURCE' || pin.identity.contentSourceId === object.scopeId)
-            )
-          }),
-        { message: 'Content snapshot publication versions do not match their documents.' }
+export const contentSnapshotDocumentsObjectSchema: z.ZodMiniType<ContentSnapshotDocumentsObject> =
+  lazySchema(() =>
+    z
+      .discriminatedUnion('kind', [
+        z.strictObject(documentsShape('BACKGROUND', z.array(backgroundAuthoredDtoSchema))),
+        z.strictObject(documentsShape('CLASS', z.array(classAuthoredDtoSchema))),
+        z.strictObject(documentsShape('CREATURE', z.array(creaturePublicationDtoSchema))),
+        z.strictObject(documentsShape('EQUIPMENT', z.array(equipmentAuthoredDtoSchema))),
+        z.strictObject(documentsShape('FEAT', z.array(featAuthoredDtoSchema))),
+        z.strictObject(documentsShape('RACE', z.array(raceAuthoredDtoSchema))),
+        z.strictObject(documentsShape('SPELL', z.array(spellAuthoredDtoSchema))),
+        z.strictObject(documentsShape('VEHICLE', z.array(vehicleAuthoredDtoSchema)))
+      ])
+      .check(
+        z.refine(
+          (object) =>
+            object.versions.length === object.roots.length &&
+            object.roots.every((root, index) => {
+              const pin = object.versions[index]!
+              return (
+                pin.identity.subjectId === root.id &&
+                pin.identity.subjectKind === object.kind &&
+                pin.identity.systemId === root.systemId &&
+                (object.scope !== 'SOURCE' || pin.identity.contentSourceId === object.scopeId)
+              )
+            }),
+          { message: 'Content snapshot publication versions do not match their documents.' }
+        )
       )
-    )
-)
+  )
 
 export const contentSnapshotObjectRefSchema = lazySchema(() =>
   z.strictObject({
@@ -455,7 +480,6 @@ export type ContentSnapshotPart = z.infer<typeof contentSnapshotPartSchema>
 export type ContentSnapshotHeader = z.infer<typeof contentSnapshotHeaderSchema>
 export type ContentSnapshotIndexObject = z.infer<typeof contentSnapshotIndexObjectSchema>
 export type ContentSnapshotListObject = z.infer<typeof contentSnapshotListObjectSchema>
-export type ContentSnapshotDocumentsObject = z.infer<typeof contentSnapshotDocumentsObjectSchema>
 export type ContentSnapshotPublicationVersion = z.infer<
   typeof contentSnapshotPublicationVersionSchema
 >

@@ -145,12 +145,32 @@ export async function openConversation(
   return access
 }
 
-/** Text and rolls write both halves of an entry together in the caller's transaction. */
+/**
+ * Text and rolls write both halves of an entry together in the caller's transaction. Entries read
+ * back by (createdAt, id), so an entry is stamped at least 1 ms after the conversation's newest one:
+ * same-millisecond writers keep insertion order instead of falling to the random id. Returns the
+ * stamped identity; present that, not the proposed one.
+ */
 export async function insertConversationEntry(
   ctx: EncounterWriteContext,
   identity: ReturnType<typeof campaignStoredEntryIdentitySchema.parse>,
   payload: ReturnType<typeof campaignStoredEntryPayloadSchema.parse>
 ) {
-  await ctx.db.insert('campaignConversationEntries', createCampaignEntryHeader(identity, payload))
+  const newest = await ctx.db
+    .query('campaignConversationEntries')
+    .withIndex('by_conversationId_createdAt_id', (q) =>
+      q.eq('conversationId', identity.conversationId)
+    )
+    .order('desc')
+    .first()
+  const stamped = {
+    ...identity,
+    createdAt:
+      newest && newest.createdAt >= identity.createdAt
+        ? new Date(Date.parse(newest.createdAt) + 1).toISOString()
+        : identity.createdAt
+  }
+  await ctx.db.insert('campaignConversationEntries', createCampaignEntryHeader(stamped, payload))
   await ctx.db.insert('campaignConversationEntryPayloads', payload)
+  return stamped
 }

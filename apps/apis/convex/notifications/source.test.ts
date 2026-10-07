@@ -155,6 +155,29 @@ describe('notification source eligibility', () => {
     ).toBe(false)
   })
 
+  it('treats a Campaign the recipient cannot access as an ineligible source, not an error', async () => {
+    const base = await fixture()
+    const announcement = await base.owner.caller.mutation(api.campaigns.announcements.create, {
+      campaignId: base.campaign.id,
+      commandId: crypto.randomUUID(),
+      scope: 'TABLE',
+      title: 'Notice',
+      body: 'Table notice'
+    })
+    expect(
+      await base.t.run((ctx) =>
+        isNotificationSourceEligible(ctx, crypto.randomUUID(), {
+          kind: 'CAMPAIGN_ANNOUNCEMENT',
+          announcementPublicId: announcement.announcementPublicId,
+          campaignPublicId: base.campaign.publicId,
+          scope: announcement.scope,
+          summary: 'A new Campaign announcement is available.',
+          occurredAt: announcement.createdAt
+        })
+      )
+    ).toBe(false)
+  })
+
   it('cancels future Social handoffs after a block or profile suspension', async () => {
     const base = await fixture()
     const data = {

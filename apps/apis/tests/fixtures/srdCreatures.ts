@@ -26,7 +26,7 @@ function seededSrdSubjects() {
 export function seededSrdCreature(label: string): CreatureAuthored {
   seededCreatures ??= seededSrdSubjects()
     .filter((subject) => subject.subjectKind === 'CREATURE')
-    .map((subject) => creatureAuthoredDtoSchema.parse(subject.document) as CreatureAuthored)
+    .map((subject) => creatureAuthoredDtoSchema.parse(subject.document))
   const record = seededCreatures.find((candidate) => candidate.label === label)
   if (!record) throw new Error(`The seeded SRD ${label} is missing.`)
   return record

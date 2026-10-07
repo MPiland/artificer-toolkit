@@ -9,6 +9,7 @@ import {
   presentCampaignRichText
 } from '@artificer-toolkit/shared/campaign/textPolicy'
 import type { Doc } from '../_generated/dataModel'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { QueryCtx } from '../_generated/server'
 import { readAuthUsers } from '../lib/authUserReads'
 import { readCampaignAssignedCharacter } from './assignedCharacter'
@@ -60,7 +61,7 @@ export async function readCampaignDetail(
   { campaign, membership }: Awaited<ReturnType<typeof requireCampaignAuthority>>,
   privateOwnerView = false
 ) {
-  if (privateOwnerView && membership.role !== 'OWNER') throw new Error('Campaign not found.')
+  if (privateOwnerView && membership.role !== 'OWNER') rejectDomain('CAMPAIGN_NOT_FOUND')
   const members = await readActiveCampaignMembers(ctx, campaign)
   const memberDetails = await Promise.all(
     members.map(async (member) => {

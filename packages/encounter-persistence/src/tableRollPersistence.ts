@@ -99,9 +99,9 @@ export async function insertPreEvaluatedCampaignTableRoll(
     unsentAt: null,
     consumedAt: null
   })
-  await insertConversationEntry(ctx, header, payload)
+  const stored = await insertConversationEntry(ctx, header, payload)
   return callbacks.presentChatEntry(
-    header,
+    stored,
     payload,
     conversation,
     authority.campaign.contentMaturity

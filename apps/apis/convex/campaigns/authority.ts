@@ -1,5 +1,6 @@
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import { readActiveCampaignMembers as readStoredActiveCampaignMembers } from '@artificer-toolkit/encounter-persistence/campaignMemberships'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
@@ -100,7 +101,7 @@ export async function requireCampaignAuthority(
   scope?: CampaignInternalScope
 ) {
   const authority = await readCampaignAuthority(ctx, id, userId, scope)
-  if (!authority) throw new Error('Campaign not found.')
+  if (!authority) rejectDomain('CAMPAIGN_NOT_FOUND')
   return authority
 }
 

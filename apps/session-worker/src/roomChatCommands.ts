@@ -170,9 +170,9 @@ export async function executeRoomCampaignChatCommand(input: {
       username,
       content
     })
-    await insertConversationEntry(ctx, identity, payload)
+    const stored = await insertConversationEntry(ctx, identity, payload)
     const [entry] = presentChatEntries(
-      [{ header: identity, payload }],
+      [{ header: stored, payload }],
       access.conversation,
       campaign.contentMaturity,
       [username]

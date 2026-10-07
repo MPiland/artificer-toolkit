@@ -1,15 +1,14 @@
 import { z, lazySchema } from '../zod.js'
 
-import { staticGrantBaseDtoSchema, validateChosenGrantSelectionFields } from './grant.js'
+import { staticGrantBaseDtoSchema, staticGrantSelectionDtoSchema } from './grant.js'
 import {
   authoredIdentifierSchema,
   authoredReferenceCollectionSchema,
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 import {
+  abilityCodeSchema,
   authoringModeKindSchema,
-  authoringSelectionDuplicatePolicySchema,
-  authoringSelectionKindSchema,
   proficiencyKindSchema,
   roundingCodeSchema,
   scalingKindSchema,
@@ -33,7 +32,7 @@ const proficiencyScalingDtoSchema = lazySchema(() =>
 
 const allTargetDtoSchema = lazySchema(() =>
   z.object({
-    authoringModeKind: z.optional(z.literal(authoringModeKindSchema._zod.def.entries.ALL))
+    authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.ALL)
   })
 )
 
@@ -52,7 +51,7 @@ const saveAbilityTargetDtoSchema = lazySchema(() =>
     allTargetDtoSchema,
     z.object({
       authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
-      abilities: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
     })
   ])
 )
@@ -96,52 +95,50 @@ const equipmentPropertyTargetDtoSchema = lazySchema(() =>
 )
 
 export const proficiencyGrantDtoSchema = lazySchema(() =>
-  z
-    .intersection(
+  z.intersection(
+    z.intersection(
       z.intersection(
         z.extend(staticGrantBaseDtoSchema, {
           grantKind: z.literal('PROFICIENCY_GRANT'),
-          selectionKind: authoringSelectionKindSchema,
-          scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-          count: z.optional(z.number().check(z.int())),
-          selectionDuplicatePolicy: z.optional(authoringSelectionDuplicatePolicySchema)
+          scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
         }),
-        z.union([
-          z.intersection(
-            z.object({
-              proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.SKILL)
-            }),
-            skillTargetDtoSchema
-          ),
-          z.intersection(
-            z.object({
-              proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.SAVE_ABILITY)
-            }),
-            saveAbilityTargetDtoSchema
-          ),
-          z.intersection(
-            z.object({
-              proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.LANGUAGE)
-            }),
-            languageTargetDtoSchema
-          ),
-          z.intersection(
-            z.object({
-              proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.EQUIPMENT)
-            }),
-            equipmentTargetDtoSchema
-          ),
-          z.intersection(
-            z.object({
-              proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.EQUIPMENT_PROPERTY)
-            }),
-            equipmentPropertyTargetDtoSchema
-          )
-        ])
+        staticGrantSelectionDtoSchema
       ),
-      proficiencyScalingDtoSchema
-    )
-    .check(z.superRefine(validateChosenGrantSelectionFields))
+      z.union([
+        z.intersection(
+          z.object({
+            proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.SKILL)
+          }),
+          skillTargetDtoSchema
+        ),
+        z.intersection(
+          z.object({
+            proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.SAVE_ABILITY)
+          }),
+          saveAbilityTargetDtoSchema
+        ),
+        z.intersection(
+          z.object({
+            proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.LANGUAGE)
+          }),
+          languageTargetDtoSchema
+        ),
+        z.intersection(
+          z.object({
+            proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.EQUIPMENT)
+          }),
+          equipmentTargetDtoSchema
+        ),
+        z.intersection(
+          z.object({
+            proficiencyKind: z.literal(proficiencyKindSchema._zod.def.entries.EQUIPMENT_PROPERTY)
+          }),
+          equipmentPropertyTargetDtoSchema
+        )
+      ])
+    ),
+    proficiencyScalingDtoSchema
+  )
 )
 
 export type ProficiencyGrantDto = z.infer<typeof proficiencyGrantDtoSchema>

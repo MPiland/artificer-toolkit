@@ -1422,7 +1422,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
           "encounterId": "<uuid:1>",
           "id": "<uuid:25>",
           "replayReceiptChecksum": "<sha:34>",
-          "replayReceiptJson": "{"occurrence":{"occurrenceId":"<uuid:0>","occurrenceVersion":1,"outcome":null,"pending":null,"status":"VOIDED"},"roll":null}",
+          "replayReceiptJson": "{"occurrence":{"occurrenceId":"<uuid:0>","occurrenceVersion":1,"pending":null,"status":"VOIDED"},"roll":null}",
           "ruleOccurrenceId": "<uuid:0>",
           "version": 1,
           "visibility": "PRIVATE",
@@ -1472,7 +1472,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
       "occurrence": {
         "occurrenceId": "<uuid:0>",
         "occurrenceVersion": 1,
-        "outcome": null,
         "pending": null,
         "status": "VOIDED",
       },

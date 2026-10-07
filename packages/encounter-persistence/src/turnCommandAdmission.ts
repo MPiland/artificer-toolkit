@@ -56,7 +56,7 @@ export async function readLiveEncounterTurnAdmission(
     .unique()
   if (!row) throw new Error('Encounter is unavailable.')
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(row.campaignId, userId)
-  if (membership.role !== scope.expectedRole) throw new Error('Campaign not found.')
+  if (membership.role !== scope.expectedRole) rejectDomain('CAMPAIGN_NOT_FOUND')
   // Players end their own actor's turn and answer its turn decisions, checked below.
   if (membership.role !== 'OWNER' && input.type === 'START') rejectDomain('GM_ONLY')
   if (campaign.id !== scope.campaignId) throw new Error('Live Session Encounter scope mismatch.')

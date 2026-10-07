@@ -8,8 +8,7 @@ let seededCreatures: readonly CreatureAuthored[] | null = null
 export function seededSrdCreature(label: string): CreatureAuthored {
   seededCreatures ??= prepareSrdImport()
     .subjects.filter((subject) => subject.subjectKind === 'CREATURE')
-    // The parsed DTO and the shared authored type describe the same record; only inference differs.
-    .map((subject) => creatureAuthoredDtoSchema.parse(subject.document) as CreatureAuthored)
+    .map((subject) => creatureAuthoredDtoSchema.parse(subject.document))
   const record = seededCreatures.find((candidate) => candidate.label === label)
   if (!record) throw new Error(`The seeded SRD ${label} is missing.`)
   return record
