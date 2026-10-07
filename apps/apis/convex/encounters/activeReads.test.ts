@@ -99,7 +99,6 @@ it('reads the active projection and pending decision together with existing visi
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })

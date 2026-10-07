@@ -198,7 +198,6 @@ it('atomically resolves a failed native Concentration save, retains the private 
     name: 'Native Concentration response',
     status: 'ACTIVE',
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: 1,

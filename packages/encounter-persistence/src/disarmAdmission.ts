@@ -212,7 +212,7 @@ export async function readDisarmAdmission(
       rejectDomain('TARGET_UNAVAILABLE', 'The target is defeated.')
   }
   if (state.version !== root.expectedVersion) rejectDomain('VERSION_STALE')
-  if (state.automationMode === 'MANUAL') throw new Error('Disarm requires an Assisted Encounter.')
+  if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
   const pendingOccurrences = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))

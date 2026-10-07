@@ -241,8 +241,7 @@ describe('prepareEncounterTurnEffects', () => {
         initiative: null,
         initiativeAdvance: null,
         occurrenceId: OCCURRENCE_ID,
-        occurrenceVersion: 1,
-        reminder: { kind: 'MANUAL_RULE_REVIEW' }
+        occurrenceVersion: 1
       }
     })
     expect(run.calls.createRuntime).toBe(0)

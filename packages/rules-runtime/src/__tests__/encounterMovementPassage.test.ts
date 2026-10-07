@@ -206,7 +206,6 @@ function runState(automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED'): Encounter
     name: 'Bridge ambush',
     status: 'ACTIVE',
     automationMode,
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: 1,

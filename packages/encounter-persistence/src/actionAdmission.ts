@@ -163,8 +163,7 @@ export async function readNativeEncounterActionAdmission(
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
-  if (state.automationMode === 'MANUAL')
-    throw new Error('Native action execution requires an Assisted Encounter.')
+  if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
   if (state.currentActorId !== input.actorId) rejectDomain('NOT_CURRENT_ACTOR')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')

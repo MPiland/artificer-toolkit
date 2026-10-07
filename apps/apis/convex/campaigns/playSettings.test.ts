@@ -243,7 +243,6 @@ describe('native Campaign play settings', () => {
       })
     expect(await read()).toMatchObject({
       automationMode: settings.automationMode,
-      manualReminderMode: settings.manualReminderMode,
       initiativePolicySnapshot: null,
       initiativePolicySnapshotChecksum: null,
       optionalCombatSnapshot: { definitions: [] }
@@ -259,7 +258,6 @@ describe('native Campaign play settings', () => {
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
       automationMode: 'MANUAL',
-      manualReminderMode: 'SUBTLE',
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id,
       optionalCombatRuleDefinitionIds: [optional.id]
@@ -267,7 +265,6 @@ describe('native Campaign play settings', () => {
     const frozen = await read()
     expect(frozen).toMatchObject({
       automationMode: 'MANUAL',
-      manualReminderMode: 'SUBTLE',
       initiativePolicySnapshot: {
         gameSystemId: campaign.gameSystemId,
         policy: {
@@ -547,14 +544,12 @@ describe('native Campaign play settings', () => {
       contentBoundaries: text,
       safetyPractices: ['SESSION_ZERO'],
       liveSafetyMethod: text,
-      automationMode: 'MANUAL',
-      manualReminderMode: 'SUBTLE'
+      automationMode: 'MANUAL'
     })
     expect(saved).toMatchObject({
       version: 1,
       contentGuidance: text,
-      automationMode: 'MANUAL',
-      manualReminderMode: 'SUBTLE'
+      automationMode: 'MANUAL'
     })
     expect((await stored(t)).campaigns).toEqual(before.campaigns)
     await expect(owner.caller.query(get, { campaignId: campaign.id })).resolves.toEqual(saved)

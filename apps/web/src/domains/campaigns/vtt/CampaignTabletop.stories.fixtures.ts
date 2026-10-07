@@ -285,7 +285,6 @@ export const tabletopPlayerEncounter = {
 
 export const tabletopGmEncounter = {
   ...encounterBase,
-  manualReminderMode: 'OFF',
   healthDisplayDefault: 'DESCRIPTIVE',
   actors: actorBases.map((actor, index) => ({
     ...actor,

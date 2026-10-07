@@ -108,11 +108,7 @@ async function setup(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null,
     ...(mode === 'MANUAL'
-      ? {
-          manualReminderMode: 'OFF',
-          initiativePolicyDefinitionId: null,
-          initiativeTieDefinitionId: null
-        }
+      ? { initiativePolicyDefinitionId: null, initiativeTieDefinitionId: null }
       : {})
   })
   const blueprint = await base.owner.caller.mutation(createBlueprint, {

@@ -241,13 +241,6 @@ export const serverRuleExecutionResultDtoSchema = lazySchema(() =>
   ])
 )
 
-/** Server-only receipt result with no executable continuation. */
-export const manualRuleExecutionReminderDtoSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('MANUAL_RULE_REVIEW')
-  })
-)
-
 export type ServerInitiativeDeclarationRequestDto = z.infer<
   typeof serverInitiativeDeclarationRequestDtoSchema
 >
@@ -264,4 +257,3 @@ export type ServerRuleExecutionResultDto = z.infer<typeof serverRuleExecutionRes
 export type ServerRuleExecutionCorrelationIdDto = z.infer<
   typeof serverRuleExecutionCorrelationIdDtoSchema
 >
-export type ManualRuleExecutionReminderDto = z.infer<typeof manualRuleExecutionReminderDtoSchema>

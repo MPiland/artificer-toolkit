@@ -649,8 +649,7 @@ export async function prepareEncounterTurnEffects<
       result: storedRuleExecutionResultDtoSchema.parse({
         status: 'MANUAL',
         occurrenceId: input.occurrenceId,
-        occurrenceVersion: 1,
-        reminder: { kind: 'MANUAL_RULE_REVIEW' }
+        occurrenceVersion: 1
       })
     }
     if (input.pending || (input.retainedPhase && !same(phase, input.retainedPhase)))

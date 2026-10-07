@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
-import { automationModeDtoSchema, manualReminderModeDtoSchema } from './campaignSettings.js'
+import { automationModeDtoSchema } from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
 import { creatureQualifiedDamageDefenseDtoSchema } from '../subjects/creature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
@@ -24,10 +24,7 @@ const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnega
 const timestampSchema = lazySchema(() => z.iso.datetime())
 const jsonSchema = z.json()
 
-export {
-  automationModeDtoSchema as encounterAutomationModeDtoSchema,
-  manualReminderModeDtoSchema as encounterManualReminderModeDtoSchema
-}
+export { automationModeDtoSchema as encounterAutomationModeDtoSchema }
 
 export const encounterStatusDtoSchema = lazySchema(() =>
   z.enum(['PREPARED', 'ACTIVE', 'COMPLETED'])
@@ -195,7 +192,6 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     name: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
     status: encounterStatusDtoSchema,
     automationMode: automationModeDtoSchema,
-    manualReminderMode: manualReminderModeDtoSchema,
     /** What players see of enemies' and NPCs' health unless an actor overrides it. */
     healthDisplayDefault: healthDisplayLevelDtoSchema,
     initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),

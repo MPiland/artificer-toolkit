@@ -53,6 +53,10 @@
 - PLATFORM-17 follow-up: the web test typecheck had been red since `35222fdad` (CHOSEN grant fixtures lacked `selectionDuplicatePolicy`; the dead creature `createEmptyProficiency` failed the contract and is deleted). Class and Background factories now parse through `proficiencyGrantDtoSchema` in tests.
 - `haiku` subagents now resolve to Haiku 5.5 (`ANTHROPIC_DEFAULT_HAIKU_MODEL` in `~/.claude/settings.json`); use them for light mechanical runs.
 
+**Done 2026-10-07 (sixth session):**
+
+- ENCOUNTER-2: ENCOUNTER-2.7 reworded with the user's approval. ADR 0034 Manual mode tracks only, so the dead `manualReminderMode` setting and the MANUAL result `reminder` are removed end to end (schema, runtime, persistence, Worker, Convex snapshot, web settings). Manual action commands now refuse as `ASSISTED_ONLY` (a regression test failed first with a redacted `UNAVAILABLE`). The `developmentLifecycleProof` journey proves the refusal in the real room. Opt-in Manual-mode rules cues are recorded as post-beta in [future enhancements](../roadmap/future-enhancements.md#manual-mode-rules-cues). Ledger 62/124 PBIs, 283/401 ACs.
+
 **Next work: the WSJF ranking below, top down (ranked 2026-10-07).** WSJF = (user/business value + time criticality + risk reduction or enablement) / job size, Fibonacci scores. A PBI never starts before the PBIs it is marked "after".
 
 | #   | PBI                                     | WSJF | Note                                                                                                                                             |
@@ -60,7 +64,7 @@
 | 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                           |
 | 2   | PRIVACY-3                               | 5.3  | Done (fourth session).                                                                                                                           |
 | 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                            |
-| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Assisted and Manual modes end to end.                                                                                                            |
+| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                            |
 | 5   | CAMPAIGN-7                              | 4.3  | The GM plays a Character.                                                                                                                        |
 | 6   | ATTACK-8                                | 4.2  | Multiattack and Extra Attack.                                                                                                                    |
 | 7   | ATTACK-3                                | 4.0  | Journey: disposition and bendable-check warnings.                                                                                                |

@@ -353,7 +353,6 @@ export function srdEncounterState(input: {
     name: 'Pure rules fixture',
     status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: input.round ?? 1,

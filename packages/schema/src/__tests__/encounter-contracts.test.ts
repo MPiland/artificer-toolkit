@@ -601,7 +601,6 @@ describe('encounter contracts', () => {
     expect(
       encounterGmProjectionDtoSchema.parse({
         ...base,
-        manualReminderMode: 'OFF',
         healthDisplayDefault: 'HIDDEN',
         actors: [
           {
@@ -640,7 +639,6 @@ describe('encounter contracts', () => {
     expect(
       encounterGmProjectionDtoSchema.parse({
         ...base,
-        manualReminderMode: 'OFF',
         healthDisplayDefault: 'HIDDEN',
         version: 0,
         actors: [

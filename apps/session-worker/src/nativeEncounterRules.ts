@@ -171,7 +171,11 @@ export async function planNativeLiveEncounterAction(
   )
     throw new Error('Encounter rules input binding mismatch.')
   if (state.automationMode === 'MANUAL')
-    throw new Error('Native action execution requires an Assisted Encounter.')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'ASSISTED_ONLY',
+      message: DOMAIN_REJECTION_MESSAGES.ASSISTED_ONLY
+    })
 
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,

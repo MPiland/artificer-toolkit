@@ -44,7 +44,6 @@ export type {
 
 export {
   encounterAutomationModeDtoSchema,
-  encounterManualReminderModeDtoSchema,
   encounterStatusDtoSchema,
   encounterActorKindDtoSchema,
   encounterActorDispositionDtoSchema,

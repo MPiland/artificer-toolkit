@@ -211,7 +211,6 @@ describe('native initiative corrections', () => {
       ...settingsFields,
       expectedVersion: version,
       automationMode: 'MANUAL',
-      manualReminderMode: 'OFF',
       initiativePolicyDefinitionId: null,
       initiativeTieDefinitionId: null
     })

@@ -224,7 +224,6 @@ export function encounterRunState(input: {
     name: 'Worker capture fixture',
     status: 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: 1,

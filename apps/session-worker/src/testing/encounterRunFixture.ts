@@ -91,7 +91,6 @@ export async function encounterRunFixture({
     name: 'Native Sheet Encounter',
     status,
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: status === 'ACTIVE' ? 1 : 0,

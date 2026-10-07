@@ -123,8 +123,7 @@ export async function completeNativeInitiativeOccurrence(input: {
         throw new Error('Manual turn evidence is invalid.')
       return {
         kind: 'MANUAL' as const,
-        selectionChecksum: value.phase.selectionChecksum,
-        reminder: value.phase.result.reminder
+        selectionChecksum: value.phase.selectionChecksum
       }
     }
     if (

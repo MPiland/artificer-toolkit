@@ -57,7 +57,6 @@ export type {
   ServerRuleExecutionNestedD20EvidenceDto
 } from './ruleExecutionEvidence.js'
 export {
-  manualRuleExecutionReminderDtoSchema,
   ruleExecutionPhaseReceiptDtoSchema,
   ruleExecutionPhaseReceiptsDtoSchema,
   serverCompletedRuleExecutionDtoSchema,
@@ -70,7 +69,6 @@ export {
   serverRuleIntegerRangeRequestDtoSchema
 } from './ruleExecutionProtocol.js'
 export type {
-  ManualRuleExecutionReminderDto,
   RuleExecutionPhaseReceiptDto,
   RuleExecutionPhaseReceiptsDto,
   ServerCompletedRuleExecutionDto,

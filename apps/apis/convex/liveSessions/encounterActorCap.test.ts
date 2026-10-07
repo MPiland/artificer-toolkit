@@ -53,7 +53,6 @@ it('starts and advances a turn in a Run at the actor cap through the room', asyn
     ...settingFields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })

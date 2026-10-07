@@ -52,8 +52,7 @@ async function fixture(mode: 'MANUAL' | FixtureRolls = 'MANUAL') {
     expectedVersion: version,
     automationMode: mode === 'MANUAL' ? 'MANUAL' : 'ASSISTED',
     initiativePolicyDefinitionId: definitionId,
-    initiativeTieDefinitionId: null,
-    manualReminderMode: 'OFF'
+    initiativeTieDefinitionId: null
   })
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,

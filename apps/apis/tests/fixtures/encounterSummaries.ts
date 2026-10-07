@@ -13,7 +13,7 @@ export function encounterSummaryOf(
     name: projection.name,
     status: projection.status,
     round: projection.round,
-    actorCount: 'manualReminderMode' in projection ? projection.actors.length : null,
+    actorCount: 'reminders' in projection ? projection.actors.length : null,
     updatedAt: projection.updatedAt,
     version: projection.version
   }

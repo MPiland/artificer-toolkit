@@ -57,8 +57,7 @@ describe('Campaign live-play contracts', () => {
     }
 
     expect(campaignPlaySettingsDtoSchema.parse(base)).toMatchObject({
-      automationMode: 'ASSISTED',
-      manualReminderMode: 'OFF'
+      automationMode: 'ASSISTED'
     })
     expect(
       campaignPlaySettingsDtoSchema.safeParse({ ...base, automationMode: 'SUGGESTIVE' }).success
@@ -68,7 +67,7 @@ describe('Campaign live-play contracts', () => {
       campaignPlaySettingsDtoSchema.safeParse({ ...base, automationMode: 'AUTOMATIC' }).success
     ).toBe(false)
     expect(
-      campaignPlaySettingsDtoSchema.safeParse({ ...base, manualReminderMode: 'LOUD' }).success
+      campaignPlaySettingsDtoSchema.safeParse({ ...base, manualReminderMode: 'OFF' }).success
     ).toBe(false)
   })
 

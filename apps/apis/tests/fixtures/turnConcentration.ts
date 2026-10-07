@@ -142,7 +142,6 @@ export async function turnConcentrationFixture(rolls: FixtureRolls) {
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })

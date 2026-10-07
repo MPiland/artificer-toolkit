@@ -78,7 +78,6 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
     name: 'Maintenance capture',
     status: 'ACTIVE',
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: 1,

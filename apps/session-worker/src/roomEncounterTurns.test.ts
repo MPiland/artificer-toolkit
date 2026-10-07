@@ -99,7 +99,6 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     name: 'Native manual turns',
     status: 'PREPARED',
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 0,
     round: 0,

@@ -149,18 +149,6 @@ function CampaignTableSettingsForm({
           value={draft.automationMode}
         />
         <Select
-          data={[
-            { value: 'OFF', label: 'Off' },
-            { value: 'SUBTLE', label: 'Subtle reminders' }
-          ]}
-          disabled={!editable}
-          label='Manual reminders'
-          onChange={(value) => {
-            if (value === 'OFF' || value === 'SUBTLE') set('manualReminderMode', value)
-          }}
-          value={draft.manualReminderMode}
-        />
-        <Select
           clearable
           data={options.initiativePolicies.map((policy) => ({
             value: policy.definitionId,

@@ -27,7 +27,7 @@ flowchart LR
 
 All options are disabled by default. Automatic resolves server-side; Assisted pauses for an
 authorized bounded choice or roll and can be passed where the rule permits; Manual leaves the
-mechanics inert and may expose only the configured sanitized reminder. Stored settings remain
+mechanics inert and shows no rules cues (ADR 0034). Stored settings remain
 auditable even when Manual makes them inactive.
 
 ## Variant policy matrix

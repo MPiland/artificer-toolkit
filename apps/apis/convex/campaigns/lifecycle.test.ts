@@ -97,7 +97,6 @@ describe('native Campaign creation and member reads', () => {
       campaignId: campaign.id,
       version: 0,
       automationMode: 'ASSISTED',
-      manualReminderMode: 'OFF',
       initiativePolicyDefinitionId: null,
       initiativeTieDefinitionId: null,
       optionalCombatRuleDefinitionIds: []

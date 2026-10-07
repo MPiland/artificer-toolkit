@@ -271,7 +271,6 @@ export function projectGmFacts(
     name: encounter.name,
     status: encounter.status,
     automationMode: encounter.automationMode,
-    manualReminderMode: encounter.manualReminderMode,
     healthDisplayDefault: encounter.healthDisplayDefault,
     initiativePolicy:
       encounter.initiativePolicySnapshot == null

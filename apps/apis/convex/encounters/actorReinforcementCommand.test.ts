@@ -38,8 +38,7 @@ async function manualFixture() {
     expectedVersion: version,
     automationMode: 'MANUAL',
     initiativePolicyDefinitionId: null,
-    initiativeTieDefinitionId: null,
-    manualReminderMode: 'OFF'
+    initiativeTieDefinitionId: null
   })
   const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
     gameSystemId: base.campaign.gameSystemId,

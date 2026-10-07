@@ -159,7 +159,6 @@ export async function turnActiveEffectFixture(
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
@@ -204,7 +203,6 @@ export async function turnCharacterEffectFixture() {
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })

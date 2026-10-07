@@ -121,7 +121,6 @@ async function setup(
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: policyId,
     initiativeTieDefinitionId: null
   })
@@ -232,7 +231,6 @@ async function startCharacterDeclarationRun() {
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })
@@ -763,7 +761,6 @@ describe('native initiative declarations', () => {
         ...fields,
         expectedVersion: version,
         automationMode: 'ASSISTED',
-        manualReminderMode: 'OFF',
         initiativePolicyDefinitionId: initiative.policyIds[0]!,
         initiativeTieDefinitionId: null
       })
@@ -1066,7 +1063,6 @@ describe('native initiative declarations', () => {
       ...fields,
       expectedVersion: version,
       automationMode: 'ASSISTED',
-      manualReminderMode: 'OFF',
       initiativePolicyDefinitionId: initiative.policyIds[0]!,
       initiativeTieDefinitionId: null
     })

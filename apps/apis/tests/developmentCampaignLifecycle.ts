@@ -951,7 +951,6 @@ export async function verifyCampaignLifecycle(input: {
     ...playSettingsFields,
     expectedVersion: playSettingsVersion,
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null
   })

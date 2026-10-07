@@ -127,7 +127,6 @@ async function setup(withRun = true) {
       ...settings,
       expectedVersion: version,
       automationMode: 'MANUAL',
-      manualReminderMode: 'OFF',
       initiativePolicyDefinitionId: null,
       initiativeTieDefinitionId: null
     })

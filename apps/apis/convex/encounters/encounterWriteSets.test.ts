@@ -218,7 +218,6 @@ async function tiedStart(actors: number) {
     ...settings,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: policyIds[0]!,
     initiativeTieDefinitionId: null
   })

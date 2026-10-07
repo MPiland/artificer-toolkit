@@ -28,7 +28,6 @@ const optionalCombatDefinitionIdsDtoSchema = lazySchema(() =>
 )
 export const automationModeDtoSchema = lazySchema(() => z.enum(['ASSISTED', 'MANUAL']))
 export type AutomationModeDto = z.infer<typeof automationModeDtoSchema>
-export const manualReminderModeDtoSchema = lazySchema(() => z.enum(['OFF', 'SUBTLE']))
 
 const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -48,7 +47,6 @@ const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
       z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
     ),
     automationMode: z._default(automationModeDtoSchema, 'ASSISTED'),
-    manualReminderMode: z._default(manualReminderModeDtoSchema, 'OFF'),
     initiativePolicyDefinitionId: z._default(z.nullable(uuidSchema), null),
     initiativeTieDefinitionId: z._default(z.nullable(uuidSchema), null),
     optionalCombatRuleDefinitionIds: optionalCombatDefinitionIdsDtoSchema,

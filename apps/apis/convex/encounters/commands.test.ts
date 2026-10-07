@@ -235,7 +235,6 @@ async function setup(
       ...fields,
       expectedVersion: version,
       automationMode: options.manual ? 'MANUAL' : 'ASSISTED',
-      manualReminderMode: 'OFF',
       initiativePolicyDefinitionId,
       initiativeTieDefinitionId: null
     })
@@ -426,7 +425,6 @@ async function setupCharacterAutomatic(classOptions?: Parameters<typeof readyCha
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId,
     initiativeTieDefinitionId: null
   })

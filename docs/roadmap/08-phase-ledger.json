@@ -2841,7 +2841,7 @@
                 "apps/apis/convex/encounters/commands.test.ts › names the dice a room roll draws and refuses draws that do not match them (deleted in A35-S6c3)",
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › refuses a bound move with no room live and still publishes an unbound move natively (D43) (SCENE_NOT_PRESENTED with the Scene unchanged; an unbound token still stages natively)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › refuses a movement decision off the presented Scene without staging it (D42)",
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: a no-room bound move is refused SCENE_NOT_PRESENTED with and without a presentation context, leaving the Scene header and Run unchanged) (contention step deleted in A35-S3c1)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: a no-room bound move is refused SCENE_NOT_PRESENTED with and without a presentation context, leaving the Scene header and Run unchanged) (contention step deleted in A35-S3c1)",
                 "apps/apis/convex/liveSessions/liveCharacterFence.test.ts › refuses a room plan whose Character changed before commit and commits a re-captured plan (deleted in A35-S6c3)",
                 "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room",
                 "structure: every Encounter command enters through the room (VS-8 deleted encounters/commands.ts; commandBoundary.test.ts asserts no Convex function accepts an Encounter command); the room plans actions, basic actions, turns, Legendary windows, Concentration, Cleaving, Disarm and movement and draws every dice command's dice (D41); S4-e (8b7459d6d, D43/D44) deleted scenes/spatialPreparation, encounters/spatialMovement, movementConcentration and the Convex movement perception/reaction code, and Convex no longer re-runs movement rules at commit; the only Convex random source left is lib/rollRandom.ts, used by free-form personal and Campaign rolls (rolls.ts, campaigns/rolls.ts) and Character Sheet rolls (rollDocuments.ts, R06.3)",
@@ -3444,7 +3444,7 @@
         {
           "id": "ENCOUNTER-2",
           "title": "Start, run and finish an Encounter",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/commands.test.ts",
             "apps/apis/convex/encounters/sceneBindings.test.ts",
@@ -3484,7 +3484,7 @@
                 "apps/apis/convex/encounters/initiativeCorrection.test.ts › rewinds, clears, reselects, and revisits a manually-settled round without new rolls",
                 "apps/apis/convex/encounters/runs.test.ts › atomically snapshots assigned Characters and enemies, and replays without source reads",
                 "packages/schema/src/__tests__/campaign-live-play-contracts.test.ts (AUTOMATIC automationMode rejected)",
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room",
                 "impl: packages/schema/src/api/campaignSettings.ts (automationModeDtoSchema), packages/encounter-persistence/src/commands.ts"
               ],
               "origin": ["V08.3", "G1-LIVE-UPDATES"],
@@ -3509,7 +3509,7 @@
               "proof": [
                 "apps/apis/convex/scenes/presentations.test.ts › creates, replays, clears and reads one Campaign presentation without duplicating receipts",
                 "apps/apis/convex/scenes/presentations.test.ts › keeps one Campaign presentation and its map across Session finish until the Scene is cleared",
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterLifecycle.ts asserts the presentation is unchanged after COMPLETE)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterLifecycle.ts asserts the presentation is unchanged after COMPLETE)",
                 "apps/session-worker/test/nativeLiveSessionRoom.test.ts › resends the authoritative state on a valid resume frame",
                 "impl: apps/apis/convex/scenes/presentations.ts"
               ],
@@ -3520,18 +3520,24 @@
               "text": "Forced rollbacks and real command, binding, presentation and ownership races leave consistent state, with exact cleanup.",
               "status": "DONE",
               "proof": [
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterTransactions.ts: forced rollback and concurrent command/binding/presentation/ownership/Session-finish schedules)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterTransactions.ts: forced rollback and concurrent command/binding/presentation/ownership/Session-finish schedules)",
                 "impl: apps/apis/convex/encounters/developmentLifecycle.ts (verifyRollback), packages/encounter-persistence/src/commands.ts"
               ],
               "origin": ["V08.6", "P81-PG-ROLLBACK", "P81-PG-CLEANUP"],
               "id": "ENCOUNTER-2.6"
             },
             {
-              "text": "Assisted and Manual modes both work end to end, including sanitized reminders; Automatic mode is intentionally not offered (ADR 0034).",
-              "status": "TODO",
-              "proof": [],
+              "text": "Assisted and Manual modes both work end to end through the real room: Manual tracks initiative, turns, rounds, GM reminders and Scene binding, refuses actions (ASSISTED_ONLY) and applies no turn effects; Assisted rolls and resolves initiative under every policy; Automatic mode is intentionally not offered (ADR 0034).",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterLifecycle.ts: Manual RESOLVE_ACTION refused as ASSISTED_ONLY with the Run unchanged, the player's active read carries no GM reminders; apps/apis/tests/developmentEncounterAutomation.ts: four Assisted initiative scenarios)",
+                "packages/rules-runtime/src/__tests__/encounterTurnEffects.test.ts › records a MANUAL review phase over the exact createdOrdinal-ordered selection",
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › commits warm native reminders, round, initiative, health display, and actor control before acknowledgement, with no Convex call",
+                "packages/schema/src/__tests__/campaign-live-play-contracts.test.ts (AUTOMATIC automationMode and a leftover manualReminderMode rejected)",
+                "impl: packages/schema/src/api/domainRejections.ts (ASSISTED_ONLY), packages/encounter-persistence/src/actionAdmission.ts, basicActionAdmission.ts, disarmAdmission.ts, apps/session-worker/src/nativeEncounterRules.ts"
+              ],
               "origin": ["G2-AUTOMATION-MODES"],
-              "note": "Original CONFLICT: the Automatic part is retired by ADR 0034; the Assisted and Manual parts stay as this criterion. Sanitized-reminder coverage is unverified.",
+              "note": "Reworded 2026-10-07 with the user's approval: the pre-ADR-0034 'sanitized reminders' (the Off/Subtle manualReminderMode setting, which only gated an undisplayed receipt marker) are removed; Manual-mode rules cues are a post-beta item in docs/roadmap/future-enhancements.md.",
               "id": "ENCOUNTER-2.7"
             }
           ]
@@ -3568,7 +3574,7 @@
               "text": "Actor, side and cadence initiative scenarios pass current-round and next-round eligibility, same-version reinforcement races, exact replay and rollback.",
               "status": "DONE",
               "proof": [
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterAutomation.ts: actor/side/cadence scenarios and the same-version REINFORCE race with one VERSION_STALE loser)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterAutomation.ts: actor/side/cadence scenarios and the same-version REINFORCE race with one VERSION_STALE loser)",
                 "apps/apis/convex/encounters/commands.test.ts › runs native SIDE_ROLL start, side transitions, correction, and both cadence wraps",
                 "apps/apis/convex/encounters/actorReinforcementCommand.test.ts › rejects stale versions and pending occurrences without writes",
                 "impl: apps/apis/convex/encounters/actorReinforcementCommand.ts, packages/encounter-persistence/src/commands.ts"
@@ -4753,7 +4759,7 @@
               "text": "Lifecycle, binding, presentation and ownership race schedules pass against Campaign-keyed Runs and presentation (ADR 0033).",
               "status": "DONE",
               "proof": [
-                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterTransactions.ts: lifecycle, binding, presentation, ownership and Session-finish race schedules on Campaign-keyed Runs)",
+                "apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterTransactions.ts: lifecycle, binding, presentation, ownership and Session-finish race schedules on Campaign-keyed Runs)",
                 "apps/apis/convex/campaigns/campaignPlay.test.ts › fences direct writes only to the presented Scene while room authority is live"
               ],
               "origin": [
@@ -4779,7 +4785,7 @@
               "text": "Same-Scene movement contention and distinct-Scene writes stay consistent.",
               "status": "DONE",
               "proof": [
-                "(deleted in A35-S3c1) apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through local transactions (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: since S4-e (D43) a no-room bound move is refused SCENE_NOT_PRESENTED with the Scene header and Run unchanged, and two clients' concurrent distinct-Scene writes both commit and replay exactly; the Convex-native bound-move race it used to run was deleted with that path)",
+                "(deleted in A35-S3c1) apps/apis/convex/encounters/developmentLifecycleProof.test.ts › runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room (apps/apis/tests/developmentEncounterCutover.ts verifyEncounterCutoverContention: since S4-e (D43) a no-room bound move is refused SCENE_NOT_PRESENTED with the Scene header and Run unchanged, and two clients' concurrent distinct-Scene writes both commit and replay exactly; the Convex-native bound-move race it used to run was deleted with that path)",
                 "(deleted in A35-S3c1) apps/apis/convex/scenes/standaloneMovement.test.ts › rejects a competing staged move after the first publication changes the Scene (two staged moves of the same token: the first publishes, the second is refused as changed, one Scene command and version 1)",
                 "(deleted in A35-S6c2) apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a room bound move with a stale Scene, presentation or Encounter version is refused 409 with nothing staged)",
                 "note: the room is the single writer of the presented Scene and runs its commands one at a time (R06.4, D41), so same-Scene bound moves are ordered in the room and a stale one is refused at the Convex fence; the reaction-response race is V14.4",

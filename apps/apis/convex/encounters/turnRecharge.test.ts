@@ -247,7 +247,6 @@ async function setup(rolls: FixtureRolls, creatures = 1, rechargeFeatures = 1) {
     ...settingFields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: initiative.policyIds[0]!,
     initiativeTieDefinitionId: null
   })

@@ -156,7 +156,8 @@ contributors behind the derived mode (`encounterRollModeReasons`, labeled for di
 `rollModeReasons` in `packages/encounter-persistence`). A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or
-applying state (`MANUAL_RULE_REVIEW` is the only reminder marker).
+applying state and carries no rules cue (ADR 0034). Actions in a Manual Encounter are refused with the
+`ASSISTED_ONLY` domain rejection.
 
 **Active effects and maintained state.** Current active effects are state, not occurrences. Each stores an
 immutable definition (origin, one frozen `SINGLE_GRAPH`, adapter facts, recurrence, perception

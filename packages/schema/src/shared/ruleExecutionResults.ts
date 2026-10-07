@@ -23,7 +23,6 @@ import {
   ruleExecutionChecksumSchema as checksumSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
-import { manualRuleExecutionReminderDtoSchema } from './ruleExecutionProtocol.js'
 import {
   encounterInitiativeAdvancePlanDtoSchema,
   encounterInitiativeSettlementDtoSchema
@@ -55,8 +54,7 @@ const completedTurnLifecyclePhaseEvidenceDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('MANUAL'),
-      selectionChecksum: checksumSchema,
-      reminder: z.nullable(manualRuleExecutionReminderDtoSchema)
+      selectionChecksum: checksumSchema
     }),
     z.strictObject({
       kind: z.literal('EXECUTED'),

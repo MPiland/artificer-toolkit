@@ -18,7 +18,6 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import {
-  manualRuleExecutionReminderDtoSchema,
   ruleExecutionPhaseReceiptsDtoSchema,
   serverCompletedRuleExecutionDtoSchema,
   serverRuleIntegerRangeRequestDtoSchema
@@ -143,7 +142,6 @@ export const manualRuleExecutionResultDtoSchema = lazySchema(() =>
     status: z.literal('MANUAL'),
     occurrenceId: uuidSchema,
     occurrenceVersion: aggregateVersionSchema,
-    reminder: z.nullable(manualRuleExecutionReminderDtoSchema),
     initiative: z._default(z.nullable(encounterInitiativeSettlementDtoSchema), null),
     initiativeAdvance: z._default(z.nullable(encounterInitiativeAdvancePlanDtoSchema), null),
     actionEconomyRefreshes: z.optional(

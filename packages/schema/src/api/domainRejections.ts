@@ -4,6 +4,7 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 const reasonsWithoutPayload = [
   'ACTIVE_ENCOUNTER_EXISTS',
   'ACTOR_DEFEATED',
+  'ASSISTED_ONLY',
   'CAMPAIGN_NOT_ACTIVE',
   'CAMPAIGN_NOT_FOUND',
   'COMMAND_ID_REUSED',
@@ -27,6 +28,7 @@ const reasonsWithoutPayload = [
 export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[number], string> = {
   ACTIVE_ENCOUNTER_EXISTS: 'Campaign already has an active Encounter.',
   ACTOR_DEFEATED: 'This actor is defeated. Raise its hit points above 0 to revive it.',
+  ASSISTED_ONLY: "Manual Encounters don't resolve actions. Resolve it at the table.",
   CAMPAIGN_NOT_ACTIVE: 'Archived Campaigns are read-only.',
   CAMPAIGN_NOT_FOUND: 'Campaign not found.',
   COMMAND_ID_REUSED: 'Command ID was already used with different input.',

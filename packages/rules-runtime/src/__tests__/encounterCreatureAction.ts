@@ -260,7 +260,6 @@ export function creatureEncounter<
     name: 'Rules fixture',
     status: 'ACTIVE',
     automationMode,
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 3,
     round: 1,

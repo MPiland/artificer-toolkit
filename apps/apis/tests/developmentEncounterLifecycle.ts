@@ -48,7 +48,6 @@ export async function verifyEncounterLifecycle({
     ...fields,
     expectedVersion: version,
     automationMode: 'MANUAL',
-    manualReminderMode: 'SUBTLE',
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null
   })
@@ -76,7 +75,6 @@ export async function verifyEncounterLifecycle({
   assert.equal(prepared.blueprintChecksum, blueprint.setupChecksum)
   assert.equal(prepared.blueprintVersion, blueprint.version)
   assert.equal(prepared.automationMode, 'MANUAL')
-  assert.equal(prepared.manualReminderMode, 'SUBTLE')
   assert.equal(prepared.actors.length, 2)
   assert.deepEqual(prepared.actors.map((actor) => [actor.label, actor.currentHitPoints]).sort(), [
     ['First practice opponent', 10],
@@ -168,6 +166,31 @@ export async function verifyEncounterLifecycle({
     (await owner.query(api.encounters.activeReads.active, { campaignId })).encounter,
     projection
   )
+  // A Manual Encounter is a tracker (ADR 0034): the room refuses actions as a domain rejection.
+  // The refused command leaves the Run unchanged because the next command, at the held version,
+  // advances it by exactly one.
+  await assert.rejects(
+    owner.mutation(executeEncounterCommand, {
+      command: {
+        ...commandBase(),
+        type: 'RESOLVE_ACTION',
+        actorId: first.id,
+        actionId: 'any-action',
+        targetActorId: second.id,
+        acceptedWieldConflict: null,
+        acknowledgedWarnings: [],
+        sceneContext: null
+      }
+    }),
+    /ASSISTED_ONLY/
+  )
+  // GM reminders are the GM's: a player's read of the active Encounter carries none of them.
+  const playerEncounter = (await player.query(api.encounters.activeReads.active, { campaignId }))
+    .encounter
+  assert.ok(playerEncounter)
+  assert.equal('reminders' in playerEncounter, false)
+  for (const reminder of reminders)
+    assert.ok(!JSON.stringify(playerEncounter).includes(reminder.label))
   await execute({ ...commandBase(), type: 'ADVANCE_TURN' })
   assert.equal(projection.currentActorId, second.id)
   await execute({ ...commandBase(), type: 'ADVANCE_TURN' })

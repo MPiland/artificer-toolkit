@@ -3889,7 +3889,6 @@ async function localEncounterFixture(
     name: 'Native manual Encounter',
     status: 'ACTIVE',
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: 1,

@@ -114,7 +114,6 @@ it('settles Character and Creature mechanics from native play with private recei
     name: 'Native mechanics fixture',
     status: 'ACTIVE',
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     healthDisplayDefault: 'HIDDEN',
     version: 1,
     round: 1,

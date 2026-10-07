@@ -40,7 +40,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-it('runs the shared Manual/Automatic/Assisted lifecycles, native map/Scene binding and cleanup through the real Session room', async () => {
+it('runs the shared Manual and Assisted lifecycles, native map/Scene binding and cleanup through the real Session room', async () => {
   const { t, other: owner, owner: player, character } = await readySheetFixture()
   register(t)
   registerRetrier(t, 'r2/actionRetrier')

@@ -52,7 +52,6 @@ const playSettings = {
   safetyPractices: ['SESSION_ZERO'],
   liveSafetyMethod: null,
   automationMode: 'ASSISTED',
-  manualReminderMode: 'SUBTLE',
   initiativePolicyDefinitionId: initiativePolicyId,
   initiativeTieDefinitionId: initiativeTieId,
   optionalCombatRuleDefinitionIds: [optionalRuleId],
@@ -162,7 +161,6 @@ export const RulesAndAutomation: Story = {
     await expect(await canvas.findByText('Entries 42 / 150')).toBeVisible()
     await expect(await canvas.findByLabelText(/Primary Rules Catalogue/i)).toHaveValue('2014 SRD')
     await expect(await canvas.findByLabelText('Automation mode')).toHaveValue('Assisted')
-    await expect(await canvas.findByLabelText('Manual reminders')).toHaveValue('Subtle reminders')
     await expect(await canvas.findByLabelText('Initiative policy')).toHaveValue(
       'Standard initiative'
     )

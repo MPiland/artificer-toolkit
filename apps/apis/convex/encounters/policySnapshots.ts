@@ -62,7 +62,6 @@ export async function snapshotEncounterPolicies(
   })
   return {
     automationMode: settings.automationMode,
-    manualReminderMode: settings.manualReminderMode,
     initiativePolicySnapshot,
     initiativePolicySnapshotChecksum:
       initiativePolicySnapshot === null ? null : checksumCanonicalJson(initiativePolicySnapshot),

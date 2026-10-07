@@ -291,7 +291,6 @@ describe('native Encounter reads', () => {
     expect(playerProjection.actors[0]).not.toHaveProperty('features')
     expect(playerProjection.actors[0]).not.toHaveProperty('resources')
     expect(playerProjection).not.toHaveProperty('reminders')
-    expect(playerProjection).not.toHaveProperty('manualReminderMode')
     expect(JSON.stringify(playerProjection)).not.toContain(ownerHidden!.id)
     expect(JSON.stringify(playerProjection)).not.toContain('secret GM note')
     expect(JSON.stringify(playerProjection)).not.toContain('visible only to GM')

@@ -88,8 +88,7 @@ export async function persistEncounterTurnEffects(
         storedRuleExecutionResultDtoSchema.parse({
           status: 'MANUAL',
           occurrenceId: input.occurrenceId,
-          occurrenceVersion: 1,
-          reminder: { kind: 'MANUAL_RULE_REVIEW' }
+          occurrenceVersion: 1
         })
       )
     )

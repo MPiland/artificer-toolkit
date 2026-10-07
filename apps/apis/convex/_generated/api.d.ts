@@ -8913,7 +8913,6 @@ export declare const api: {
           initiativePolicyDefinitionId?: string | null;
           initiativeTieDefinitionId?: string | null;
           liveSafetyMethod: string | null;
-          manualReminderMode?: "OFF" | "SUBTLE";
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
@@ -8977,7 +8976,6 @@ export declare const api: {
           initiativePolicyDefinitionId?: string | null;
           initiativeTieDefinitionId?: string | null;
           liveSafetyMethod: string | null;
-          manualReminderMode?: "OFF" | "SUBTLE";
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
@@ -9002,7 +9000,6 @@ export declare const api: {
           initiativePolicyDefinitionId?: string | null;
           initiativeTieDefinitionId?: string | null;
           liveSafetyMethod: string | null;
-          manualReminderMode?: "OFF" | "SUBTLE";
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
@@ -37776,7 +37773,6 @@ export declare const api: {
                   tieResolverDefinitionId: string;
                   tieResolverLabel: string;
                 } | null;
-                manualReminderMode: "OFF" | "SUBTLE";
                 name: string;
                 optionalCombatRules?: Array<{
                   definitionId: string;
@@ -38430,7 +38426,6 @@ export declare const api: {
                   tieResolverDefinitionId: string;
                   tieResolverLabel: string;
                 } | null;
-                manualReminderMode: "OFF" | "SUBTLE";
                 name: string;
                 optionalCombatRules?: Array<{
                   definitionId: string;
@@ -39149,7 +39144,6 @@ export declare const api: {
               tieResolverDefinitionId: string;
               tieResolverLabel: string;
             } | null;
-            manualReminderMode: "OFF" | "SUBTLE";
             name: string;
             optionalCombatRules?: Array<{
               definitionId: string;
@@ -39409,7 +39403,6 @@ export declare const api: {
                   tieResolverDefinitionId: string;
                   tieResolverLabel: string;
                 } | null;
-                manualReminderMode: "OFF" | "SUBTLE";
                 name: string;
                 optionalCombatRules?: Array<{
                   definitionId: string;
@@ -39825,7 +39818,6 @@ export declare const api: {
             tieResolverDefinitionId: string;
             tieResolverLabel: string;
           } | null;
-          manualReminderMode: "OFF" | "SUBTLE";
           name: string;
           optionalCombatRules?: Array<{
             definitionId: string;

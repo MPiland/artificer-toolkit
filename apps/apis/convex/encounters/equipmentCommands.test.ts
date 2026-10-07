@@ -148,7 +148,6 @@ async function setup() {
     ...settingFields,
     expectedVersion: version,
     automationMode: 'MANUAL',
-    manualReminderMode: 'OFF',
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null
   })
