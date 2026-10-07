@@ -26,9 +26,14 @@
 - Nested command ID reuse is refused as `COMMAND_ID_REUSED`.
 - Join-ticket refusals are typed, and the web client stops reconnecting.
 
+**Done 2026-10-07 (later session):**
+
+- PLATFORM-16 (`bf06db27b`), rescoped to D88: only the Convex `encounterEvidenceRolls` table is removed. `encounterRunCommands` and `encounterRuleReceipts` stay as the Convex-side inbox for Run CREATE and REMOVE_ACTOR departure writes.
+- PLATFORM-15 (`8a3d3c410`): the redundant summary `outcome` is removed (user decision). Save results are asserted on the Concentration roll card's `ruleCheck.outcome`.
+- Ledger: 54/122 PBIs, 273/399 ACs.
+
 **Next work:** the PBIs registered in the [Phase 8 ledger](../roadmap/08-phase-ledger.json) (built by `scripts/phase8/buildPhaseLedger.mjs`), then the remaining ledger work:
 
-- PLATFORM-16: remove the Convex-held Encounter history tables;
 - PLATFORM-17: test fixtures use typed parses and one shared builder;
 - CAMPAIGN-8: user-safe Campaign authority refusals;
 - ROOM-6: room fixtures for multi-Character and multi-controller scenarios;
