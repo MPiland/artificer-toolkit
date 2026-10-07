@@ -6,23 +6,42 @@ import type {
   CreateCampaignInput
 } from '@artificer-toolkit/schema/api/campaignCore'
 import type {
+  CampaignPlaySettingsDto,
+  SaveCampaignPlaySettingsInput
+} from '@artificer-toolkit/schema/api/campaignSettings'
+import type {
   CreateEncounterBlueprintInputDto,
   CreateEncounterInputDto,
   EncounterBlueprintDto,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { fixture } from '../../tests/fixtures/characters'
+import {
+  attachFixtureRoom,
+  checkpointLiveRoom,
+  executeInRoom,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
+
+useLocalRoomWorker()
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
+const getPlaySettings = makeFunctionReference<
+  'query',
+  { campaignId: string },
+  CampaignPlaySettingsDto
+>('campaigns/playSettings:get')
+const savePlaySettings = makeFunctionReference<
+  'mutation',
+  SaveCampaignPlaySettingsInput,
+  CampaignPlaySettingsDto
+>('campaigns/playSettings:save')
 const createBlueprint = makeFunctionReference<
   'mutation',
   CreateEncounterBlueprintInputDto,
@@ -137,7 +156,17 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
     })
   }
   const campaign = await createdCampaign(base.owner, 'D87 table')
-  const run = await prepareRun(base.owner, campaign.id)
+  // MANUAL initiative: this fixture seeds no initiative policy, and the gate is about visibility.
+  const { version, updatedAt: _updatedAt, ...settings } = await base.owner.caller.query(
+    getPlaySettings,
+    { campaignId: campaign.id }
+  )
+  await base.owner.caller.mutation(savePlaySettings, {
+    ...settings,
+    expectedVersion: version,
+    automationMode: 'MANUAL'
+  })
+  const run =await prepareRun(base.owner, campaign.id)
   const foreign = await prepareRun(
     base.other,
     (await createdCampaign(base.other, 'D87 elsewhere')).id
@@ -171,25 +200,35 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
     })
   ).rejects.toThrow(unavailable)
 
-  // ACTIVE: both read it, with the existing player redaction.
-  await base.t.run((ctx) => activateFixtureRun(ctx, run.id))
-  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(2)
-  await expect(readAll(base.other.caller, run.id)).resolves.toHaveLength(2)
-
-  // COMPLETED: only the GM reads it.
-  await base.t.run(async (ctx) => {
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row) throw new Error('Missing Encounter Run.')
-    const state = encounterRunStateSchema.parse({ ...readRunState(row), status: 'COMPLETED' })
-    await ctx.db.patch(row._id, {
-      status: 'COMPLETED',
-      stateJson: JSON.stringify(state),
-      stateChecksum: checksumCanonicalJson(state)
-    })
+  // ACTIVE: the GM reveals it by starting it in the room; both read it, with player redaction.
+  await attachFixtureRoom(base.t, campaign.id)
+  const started = await executeInRoom(base.owner.caller, {
+    command: {
+      type: 'START',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 0
+    }
   })
+  expect(started.projection.status).toBe('ACTIVE')
+  await checkpointLiveRoom(campaign.id)
+  await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(2)
+  await expect(base.other.caller.query(get, { encounterId: run.id })).resolves.toMatchObject({
+    id: run.id,
+    status: 'ACTIVE'
+  })
+  await expect(base.other.caller.query(pending, { encounterId: run.id })).resolves.toBeNull()
+
+  // COMPLETED: the GM ends it in the room; only the GM reads it.
+  const completed = await executeInRoom(base.owner.caller, {
+    command: {
+      type: 'COMPLETE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: started.projection.version
+    }
+  })
+  expect(completed.projection.status).toBe('COMPLETED')
   await expect(readAll(base.owner.caller, run.id)).resolves.toHaveLength(2)
   await expect(base.other.caller.query(get, { encounterId: run.id })).rejects.toThrow(unavailable)
 

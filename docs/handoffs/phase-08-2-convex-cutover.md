@@ -45,13 +45,14 @@
 
 - WSJF ranking below.
 - PLATFORM-11 (REL-9): fixture audit found no stand-in room and no copied authorization, rules or route logic. The fixture rules are recorded in [live sessions](../architecture/live-sessions.md); the room-only `GM_ONLY` refusal in `actorReorderCommand.test.ts` is the guard. Ledger 59/124 PBIs, 281/401 ACs.
+- PRIVACY-3: `cutoverPrivacy.test.ts` D87 now has the GM reveal (START) and end (COMPLETE) the Encounter in the real room instead of seeding the states; players read only the ACTIVE Run. The Campaign uses MANUAL initiative because Convex test fixtures seed no initiative policy (a non-MANUAL START then fails as a redacted `UNAVAILABLE`; `roomErrorLogs()` shows the cause). PRIVACY feature done; ledger 60/124 PBIs, 281/401 ACs.
 
 **Next work: the WSJF ranking below, top down (ranked 2026-10-07).** WSJF = (user/business value + time criticality + risk reduction or enablement) / job size, Fibonacci scores. A PBI never starts before the PBIs it is marked "after".
 
 | #   | PBI                                     | WSJF | Note                                                                                                                                             |
 | --- | --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                           |
-| 2   | PRIVACY-3                               | 5.3  | Journey: GM-revealed hidden Campaign content other than Scenes.                                                                                  |
+| 2   | PRIVACY-3                               | 5.3  | Done (fourth session).                                                                                                                           |
 | 3   | SHEET-6                                 | 5.0  | Speed fix is committed with a unit proof; needs the Sheet journey proof.                                                                         |
 | 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Assisted and Manual modes end to end.                                                                                                            |
 | 5   | CAMPAIGN-7                              | 4.3  | The GM plays a Character.                                                                                                                        |

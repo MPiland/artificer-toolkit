@@ -1553,6 +1553,7 @@ const pbis = [
     journey: [
       AP + 'campaigns/partyVisibility.test.ts',
       AP + 'scenes/readGate.test.ts',
+      AP + 'encounters/cutoverPrivacy.test.ts',
       AP + 'liveSessions/activeSceneEncounter.test.ts'
     ]
   },
@@ -2083,15 +2084,15 @@ const review = {
     }
   },
   'PRIVACY-2': V,
-  'PRIVACY-3': P(
-    'Party can-view and Scene presentation gating are tested; GM-revealed hidden Campaign content other than Scenes is not.',
-    {
-      drop: {
-        [AP + 'liveSessions/activeSceneEncounter.test.ts']:
-          'which Run plays on a Scene; not a privacy flow'
-      }
+  // Party can-view, Scene presentation, and the GM revealing (START) then ending (COMPLETE) an
+  // Encounter in the real room gate what a player reads.
+  'PRIVACY-3': {
+    s: 'verified',
+    drop: {
+      [AP + 'liveSessions/activeSceneEncounter.test.ts']:
+        'which Run plays on a Scene; not a privacy flow'
     }
-  ),
+  },
   'RELIABILITY-1': V,
   'RELIABILITY-2': V,
   'PERF-1': P(
