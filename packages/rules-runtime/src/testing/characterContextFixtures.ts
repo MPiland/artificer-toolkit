@@ -8,7 +8,10 @@ import {
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
-import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
+import {
+  characterSheetStateSchema,
+  type CharacterSheetState
+} from '@artificer-toolkit/schema/projections/characterSheetState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
@@ -234,13 +237,15 @@ export async function prepareFixtureSheet(input: {
   documents: FixtureDocuments
   resourceUsage?: readonly Pick<CharacterResourceUsage, 'owner' | 'used'>[]
   streamVersion?: number
+  adjustments?: CharacterSheetState['adjustments']
+  movementDisplayPreference?: CharacterSheetState['movementDisplayPreference']
 }) {
   const { character } = input
   const context = await prepareFixtureContext(character, input.documents)
   const timestamp = new Date(0).toISOString()
   const sheetState = characterSheetStateSchema.parse({
-    adjustments: [],
-    movementDisplayPreference: { mode: 'AUTO' },
+    adjustments: input.adjustments ?? [],
+    movementDisplayPreference: input.movementDisplayPreference ?? { mode: 'AUTO' },
     partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
     resourceUsage: (input.resourceUsage ?? []).map((usage) => ({
       id: crypto.randomUUID(),
@@ -267,7 +272,7 @@ export async function prepareFixtureSheet(input: {
       conditions: []
     }
   })
-  const { sheet } = projectCharacterSheetBundle({
+  const { sheet, ruleProjection } = projectCharacterSheetBundle({
     character: prepared.prepared.character,
     resolution: prepared.prepared.resolution,
     streamVersion: input.streamVersion ?? 1,
@@ -277,7 +282,7 @@ export async function prepareFixtureSheet(input: {
     ruleEvaluation: prepared.ruleEvaluation,
     activeEffects: []
   })
-  return { ...prepared, sheet }
+  return { ...prepared, sheet, ruleProjection, sheetState }
 }
 
 /** The inputs the rest functions take, from a Sheet prepared by `prepareFixtureSheet`. */

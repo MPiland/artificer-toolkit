@@ -6,7 +6,13 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { tabletopCampaignId } from '#domains/campaigns/vtt/CampaignTabletop.stories.fixtures'
 import { CharacterSheetFixtureView as CharacterSheetView } from '../fixtures/CharacterSheetFixtureView'
-import { createRestPreview, createSheet, openHpControls } from '../tests/sheetTestHarness'
+import {
+  createMovementPanel,
+  createRestPreview,
+  createSheet,
+  openHpControls
+} from '../tests/sheetTestHarness'
+import { characterSheetPanelInputSchema } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
@@ -17,6 +23,11 @@ function mockSheetSliceReads(
   sheet: ReturnType<typeof createSheet>
 ) {
   const read = (reference: Parameters<ConvexReactClient['query']>[0], args: unknown) => {
+    if (getFunctionName(reference) === getFunctionName(convexApi.characters.panels.get)) {
+      const { target } = characterSheetPanelInputSchema.parse(args)
+      if (target.kind !== 'MOVEMENT') throw new Error('Unexpected Sheet test panel.')
+      return createMovementPanel()
+    }
     if (
       getFunctionName(reference) !== getFunctionName(convexApi.characters.sheetSlices.get) ||
       !args ||
@@ -372,6 +383,39 @@ describe('Character Sheet shell', () => {
 
     expect(within(dialog).getByLabelText('Number of dice for row 2')).toBeInTheDocument()
     expect(within(dialog).getByLabelText('Modifier for row 2')).toBeInTheDocument()
+  })
+
+  it('shows the primary Speed and opens the Movement panel listing every speed from it', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    const speed = sheet.overview.facts.find((fact) => fact.label === 'Speed')
+    if (!speed) throw new Error('Expected a Speed fact on the Sheet.')
+    const movement = createMovementPanel()
+    if (movement.kind !== 'MOVEMENT') throw new Error('Expected a Movement panel.')
+    const convexClient = new ConvexReactClient('https://sheet-test.convex.cloud')
+    mockSheetSliceReads(convexClient, sheet)
+
+    try {
+      renderWithAppProviders(
+        <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />,
+        { convexClient }
+      )
+
+      await user.click(
+        screen.getByRole('button', {
+          name: (name) => name.startsWith('Speed') && name.endsWith(speed.value)
+        })
+      )
+
+      const panel = await screen.findByRole('dialog', { name: 'Movement' })
+      for (const entry of movement.speeds) {
+        expect(
+          await within(panel).findByText(`${entry.label}: ${entry.amount} ${entry.unitLabel}`)
+        ).toBeInTheDocument()
+      }
+    } finally {
+      await convexClient.close()
+    }
   })
 
   it('submits sheet commands through the native command mutation path', async () => {

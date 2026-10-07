@@ -7,6 +7,8 @@ import {
   previewFixtureRest,
   readyFighterFixture
 } from '@artificer-toolkit/rules-runtime/testing/characterContextFixtures'
+import { buildCharacterSheetPanel } from '@artificer-toolkit/rules-runtime/character/sheetPanel'
+import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
   characterRestPreviewResponseDtoSchema,
   type CharacterRestPreviewRequestDto,
@@ -66,6 +68,21 @@ const sheet = characterSheetResponseDtoSchema.parse(played.sheet)
  */
 export function createSheet(): CharacterSheetResponseDto {
   return structuredClone(sheet)
+}
+
+/** The real Movement panel of the same Fighter, built from the same rule evaluation as the Sheet. */
+export function createMovementPanel(): CharacterSheetPanelDto {
+  return buildCharacterSheetPanel({
+    character: played.prepared.character,
+    resolution: played.prepared.resolution,
+    sheet,
+    ruleProjection: played.ruleProjection,
+    knownSpellEligibleIdsByClass: new Map(),
+    adjustments: played.adjustments,
+    movementDisplayPreference: played.sheetState.movementDisplayPreference,
+    target: { kind: 'MOVEMENT' },
+    editable: true
+  })
 }
 
 /** The real rest preview for the same Fighter, parsed through the transport schema. */
