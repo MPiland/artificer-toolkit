@@ -6,7 +6,9 @@
 
 ## Current state (2026-10-07)
 
-**Latest commit:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
+**Latest slice commit:** `3f80c6786` (ENCOUNTER-2, sixth session below).
+
+**Last full validation:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
 **Combined validation on that tree, all green:**
 
