@@ -44,8 +44,6 @@ export const SRD_ABILITIES = [
   { id: vocabId(D.ability, 6), code: 'CHARISMA', label: 'Charisma' }
 ] as const
 
-export const SRD_CONSTITUTION_ABILITY_DEFINITION_ID = SRD_ABILITIES[2].id
-
 /** Stable UUID references used by authored mechanics; codes remain catalogue keys only. */
 export const SRD_ABILITY_DEFINITION_IDS = {
   STRENGTH: SRD_ABILITIES[0].id,
@@ -280,7 +278,7 @@ export const SRD_DAMAGE_TYPES = [
 
 // ─── Languages ────────────────────────────────────────────────────────────────
 
-export const SRD_HERITAGES = [
+const SRD_HERITAGES = [
   { id: vocabId(D.heritage, 1), code: 'HUMAN', label: 'Human' },
   { id: vocabId(D.heritage, 2), code: 'ELVEN', label: 'Elven' },
   { id: vocabId(D.heritage, 3), code: 'DWARVEN', label: 'Dwarven' },
@@ -493,7 +491,7 @@ export const SRD_LANGUAGES = [
   }
 ]
 
-export const SRD_LIFESTYLES = [
+const SRD_LIFESTYLES = [
   {
     id: vocabId(D.lifestyle, 1),
     code: 'WRETCHED',
@@ -593,7 +591,7 @@ export const SRD_MAGIC_SCHOOLS = [
 
 // ─── Passives ─────────────────────────────────────────────────────────────────
 
-export const SRD_PASSIVES = [
+const SRD_PASSIVES = [
   {
     id: vocabId(D.passive, 1),
     code: 'PASSIVE_PERCEPTION',
@@ -616,7 +614,7 @@ export const SRD_PASSIVES = [
 
 // ─── Rarities ─────────────────────────────────────────────────────────────────
 
-export const SRD_RARITIES = [
+const SRD_RARITIES = [
   { id: vocabId(D.rarity, 1), code: 'COMMON', label: 'Common' },
   { id: vocabId(D.rarity, 2), code: 'UNCOMMON', label: 'Uncommon' },
   { id: vocabId(D.rarity, 3), code: 'RARE', label: 'Rare' },
@@ -627,7 +625,7 @@ export const SRD_RARITIES = [
 
 // ─── Senses ───────────────────────────────────────────────────────────────────
 
-export const SRD_SENSES = [
+const SRD_SENSES = [
   {
     id: vocabId(D.sense, 1),
     code: 'DARKVISION',
@@ -872,7 +870,7 @@ export const SRD_SPEEDS = [
 
 // ─── Terrains ─────────────────────────────────────────────────────────────────
 
-export const SRD_TERRAINS = [
+const SRD_TERRAINS = [
   { id: vocabId(D.terrain, 1), code: 'ARCTIC', label: 'Arctic' },
   { id: vocabId(D.terrain, 2), code: 'COAST', label: 'Coast' },
   { id: vocabId(D.terrain, 3), code: 'DESERT', label: 'Desert' },

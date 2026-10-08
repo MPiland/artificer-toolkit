@@ -8,11 +8,7 @@ import {
   type AbilityCode,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  PATH_RESOLUTION_KIND,
   CREATURE_CATEGORY_CODE,
-  CREATURE_COMPANION_BOND_TYPE_CODE,
-  CREATURE_INITIATIVE_MODE_CODE,
-  CREATURE_MOUNT_TYPE_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   FOLLOW_UP_SAVE_TIMING,
@@ -22,7 +18,6 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SCALING_SOURCE,
   SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
@@ -192,11 +187,7 @@ export function legendaryActionId(creatureIndex: number, localIndex: number) {
   return localId(5, creatureIndex, localIndex)
 }
 
-export function lairActionId(creatureIndex: number, localIndex: number) {
-  return localId(6, creatureIndex, localIndex)
-}
-
-export function proficiencyId(creatureIndex: number, localIndex: number) {
+function proficiencyId(creatureIndex: number, localIndex: number) {
   return localId(7, creatureIndex, localIndex)
 }
 
@@ -210,7 +201,7 @@ export function skillId(code: string) {
   return entry.id
 }
 
-export function languageId(code: string) {
+function languageId(code: string) {
   const entry = SRD_LANGUAGES.find((language) => language.code === code)
   if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
@@ -824,14 +815,10 @@ export {
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  PATH_RESOLUTION_KIND,
   CHARGE_RESET_KIND,
   CLOSED_RULE_KIND,
   CREATURE_CATEGORY_CODE,
-  CREATURE_COMPANION_BOND_TYPE_CODE,
   CREATURE_IDS,
-  CREATURE_INITIATIVE_MODE_CODE,
-  CREATURE_MOUNT_TYPE_CODE,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
@@ -842,7 +829,6 @@ export {
   SIZE_CODE,
   RANGE_KIND,
   SCALING,
-  SCALING_SOURCE,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
   SPELL_GRANT_ATTRIBUTE,

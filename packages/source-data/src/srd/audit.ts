@@ -10,7 +10,7 @@ import {
   SRD_TRUESIGHT_SENSE_ID
 } from './vocabulary.js'
 
-export interface SrdSourceAuditIssue {
+interface SrdSourceAuditIssue {
   domain: string
   id: string
   label: string

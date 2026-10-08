@@ -4,11 +4,11 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 
 import type { ExternalContentReference, ParsedExternalCharacter } from './importParsers.js'
 
-export interface ImportedCharacterReference extends ExternalContentReference {
+interface ImportedCharacterReference extends ExternalContentReference {
   subjectId?: string
 }
 
-export interface ImportedCharacterPayloadInput {
+interface ImportedCharacterPayloadInput {
   targetId: string
   label: string
   parsed: ParsedExternalCharacter

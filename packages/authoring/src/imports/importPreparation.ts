@@ -241,7 +241,7 @@ export interface PreparedAuthoredItem {
   issues: ImportIssueDto[]
 }
 
-export interface PreparedUnableItem {
+interface PreparedUnableItem {
   kind: 'UNABLE'
   entryId: string
   name: string
@@ -1057,7 +1057,7 @@ export function toImportPreviewResponse(prepared: PreparedBatch): ImportPreviewR
     }
   }
 }
-export function toPreviewItem(item: PreparedItem): ImportPreviewItemDto {
+function toPreviewItem(item: PreparedItem): ImportPreviewItemDto {
   if (item.kind === 'UNABLE') {
     return {
       entryId: item.entryId,

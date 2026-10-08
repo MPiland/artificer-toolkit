@@ -13,7 +13,7 @@ import {
   SRD_TRUESIGHT_SENSE_ID
 } from './vocabulary.js'
 
-export interface SrdSenseDefinitionSeed {
+interface SrdSenseDefinitionSeed {
   id: string
   label: string
   description: string

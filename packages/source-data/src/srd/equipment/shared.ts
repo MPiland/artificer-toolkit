@@ -5,7 +5,6 @@ import {
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  PATH_RESOLUTION_KIND,
   DAMAGE_VALUE_KIND,
   DURATION_KIND,
   EQUIPMENT_ATTRIBUTE,
@@ -41,7 +40,6 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_SKILLS,
   SRD_SPEEDS,
-  SRD_ABILITY_DEFINITION_IDS,
   SRD_DWARVEN_HERITAGE_ID,
   SRD_SYSTEM_ID,
   SRD_USER_ID
@@ -52,7 +50,6 @@ export {
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  PATH_RESOLUTION_KIND,
   DAMAGE_VALUE_KIND,
   DURATION_KIND,
   EQUIPMENT_ATTRIBUTE,
@@ -73,8 +70,7 @@ export {
   TRIGGER,
   VALUE_DOMAIN_CODE,
   SRD_SYSTEM_ID,
-  SRD_USER_ID,
-  SRD_ABILITY_DEFINITION_IDS
+  SRD_USER_ID
 }
 export function equipId(index: number): string {
   const hex = index.toString(16).padStart(4, '0')
@@ -84,7 +80,6 @@ export const RARITY_COMMON = '00000000-0000-0000-0009-000100000000'
 export const RARITY_UNCOMMON = '00000000-0000-0000-0009-000200000000'
 export const RARITY_RARE = '00000000-0000-0000-0009-000300000000'
 export const RARITY_VERY_RARE = '00000000-0000-0000-0009-000400000000'
-export const RARITY_LEGENDARY = '00000000-0000-0000-0009-000500000000'
 export const MAGIC_AMMUNITION_DESCRIPTION =
   'You have a bonus to attack and damage rolls made with this piece of magic ammunition. The bonus is determined by the rarity of the ammunition. Once it hits a target, the ammunition is no longer magical.'
 export const MAGIC_ARMOR_DESCRIPTION =
