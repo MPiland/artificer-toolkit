@@ -29,6 +29,7 @@ import { requireEncounterActorControllerCandidates } from './actorController.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -426,6 +427,21 @@ async function recordEncounterToolCommand(
           }
     )
     await writeRunActor(ctx, actorRow._id, actor)
+    // A GM hit point or condition edit can defeat a Concentration holder or leave it unable to act
+    // (D95); a Character's own edit goes through its Sheet command, which ends it there.
+    if (
+      input.type === 'UPDATE_ACTOR' &&
+      actor.kind !== 'CHARACTER' &&
+      (input.currentHitPoints !== undefined || input.conditions !== undefined)
+    )
+      await endConcentrationAfterEdit(ctx, {
+        state: { ...state, version },
+        actors: await readRunActors(ctx, state),
+        holder: actor,
+        editCommandId: input.commandId,
+        userId,
+        occurredAt: updatedAt
+      })
   } else if (input.type === 'ADJUST_FEATURE_RESOURCE') {
     if (state.status !== 'PREPARED' && state.status !== 'ACTIVE')
       rejectDomain(

@@ -116,6 +116,7 @@ export async function executeRoomEncounterCommand(input: {
           campaignId,
           epoch,
           userId: caller,
+          ctx: written,
           command: {
             scope: 'CHARACTER_SHEET',
             characterId,

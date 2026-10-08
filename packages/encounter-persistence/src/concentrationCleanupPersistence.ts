@@ -15,16 +15,18 @@ type Cleanup = NonNullable<
   ReturnType<typeof concentrationCheckApplicationOutputDtoSchema.parse>['cleanup']
 >
 
-/** Deletes the exact failed concentration slot and reconciles its current owners. */
-export async function applyLiveConcentrationCleanup(
+/**
+ * The cleanup a concentration slot's end implies, read from the current dependents and Character
+ * owners. A Character in advancedCharacterIds already took its stream-version increment in this
+ * transaction, which the cleanup shares instead of adding a second one.
+ */
+export async function deriveLiveConcentrationCleanup(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     state: EncounterRunState
-    actors: EncounterRunActorState[]
     slot: MaintainedSlot
-    cleanup: Cleanup
     authorizedCharacterIds: ReadonlySet<string>
-    occurredAt: string
+    advancedCharacterIds?: ReadonlySet<string>
   }
 ) {
   const { state, slot } = input
@@ -45,7 +47,11 @@ export async function applyLiveConcentrationCleanup(
       ctx.ports.readCharacterRecord(row).systemId !== state.gameSystemId
     )
       throw new Error('Maintained-effect Character owner is unavailable.')
-    characterVersions.push({ characterId, beforeStreamVersion: row.play.streamVersion })
+    characterVersions.push({
+      characterId,
+      beforeStreamVersion:
+        row.play.streamVersion - (input.advancedCharacterIds?.has(characterId) ? 1 : 0)
+    })
   }
   characterVersions.sort((left, right) => left.characterId.localeCompare(right.characterId))
   const cleanup = {
@@ -56,6 +62,25 @@ export async function applyLiveConcentrationCleanup(
       afterStreamVersion: entry.beforeStreamVersion + 1
     }))
   }
+  return { removed, characterVersions, cleanup }
+}
+
+/** Deletes the exact failed concentration slot and reconciles its current owners. */
+export async function applyLiveConcentrationCleanup(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: EncounterRunState
+    actors: EncounterRunActorState[]
+    slot: MaintainedSlot
+    cleanup: Cleanup
+    authorizedCharacterIds: ReadonlySet<string>
+    advancedCharacterIds?: ReadonlySet<string>
+    occurredAt: string
+  }
+) {
+  const { state, slot } = input
+  const store = createActiveRuleEffectStore(ctx)
+  const { removed, characterVersions, cleanup } = await deriveLiveConcentrationCleanup(ctx, input)
   if (checksumCanonicalJson(cleanup) !== checksumCanonicalJson(input.cleanup))
     throw new Error('Live Session concentration cleanup changed.')
   for (const effect of removed)

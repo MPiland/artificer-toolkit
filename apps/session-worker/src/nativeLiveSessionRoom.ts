@@ -2482,6 +2482,14 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                 sequence: this.#journal.readCurrent()!.sequence
               }
         )
+        // A Concentration end the edit caused tells the whole table, as the encounter route does.
+        for (const entry of result.chatEntries)
+          send(recipient, {
+            type: 'COMMAND_COMMITTED',
+            commandId,
+            sequence: current.sequence + 1,
+            delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null }
+          })
       }
       if (
         result.composition &&

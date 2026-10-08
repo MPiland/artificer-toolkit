@@ -432,7 +432,7 @@ A holder that is defeated or can't act after the commit's mechanics (`encounterA
 System actor-action capability, not Speed) loses Concentration with no check (D95). The planner returns
 `concentrationEnds`; persistence re-derives each reason (`concentrationEnd.ts`), applies the lost-check
 cleanup and writes a `CONCENTRATION_END` child receipt, which undo treats as lost Concentration.
-Direct actions, turn effects, Cleaving and movement end it today; GM or Sheet edits are SPELLS-9 work.
+Direct actions, turn effects, Cleaving, movement, GM actor edits and Sheet edits end it today. An edit's end (`endConcentrationAfterEdit`) is a child receipt of the edit's command id, and a Sheet edit shares its stream-version increment with the cleanup.
 A movement contact that defeats or incapacitates the holder (a damaging spatial effect or condition, or a
 movement reaction) ends it in `prepareEncounterMovementConcentration` before any check is planned, so the
 cumulative projection rolls no check for that holder and later contacts observe the lost slot. The end

@@ -1,3 +1,4 @@
+import { endConcentrationAfterEdit } from '@artificer-toolkit/encounter-persistence/concentrationEditEnd'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
@@ -27,7 +28,10 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
-import { roomEncounterWriteTransaction } from './roomEncounterWritePorts.js'
+import {
+  roomEncounterWriteTransaction,
+  type RoomEncounterWriteTransaction
+} from './roomEncounterWritePorts.js'
 
 /** Character play and its Sheet receipt join the caller's atomic room command commit. */
 export async function executeRoomCharacterSheetCommand(input: {
@@ -39,6 +43,8 @@ export async function executeRoomCharacterSheetCommand(input: {
   epoch: string
   userId: string
   command: Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
+  /** The caller's write transaction, when this edit is part of its command; its chat entries join it. */
+  ctx?: RoomEncounterWriteTransaction
 }) {
   const { store, transaction, inputs, authorization } = input
   const campaignId = postgresUuidSchema.parse(input.campaignId)
@@ -55,16 +61,18 @@ export async function executeRoomCharacterSheetCommand(input: {
 
   await inputs.encounter(encounterId, transaction)
   const observed = inputs.revisions(campaignId, authorization.revisions)
-  const ctx = await roomEncounterWriteTransaction({
-    store,
-    transaction,
-    inputs,
-    authorization,
-    campaignId,
-    epoch,
-    userId,
-    observed
-  })
+  const ctx =
+    input.ctx ??
+    (await roomEncounterWriteTransaction({
+      store,
+      transaction,
+      inputs,
+      authorization,
+      campaignId,
+      epoch,
+      userId,
+      observed
+    }))
   const { campaign, membership, assignment } = await ctx.ports.requireCampaignCharacterAuthority(
     campaignId,
     characterId,
@@ -102,13 +110,12 @@ export async function executeRoomCharacterSheetCommand(input: {
     state.gameSystemId !== campaign.gameSystemId
   )
     throw new Error('Character Sheet requires an active Campaign Encounter.')
-  if (
-    !(await readRunActors(ctx, state)).some(
-      (actor) =>
-        actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
-    )
+  const runActors = await readRunActors(ctx, state)
+  const holder = runActors.find(
+    (actor) =>
+      actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
   )
-    throw new Error('Character is not held by this active Encounter.')
+  if (!holder) throw new Error('Character is not held by this active Encounter.')
   if (assignment.userId !== userId) assertCampaignGmSheetCommandAllowed(command)
 
   const scope = {
@@ -151,7 +158,7 @@ export async function executeRoomCharacterSheetCommand(input: {
         )
         .unique()
   )
-  if (replay) return { acknowledgement: replay, facts: initial, replayed: true }
+  if (replay) return { acknowledgement: replay, facts: initial, replayed: true, chatEntries: [] }
   if (command.expectedVersion !== initial.active.play.streamVersion)
     throw new CharacterSheetCommandError(
       'Character Sheet changed; refresh before applying this command.'
@@ -200,6 +207,17 @@ export async function executeRoomCharacterSheetCommand(input: {
     document: updated,
     ...(sheetStateChanged ? { sheetState: nextSheetState } : {})
   })
+  // The edit may leave the Character's Concentration without a holder able to act (D95); the end
+  // shares the Sheet write's stream-version increment.
+  await endConcentrationAfterEdit(ctx, {
+    state,
+    actors: runActors,
+    holder,
+    editCommandId: command.commandId.toLowerCase(),
+    userId,
+    occurredAt,
+    advancedCharacterIds: new Set([characterId])
+  })
   const facts = await prepareRoomLiveCharacterSheet(store, inputs, scope, observed, transaction)
   const acknowledgement = await writeCharacterCommandReceipt(
     {
@@ -216,5 +234,5 @@ export async function executeRoomCharacterSheetCommand(input: {
       await ctx.db.insert('characterCommandReceipts', receipt)
     }
   )
-  return { acknowledgement, facts, replayed: false }
+  return { acknowledgement, facts, replayed: false, chatEntries: ctx.postedChatEntries }
 }

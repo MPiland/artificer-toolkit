@@ -1,4 +1,5 @@
 import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -18,6 +19,8 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  executeSheetInRoom,
+  readRoomRollCards,
   readRoomTimeline,
   useLocalRoomWorker,
   type RoomCaller
@@ -29,6 +32,7 @@ import {
   setupConcentration
 } from '../../tests/fixtures/concentration'
 import { api } from '../_generated/api'
+import { readCharacterRecord } from '../characters/stateDocuments'
 
 useLocalRoomWorker()
 
@@ -336,6 +340,91 @@ describe('Concentration ends without a check (D95)', () => {
       chat.entries.filter((entry) => entry.body?.endsWith('loses Concentration.'))
     ).toHaveLength(1)
     await expectReplayAcrossRelease(base, steps)
+  }, 120000)
+
+  /** One Concentration end with no check: the slot and its dependents gone, no roll, one table entry. */
+  async function expectEndedWithoutCheck(
+    base: Awaited<ReturnType<typeof setupConcentration>>,
+    seeded: Awaited<ReturnType<typeof seedConcentration>>
+  ) {
+    await checkpointLiveRoom(base.campaign.id)
+    const settled = await concentrationRecords(base)
+    expect(settled.states.map((state) => state.id)).not.toContain(seeded.state.id)
+    expect(settled.effects.map((effect) => effect.id)).not.toContain(seeded.dependent.id)
+    expect(settled.effects.map((effect) => effect.id)).toContain(seeded.independent.id)
+    // No check is rolled for the lost Concentration, and none is waiting.
+    expect(settled.pending).toEqual([])
+    expect(await readRoomRollCards(base.player.caller, base.campaign.id)).toEqual([])
+    const chat = await base.player.caller.query(api.campaigns.chat.list, {
+      campaignId: base.campaign.id,
+      room: 'TABLE',
+      limit: 100
+    })
+    expect(
+      chat.entries.filter((entry) => entry.body?.endsWith('loses Concentration.'))
+    ).toHaveLength(1)
+    return settled
+  }
+
+  it('a player who marks their concentrating Character Paralyzed on the Sheet loses it, with no roll', async () => {
+    const base = await setupConcentration('AUTO_ROLL')
+    const seeded = await seedConcentration(base)
+    await attachFixtureRoom(base.t, base.campaign.id)
+    const paralyzed = srdSystemRecord.conditionTypes.find(
+      (condition) => condition.code === 'PARALYZED'
+    )
+    if (!paralyzed) throw new Error('The SRD Paralyzed condition is unavailable.')
+    const before = (await concentrationRecords(base)).character
+    if (!before) throw new Error('Missing the concentrating Character.')
+
+    await executeSheetInRoom(base.player.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: base.character.id,
+      encounterId: base.run.id,
+      command: {
+        type: 'ADD_CONDITION',
+        conditionTypeId: paralyzed.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: before.play.streamVersion
+      }
+    })
+
+    const settled = await expectEndedWithoutCheck(base, seeded)
+    // The Sheet edit and the Concentration cleanup land as one stream version.
+    expect(settled.character?.play.streamVersion).toBe(before.play.streamVersion + 1)
+    expect(
+      readCharacterRecord(settled.character!).state.conditions?.map(
+        (condition) => condition.conditionTypeId
+      )
+    ).toContain(paralyzed.id)
+  }, 120000)
+
+  it("a player's concentrating Character the GM drops to 0 hit points through the actor edit loses it, with no roll", async () => {
+    const base = await setupConcentration('AUTO_ROLL')
+    const seeded = await seedConcentration({ ...base, characterHitPoints: 4 })
+    await attachFixtureRoom(base.t, base.campaign.id)
+    const before = (await concentrationRecords(base)).character
+    if (!before) throw new Error('Missing the concentrating Character.')
+    const { send } = journey()
+
+    const edited = await send(base.owner, {
+      type: 'UPDATE_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: base.run.version,
+      actorId: base.target.id,
+      characterCommand: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 4,
+        commandId: crypto.randomUUID(),
+        expectedVersion: before.play.streamVersion
+      }
+    })
+
+    expect(edited.roll).toBeNull()
+    const settled = await expectEndedWithoutCheck(base, seeded)
+    expect(settled.character?.play.streamVersion).toBe(before.play.streamVersion + 1)
   }, 120000)
 })
 

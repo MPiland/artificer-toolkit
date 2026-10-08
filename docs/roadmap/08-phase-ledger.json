@@ -4545,10 +4545,14 @@
           "acs": [
             {
               "text": "Concentration ends on incapacitation or death, and nonmagical-weapon defenses apply.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomEditConcentrationEnd.test.ts",
+                "packages/encounter-persistence/src/__tests__/concentrationEnd.test.ts",
+                "apps/apis/convex/liveSessions/encounterJourneys.test.ts"
+              ],
               "origin": [],
-              "note": "D95, 2026-10-08. Done: direct actions, turn effects and Cleaving end Concentration with no check (nativeRoomConcentration, nativeRoomCleaving, nativeRoomTurnEffects, cleaving.test.ts, concentrationEnd.test.ts, encounterActorCannotAct.test.ts); nonmagical, silvered and adamantine defenses apply to direct and opportunity attacks (encounterDamageDefenses.test.ts, movementBasicActions.test.ts). Movement reaction and spatial ends done (slice B: nativeMovementConcentrationEnd.test.ts, encounterConcentrationEnd.test.ts, concentrationEnd.test.ts, movementConcentration.test.ts, movementSettlementPersistence.test.ts, spatial-movement-rule-contracts.test.ts; spatial and reaction condition or state-effect incapacitation in nativeMovementConcentrationEnd.test.ts). Remaining: GM UPDATE_ACTOR and Sheet edits.",
+              "note": "D95, 2026-10-08. Done: direct actions, turn effects and Cleaving end Concentration with no check (nativeRoomConcentration, nativeRoomCleaving, nativeRoomTurnEffects, cleaving.test.ts, concentrationEnd.test.ts, encounterActorCannotAct.test.ts); nonmagical, silvered and adamantine defenses apply to direct and opportunity attacks (encounterDamageDefenses.test.ts, movementBasicActions.test.ts). Movement reaction and spatial ends done (slice B: nativeMovementConcentrationEnd.test.ts, encounterConcentrationEnd.test.ts, concentrationEnd.test.ts, movementConcentration.test.ts, movementSettlementPersistence.test.ts, spatial-movement-rule-contracts.test.ts; spatial and reaction condition or state-effect incapacitation in nativeMovementConcentrationEnd.test.ts). GM UPDATE_ACTOR and Sheet edits done (slice C: endConcentrationAfterEdit; HP 0 or an incapacitating condition on a Creature, custom actor or Character in a running Run ends it in the edit's commit with one shared Sheet stream-version bump; MANUAL Runs, holders still able to act and Speed 0 alone end nothing).",
               "id": "SPELLS-9.1"
             },
             {
@@ -4560,7 +4564,7 @@
               "id": "SPELLS-9.2"
             }
           ],
-          "journeyGap": "Direct-action and movement ends proved; GM or Sheet edit ends are not built yet."
+          "journeyGap": "SPELLS-9.2 (non-Character holder damage check) is not built; D95 ends are proved on direct, movement and edit paths."
         },
         {
           "id": "SPELLS-10",

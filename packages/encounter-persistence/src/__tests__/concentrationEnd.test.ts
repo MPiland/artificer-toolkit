@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readConcentrationEndReason } from '../concentrationEnd.js'
 import { persistEncounterConcentrationChildren } from '../concentrationChildrenPersistence.js'
+import { endConcentrationAfterEdit } from '../concentrationEditEnd.js'
 import { persistLiveMovementConcentrationEnd } from '../liveMovementConcentrationPersistence.js'
 import { concentrationEndOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { createActiveRuleEffectStore } from '../effectStore.js'
@@ -365,5 +366,95 @@ describe('persistLiveMovementConcentrationEnd binds the owner projection to stor
     expect(applyCleanup).not.toHaveBeenCalled()
     expect(postRulesChatMessage).not.toHaveBeenCalled()
     expect(snapshot()).toEqual(before)
+  })
+})
+
+/**
+ * An edit path (GM actor edit, Sheet edit) derives the end from the committed state itself, so
+ * there is no stated reason to forge: a state that still allows action produces no write at all.
+ */
+describe('endConcentrationAfterEdit', () => {
+  const COMMAND_ID = '00000000-0000-4000-8000-0000000c0008'
+  const defeated: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    currentHitPoints: 0,
+    defeated: true
+  }
+
+  async function endAfterEdit(
+    actorInput: Parameters<typeof creatureActor>[0],
+    automationMode?: 'MANUAL'
+  ) {
+    const actor = creatureActor(actorInput)
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(actor)
+    await endConcentrationAfterEdit(
+      ctx as unknown as Parameters<typeof endConcentrationAfterEdit>[0],
+      {
+        state: srdEncounterState({ actors: [actor], currentActorId: null, automationMode }),
+        actors: [actor],
+        holder: actor,
+        editCommandId: COMMAND_ID,
+        userId: USER_ID,
+        occurredAt: '2026-10-08T00:00:00.000Z'
+      }
+    )
+    return { memory, postRulesChatMessage }
+  }
+
+  const noEndCases: Array<[string, Parameters<typeof creatureActor>[0], 'MANUAL' | undefined]> = [
+    ['a holder that can act', { id: ACTOR_ID, kind: 'CUSTOM', snapshot: {} }, undefined],
+    [
+      'a holder at Speed 0 only',
+      {
+        id: ACTOR_ID,
+        kind: 'CUSTOM',
+        snapshot: {},
+        conditions: [srdCondition('Grappled'), srdCondition('Restrained')]
+      },
+      undefined
+    ],
+    ['a defeated holder in a MANUAL Run', defeated, 'MANUAL']
+  ]
+
+  it.each(noEndCases)('ends nothing for %s', async (_name, actorInput, automationMode) => {
+    const { memory, postRulesChatMessage } = await endAfterEdit(actorInput, automationMode)
+
+    expect(memory.documents('encounterMaintainedEffectStates')).toHaveLength(1)
+    expect(memory.documents('encounterRuleReceipts')).toEqual([])
+    expect(memory.documents('encounterRuleOccurrences')).toEqual([])
+    expect(postRulesChatMessage).not.toHaveBeenCalled()
+  })
+
+  it('ends a defeated holder: slot gone and one CONCENTRATION_END child of the edit command', async () => {
+    const { memory } = await endAfterEdit(defeated)
+
+    expect(memory.documents('encounterMaintainedEffectStates')).toEqual([])
+    const receipts = memory.documents('encounterRuleReceipts')
+    expect(receipts).toHaveLength(1)
+    expect(receipts[0]).toMatchObject({ commandType: 'CONCENTRATION_END' })
+    expect(JSON.parse(receipts[0]!.resultJson)).toMatchObject({
+      applicationOutputs: {
+        kind: 'CONCENTRATION_END',
+        parentOccurrenceId: COMMAND_ID,
+        ownerActorId: ACTOR_ID,
+        maintainedStateId: SLOT_ID,
+        reason: 'DEFEATED'
+      }
+    })
+  })
+
+  it('ends an incapacitated holder with the derived reason', async () => {
+    const { memory } = await endAfterEdit({
+      id: ACTOR_ID,
+      kind: 'CUSTOM',
+      snapshot: {},
+      conditions: [srdCondition('Paralyzed')]
+    })
+
+    expect(JSON.parse(memory.documents('encounterRuleReceipts')[0]!.resultJson)).toMatchObject({
+      applicationOutputs: { reason: 'INCAPACITATED' }
+    })
   })
 })
