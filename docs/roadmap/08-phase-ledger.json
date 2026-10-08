@@ -4818,12 +4818,75 @@
           "origin": [],
           "acs": [
             {
-              "text": "APPLY_GRANT executes during play.",
+              "text": "In an Assisted Run a Character uses Antitoxin on a creature: for 1 hour that creature's saves against poison (failing applies Poisoned or deals poison damage) have advantage with \"Antitoxin\" as the reason, and its other saves don't; an undead or construct target gives an overridable warning.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Carry-over: moved into the 8.3 scope in future-enhancements.md.",
+              "note": "D99. Journey through the room and Convex.",
               "id": "SPELLS-5.1"
+            },
+            {
+              "text": "GM undo of the item use removes the grant and gives back the item use; rolls already made stay on the record.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SPELLS-5.2"
+            },
+            {
+              "text": "A Unicorn's Shimmering Shield grants +2 AC to itself or a creature within 60 ft; attacks against that Character or Creature use the raised AC, and the grant ends at the end of the unicorn's next turn.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D99. Journey through the room and Convex.",
+              "id": "SPELLS-5.3"
+            },
+            {
+              "text": "A grant can end at the start or end of the holder's or the source's next turn, after N rounds, or on the holder's next attack roll; the real SRD data for Shield, Shocking Grasp, Ray of Frost, Vicious Mockery and the Unicorn compiles to those lifetimes.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D99. Unit tests against the SRD corpus.",
+              "id": "SPELLS-5.4"
+            },
+            {
+              "text": "A creature under REACTION_COUNT 0 is offered no opportunity attack or other reaction until the grant ends.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Closes D15 (D99). Journey through a homebrew on-hit item fixture.",
+              "id": "SPELLS-5.5"
+            },
+            {
+              "text": "Speed grants change the movement budget for every speed type; a maximum hit point grant raises the maximum and current hit points clamp when it ends; damage resistance, condition immunity and darkvision grants apply; an attack-disadvantage grant is used up by the next attack.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D99. Unit tests per domain plus one journey.",
+              "id": "SPELLS-5.6"
+            },
+            {
+              "text": "A grant that needs Concentration ends with it (failed check, D95 incapacitation, a new Concentration); the SRD Concentration spells link their grants and Protection from Energy needs Concentration.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D99. Journey through a homebrew Concentration feature fixture.",
+              "id": "SPELLS-5.7"
+            },
+            {
+              "text": "Active grants are listed on the token, the turn tracker and the Sheet with their source and time left, and the GM can end one by hand; a hidden source's label stays hidden from players.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D99 (Q2 A).",
+              "id": "SPELLS-5.8"
+            },
+            {
+              "text": "When a Run completes, a Character's remaining grants carry over and expire on the Campaign clock (or when the GM ends them without a clock); a Creature's grants end with the Run.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D99 (Q1 A).",
+              "id": "SPELLS-5.9"
             }
           ]
         },
@@ -4859,6 +4922,14 @@
               "origin": [],
               "note": "rul-9-rules-audit.md slice 4.",
               "id": "SPELLS-7.1"
+            },
+            {
+              "text": "Caltrops apply their area speed penalty, which ends when the creature regains hit points.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-5 refinement (D99): an area APPLY_GRANT.",
+              "id": "SPELLS-7.2"
             }
           ]
         },
@@ -4885,6 +4956,14 @@
               "origin": [],
               "note": "Moved from SPELLS-3.5 on 2026-10-08 (D96). The D&D compiler rejects any non-empty excludedCreatureTypeIds today.",
               "id": "SPELLS-8.2"
+            },
+            {
+              "text": "Each SRD APPLY_GRANT spell (Aid, Darkvision, Fly, Heroism, Longstrider, Protection from Energy, Ray of Frost, Shield, Shield of Faith, Shocking Grasp, Vicious Mockery) applies its grant through casting.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions.",
+              "id": "SPELLS-8.3"
             }
           ]
         },
