@@ -6,7 +6,7 @@
 
 ## Current state (2026-10-07)
 
-**Latest slice commit:** ATTACK-3, PLATFORM-5.6 and the needs-proof audit (ninth session below); the commit titled "Close ATTACK-3 and PLATFORM-5".
+**Latest slice commit:** SPELLS-9 slice A (tenth session below), `b13e5fe73`.
 
 **Last full validation:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
@@ -75,6 +75,13 @@
 - PERF-4.1: `encounterActorCap.test.ts` meters Run creation at the cap with `countDatabaseIo` (under a quarter of the 16 MiB and 32,000-document limits).
 - Needs-proof audit (user approvals 2026-10-07): proofs linked for SPELLS-3.1, PERF-3.1–3.3, 3.5, 3.6, 3.8, 3.9, 3.12, 4.2, 4.3; PERF-3.13 and PLATFORM-13.1 retired; PERF-3.7, 4.1, 4.3 and PLATFORM-13.4 reworded. Open gaps, each with its ledger note: PLATFORM-13.2, 13.3, 13.4, 14.1, 14.2, 14.3 and PERF-3.4, 3.7, 3.10, 3.11.
 - Ledger 66/125 PBIs, 301/407 ACs (counts include the audit edits).
+
+**Done 2026-10-08 (tenth session):**
+
+- SPELLS-2 merged (`a5c8cb3f4`).
+- SPELLS-9 slice A (`b13e5fe73`, D95): a holder that is defeated or can't act after a direct action, turn effect or Cleaving loses Concentration with no check. The end is a `CONCENTRATION_END` child receipt with a rules chat entry, and undo reports lost Concentration. Qualified damage defenses are proved for direct and opportunity attacks. Validation: 10 Convex files 100/100, session-worker 371/371, encounter-persistence 56/56, typecheck 13/13. Remaining: slice B (movement reactions and spatial effects), slice C (GM `UPDATE_ACTOR` and Sheet edits), and SPELLS-9.2 (a Creature holder's damage commit fails "children are incomplete").
+- Dead code awaiting the user's OK to delete: `executeEncounterMovementReactionAction` and its helpers in `encounterMovementReactionActionExecution.ts`.
+- Ledger 67/126 PBIs, 308/419 ACs.
 
 **Done 2026-10-07 (parallel session, worktree `claude/spells-2-conditions`):**
 
