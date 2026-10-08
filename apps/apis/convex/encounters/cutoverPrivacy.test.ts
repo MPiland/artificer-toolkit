@@ -157,16 +157,17 @@ it('D87 a player reads only the active Encounter; prepared, completed and foreig
   }
   const campaign = await createdCampaign(base.owner, 'D87 table')
   // MANUAL initiative: this fixture seeds no initiative policy, and the gate is about visibility.
-  const { version, updatedAt: _updatedAt, ...settings } = await base.owner.caller.query(
-    getPlaySettings,
-    { campaignId: campaign.id }
-  )
+  const {
+    version,
+    updatedAt: _updatedAt,
+    ...settings
+  } = await base.owner.caller.query(getPlaySettings, { campaignId: campaign.id })
   await base.owner.caller.mutation(savePlaySettings, {
     ...settings,
     expectedVersion: version,
     automationMode: 'MANUAL'
   })
-  const run =await prepareRun(base.owner, campaign.id)
+  const run = await prepareRun(base.owner, campaign.id)
   const foreign = await prepareRun(
     base.other,
     (await createdCampaign(base.other, 'D87 elsewhere')).id
