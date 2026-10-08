@@ -2025,7 +2025,7 @@ describe('Assisted soft enforcement', () => {
       }
     })
     const damageDice: { min: number; max: number }[] = []
-    for (let pending = step.occurrence?.pending; pending?.kind === 'ACTION_OUTCOME_EVIDENCE'; ) {
+    for (let pending = step.occurrence?.pending; pending?.kind === 'ACTION_OUTCOME_EVIDENCE';) {
       damageDice.push({ min: pending.request.min, max: pending.request.max })
       step = await executeInRoom(base.owner.caller, {
         command: {

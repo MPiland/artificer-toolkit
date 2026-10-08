@@ -1,6 +1,3 @@
-import { zodToConvex } from 'convex-helpers/server/zod4'
-import type { Validator } from 'convex/values'
-import type { z } from 'zod'
 import {
   characterEncounterInitiativeInputSchema,
   characterEncounterInitiativeResultSchema,
@@ -9,23 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
 import type { QueryCtx } from '../_generated/server'
-import { internalQuery } from '../lib/queries'
-import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheetFacts } from './sheetFacts'
-
-const resultValidator: Validator<CharacterEncounterInitiativeResult, 'required', string> =
-  zodToConvex<z.core.$ZodType<CharacterEncounterInitiativeResult>>(
-    characterEncounterInitiativeResultSchema
-  )
-
-export const read = internalQuery({
-  args: zodToConvex(characterEncounterInitiativeInputSchema),
-  returns: resultValidator,
-  handler: async (ctx, args): Promise<CharacterEncounterInitiativeResult> => {
-    const { userId } = await requireIdentity(ctx)
-    return loadCharacterEncounterInitiative(ctx, userId, args)
-  }
-})
 
 /** Native aggregate callers supply authority derived from the current Campaign, never client input. */
 export async function loadCharacterEncounterInitiative(
