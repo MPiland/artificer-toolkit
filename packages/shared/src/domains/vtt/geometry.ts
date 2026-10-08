@@ -187,7 +187,7 @@ function sweptFootprintIntersectsBarrier(
   return segmentIntersectsConvexPolygonInterior(from, to, expandedBarrier)
 }
 
-export function movementCrossesBlockingBarrier(
+function movementCrossesBlockingBarrier(
   from: ScenePoint,
   to: ScenePoint,
   barrier: SceneBarrier,
@@ -331,7 +331,7 @@ export function sceneDoorChangeFailure(
   return 'Only the GM can lock or unlock doors.'
 }
 
-export function lightCrossesBlockingBarrier(
+function lightCrossesBlockingBarrier(
   from: ScenePoint,
   to: ScenePoint,
   barrier: SceneBarrier,
@@ -605,7 +605,7 @@ export function measureScenePathDistance(grid: SceneGrid, path: readonly ScenePo
 }
 
 /** Terrain segments do not block movement; the highest crossed multiplier controls its cost. */
-export function terrainMovementMultiplier(
+function terrainMovementMultiplier(
   state: { readonly barriers: readonly SceneBarrier[] },
   from: ScenePoint,
   to: ScenePoint,

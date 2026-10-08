@@ -90,12 +90,6 @@ export interface SceneToken {
   width: number
 }
 
-/** Encounter-local association. It is never persisted on a Campaign Scene token. */
-export interface SceneActorTokenBinding {
-  actorId: string
-  tokenId: string
-}
-
 interface SceneBarrierBase {
   a: ScenePoint
   b: ScenePoint

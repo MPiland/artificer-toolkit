@@ -26,7 +26,7 @@ const moderationDigitSubstitutions: Record<string, string> = {
 }
 const profanity = new Profanity({ languages: ['en'], wholeWord: false })
 
-export function normalizeUsername(username: string): string {
+function normalizeUsername(username: string): string {
   return username.trim()
 }
 
