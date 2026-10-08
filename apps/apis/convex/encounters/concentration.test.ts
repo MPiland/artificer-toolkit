@@ -18,7 +18,6 @@ import {
   executeInRoom,
   queueRoomRolls,
   readRoomRollCards,
-  RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 
@@ -167,7 +166,7 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
     executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)
     })
-  ).rejects.toThrow(RoomCommandRefusal)
+  ).rejects.toMatchObject({ data: { code: 'DOMAIN_REJECTED', reason: 'ASSISTED_ONLY' } })
   expect(await records(fixture)).toEqual(before)
   expect(before.states.map((state) => state.id)).toContain(seeded.state.id)
   for (const member of [fixture.owner, fixture.player])

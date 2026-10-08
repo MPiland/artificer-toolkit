@@ -18,7 +18,6 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
@@ -217,7 +216,7 @@ describe('Encounter roll prompts', () => {
         executeInRoom(member.caller, {
           command: await base.bite(base.companion.id, base.enemy.id)
         })
-      ).rejects.toThrow(RoomCommandRefusal)
+      ).rejects.toMatchObject({ data: { code: 'DOMAIN_REJECTED', reason: 'ASSISTED_ONLY' } })
     expect(await stored()).toEqual(before)
     for (const member of [base.owner, base.other, base.player])
       await expect(readPending(base, member)).resolves.toBeNull()
