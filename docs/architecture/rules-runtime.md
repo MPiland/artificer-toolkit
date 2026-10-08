@@ -218,9 +218,45 @@ A Character at 0 hit points is never defeated. Dropping to 0 adds the System's 0
 (`characterZeroHitPointsConditionId`; D&D: Unconscious), and regaining hit points removes it, in
 `planEncounterMechanicsBatch` and the Sheet's hit point commands. `REVERT_LAST_ACTION` removes it with the
 damage that caused it and refuses to undo a heal that woke the Character. Dying is being at 0 hit points;
-death saving throws are Phase 8.3 scope (target), and a dying Character's turns are not skipped. Not
-modeled for any condition: automatic failure of Strength and Dexterity saves, advantage on attacks
-against the creature, and critical hits from melee attacks within 5 feet.
+death saving throws are Phase 8.3 scope (target), and a dying Character's turns are not skipped. The
+Unconscious condition's own mechanics apply through the condition policy below.
+
+### Condition mechanics (D94, current)
+
+A System's condition-rule-state definition authors what a condition does as data, in its `mechanics`
+list (`packages/schema/src/shared/ruleState.ts`); the SRD seeds them in
+`packages/source-data/src/srd/ruleState.ts`, and a homebrew condition authors its own the same way. There
+is no condition-specific code. Each mechanic is one of:
+
+- `D20_ROLL_MODE`: advantage or disadvantage on attacks by the holder, attacks against it (any, within or
+  beyond a distance), its saving throws (some abilities or all) or its ability checks;
+- `SAVE_AUTO_FAIL`: the holder fails saves of the listed abilities;
+- `SPEED`: the holder's speed times `numerator / denominator`, rounded down (0 sets it to 0);
+- `HITS_AGAINST_CRITICAL`: a hit against the holder within a distance is a critical hit.
+
+A mechanic with `minimumLevel` applies from that level of a leveled condition: a Character's exhaustion
+level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
+any other held condition is at level 1.
+
+`rules-runtime/encounterConditionMechanics` evaluates them. `withEncounterConditionMechanics` pins the
+held conditions' current definitions on a movement target (`conditionDefinitions`) when the Worker loads
+it (`nativeEncounterTargets`), and `applyEncounterConditionMechanics` derives `conditionMechanics` and
+folds save contributors into the save rows; a flow that rebuilds a target re-applies it from the pins, so a
+removed condition stops applying at once and a condition gained after the load applies from the next load.
+Action preparation adds the attack contributors (attacker and target, measured on the Scene, or melee
+within and ranged beyond without one) and the `conditionOutcomeRules` binding: the D&D compiler binds
+`dnd5e.test-outcome-rule` (`NONE`, `SAVE_AUTO_FAIL`, `HIT_IS_CRITICAL`) into the v2 attack and save test
+operations. Single-graph verification recomputes the result path from it, and a two-phase save seals it
+in its TEST-phase bound-facts checksum (`requireNativeTestBoundary`). The d20 is still rolled on an
+automatic failure. Contests (Grapple, Shove escape) and Disarm add the ability-check contributors, Dodge is
+suspended at condition speed 0, and the tabletop movement budget (`readTurnMovementView`) applies the
+speed mechanics before Dash. A condition contributor's derived-mode reason names the condition, and is
+generic for players when the holder is hidden.
+
+Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
+Blinded and Invisible attack modes (perception owns them), Unconscious falling Prone, Petrified damage
+resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
+action preparation reads (the room owns resolution).
 
 ## Initiative
 

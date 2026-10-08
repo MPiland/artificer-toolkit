@@ -42,6 +42,7 @@ import type {
   CharacterRuleActionApplication,
   CharacterRuleActionSystemAdapter,
   CharacterRuleActionActiveEffectPlan,
+  CharacterRuleActionConditionOutcomeRules,
   CharacterRuleActionPositionalFacts,
   CharacterRuleActionSpatialDirective
 } from '../../characterRuleActionSystemAdapter.js'
@@ -101,6 +102,8 @@ export const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
 export const DND5E_SAVE_MODIFIER_FACT_KEY = 'dnd5e.save-modifier'
 export const DND5E_SAVE_DC_FACT_KEY = 'dnd5e.save-dc'
 export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-checksum'
+/** The target's condition test-outcome rule (D94): `NONE`, `SAVE_AUTO_FAIL` or `HIT_IS_CRITICAL`. */
+export const DND5E_TEST_OUTCOME_RULE_FACT_KEY = 'dnd5e.test-outcome-rule'
 export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
 export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
 export const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
@@ -1276,7 +1279,7 @@ function repeatFollowUpSavePublishedGraph(input: {
       },
       {
         id: input.plan.frozenGraphNodeId,
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: {
@@ -1289,7 +1292,8 @@ function repeatFollowUpSavePublishedGraph(input: {
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          }
+          },
+          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       }
     ],
@@ -2395,17 +2399,53 @@ export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract
   }
 }
 
+const DND5E_TEST_OUTCOME_RULES = ['NONE', 'SAVE_AUTO_FAIL', 'HIT_IS_CRITICAL'] as const
+type Dnd5eTestOutcomeRule = (typeof DND5E_TEST_OUTCOME_RULES)[number]
+
+function isDnd5eTestOutcomeRule(value: unknown): value is Dnd5eTestOutcomeRule {
+  return DND5E_TEST_OUTCOME_RULES.some((rule) => rule === value)
+}
+
+/**
+ * The D&D test result path. A natural 20 always hits critically and a natural 1 always misses; a
+ * target's condition can make a hit critical or a save fail without counting the roll (D94).
+ */
+function dnd5eTestResultPath(input: {
+  kind: TestKind
+  naturalD20: number
+  total: number
+  threshold: number
+  outcomeRule: Dnd5eTestOutcomeRule
+}) {
+  if (input.kind === 'SAVE')
+    return input.outcomeRule !== 'SAVE_AUTO_FAIL' && input.total >= input.threshold
+      ? 'ON_SAVE_SUCCESS'
+      : 'ON_SAVE_FAIL'
+  if (input.naturalD20 === 20) return 'ON_CRIT'
+  if (input.naturalD20 === 1 || input.total < input.threshold) return 'ON_MISS'
+  return input.outcomeRule === 'HIT_IS_CRITICAL' ? 'ON_CRIT' : 'ON_HIT'
+}
+
+/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
+function dnd5eSaveOutcomeRule(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+): Dnd5eTestOutcomeRule {
+  return rules?.saveAutoFailAbilityIds.includes(abilityDefinitionId) ? 'SAVE_AUTO_FAIL' : 'NONE'
+}
+
 function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
   return {
     key,
-    contractVersion: 1,
+    contractVersion: 2,
     executionKind: 'PURE',
     inputs: {
       targetActorId: RULE_VALUE_KIND.TEXT,
       naturalD20: RULE_VALUE_KIND.NUMBER,
       modifier: RULE_VALUE_KIND.NUMBER,
       threshold: RULE_VALUE_KIND.NUMBER,
-      contributorChecksum: RULE_VALUE_KIND.TEXT
+      contributorChecksum: RULE_VALUE_KIND.TEXT,
+      outcomeRule: RULE_VALUE_KIND.TEXT
     },
     outputs: {
       targetActorId: RULE_VALUE_KIND.TEXT,
@@ -2419,7 +2459,9 @@ function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
       const naturalD20 = inputs.naturalD20
       const modifier = inputs.modifier
       const threshold = inputs.threshold
+      const outcomeRule = inputs.outcomeRule
       if (
+        !isDnd5eTestOutcomeRule(outcomeRule) ||
         typeof targetActorId !== 'string' ||
         !UUID.test(targetActorId) ||
         typeof naturalD20 !== 'number' ||
@@ -2435,16 +2477,7 @@ function testOperation(key: string, kind: TestKind): PureRuleOperationContract {
       const total = naturalD20 + modifier
       if (!Number.isSafeInteger(total))
         throw new Error('D&D test total exceeds safe integer range.')
-      const resultPath =
-        kind === 'ATTACK'
-          ? naturalD20 === 20
-            ? 'ON_CRIT'
-            : naturalD20 === 1 || total < threshold
-              ? 'ON_MISS'
-              : 'ON_HIT'
-          : total >= threshold
-            ? 'ON_SAVE_SUCCESS'
-            : 'ON_SAVE_FAIL'
+      const resultPath = dnd5eTestResultPath({ kind, naturalD20, total, threshold, outcomeRule })
       const contributorChecksum = inputs.contributorChecksum
       if (typeof contributorChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(contributorChecksum))
         throw new Error('D&D test resolution requires contributor evidence checksum.')
@@ -2625,6 +2658,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       key: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
       valueKind: RULE_VALUE_KIND.TEXT
     },
+    { key: DND5E_TEST_OUTCOME_RULE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     {
       key: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
       valueKind: RULE_VALUE_KIND.TEXT
@@ -2683,8 +2717,6 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
     DND5E_CONDITION_DURATION_OPERATION_KEY,
     DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
-    DND5E_ATTACK_TEST_OPERATION_KEY,
-    DND5E_SAVE_TEST_OPERATION_KEY,
     DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
@@ -2698,6 +2730,12 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
   ]
     .filter((key, index, keys) => keys.indexOf(key) === index)
     .map((key) => ({ key, contractVersion: 1 }))
+    .concat(
+      [dnd5eAttackTestOperation, dnd5eSaveTestOperation].map(({ key, contractVersion }) => ({
+        key,
+        contractVersion
+      }))
+    )
 }
 
 function testProposalOperationKey(outcome: Outcome): string {
@@ -2804,7 +2842,7 @@ function compileTestDefinition(
       },
       {
         id: 'test',
-        operation: { key: testOperation, contractVersion: 1 },
+        operation: { key: testOperation, contractVersion: 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
@@ -2813,7 +2851,8 @@ function compileTestDefinition(
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          }
+          },
+          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       },
       ...proposalNodes
@@ -2974,7 +3013,7 @@ export function compileDnd5eEffectActionTestTemplate({
       },
       {
         id: 'test',
-        operation: { key: testOperation, contractVersion: 1 },
+        operation: { key: testOperation, contractVersion: 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
@@ -2983,7 +3022,8 @@ export function compileDnd5eEffectActionTestTemplate({
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          }
+          },
+          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       }
     ],
@@ -3463,7 +3503,7 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
       },
       {
         id: 'nested-save-test',
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: {
@@ -3476,7 +3516,8 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          }
+          },
+          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       },
       ...(nestedDamage && subtotal
@@ -4520,15 +4561,18 @@ function testApplications(
   const expectedThreshold = execution.evidence.facts[thresholdFactKey]
   const expectedContributorChecksum =
     execution.evidence.facts[DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]
-  const expectedPath = attack
-    ? naturalD20 === 20
-      ? 'ON_CRIT'
-      : naturalD20 === 1 || naturalD20 + modifier < threshold
-        ? 'ON_MISS'
-        : 'ON_HIT'
-    : naturalD20 + modifier >= threshold
-      ? 'ON_SAVE_SUCCESS'
-      : 'ON_SAVE_FAIL'
+  const outcomeRule = execution.evidence.facts[DND5E_TEST_OUTCOME_RULE_FACT_KEY]
+  if (!isDnd5eTestOutcomeRule(outcomeRule) || testTrace.inputs.outcomeRule !== outcomeRule)
+    throw new Dnd5eEffectActionCompilerError(
+      'The committed D&D test outcome rule does not match D&D policy.'
+    )
+  const expectedPath = dnd5eTestResultPath({
+    kind: attack ? 'ATTACK' : 'SAVE',
+    naturalD20,
+    total: naturalD20 + modifier,
+    threshold,
+    outcomeRule
+  })
   if (
     modifier !== expectedModifier ||
     threshold !== expectedThreshold ||
@@ -4765,7 +4809,17 @@ function repeatedFollowUpSaveResultPath(input: {
   ) {
     throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save graph is invalid.')
   }
-  const expected = naturalD20 + modifier >= threshold ? 'ON_SAVE_SUCCESS' : 'ON_SAVE_FAIL'
+  const outcomeRule = input.execution.evidence.facts[DND5E_TEST_OUTCOME_RULE_FACT_KEY]
+  if (!isDnd5eTestOutcomeRule(outcomeRule) || saveTrace.inputs.outcomeRule !== outcomeRule) {
+    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save outcome rule is invalid.')
+  }
+  const expected = dnd5eTestResultPath({
+    kind: 'SAVE',
+    naturalD20,
+    total: naturalD20 + modifier,
+    threshold,
+    outcomeRule
+  })
   if (saveTrace.outputs.resultPath !== expected) {
     throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save result is invalid.')
   }
@@ -5962,6 +6016,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     maximumHitPoints,
     targetScalarValues,
     targetConditionIds,
+    conditionOutcomeRules,
     conditionImmunityIds,
     sceneContext,
     positionalFacts
@@ -6185,7 +6240,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...baseFacts,
           [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: dc,
-          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
+          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(conditionOutcomeRules, nestedSaveAbilityDefinitionId)
         },
         d20RollMode: matches[0]!.rollMode,
         d20Roller: 'TARGET',
@@ -6245,7 +6301,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...baseFacts,
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
-          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
+          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
+            ? 'HIT_IS_CRITICAL'
+            : 'NONE'
         },
         d20RollMode: rollMode,
         d20Roller: 'SOURCE',
@@ -6280,7 +6339,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...baseFacts,
           [DND5E_SAVE_MODIFIER_FACT_KEY]: modifier,
           [DND5E_SAVE_DC_FACT_KEY]: save.dc,
-          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
+          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(conditionOutcomeRules, save.abilityDefinitionId)
         },
         d20RollMode: rollMode,
         d20Roller: 'TARGET',
@@ -6301,6 +6361,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetActorId,
     targetDerivedFacts,
     targetConditionIds,
+    conditionOutcomeRules,
     currentHitPoints,
     temporaryHitPoints,
     maximumHitPoints,
@@ -6456,7 +6517,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       facts: {
         ...baseFacts,
         [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
-        [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum
+        [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+        [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
+          conditionOutcomeRules,
+          abilityDefinitionId
+        )
       },
       evidencePolicy: {
         requestNodeId,

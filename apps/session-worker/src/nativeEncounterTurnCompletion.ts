@@ -19,6 +19,7 @@ import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/e
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { applyEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { readNativeLiveMaintenanceSlot } from './nativeEncounterMaintenance.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
@@ -73,13 +74,19 @@ export async function prepareNativeLiveTurnCompletion(input: {
     if (!actor) throw new Error('Turn concentration actor is unavailable.')
     projectedTargets.set(
       actorId,
-      buildMovementTarget({
-        actor,
-        activeEffects: activeEffectsByActorId.get(actorId) ?? [],
-        characterFacts: target.characterFacts,
-        campaignId: state.campaignId,
-        gameSystemId: state.gameSystemId,
-        includeReactionSources: target.characterReactionSource !== undefined
+      applyEncounterConditionMechanics({
+        target: {
+          ...buildMovementTarget({
+            actor,
+            activeEffects: activeEffectsByActorId.get(actorId) ?? [],
+            characterFacts: target.characterFacts,
+            campaignId: state.campaignId,
+            gameSystemId: state.gameSystemId,
+            includeReactionSources: target.characterReactionSource !== undefined
+          }),
+          conditionDefinitions: target.conditionDefinitions
+        },
+        gameSystemId: state.gameSystemId
       })
     )
   }

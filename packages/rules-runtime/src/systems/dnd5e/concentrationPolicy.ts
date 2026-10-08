@@ -200,7 +200,7 @@ export function createDnd5eConcentrationCheckDefinition() {
       },
       {
         id: 'save',
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 2 },
         inputs: {
           targetActorId: {
             kind: 'FACT',
@@ -215,7 +215,9 @@ export function createDnd5eConcentrationCheckDefinition() {
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          }
+          },
+          // Condition outcome rules don't reach concentration saves yet (D94).
+          outcomeRule: { kind: 'LITERAL', value: 'NONE' }
         }
       }
     ],

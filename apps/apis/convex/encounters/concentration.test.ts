@@ -18,9 +18,9 @@ import {
   executeInRoom,
   queueRoomRolls,
   readRoomRollCards,
-  RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { assertDomainRejection } from '../../tests/developmentClient'
 
 useLocalRoomWorker()
 
@@ -163,11 +163,12 @@ it('raises no concentration prompt in a Manual Run, where the damaging action is
   const { fixture, seeded } = await roomFixture('PROMPT')
   await storeRunAutomationMode(fixture.t, fixture.run.id, 'MANUAL')
   const before = await records(fixture)
+  // Manual mode refuses actions as a member-visible domain rejection (ENCOUNTER-2).
   await expect(
     executeInRoom(fixture.owner.caller, {
       command: concentrationAction(fixture)
     })
-  ).rejects.toThrow(RoomCommandRefusal)
+  ).rejects.toSatisfy((error) => assertDomainRejection(error, 'ASSISTED_ONLY'))
   expect(await records(fixture)).toEqual(before)
   expect(before.states.map((state) => state.id)).toContain(seeded.state.id)
   for (const member of [fixture.owner, fixture.player])

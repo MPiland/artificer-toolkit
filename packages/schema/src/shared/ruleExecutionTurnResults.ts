@@ -402,15 +402,19 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             repeatResult === d20ResultTraces[0] &&
             repeatResult?.nodeId === execution.definition.frozenGraphNodeId &&
             repeatResult.operation.key === 'dnd5e.save-test-resolution' &&
-            repeatResult.operation.contractVersion === 1 &&
+            repeatResult.operation.contractVersion === 2 &&
             repeatResult.inputs.targetActorId === execution.targetActorId &&
+            repeatResult.inputs.outcomeRule ===
+              execution.execution.evidence.facts['dnd5e.test-outcome-rule'] &&
             repeatResult.outputs.targetActorId === execution.targetActorId &&
             repeatResult.outputs.naturalD20 === execution.d20.selectedNatural &&
             execution.execution.evidence.facts['dnd5e.save-modifier'] === execution.d20.modifier &&
             execution.execution.evidence.facts['dnd5e.roll-contributor-checksum'] ===
               execution.d20.contributorChecksum &&
+            // A condition that fails the save unrolled (D94) fails it whatever the total.
             execution.d20.resultPath ===
-              (execution.d20.total >= execution.d20.defenseOrDc
+              (repeatResult.inputs.outcomeRule !== 'SAVE_AUTO_FAIL' &&
+              execution.d20.total >= execution.d20.defenseOrDc
                 ? 'ON_SAVE_SUCCESS'
                 : 'ON_SAVE_FAIL')
           const removal = execution.applications[0]

@@ -19,8 +19,6 @@ function turnReadPorts(ctx: QueryCtx): EncounterTurnReadPorts<ConvexCharacterTur
     ...encounterReadTransaction(ctx).ports,
     readCharacterTurnFacts: (campaign, characterId) =>
       loadCharacterSheetFacts(ctx, campaign.ownerUserId, characterId, campaign.id),
-    readCurrentDefinition: async (definitionId, ownerUserId) =>
-      (await readDefinitionRoot(ctx, definitionId, ownerUserId))?.current ?? null,
     // User-authored Systems are deferred, so no user-owned entry joins a catalogue.
     listBasicActionDefinitions: async (gameSystemId, ownerUserId) => {
       const rows = await ctx.db

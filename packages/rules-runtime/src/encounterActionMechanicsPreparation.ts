@@ -13,6 +13,11 @@ import {
   buildCompiledActionTargetPolicy
 } from './encounterActionEntryPointCompiler.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
+import {
+  encounterConditionAttackContributors,
+  encounterConditionHitIsCritical,
+  encounterConditionSaveAutoFailAbilityIds
+} from './encounterConditionMechanics.js'
 import { featureChargeUsed } from './encounterActorState.js'
 import {
   featureActionMechanic,
@@ -289,11 +294,16 @@ export async function prepareEncounterActionMechanics<
           })
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
   // A Dodging target (basic action, Q11, applied to its facts) gives attacks against it
-  // disadvantage, and so does a target beyond a ranged attack's normal range (D62).
+  // disadvantage, and so does a target beyond a ranged attack's normal range (D62). The attacker's
+  // and the target's condition mechanics add their own contributors (D94).
   const longRange = encounterActionLongRangeContributor({
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
+  const conditionAttack = {
+    melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
+    sceneContext: input.sceneContext ?? null
+  }
   const contributors = mergeCanonicalD20Contributors(
     await input.loadRelationshipFacts({
       state,
@@ -307,7 +317,16 @@ export async function prepareEncounterActionMechanics<
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
     targetFacts.basicActionAttackContributors,
-    longRange ? [longRange] : []
+    longRange ? [longRange] : [],
+    attackKind === null
+      ? []
+      : encounterConditionAttackContributors({
+          attackerActorId: actor.id,
+          attacker: sourceFacts.conditionMechanics,
+          targetActorId: target.id,
+          target: targetFacts.conditionMechanics,
+          attack: conditionAttack
+        })
   )
   return {
     state,
@@ -362,6 +381,17 @@ export async function prepareEncounterActionMechanics<
       targetActorId: target.id,
       targetDerivedFacts: targetFacts.targetDerivedFacts,
       targetConditionIds: targetFacts.state.conditions,
+      conditionOutcomeRules: {
+        hitIsCritical:
+          attackKind !== null &&
+          encounterConditionHitIsCritical({
+            target: targetFacts.conditionMechanics,
+            attack: conditionAttack
+          }),
+        saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(
+          targetFacts.conditionMechanics
+        )
+      },
       currentHitPoints: targetFacts.state.current,
       temporaryHitPoints: targetFacts.state.temporary,
       maximumHitPoints: targetFacts.effectiveMaximumHitPoints,

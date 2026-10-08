@@ -244,6 +244,15 @@ export interface CharacterRuleActionSaveSuccessReplacement {
   }
 }
 
+/**
+ * Test-outcome rules a target's condition mechanics apply (D94): a hit against it is a critical
+ * hit, and its saving throws of these abilities fail without counting the roll.
+ */
+export type CharacterRuleActionConditionOutcomeRules = {
+  hitIsCritical: boolean
+  saveAutoFailAbilityIds: readonly string[]
+}
+
 export interface CharacterRuleActionSystemAdapter {
   gameSystemId: string
   compile(input: { action: EffectActionCapabilityDescriptor }): ServerPublishedRuleDefinitionDto
@@ -323,6 +332,10 @@ export interface CharacterRuleActionSystemAdapter {
     /** Exact current target derived facts selected under the aggregate lock. */
     targetDerivedFacts: Readonly<Record<string, unknown>>
     targetConditionIds: readonly string[]
+    /**
+     * Outcome rules the target's condition mechanics apply (D94). Omitted applies none.
+     */
+    conditionOutcomeRules?: CharacterRuleActionConditionOutcomeRules | null
     currentHitPoints: number
     temporaryHitPoints: number
     maximumHitPoints: number
@@ -393,6 +406,10 @@ export interface CharacterRuleActionSystemAdapter {
     targetActorId: string
     targetDerivedFacts: Readonly<Record<string, unknown>>
     targetConditionIds: readonly string[]
+    /**
+     * Outcome rules the target's condition mechanics apply (D94). Omitted applies none.
+     */
+    conditionOutcomeRules?: CharacterRuleActionConditionOutcomeRules | null
     currentHitPoints: number
     temporaryHitPoints: number
     maximumHitPoints: number

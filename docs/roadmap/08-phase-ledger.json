@@ -4293,18 +4293,98 @@
         {
           "id": "SPELLS-2",
           "title": "Conditions apply their mechanics",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/encounters/actionCommands.test.ts",
+            "apps/apis/convex/encounters/basicActions.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
-              "text": "Condition effects (D63) are modeled: Poisoned, Frightened, Prone, Restrained, Paralyzed, Unconscious, Stunned and Petrified apply auto-fail, advantage-against, speed 0 and critical rules; exhaustion levels follow.",
-              "status": "TODO",
-              "proof": [],
+              "text": "Condition effects are authored data on the System's condition definitions (D94), so the SRD conditions and a homebrew condition apply with no per-condition code, from the definitions pinned when the room loads the actor.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › a homebrew condition applies its authored mechanics with no condition-specific code",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › reads no definitions for an actor without conditions",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › a rebuilt target re-derives its mechanics from its pins: a removed condition applies nothing"
+              ],
               "origin": ["G2-OUTCOMES"],
-              "note": "Original PARTIAL: rules-runtime.md says condition effects are not modeled; rul-9-rules-audit.md slice 1.",
+              "note": "Refined from the original SPELLS-2.1 (D63) into SPELLS-2.1 to 2.7 under D94. Original PARTIAL: rules-runtime.md said condition effects are not modeled; rul-9-rules-audit.md slice 1.",
               "id": "SPELLS-2.1"
+            },
+            {
+              "text": "Attack rolls follow the attacker's and target's conditions: Poisoned, Frightened, Prone and Restrained attackers roll with disadvantage; attacks against Restrained, Paralyzed, Stunned, Unconscious and Petrified targets have advantage, and against a Prone target advantage within 5 feet and disadvantage beyond; the derived mode names the condition.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterConditionAttacks.test.ts › a Prone attacker rolls with disadvantage",
+                "packages/rules-runtime/src/__tests__/encounterConditionAttacks.test.ts › a ranged attack on a Prone target beyond 5 feet rolls with disadvantage",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › a Poisoned or Frightened attacker has disadvantage on attack rolls and ability checks",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › attacks against a Prone target have advantage within 5 feet and disadvantage beyond",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › advantage and disadvantage from conditions cancel to a normal roll",
+                "apps/apis/convex/encounters/actionCommands.test.ts › a Paralyzed target makes an adjacent Bite roll with advantage and hit critically (D94) (room journey: the prompt asks for an advantage roll with the reason Paralyzed)"
+              ],
+              "origin": ["G2-OUTCOMES"],
+              "id": "SPELLS-2.2"
+            },
+            {
+              "text": "A hit on a Paralyzed or Unconscious target within 5 feet is a critical hit (rolling the critical damage); a hit beyond 5 feet, or on a Stunned or Petrified target, is not.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterConditionAttacks.test.ts › a melee hit on a Paralyzed target rolls with advantage and is a critical hit",
+                "packages/rules-runtime/src/__tests__/encounterConditionAttacks.test.ts › a ranged hit on a Paralyzed target has advantage but is not critical beyond 5 feet",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › a hit within 5 feet of a Paralyzed or Unconscious target is critical; Stunned and Petrified are not",
+                "apps/apis/convex/encounters/actionCommands.test.ts › a Paralyzed target makes an adjacent Bite roll with advantage and hit critically (D94) (room journey: the outcome asks for critical damage)"
+              ],
+              "origin": ["G2-OUTCOMES"],
+              "id": "SPELLS-2.3"
+            },
+            {
+              "text": "Paralyzed, Stunned, Unconscious and Petrified creatures fail Strength and Dexterity saves even on a natural 20 and roll other saves normally; a Restrained creature's Dexterity saves have disadvantage; the server binds the outcome rule and seals it into the save's TEST-phase facts checksum.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterActionSaves.test.ts › fails a Dexterity save of a Paralyzed or Stunned target even on a natural 20",
+                "packages/rules-runtime/src/__tests__/encounterActionSaves.test.ts › rolls a Paralyzed target's Wisdom save normally",
+                "packages/rules-runtime/src/__tests__/encounterActionSaves.test.ts › seals the save outcome rule into the bound facts of the TEST phase",
+                "packages/rules-runtime/src/__tests__/encounterActionSaves.test.ts › rolls a Restrained target's Dexterity save with disadvantage",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › Paralyzed, Petrified, Stunned and Unconscious fail Strength and Dexterity saves and are attacked with advantage",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › Restrained sets speed to 0, gives advantage against it and disadvantage on its Dexterity saves"
+              ],
+              "origin": ["G2-OUTCOMES"],
+              "id": "SPELLS-2.4"
+            },
+            {
+              "text": "Poisoned and Frightened creatures make ability checks with disadvantage, including Overrun and Tumble contests, and the contributor keeps its holder so a hidden holder's condition is not named to players.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts › a Poisoned mover makes its OVERRUN check with disadvantage, naming the condition and its holder (regression: Overrun dropped the contributor's holder)",
+                "packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts › a Poisoned mover makes its TUMBLE check with disadvantage, naming the condition and its holder",
+                "packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts › a Poisoned blocker makes its contest check with disadvantage",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › a Poisoned or Frightened attacker has disadvantage on attack rolls and ability checks"
+              ],
+              "origin": ["G2-OUTCOMES"],
+              "id": "SPELLS-2.5"
+            },
+            {
+              "text": "Speed 0 conditions (Restrained, Paralyzed, Stunned, Unconscious, Petrified) leave a Character's or Creature's tabletop movement budget at 0, Dash included, and suspend Dodge; removing the condition restores the speed.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/basicActions.test.ts › Dash spends the action and adds the speed to this turn’s budget; a second one warns first (room journey: a Restrained Creature's budget is 0 after Dash and is restored when the condition is removed)",
+                "packages/rules-runtime/src/__tests__/encounterBasicActions.test.ts › Dodge applies nothing while the actor is incapacitated or its speed is 0",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › Restrained sets speed to 0, gives advantage against it and disadvantage on its Dexterity saves"
+              ],
+              "origin": ["G2-OUTCOMES"],
+              "id": "SPELLS-2.6"
+            },
+            {
+              "text": "Exhaustion levels follow, cumulatively: 1 ability checks at disadvantage, 2 speed halved, 3 attacks and saves at disadvantage, 5 speed 0, from a Character's exhaustion level or a Creature's condition row level.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › each Exhaustion level adds its own mechanics and keeps the lower levels",
+                "packages/rules-runtime/src/__tests__/encounterConditionMechanics.test.ts › a Creature's Exhaustion row level applies that level's mechanics to its saves"
+              ],
+              "origin": ["G2-OUTCOMES"],
+              "id": "SPELLS-2.7"
             }
           ]
         },
@@ -4439,6 +4519,56 @@
               "origin": [],
               "note": "rul-9-rules-audit.md slice 10 (depends on conditions).",
               "id": "SPELLS-9.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-10",
+          "title": "Condition mechanics completions",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A Petrified creature has resistance to all damage, through an authored condition mechanic.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-2 (D94): the condition policy has no damage mechanic yet.",
+              "id": "SPELLS-10.1"
+            },
+            {
+              "text": "Exhaustion 4 halves the hit point maximum and Exhaustion 6 kills, through authored condition mechanics.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-2 (D94); level 6 death joins SPELLS-3.",
+              "id": "SPELLS-10.2"
+            },
+            {
+              "text": "The GM sets a leveled condition's level (Exhaustion) on a Creature in the Encounter, and its mechanics follow the level.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-2 (D94): the runtime reads a Creature condition row's level, but no editor sets it.",
+              "id": "SPELLS-10.3"
+            },
+            {
+              "text": "A roll that a condition makes an automatic failure shows that it fails and why before and after the roll.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-2 (D94): the d20 is still prompted and rolled, and the result path is the failure.",
+              "id": "SPELLS-10.4"
+            },
+            {
+              "text": "Concentration saves follow the concentrating creature's conditions: Exhaustion 3 rolls them with disadvantage, and a condition's automatic failure ends concentration.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-2 (D94): concentration takes no condition contributors and binds the outcome rule NONE. Concentration ending on incapacitation is SPELLS-9.1.",
+              "id": "SPELLS-10.5"
             }
           ]
         }

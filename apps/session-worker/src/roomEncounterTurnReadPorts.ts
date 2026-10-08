@@ -42,8 +42,6 @@ export async function roomEncounterTurnReadTransaction(
         { ownerVerified: true }
       )
     }),
-    readCurrentDefinition: async (definitionId) =>
-      (await inputs.definition(definitionId, observed)).definition,
     listBasicActionDefinitions: async (gameSystemId) => {
       const definitions = await inputs.platformDefinitionsOfFamily(
         { gameSystemId, definitionFamilyKey: BASIC_ACTION_DEFINITION_FAMILY_KEY },

@@ -1,12 +1,13 @@
 import {
   conditionRuleStateReusableDefinitionDocumentDtoSchema,
   ruleCapabilityReusableDefinitionDocumentDtoSchema,
+  type ConditionMechanicDto,
   type ConditionRuleStateReusableDefinitionDocumentDto,
   type RuleCapabilityReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/ruleState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID } from './vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS, SRD_CONDITION_TYPES, SRD_SYSTEM_ID } from './vocabulary.js'
 
 export const SRD_REACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d2'
 export const SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d4'
@@ -149,8 +150,83 @@ const perceptionContributionsByConditionDefinitionId = {
   ]
 } as const
 
+type ConditionMechanicRule = ConditionMechanicDto extends infer Mechanic
+  ? Mechanic extends ConditionMechanicDto
+    ? Omit<Mechanic, 'id' | 'order' | 'minimumLevel'>
+    : never
+  : never
+
+const WITHIN_5_FEET = { kind: 'WITHIN', distance: { amount: 5, unit: 'FEET' } } as const
+const BEYOND_5_FEET = { kind: 'BEYOND', distance: { amount: 5, unit: 'FEET' } } as const
+const SPEED_ZERO = { kind: 'SPEED', numerator: 0, denominator: 1 } as const
+const disadvantageOn = (
+  roll: Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }>['roll']
+): ConditionMechanicRule => ({ kind: 'D20_ROLL_MODE', influence: 'DISADVANTAGE', roll })
+const advantageOn = (
+  roll: Extract<ConditionMechanicRule, { kind: 'D20_ROLL_MODE' }>['roll']
+): ConditionMechanicRule => ({ kind: 'D20_ROLL_MODE', influence: 'ADVANTAGE', roll })
+
+/** Paralyzed, Petrified, Stunned and Unconscious: helpless against attacks and Str/Dex saves. */
+function helplessMechanics(criticalWithin5Feet: boolean): ConditionMechanicRule[] {
+  return [
+    advantageOn({ kind: 'ATTACKS_AGAINST', range: { kind: 'ANY' } }),
+    {
+      kind: 'SAVE_AUTO_FAIL',
+      abilityDefinitionIds: [
+        SRD_ABILITY_DEFINITION_IDS.STRENGTH,
+        SRD_ABILITY_DEFINITION_IDS.DEXTERITY
+      ].sort()
+    },
+    SPEED_ZERO,
+    ...(criticalWithin5Feet
+      ? [{ kind: 'HITS_AGAINST_CRITICAL', range: WITHIN_5_FEET } as const]
+      : [])
+  ]
+}
+
+/** SRD 5.1 condition mechanics (D94), each with the Exhaustion level it needs, if any. */
+const mechanicsByConditionCode: Readonly<
+  Record<string, readonly (ConditionMechanicRule & { minimumLevel?: number })[]>
+> = {
+  POISONED: [disadvantageOn({ kind: 'ATTACKS_BY' }), disadvantageOn({ kind: 'ABILITY_CHECKS' })],
+  // The source of fear is not tracked, so the disadvantage applies while Frightened, whether or
+  // not the source is in sight (D94).
+  FRIGHTENED: [disadvantageOn({ kind: 'ATTACKS_BY' }), disadvantageOn({ kind: 'ABILITY_CHECKS' })],
+  PRONE: [
+    disadvantageOn({ kind: 'ATTACKS_BY' }),
+    advantageOn({ kind: 'ATTACKS_AGAINST', range: WITHIN_5_FEET }),
+    disadvantageOn({ kind: 'ATTACKS_AGAINST', range: BEYOND_5_FEET })
+  ],
+  GRAPPLED: [SPEED_ZERO],
+  RESTRAINED: [
+    SPEED_ZERO,
+    disadvantageOn({ kind: 'ATTACKS_BY' }),
+    advantageOn({ kind: 'ATTACKS_AGAINST', range: { kind: 'ANY' } }),
+    disadvantageOn({
+      kind: 'SAVES',
+      abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY]
+    })
+  ],
+  PARALYZED: helplessMechanics(true),
+  PETRIFIED: helplessMechanics(false),
+  STUNNED: helplessMechanics(false),
+  UNCONSCIOUS: helplessMechanics(true),
+  EXHAUSTION: [
+    { ...disadvantageOn({ kind: 'ABILITY_CHECKS' }), minimumLevel: 1 },
+    { kind: 'SPEED', numerator: 1, denominator: 2, minimumLevel: 2 },
+    { ...disadvantageOn({ kind: 'ATTACKS_BY' }), minimumLevel: 3 },
+    { ...disadvantageOn({ kind: 'SAVES', abilityDefinitionIds: null }), minimumLevel: 3 },
+    { ...SPEED_ZERO, minimumLevel: 5 }
+  ]
+}
+
+/** Stable mechanic identities: the condition's vocabulary number and the mechanic's place. */
+function conditionMechanicId(conditionIndex: number, mechanicIndex: number) {
+  return `00000000-0000-4000-8001-${(conditionIndex * 256 + mechanicIndex).toString(16).padStart(12, '0')}`
+}
+
 export const SRD_CONDITION_RULE_STATE_DEFINITIONS: readonly SrdRuleStateDefinitionSeed[] =
-  SRD_CONDITION_TYPES.map((condition) => {
+  SRD_CONDITION_TYPES.map((condition, conditionIndex) => {
     const suppressesActions = actionSuppressingConditionCodes.has(condition.code)
     const document = conditionRuleStateReusableDefinitionDocumentDtoSchema.parse({
       schemaVersion: 1,
@@ -176,13 +252,21 @@ export const SRD_CONDITION_RULE_STATE_DEFINITIONS: readonly SrdRuleStateDefiniti
       perceptionContributions:
         perceptionContributionsByConditionDefinitionId[
           condition.id as keyof typeof perceptionContributionsByConditionDefinitionId
-        ] ?? []
+        ] ?? [],
+      mechanics: (mechanicsByConditionCode[condition.code] ?? []).map(
+        ({ minimumLevel, ...mechanic }, order) => ({
+          ...mechanic,
+          id: conditionMechanicId(conditionIndex + 1, order),
+          order,
+          minimumLevel: minimumLevel ?? null
+        })
+      )
     })
     return defineRuleState({
       id: condition.id,
       definitionFamilyKey: 'condition-rule-state',
-      label: `${condition.label} capability policy`,
-      description: `D&D capability-availability policy for the ${condition.label} condition.`,
+      label: `${condition.label} rule policy`,
+      description: `D&D capability, perception and mechanics policy for the ${condition.label} condition.`,
       document
     })
   })

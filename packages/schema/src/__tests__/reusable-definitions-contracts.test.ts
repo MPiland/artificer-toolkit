@@ -155,7 +155,8 @@ describe('reusable definition contracts', () => {
           capabilityDefinitionIds: [sourceId]
         }
       ],
-      perceptionContributions: []
+      perceptionContributions: [],
+      mechanics: []
     }
     expect(reusableDefinitionDocumentDtoSchema.parse(condition)).toEqual(condition)
     expect(() =>

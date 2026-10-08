@@ -256,6 +256,13 @@ describe('basic combat actions in the room (Q11)', () => {
       label: 'Dash',
       ruleOverrides: [expect.objectContaining({ code: 'ACTION_ECONOMY_UNAVAILABLE' })]
     })
+    // Restrained sets the speed to 0 (D94), so every Dash adds nothing; removing it restores it.
+    const restrained = srdSystemRecord.conditionTypes.find((value) => value.code === 'RESTRAINED')
+    if (!restrained) throw new Error('Missing Restrained condition fixture.')
+    await setConditions(base, base.companion.id, [restrained.id])
+    expect(await budget()).toBe(0)
+    await setConditions(base, base.companion.id, [])
+    expect(await budget()).toBe(walking! * 3)
   })
 
   it('Dodge gives attacks against the actor disadvantage, reads "Dodge", and ends at its next turn', async () => {

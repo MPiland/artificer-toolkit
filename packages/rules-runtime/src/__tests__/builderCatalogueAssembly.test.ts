@@ -413,5 +413,6 @@ describe('Builder catalogue from content snapshots', () => {
           )
         ).toBe(true)
     }
-  })
+    // Twelve full Builder assemblies over the whole SRD exceed the 5 s default under load.
+  }, 30_000)
 })

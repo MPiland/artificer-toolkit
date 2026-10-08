@@ -25,6 +25,7 @@ import {
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { withFeatureChargeUsed } from '../encounterActorState.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
+import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import {
   planNativeEncounterActionMechanics,
   type NativeEncounterActionMechanicsInput
@@ -34,6 +35,7 @@ import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
 import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionCompiler.js'
+import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
 export type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
 type ActionCharacterFacts = NonNullable<
@@ -289,15 +291,34 @@ export function creatureEncounter<
   return { state, movementTargets }
 }
 
-/** Prepares a Creature-to-Creature action through the real preparation path; no persistence. */
-export function prepareCreatureAction(input: {
+/**
+ * Prepares a Creature-to-Creature action through the real preparation path; no persistence. Like
+ * the room, it pins each actor's SRD condition definitions first (D94).
+ */
+export async function prepareCreatureAction(input: {
   actor: EncounterRunActorState
   target: EncounterRunActorState
   featureId: string
   overridable: boolean
 }) {
   const actors = input.actor.id === input.target.id ? [input.actor] : [input.actor, input.target]
-  const { state, movementTargets } = creatureEncounter(actors)
+  const encounter = creatureEncounter(actors)
+  const { state } = encounter
+  const movementTargets = new Map(
+    await Promise.all(
+      [...encounter.movementTargets].map(
+        async ([id, target]) =>
+          [
+            id,
+            await withEncounterConditionMechanics({
+              target,
+              gameSystemId: SRD_SYSTEM_ID,
+              definitions: srdConditionDefinitionSource()
+            })
+          ] as const
+      )
+    )
+  )
   return prepareEncounterActionMechanics<ActionCharacterFacts>({
     state,
     actor: input.actor,

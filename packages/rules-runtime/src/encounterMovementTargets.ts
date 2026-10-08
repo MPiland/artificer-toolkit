@@ -37,6 +37,8 @@ import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
 import { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
 import { resolveCharacterRulePolicyRollModes } from './character/characterRuleRollProjection.js'
 import type { Dnd5eQualifiedDamageDefense } from './systems/dnd5e/attackDamageDefenses.js'
+import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
+import type { EncounterConditionMechanic } from './encounterConditionMechanics.js'
 
 export type CharacterMovementFacts = {
   active: { id: string; checksum: string; play: { streamVersion: number } }
@@ -83,6 +85,14 @@ export type MovementTarget<
    * `withEncounterBasicActionDefense`; empty until a flow applies it.
    */
   basicActionAttackContributors: readonly EncounterRelationshipD20Contributor[]
+  /**
+   * The actor's pinned condition definitions (D94), loaded by `withEncounterConditionMechanics`
+   * and carried across rebuilds so `applyEncounterConditionMechanics` can re-derive its mechanics;
+   * empty until a flow loads them.
+   */
+  conditionDefinitions: readonly PinnedConditionRuleStateDefinitionDto[]
+  /** The mechanics the actor's current conditions apply, derived from `conditionDefinitions`. */
+  conditionMechanics: readonly EncounterConditionMechanic[]
 }
 
 export function nativeCharacterMaximumHitPoints(
@@ -259,7 +269,9 @@ export function buildMovementTarget<
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
-      basicActionAttackContributors: []
+      basicActionAttackContributors: [],
+      conditionDefinitions: [],
+      conditionMechanics: []
     }
   }
   const baseScalarValues: Record<string, number> =
@@ -323,6 +335,8 @@ export function buildMovementTarget<
     defenses: actorRule.targetProtection.defenses,
     qualifiedDefenses: actorRule.targetProtection.qualifiedDefenses,
     conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds,
-    basicActionAttackContributors: []
+    basicActionAttackContributors: [],
+    conditionDefinitions: [],
+    conditionMechanics: []
   }
 }

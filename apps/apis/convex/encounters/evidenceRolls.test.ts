@@ -18,9 +18,9 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { assertDomainRejection } from '../../tests/developmentClient'
 import { setGmRollVisibility } from '../../tests/fixtures/rollPreferences'
 
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
@@ -217,7 +217,7 @@ describe('Encounter roll prompts', () => {
         executeInRoom(member.caller, {
           command: await base.bite(base.companion.id, base.enemy.id)
         })
-      ).rejects.toThrow(RoomCommandRefusal)
+      ).rejects.toSatisfy((error) => assertDomainRejection(error, 'ASSISTED_ONLY'))
     expect(await stored()).toEqual(before)
     for (const member of [base.owner, base.other, base.player])
       await expect(readPending(base, member)).resolves.toBeNull()

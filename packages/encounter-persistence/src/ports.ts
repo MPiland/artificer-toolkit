@@ -89,6 +89,11 @@ export interface EncounterReadPorts {
     campaign: EncounterDocument<'campaigns'>,
     characterId: string
   ): Promise<CampaignCharacterState['conditions']>
+  /** The definition's current published version as `ownerUserId` reads it; null when it has none. */
+  readCurrentDefinition(
+    definitionId: string,
+    ownerUserId: string
+  ): Promise<ReusableDefinitionCurrentDto | null>
   readAutoRollDice(userId: string): Promise<boolean>
   /** The GM's remembered Public/Private roll toggle: it decides rolls the GM did not start. */
   readGmRollVisibility(userId: string): Promise<RollVisibilityDto>
@@ -129,11 +134,6 @@ export interface EncounterTurnReadPorts<
     campaign: EncounterDocument<'campaigns'>,
     characterId: string
   ): Promise<TFacts | null>
-  /** The definition's current published version as `ownerUserId` reads it; null when it has none. */
-  readCurrentDefinition(
-    definitionId: string,
-    ownerUserId: string
-  ): Promise<ReusableDefinitionCurrentDto | null>
   /**
    * The System's published platform basic-action definitions, by label then id. Refuses a
    * catalogue beyond `MAX_BASIC_ACTION_CHOICES`.

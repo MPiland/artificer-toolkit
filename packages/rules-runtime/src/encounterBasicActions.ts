@@ -19,6 +19,7 @@ import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegist
 import { lengthInFeet } from './character/characterSceneVision.js'
 import { activeEffectCapabilitySuppressions } from './encounterActionEconomy.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
+import { encounterConditionSpeed } from './encounterConditionMechanics.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import {
@@ -103,7 +104,7 @@ function basicActionContributor(
 
 /**
  * Whether an actor can't act (its System's actor-action capability is suppressed) or every speed it
- * has is 0.
+ * has is 0 after its condition mechanics.
  */
 async function unableToActOrMove(input: {
   target: MovementTarget
@@ -119,7 +120,14 @@ async function unableToActOrMove(input: {
         : []
   const feet = speeds.flatMap((entry: unknown) => {
     const speed = speedDtoSchema.safeParse(entry)
-    return speed.success ? [lengthInFeet(speed.data) ?? 0] : []
+    return speed.success
+      ? [
+          encounterConditionSpeed({
+            mechanics: target.conditionMechanics,
+            speed: lengthInFeet(speed.data) ?? 0
+          })
+        ]
+      : []
   })
   if (feet.length && feet.every((value) => value === 0)) return true
   const capabilityDefinitionId =

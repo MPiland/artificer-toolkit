@@ -9,6 +9,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { skippedEncounterActorIds } from './encounterActorDefeat.js'
 import { planEncounterInitiativeAdvance } from './encounterInitiativeStateSettlement.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
+import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
 import type { prepareEncounterTurnInitiative } from './encounterTurnInitiative.js'
 import type { prepareTurnLegendaryActions } from './encounterTurnLegendaryAction.js'
@@ -230,13 +231,19 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     if (!actor) throw new Error('Turn-effect staged actor is unavailable.')
     movementTargets.set(
       actorId,
-      buildMovementTarget({
-        actor,
-        activeEffects: target.activeEffects,
-        gameSystemId: state.gameSystemId,
-        campaignId: state.campaignId,
-        characterFacts: target.characterFacts,
-        includeReactionSources: target.characterReactionSource !== undefined
+      applyEncounterConditionMechanics({
+        target: {
+          ...buildMovementTarget({
+            actor,
+            activeEffects: target.activeEffects,
+            gameSystemId: state.gameSystemId,
+            campaignId: state.campaignId,
+            characterFacts: target.characterFacts,
+            includeReactionSources: target.characterReactionSource !== undefined
+          }),
+          conditionDefinitions: target.conditionDefinitions
+        },
+        gameSystemId: state.gameSystemId
       })
     )
   }

@@ -201,6 +201,8 @@ export async function roomEncounterReadTransaction(input: {
         throw new Error('Room Campaign Character state is unavailable.')
       return part.inputs.campaign.state.conditions
     },
+    readCurrentDefinition: async (definitionId) =>
+      (await inputs.definition(definitionId, observed, transaction)).definition,
     readAutoRollDice: async (id) => readRoomPreference(authorization, id).autoRollDice,
     readGmRollVisibility: async (id) => readRoomPreference(authorization, id).gmRollVisibility,
     isRoomHeldRun: async () => true,

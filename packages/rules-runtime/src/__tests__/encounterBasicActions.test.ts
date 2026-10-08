@@ -18,8 +18,10 @@ import {
   withEncounterBasicActionEffects,
   withoutEncounterAllyAdvantage
 } from '../encounterBasicActions.js'
+import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import { labelEncounterRollModeReasons } from '../encounterRollModeReasons.js'
+import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
 const SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 const HOMEBREW_SYSTEM_ID = '00000000-0000-0000-0000-0000000000aa'
@@ -27,6 +29,7 @@ const ENCOUNTER_ID = '11111111-1111-4111-8111-111111111111'
 const DEXTERITY_ID = '00000000-0000-0000-0011-000200000000'
 const ACTOR_ACTION_CAPABILITY_ID = '00000000-0000-4000-8000-0000000000d4'
 const INCAPACITATED_ID = '00000000-0000-0000-0002-000700000000'
+const RESTRAINED_ID = '00000000-0000-0000-0002-000d00000000'
 const IDS = {
   dash: '00000000-0000-4000-8000-000000000b01',
   disengage: '00000000-0000-4000-8000-000000000b02',
@@ -115,11 +118,12 @@ const definitions = {
               capabilityDefinitionIds: [ACTOR_ACTION_CAPABILITY_ID]
             }
           ],
-          perceptionContributions: []
+          perceptionContributions: [],
+          mechanics: []
         },
         'condition-rule-state'
       )
-    throw new Error(`Unexpected definition ${id}.`)
+    return srdConditionDefinitionSource().requireCurrent(id)
   }
 }
 
@@ -148,7 +152,9 @@ function target(
     qualifiedDefenses: [],
     conditionImmunityIds: [],
     characterCurrentness: null,
-    basicActionAttackContributors: []
+    basicActionAttackContributors: [],
+    conditionDefinitions: [],
+    conditionMechanics: []
   }
 }
 function turn(turnSequence: number, currentActorId: string) {
@@ -280,6 +286,18 @@ describe('basic action mechanics (Q11)', () => {
     })
     for (const suspended of [
       target(dodging, { conditions: [INCAPACITATED_ID] }),
+      // Restrained sets a 30-foot walk to 0 through its authored condition mechanics (D94).
+      await withEncounterConditionMechanics({
+        target: target(
+          encounterRunActorStateSchema.parse({
+            ...dodging,
+            snapshot: { payload: { speeds: [{ speedId: WALK_ID, amount: 30, unit: 'FEET' }] } }
+          }),
+          { conditions: [RESTRAINED_ID] }
+        ),
+        gameSystemId: SYSTEM_ID,
+        definitions
+      }),
       target(
         encounterRunActorStateSchema.parse({
           ...dodging,

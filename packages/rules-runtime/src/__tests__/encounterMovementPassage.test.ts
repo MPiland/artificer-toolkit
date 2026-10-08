@@ -14,6 +14,7 @@ import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/
 import {
   SRD_ACROBATICS_SKILL_ID,
   SRD_ATHLETICS_SKILL_ID,
+  SRD_CONDITION_TYPES,
   SRD_SYSTEM_ID,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -22,9 +23,14 @@ import { describe, expect, it } from 'vitest'
 import type { EncounterActionEconomyConsumption } from '../encounterActionEconomyConsumption.js'
 import { discoverEncounterMovementPassage } from '../encounterMovementPassageBoundary.js'
 import { discoverEncounterMovementPassageContact } from '../encounterMovementPassageContacts.js'
-import { availableEncounterMovementPassageChoice } from '../encounterMovementPassagePreparation.js'
+import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
+import {
+  availableEncounterMovementPassageChoice,
+  prepareEncounterMovementPassageContest
+} from '../encounterMovementPassagePreparation.js'
 import { buildMovementTarget, type MovementTarget } from '../encounterMovementTargets.js'
 import type { SpatialMovementRuleRoot } from '../encounterSpatialMovementRuleService.js'
+import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
 const ids = {
   encounter: '10000000-0000-4000-8000-000000000001',
@@ -584,5 +590,70 @@ describe('availableEncounterMovementPassageChoice', () => {
     expect(
       await availableEncounterMovementPassageChoice(reads(), passageInput(runState(), [first]))
     ).toBeNull()
+  })
+})
+
+describe('passage contests under the contestants\' conditions (D94)', () => {
+  const POISONED = SRD_CONDITION_TYPES.find((condition) => condition.code === 'POISONED')!.id
+  const poisoned = (actor: EncounterRunActorState): EncounterRunActorState => {
+    // A Character actor's conditions live on its Character, which the Run reads.
+    if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature contestant.')
+    return { ...actor, conditions: [POISONED] }
+  }
+
+  async function contest(ruleKind: 'OVERRUN' | 'TUMBLE', contestants: EncounterRunActorState[]) {
+    const input = passageInput(runState(), contestants)
+    const targets = new Map(
+      await Promise.all(
+        [...input.targets].map(
+          async ([actorId, target]) =>
+            [
+              actorId,
+              await withEncounterConditionMechanics({
+                target,
+                gameSystemId: SRD_SYSTEM_ID,
+                definitions: srdConditionDefinitionSource()
+              })
+            ] as const
+        )
+      )
+    )
+    const choice = await availableEncounterMovementPassageChoice(reads(), { ...input, targets })
+    const option = choice?.options.find(
+      (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
+    )
+    if (!choice || !option) throw new Error('Expected a passage option.')
+    return prepareEncounterMovementPassageContest(
+      { ...reads(), allyAdvantage: () => null },
+      { state: input.state, choice, optionId: option.optionId, targets }
+    )
+  }
+
+  const poisonedBy = (holderActorId: string) => ({
+    sourceId: `condition:${POISONED}`,
+    grantId: null,
+    domainKey: `condition:${holderActorId}`,
+    influence: 'DISADVANTAGE'
+  })
+
+  it.each(['OVERRUN', 'TUMBLE'] as const)(
+    'a Poisoned mover makes its %s check with disadvantage, naming the condition and its holder',
+    async (ruleKind) => {
+      const prepared = await contest(ruleKind, [poisoned(source), first])
+      expect(prepared.initiator).toMatchObject({
+        rollMode: 'DISADVANTAGE',
+        contributors: [poisonedBy(ids.source)]
+      })
+      expect(prepared.defender).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+    }
+  )
+
+  it('a Poisoned blocker makes its contest check with disadvantage', async () => {
+    const prepared = await contest('TUMBLE', [source, poisoned(first)])
+    expect(prepared.initiator).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+    expect(prepared.defender).toMatchObject({
+      rollMode: 'DISADVANTAGE',
+      contributors: [poisonedBy(ids.first)]
+    })
   })
 })
