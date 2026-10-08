@@ -11,7 +11,7 @@ import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timeline
 import type { EncounterReadTransaction } from './ports.js'
 
 /**
- * Admits a basic action (Q11) for the room: the caller controls the current actor, a player's ally
+ * Admits a basic action (Q11) for the room: the caller controls the current actor, a player's target
  * is visible to them, and a stored result replays before any currentness check. It reads no rules
  * inputs and writes nothing.
  */
@@ -28,7 +28,7 @@ export async function readBasicActionAdmission(
     commandId: input.command.commandId.toLowerCase(),
     actorId: input.command.actorId.toLowerCase(),
     definitionId: input.command.definitionId.toLowerCase(),
-    allyActorId: input.command.allyActorId?.toLowerCase() ?? null
+    targetActorId: input.command.targetActorId?.toLowerCase() ?? null
   }
   if (
     userId !== input.expectedUserId ||
@@ -84,11 +84,11 @@ export async function readBasicActionAdmission(
   const actor = await readRunActor(ctx, state, command.actorId)
   await requireEncounterActorControl(ctx, { campaign, membership, actor })
   if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
-  if (command.allyActorId) {
-    const ally = await readRunActor(ctx, state, command.allyActorId)
-    // Players help only actors in their projection; a hidden actor reads as unavailable.
-    if (membership.role !== 'OWNER' && !ally.public) rejectDomain('TARGET_UNAVAILABLE')
-    if (await readEncounterActorDefeated(ctx, ally))
+  if (command.targetActorId) {
+    const target = await readRunActor(ctx, state, command.targetActorId)
+    // Players aim only at actors in their projection; a hidden actor reads as unavailable.
+    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    if (await readEncounterActorDefeated(ctx, target))
       rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't be helped.")
   }
   if (state.version !== command.expectedVersion) rejectDomain('VERSION_STALE')

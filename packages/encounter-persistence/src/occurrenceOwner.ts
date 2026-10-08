@@ -16,6 +16,7 @@ type NativeEncounterOccurrenceOwner =
   | 'DISARM'
   | 'CONCENTRATION'
   | 'CLEAVING'
+  | 'BASIC_ACTION'
   | 'ACTION'
   | 'TURN'
   | 'MOVEMENT'
@@ -88,6 +89,8 @@ export function classifyNativeEncounterOccurrence({
     occurrence.rootCommandId === cleavingChildCommandIdentity(occurrence.id)
   )
     return 'CLEAVING'
+  if (context?.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' || rootCommandType === 'USE_BASIC_ACTION')
+    return 'BASIC_ACTION'
   if (isNativeActionOccurrence({ context, rootCommandType })) return 'ACTION'
   if (
     context?.kind === 'ENCOUNTER_TURN_RECHARGE' ||

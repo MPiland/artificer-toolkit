@@ -69,7 +69,7 @@ async function basicAction(
   base: MoverTurn,
   actorId: string,
   definitionId: string,
-  allyActorId: string | null = null
+  targetActorId: string | null = null
 ) {
   return gm(base, {
     type: 'USE_BASIC_ACTION',
@@ -78,7 +78,7 @@ async function basicAction(
     expectedVersion: await runVersion(base),
     actorId,
     definitionId,
-    allyActorId,
+    targetActorId,
     acknowledgedWarnings: []
   })
 }

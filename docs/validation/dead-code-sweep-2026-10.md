@@ -10,6 +10,7 @@ This report covers removed code only. No behavior changes are intended.
    - each package's `exports` remapped from `dist` to `src`.
 
    A second, production-mode pass ignored tests and stories, to find code that only tests use.
+
 2. **Remove unused exports.** Each unused export lost its `export` keyword. oxlint `no-unused-vars` then drove deletion of declarations and imports that became unused (three rounds). The deletions used a TypeScript AST script, so a whole declaration was removed, never a partial text edit.
 3. **Check Convex functions.** Every exported Convex function was searched across the repo for:
    - dotted `api.mod.fn` references;
@@ -18,23 +19,24 @@ This report covers removed code only. No behavior changes are intended.
    - scripts and runbooks.
 
    A function is deleted only when nothing references it, not even a test.
+
 4. **Check test-only candidates by hand** (`rg -w` plus barrels, stories and scripts) before deleting the code and the test cases that only exercised it.
 
 ## Removed, by package
 
 Line counts come from `git diff --shortstat af7ddb75a` and include the test cases that were removed.
 
-| Package | Files touched | Files deleted | Lines removed (net) |
-| --- | ---: | ---: | ---: |
-| apps/web | 195 | 44 | 3,690 |
-| packages/rules-runtime | 96 | 5 | 1,909 |
-| packages/schema | 54 | 1 | 302 |
-| packages/shared | 11 | 1 | 100 |
-| packages/encounter-persistence | 15 | 0 | 67 |
-| apps/apis (Convex) | 5 + codegen | 0 | 54 |
-| packages/source-data | 11 | 0 | 31 |
-| apps/session-worker | 8 | 0 | 0 (exports only) |
-| packages/authoring | 3 | 0 | 0 (exports only) |
+| Package                        | Files touched | Files deleted | Lines removed (net) |
+| ------------------------------ | ------------: | ------------: | ------------------: |
+| apps/web                       |           195 |            44 |               3,690 |
+| packages/rules-runtime         |            96 |             5 |               1,909 |
+| packages/schema                |            54 |             1 |                 302 |
+| packages/shared                |            11 |             1 |                 100 |
+| packages/encounter-persistence |            15 |             0 |                  67 |
+| apps/apis (Convex)             |   5 + codegen |             0 |                  54 |
+| packages/source-data           |            11 |             0 |                  31 |
+| apps/session-worker            |             8 |             0 |    0 (exports only) |
+| packages/authoring             |             3 |             0 |    0 (exports only) |
 
 ### Highlights
 
@@ -53,6 +55,7 @@ Line counts come from `git diff --shortstat af7ddb75a` and include the test case
   - the `compileDnd5eEffectAction` compiler.
 
   Also removed: `characterSheetCommandResponsibility`, `encounterActionCapabilityDiscovery`, `encounterInitiativeTerminalSettlement` and `encounterMovementRuleTimeline`. If any optional rule is still planned, rebuild it against the current action and movement seams rather than restoring these files.
+
 - **Schema.**
   - 69 unused lazy schemas.
   - 9 unused operational collection-record schemas.
@@ -127,17 +130,17 @@ All runs used the local machine only, under `local-validation/.validation.lock`.
 - **Typecheck:** `turbo run typecheck --filter="...[codex/phase-08-2-convex-cutover]" --concurrency=1 --env-mode=loose` with `GOMAXPROCS=2`. All 10 affected packages pass. `session-worker` needs generated `src/worker-configuration.d.ts`. That file is gitignored and depends on local dev vars, so the worktree used the main checkout's generated copy. With it, both `tsc` projects pass.
 - **Tests:**
 
-| Package | Result |
-| --- | --- |
-| schema | 500/500 |
-| shared | 279/279 |
-| source-data | 25/25 |
-| authoring | 15/15 |
-| rules-runtime | 541/541 (after rebuild) |
-| encounter-persistence | 68/68 |
-| session-worker | 394/394 |
-| apis `test:convex` | 2135/2137; the 2 failures are the same pre-existing stale snapshot (see below) |
-| web | 1640/1640 |
+| Package               | Result                                                                         |
+| --------------------- | ------------------------------------------------------------------------------ |
+| schema                | 500/500                                                                        |
+| shared                | 279/279                                                                        |
+| source-data           | 25/25                                                                          |
+| authoring             | 15/15                                                                          |
+| rules-runtime         | 541/541 (after rebuild)                                                        |
+| encounter-persistence | 68/68                                                                          |
+| session-worker        | 394/394                                                                        |
+| apis `test:convex`    | 2135/2137; the 2 failures are the same pre-existing stale snapshot (see below) |
+| web                   | 1640/1640                                                                      |
 
 - **Convex codegen** against `http://127.0.0.1:3210` (local Docker): pass. `api.d.ts` drops only the three deleted functions; most of the 4,441 removed lines are `encounterInitiative:read`'s return validator. `apis` and `web` typecheck again against the new bindings: pass.
 

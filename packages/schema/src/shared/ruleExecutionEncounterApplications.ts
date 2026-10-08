@@ -106,6 +106,46 @@ export const concentrationEndApplicationOutputDtoSchema = lazySchema(() =>
     )
 )
 
+/** The settled d20 of a pinned check (a Concentration save, a basic action's check). */
+const ruleCheckD20EvidenceDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+      /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      rawFaces: z
+        .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
+        .check(z.minLength(1))
+        .check(z.maxLength(2)),
+      selectedNatural: integerSchema.check(z.gte(1)).check(z.lte(20)),
+      modifier: integerSchema,
+      total: integerSchema,
+      dc: positiveIntegerSchema,
+      contributors: canonicalConcentrationContributorsDtoSchema,
+      contributorChecksum: checksumSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (
+          value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2) ||
+          value.selectedNatural !==
+            (value.rollMode === 'ADVANTAGE'
+              ? Math.max(...value.rawFaces)
+              : value.rollMode === 'DISADVANTAGE'
+                ? Math.min(...value.rawFaces)
+                : value.rawFaces[0]) ||
+          value.total !== value.selectedNatural + value.modifier
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['rawFaces'],
+            message: 'Check d20 evidence does not match its pinned roll mode.'
+          })
+      })
+    )
+)
+
 export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -136,42 +176,7 @@ export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
       /** The context's display trigger, so every settled check can be logged without its context. */
       trigger: concentrationCheckTriggerDtoSchema,
       outcome: z.enum(['SAVE_SUCCESS', 'SAVE_FAILURE']),
-      d20: z
-        .strictObject({
-          requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-          /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
-          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          rawFaces: z
-            .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
-            .check(z.minLength(1))
-            .check(z.maxLength(2)),
-          selectedNatural: integerSchema.check(z.gte(1)).check(z.lte(20)),
-          modifier: integerSchema,
-          total: integerSchema,
-          dc: positiveIntegerSchema,
-          contributors: canonicalConcentrationContributorsDtoSchema,
-          contributorChecksum: checksumSchema
-        })
-        .check(
-          z.superRefine((value, context) => {
-            if (
-              value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2) ||
-              value.selectedNatural !==
-                (value.rollMode === 'ADVANTAGE'
-                  ? Math.max(...value.rawFaces)
-                  : value.rollMode === 'DISADVANTAGE'
-                    ? Math.min(...value.rawFaces)
-                    : value.rawFaces[0]) ||
-              value.total !== value.selectedNatural + value.modifier
-            )
-              context.addIssue({
-                code: 'custom',
-                path: ['rawFaces'],
-                message: 'Concentration d20 evidence does not match its pinned roll mode.'
-              })
-          })
-        ),
+      d20: ruleCheckD20EvidenceDtoSchema,
       contextChecksum: checksumSchema,
       cleanup: z.nullable(concentrationCleanupDtoSchema),
       nextOccurrenceId: z.nullable(uuidSchema),
@@ -951,6 +956,58 @@ export const cleavingDamageApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Cleaving settlement evidence is inconsistent.'
           })
         }
+      })
+    )
+)
+
+/** A basic action's settled d20 check (first aid): what was rolled and what it did to the target. */
+export const basicActionCheckApplicationOutputDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('BASIC_ACTION_CHECK'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      commandId: uuidSchema,
+      definition: z.strictObject({
+        id: uuidSchema,
+        version: positiveIntegerSchema,
+        checksum: checksumSchema
+      }),
+      helperActorId: uuidSchema,
+      targetActorId: uuidSchema,
+      targetCharacterId: uuidSchema,
+      check: z.strictObject({ checkDefinitionId: uuidSchema, dc: positiveIntegerSchema }),
+      d20: ruleCheckD20EvidenceDtoSchema,
+      outcome: z.enum(['STABILIZED', 'FAILED', 'NOT_DYING']),
+      /** Present only when the target was stabilized; undo restores `before` at `afterStreamVersion`. */
+      targetTransition: z.nullable(
+        z.strictObject({
+          before: characterMechanicsTargetStateDtoSchema,
+          after: characterMechanicsTargetStateDtoSchema,
+          afterStreamVersion: aggregateVersionSchema
+        })
+      )
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if ((value.outcome === 'STABILIZED') !== (value.targetTransition !== null))
+          context.addIssue({
+            code: 'custom',
+            path: ['targetTransition'],
+            message: 'Only a stabilized target carries a transition.'
+          })
+        if (value.d20.dc !== value.check.dc)
+          context.addIssue({
+            code: 'custom',
+            path: ['d20', 'dc'],
+            message: 'The check evidence must be rolled against the check DC.'
+          })
+        if (value.outcome === 'FAILED' && value.d20.total >= value.check.dc)
+          context.addIssue({
+            code: 'custom',
+            path: ['outcome'],
+            message: 'A check that reaches its DC does not fail.'
+          })
       })
     )
 )

@@ -138,7 +138,7 @@ const basicActions = [
     rulesText:
       'You gain extra movement for the current turn, equal to your speed after applying any modifiers.',
     actionCost: 'ACTION',
-    needsAlly: false,
+    target: null,
     warnings: []
   },
   {
@@ -146,7 +146,7 @@ const basicActions = [
     label: 'Help',
     rulesText: 'You aid an ally. Its next attack roll before your next turn has advantage.',
     actionCost: 'ACTION',
-    needsAlly: true,
+    target: 'ALLY',
     warnings: []
   },
   {
@@ -154,7 +154,7 @@ const basicActions = [
     label: 'Hide',
     rulesText: 'You make a Dexterity (Stealth) check to hide.',
     actionCost: 'ACTION',
-    needsAlly: false,
+    target: null,
     warnings: []
   }
 ] satisfies EncounterBasicActionChoiceDto[]
@@ -585,7 +585,7 @@ export const UseBasicActions: Story = {
         type: 'USE_BASIC_ACTION',
         actorId: sourceActor.id,
         definitionId: basicActions[0].definitionId,
-        allyActorId: null
+        targetActorId: null
       })
     )
   }

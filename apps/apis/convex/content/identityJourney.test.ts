@@ -244,9 +244,9 @@ describe('Authored identity and checksum journeys (AUTHORING-2)', () => {
       })
       expect(publishedDetail?.publicId).toBe(copy.publicId)
       expect(publishedDetail?.item).toEqual(published.document)
-      expect(
-        await first.caller.query(getDetail, { subjectKind, id: copy.publicId })
-      ).toEqual(publishedDetail)
+      expect(await first.caller.query(getDetail, { subjectKind, id: copy.publicId })).toEqual(
+        publishedDetail
+      )
       await expectCanonicalUnchanged()
 
       const edit = await first.caller.mutation(api.content.drafts.save, {

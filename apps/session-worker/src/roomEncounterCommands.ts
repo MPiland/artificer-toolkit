@@ -40,7 +40,10 @@ import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcen
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { executeRoomEncounterDisarm } from './roomEncounterDisarm.js'
-import { executeRoomEncounterBasicAction } from './roomEncounterBasicActions.js'
+import {
+  executeRoomEncounterBasicAction,
+  executeRoomEncounterBasicActionResponse
+} from './roomEncounterBasicActions.js'
 import {
   prepareRuleOccurrenceVoid,
   recordRuleOccurrenceVoid
@@ -367,6 +370,7 @@ export async function executeRoomEncounterCommand(input: {
       inputs,
       observed,
       command,
+      random: input.random,
       scope: {
         campaignId,
         authorityEpoch: epoch,
@@ -389,7 +393,9 @@ export async function executeRoomEncounterCommand(input: {
     const execute =
       route === 'CLEAVING'
         ? executeRoomEncounterCleavingResponse
-        : executeRoomEncounterConcentrationResponse
+        : route === 'BASIC_ACTION'
+          ? executeRoomEncounterBasicActionResponse
+          : executeRoomEncounterConcentrationResponse
     return execute({
       ...input.turnExecution,
       ctx: context,

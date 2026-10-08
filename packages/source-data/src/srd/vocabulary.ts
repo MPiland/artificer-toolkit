@@ -667,6 +667,7 @@ export const SRD_TRUESIGHT_SENSE_ID = SRD_SENSES[3]!.id
 
 export const SRD_ACROBATICS_SKILL_ID = vocabId(D.skill, 1)
 export const SRD_ATHLETICS_SKILL_ID = vocabId(D.skill, 4)
+export const SRD_MEDICINE_SKILL_ID = vocabId(D.skill, 10)
 
 export const SRD_SKILLS = [
   {
@@ -751,7 +752,7 @@ export const SRD_SKILLS = [
       'When you look around for clues and make deductions based on those clues, you make an Intelligence (Investigation) check.'
   },
   {
-    id: vocabId(D.skill, 10),
+    id: SRD_MEDICINE_SKILL_ID,
     code: 'MEDICINE',
     label: 'Medicine',
     governingAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,

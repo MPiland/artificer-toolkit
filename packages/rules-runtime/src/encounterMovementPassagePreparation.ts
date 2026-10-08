@@ -42,7 +42,7 @@ type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
 
 const sizeRankTable = { TINY: 0, SMALL: 1, MEDIUM: 2, LARGE: 3, HUGE: 4, GARGANTUAN: 5 } as const
 
-type ContestFacts = {
+export type ContestFacts = {
   controllerCharacterId: string | null
   contributors: ServerOptionalCombatContestPendingApplicationContextDto['initiator']['contributors']
   modifier: number | null
@@ -57,7 +57,8 @@ type PassagePreparationInput<TCharacterFacts extends CharacterMovementFacts> = {
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
 }
 
-function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input: {
+/** An actor's modifier, contributors and roll mode for one System check (skill or ability). */
+export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input: {
   actorId: string
   checkDefinitionId: string
   gameSystemId: string

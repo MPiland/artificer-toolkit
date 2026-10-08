@@ -13,7 +13,10 @@ import type {
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -24,6 +27,7 @@ import {
   domainRejection,
   playerControlFixture,
   setActorControllers,
+  storeRunAutomationMode,
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 import {
@@ -31,6 +35,7 @@ import {
   checkpointLiveRoom,
   executeInRoom,
   readRoomTimeline,
+  roomErrorLogs,
   type RoomCaller,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -73,14 +78,14 @@ async function basicActionFixture(options: Parameters<typeof playerControlFixtur
 async function useBasicAction(
   base: PlayerControlFixture,
   input: Pick<UseEncounterBasicActionInputDto, 'actorId' | 'definitionId'> &
-    Partial<Pick<UseEncounterBasicActionInputDto, 'allyActorId' | 'acknowledgedWarnings'>>
+    Partial<Pick<UseEncounterBasicActionInputDto, 'targetActorId' | 'acknowledgedWarnings'>>
 ): Promise<UseEncounterBasicActionInputDto> {
   return {
     type: 'USE_BASIC_ACTION',
     encounterId: base.run.id,
     commandId: crypto.randomUUID(),
     expectedVersion: await base.version(),
-    allyActorId: null,
+    targetActorId: null,
     acknowledgedWarnings: [],
     ...input
   }
@@ -189,20 +194,17 @@ describe('basic combat actions in the room (Q11)', () => {
     })
     expect(choices?.actions.map((action) => action.id)).toContain(base.actionId)
     expect(
-      choices?.basicActions.map(({ label, actionCost, needsAlly }) => [
-        label,
-        actionCost,
-        needsAlly
-      ])
+      choices?.basicActions.map(({ label, actionCost, target }) => [label, actionCost, target])
     ).toEqual([
-      ['Dash', 'ACTION', false],
-      ['Disengage', 'ACTION', false],
-      ['Dodge', 'ACTION', false],
-      ['Help', 'ACTION', true],
-      ['Hide', 'ACTION', false],
-      ['Ready', 'ACTION', false],
-      ['Search', 'ACTION', false],
-      ['Use an Object', 'ACTION', false]
+      ['Dash', 'ACTION', null],
+      ['Disengage', 'ACTION', null],
+      ['Dodge', 'ACTION', null],
+      ['First Aid', 'ACTION', 'DYING_CHARACTER'],
+      ['Help', 'ACTION', 'ALLY'],
+      ['Hide', 'ACTION', null],
+      ['Ready', 'ACTION', null],
+      ['Search', 'ACTION', null],
+      ['Use an Object', 'ACTION', null]
     ])
 
     const before = await base.version()
@@ -363,7 +365,7 @@ describe('basic combat actions in the room (Q11)', () => {
       await useBasicAction(base, {
         actorId: base.enemy.id,
         definitionId: help!.id,
-        allyActorId: base.companion.id
+        targetActorId: base.companion.id
       })
     )
     await setCurrentActor(base, base.companion.id)
@@ -433,7 +435,7 @@ describe('basic combat actions in the room (Q11)', () => {
       await useBasicAction(base, {
         actorId: base.enemy.id,
         definitionId: help!.id,
-        allyActorId: base.companion.id
+        targetActorId: base.companion.id
       })
     )
     const helped = encounterBasicActionEffects(await actorState(base, base.enemy.id))
@@ -462,7 +464,7 @@ describe('basic combat actions in the room (Q11)', () => {
         await useBasicAction(base, {
           actorId: base.companion.id,
           definitionId: disengage!.id,
-          allyActorId: base.enemy.id
+          targetActorId: base.enemy.id
         })
       )
     ).rejects.toThrow()
@@ -481,11 +483,47 @@ describe('basic combat actions in the room (Q11)', () => {
           command: await useBasicAction(base, {
             actorId: base.companion.id,
             definitionId: help!.id,
-            allyActorId: base.lurker.id
+            targetActorId: base.lurker.id
           })
         })
       )
     ).resolves.toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
+  })
+
+  it('refuses First Aid, whose action carries a check, in a Manual Run (ENCOUNTER-2)', async () => {
+    const base = await basicActionFixture()
+    await storeRunAutomationMode(base.t, base.run.id, 'MANUAL')
+    const before = await base.version()
+    await expect(
+      domainRejection(
+        base.gm(
+          await useBasicAction(base, {
+            actorId: base.companion.id,
+            definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
+            targetActorId: base.character.id
+          })
+        )
+      )
+    ).resolves.toMatchObject({ reason: 'ASSISTED_ONLY' })
+    expect(await base.version()).toBe(before)
+  })
+
+  it('refuses First Aid from a custom actor, which has no check facts', async () => {
+    const base = await basicActionFixture()
+    await setCurrentActor(base, base.lurker.id)
+    const before = await base.version()
+    await expect(
+      base.gm(
+        await useBasicAction(base, {
+          actorId: base.lurker.id,
+          definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
+          targetActorId: base.character.id,
+          acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED']
+        })
+      )
+    ).rejects.toThrow()
+    expect(roomErrorLogs().join('\n')).toContain('A custom actor has no check to make.')
+    expect(await base.version()).toBe(before)
   })
 
   it('the room commits a Dodge once, checkpointing its effects and exactly one version', async () => {

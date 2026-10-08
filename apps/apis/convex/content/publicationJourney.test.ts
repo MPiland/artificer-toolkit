@@ -30,10 +30,7 @@ import {
   importedSubject,
   publicationFixture
 } from '../../tests/fixtures/publication'
-import {
-  readAuthoredVersionCompilation,
-  readStoredAuthoredVersionDocument
-} from './documents'
+import { readAuthoredVersionCompilation, readStoredAuthoredVersionDocument } from './documents'
 import { compileCurrentEquipment } from './equipmentRelationships'
 import { compileCurrentRace } from './raceRelationships'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
@@ -189,8 +186,7 @@ function isIdentified(value: unknown) {
 function withHollowedEntry(value: unknown): unknown {
   if (Array.isArray(value)) {
     const index = value.findIndex(isIdentified)
-    if (index >= 0)
-      return value.map((entry, at) => (at === index ? { id: entry.id } : entry))
+    if (index >= 0) return value.map((entry, at) => (at === index ? { id: entry.id } : entry))
     for (const [at, item] of value.entries()) {
       const changed = withHollowedEntry(item)
       if (changed !== undefined) return value.map((entry, i) => (i === at ? changed : entry))
@@ -239,12 +235,7 @@ async function expectRefused(t: Fixture['t'], attempt: Promise<unknown>, message
   expect(await storedState(t)).toEqual(before)
 }
 
-async function expectedCompilation(
-  ctx: QueryCtx,
-  kind: Kind,
-  document: unknown,
-  userId: string
-) {
+async function expectedCompilation(ctx: QueryCtx, kind: Kind, document: unknown, userId: string) {
   const subject = parsePublicationDocument(kind, document)
   if (subject.subjectKind === 'EQUIPMENT')
     return (await compileCurrentEquipment(ctx, subject.document, userId)).compilation

@@ -353,13 +353,15 @@ it('atomically resolves a failed native Concentration save, retains the private 
           currentHitPoints: 11,
           temporaryHitPoints: 1,
           maximumHitPoints: 11,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: null
         },
         after: {
           currentHitPoints: 11,
           temporaryHitPoints: 0,
           maximumHitPoints: 11,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: null
         }
       }
     }

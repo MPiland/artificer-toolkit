@@ -19,7 +19,8 @@ const dodge = {
   actionCost: 'ACTION',
   mechanics: ['DISADVANTAGE_ON_ATTACKS_AGAINST'],
   saveAbilityIds: [],
-  suspendedWhileUnableToActOrMove: true
+  suspendedWhileUnableToActOrMove: true,
+  check: null
 }
 const dexterityId = '00000000-0000-4000-8000-00000000a002'
 
@@ -48,6 +49,30 @@ describe('basic-action catalogue contracts (Q11)', () => {
     expect(
       basicActionReusableDefinitionDocumentDtoSchema.safeParse({ ...dodge, actionCost: 'REACTION' })
         .success
+    ).toBe(false)
+  })
+
+  it('names a check exactly when the action stabilizes a creature', () => {
+    const check = { checkDefinitionId: dexterityId, dc: 10 }
+    const parse = (document: object) =>
+      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
+        ...dodge,
+        mechanics: [],
+        ...document
+      }).success
+    expect(parse({ mechanics: ['STABILIZE_TARGET'], check })).toBe(true)
+    expect(parse({ mechanics: ['STABILIZE_TARGET'], check: null })).toBe(false)
+    expect(parse({ check })).toBe(false)
+    expect(parse({ mechanics: ['STABILIZE_TARGET'], check: { ...check, dc: 0 } })).toBe(false)
+    expect(
+      encounterBasicActionEffectDtoSchema.safeParse({
+        definitionId: dodge.id,
+        mechanic: 'STABILIZE_TARGET',
+        turnSequence: 1,
+        allyActorId: null,
+        saveAbilityIds: [],
+        suspendedWhileUnableToActOrMove: false
+      }).success
     ).toBe(false)
   })
 
@@ -87,7 +112,7 @@ describe('basic-action catalogue contracts (Q11)', () => {
         expectedVersion: 3,
         actorId: '33333333-3333-4333-8333-333333333331',
         definitionId: dodge.id,
-        allyActorId: null
+        targetActorId: null
       }).acknowledgedWarnings
     ).toEqual([])
   })

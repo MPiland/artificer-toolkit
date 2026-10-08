@@ -70,8 +70,8 @@ export const encounterBasicActionChoiceDtoSchema = lazySchema(() =>
     label: labelSchema,
     rulesText: basicActionReusableDefinitionDocumentDtoSchema.shape.rulesText,
     actionCost: basicActionCostDtoSchema,
-    /** The action helps an ally, who must be chosen. */
-    needsAlly: z.boolean(),
+    /** The one target to choose first: an ally to help, or a dying Character to stabilize. */
+    target: z.nullable(z.enum(['ALLY', 'DYING_CHARACTER'])),
     /** Soft-rule warnings that already apply, as for `actions`. */
     warnings: encounterRuleWarningsDtoSchema
   })

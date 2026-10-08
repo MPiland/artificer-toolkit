@@ -283,7 +283,7 @@ const basicActionChoices = [
     label: 'Dash',
     rulesText: 'You gain extra movement for the current turn.',
     actionCost: 'ACTION',
-    needsAlly: false,
+    target: null,
     warnings: []
   },
   {
@@ -291,7 +291,15 @@ const basicActionChoices = [
     label: 'Help',
     rulesText: 'You aid an ally.',
     actionCost: 'ACTION',
-    needsAlly: true,
+    target: 'ALLY',
+    warnings: []
+  },
+  {
+    definitionId: '00000000-0000-4000-8000-000000000b09',
+    label: 'First Aid',
+    rulesText: 'You make a DC 10 Wisdom (Medicine) check to stabilize a dying creature.',
+    actionCost: 'ACTION',
+    target: 'DYING_CHARACTER',
     warnings: []
   }
 ] satisfies EncounterBasicActionChoiceDto[]
@@ -320,7 +328,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
         expectedVersion: tabletopGmEncounter.version,
         actorId: tabletopGmEncounter.currentActorId,
         definitionId: basicActionChoices[0].definitionId,
-        allyActorId: null,
+        targetActorId: null,
         acknowledgedWarnings: []
       })
     )
@@ -340,7 +348,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     expect(onUseBasicAction).toHaveBeenCalledWith(
       expect.objectContaining({
         definitionId: basicActionChoices[1].definitionId,
-        allyActorId: '99999999-9999-4999-8999-999999999902'
+        targetActorId: '99999999-9999-4999-8999-999999999902'
       })
     )
   })

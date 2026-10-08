@@ -437,7 +437,7 @@ describe('room Disarm commands', () => {
       expectedVersion: await version(),
       actorId: helper.id,
       definitionId: help.id,
-      allyActorId: base.actor.id,
+      targetActorId: base.actor.id,
       acknowledgedWarnings: ['TARGET_DISPOSITION']
     })
     await setCurrentActor(base.actor.id)

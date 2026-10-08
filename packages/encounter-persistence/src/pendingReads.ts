@@ -14,6 +14,7 @@ import {
   turnPendingActorId
 } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectNativeCleavingPending } from './cleavingPending.js'
+import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { projectNativeConcentrationPending } from './concentrationPending.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import {
@@ -99,6 +100,12 @@ export async function readPendingRunDecision(
         )
       : null
   }
+  if (context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK')
+    return controlledActorIds.has(context.helperActorId)
+      ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
+          projectNativeBasicActionCheckPending(occurrence, pendingSnapshot, reasons)
+        )
+      : null
   if (
     context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
     context.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'

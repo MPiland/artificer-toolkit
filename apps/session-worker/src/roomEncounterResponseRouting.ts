@@ -40,6 +40,7 @@ export async function readRoomEncounterResponseRoute(
     owner === 'TURN' ||
     owner === 'CONCENTRATION' ||
     owner === 'CLEAVING' ||
+    owner === 'BASIC_ACTION' ||
     owner === 'ACTION' ||
     owner === 'DISARM' ||
     owner === 'MOVEMENT'

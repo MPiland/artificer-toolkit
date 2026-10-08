@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import {
   liveSessionActionCaptureScopeSchema,
+  liveSessionEncounterBasicActionCommandSchema,
   liveSessionTurnCaptureScopeSchema
 } from './liveSessionCommandScopes.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
@@ -22,8 +23,7 @@ import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema,
-  useEncounterBasicActionInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
@@ -117,7 +117,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('BASIC_ACTION'),
-      command: useEncounterBasicActionInputDtoSchema
+      command: liveSessionEncounterBasicActionCommandSchema
     }),
     z.strictObject({ kind: z.literal('INPUTS') }),
     z.strictObject({ kind: z.literal('INITIATIVE_ROUND') }),
@@ -396,8 +396,17 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       /** The admitted basic action to plan; null when `result` replays a stored one. */
       ready: z.nullable(
         z.strictObject({
-          command: useEncounterBasicActionInputDtoSchema,
-          fingerprint: projectionChecksumSchema
+          /** The normalized basic action and its fingerprint; a d20 answer continues its check. */
+          command: liveSessionEncounterBasicActionCommandSchema,
+          fingerprint: projectionChecksumSchema,
+          initiatorUserId: postgresUuidSchema,
+          /** The helper's d20 goes to its controllers (ADR 0034 decision 3). */
+          autoRollByActorId: encounterAutoRollByActorIdSchema,
+          /** The app roll a `SYSTEM_ROLL` answer settles with; null for any other answer. */
+          appRoll: z.nullable(encounterSettledAppRollDtoSchema),
+          /** The pending check being answered and its version; null for a new basic action. */
+          snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
+          occurrenceVersion: z.nullable(z.number().check(z.int()).check(z.nonnegative()))
         })
       ),
       result: z.nullable(encounterCommandResultDtoSchema)

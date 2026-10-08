@@ -252,6 +252,7 @@ it.each([
       expect(document.state.hitpoints).toEqual({
         current: expectedHitPoints,
         temp: 3,
+        deathSaves: localPlay.state.hitpoints.deathSaves,
         hitDice: [{ die: 10, total: level, used: 1 }]
       })
       expect(document.state.conditions).toEqual(localPlay.state.conditions)

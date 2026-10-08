@@ -323,29 +323,36 @@ export function requireEncounterBasicActionDefinition(
 export function planEncounterBasicAction(input: {
   state: Pick<EncounterRunState, 'turnSequence'>
   actor: EncounterRunActorState
-  ally: EncounterRunActorState | null
+  target: EncounterRunActorState | null
   document: BasicActionReusableDefinitionDocumentDto
 }) {
-  const { state, actor, ally, document } = input
-  const needsAlly = document.mechanics.includes('ALLY_ADVANTAGE')
-  if (needsAlly !== (ally !== null) || ally?.id === actor.id)
-    throw new Error(needsAlly ? 'Choose an ally to help.' : 'This basic action has no target.')
+  const { state, actor, target, document } = input
+  const helps = document.mechanics.includes('ALLY_ADVANTAGE')
+  const stabilizes = document.mechanics.includes('STABILIZE_TARGET')
+  if ((helps || stabilizes) !== (target !== null) || target?.id === actor.id)
+    throw new Error(
+      helps
+        ? 'Choose an ally to help.'
+        : stabilizes
+          ? 'Choose a creature to stabilize.'
+          : 'This basic action has no target.'
+    )
   const effects = document.mechanics.flatMap((mechanic): EncounterBasicActionEffectDto[] =>
-    mechanic === 'SPEED_MOVEMENT_BONUS'
+    mechanic === 'SPEED_MOVEMENT_BONUS' || mechanic === 'STABILIZE_TARGET'
       ? []
       : [
           {
             definitionId: document.id,
             mechanic,
             turnSequence: state.turnSequence,
-            allyActorId: mechanic === 'ALLY_ADVANTAGE' ? ally!.id : null,
+            allyActorId: mechanic === 'ALLY_ADVANTAGE' ? target!.id : null,
             saveAbilityIds: mechanic === 'SAVE_ADVANTAGE' ? document.saveAbilityIds : [],
             suspendedWhileUnableToActOrMove: document.suspendedWhileUnableToActOrMove
           }
         ]
   )
   const warnings: EncounterRuleWarningDto[] =
-    ally && encounterActorRelationship(actor.disposition, ally.disposition) === 'HOSTILE'
+    helps && encounterActorRelationship(actor.disposition, target!.disposition) === 'HOSTILE'
       ? [{ code: 'TARGET_DISPOSITION', message: 'This helps an enemy.' }]
       : []
   return {

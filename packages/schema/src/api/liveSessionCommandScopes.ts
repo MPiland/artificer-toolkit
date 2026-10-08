@@ -6,6 +6,14 @@ import {
   useEncounterBasicActionInputDtoSchema
 } from './encounterRuleCommands.js'
 
+/** A basic action, or the answer to the check it started (First Aid). */
+export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
+  z.discriminatedUnion('type', [
+    useEncounterBasicActionInputDtoSchema,
+    resolveRuleOccurrenceInputDtoSchema
+  ])
+)
+
 /**
  * A player's admitted Encounter action or action response (ADR 0034 decision 1). Every capture that
  * carries it re-admits the command, so later rules reads run for that player.
@@ -33,10 +41,10 @@ export const liveSessionActionCaptureScopeSchema = lazySchema(() =>
         resolveRuleOccurrenceInputDtoSchema
       ])
     }),
-    /** One of the System's basic actions (Q11). */
+    /** One of the System's basic actions (Q11), or the helper's d20 for its check. */
     z.strictObject({
       kind: z.literal('BASIC_ACTION'),
-      command: useEncounterBasicActionInputDtoSchema
+      command: liveSessionEncounterBasicActionCommandSchema
     })
   ])
 )

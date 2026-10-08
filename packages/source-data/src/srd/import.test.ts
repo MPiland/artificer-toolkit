@@ -8,7 +8,7 @@ import {
 } from './concentration.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
-import { SRD_ABILITY_DEFINITION_IDS } from './vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS, SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
 import type { BaselineContentBundle } from '../content.js'
 
 function emptySubjectBundle(): BaselineContentBundle {
@@ -49,7 +49,8 @@ describe('canonical Convex import preparation', () => {
       Hide: ['ACTION', []],
       Ready: ['ACTION', []],
       Search: ['ACTION', []],
-      'Use an Object': ['ACTION', []]
+      'Use an Object': ['ACTION', []],
+      'First Aid': ['ACTION', ['STABILIZE_TARGET']]
     })
     expect(catalogue.map((definition) => definition.id).sort()).toEqual(
       Object.values(SRD_BASIC_ACTION_IDS).sort()
@@ -59,6 +60,10 @@ describe('canonical Convex import preparation', () => {
       saveAbilityIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY],
       suspendedWhileUnableToActOrMove: true
     })
+    // First Aid is a DC 10 Wisdom (Medicine) check.
+    expect(
+      catalogue.find((definition) => definition.label === 'First Aid')?.document
+    ).toMatchObject({ check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 } })
     for (const definition of catalogue) {
       expect(definition.document.gameSystemId).toBe(srdBaselineContent.vocabulary.systems[0]!.id)
       expect(definition.checksum).toBe(checksumRuleDocument(definition.document))

@@ -3,6 +3,7 @@ import {
   projectNativeActionPending,
   readNativeActionPending
 } from '@artificer-toolkit/encounter-persistence/actionPending'
+import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -59,16 +60,18 @@ export function readPendingActionDecision(stub: RoomStub) {
     const pending =
       kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
         ? projectNativeConcentrationPending(occurrence, snapshot)
-        : kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
-          ? projectNativeCleavingPending(occurrence, snapshot, {
-              isOwner: true,
-              controlledActorIds: actorIds,
-              visibleActorIds: actorIds
-            })
-          : projectNativeActionPending(
-              occurrence,
-              await readNativeActionPending({ db: room.store }, occurrence)
-            )
+        : kind === 'ENCOUNTER_BASIC_ACTION_CHECK'
+          ? projectNativeBasicActionCheckPending(occurrence, snapshot)
+          : kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
+            ? projectNativeCleavingPending(occurrence, snapshot, {
+                isOwner: true,
+                controlledActorIds: actorIds,
+                visibleActorIds: actorIds
+              })
+            : projectNativeActionPending(
+                occurrence,
+                await readNativeActionPending({ db: room.store }, occurrence)
+              )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {
       occurrence,

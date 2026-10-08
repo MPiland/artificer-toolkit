@@ -8,6 +8,17 @@ describe('rollPromptText', () => {
     )
   })
 
+  it('names a basic action check with its action, check and DC', () => {
+    expect(
+      rollPromptText('Aria', {
+        kind: 'BASIC_ACTION_CHECK',
+        actionLabel: 'First Aid',
+        checkLabel: 'Wisdom (Medicine)',
+        dc: 10
+      })
+    ).toBe('First Aid: Wisdom (Medicine) DC 10')
+  })
+
   it('falls back to naming the roller', () => {
     expect(rollPromptText('Aria', undefined)).toBe('Roll for Aria')
   })

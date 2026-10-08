@@ -12,6 +12,10 @@ import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/c
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -144,6 +148,9 @@ export async function setup({ withAlly = false } = {}) {
       ...SRD_RULE_STATE_DEFINITIONS.filter(
         (definition) =>
           definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID || definition.id === deafened.id
+      ),
+      ...SRD_BASIC_ACTION_DEFINITIONS.filter(
+        (definition) => definition.id === SRD_BASIC_ACTION_IDS.FIRST_AID
       ),
       ...initiative.definitions
     ]

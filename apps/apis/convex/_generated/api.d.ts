@@ -23393,6 +23393,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -23402,6 +23403,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -25065,6 +25067,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -25074,6 +25077,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -26746,6 +26750,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -26755,6 +26760,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -28418,6 +28424,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -28427,6 +28434,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -30125,6 +30133,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -30134,6 +30143,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -31797,6 +31807,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -31806,6 +31817,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -33457,6 +33469,7 @@ export declare const api: {
               }
             | {
                 actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                check: { checkDefinitionId: string; dc: number } | null;
                 gameSystemId: string;
                 id: string;
                 kind: "BASIC_ACTION";
@@ -33466,6 +33479,7 @@ export declare const api: {
                   | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                   | "ALLY_ADVANTAGE"
                   | "SAVE_ADVANTAGE"
+                  | "STABILIZE_TARGET"
                 >;
                 rulesText: string;
                 saveAbilityIds: Array<string>;
@@ -35124,6 +35138,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -35133,6 +35148,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -36796,6 +36812,7 @@ export declare const api: {
                 }
               | {
                   actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
+                  check: { checkDefinitionId: string; dc: number } | null;
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
@@ -36805,6 +36822,7 @@ export declare const api: {
                     | "DISADVANTAGE_ON_ATTACKS_AGAINST"
                     | "ALLY_ADVANTAGE"
                     | "SAVE_ADVANTAGE"
+                    | "STABILIZE_TARGET"
                   >;
                   rulesText: string;
                   saveAbilityIds: Array<string>;
@@ -38365,8 +38383,8 @@ export declare const api: {
             actionCost: "ACTION" | "BONUS_ACTION" | "FREE";
             definitionId: string;
             label: string;
-            needsAlly: boolean;
             rulesText: string;
+            target: "ALLY" | "DYING_CHARACTER" | null;
             warnings: Array<{
               code:
                 | "ACTION_ECONOMY_UNAVAILABLE"
@@ -38695,7 +38713,13 @@ export declare const api: {
                       kind: "CONCENTRATION";
                       sourceLabel: string | null;
                     }
-                  | { failures: number; kind: "DEATH_SAVE"; successes: number };
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -38935,6 +38959,12 @@ export declare const api: {
                         failures: number;
                         kind: "DEATH_SAVE";
                         successes: number;
+                      }
+                    | {
+                        actionLabel: string;
+                        checkLabel: string;
+                        dc: number;
+                        kind: "BASIC_ACTION_CHECK";
                       };
                 }
               | {
@@ -39647,7 +39677,13 @@ export declare const api: {
                   kind: "CONCENTRATION";
                   sourceLabel: string | null;
                 }
-              | { failures: number; kind: "DEATH_SAVE"; successes: number };
+              | { failures: number; kind: "DEATH_SAVE"; successes: number }
+              | {
+                  actionLabel: string;
+                  checkLabel: string;
+                  dc: number;
+                  kind: "BASIC_ACTION_CHECK";
+                };
           }
         | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -40334,7 +40370,13 @@ export declare const api: {
                       kind: "CONCENTRATION";
                       sourceLabel: string | null;
                     }
-                  | { failures: number; kind: "DEATH_SAVE"; successes: number };
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number }
+                  | {
+                      actionLabel: string;
+                      checkLabel: string;
+                      dc: number;
+                      kind: "BASIC_ACTION_CHECK";
+                    };
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;

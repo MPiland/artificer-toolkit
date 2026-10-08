@@ -3834,29 +3834,29 @@ function fixedOutcomeGraphDefinition(input: {
     ...(input.outcome.kind === 'STABILIZE'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
-      ? {
-          conditionId: {
-            kind: 'LITERAL' as const,
-            value: input.outcome.conditionId
-          },
-          conditionImmune: {
-            kind: 'FACT' as const,
-            factKey:
-              conditionImmuneFactKey(input.entry.pathCode, input.conditionOrdinal ?? 1) ??
-              unsupported('D&D result path applies too many conditions.')
+        ? {
+            conditionId: {
+              kind: 'LITERAL' as const,
+              value: input.outcome.conditionId
+            },
+            conditionImmune: {
+              kind: 'FACT' as const,
+              factKey:
+                conditionImmuneFactKey(input.entry.pathCode, input.conditionOrdinal ?? 1) ??
+                unsupported('D&D result path applies too many conditions.')
+            }
           }
-        }
-      : {
-          amount: { kind: 'LITERAL' as const, value: input.outcome.amount },
-          ...(input.outcome.kind === 'DAMAGE'
-            ? {
-                damageTypeId: {
-                  kind: 'LITERAL' as const,
-                  value: input.outcome.damageTypeId
+        : {
+            amount: { kind: 'LITERAL' as const, value: input.outcome.amount },
+            ...(input.outcome.kind === 'DAMAGE'
+              ? {
+                  damageTypeId: {
+                    kind: 'LITERAL' as const,
+                    value: input.outcome.damageTypeId
+                  }
                 }
-              }
-            : {})
-        })
+              : {})
+          })
   }
   const outputs = {
     targetActorId: {
@@ -3867,29 +3867,29 @@ function fixedOutcomeGraphDefinition(input: {
     ...(input.outcome.kind === 'STABILIZE'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
-      ? {
-          conditionId: {
-            kind: 'NODE_OUTPUT' as const,
-            nodeId: proposalId,
-            port: 'conditionId'
+        ? {
+            conditionId: {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: proposalId,
+              port: 'conditionId'
+            }
           }
-        }
-      : {
-          amount: {
-            kind: 'NODE_OUTPUT' as const,
-            nodeId: proposalId,
-            port: 'amount'
-          },
-          ...(input.outcome.kind === 'DAMAGE'
-            ? {
-                damageTypeId: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: proposalId,
-                  port: 'damageTypeId'
+        : {
+            amount: {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: proposalId,
+              port: 'amount'
+            },
+            ...(input.outcome.kind === 'DAMAGE'
+              ? {
+                  damageTypeId: {
+                    kind: 'NODE_OUTPUT' as const,
+                    nodeId: proposalId,
+                    port: 'damageTypeId'
+                  }
                 }
-              }
-            : {})
-        })
+              : {})
+          })
   }
   return {
     schemaVersion: 1,
