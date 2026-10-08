@@ -78,6 +78,7 @@ import {
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
+const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
@@ -186,6 +187,7 @@ type Outcome =
   | { kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'; amount: number }
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
+  | { kind: 'STABILIZE' }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -1909,6 +1911,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
       unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
   }
+  if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
@@ -1983,6 +1986,30 @@ function simpleOperation(key: string): ProposalRuleOperationContract {
   }
 }
 export const dnd5eHealProposalOperation = simpleOperation(DND5E_HEAL_PROPOSAL_OPERATION_KEY)
+export const dnd5eStabilizeProposalOperation: ProposalRuleOperationContract = {
+  key: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PROPOSAL',
+  inputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT
+  },
+  outputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
+    authorized: RULE_VALUE_KIND.BOOLEAN,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT
+  },
+  execute(inputs) {
+    const targetActorId = inputs.targetActorId
+    const targetStateChecksum = inputs.targetStateChecksum
+    if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
+      throw new Error('D&D stabilize proposal requires a canonical target actor UUID.')
+    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
+      throw new Error('D&D stabilize proposal requires target state checksum.')
+    return { targetActorId, applicationCandidate: true, authorized: true, targetStateChecksum }
+  }
+}
 export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
 )
@@ -2703,6 +2730,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     MOVEMENT_REACTION_CHOICE_OPERATION_KEY,
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
+    DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -2749,6 +2777,8 @@ function testProposalOperationKey(outcome: Outcome): string {
 }
 
 function proposalNode(pathCode: string, outcome: Outcome) {
+  if (outcome.kind === 'STABILIZE')
+    unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
   const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
@@ -3789,7 +3819,9 @@ function fixedOutcomeGraphDefinition(input: {
         ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
         : input.outcome.kind === 'DAMAGE'
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-          : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+          : input.outcome.kind === 'STABILIZE'
+            ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
+            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const inputs = {
     targetActorId: {
       kind: 'FACT' as const,
@@ -3799,7 +3831,9 @@ function fixedOutcomeGraphDefinition(input: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
-    ...(input.outcome.kind === 'CONDITION_APPLY'
+    ...(input.outcome.kind === 'STABILIZE'
+      ? {}
+      : input.outcome.kind === 'CONDITION_APPLY'
       ? {
           conditionId: {
             kind: 'LITERAL' as const,
@@ -3830,7 +3864,9 @@ function fixedOutcomeGraphDefinition(input: {
       nodeId: proposalId,
       port: 'targetActorId'
     },
-    ...(input.outcome.kind === 'CONDITION_APPLY'
+    ...(input.outcome.kind === 'STABILIZE'
+      ? {}
+      : input.outcome.kind === 'CONDITION_APPLY'
       ? {
           conditionId: {
             kind: 'NODE_OUTPUT' as const,
@@ -4287,7 +4323,9 @@ function compileDnd5eEffectAction({
         ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
         : outcome.kind === 'DAMAGE'
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-          : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+          : outcome.kind === 'STABILIZE'
+            ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
+            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -4304,44 +4342,48 @@ function compileDnd5eEffectAction({
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(outcome.kind === 'CONDITION_APPLY'
-            ? {
-                conditionId: { kind: 'LITERAL', value: outcome.conditionId },
-                conditionImmune: {
-                  kind: 'FACT',
-                  factKey: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
+          ...(outcome.kind === 'STABILIZE'
+            ? {}
+            : outcome.kind === 'CONDITION_APPLY'
+              ? {
+                  conditionId: { kind: 'LITERAL', value: outcome.conditionId },
+                  conditionImmune: {
+                    kind: 'FACT',
+                    factKey: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY
+                  }
                 }
-              }
-            : {
-                amount: { kind: 'LITERAL', value: outcome.amount },
-                ...(outcome.kind === 'DAMAGE'
-                  ? {
-                      damageTypeId: {
-                        kind: 'LITERAL',
-                        value: outcome.damageTypeId
+              : {
+                  amount: { kind: 'LITERAL', value: outcome.amount },
+                  ...(outcome.kind === 'DAMAGE'
+                    ? {
+                        damageTypeId: {
+                          kind: 'LITERAL',
+                          value: outcome.damageTypeId
+                        }
                       }
-                    }
-                  : {})
-              })
+                    : {})
+                })
         }
       }
     ],
     outputs: {
       targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
-      ...(outcome.kind === 'CONDITION_APPLY'
-        ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
-        : {
-            amount: { kind: 'NODE_OUTPUT', nodeId, port: 'amount' },
-            ...(outcome.kind === 'DAMAGE'
-              ? {
-                  damageTypeId: {
-                    kind: 'NODE_OUTPUT',
-                    nodeId,
-                    port: 'damageTypeId'
+      ...(outcome.kind === 'STABILIZE'
+        ? {}
+        : outcome.kind === 'CONDITION_APPLY'
+          ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
+          : {
+              amount: { kind: 'NODE_OUTPUT', nodeId, port: 'amount' },
+              ...(outcome.kind === 'DAMAGE'
+                ? {
+                    damageTypeId: {
+                      kind: 'NODE_OUTPUT',
+                      nodeId,
+                      port: 'damageTypeId'
+                    }
                   }
-                }
-              : {})
-          })
+                : {})
+            })
     },
     ...(recurringPlan
       ? {
@@ -4700,7 +4742,8 @@ function testApplications(
         application.kind === 'CONDITION_APPLY' ||
         application.kind === 'CONDITION_REMOVE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
-        application.kind === 'SCALAR_REDUCTION'
+        application.kind === 'SCALAR_REDUCTION' ||
+        application.kind === 'STABILIZE'
       )
         continue
       input = {
@@ -4963,6 +5006,22 @@ function interpretDirectProposal(
   }
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
+  if (trace.operation.key === DND5E_STABILIZE_PROPOSAL_OPERATION_KEY) {
+    if (trace.outputs.targetActorId !== input.targetActorId)
+      throw new Dnd5eEffectActionCompilerError(
+        'The committed D&D stabilize proposal trace is invalid.'
+      )
+    return [
+      {
+        kind: 'STABILIZE',
+        targetActorId: input.targetActorId,
+        sourceNodeId: trace.nodeId,
+        sourceOperationKey: trace.operation.key,
+        authoredPath: null,
+        resolvedPath: null
+      }
+    ]
+  }
   if (!positive(outputs.amount) || !hitPointStateIsValid(input))
     throw new Dnd5eEffectActionCompilerError(
       'The committed D&D rule action did not produce one exact hit-point proposal.'
@@ -5128,6 +5187,7 @@ function interpretDirect(
   const proposalKeys = new Set([
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
+    DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -5306,7 +5366,8 @@ function interpretDirect(
         application.kind === 'CONDITION_APPLY' ||
         application.kind === 'CONDITION_REMOVE' ||
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
-        application.kind === 'SCALAR_REDUCTION'
+        application.kind === 'SCALAR_REDUCTION' ||
+        application.kind === 'STABILIZE'
       )
         continue
       input = {

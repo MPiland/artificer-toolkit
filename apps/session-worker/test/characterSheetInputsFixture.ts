@@ -28,6 +28,7 @@ import {
 import { encounterRunFixture } from '../src/testing/encounterRunFixture.js'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { insertPendingMovementDecision } from './pendingMovementFixture.js'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { buildSrdSourceKinds, type ClassFeature } from '../src/testing/srdCharacterSource.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
 
@@ -62,10 +63,16 @@ export const darkvisionDefinition = liveRoomDefinitionSchema.parse({
 /** Builds the SRD source's snapshot objects, stores them in R2 as the build does, and returns its head. */
 async function publishSrdSource(
   darkvision: boolean,
-  classFeatures: readonly ClassFeature[]
+  classFeatures: readonly ClassFeature[],
+  equipment: readonly EquipmentAuthored[]
 ): Promise<ContentSnapshotHead> {
   const kinds: ContentSnapshotHead['kinds'] = {}
-  for (const { kind, header, built } of buildSrdSourceKinds(darkvision, false, classFeatures)) {
+  for (const { kind, header, built } of buildSrdSourceKinds(
+    darkvision,
+    false,
+    classFeatures,
+    equipment
+  )) {
     const store = async (part: ContentSnapshotPart) => {
       const { json, sha256, byteLength, rootCount } = built[part]
       const body = await new Response(
@@ -102,6 +109,7 @@ export async function characterRoomInputs({
   ownerUserId,
   darkvision = false,
   classFeatures = [],
+  equipment = [],
   play
 }: {
   campaignId: string
@@ -110,6 +118,8 @@ export async function characterRoomInputs({
   darkvision?: boolean
   /** Further Features the Character's Class carries. */
   classFeatures?: readonly ClassFeature[]
+  /** Further SRD Equipment the Character carries (equipped) and the source publishes. */
+  equipment?: readonly EquipmentAuthored[]
   /** The play state the Character starts with, where it differs from the capture. */
   play?: CharacterPlayOverrides
 }) {
@@ -121,7 +131,7 @@ export async function characterRoomInputs({
       {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         kind: SRD_CONTENT_SOURCE.kind,
-        head: await publishSrdSource(darkvision, classFeatures)
+        head: await publishSrdSource(darkvision, classFeatures, equipment)
       }
     ],
     campaign: {
@@ -142,7 +152,7 @@ export async function characterRoomInputs({
       userId: ownerUserId,
       campaignId,
       contentSnapshots: manifest,
-      play,
+      play: { ...play, carried: equipment },
       revisions: [
         { scope: 'SYSTEM', id: systemId, revision: null },
         { scope: 'CAMPAIGN', id: campaignId, revision: null },

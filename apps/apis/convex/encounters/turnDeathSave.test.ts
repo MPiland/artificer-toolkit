@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
   advance,
   enemyBites,
+  execute,
   sheetCommand,
   start,
   storedCharacter,
+  toActorTurn,
   toEnemyTurn,
   setup,
   type CommandResult,
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
+import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { readCharacterRow } from '../characters/stateDocuments'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api } from '../_generated/api'
 import {
@@ -47,8 +53,8 @@ function heroIn(fixture: Fixture, result: CommandResult) {
 }
 
 /** A started Run whose Character the Creature has just dropped to 0 hit points, at the Creature's turn. */
-async function dyingCharacter(rolls: FixtureRolls) {
-  const fixture = await setup()
+async function dyingCharacter(rolls: FixtureRolls, withAlly = false) {
+  const fixture = await setup({ withAlly })
   // Table roll cards post to the chat, which needs a username.
   await fixture.player.caller.mutation(api.account.updateProfile, {
     username: 'DyingHero',
@@ -242,5 +248,118 @@ describe('a dying Character’s turn-start death save (D96)', () => {
     expect(result.occurrence?.pending ?? null).toBeNull()
     expect(result.projection.currentActorId).toBe(fixture.hero.id)
     expect(await saves(fixture)).toEqual(stable)
+  }, 120000)
+})
+
+/**
+ * The GM's own Character, the dying hero's ally, uses its Healer's Kit on the hero. The Run has no
+ * Scene, so the kit's touch range cannot be checked, which the GM acknowledges.
+ */
+function useKit(
+  fixture: Fixture,
+  from: CommandResult,
+  acknowledgedWarnings: EncounterRuleWarningCodeDto[] = []
+) {
+  const expectedVersion = from.projection.version
+  const { ally } = fixture
+  if (!ally || !fixture.actionIds.kit) throw new Error('The Run has no ally with a Healer’s Kit.')
+  const actionId = fixture.actionIds.kit
+  return execute(fixture, (base) => ({
+    ...base,
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings],
+    expectedVersion,
+    actorId: ally.id,
+    targetActorId: fixture.hero.id,
+    actionId,
+    optionalCombatIntent: null,
+    sceneContext: null
+  }))
+}
+
+/** The dying hero at the ally's turn, with a successful death save already rolled for it. */
+async function dyingHeroAtAllyTurn() {
+  const { fixture, bitten } = await dyingCharacter('AUTO_ROLL', true)
+  await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: draw(12) })
+  const atAlly = await toActorTurn(fixture, bitten, fixture.ally!.id)
+  return { fixture, atAlly, dying: await saves(fixture) }
+}
+
+describe('a stabilize action on a dying Character (D96)', () => {
+  it('lets an ally’s Healer’s Kit make it stable, a new hit make it dying again, and GM undo reverse that', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    expect(dying.stable).toBe(false)
+
+    const stabilized = await useKit(fixture, atAlly)
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    expect((await storedCharacter(fixture)).state.hitpoints.current).toBe(0)
+
+    // Stable, the Character makes no death save at its next turn.
+    const heroTurn = await toActorTurn(fixture, stabilized, fixture.hero.id)
+    expect(heroTurn.occurrence?.pending ?? null).toBeNull()
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+
+    // Damage makes it dying again: stable clears and a failure is added.
+    const hit = await enemyBites(fixture, await toEnemyTurn(fixture, heroTurn))
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 1, stable: false })
+
+    // GM undo of that damage restores the stable state.
+    await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: hit.projection.version
+    }))
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+  }, 120000)
+
+  it('spends one kit charge from the ally, and GM undo restores the hero’s prior death saves', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    const usage = async () => {
+      await checkpointLiveRoom(fixture.campaign.id)
+      return fixture.t.run(async (ctx) => {
+        const row = await readCharacterRow(ctx, fixture.ally!.sourceId)
+        if (!row) throw new Error('Missing ally Character.')
+        return readCharacterSheetState(row).resourceUsage
+      })
+    }
+    expect(await usage()).toEqual([])
+
+    const stabilized = await useKit(fixture, atAlly)
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    expect(await usage()).toMatchObject([
+      { owner: { kind: 'ITEM_INSTANCE', chargeId: healersKit10Uses.charges?.id }, used: 1 }
+    ])
+
+    await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: stabilized.projection.version
+    }))
+    expect(await saves(fixture)).toEqual(dying)
+    expect(await usage()).toMatchObject([{ used: 0 }])
+  }, 120000)
+
+  it('warns, overridably, for a Character that is not dying, and changes nothing once acknowledged', async () => {
+    const { fixture, bitten } = await dyingCharacter('AUTO_ROLL', true)
+    // Revive the hero so it is a valid but not dying target.
+    await sheetCommand(fixture, (base) => ({
+      ...base,
+      type: 'ADJUST_HIT_POINTS',
+      mode: 'HEAL',
+      amount: 5
+    }))
+    const atAlly = await toActorTurn(fixture, bitten, fixture.ally!.id)
+    const before = (await storedCharacter(fixture)).state.hitpoints
+    const refused = await useKit(fixture, atAlly).then(
+      () => null,
+      (caught: unknown) => caught
+    )
+    expect(JSON.stringify(refused)).toContain('TARGET_NOT_DYING')
+
+    const applied = await useKit(fixture, atAlly, ['TARGET_NOT_DYING'])
+    expect(applied.occurrence?.status).toBe('COMPLETE')
+    expect((await storedCharacter(fixture)).state.hitpoints).toEqual(before)
   }, 120000)
 })

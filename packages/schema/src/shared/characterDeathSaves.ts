@@ -16,6 +16,27 @@ export function isCharacterDead(deathSaves: CharacterDeathSaves): boolean {
   return deathSaves.failures >= DEATH_SAVE_LIMIT
 }
 
+/** Dying: at 0 hit points, neither stable nor dead. */
+export function isCharacterDying(
+  deathSaves: CharacterDeathSaves,
+  currentHitPoints: number
+): boolean {
+  return currentHitPoints === 0 && !deathSaves.stable && !isCharacterDead(deathSaves)
+}
+
+/**
+ * The death saves after a STABILIZE effect (a Healer's Kit use): a dying Character becomes stable
+ * with its counts reset. Any other target is unchanged.
+ */
+export function deathSavesAfterStabilize(input: {
+  deathSaves: CharacterDeathSaves
+  currentHitPoints: number
+}): CharacterDeathSaves {
+  return isCharacterDying(input.deathSaves, input.currentHitPoints)
+    ? { successes: 0, failures: 0, stable: true }
+    : input.deathSaves
+}
+
 /**
  * The death saves after damage reached a Character's hit points. `dealt` is the damage that got
  * past temporary hit points, before it is clamped at 0. Damage that drops a Character to 0 kills

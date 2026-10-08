@@ -1,5 +1,6 @@
 import {
   isCharacterDead,
+  isCharacterDying,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 
@@ -31,6 +32,23 @@ export function deadCharacterIdsOfTargets(
     else dead.delete(actor.sourceId)
   }
   return dead
+}
+
+/** Whether a loaded target is a dying Character (D96): the only target a stabilize can help. */
+export function isEncounterTargetDying(
+  target:
+    | {
+        actor: { kind: 'CHARACTER' | 'CREATURE' | 'CUSTOM' }
+        state: { current: number; deathSaves: CharacterDeathSaves | null }
+      }
+    | undefined
+): boolean {
+  return (
+    target !== undefined &&
+    target.actor.kind === 'CHARACTER' &&
+    target.state.deathSaves !== null &&
+    isCharacterDying(target.state.deathSaves, target.state.current)
+  )
 }
 
 /**

@@ -7,6 +7,7 @@ import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections
 import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 /** A level 1 Character capture; the private transport row below uses the canonical storage codec. */
 const capturedPage = {
@@ -152,6 +153,8 @@ const capturedRevisions = capturedPage.revisions
 export interface CharacterPlayOverrides {
   /** Equips the first inventory item (the Club). */
   equipped?: boolean
+  /** Further SRD Equipment the Character carries, equipped, one of each. */
+  carried?: readonly EquipmentAuthored[]
   currentHitPoints?: number
   /** The Fighter's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
   fighterLevel?: number
@@ -165,9 +168,15 @@ export function characterOwnerRowFor({
   userId = capturedPage.inputs.character.userId,
   play: playOverrides = {}
 }: { characterId?: string; userId?: string; play?: CharacterPlayOverrides } = {}) {
-  const { equipped = false, fighterLevel = 1, conditions } = playOverrides
+  const { equipped = false, carried = [], fighterLevel = 1, conditions } = playOverrides
   const [capturedLevel] = capturedPage.inputs.character.intent.hitpoints.levels
   const maximumHitPoints = capturedLevel!.value + 7 * (fighterLevel - 1)
+  const capturedInventory = capturedPage.inputs.character.state.equipment.inventory
+  const carriedInventory = carried.map((item) => ({
+    id: crypto.randomUUID(),
+    equipmentId: item.id,
+    quantity: 1
+  }))
   const { currentHitPoints = maximumHitPoints } = playOverrides
   const character = characterDocumentSchema.parse({
     ...capturedPage.inputs.character,
@@ -190,9 +199,13 @@ export function characterOwnerRowFor({
       ...capturedPage.inputs.character.state,
       equipment: {
         ...capturedPage.inputs.character.state.equipment,
-        equipped: equipped
-          ? capturedPage.inputs.character.state.equipment.inventory.map(({ id }) => id).slice(0, 1)
-          : capturedPage.inputs.character.state.equipment.equipped
+        inventory: [...capturedInventory, ...carriedInventory],
+        equipped: [
+          ...(equipped
+            ? capturedInventory.map(({ id }) => id).slice(0, 1)
+            : capturedPage.inputs.character.state.equipment.equipped),
+          ...carriedInventory.map(({ id }) => id)
+        ]
       },
       hitpoints: {
         current: currentHitPoints,

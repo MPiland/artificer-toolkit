@@ -385,6 +385,7 @@ describe('encounter action rule warning gate', () => {
             sceneContext: farApart
           },
           targetDefeated: false,
+          stabilize: null,
           actionEconomy,
           activationCode: 'ACTION',
           acknowledged
@@ -446,6 +447,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: farApart
         },
         targetDefeated: false,
+        stabilize: null,
         actionEconomy: {
           consumption: {
             definitionId: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -485,6 +487,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
+        stabilize: null,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -531,6 +534,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
+        stabilize: null,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -555,6 +559,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: null
         },
         targetDefeated: true,
+        stabilize: null,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged
@@ -562,6 +567,42 @@ describe('encounter action rule warning gate', () => {
     const defeated = { code: 'TARGET_DEFEATED', message: 'The target is defeated.' }
     expect(gate([])).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [defeated] })
     expect(gate(['TARGET_DEFEATED'])).toEqual({ kind: 'ACCEPTED', overrides: [defeated] })
+  })
+
+  it('warns, overridably, when a stabilize action names a target that is not dying (D96)', () => {
+    const gate = (
+      stabilize: { targetDying: boolean },
+      acknowledged: EncounterRuleWarningDto['code'][]
+    ) =>
+      evaluateEncounterActionRuleWarnings({
+        preparedWarnings: [],
+        target: {
+          actor: { id: ACTOR_ID, disposition: 'FRIENDLY' },
+          target: { id: TARGET_ID, disposition: 'FRIENDLY' },
+          targetPolicy: {
+            range: { id: 'range', rangeKind: 'UNLIMITED' },
+            targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+            shape: null,
+            pathOverrides: []
+          },
+          sceneContext: null
+        },
+        targetDefeated: true,
+        stabilize,
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged
+      })
+    const notDying = { code: 'TARGET_NOT_DYING', message: 'The target is not dying.' }
+    expect(gate({ targetDying: true }, [])).toEqual({ kind: 'ACCEPTED', overrides: [] })
+    expect(gate({ targetDying: false }, [])).toEqual({
+      kind: 'UNACKNOWLEDGED',
+      warnings: [notDying]
+    })
+    expect(gate({ targetDying: false }, ['TARGET_NOT_DYING'])).toEqual({
+      kind: 'ACCEPTED',
+      overrides: [notDying]
+    })
   })
 
   it('accepts a clean action with no overrides and refuses an unsupported target policy', () => {
@@ -578,6 +619,7 @@ describe('encounter action rule warning gate', () => {
         preparedWarnings: [],
         target: { actor, target, targetPolicy, sceneContext: null },
         targetDefeated: false,
+        stabilize: null,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -593,6 +635,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: null
         },
         targetDefeated: false,
+        stabilize: null,
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: ['RESOURCE_UNAVAILABLE']

@@ -4697,7 +4697,7 @@
             "apps/apis/convex/encounters/turnDeathSave.test.ts"
           ],
           "journeyStatus": "partial",
-          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, and the turn-start death save are proved; no stabilizing, first aid or Sheet tracker yet (3.5, 3.6).",
+          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, the turn-start death save and an ally's Healer's Kit stabilizing it are proved; no first aid or Sheet tracker yet (3.7, 3.6).",
           "origin": [],
           "acs": [
             {
@@ -4759,10 +4759,18 @@
             },
             {
               "text": "A STABILIZE effect (the Healer's Kit) makes a dying Character stable; a target that is not dying is the overridable TARGET_NOT_DYING warning and changes nothing; damage makes it dying again; GM undo restores the death saves.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/turnDeathSave.test.ts › a stabilize action on a dying Character (D96) › lets an ally’s Healer’s Kit make it stable, a new hit make it dying again, and GM undo reverse that",
+                "apps/apis/convex/encounters/turnDeathSave.test.ts › a stabilize action on a dying Character (D96) › spends one kit charge from the ally, and GM undo restores the hero’s prior death saves",
+                "apps/apis/convex/encounters/turnDeathSave.test.ts › a stabilize action on a dying Character (D96) › warns, overridably, for a Character that is not dying, and changes nothing once acknowledged",
+                "apps/session-worker/test/nativeRoomStabilizeAction.test.ts › a stabilize action (the Healer's Kit) in the room",
+                "packages/rules-runtime/src/__tests__/encounterActionExecution.test.ts › compiles the SRD Healer's Kit to a stabilize proposal that applies without an amount",
+                "packages/schema/src/__tests__/characterDeathSaves.test.ts",
+                "impl: packages/schema/src/shared/characterDeathSaves.ts (deathSavesAfterStabilize); packages/rules-runtime/src/encounterCharacterMechanicsBatch.ts (STABILIZE application); packages/rules-runtime/src/encounterActionRuleWarnings.ts (TARGET_NOT_DYING)"
+              ],
               "origin": [],
-              "note": "D96. Split 2026-10-08 with the user's approval: first aid is SPELLS-3.7; casting Spare the Dying moved to SPELLS-8.2.",
+              "note": "D96. Split 2026-10-08 with the user's approval: first aid is SPELLS-3.7; casting Spare the Dying moved to SPELLS-8.2. Slice C, 2026-10-08: the real SRD Healer's Kit, used by an ally, spends one charge; undo restores the saves and the charge. With no Scene the kit's touch range is the acknowledged TARGET_RANGE_UNCHECKED warning.",
               "id": "SPELLS-3.5"
             },
             {

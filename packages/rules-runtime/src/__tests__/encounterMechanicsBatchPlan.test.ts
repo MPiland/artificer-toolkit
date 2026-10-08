@@ -819,6 +819,54 @@ describe('0 hit points (D63)', () => {
         expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 0, deathSaves: dead })
       })
 
+      describe('stabilizing', () => {
+        const stabilize: CharacterRuleActionApplication = {
+          ...origin,
+          sourceOperationKey: 'dnd5e.stabilize-proposal',
+          kind: 'STABILIZE',
+          targetActorId: ACTOR_ID
+        }
+
+        it('makes a dying Character stable without changing hit points or conditions', () => {
+          const plan = run(stabilize, 0, dying)
+          expect(plan.characterUpdate?.character.state).toMatchObject({
+            hitpoints: { current: 0, deathSaves: { successes: 0, failures: 0, stable: true } },
+            conditions: [{ conditionTypeId: UNCONSCIOUS }]
+          })
+          expect(plan.targetTransition.before.deathSaves).toEqual(dying)
+          expect(plan.targetTransition.after).toMatchObject({
+            currentHitPoints: 0,
+            deathSaves: { successes: 0, failures: 0, stable: true }
+          })
+          expect(plan.receiptApplications).toEqual([
+            expect.objectContaining({ ordinal: 0, kind: 'STABILIZE', applied: true })
+          ])
+        })
+
+        it.each([
+          ['a Character above 0 hit points', 4, NO_DEATH_SAVES],
+          ['an already stable Character', 0, stable],
+          ['a dead Character', 0, dead]
+        ])('changes nothing for %s', (_label, current, saves) => {
+          const plan = run(stabilize, current, saves)
+          expect(plan.characterUpdate).toBeNull()
+          expect(plan.targetTransition.after.deathSaves).toEqual(saves)
+          expect(plan.receiptApplications).toEqual([
+            expect.objectContaining({ kind: 'STABILIZE', applied: false })
+          ])
+        })
+
+        it('is undone by damage, which adds a failure and clears stable', () => {
+          const stabilized = run(stabilize, 0, dying).characterUpdate!.character.state.hitpoints
+            .deathSaves
+          expect(savesOf(run(hit({ requested: 2, before: 0, after: 0 }), 0, stabilized))).toEqual({
+            successes: 0,
+            failures: 1,
+            stable: false
+          })
+        })
+      })
+
       describe('a turn-start death save', () => {
         const save = (rawDie: number, deathSaves = dying as CharacterDeathSaves) =>
           planEncounterMechanicsBatch({

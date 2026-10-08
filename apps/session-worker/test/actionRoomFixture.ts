@@ -120,6 +120,7 @@ export interface ActionRoomConfig extends Pick<
   | 'concentrationOwnerActorId'
   | 'concentrationDependentActorIds'
   | 'characterClassFeatures'
+  | 'characterEquipment'
   | 'characterPlay'
   | 'definitions'
   | 'seed'

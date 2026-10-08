@@ -105,6 +105,13 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       ordinal: receiptOrdinalSchema,
+      kind: z.literal('STABILIZE'),
+      /** True when the target was dying and became stable (D96); false changes nothing. */
+      applied: z.boolean(),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
       kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
       reductionAmount: positiveIntegerSchema.check(z.lte(Number.MAX_SAFE_INTEGER)),
       sourceDamageOutcomeId: uuidSchema,

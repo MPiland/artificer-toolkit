@@ -13,6 +13,7 @@ import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/c
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -102,30 +103,37 @@ const creature = {
   )
 }
 
-/** An Assisted Run of one Character and one Creature that bites for one damage. */
-export async function setup() {
+/**
+ * An Assisted Run of one Character and one Creature that bites for one damage. withAlly also seats
+ * the GM's own Character, who carries the SRD Healer's Kit.
+ */
+export async function setup({ withAlly = false } = {}) {
   const characterEffect = oneDamageBite()
-  const base = await setupCharacterRun({
-    spellcasting: {
-      ...wizard.spellcasting!,
-      spellLimits: [
+  const base = await setupCharacterRun(
+    {
+      spellcasting: {
+        ...wizard.spellcasting!,
+        spellLimits: [
+          {
+            classLevel: 1,
+            slots: [{ spellLevel: 1, slotCount: 2 }],
+            learnedSpellsLimit: 0,
+            cantripsLimit: 0
+          }
+        ]
+      },
+      features: [
         {
-          classLevel: 1,
-          slots: [{ spellLevel: 1, slotCount: 2 }],
-          learnedSpellsLimit: 0,
-          cantripsLimit: 0
+          ...structuredClone(wolfBite!),
+          id: crypto.randomUUID(),
+          availableAtLevel: 1,
+          effects: [characterEffect]
         }
       ]
     },
-    features: [
-      {
-        ...structuredClone(wolfBite!),
-        id: crypto.randomUUID(),
-        availableAtLevel: 1,
-        effects: [characterEffect]
-      }
-    ]
-  })
+    withAlly ? healersKit10Uses : undefined,
+    withAlly
+  )
   await attachRoomWorker(base.t)
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' }
@@ -167,7 +175,11 @@ export async function setup() {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const hero = run.actors.find((actor) => actor.kind === 'CHARACTER')
+  const hero = run.actors.find((actor) => actor.sourceId === base.character.id)
+  const ally = base.gmCharacterId
+    ? run.actors.find((actor) => actor.sourceId === base.gmCharacterId)
+    : undefined
+  if (base.gmCharacterId && !ally) throw new Error('Missing journey ally.')
   const enemy = run.actors.find((actor) => actor.kind === 'CREATURE')
   if (!hero || !enemy) throw new Error('Missing journey actors.')
   const actionIds = await base.t.run(async (ctx) => {
@@ -198,9 +210,28 @@ export async function setup() {
       }))
     }).find((capability) => capability.mechanicFacts.invocation.triggerCode === 'ACTIVATED')
     if (!enemyAction) throw new Error('Missing journey Creature action.')
-    return { hero: heroAction.actionId, enemy: enemyAction.actionId }
+    const kitAction = base.gmCharacterId
+      ? (
+          await loadCharacterSheetFacts(
+            ctx,
+            base.owner.userId,
+            base.gmCharacterId,
+            base.campaign.id
+          )
+        )?.ruleEvaluation.facts.actionCandidates.find(
+          (candidate) =>
+            candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' &&
+            candidate.effectId === healersKit10Uses.effects?.[0]?.id
+        )
+      : undefined
+    if (base.gmCharacterId && !kitAction) throw new Error('Missing Healer’s Kit action.')
+    return {
+      hero: heroAction.actionId,
+      kit: kitAction?.actionId ?? null,
+      enemy: enemyAction.actionId
+    }
   })
-  return { ...base, run, hero, enemy, actionIds }
+  return { ...base, run, hero, ally, enemy, actionIds }
 }
 
 export type Fixture = Awaited<ReturnType<typeof setup>>
@@ -293,12 +324,16 @@ export async function start(fixture: Fixture) {
   return result
 }
 
-/** Advances turns until the Creature is the current actor. */
-export async function toEnemyTurn(fixture: Fixture, from: CommandResult) {
+/** Advances turns until ctorId is the current actor. */
+export async function toActorTurn(fixture: Fixture, from: CommandResult, actorId: string) {
   let result = await advance(fixture, from)
-  while (result.projection.currentActorId !== fixture.enemy.id)
-    result = await advance(fixture, result)
+  while (result.projection.currentActorId !== actorId) result = await advance(fixture, result)
   return result
+}
+
+/** Advances turns until the Creature is the current actor. */
+export function toEnemyTurn(fixture: Fixture, from: CommandResult) {
+  return toActorTurn(fixture, from, fixture.enemy.id)
 }
 
 /** Has the Creature bite the Character, once the Creature is the current actor. */

@@ -28,7 +28,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
   deadCharacterIdsOfTargets,
-  isEncounterActorDefeated
+  isEncounterActorDefeated,
+  isEncounterTargetDying
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
@@ -324,6 +325,12 @@ export async function planNativeLiveEncounterAction(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
     ),
+    stabilize: (prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate.mechanicFacts
+      : prepared.source.capability.mechanicFacts
+    ).outcomes.some((outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE')
+      ? { targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id)) }
+      : null,
     actionEconomy: economy,
     activationCode: activation.code,
     acknowledged: command.acknowledgedWarnings

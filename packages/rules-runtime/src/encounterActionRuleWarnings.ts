@@ -16,6 +16,11 @@ export function evaluateEncounterActionRuleWarnings(input: {
   target: Parameters<typeof evaluateEncounterActionTargetPolicy>[0]
   /** A defeated target (D63) is left out of target lists; naming one anyway only warns. */
   targetDefeated: boolean
+  /**
+   * Set when the action stabilizes (the Healer's Kit): it needs a dying target, so a target that
+   * is not dying warns with TARGET_NOT_DYING in place of TARGET_DEFEATED.
+   */
+  stabilize: { targetDying: boolean } | null
   actionEconomy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
   activationCode: string
   acknowledged: readonly EncounterRuleWarningCodeDto[]
@@ -28,9 +33,13 @@ export function evaluateEncounterActionRuleWarnings(input: {
   const warnings: EncounterRuleWarningDto[] = [
     ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
     ...input.preparedWarnings,
-    ...(input.targetDefeated
-      ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
-      : []),
+    ...(input.stabilize
+      ? input.stabilize.targetDying
+        ? []
+        : [{ code: 'TARGET_NOT_DYING' as const, message: 'The target is not dying.' }]
+      : input.targetDefeated
+        ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
+        : []),
     ...targetWarnings
   ]
   return warnings.every((warning) => input.acknowledged.includes(warning.code))

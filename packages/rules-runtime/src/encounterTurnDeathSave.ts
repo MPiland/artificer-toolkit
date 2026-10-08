@@ -1,6 +1,6 @@
 import {
   deathSavesAfterRoll,
-  isCharacterDead
+  isCharacterDying
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -60,9 +60,7 @@ function deathSaveCandidate<TCharacterFacts extends ProjectableCharacterFacts>(
     actor.kind !== 'CHARACTER' ||
     !characterFacts ||
     !state.deathSaves ||
-    state.current !== 0 ||
-    state.deathSaves.stable ||
-    isCharacterDead(state.deathSaves) ||
+    !isCharacterDying(state.deathSaves, state.current) ||
     target.effectiveMaximumHitPoints < 1
   )
     return null

@@ -31,7 +31,9 @@ const createRun = makeFunctionReference<
 
 export async function setupCharacterRun(
   options: Parameters<typeof readySheetFixture>[0] = {},
-  equipment?: Parameters<typeof readySheetFixture>[1]
+  equipment?: Parameters<typeof readySheetFixture>[1],
+  /** Also seats the GM's own Character (CAMPAIGN-7) in the Run, with its starting equipment equipped. */
+  withGmCharacter = false
 ) {
   const base = await readySheetFixture(options, equipment)
   const player = base.owner
@@ -73,6 +75,22 @@ export async function setupCharacterRun(
     characterId: base.character.id
   })
 
+  let gmCharacterId: string | null = null
+  if (withGmCharacter) {
+    const gmDraft = await base.createCharacter(undefined, owner.caller)
+    const committed = await owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: gmDraft.draft.id,
+      mode: 'create',
+      character: { ...gmDraft.character, label: 'Medic' }
+    })
+    gmCharacterId = committed.character.id
+    await owner.caller.mutation(api.campaigns.assignments.assign, {
+      campaignId: campaign.id,
+      characterId: gmCharacterId
+    })
+    await equipAllItems(owner.caller, gmCharacterId)
+  }
+
   const blueprint = await owner.caller.mutation(createBlueprint, {
     gameSystemId: campaign.gameSystemId,
     name: 'Native Character mechanics fixture',
@@ -84,7 +102,9 @@ export async function setupCharacterRun(
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const actor = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+  const actor = run.actors.find(
+    (candidate) => candidate.kind === 'CHARACTER' && candidate.sourceId === base.character.id
+  )
   const stored = (await base.readState()).character
   if (!actor || !stored) throw new Error('Fixture Character actor is unavailable.')
   return {
@@ -94,20 +114,26 @@ export async function setupCharacterRun(
     campaign,
     run,
     actor,
+    gmCharacterId,
     characterStreamVersion: stored.play.streamVersion
   }
 }
 
 /** Declared weapon actions compile only from equipped item facts. */
 export async function equipAllCharacterItems(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
-  const sheet = await base.player.caller.query(api.characters.sheet.get, {
-    id: base.character.id
-  })
+  await equipAllItems(base.player.caller, base.character.id)
+}
+
+async function equipAllItems(
+  caller: Awaited<ReturnType<typeof readySheetFixture>>['owner']['caller'],
+  characterId: string
+) {
+  const sheet = await caller.query(api.characters.sheet.get, { id: characterId })
   if (!sheet) throw new Error('Expected Character Sheet.')
-  let characterVersion = base.characterStreamVersion
+  let characterVersion = sheet.meta.streamVersion
   for (const item of sheet.inventory.items) {
-    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
-      id: base.character.id,
+    await caller.mutation(api.characters.sheetCommands.execute, {
+      id: characterId,
       command: {
         type: 'EQUIP_ITEM',
         commandId: crypto.randomUUID(),

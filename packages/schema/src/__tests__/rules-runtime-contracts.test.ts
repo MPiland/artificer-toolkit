@@ -1888,6 +1888,57 @@ describe('rules runtime contracts', () => {
     ).toThrow()
   })
 
+  it('replays a stabilize receipt only against a dying Character (D96)', () => {
+    const dyingBefore = {
+      currentHitPoints: 0,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      scalarValues: {},
+      conditionIds: [],
+      deathSaves: { successes: 1, failures: 2, stable: false }
+    }
+    const stableAfter = { ...dyingBefore, deathSaves: { successes: 0, failures: 0, stable: true } }
+    const envelope = (applied: boolean, before: typeof dyingBefore, after: typeof dyingBefore) => ({
+      kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      actionEconomyTransition: null,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      sourceCharacterId: turnBatchIds.character,
+      targetActorId: turnBatchIds.actor,
+      sourceCharacterStreamVersion: null,
+      targetCharacterStreamVersion: JSON.stringify(before) === JSON.stringify(after) ? null : 1,
+      resourceConsumption: null,
+      activeEffectTransitions: [],
+      d20: null,
+      targetTransition: { checksum: 'a'.repeat(64), before, after },
+      applications: [
+        {
+          ordinal: 0,
+          kind: 'STABILIZE' as const,
+          applied,
+          sourceNodeId: 'effect-node',
+          sourceOperationKey: 'effect.apply',
+          authoredPath: null,
+          resolvedPath: null
+        }
+      ]
+    })
+    const parse = (value: ReturnType<typeof envelope>) =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(value)
+    const STABILIZE_ISSUE = 'Stabilize receipt must apply to a dying Character only.'
+    expect(() => parse(envelope(true, dyingBefore, stableAfter))).not.toThrow()
+    // The saves must end stable with the counts reset.
+    expect(() => parse(envelope(true, dyingBefore, dyingBefore))).toThrow()
+    // A target that is not dying (above 0, already stable) cannot record an applied stabilize.
+    const conscious = { ...dyingBefore, currentHitPoints: 4, deathSaves: NO_DEATH_SAVES }
+    expect(() => parse(envelope(true, conscious, conscious))).toThrow(STABILIZE_ISSUE)
+    expect(() => parse(envelope(true, stableAfter, stableAfter))).toThrow(STABILIZE_ISSUE)
+    // A not-applied stabilize changes nothing.
+    expect(() => parse(envelope(false, conscious, conscious))).not.toThrow()
+    expect(() => parse(envelope(false, dyingBefore, stableAfter))).toThrow(STABILIZE_ISSUE)
+  })
+
   it('rejects malformed maintained Character receipt replacement invariants', () => {
     expect(
       serverRuleExecutionApplicationOutputsDtoSchema.parse(maintainedCharacterReceipt())

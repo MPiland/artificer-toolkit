@@ -161,6 +161,16 @@ export interface CharacterConditionRemoveOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized stabilize: a dying Character becomes stable, anything else is unchanged. */
+export interface CharacterStabilizeOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'STABILIZE'
+  targetActorId: string
+}
+
 /** A System-authorized removal of one exact normalized condition. */
 /**
  * A System-authorized reduction sourced from an earlier interpreted damage
@@ -202,6 +212,7 @@ export type CharacterRuleActionApplication =
   | CharacterHitPointOutcomeApplication
   | CharacterConditionApplyOutcomeApplication
   | CharacterConditionRemoveOutcomeApplication
+  | CharacterStabilizeOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
   | CharacterScalarReductionApplication
 

@@ -7,7 +7,9 @@ import {
   deathSavesAfterDeath,
   deathSavesAfterHealing,
   deathSavesAfterRoll,
+  deathSavesAfterStabilize,
   isCharacterDead,
+  isCharacterDying,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -220,6 +222,22 @@ export function foldCharacterMechanicsApplications<
       }
       continue
     }
+    if (application.kind === 'STABILIZE') {
+      // Only a dying Character stabilizes; any other target changes nothing (D96).
+      const applied = deathSaves !== null && isCharacterDying(deathSaves, current)
+      if (deathSaves !== null)
+        deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
+      receipt.push({
+        ordinal,
+        kind: 'STABILIZE',
+        applied,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
+      continue
+    }
     if (application.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
       if (
         !Number.isSafeInteger(application.reductionAmount) ||
@@ -392,7 +410,7 @@ export function foldCharacterMechanicsApplications<
     receipt.push({ ...receiptApplication, ordinal })
   }
   if (input.deathSaveRoll) {
-    if (deathSaves === null || current !== 0 || deathSaves.stable || isCharacterDead(deathSaves))
+    if (deathSaves === null || !isCharacterDying(deathSaves, current))
       throw new EncounterValidationError('Only a dying Character makes a death save.')
     const roll = deathSavesAfterRoll(deathSaves, input.deathSaveRoll.rawDie)
     deathSaves = roll.deathSaves

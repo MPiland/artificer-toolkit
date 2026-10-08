@@ -40,6 +40,7 @@ import {
   spatialDamageEffect
 } from '../src/testing/movementPlannerFixture.js'
 import type { CharacterPlayOverrides } from '../src/testing/characterPageFixture.js'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import {
   insertInitiativeRound,
@@ -173,6 +174,8 @@ export interface MovementRoomConfig {
   concentrationDependentActorIds?: readonly string[]
   /** Features the mover Character's Class carries (see `concentrationAdvantageFeature`). */
   characterClassFeatures?: readonly ClassFeature[]
+  /** Further SRD Equipment the mover Character carries, equipped (see healersKit10Uses). */
+  characterEquipment?: readonly EquipmentAuthored[]
   /** The mover Character's starting play state, where it differs from the capture. */
   characterPlay?: CharacterPlayOverrides
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
@@ -254,6 +257,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         characterId,
         ownerUserId: base.playerId,
         classFeatures: config.characterClassFeatures,
+        equipment: config.characterEquipment,
         play: config.characterPlay
       })
     : null

@@ -6,6 +6,7 @@ import {
   type ContentSnapshotListSource
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/compilers'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
@@ -35,7 +36,11 @@ const darkvisionFeature = elf.features![1]!
  * no Features or proficiencies, a Fighter without starting equipment sets, and a Background whose
  * one choice grants two Clubs and 15 gp.
  */
-function buildRoots(secondWind: SecondWind, extraClassFeatures: readonly ClassFeature[]) {
+function buildRoots(
+  secondWind: SecondWind,
+  extraClassFeatures: readonly ClassFeature[],
+  extraEquipment: readonly EquipmentAuthored[]
+) {
   if (fighter.category !== 'BASE') throw new Error('The SRD Fighter is a base Class.')
   const background = {
     ...acolyte,
@@ -120,7 +125,10 @@ function buildRoots(secondWind: SecondWind, extraClassFeatures: readonly ClassFe
       }
     },
     { subjectKind: 'BACKGROUND' as const, document: background },
-    { subjectKind: 'EQUIPMENT' as const, document: club }
+    ...[club, ...extraEquipment].map((document) => ({
+      subjectKind: 'EQUIPMENT' as const,
+      document
+    }))
   ]
 }
 
@@ -128,10 +136,8 @@ function buildRoots(secondWind: SecondWind, extraClassFeatures: readonly ClassFe
  * One SRD root as the Convex importer stores it and the snapshot build reads it back: the JSON
  * round trip, canonical checksum and name-based version identity are the production ones.
  */
-function listSource({
-  subjectKind,
-  document: authored
-}: ReturnType<typeof buildRoots>[number]): ContentSnapshotListSource {
+function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapshotListSource {
+  const { subjectKind, document: authored } = root
   const document = JSON.parse(JSON.stringify(authored))
   const checksum = checksumRuleDocument(document)
   const publication = parsePublicationDocument(subjectKind, document)
@@ -155,10 +161,11 @@ function listSource({
   }
   const identity = { publicId: publication.document.id, publicationVersion }
   if (publication.subjectKind !== 'EQUIPMENT') return { ...publication, ...identity }
+  if (root.subjectKind !== 'EQUIPMENT') throw new Error('The root is not Equipment.')
   const { builder } = equipmentOptionFacts(
     publication.document,
     checksum,
-    resolveEquipmentAuthored(club, () => undefined)
+    resolveEquipmentAuthored(root.document, () => undefined)
   )
   if (!builder) throw new Error('The Equipment option facts have no Builder projection.')
   return {
@@ -176,7 +183,8 @@ function listSource({
 export function buildSrdSourceKinds(
   darkvision: boolean,
   secondWind: SecondWind = false,
-  classFeatures: readonly ClassFeature[] = []
+  classFeatures: readonly ClassFeature[] = [],
+  equipment: readonly EquipmentAuthored[] = []
 ) {
   return (['RACE', 'CLASS', 'BACKGROUND', 'EQUIPMENT'] as const).map((kind) => {
     const header = {
@@ -187,7 +195,7 @@ export function buildSrdSourceKinds(
     }
     const built = buildContentSnapshotKind(
       header,
-      buildRoots(secondWind, classFeatures)
+      buildRoots(secondWind, classFeatures, equipment)
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'

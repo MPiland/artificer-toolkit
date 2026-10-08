@@ -4,7 +4,9 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
-  isCharacterDead
+  deathSavesAfterStabilize,
+  isCharacterDead,
+  isCharacterDying
 } from './characterDeathSaves.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
@@ -470,6 +472,18 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               current = 0
               if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
             }
+            continue
+          }
+          if (application.kind === 'STABILIZE') {
+            const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
+            if (application.applied !== dying)
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Stabilize receipt must apply to a dying Character only.'
+              })
+            if (deathSaves !== null)
+              deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
             continue
           }
           if (

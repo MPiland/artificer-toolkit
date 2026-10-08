@@ -12,6 +12,7 @@ import {
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import type { CharacterActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -565,5 +566,24 @@ describe('native phased action execution', () => {
       })
     ).rejects.toThrow('refused')
     expect(() => random(6)).toThrow('Unexpected random call')
+  })
+
+  it('compiles the SRD Healer’s Kit to a stabilize proposal that applies without an amount', async () => {
+    const [kitEffect] = healersKit10Uses.effects ?? []
+    if (!kitEffect) throw new Error('The SRD Healer’s Kit has no effect.')
+    const action = descriptor(compileEffect({ ...kitEffect, id: EFFECT_ID }))
+    expect(
+      singlePlan(action).published.definition.nodes.map(({ operation }) => operation.key)
+    ).toContain('dnd5e.stabilize-proposal')
+
+    const result = await executeNativeActionGraphs({
+      runtime: runtime(),
+      adapter: dnd5eCharacterRuleActionSystemAdapter,
+      plan: singlePlan(action),
+      occurrenceId: OCCURRENCE_ID,
+      binding: binding({ hitPoints: 0 }),
+      afterTest: async () => undefined
+    })
+    expect(result.applications).toMatchObject([{ kind: 'STABILIZE', targetActorId: TARGET_ID }])
   })
 })

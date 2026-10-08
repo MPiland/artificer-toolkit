@@ -6,7 +6,9 @@ import {
   deathSavesAfterHealing,
   deathSavesAfterRoll,
   deathSavesAfterSheetEdit,
-  isCharacterDead
+  deathSavesAfterStabilize,
+  isCharacterDead,
+  isCharacterDying
 } from '../shared/characterDeathSaves.js'
 import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 
@@ -193,6 +195,43 @@ describe('Character death saves (D96)', () => {
 
     it('leaves a dying Character at 0 unchanged', () => {
       expect(deathSavesAfterSheetEdit({ ...edit, deathSaves: dying, nextHitPoints: 0 })).toBe(dying)
+    })
+  })
+
+  describe('stabilizing', () => {
+    it('is dying only at 0 hit points, not stable and not dead', () => {
+      expect(isCharacterDying(NO_DEATH_SAVES, 0)).toBe(true)
+      expect(isCharacterDying(dying, 0)).toBe(true)
+      expect(isCharacterDying(NO_DEATH_SAVES, 1)).toBe(false)
+      expect(isCharacterDying(stable, 0)).toBe(false)
+      expect(isCharacterDying(dead, 0)).toBe(false)
+    })
+
+    it('makes a dying Character stable with the counts reset', () => {
+      expect(deathSavesAfterStabilize({ deathSaves: dying, currentHitPoints: 0 })).toEqual({
+        successes: 0,
+        failures: 0,
+        stable: true
+      })
+    })
+
+    it('changes nothing for a Character that is not dying', () => {
+      expect(deathSavesAfterStabilize({ deathSaves: dying, currentHitPoints: 3 })).toBe(dying)
+      expect(deathSavesAfterStabilize({ deathSaves: stable, currentHitPoints: 0 })).toBe(stable)
+      expect(deathSavesAfterStabilize({ deathSaves: dead, currentHitPoints: 0 })).toBe(dead)
+    })
+
+    it('is undone by damage at 0, which adds a failure and ends stability', () => {
+      const stabilized = deathSavesAfterStabilize({ deathSaves: dying, currentHitPoints: 0 })
+      expect(
+        deathSavesAfterDamage({
+          deathSaves: stabilized,
+          currentHitPoints: 0,
+          maximumHitPoints: 10,
+          dealt: 3,
+          critical: false
+        })
+      ).toEqual({ successes: 0, failures: 1, stable: false })
     })
   })
 })

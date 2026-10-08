@@ -38349,6 +38349,7 @@ export declare const api: {
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_RANGE_UNCHECKED";
               message: string;
@@ -38373,6 +38374,7 @@ export declare const api: {
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
                 | "TARGET_RANGE_UNCHECKED";
               message: string;
