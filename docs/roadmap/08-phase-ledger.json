@@ -4111,6 +4111,14 @@
               "origin": [],
               "note": "rul-9-rules-audit.md slice 2 (depends on conditions).",
               "id": "ATTACK-7.1"
+            },
+            {
+              "text": "Grapple riders (\"on hit, the target is grappled, escape DC N\") and \"grappled by this creature\" targeting are authorable effects; the full Shambling Mound turn grapples a Medium or smaller target hit by both slams and then offers Engulf on it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93. After ATTACK-11 (conditional slot).",
+              "id": "ATTACK-7.2"
             }
           ]
         },
@@ -4123,12 +4131,36 @@
           "origin": [],
           "acs": [
             {
-              "text": "Attack-count allowance and auto-sequence work for Multiattack (62 SRD Multiattacks) and Extra Attack.",
+              "text": "Taking the Attack action spends the Action once and opens its attack slots for the turn; each further attack that fills an open slot uses the slot, not the Action, and raises no warning. Slots refresh at the start of the actor's turn.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 6.",
+              "note": "D93; rul-9-rules-audit.md slice 6. The slot model is shared with ATTACK-11.",
               "id": "ATTACK-8.1"
+            },
+            {
+              "text": "Extra Attack is an authored attacks-per-Attack-action total that any feature can grant; several sources don't add together and the highest wins (Fighter 5 / Ranger 5 makes 2 attacks, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93; SRD multiclassing rule. Replaces the CLASS_*_EXTRA_ATTACK closed rules.",
+              "id": "ATTACK-8.2"
+            },
+            {
+              "text": "In Assisted mode an attack that doesn't fit the open action is not offered as part of it; attacking outside the action keeps the overridable ACTION_ECONOMY_UNAVAILABLE warning. Manual mode tracks only.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93; ADR 0034.",
+              "id": "ATTACK-8.3"
+            },
+            {
+              "text": "The acting player sees the attacks left in the action (\"Attack 1 of 2\") with the last weapon and target kept; each attack keeps its own roll, receipt and undo, and undoing an attack returns its slot.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93.",
+              "id": "ATTACK-8.4"
             }
           ]
         },
@@ -4165,6 +4197,48 @@
               "origin": [],
               "note": "rul-9-rules-audit.md slice 11.",
               "id": "ATTACK-10.1"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-11",
+          "title": "Authored Multiattack with auto-sequence",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An author can author a Multiattack in the Creature editor as alternatives of attack slots (count, the actions that fill it, optional, comes first), with swaps and slot conditions (earlier slots in this action hit the same target; target size at most X), and publication refuses an invalid one.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93. After ATTACK-8 (shared slot model).",
+              "id": "ATTACK-11.1"
+            },
+            {
+              "text": "All 142 SRD Multiattacks are authored as slot sets, and the stat-block audit refuses a description-only Multiattack.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93. Shambling Mound's conditional Engulf slot is authored here; Engulf itself is offered once ATTACK-7 lands.",
+              "id": "ATTACK-11.2"
+            },
+            {
+              "text": "During a Multiattack only actions that fill a remaining slot of a still-feasible alternative are offered: a Brown Bear can't bite twice, a Drider's Bite swap is offered once, Frightful Presence only comes first, a Recharge that isn't ready isn't offered, and a conditional slot is offered only while its condition holds.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93.",
+              "id": "ATTACK-11.3"
+            },
+            {
+              "text": "Auto-sequence: the GM's action drawer shows what is left of the Multiattack, preselects the only possible next attack and keeps the last target; the GM confirms each attack and can end the Multiattack early.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D93. Assisted means assisted: nothing resolves without the controller's confirmation.",
+              "id": "ATTACK-11.4"
             }
           ]
         }

@@ -71,7 +71,7 @@
 | 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                            |
 | 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                            |
 | 5   | CAMPAIGN-7                              | 4.3  | Done (seventh session).                                                                                                                          |
-| 6   | ATTACK-8                                | 4.2  | Multiattack and Extra Attack.                                                                                                                    |
+| 6   | ATTACK-8                                | 4.2  | Attack slots and Extra Attack (D93, refined 2026-10-07). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                    |
 | 7   | ATTACK-3                                | 4.0  | Journey: disposition and bendable-check warnings.                                                                                                |
 | 8   | PLATFORM-5 (5.6)                        | 4.0  | Stale or partial SRD manifest fails the audit.                                                                                                   |
 | 9   | "Needs proof" audit                     | 4.0  | PLATFORM-13.1–13.4, PLATFORM-14, PERF-3.1–3.13, PERF-4, SPELLS-3.1: link existing proofs; anything not actually built is re-sized and re-ranked. |
@@ -84,7 +84,7 @@
 | 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Journey gaps.                                                                                                                                    |
 | 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                           |
 | 18  | AUTHORING-14                            | 2.7  | All-domain duplication conformance.                                                                                                              |
-| 19  | ATTACK-7                                | 2.6  | Grapple and shove.                                                                                                                               |
+| 19  | ATTACK-7                                | 2.6  | Grapple and shove; 7.2 Engulf (after ATTACK-11).                                                                                                 |
 | 20  | VTT_UI-2                                | 2.6  |                                                                                                                                                  |
 | 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                         |
 | 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                               |

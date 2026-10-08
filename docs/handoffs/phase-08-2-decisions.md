@@ -477,6 +477,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **GM authority:** the owner keeps full GM control of Encounters, other Characters and party inventory; owning a Character adds the player paths, it removes none.
   - **Ownership transfer:** the incoming owner keeps their assigned Character; acceptance no longer detaches it. The former owner keeps theirs as a player.
 
+* **D93** (2026-10-07) Multiattack and Extra Attack are one authored attack-slot mechanic (ATTACK-8, ATTACK-11, ATTACK-7). Decided by the product owner.
+  - **Finding:** every attack spends the Action, so each second attack of a Multiattack or Extra Attack raises a false `ACTION_ECONOMY_UNAVAILABLE` warning. The 142 SRD Multiattacks are closed-rule markers or text, and Extra Attack is a closed-rule marker.
+  - **Model:** an action that grants attack slots spends the Action once and opens its slots for the turn. It is authored as alternatives, each a list of slots; a slot has a count, the actions that fill it, whether it is optional and whether it comes first. Swaps ("instead of its bite") are authored alternatives. Slot conditions are generic authored predicates (earlier slots in this action hit the same target; target size at most X). Nothing is special-cased per creature: anything SRD data uses is authorable in the editor.
+  - **Runtime:** after each attack, only alternatives consistent with what was done stay feasible, and only actions that fill a remaining slot of a feasible alternative are offered. An action that is unavailable for its own reason (a Recharge not ready) is not offered. Auto-sequence comes from the same evaluation: the drawer shows what is left, preselects the only possible next attack and keeps the last target; the GM or player confirms each attack (Assisted means assisted). Each attack keeps its own roll, receipt, reactions and undo.
+  - **Assisted mode:** an attack that doesn't fit the open action is not offered. "Do it anyway" stays only for attacking outside the action (ADR 0034). Manual mode tracks only.
+  - **Characters:** the Attack action is one slot of weapon attacks (grapple and shove join it in ATTACK-7). Extra Attack is an authored "attacks per Attack action" total; several sources don't add together and the highest wins (SRD multiclassing; Thirsting Blade likewise).
+  - **Engulf:** grapple riders ("on hit, grappled, escape DC 14") and "grappled by this creature" targeting are authorable effects built in ATTACK-7, which closes on the full Shambling Mound turn. Engulf is never offered before its target can really be grappled.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
