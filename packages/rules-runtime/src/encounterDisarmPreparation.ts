@@ -25,6 +25,7 @@ import type { prepareEncounterActionEconomy } from './encounterActionEconomy.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import { withEncounterD20Contributor } from './encounterBasicActions.js'
+import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import {
   snapshotCreatureEquipmentLoadout,
@@ -391,15 +392,19 @@ export function prepareEncounterDisarmContest(input: {
         targetTokenId: sceneContext.targetToken.tokenId
       }
     : null
-  const defenderRoll = input.defenderAllyAdvantage
-    ? withEncounterD20Contributor(
-        preparation.proposal.contest.targetContributors,
-        input.defenderAllyAdvantage
-      )
-    : {
-        rollMode: preparation.proposal.contest.targetMode,
-        contributors: [...preparation.proposal.contest.targetContributors]
-      }
+  const defenderRoll = withEncounterConditionCheckContributors({
+    holderActorId: target.id,
+    mechanics: prepared.targetFacts.conditionMechanics,
+    roll: input.defenderAllyAdvantage
+      ? withEncounterD20Contributor(
+          preparation.proposal.contest.targetContributors,
+          input.defenderAllyAdvantage
+        )
+      : {
+          rollMode: preparation.proposal.contest.targetMode,
+          contributors: preparation.proposal.contest.targetContributors
+        }
+  })
   const current: Parameters<typeof prepareDnd5eOptionalCombatContestPendingContext>[0] = {
     actionKind: 'DISARM',
     actionId: command.actionId,

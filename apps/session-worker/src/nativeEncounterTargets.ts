@@ -15,6 +15,7 @@ import {
   encounterBasicActionEffects,
   withEncounterBasicActionDefense
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -117,31 +118,32 @@ export async function prepareNativeLiveMovementTarget(input: {
     revisions = mergeNativeRulesRevisions(revisions, response.revisions)
     return response
   }
-  const target = buildMovementTarget({
-    actor,
-    activeEffects,
+  const definitions = {
+    requireCurrent: async (definitionId: string) => {
+      const response = await capture({ kind: 'DEFINITION', definitionId })
+      if (response.kind !== 'DEFINITION' || !response.definition)
+        throw new Error('Encounter target definition is unavailable.')
+      return response.definition
+    }
+  }
+  const target = await withEncounterConditionMechanics({
+    target: buildMovementTarget({
+      actor,
+      activeEffects,
+      gameSystemId: state.gameSystemId,
+      campaignId: state.campaignId,
+      characterFacts,
+      includeReactionSources: true
+    }),
     gameSystemId: state.gameSystemId,
-    campaignId: state.campaignId,
-    characterFacts,
-    includeReactionSources: true
+    definitions
   })
-  // Only an actor with a defensive basic-action effect (Dodge) reads its condition definitions.
+  // Only an actor with a defensive basic-action effect (Dodge) reads its capability definitions.
   const defended = encounterBasicActionEffects(actor).some(
     (effect) =>
       effect.mechanic === 'DISADVANTAGE_ON_ATTACKS_AGAINST' || effect.mechanic === 'SAVE_ADVANTAGE'
   )
-    ? await withEncounterBasicActionDefense({
-        target,
-        gameSystemId: state.gameSystemId,
-        definitions: {
-          requireCurrent: async (definitionId) => {
-            const response = await capture({ kind: 'DEFINITION', definitionId })
-            if (response.kind !== 'DEFINITION' || !response.definition)
-              throw new Error('Basic action defense definition is unavailable.')
-            return response.definition
-          }
-        }
-      })
+    ? await withEncounterBasicActionDefense({ target, gameSystemId: state.gameSystemId, definitions })
     : target
   return { target: defended, revisions }
 }

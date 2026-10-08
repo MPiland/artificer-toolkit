@@ -23,7 +23,8 @@ async function readIdentityLabel(
 /**
  * A contributor's source label and the Encounter actors it comes from. Source ids name their origin:
  * an active effect (`active-effect:<id>`, owned by and cast by actors), a basic action held by the
- * actor its domain key names (`basic-action:<holderId>`), or a key whose identities are the authored
+ * actor its domain key names (`basic-action:<holderId>`), a condition of the actor its domain key
+ * names (`condition:<holderId>`, D94), or a key whose identities are the authored
  * source, item, feature or rule definition, the first of which with a label names it.
  */
 async function readContributorSource(
@@ -57,9 +58,16 @@ async function readContributorSource(
       ]
     }
   }
-  const holder = contributor.domainKey?.startsWith('basic-action:')
-    ? contributor.domainKey.slice('basic-action:'.length)
-    : null
+  const holder =
+    /^(?:basic-action|condition):(.+)$/.exec(contributor.domainKey ?? '')?.[1] ?? null
+  // A condition's rule-state definition shares its id, so the System condition label names it.
+  if (parts[0] === 'condition') {
+    const conditionId = parts[1]?.toLowerCase() ?? ''
+    return {
+      label: conditionLabels.get(conditionId) ?? (await ctx.ports.readContentLabel(conditionId)),
+      actorIds: holder ? [holder] : []
+    }
+  }
   for (const part of parts) {
     if (!UUID.test(part)) continue
     const label = await readIdentityLabel(ctx, part.toLowerCase(), conditionLabels)

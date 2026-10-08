@@ -4,9 +4,17 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredTurnMovementSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  activeEncounterConditionMechanics,
+  encounterConditionLevels,
+  encounterConditionSpeed,
+  pinEncounterConditionDefinitions
+} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { resolveWalkingSpeedFeet } from '@artificer-toolkit/rules-runtime/walkingSpeed'
 import { readEncounterCharacterPlay } from './characterPlay.js'
+import { isDepartedCharacterActor } from './characterStates.js'
 import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
@@ -120,8 +128,9 @@ async function readTurnMovementByActorId(
 /**
  * The tabletop's movement readout (V07.5): feet spent this turn and the walking-speed budget for
  * each actor the member controls, which for the GM is every actor. Characters read the speed their
- * row stores; creatures read their stat block's walking speed; custom actors have no budget. Each
- * speed bonus this turn (Dash) adds the speed once more.
+ * row stores; creatures read their stat block's walking speed; custom actors have no budget. The
+ * actor's conditions then scale the speed (D94), and each speed bonus this turn (Dash) adds the
+ * scaled speed once more.
  */
 export async function readTurnMovementView(
   ctx: EncounterReadTransaction,
@@ -140,15 +149,64 @@ export async function readTurnMovementView(
   const speeds = actors.some((actor) => actor.kind === 'CREATURE')
     ? (await ctx.ports.requireSystem(input.campaign.gameSystemId)).speeds
     : []
+  const { gameSystemId, ownerUserId } = input.campaign
+  const definitions = {
+    requireCurrent: async (definitionId: string) => {
+      const current = await ctx.ports.readCurrentDefinition(definitionId, ownerUserId)
+      if (!current) throw new Error('Encounter condition definition is unavailable.')
+      return current
+    }
+  }
+  const readWalkingSpeedAndConditions = async (actor: (typeof actors)[number]) => {
+    if (actor.kind === 'CHARACTER') {
+      const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
+      if (!play) return null
+      const sheet = ctx.ports.readCharacterPlay(play)
+      const campaignConditions = (await isDepartedCharacterActor(ctx, state.campaignId, actor))
+        ? []
+        : await ctx.ports.readCampaignCharacterConditions(input.campaign, actor.sourceId)
+      return {
+        speed: play.walkingSpeed,
+        conditionLevels: encounterConditionLevels({
+          conditionIds: [...(sheet.conditions ?? []), ...campaignConditions].map(
+            (condition) => condition.conditionTypeId
+          ),
+          conditionRows: [],
+          exhaustionLevel: sheet.exhaustion?.level ?? 0,
+          gameSystemId
+        })
+      }
+    }
+    if (actor.kind !== 'CREATURE') return null
+    const conditions = readEncounterActorConditionState(actor.conditions ?? [])
+    return {
+      speed: resolveWalkingSpeedFeet(snapshotStatBlock(actor)?.speeds ?? [], speeds),
+      conditionLevels: encounterConditionLevels({
+        conditionIds: conditions.ids,
+        conditionRows: conditions.values,
+        exhaustionLevel: 0,
+        gameSystemId
+      })
+    }
+  }
   return Promise.all(
     actors.map(async (actor) => {
       const record = records.get(actor.id)
+      const walking = await readWalkingSpeedAndConditions(actor)
       const speed =
-        actor.kind === 'CHARACTER'
-          ? ((await readEncounterCharacterPlay(ctx, actor.sourceId))?.walkingSpeed ?? null)
-          : actor.kind === 'CREATURE'
-            ? resolveWalkingSpeedFeet(snapshotStatBlock(actor)?.speeds ?? [], speeds)
-            : null
+        walking === null
+          ? null
+          : encounterConditionSpeed({
+              mechanics: activeEncounterConditionMechanics({
+                conditionDefinitions: await pinEncounterConditionDefinitions({
+                  conditionLevels: walking.conditionLevels,
+                  gameSystemId,
+                  definitions
+                }),
+                conditionLevels: walking.conditionLevels
+              }),
+              speed: walking.speed
+            })
       return {
         actorId: actor.id,
         used: record?.usedFeet ?? 0,

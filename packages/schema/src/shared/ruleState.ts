@@ -1,6 +1,7 @@
-import { z, lazySchema } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
+import { measurementUnitCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const uuidSchema = lazySchema(() =>
@@ -55,9 +56,101 @@ export const ruleCapabilitySuppressionDtoSchema = lazySchema(() =>
   })
 )
 
+const sortedUniqueUuidsSchema = lazySchema(() =>
+  z
+    .array(uuidSchema)
+    .check(z.maxLength(32))
+    .check(
+      z.superRefine((ids, context) => {
+        if (ids.some((id, index) => index > 0 && ids[index - 1]! >= id))
+          context.addIssue({
+            code: 'custom',
+            message: 'Condition mechanic identities must be unique and sorted.'
+          })
+      })
+    )
+)
+
 /**
- * UUID-backed condition policy for the capability-availability facet. Other
- * condition mechanics remain separate typed policy rather than prose parsing.
+ * Where an attacker stands for a condition mechanic, measured between token footprints. Without a
+ * Scene to measure on, a melee attack counts as within and a ranged attack as beyond (D94).
+ */
+export const conditionMechanicAttackRangeDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('ANY') }),
+    z.strictObject({
+      kind: z.enum(['WITHIN', 'BEYOND']),
+      distance: z.strictObject({
+        amount: z.number().check(z.gte(0)),
+        unit: measurementUnitCodeSchema
+      })
+    })
+  ])
+)
+
+/** The d20 rolls a condition's advantage or disadvantage applies to. */
+export const conditionMechanicRollScopeDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('ATTACKS_BY') }),
+    z.strictObject({
+      kind: z.literal('ATTACKS_AGAINST'),
+      range: conditionMechanicAttackRangeDtoSchema
+    }),
+    z.strictObject({ kind: z.literal('ABILITY_CHECKS') }),
+    /** Every saving throw when `abilityDefinitionIds` is null. */
+    z.strictObject({
+      kind: z.literal('SAVES'),
+      abilityDefinitionIds: z.nullable(sortedUniqueUuidsSchema)
+    })
+  ])
+)
+
+const conditionMechanicFields = lazySchemaParts(() => ({
+  id: uuidSchema,
+  order: z.number().check(z.int()).check(z.gte(0)).check(z.lte(9_999)),
+  /**
+   * The level a leveled condition (Exhaustion) needs for this mechanic, which every higher level
+   * keeps; null applies at any level.
+   */
+  minimumLevel: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
+}))
+
+/**
+ * One typed rule a condition applies while an actor has it (D94). Rules the Encounter room
+ * evaluates: d20 roll modes, saves that fail without a roll, a speed of 0 or a fraction, and hits
+ * that become critical.
+ */
+export const conditionMechanicDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      ...conditionMechanicFields(),
+      kind: z.literal('D20_ROLL_MODE'),
+      influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
+      roll: conditionMechanicRollScopeDtoSchema
+    }),
+    z.strictObject({
+      ...conditionMechanicFields(),
+      kind: z.literal('SAVE_AUTO_FAIL'),
+      abilityDefinitionIds: sortedUniqueUuidsSchema.check(z.minLength(1))
+    }),
+    z.strictObject({
+      ...conditionMechanicFields(),
+      kind: z.literal('SPEED'),
+      /** A speed multiplied by `numerator / denominator`, rounded down; 0 sets it to 0. */
+      numerator: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
+      denominator: z.number().check(z.int()).check(z.positive()).check(z.lte(100))
+    }),
+    z.strictObject({
+      ...conditionMechanicFields(),
+      kind: z.literal('HITS_AGAINST_CRITICAL'),
+      range: conditionMechanicAttackRangeDtoSchema
+    })
+  ])
+)
+
+/**
+ * UUID-backed condition policy: the capabilities a condition suppresses, its perception
+ * contributions and its typed mechanics (D94), never parsed from prose.
  */
 export const conditionRuleStateReusableDefinitionDocumentDtoSchema = lazySchema(() =>
   z
@@ -68,30 +161,35 @@ export const conditionRuleStateReusableDefinitionDocumentDtoSchema = lazySchema(
       gameSystemId: uuidSchema,
       capabilitySuppressions: z.array(ruleCapabilitySuppressionDtoSchema).check(z.maxLength(32)),
       /** Optional for legacy reads; current documents explicitly materialize an ordered empty array. */
-      perceptionContributions: z.optional(combatPerceptionContributionsDtoSchema)
+      perceptionContributions: z.optional(combatPerceptionContributionsDtoSchema),
+      mechanics: z.array(conditionMechanicDtoSchema).check(z.maxLength(32))
     })
     .check(
       z.superRefine((document, context) => {
         const contributionIds = new Set<string>()
-        for (const [index, contribution] of document.capabilitySuppressions.entries()) {
-          if (contributionIds.has(contribution.id))
-            context.addIssue({
-              code: 'custom',
-              path: ['capabilitySuppressions', index, 'id'],
-              message: 'Condition rule-state contribution identities must be unique.'
-            })
-          contributionIds.add(contribution.id)
-          const prior = document.capabilitySuppressions[index - 1]
-          if (
-            prior &&
-            (prior.order > contribution.order ||
-              (prior.order === contribution.order && prior.id >= contribution.id))
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['capabilitySuppressions', index],
-              message: 'Condition rule-state contributions must be ordered by order then identity.'
-            })
+        for (const field of ['capabilitySuppressions', 'mechanics'] as const) {
+          const contributions: readonly { id: string; order: number }[] = document[field]
+          for (const [index, contribution] of contributions.entries()) {
+            if (contributionIds.has(contribution.id))
+              context.addIssue({
+                code: 'custom',
+                path: [field, index, 'id'],
+                message: 'Condition rule-state contribution identities must be unique.'
+              })
+            contributionIds.add(contribution.id)
+            const prior = contributions[index - 1]
+            if (
+              prior &&
+              (prior.order > contribution.order ||
+                (prior.order === contribution.order && prior.id >= contribution.id))
+            )
+              context.addIssue({
+                code: 'custom',
+                path: [field, index],
+                message:
+                  'Condition rule-state contributions must be ordered by order then identity.'
+              })
+          }
         }
       })
     )
@@ -227,6 +325,8 @@ export type RuleCapabilitySuppressionDto = z.infer<typeof ruleCapabilitySuppress
 export type ConditionRuleStateReusableDefinitionDocumentDto = z.infer<
   typeof conditionRuleStateReusableDefinitionDocumentDtoSchema
 >
+export type ConditionMechanicDto = z.infer<typeof conditionMechanicDtoSchema>
+export type ConditionMechanicAttackRangeDto = z.infer<typeof conditionMechanicAttackRangeDtoSchema>
 export type PinnedConditionRuleStateDefinitionDto = z.infer<
   typeof pinnedConditionRuleStateDefinitionDtoSchema
 >

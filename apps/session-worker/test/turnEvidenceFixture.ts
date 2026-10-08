@@ -11,6 +11,7 @@ import {
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
+  DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY,
@@ -58,13 +59,14 @@ export async function seedTurnSaveEffect(input: {
       },
       {
         id: 'test',
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 1 },
+        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 2 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
           modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
           threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
-          contributorChecksum: { kind: 'FACT', factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY }
+          contributorChecksum: { kind: 'FACT', factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY },
+          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       },
       {
@@ -99,6 +101,7 @@ export async function seedTurnSaveEffect(input: {
         [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
         [DND5E_SAVE_DC_FACT_KEY]: 30,
         [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
+        [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE',
         [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
           targetActorId: actor.id,
           currentHitPoints: actor.currentHitPoints,

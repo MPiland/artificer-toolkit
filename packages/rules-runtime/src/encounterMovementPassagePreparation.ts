@@ -1,4 +1,5 @@
 import { withEncounterD20Contributor } from './encounterBasicActions.js'
+import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
@@ -65,6 +66,14 @@ function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input
   const target = input.targets.get(input.actorId)
   if (!target || target.actor.id !== input.actorId || target.actor.systemId !== input.gameSystemId)
     throw new Error('Movement passage actor facts are stale.')
+  const withConditions = (facts: ContestFacts): ContestFacts => ({
+    ...facts,
+    ...withEncounterConditionCheckContributors({
+      holderActorId: target.actor.id,
+      mechanics: target.conditionMechanics,
+      roll: facts
+    })
+  })
   if (target.actor.kind === 'CHARACTER') {
     const facts = target.characterFacts
     const policy = target.effectiveRulePolicyOutput
@@ -76,7 +85,7 @@ function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input
       rulePolicyOutput: policy
     })
     const modifier = initiative.checkTotals[input.checkDefinitionId]
-    return {
+    return withConditions({
       controllerCharacterId: facts.active.id,
       contributors: (policy.rollContributorEvidence.skillChecks[input.checkDefinitionId] ?? []).map(
         ({ domainKey, grantId, influence, sourceId }) => ({
@@ -89,7 +98,7 @@ function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input
       modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
       rollMode: policy.rollModes.skillChecks[input.checkDefinitionId] ?? 'NORMAL',
       size: initiative.effectiveSize
-    }
+    })
   }
   if (target.actor.kind === 'CREATURE') {
     if (
@@ -107,13 +116,13 @@ function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input
     if (ruleFacts.gameSystemId !== input.gameSystemId)
       throw new Error('Movement passage Creature facts are stale.')
     const modifier = ruleFacts.checkTotals?.[input.checkDefinitionId]
-    return {
+    return withConditions({
       controllerCharacterId: null,
       contributors: [],
       modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
       rollMode: 'NORMAL',
       size: sizeCodeSchema.parse(target.actor.snapshot.payload.size)
-    }
+    })
   }
   throw new Error('Movement passage Custom actors cannot contest passage.')
 }
@@ -265,13 +274,19 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     const overrun = resolved
     if (overrun.result.kind !== 'PROPOSED')
       throw new Error('Movement passage policy changed before contest.')
+    // Keep a qualified contributor's grant and domain, so a condition still names its holder (D94).
     initiatorContributors = overrun.result.proposal.contest.initiatorContributors.map(
-      (contributor) => ({
-        sourceId: contributor.id,
-        grantId: null,
-        domainKey: null,
-        influence: contributor.influence
-      })
+      (contributor) => {
+        const qualified = initiator.contributors.find(
+          (candidate) => candidate.sourceId === contributor.id
+        )
+        return {
+          sourceId: contributor.id,
+          grantId: qualified?.grantId ?? null,
+          domainKey: qualified?.domainKey ?? null,
+          influence: contributor.influence
+        }
+      }
     )
     initiatorRollMode = overrun.result.proposal.contest.initiatorMode
   }

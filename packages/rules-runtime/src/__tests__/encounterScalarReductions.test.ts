@@ -258,6 +258,8 @@ describe('Creature movement target', () => {
       effectiveRulePolicyOutput: null,
       characterCurrentness: null,
       basicActionAttackContributors: [],
+      conditionDefinitions: [],
+      conditionMechanics: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,
         // Dexterity 12 drained to 7: initiative +1 becomes -2.

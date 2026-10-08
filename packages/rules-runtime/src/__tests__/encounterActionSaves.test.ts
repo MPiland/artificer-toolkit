@@ -7,10 +7,12 @@ import {
   TRIGGER,
   ACTIVATION_CODE
 } from '@artificer-toolkit/shared/core'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
+import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   creatureActor,
   type CreatureFeature,
@@ -158,6 +160,7 @@ async function resolve(input: {
   feature: CreatureFeature
   rolls: readonly number[]
   conditionImmunityIds?: readonly string[]
+  conditionIds?: readonly string[]
   savingThrowDefinitions?: readonly unknown[]
 }) {
   const prepared = await prepareCreatureAction({
@@ -166,6 +169,7 @@ async function resolve(input: {
       id: TARGET_ID,
       label: 'Wolf',
       features: [],
+      ...(input.conditionIds ? { conditionIds: input.conditionIds } : {}),
       ...(input.conditionImmunityIds ? { conditionImmunityIds: input.conditionImmunityIds } : {})
     }),
     featureId: input.feature.id,
@@ -287,6 +291,78 @@ describe('saving throw outcomes through action execution', () => {
     expect(result.d20).toMatchObject({ total: 14, defenseOrDc: 11, resultPath: 'ON_SAVE_SUCCESS' })
     expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 7 }])
     expect(result.hitPoints).toBe(4)
+  })
+})
+
+describe('saving throws under the saver\'s conditions (D94)', () => {
+  it('fails a Dexterity save of a Paralyzed or Stunned target even on a natural 20', async () => {
+    for (const code of ['PARALYZED', 'STUNNED']) {
+      // Natural 20 + DEX 2 = 22 against DC 13, failed anyway: the d20 is still rolled.
+      const result = await resolve({
+        feature: acidSpray(),
+        rolls: [19],
+        conditionIds: [srdConditionId(code)]
+      })
+      expect(result.d20).toMatchObject({ selectedNatural: 20, total: 22, resultPath: 'ON_SAVE_FAIL' })
+      expect(result.hitPoints).toBe(2)
+    }
+  })
+
+  it('rolls a Paralyzed target\'s Wisdom save normally', async () => {
+    // Natural 13 + WIS 1 = 14 against DC 13: Paralyzed fails only Strength and Dexterity saves.
+    const result = await resolve({
+      feature: acidBurst(),
+      rolls: [12],
+      conditionIds: [srdConditionId('PARALYZED')]
+    })
+    expect(result.d20).toMatchObject({ total: 14, resultPath: 'ON_SAVE_SUCCESS' })
+    expect(result.hitPoints).toBe(11)
+  })
+
+  it('seals the save outcome rule into the bound facts of the TEST phase', async () => {
+    const feature = acidSpray()
+    const prepared = await prepareCreatureAction({
+      actor: creatureActor({ id: SOURCE_ID, label: 'Save Caster', features: [feature] }),
+      target: creatureActor({
+        id: TARGET_ID,
+        label: 'Wolf',
+        features: [],
+        conditionIds: [srdConditionId('PARALYZED')]
+      }),
+      featureId: feature.id,
+      overridable: true
+    })
+    const { execution } = await settleCreatureAction({ prepared, rolls: [19] })
+    const [test] = execution.phaseReceipts ?? []
+    expect(test?.phase).toBe('TEST')
+    const { plan } = prepared
+    if (plan.kind !== 'TEST_OUTCOME') throw new Error('Acid Spray is a two-phase save.')
+    const bind = (binding: typeof prepared.binding) =>
+      prepared.adapter.bindFacts({ ...binding, published: plan.test.published }).facts
+    const bound = bind(prepared.binding)
+    expect(bound[DND5E_TEST_OUTCOME_RULE_FACT_KEY]).toBe('SAVE_AUTO_FAIL')
+    expect(checksumRuleDocument(bound)).toBe(test?.boundFactsChecksum)
+    // The TEST boundary rebinds the facts and compares this checksum, so a dropped rule is stale.
+    const dropped = bind({
+      ...prepared.binding,
+      conditionOutcomeRules: { hitIsCritical: false, saveAutoFailAbilityIds: [] }
+    })
+    expect(dropped[DND5E_TEST_OUTCOME_RULE_FACT_KEY]).toBe('NONE')
+    expect(checksumRuleDocument(dropped)).not.toBe(test?.boundFactsChecksum)
+  })
+  it('rolls a Restrained target\'s Dexterity save with disadvantage', async () => {
+    // Natural 18 and 2 keep 2: 2 + DEX 2 = 4 against DC 13.
+    const result = await resolve({
+      feature: acidSpray(),
+      rolls: [17, 1],
+      conditionIds: [srdConditionId('RESTRAINED')]
+    })
+    expect(result.d20).toMatchObject({
+      derivedRollMode: 'DISADVANTAGE',
+      rawFaces: [18, 2],
+      selectedNatural: 2,
+      resultPath: 'ON_SAVE_FAIL'
+    })
   })
 })
 

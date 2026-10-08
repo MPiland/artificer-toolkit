@@ -19,7 +19,10 @@ import {
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
 
-import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import type {
+  CharacterRuleActionApplication,
+  CharacterRuleActionConditionOutcomeRules
+} from './characterRuleActionSystemAdapter.js'
 import type { CharacterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -62,6 +65,8 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: readonly ActiveRuleEffectTargetDefense[]
   conditionImmunityIds?: readonly string[]
+  /** Outcome rules the target's condition mechanics apply to its saves (D94). */
+  conditionOutcomeRules?: CharacterRuleActionConditionOutcomeRules | null
   /**
    * Current application-layer perception result for one System-authored
    * recurring dependency. Scene geometry never enters the shared executor.
@@ -341,6 +346,7 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     targetScalarValues: target.targetScalarValues,
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds,
+    conditionOutcomeRules: input.conditionOutcomeRules ?? null,
     perception: input.perception ?? null
   })
   return {

@@ -7,6 +7,7 @@ import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { SRD_CONDITION_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { api, components, internal } from '../../convex/_generated/api'
@@ -26,6 +27,14 @@ export async function fixture() {
     contentSource: SRD_CONTENT_SOURCE,
     catalogue: SRD_RULES_CATALOGUE
   })
+  // Each SRD condition carries its rule-state definition (D94), which Encounter reads pin. An
+  // import batch holds at most 10 definitions.
+  for (let start = 0; start < SRD_CONDITION_RULE_STATE_DEFINITIONS.length; start += 10) {
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: SRD_CONDITION_RULE_STATE_DEFINITIONS.slice(start, start + 10)
+    })
+  }
   const addActor = async (name: string) => {
     const user = await t.run(async (ctx) =>
       ctx.runMutation(components.betterAuth.adapter.create, {

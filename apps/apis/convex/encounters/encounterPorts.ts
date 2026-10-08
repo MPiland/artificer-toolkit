@@ -22,6 +22,7 @@ import {
   readCharacterRecord,
   readCharacterRow
 } from '../characters/stateDocuments'
+import { readDefinitionRoot } from '../content/definitionStore'
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
 import { readAssignedActiveCharacter } from '../liveSessions/characterRulesCapture'
@@ -81,6 +82,8 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
       readCharacterSheetState(active)
       return (await readCampaignCharacterState(ctx, campaign.id, characterId)).state.conditions
     },
+    readCurrentDefinition: async (definitionId, ownerUserId) =>
+      (await readDefinitionRoot(ctx, definitionId, ownerUserId))?.current ?? null,
     readAutoRollDice: (userId) => readAutoRollDice(ctx, userId),
     readGmRollVisibility: (userId) => readGmRollVisibility(ctx, userId),
     isRoomHeldRun: (run) => isRoomHeldRun(ctx, run),

@@ -1966,6 +1966,84 @@ describe('Assisted soft enforcement', () => {
     })
   }, 60000)
 
+  it('a Paralyzed target makes an adjacent Bite roll with advantage and hit critically (D94)', async () => {
+    // The seeded Wolf's Bite (+4, 2d4 + 2) at the adjacent seeded Wolf (AC 13).
+    const base = await distanceSetup({ rolls: 'PROMPT' })
+    const paralyzed = srdSystemRecord.conditionTypes.find((value) => value.code === 'PARALYZED')
+    if (!paralyzed) throw new Error('Missing Paralyzed condition fixture.')
+    const conditioned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        actorId: base.target.id,
+        conditions: [paralyzed.id]
+      }
+    })
+    const version = conditioned.projection.version
+    const issued = await executeInRoom(base.owner.caller, {
+      command: command({
+        encounterId: base.run.id,
+        expectedVersion: version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        sceneContext: {
+          sceneId: base.sceneId,
+          expectedSceneVersion: 0,
+          sourceTokenId: base.tokens[0]!.id,
+          targetTokenId: base.tokens[1]!.id
+        }
+      })
+    })
+    const attack = issued.occurrence?.pending
+    if (!issued.occurrence || attack?.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the attack roll prompt.')
+    expect(attack.request.rollMode).toBe('ADVANTAGE')
+    expect(await pendingFor(base, base.owner.caller)).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Paralyzed'] }
+    })
+    // A natural 10 + 4 = 14 hits AC 13; within 5 feet of the Paralyzed Wolf the hit is critical,
+    // so the Bite asks for 4d4 instead of 2d4: one d4 prompt per die.
+    let step = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: version,
+        correlationId: null,
+        occurrenceId: issued.occurrence.occurrenceId,
+        expectedOccurrenceVersion: issued.occurrence.occurrenceVersion,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: attack.request.requestId,
+          rawFaces: [10, 10],
+          rollMode: 'ADVANTAGE'
+        }
+      }
+    })
+    const damageDice: { min: number; max: number }[] = []
+    for (let pending = step.occurrence?.pending; pending?.kind === 'ACTION_OUTCOME_EVIDENCE'; ) {
+      damageDice.push({ min: pending.request.min, max: pending.request.max })
+      step = await executeInRoom(base.owner.caller, {
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: pending.encounterVersion,
+          correlationId: null,
+          occurrenceId: pending.occurrenceId,
+          expectedOccurrenceVersion: pending.occurrenceVersion,
+          resolution: { kind: 'ENTER_INTEGER', requestId: pending.request.requestId, value: 1 }
+        }
+      })
+      pending = step.occurrence?.pending
+    }
+    expect(damageDice).toEqual(Array.from({ length: 4 }, () => ({ min: 1, max: 4 })))
+  }, 60000)
+
   it('only warns for a ranged attack beyond its long range (D11)', async () => {
     // The seeded Ape's Rock: range 25/50 ft. The target stands 13 squares (65 ft.) away.
     const far = await distanceSetup({ ranged: true, rolls: 'PROMPT' })

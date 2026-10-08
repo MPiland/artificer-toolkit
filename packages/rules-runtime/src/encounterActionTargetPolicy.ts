@@ -130,7 +130,8 @@ export function encounterActionLongRangeContributor(input: {
     : null
 }
 
-function measuredDistance(
+/** A range in Scene units and the token footprints' measured distance; null when unmeasurable. */
+export function measuredDistance(
   scene: EncounterActionSceneContext,
   range: Parameters<typeof lengthMeasurementInSceneUnits>[0]
 ) {

@@ -39,6 +39,10 @@ import {
   projectEncounterActionTarget,
   type ProjectableCharacterFacts
 } from './encounterActionProjection.js'
+import {
+  applyEncounterConditionMechanics,
+  encounterConditionSaveAutoFailAbilityIds
+} from './encounterConditionMechanics.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -366,6 +370,12 @@ async function evaluateEncounterTurnEffects(input: {
       targetDerivedFacts: input.target.targetDerivedFacts,
       defenses: input.target.defenses,
       conditionImmunityIds: input.target.conditionImmunityIds,
+      conditionOutcomeRules: {
+        hitIsCritical: false,
+        saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(
+          input.target.conditionMechanics
+        )
+      },
       perception: await input.resolvePerception({
         actors: input.actors,
         target: input.target,
@@ -668,13 +678,19 @@ export async function prepareEncounterTurnEffects<
   if (!target) target = await input.loadTarget(actor.id)
   if (!target) throw new Error('Turn effect target facts are unavailable.')
   // Root-owned transient facts may include earlier phase mechanics and resource refreshes.
-  target = buildMovementTarget({
-    actor,
-    activeEffects: effects,
-    characterFacts: target.characterFacts,
-    campaignId: input.state.campaignId,
-    gameSystemId: input.state.gameSystemId,
-    includeReactionSources: target.characterReactionSource !== undefined
+  target = applyEncounterConditionMechanics({
+    target: {
+      ...buildMovementTarget({
+        actor,
+        activeEffects: effects,
+        characterFacts: target.characterFacts,
+        campaignId: input.state.campaignId,
+        gameSystemId: input.state.gameSystemId,
+        includeReactionSources: target.characterReactionSource !== undefined
+      }),
+      conditionDefinitions: target.conditionDefinitions
+    },
+    gameSystemId: input.state.gameSystemId
   })
   targets.set(actor.id, target)
   const evaluated = await evaluateEncounterTurnEffects({
@@ -719,13 +735,19 @@ export async function prepareEncounterTurnEffects<
   // The next boundary observes expired/updated rows as well as staged target mechanics.
   targets.set(
     actor.id,
-    buildMovementTarget({
-      actor: projected.actor,
-      activeEffects: overlayEffects(effects, { kind: 'STAGED', plan: evaluated.plan }),
-      characterFacts: projected.characterFacts,
-      campaignId: input.state.campaignId,
-      gameSystemId: input.state.gameSystemId,
-      includeReactionSources: target.characterReactionSource !== undefined
+    applyEncounterConditionMechanics({
+      target: {
+        ...buildMovementTarget({
+          actor: projected.actor,
+          activeEffects: overlayEffects(effects, { kind: 'STAGED', plan: evaluated.plan }),
+          characterFacts: projected.characterFacts,
+          campaignId: input.state.campaignId,
+          gameSystemId: input.state.gameSystemId,
+          includeReactionSources: target.characterReactionSource !== undefined
+        }),
+        conditionDefinitions: target.conditionDefinitions
+      },
+      gameSystemId: input.state.gameSystemId
     })
   )
   return {

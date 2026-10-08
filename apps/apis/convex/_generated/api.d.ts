@@ -23158,6 +23158,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -24748,6 +24830,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -26347,6 +26511,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -27937,6 +28183,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -29562,6 +29890,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -31152,6 +31562,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -32730,6 +33222,88 @@ export declare const api: {
                 gameSystemId: string;
                 id: string;
                 kind: "CONDITION_RULE_STATE";
+                mechanics: Array<
+                  | {
+                      id: string;
+                      influence: "ADVANTAGE" | "DISADVANTAGE";
+                      kind: "D20_ROLL_MODE";
+                      minimumLevel: number | null;
+                      order: number;
+                      roll:
+                        | { kind: "ATTACKS_BY" }
+                        | {
+                            kind: "ATTACKS_AGAINST";
+                            range:
+                              | { kind: "ANY" }
+                              | {
+                                  distance: {
+                                    amount: number;
+                                    unit:
+                                      | "POUNDS"
+                                      | "GALLONS"
+                                      | "INCHES"
+                                      | "FEET"
+                                      | "YARDS"
+                                      | "MILES"
+                                      | "OUNCES"
+                                      | "CUPS"
+                                      | "TABLESPOONS"
+                                      | "TEASPOONS"
+                                      | "LITERS"
+                                      | "QUARTS";
+                                  };
+                                  kind: "WITHIN" | "BEYOND";
+                                };
+                          }
+                        | { kind: "ABILITY_CHECKS" }
+                        | {
+                            abilityDefinitionIds: Array<string> | null;
+                            kind: "SAVES";
+                          };
+                    }
+                  | {
+                      abilityDefinitionIds: Array<string>;
+                      id: string;
+                      kind: "SAVE_AUTO_FAIL";
+                      minimumLevel: number | null;
+                      order: number;
+                    }
+                  | {
+                      denominator: number;
+                      id: string;
+                      kind: "SPEED";
+                      minimumLevel: number | null;
+                      numerator: number;
+                      order: number;
+                    }
+                  | {
+                      id: string;
+                      kind: "HITS_AGAINST_CRITICAL";
+                      minimumLevel: number | null;
+                      order: number;
+                      range:
+                        | { kind: "ANY" }
+                        | {
+                            distance: {
+                              amount: number;
+                              unit:
+                                | "POUNDS"
+                                | "GALLONS"
+                                | "INCHES"
+                                | "FEET"
+                                | "YARDS"
+                                | "MILES"
+                                | "OUNCES"
+                                | "CUPS"
+                                | "TABLESPOONS"
+                                | "TEASPOONS"
+                                | "LITERS"
+                                | "QUARTS";
+                            };
+                            kind: "WITHIN" | "BEYOND";
+                          };
+                    }
+                >;
                 perceptionContributions?: Array<
                   | {
                       definitionChecksum: string;
@@ -34315,6 +34889,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;
@@ -35905,6 +36561,88 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "CONDITION_RULE_STATE";
+                  mechanics: Array<
+                    | {
+                        id: string;
+                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        kind: "D20_ROLL_MODE";
+                        minimumLevel: number | null;
+                        order: number;
+                        roll:
+                          | { kind: "ATTACKS_BY" }
+                          | {
+                              kind: "ATTACKS_AGAINST";
+                              range:
+                                | { kind: "ANY" }
+                                | {
+                                    distance: {
+                                      amount: number;
+                                      unit:
+                                        | "POUNDS"
+                                        | "GALLONS"
+                                        | "INCHES"
+                                        | "FEET"
+                                        | "YARDS"
+                                        | "MILES"
+                                        | "OUNCES"
+                                        | "CUPS"
+                                        | "TABLESPOONS"
+                                        | "TEASPOONS"
+                                        | "LITERS"
+                                        | "QUARTS";
+                                    };
+                                    kind: "WITHIN" | "BEYOND";
+                                  };
+                            }
+                          | { kind: "ABILITY_CHECKS" }
+                          | {
+                              abilityDefinitionIds: Array<string> | null;
+                              kind: "SAVES";
+                            };
+                      }
+                    | {
+                        abilityDefinitionIds: Array<string>;
+                        id: string;
+                        kind: "SAVE_AUTO_FAIL";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "HITS_AGAINST_CRITICAL";
+                        minimumLevel: number | null;
+                        order: number;
+                        range:
+                          | { kind: "ANY" }
+                          | {
+                              distance: {
+                                amount: number;
+                                unit:
+                                  | "POUNDS"
+                                  | "GALLONS"
+                                  | "INCHES"
+                                  | "FEET"
+                                  | "YARDS"
+                                  | "MILES"
+                                  | "OUNCES"
+                                  | "CUPS"
+                                  | "TABLESPOONS"
+                                  | "TEASPOONS"
+                                  | "LITERS"
+                                  | "QUARTS";
+                              };
+                              kind: "WITHIN" | "BEYOND";
+                            };
+                      }
+                  >;
                   perceptionContributions?: Array<
                     | {
                         definitionChecksum: string;

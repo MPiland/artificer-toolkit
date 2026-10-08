@@ -29,6 +29,8 @@ export async function readCampaignAssignedCharacter(
     !route ||
     uniqueAssignment?._id !== assignment._id ||
     route.subjectKind !== 'CHARACTER' ||
+    // The GM's own Character is assigned like a player's (D92), but only to the Campaign's owner.
+    (member.role === 'OWNER') !== (campaign.ownerUserId === member.userId) ||
     record.userId !== member.userId ||
     route.ownerUserId !== member.userId ||
     record.systemId !== campaign.gameSystemId

@@ -186,8 +186,15 @@ describe('native Campaign settings options', () => {
   it('fails at the shared inline definition ceiling instead of returning a truncated choice list', async () => {
     const { t, owner, campaign } = await setup()
     await t.run(async (ctx) => {
-      // Unsupported optional rules still count as current source records before projection.
-      for (let index = 0; index < 498; index++) {
+      // Unsupported optional rules still count as current source records before projection, as
+      // do the fixture's seeded condition rule states (D94). Fill the source to the ceiling.
+      const seeded = await ctx.db
+        .query('reusableDefinitions')
+        .withIndex('by_contentSourceId_version', (q) =>
+          q.eq('contentSourceId', SRD_CONTENT_SOURCE.id).gt('version', 0)
+        )
+        .collect()
+      for (let index = seeded.length; index < 500; index++) {
         const id = crypto.randomUUID()
         const document = { ...facing.document, id }
         await ctx.db.insert('reusableDefinitions', {
