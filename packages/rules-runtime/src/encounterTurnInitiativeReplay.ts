@@ -6,6 +6,7 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
+import { deadCharacterIdsOfTargets, type DeadCharacterIds } from './encounterActorDefeat.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 import type { EncounterInitiativeOccurrenceRoot } from './encounterInitiativeOccurrence.js'
@@ -24,6 +25,8 @@ export async function restoreEncounterInitiativeTurnActors<
   occurrenceId: string
   updatedAt: string
   readActors(): Promise<EncounterRunActorState[]>
+  /** The Characters dead before the outgoing turn's effects (D96). */
+  deadCharacterIds: DeadCharacterIds
   readInitiativeRound(): Promise<EncounterInitiativeRoundStateDto | null>
   prepareEffects: (
     input: Pick<
@@ -150,8 +153,15 @@ export async function restoreEncounterInitiativeTurnActors<
   // The advance was planned after the outgoing turn settled (D63).
   if (
     checksumCanonicalJson(
-      planEncounterTurnAdvance({ state, initiativeRound: normalized, actors: prepared.actors })
-        .initiativeAdvance
+      planEncounterTurnAdvance({
+        state,
+        initiativeRound: normalized,
+        actors: prepared.actors,
+        deadCharacterIds: deadCharacterIdsOfTargets(
+          prepared.movementTargets.values(),
+          input.deadCharacterIds
+        )
+      }).initiativeAdvance
     ) !== checksumCanonicalJson(advance)
   )
     throw new Error('Initiative outgoing advancement is stale.')

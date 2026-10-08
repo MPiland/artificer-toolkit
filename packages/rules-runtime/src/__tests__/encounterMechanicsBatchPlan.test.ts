@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   SRD_CONDITION_TYPES,
@@ -69,6 +71,7 @@ function damage(input: {
   before: { current: number; temporary: number }
   after: { current: number; temporary: number }
   maximum: number
+  critical?: boolean
 }): CharacterRuleActionApplication {
   return {
     ...origin,
@@ -84,7 +87,8 @@ function damage(input: {
     afterCurrentHitPoints: input.after.current,
     beforeTemporaryHitPoints: input.before.temporary,
     afterTemporaryHitPoints: input.after.temporary,
-    maximumHitPoints: input.maximum
+    maximumHitPoints: input.maximum,
+    critical: input.critical ?? false
   }
 }
 
@@ -140,8 +144,8 @@ function transition(
   const withScalars = <T extends object>(state: T) => ({ ...state, scalarValues: {} })
   return {
     checksum: checksumRuleDocument({ targetActorId: ACTOR_ID, ...withScalars(before) }),
-    before: withScalars(before),
-    after: withScalars(after)
+    before: { ...withScalars(before), deathSaves: null },
+    after: { ...withScalars(after), deathSaves: null }
   }
 }
 
@@ -363,7 +367,8 @@ describe('Creature mechanics batch plan', () => {
       temporaryHitPoints: 0,
       maximumHitPoints: 7,
       conditionIds: [],
-      scalarValues: {}
+      scalarValues: {},
+      deathSaves: null
     })
   })
 
@@ -433,7 +438,7 @@ describe('Character mechanics batch plan', () => {
     ...empty,
     state: {
       ...empty.state,
-      hitpoints: { current: 10, temp: 0, hitDice: [] },
+      hitpoints: { current: 10, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
       conditions: [{ conditionTypeId: PRONE }]
     }
   }
@@ -473,7 +478,7 @@ describe('Character mechanics batch plan', () => {
         ...document,
         state: {
           ...document.state,
-          hitpoints: { current: 6, temp: 0, hitDice: [] },
+          hitpoints: { current: 6, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES },
           conditions: [{ conditionTypeId: RESTRAINED }]
         }
       },
@@ -663,11 +668,19 @@ describe('0 hit points (D63)', () => {
       movementDisplayPreference: { mode: 'AUTO' },
       partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY
     })
-    const facts = (current: number, conditions: { conditionTypeId: string }[]) => ({
+    const facts = (
+      current: number,
+      conditions: { conditionTypeId: string }[],
+      deathSaves: CharacterDeathSaves = NO_DEATH_SAVES
+    ) => ({
       active: { id: CHARACTER_ID, play: { streamVersion: STREAM_VERSION } },
       character: {
         ...empty,
-        state: { ...empty.state, hitpoints: { current, temp: 0, hitDice: [] }, conditions }
+        state: {
+          ...empty.state,
+          hitpoints: { current, temp: 0, hitDice: [], deathSaves },
+          conditions
+        }
       },
       sheetState,
       campaignContext: { conditions: [] }
@@ -720,6 +733,91 @@ describe('0 hit points (D63)', () => {
         characterFacts: facts(0, [{ conditionTypeId: UNCONSCIOUS }])
       })
       expect(plan.targetTransition.after.conditionIds).toEqual([UNCONSCIOUS])
+    })
+
+    describe('dying and death (D96)', () => {
+      const dying = { successes: 1, failures: 1, stable: false }
+      const stable = { successes: 3, failures: 0, stable: true }
+      const dead = { successes: 0, failures: 3, stable: false }
+      const hit = (input: {
+        requested: number
+        before: number
+        after: number
+        critical?: boolean
+        maximum?: number
+      }) =>
+        damage({
+          requested: input.requested,
+          before: { current: input.before, temporary: 0 },
+          after: { current: input.after, temporary: 0 },
+          maximum: input.maximum ?? 11,
+          critical: input.critical ?? false
+        })
+      const run = (
+        application: CharacterRuleActionApplication,
+        current: number,
+        deathSaves = NO_DEATH_SAVES as CharacterDeathSaves
+      ) =>
+        planEncounterMechanicsBatch({
+          batch: characterBatch([application]),
+          actor,
+          userId: USER_ID,
+          characterFacts: facts(
+            current,
+            current === 0 ? [{ conditionTypeId: UNCONSCIOUS }] : [],
+            deathSaves
+          )
+        })
+      const savesOf = (plan: ReturnType<typeof run>) =>
+        plan.characterUpdate?.character.state.hitpoints.deathSaves
+
+      it('leaves a Character dropped to 0 dying, with no failures', () => {
+        const plan = run(hit({ requested: 4, before: 4, after: 0 }), 4)
+        expect(savesOf(plan)).toEqual(NO_DEATH_SAVES)
+        expect(plan.targetTransition.after.deathSaves).toEqual(NO_DEATH_SAVES)
+      })
+
+      it('kills a Character outright when the overflow past 0 reaches its maximum', () => {
+        const plan = run(hit({ requested: 15, before: 4, after: 0 }), 4)
+        expect(savesOf(plan)).toEqual(dead)
+        expect(plan.targetTransition.after.deathSaves).toEqual(dead)
+        expect(plan.updatedActor).toBe(actor)
+      })
+
+      it('does not kill a Character whose overflow is one short of its maximum', () => {
+        expect(savesOf(run(hit({ requested: 14, before: 4, after: 0 }), 4))).toEqual(NO_DEATH_SAVES)
+      })
+
+      it('adds a failure for damage at 0 and two for a critical hit', () => {
+        const plain = run(hit({ requested: 3, before: 0, after: 0 }), 0, dying)
+        expect(savesOf(plain)).toEqual({ successes: 1, failures: 2, stable: false })
+        expect(plain.targetTransition.before.deathSaves).toEqual(dying)
+        const critical = run(hit({ requested: 3, before: 0, after: 0, critical: true }), 0, dying)
+        expect(savesOf(critical)).toEqual({ successes: 1, failures: 3, stable: false })
+      })
+
+      it('clears stability when a stable Character takes damage', () => {
+        expect(savesOf(run(hit({ requested: 1, before: 0, after: 0 }), 0, stable))).toEqual({
+          successes: 3,
+          failures: 1,
+          stable: false
+        })
+      })
+
+      it('kills a Character at 0 when one hit is at least its maximum', () => {
+        expect(savesOf(run(hit({ requested: 11, before: 0, after: 0 }), 0))).toEqual(dead)
+      })
+
+      it('resets the saves when a dying Character regains hit points', () => {
+        const plan = run(heal({ amount: 2, before: 0, maximum: 11 }), 0, dying)
+        expect(savesOf(plan)).toEqual(NO_DEATH_SAVES)
+      })
+
+      it('ignores healing for a dead Character', () => {
+        const plan = run(heal({ amount: 5, before: 0, maximum: 11 }), 0, dead)
+        expect(plan.characterUpdate).toBeNull()
+        expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 0, deathSaves: dead })
+      })
     })
   })
 })

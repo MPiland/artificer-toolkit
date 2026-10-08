@@ -23,7 +23,6 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
-import { isEncounterActorDefeated } from './encounterActorDefeat.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 
@@ -300,7 +299,8 @@ export function projectGmFacts(
               current: actor.currentHitPoints,
               temporary: actor.tempHitPoints,
               maximum: actor.maxHitPoints,
-              conditions: actor.conditions
+              conditions: actor.conditions,
+              dead: false
             }
       // A Character without state is deleted and its actor awaits removal by the room (D74).
       if (!current) return []
@@ -331,7 +331,7 @@ export function projectGmFacts(
         maxHitPoints: current.maximum,
         tempHitPoints: current.temporary,
         conditions: current.conditions,
-        defeated: isEncounterActorDefeated(actor),
+        defeated: actor.kind === 'CHARACTER' ? current.dead : actor.defeated,
         outOfInitiative: actor.kind === 'CHARACTER' && actor.outOfInitiative,
         resources: actor.resources,
         gmNotes: actor.gmNotes,

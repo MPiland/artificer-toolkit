@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import type {
   LiveRoomInputsResponse,
   LiveRoomInputsScope
@@ -68,7 +69,8 @@ function builderPart(level: number, revision: string, updatedAt: string, label: 
       ...document.state,
       hitpoints: {
         current: maximumHitPointsAt(level),
-        hitDice: [{ die: 10, total: level, used: 0 }]
+        hitDice: [{ die: 10, total: level, used: 0 }],
+        deathSaves: NO_DEATH_SAVES
       }
     }
   })

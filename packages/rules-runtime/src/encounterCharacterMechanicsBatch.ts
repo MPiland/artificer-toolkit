@@ -2,9 +2,17 @@ import { v5 as uuidv5 } from 'uuid'
 
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
+import {
+  deathSavesAfterDamage,
+  deathSavesAfterDeath,
+  deathSavesAfterHealing,
+  isCharacterDead,
+  type CharacterDeathSaves
+} from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import { z } from 'zod'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import { EncounterValidationError } from './encounterErrors.js'
@@ -40,12 +48,21 @@ export function deriveEncounterCharacterMechanicsEventCommandId(input: {
   )
 }
 
-export type TargetState = {
+export type TargetState<
+  TDeathSaves extends CharacterDeathSaves | null = CharacterDeathSaves | null
+> = {
+  deathSaves: TDeathSaves
   currentHitPoints: number
   temporaryHitPoints: number
   maximumHitPoints: number
   conditionIds: string[]
   scalarValues: Record<string, number>
+}
+
+/** The checksum binds the interpreted target facts, which exclude death saves (D96). */
+export function targetTransitionChecksum(actorId: string, before: TargetState): string {
+  const { deathSaves: _deathSaves, ...interpretedFacts } = before
+  return checksumRuleDocument({ targetActorId: actorId, ...interpretedFacts })
 }
 
 export function readEncounterActorConditionState(input: unknown): {
@@ -70,11 +87,15 @@ export function readEncounterActorConditionState(input: unknown): {
   }
   return { ids, values: [...parsedRows.data] }
 }
-export function foldCharacterMechanicsApplications(input: {
+export function foldCharacterMechanicsApplications<
+  TDeathSaves extends CharacterDeathSaves | null
+>(input: {
   targetActorId: string
   currentHitPoints: number
   temporaryHitPoints: number
   maximumHitPoints: number
+  /** A Character's death saves; null for an actor that is simply defeated at 0 (D63). */
+  deathSaves: TDeathSaves
   /** Every present condition: the target's own and any the Campaign holds. */
   conditionIds: readonly string[]
   scalarValues?: Readonly<Record<string, number>>
@@ -87,8 +108,8 @@ export function foldCharacterMechanicsApplications(input: {
   layers?: { ownConditionIds: readonly string[]; campaignConditionIds: readonly string[] }
   applications: readonly CharacterRuleActionApplication[]
 }): {
-  before: TargetState
-  after: TargetState
+  before: TargetState<TDeathSaves>
+  after: TargetState<TDeathSaves>
   applications: ReceiptApplications
   /** The target's own conditions after the batch (the Sheet's, for a Character). */
   afterOwnConditionIds: string[]
@@ -125,7 +146,8 @@ export function foldCharacterMechanicsApplications(input: {
   )
     throw new EncounterValidationError('The Character scalar state is invalid.')
 
-  const before: TargetState = {
+  const before: TargetState<TDeathSaves> = {
+    deathSaves: input.deathSaves,
     currentHitPoints: input.currentHitPoints,
     temporaryHitPoints: input.temporaryHitPoints,
     maximumHitPoints: input.maximumHitPoints,
@@ -135,6 +157,7 @@ export function foldCharacterMechanicsApplications(input: {
   let current = before.currentHitPoints
   let temporary = before.temporaryHitPoints
   let maximum = before.maximumHitPoints
+  let deathSaves: CharacterDeathSaves | null = before.deathSaves
   const conditions = new Set(before.conditionIds)
   const ownConditions = new Set(input.layers?.ownConditionIds ?? before.conditionIds)
   const campaignConditions = new Set(input.layers?.campaignConditionIds ?? [])
@@ -209,6 +232,8 @@ export function foldCharacterMechanicsApplications(input: {
       maximum = Math.max(0, maximum - application.reductionAmount)
       const beforeCurrentHitPoints = current
       current = Math.min(current, maximum)
+      // A Character whose maximum falls to 0 dies.
+      if (maximum === 0 && deathSaves !== null) deathSaves = deathSavesAfterDeath()
       receipt.push({
         ordinal,
         kind: 'HIT_POINT_MAXIMUM_REDUCTION',
@@ -262,7 +287,10 @@ export function foldCharacterMechanicsApplications(input: {
       const targetDied = afterValue === application.floor
       scalarValues[application.valueDefinitionId] = afterValue
       const beforeCurrentHitPoints = current
-      if (targetDied) current = 0
+      if (targetDied) {
+        current = 0
+        if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+      }
       receipt.push({
         ordinal,
         kind: 'SCALAR_REDUCTION',
@@ -337,13 +365,31 @@ export function foldCharacterMechanicsApplications(input: {
         application.afterTemporaryHitPoints !== temporary - temporaryLost
       )
         throw new EncounterValidationError('The Character damage application is invalid.')
+      if (deathSaves !== null)
+        deathSaves = deathSavesAfterDamage({
+          deathSaves,
+          currentHitPoints: current,
+          maximumHitPoints: maximum,
+          dealt: resolvedAmount - temporaryLost,
+          critical: application.critical
+        })
     }
-    current = application.afterCurrentHitPoints
-    temporary = application.afterTemporaryHitPoints
-    const { targetActorId: _targetActorId, ...receiptApplication } = application
+    // A dead Character ignores healing: the application is valid, and changes nothing.
+    const ignoredHeal =
+      application.kind === 'HEAL' && deathSaves !== null && isCharacterDead(deathSaves)
+    const effective = ignoredHeal
+      ? { ...application, appliedAmount: 0, afterCurrentHitPoints: current }
+      : application
+    if (application.kind === 'HEAL' && deathSaves !== null)
+      deathSaves = deathSavesAfterHealing({ deathSaves, appliedAmount: effective.appliedAmount })
+    current = effective.afterCurrentHitPoints
+    temporary = effective.afterTemporaryHitPoints
+    const { targetActorId: _targetActorId, ...receiptApplication } = effective
     receipt.push({ ...receiptApplication, ordinal })
   }
-  const after: TargetState = {
+  const after: TargetState<TDeathSaves> = {
+    // The rules never turn a Character's death saves into none, or an actor's into some.
+    deathSaves: deathSaves as TDeathSaves,
     currentHitPoints: current,
     temporaryHitPoints: temporary,
     maximumHitPoints: maximum,
@@ -359,6 +405,7 @@ export function foldCharacterMechanicsApplications(input: {
       before.currentHitPoints !== after.currentHitPoints ||
       before.temporaryHitPoints !== after.temporaryHitPoints ||
       before.maximumHitPoints !== after.maximumHitPoints ||
+      JSON.stringify(before.deathSaves) !== JSON.stringify(after.deathSaves) ||
       before.conditionIds.length !== after.conditionIds.length ||
       before.conditionIds.some((conditionId) => !conditions.has(conditionId)) ||
       JSON.stringify(before.scalarValues) !== JSON.stringify(after.scalarValues)

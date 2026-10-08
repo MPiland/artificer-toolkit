@@ -725,6 +725,7 @@ describe('native Cleaving action settlement', () => {
   // D95 supersedes the D63 ordering of a Concentration check before the deferred Cleaving choice: a
   // Cleaving first target is always at 0 hit points, and a Character there falls Unconscious, so
   // its Concentration ends in the attack commit with no check and the choice is offered directly.
+  // This fixture's hit overflows the Character's maximum, so it dies (D96) and is defeated.
   it("ends a Cleaving first target Character's Concentration with no check and offers the choice", async () => {
     const base = await setup('PROMPT', false, true)
     if (!base.characterId) throw new Error('Missing Cleaving concentration Character.')
@@ -819,7 +820,7 @@ describe('native Cleaving action settlement', () => {
       limit: 100
     })
     expect(
-      chat.entries.filter((entry) => entry.body?.endsWith("can't act and loses Concentration."))
+      chat.entries.filter((entry) => entry.body?.endsWith('is defeated and loses Concentration.'))
     ).toHaveLength(1)
     // The parent's stored receipt is untouched by the end: the room still answers a retry of the
     // root from it.

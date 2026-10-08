@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 /** A level 1 Character capture; the private transport row below uses the canonical storage codec. */
@@ -99,7 +100,11 @@ const capturedPage = {
             }
           ]
         },
-        hitpoints: { current: 11, hitDice: [{ die: 10, total: 1, used: 0 }] }
+        hitpoints: {
+          current: 11,
+          hitDice: [{ die: 10, total: 1, used: 0 }],
+          deathSaves: NO_DEATH_SAVES
+        }
       },
       status: 'ACTIVE',
       systemId: '00000000-0000-0000-0000-000000000001',
@@ -191,7 +196,8 @@ export function characterOwnerRowFor({
       },
       hitpoints: {
         current: currentHitPoints,
-        hitDice: [{ die: 10, total: fighterLevel, used: 0 }]
+        hitDice: [{ die: 10, total: fighterLevel, used: 0 }],
+        deathSaves: NO_DEATH_SAVES
       },
       ...(conditions && { conditions })
     }

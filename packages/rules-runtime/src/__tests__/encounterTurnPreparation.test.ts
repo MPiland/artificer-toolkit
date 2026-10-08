@@ -158,10 +158,11 @@ async function endTurn(input: {
         initiative: null,
         resolutionCommands: [],
         // The advance as the turn ended, before its transition settles.
-        ...planEncounterTurnAdvance({ state, initiativeRound, actors })
+        ...planEncounterTurnAdvance({ state, initiativeRound, actors, deadCharacterIds: new Set() })
       },
       occurrenceId: testUuid(0x72),
       actors,
+      deadCharacterIds: new Set(),
       initiativeRound,
       updatedAt: TIMESTAMP
     },

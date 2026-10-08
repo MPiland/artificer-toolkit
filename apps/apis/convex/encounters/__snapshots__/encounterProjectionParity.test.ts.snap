@@ -13,6 +13,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
         "authoredPath": null,
         "beforeCurrentHitPoints": 11,
         "beforeTemporaryHitPoints": 0,
+        "critical": false,
         "damageDisposition": "NORMAL",
         "damageTypeId": "<uuid:0>",
         "kind": "DAMAGE",
@@ -29,6 +30,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "after": {
         "conditionIds": [],
         "currentHitPoints": 9,
+        "deathSaves": null,
         "maximumHitPoints": 11,
         "scalarValues": {},
         "temporaryHitPoints": 0,
@@ -36,6 +38,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "before": {
         "conditionIds": [],
         "currentHitPoints": 11,
+        "deathSaves": null,
         "maximumHitPoints": 11,
         "scalarValues": {},
         "temporaryHitPoints": 0,
@@ -242,6 +245,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "STRENGTH": 12,
             "WISDOM": 12,
           },
+          "saveProficiencyBonuses": {},
           "vocabularySnapshotChecksum": "<sha:57>",
           "vocabularySnapshotId": "<uuid:44>",
           "vocabularySnapshotVersion": 1,

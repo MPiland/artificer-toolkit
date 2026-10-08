@@ -21,6 +21,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
+import { isCharacterDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomInputs } from './roomInputs.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
@@ -453,6 +454,7 @@ export async function readRoomEncounterTurnCapture(
     response = await readEncounterTurnCapture(ctx, state, request, scene)
   } else if (request.kind === 'ACTOR' || request.kind === 'EFFECTS') {
     const actor = await readRunActor(ctx, state, request.actorId)
+    let characterDead = false
     if (actor.kind === 'CHARACTER') {
       if (await isDepartedCharacterActor(ctx, campaign.id, actor))
         rejectDomain('TARGET_UNAVAILABLE', 'That Character has left the Campaign.')
@@ -470,6 +472,9 @@ export async function readRoomEncounterTurnCapture(
         active.status !== 'ACTIVE'
       )
         throw new Error('Encounter Character actor identity is stale.')
+      characterDead = isCharacterDead(
+        ctx.ports.readCharacterRecord(active).state.hitpoints.deathSaves
+      )
     }
     const after = request.kind === 'ACTOR' ? null : request.afterEffectId
     let effects: Extract<LiveSessionEncounterRulesResponse, { kind: 'EFFECTS' }>['effects']
@@ -498,7 +503,7 @@ export async function readRoomEncounterTurnCapture(
     const continueAfter = effects.length === 4 ? effects[3]!.id : null
     response =
       request.kind === 'ACTOR'
-        ? { kind: 'ACTOR', actor, effects, continueAfter }
+        ? { kind: 'ACTOR', actor, characterDead, effects, continueAfter }
         : { kind: 'EFFECTS', actorId: actor.id, effects, continueAfter }
   } else {
     throw new Error('Room turn capture request is unavailable.')

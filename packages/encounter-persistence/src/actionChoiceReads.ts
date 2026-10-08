@@ -4,7 +4,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { readEncounterActorDefeated } from './characterStates.js'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
@@ -55,7 +55,7 @@ async function readActionChoicesRun(
   // A player sees the choices of an actor they control; creature actions included only then.
   await requireEncounterActorControl(tx, { campaign, membership, actor })
   // A defeated actor has no choices (D63).
-  if (isEncounterActorDefeated(actor)) return null
+  if (await readEncounterActorDefeated(tx, actor)) return null
   return { state, actor, campaign, membership }
 }
 

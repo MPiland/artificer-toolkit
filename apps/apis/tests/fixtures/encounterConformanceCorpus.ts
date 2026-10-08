@@ -72,6 +72,7 @@ export const encounterConformanceCorpus: readonly EncounterConformanceScenario[]
                 authoredPath: null,
                 resolvedPath: 'CONFORMANCE',
                 kind: 'DAMAGE',
+                critical: false,
                 targetActorId: target.id,
                 requestedAmount: 2,
                 resolvedAmount: 2,

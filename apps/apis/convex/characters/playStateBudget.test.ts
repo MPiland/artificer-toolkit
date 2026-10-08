@@ -65,6 +65,7 @@ describe('Character play-state write budget', () => {
               authoredPath: null,
               resolvedPath: 'TEST',
               kind: 'DAMAGE',
+              critical: false,
               targetActorId: actor.id,
               requestedAmount: 1,
               resolvedAmount: 1,

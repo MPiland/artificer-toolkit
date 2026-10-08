@@ -285,7 +285,8 @@ describe('persistLiveMovementConcentrationEnd binds the owner projection to stor
     currentHitPoints: 0,
     temporaryHitPoints: 0,
     maximumHitPoints: 0,
-    conditionIds: [DERIVED_CONDITION_ID]
+    conditionIds: [DERIVED_CONDITION_ID],
+    deathSaves: null
   }
 
   async function persistWithBefore(conditionIds: string[]) {
@@ -334,8 +335,8 @@ describe('persistLiveMovementConcentrationEnd binds the owner projection to stor
             {
               targetActorId: actor.id,
               characterId: null,
-              before: { ...stored, scalarValues: {}, conditionIds },
-              after: { ...stored, scalarValues: {}, conditionIds }
+              before: { ...stored, scalarValues: {}, conditionIds, deathSaves: null },
+              after: { ...stored, scalarValues: {}, conditionIds, deathSaves: null }
             }
           ]
         }

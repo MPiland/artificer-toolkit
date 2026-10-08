@@ -148,11 +148,26 @@ const characterNoteStateDtoSchemaRaw = lazySchema(() =>
     updatedAt: z.string()
   })
 )
+/** Death saves (D96). Dying is 0 HP, not stable and under 3 failures; dead is 3 failures. */
+export const characterDeathSavesDtoSchema = lazySchema(() =>
+  z.strictObject({
+    successes: z.number().check(z.int()).check(z.gte(0)).check(z.lte(3)),
+    failures: z.number().check(z.int()).check(z.gte(0)).check(z.lte(3)),
+    stable: z.boolean()
+  })
+)
+/** A Character with no death save history: every creator starts here. */
+export const NO_DEATH_SAVES: Readonly<z.infer<typeof characterDeathSavesDtoSchema>> = {
+  successes: 0,
+  failures: 0,
+  stable: false
+}
 const characterHitpointsStateDtoSchemaRaw = lazySchema(() =>
   z.object({
     current: z.number().check(z.int()),
     temp: z.optional(z.number().check(z.int())),
-    hitDice: characterHitDiceUsageStateDtoSchema
+    hitDice: characterHitDiceUsageStateDtoSchema,
+    deathSaves: characterDeathSavesDtoSchema
   })
 )
 const characterStateDtoSchemaRaw = lazySchema(() =>

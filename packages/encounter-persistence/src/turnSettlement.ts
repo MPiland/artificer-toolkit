@@ -5,14 +5,16 @@ import { hydrateStagedState } from '@artificer-toolkit/rules-runtime/encounterIn
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import type { EncounterReadPorts } from './ports.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
+import { readDeadCharacterIds } from './characterStates.js'
 import { readRunActors } from './documents.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { rejectDomain } from './domainRejections.js'
 
 /** Validates the current normalized turn before either native or DO terminal persistence. */
 export async function readNativeTurnSettlement(input: {
-  ctx: EncounterWriteContext
+  ctx: EncounterWriteContext & { readonly ports: Pick<EncounterReadPorts, 'readCharacterPlay'> }
   encounter: EncounterDocument<'encounterRuns'>
   state: EncounterRunState
   campaign: EncounterDocument<'campaigns'>
@@ -84,7 +86,10 @@ export async function readNativeTurnSettlement(input: {
       !isSettledEncounterInitiativeAdvance({
         state: original,
         currentActorId: state.currentActorId,
-        defeatedActorIds: skippedEncounterActorIds(durableActors),
+        defeatedActorIds: skippedEncounterActorIds(
+          durableActors,
+          await readDeadCharacterIds(ctx, durableActors)
+        ),
         plan: root.initiativeAdvance
       })
     )

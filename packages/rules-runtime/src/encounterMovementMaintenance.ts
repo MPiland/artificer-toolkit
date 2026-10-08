@@ -50,7 +50,8 @@ function maintenanceTargetState(target: MovementTarget) {
     temporaryHitPoints: target.state.temporary,
     maximumHitPoints: target.effectiveMaximumHitPoints,
     scalarValues: target.effectiveScalarValues,
-    conditionIds: target.state.conditions
+    conditionIds: target.state.conditions,
+    deathSaves: target.state.deathSaves
   })
 }
 

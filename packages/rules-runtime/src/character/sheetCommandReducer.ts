@@ -20,6 +20,10 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 
 import type { CharacterSheetResponseDto as ReducerSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import {
+  deathSavesAfterDamage,
+  deathSavesAfterSheetEdit
+} from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { characterZeroHitPointsConditionId } from '../characterZeroHitPoints.js'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
 import { applyCharacterNoteCommand } from './sheetNotes.js'
@@ -747,6 +751,12 @@ export function applyCharacterSheetCommand(
         0,
         maxHitPoints
       )
+      next.state.hitpoints.deathSaves = deathSavesAfterSheetEdit({
+        deathSaves: character.state.hitpoints.deathSaves,
+        currentHitPoints: character.state.hitpoints.current,
+        nextHitPoints: next.state.hitpoints.current,
+        maximumHitPoints: maxHitPoints
+      })
       applyZeroHitPointsCondition(next, character.state.hitpoints.current)
       return clearEmptyStateArrays(next)
     }
@@ -759,17 +769,27 @@ export function applyCharacterSheetCommand(
           0,
           maxHitPoints
         )
+        next.state.hitpoints.deathSaves = deathSavesAfterSheetEdit({
+          deathSaves: character.state.hitpoints.deathSaves,
+          currentHitPoints: character.state.hitpoints.current,
+          nextHitPoints: next.state.hitpoints.current,
+          maximumHitPoints: maxHitPoints
+        })
       } else {
         const currentTemp = next.state.hitpoints.temp ?? 0
         const absorbed = Math.min(currentTemp, command.amount)
         const remainingDamage = command.amount - absorbed
         next.state.hitpoints.temp = Math.max(currentTemp - absorbed, 0)
         // Damage lands on the effective maximum when current HP stands above it.
-        next.state.hitpoints.current = clamp(
-          Math.min(next.state.hitpoints.current, maxHitPoints) - remainingDamage,
-          0,
-          maxHitPoints
-        )
+        const standing = Math.min(next.state.hitpoints.current, maxHitPoints)
+        next.state.hitpoints.current = clamp(standing - remainingDamage, 0, maxHitPoints)
+        next.state.hitpoints.deathSaves = deathSavesAfterDamage({
+          deathSaves: character.state.hitpoints.deathSaves,
+          currentHitPoints: standing,
+          maximumHitPoints: maxHitPoints,
+          dealt: remainingDamage,
+          critical: false
+        })
       }
       applyZeroHitPointsCondition(next, character.state.hitpoints.current)
       return clearEmptyStateArrays(next)

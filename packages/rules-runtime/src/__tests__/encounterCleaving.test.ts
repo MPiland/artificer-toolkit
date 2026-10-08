@@ -95,6 +95,7 @@ describe('Cleaving damage carry-over', () => {
       afterTemporaryHitPoints: 0,
       maximumHitPoints: 7,
       damageDisposition: 'NORMAL',
+      critical: false,
       authoredPath: null,
       resolvedPath: null
     })

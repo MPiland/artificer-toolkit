@@ -163,6 +163,7 @@ function discoverWindows(input: {
     occurrenceId: OCCURRENCE_ID,
     outgoingActorId: input.outgoingActorId,
     actors: input.actors,
+    deadCharacterIds: new Set(),
     loadTargets: async (actorIds) =>
       new Map(
         input.actors
@@ -405,6 +406,7 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         occurrenceId: OCCURRENCE_ID,
         outgoingActorId: actors[0]!.id,
         actors,
+        deadCharacterIds: new Set(),
         loadTargets: async (actorIds) => {
           loaded.push([...actorIds])
           return new Map(

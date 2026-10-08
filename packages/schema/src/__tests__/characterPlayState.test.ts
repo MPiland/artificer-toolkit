@@ -8,6 +8,7 @@ import {
 } from '../projections/characterPlayState.js'
 import { characterStoredPlayStateSchema } from '../projections/characterPersistence.js'
 import { readCharacterPlay } from '../projections/characterStoredState.js'
+import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 const text = fc.string({ maxLength: 12 })
@@ -33,9 +34,10 @@ const state = fc.record(
       {
         current: count,
         temp: count,
-        hitDice: fc.array(hitDie, { maxLength: 3 })
+        hitDice: fc.array(hitDie, { maxLength: 3 }),
+        deathSaves: fc.constant(NO_DEATH_SAVES)
       },
-      { requiredKeys: ['current', 'hitDice'] }
+      { requiredKeys: ['current', 'hitDice', 'deathSaves'] }
     ),
     inspiration: fc.boolean(),
     classes: fc.array(fc.record({ classId: text }), { maxLength: 3 }),
@@ -93,7 +95,7 @@ const persisted: fc.Arbitrary<CharacterPersistedState> = fc.record({ state, shee
 describe('Character play state split', () => {
   it('validates typed persisted state and rejects changed state with a stale checksum', () => {
     const state = {
-      hitpoints: { current: 5, hitDice: [] },
+      hitpoints: { current: 5, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],
       attuned: [],
       partyVisibility: { sheet: false, health: 'HIDDEN' as const },
@@ -113,7 +115,7 @@ describe('Character play state split', () => {
     expect(() =>
       readCharacterPlay({
         ...stored,
-        state: { ...state, hitpoints: { current: 4, hitDice: [] } }
+        state: { ...state, hitpoints: { current: 4, hitDice: [], deathSaves: NO_DEATH_SAVES } }
       })
     ).toThrow('checksum mismatch')
     expect(
@@ -163,7 +165,7 @@ describe('Character play state split', () => {
       state: {
         equipment: { inventory: [], equipped: [], attuned: [] },
         currency: [],
-        hitpoints: { current: 5, hitDice: [] }
+        hitpoints: { current: 5, hitDice: [], deathSaves: NO_DEATH_SAVES }
       },
       sheetState: {
         adjustments: [],

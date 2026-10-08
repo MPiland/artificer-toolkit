@@ -245,10 +245,16 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             })
           priorConsumedEffectId = record.id
         }
+        /**
+         * Death saves are not chained here: a later contact can change them after an earlier
+         * Concentration end was planned, and the movement settlement carries them (D96).
+         */
         const sameState = (
           left: z.infer<typeof characterMechanicsTargetStateDtoSchema>,
           right: z.infer<typeof characterMechanicsTargetStateDtoSchema>
-        ) => JSON.stringify(left) === JSON.stringify(right)
+        ) =>
+          JSON.stringify({ ...left, deathSaves: null }) ===
+          JSON.stringify({ ...right, deathSaves: null })
         /**
          * The persisted state an end observes may carry conditions the System derived from the
          * contact's hit point change (D63), which the contact's own transition does not list.

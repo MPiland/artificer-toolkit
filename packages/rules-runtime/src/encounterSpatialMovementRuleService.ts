@@ -13,6 +13,7 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   storedRuleExecutionResultDtoSchema
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shared/reaction'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 import {
@@ -63,7 +64,12 @@ const pointSchema = z.strictObject({
   x: z.number().finite(),
   y: z.number().finite()
 })
-type TargetState = { current: number; temporary: number; conditions: string[] }
+type TargetState = {
+  current: number
+  temporary: number
+  conditions: string[]
+  deathSaves: CharacterDeathSaves | null
+}
 export type SpatialMovementTarget = {
   actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'systemId'>
   character: {
@@ -1366,6 +1372,7 @@ function completeExecution(input: {
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
     maximumHitPoints: input.target.maximumHitPoints,
+    deathSaves: input.state.deathSaves,
     conditionIds: input.state.conditions,
     scalarValues: input.target.scalarValues,
     applications: input.result.applications
@@ -1393,7 +1400,8 @@ function stageExecution(input: {
   input.states.set(input.execution.candidate.candidate.targetActorId, {
     current: input.execution.targetTransition.after.currentHitPoints,
     temporary: input.execution.targetTransition.after.temporaryHitPoints,
-    conditions: [...input.execution.targetTransition.after.conditionIds]
+    conditions: [...input.execution.targetTransition.after.conditionIds],
+    deathSaves: input.execution.targetTransition.after.deathSaves
   })
   input.applications.set(input.execution.candidate.candidate.targetActorId, [
     ...(input.applications.get(input.execution.candidate.candidate.targetActorId) ?? []),
@@ -1663,7 +1671,8 @@ function copyState(state: TargetState): TargetState {
   return {
     current: state.current,
     temporary: state.temporary,
-    conditions: [...state.conditions]
+    conditions: [...state.conditions],
+    deathSaves: state.deathSaves
   }
 }
 function samePoint(left: ScenePoint, right: ScenePoint) {

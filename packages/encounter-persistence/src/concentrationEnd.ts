@@ -6,7 +6,7 @@ import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encou
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { readEncounterCharacterPlay } from './characterPlay.js'
-import { isDepartedCharacterActor } from './characterStates.js'
+import { isDepartedCharacterActor, readDeadCharacterIds } from './characterStates.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
 import { readRuleRollRouting } from './ruleRollCards.js'
@@ -21,7 +21,8 @@ export async function readConcentrationEndReason(
   input: { state: EncounterRunState; actor: EncounterRunActorState; userId: string }
 ): Promise<'INCAPACITATED' | 'DEFEATED' | null> {
   const { state, actor } = input
-  if (isEncounterActorDefeated(actor)) return 'DEFEATED'
+  const deadCharacterIds = await readDeadCharacterIds(ctx, [actor])
+  if (isEncounterActorDefeated(actor, deadCharacterIds)) return 'DEFEATED'
   const { campaign } = await ctx.ports.requireCampaignAuthority(state.campaignId, input.userId)
   let conditionIds: string[]
   let activeEffects
@@ -53,6 +54,7 @@ export async function readConcentrationEndReason(
   }
   return encounterConcentrationEndReason({
     actor,
+    deadCharacterIds,
     conditionIds,
     activeEffects,
     gameSystemId: state.gameSystemId,

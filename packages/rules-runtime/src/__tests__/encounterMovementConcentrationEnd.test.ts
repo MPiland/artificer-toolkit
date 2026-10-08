@@ -193,14 +193,16 @@ describe('projectEncounterMovementConcentrationEnd', () => {
           temporaryHitPoints: 0,
           maximumHitPoints: 7,
           scalarValues: GOBLIN_SCALARS,
-          conditionIds: [RESTRAINED_CONDITION_ID]
+          conditionIds: [RESTRAINED_CONDITION_ID],
+          deathSaves: null
         },
         after: {
           currentHitPoints: 7,
           temporaryHitPoints: 0,
           maximumHitPoints: 7,
           scalarValues: GOBLIN_SCALARS,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: null
         }
       },
       {
@@ -216,14 +218,16 @@ describe('projectEncounterMovementConcentrationEnd', () => {
             POISONED_CONDITION_ID,
             FRIGHTENED_CONDITION_ID,
             RESTRAINED_CONDITION_ID
-          ]
+          ],
+          deathSaves: null
         },
         after: {
           currentHitPoints: 5,
           temporaryHitPoints: 0,
           maximumHitPoints: 7,
           scalarValues: GOBLIN_SCALARS,
-          conditionIds: [POISONED_CONDITION_ID, FRIGHTENED_CONDITION_ID, RESTRAINED_CONDITION_ID]
+          conditionIds: [POISONED_CONDITION_ID, FRIGHTENED_CONDITION_ID, RESTRAINED_CONDITION_ID],
+          deathSaves: null
         }
       }
     ])

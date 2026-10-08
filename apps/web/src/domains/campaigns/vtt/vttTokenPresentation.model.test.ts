@@ -133,6 +133,42 @@ describe('VTT token presentation model', () => {
     }
   })
 
+  it('labels a defeated Character Dead for the GM and players alike (D96)', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const hero = tabletopGmEncounter.actors.find((actor) => actor.kind === 'CHARACTER')
+    if (!hero) throw new Error('Missing Character fixture.')
+    const present = (encounter: Parameters<typeof buildVttTokenPresentations>[0]['encounter']) =>
+      buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map([[token.id, hero.id]]),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter,
+        pending: null,
+        scene
+      })[token.id]!
+    const gm = present({
+      ...tabletopGmEncounter,
+      currentActorId: null,
+      actors: tabletopGmEncounter.actors.map((actor) =>
+        actor.id === hero.id ? { ...actor, defeated: true } : actor
+      )
+    })
+    const player = present({
+      ...tabletopPlayerEncounter,
+      currentActorId: null,
+      actors: tabletopPlayerEncounter.actors.map((actor) =>
+        actor.id === hero.id ? { ...actor, defeated: true } : actor
+      )
+    })
+    for (const result of [gm, player]) {
+      expect(result.statuses.filter((status) => status.kind === 'HEALTH')).toEqual([
+        { id: 'health:defeated', kind: 'HEALTH', label: 'Dead', shortLabel: '×' }
+      ])
+      expect(result.accessibleDescription).toContain('Dead')
+    }
+  })
+
   it('outlines bound tokens by actor control, not Scene token controllers', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!

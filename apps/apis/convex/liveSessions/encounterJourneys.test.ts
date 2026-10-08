@@ -48,7 +48,9 @@ useLocalRoomWorker()
 
 type Member = { caller: RoomCaller }
 /** What a journey's replay checks read: any fixture that holds a Run in a Campaign's room. */
-type JourneyBase = Pick<PlayerControlFixture, 'campaign' | 'run' | 't'>
+type JourneyBase = Pick<PlayerControlFixture, 'campaign' | 't'> & {
+  run: Pick<PlayerControlFixture['run'], 'id'>
+}
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
 type Step = { member: Member; command: EncounterCommandInputDto; result: EncounterCommandResultDto }
 

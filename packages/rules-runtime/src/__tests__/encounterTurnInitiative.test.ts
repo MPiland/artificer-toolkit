@@ -99,6 +99,7 @@ async function prepare(input: {
     root: input.root,
     occurrenceId: OCCURRENCE_ID,
     actors: ACTORS,
+    deadCharacterIds: new Set(),
     autoRoll: input.autoRoll,
     loadSources: async () => ({
       characterIds: [],

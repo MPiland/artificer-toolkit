@@ -239,6 +239,7 @@ it('settles Character and Creature mechanics from native play with private recei
           authoredPath: null,
           resolvedPath: 'TEST',
           kind: 'DAMAGE',
+          critical: false,
           targetActorId: actorId,
           requestedAmount: amount,
           resolvedAmount: amount,

@@ -1,7 +1,7 @@
 import type { UseEncounterBasicActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { readEncounterActorDefeated } from './characterStates.js'
 import { rejectDomain } from './domainRejections.js'
 import { requireEncounterActorControl } from './actorController.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -83,12 +83,12 @@ export async function readBasicActionAdmission(
   }
   const actor = await readRunActor(ctx, state, command.actorId)
   await requireEncounterActorControl(ctx, { campaign, membership, actor })
-  if (isEncounterActorDefeated(actor)) rejectDomain('ACTOR_DEFEATED')
+  if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
   if (command.allyActorId) {
     const ally = await readRunActor(ctx, state, command.allyActorId)
     // Players help only actors in their projection; a hidden actor reads as unavailable.
     if (membership.role !== 'OWNER' && !ally.public) rejectDomain('TARGET_UNAVAILABLE')
-    if (isEncounterActorDefeated(ally))
+    if (await readEncounterActorDefeated(ctx, ally))
       rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't be helped.")
   }
   if (state.version !== command.expectedVersion) rejectDomain('VERSION_STALE')

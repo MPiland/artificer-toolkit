@@ -1,4 +1,10 @@
 import { z, lazySchema } from '../zod.js'
+import {
+  deathSavesAfterDamage,
+  deathSavesAfterDeath,
+  deathSavesAfterHealing,
+  isCharacterDead
+} from './characterDeathSaves.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 
 import { canonicalD20ContributorKey } from '@artificer-toolkit/shared/rules/contributors'
@@ -129,6 +135,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
           let current = value.targetTransition.before.currentHitPoints
           let temporary = value.targetTransition.before.temporaryHitPoints
           let maximum = value.targetTransition.before.maximumHitPoints
+          let deathSaves = value.targetTransition.before.deathSaves
           const conditions = new Set(value.targetTransition.before.conditionIds)
           const scalarValues = {
             ...value.targetTransition.before.scalarValues
@@ -183,6 +190,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
                 })
               current = application.afterCurrentHitPoints
               maximum = application.afterMaximumHitPoints
+              if (maximum === 0 && deathSaves !== null) deathSaves = deathSavesAfterDeath()
               continue
             }
             if (application.kind === 'SCALAR_REDUCTION') {
@@ -206,7 +214,10 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
                   message: 'Scalar reduction receipt arithmetic is invalid.'
                 })
               scalarValues[application.valueDefinitionId] = afterValue
-              if (application.targetDied) current = 0
+              if (application.targetDied) {
+                current = 0
+                if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+              }
               continue
             }
             if (
@@ -222,10 +233,16 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
                 message: 'Character mechanics hit-point application chain is invalid.'
               })
             if (application.kind === 'HEAL') {
-              const expectedApplied = Math.min(
-                application.resolvedAmount,
-                application.maximumHitPoints - application.beforeCurrentHitPoints
-              )
+              // A dead Character ignores healing (D96).
+              const expectedApplied =
+                deathSaves !== null && isCharacterDead(deathSaves)
+                  ? 0
+                  : Math.min(
+                      application.resolvedAmount,
+                      application.maximumHitPoints - application.beforeCurrentHitPoints
+                    )
+              if (deathSaves !== null)
+                deathSaves = deathSavesAfterHealing({ deathSaves, appliedAmount: expectedApplied })
               if (
                 application.resolvedAmount !== application.requestedAmount ||
                 application.afterTemporaryHitPoints !== application.beforeTemporaryHitPoints ||
@@ -278,6 +295,14 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
                   path: ['applications', index],
                   message: 'Damage receipt arithmetic is invalid.'
                 })
+              if (deathSaves !== null)
+                deathSaves = deathSavesAfterDamage({
+                  deathSaves,
+                  currentHitPoints: application.beforeCurrentHitPoints,
+                  maximumHitPoints: application.maximumHitPoints,
+                  dealt: expectedResolved - temporaryLost,
+                  critical: application.critical
+                })
             }
             current = application.afterCurrentHitPoints
             temporary = application.afterTemporaryHitPoints
@@ -287,6 +312,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
             transitionAfter.currentHitPoints !== current ||
             transitionAfter.temporaryHitPoints !== temporary ||
             transitionAfter.maximumHitPoints !== maximum ||
+            JSON.stringify(transitionAfter.deathSaves) !== JSON.stringify(deathSaves) ||
             transitionAfter.conditionIds.length !== conditions.size ||
             transitionAfter.conditionIds.some(
               (conditionId, index) => [...conditions][index] !== conditionId
@@ -369,6 +395,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
               value.targetTransition.after.temporaryHitPoints ||
             value.targetTransition.before.maximumHitPoints !==
               value.targetTransition.after.maximumHitPoints ||
+            JSON.stringify(value.targetTransition.before.deathSaves) !==
+              JSON.stringify(value.targetTransition.after.deathSaves) ||
             value.targetTransition.before.conditionIds.some(
               (conditionId, index) =>
                 value.targetTransition.after.conditionIds[index] !== conditionId

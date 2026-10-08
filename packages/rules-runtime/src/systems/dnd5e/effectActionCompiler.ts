@@ -4727,6 +4727,8 @@ function testApplications(
     )
     const traced = direct.map((application) => ({
       ...application,
+      // An attack that hit as a critical hit makes its damage critical (D96).
+      ...(application.kind === 'DAMAGE' ? { critical: attack && resultPath === 'ON_CRIT' } : {}),
       sourceNodeId: replacementProposal.nodeId,
       sourceOperationKey: replacementProposal.operation.key,
       authoredPath: replacementProposal.outputs.authoredPath as string,
@@ -5148,6 +5150,7 @@ function interpretDirectProposal(
       targetActorId: input.targetActorId,
       damageTypeId: outputs.damageTypeId,
       damageDisposition,
+      critical: false,
       sourceNodeId: trace.nodeId,
       sourceOperationKey: trace.operation.key,
       authoredPath: null,

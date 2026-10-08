@@ -1,3 +1,4 @@
+import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
@@ -67,7 +68,13 @@ export type MovementTarget<
   characterFacts: TCharacterFacts | null
   actor: EncounterRunActorState
   activeEffects: ActiveRuleEffectRecord[]
-  state: { current: number; temporary: number; conditions: readonly string[] }
+  state: {
+    current: number
+    temporary: number
+    conditions: readonly string[]
+    /** A Character's death saves; null for an actor that is simply defeated at 0 (D63). */
+    deathSaves: CharacterDeathSaves | null
+  }
   initialConditionRows: readonly unknown[] | null
   effectiveMaximumHitPoints: number
   baseScalarValues: Readonly<Record<string, number>>
@@ -201,7 +208,8 @@ export function buildMovementTarget<
       state: {
         current: characterFacts.character.state.hitpoints.current,
         temporary: characterFacts.character.state.hitpoints.temp ?? 0,
-        conditions: conditionIds
+        conditions: conditionIds,
+        deathSaves: characterFacts.character.state.hitpoints.deathSaves
       },
       initialConditionRows: null,
       effectiveMaximumHitPoints,
@@ -315,7 +323,8 @@ export function buildMovementTarget<
     state: {
       current: actor.currentHitPoints,
       temporary: actor.tempHitPoints,
-      conditions: conditions.ids
+      conditions: conditions.ids,
+      deathSaves: null
     },
     initialConditionRows: conditions.values,
     effectiveMaximumHitPoints: actor.maxHitPoints,

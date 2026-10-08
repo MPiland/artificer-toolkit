@@ -1,6 +1,7 @@
 import type { prepareEncounterTurn } from '@artificer-toolkit/rules-runtime/encounterTurnPreparation'
 import { prepareEncounterTurnEffects } from '@artificer-toolkit/rules-runtime/encounterTurnEffects'
 import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
+import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { discoverTurnLegendaryWindows } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryDiscovery'
 import { prepareEncounterTurnRecharge } from '@artificer-toolkit/rules-runtime/encounterTurnRecharge'
 import { prepareEncounterTurnInitiative } from '@artificer-toolkit/rules-runtime/encounterTurnInitiative'
@@ -29,7 +30,10 @@ type CharacterFacts = PreparedLiveCharacterSheet
 
 /** Supplies private raw captures and DO facts to the shared ordered turn planner. */
 export function createNativeLiveTurnStages(
-  turn: Pick<Parameters<typeof prepareEncounterTurn<CharacterFacts>>[0], 'state' | 'actors'>,
+  turn: Pick<
+    Parameters<typeof prepareEncounterTurn<CharacterFacts>>[0],
+    'state' | 'actors' | 'deadCharacterIds'
+  >,
   inputs: {
     system: SystemAuthoredDto
     activeEffectsByActorId: ReadonlyMap<string, ActiveRuleEffectRecord[]>
@@ -103,6 +107,10 @@ export function createNativeLiveTurnStages(
         discoverWindows: (discovery) =>
           discoverTurnLegendaryWindows({
             ...discovery,
+            deadCharacterIds: deadCharacterIdsOfTargets(
+              discovery.movementTargets?.values() ?? [],
+              turn.deadCharacterIds
+            ),
             definitions,
             createRuntime,
             loadSystem: async () => system,

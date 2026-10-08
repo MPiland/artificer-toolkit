@@ -234,12 +234,34 @@ attacks (`encounterMovementReactionSources`), no Legendary Actions and is no Leg
 player, move its token. Naming one as a `RESOLVE_ACTION` target is the overridable `TARGET_DEFEATED`
 warning; Help and Disarm refuse it.
 
-A Character at 0 hit points is never defeated. Dropping to 0 adds the System's 0 hit point condition
-(`characterZeroHitPointsConditionId`; D&D: Unconscious), and regaining hit points removes it, in
-`planEncounterMechanicsBatch` and the Sheet's hit point commands. `REVERT_LAST_ACTION` removes it with the
-damage that caused it and refuses to undo a heal that woke the Character. Dying is being at 0 hit points;
-death saving throws are Phase 8.3 scope (target), and a dying Character's turns are not skipped. The
-Unconscious condition's own mechanics apply through the condition policy below.
+A Character at 0 hit points is never defeated; it is dying (D96). Dropping to 0 adds the System's 0 hit
+point condition (`characterZeroHitPointsConditionId`; D&D: Unconscious), and regaining hit points removes
+it, in `planEncounterMechanicsBatch` and the Sheet's hit point commands. `REVERT_LAST_ACTION` removes it
+with the damage that caused it and refuses to undo a heal that woke the Character.
+
+A Character's play state carries `hitpoints.deathSaves` (`successes`, `failures` and `stable`; every
+creator writes zeros). The pure rules live in one module, `schema/shared/characterDeathSaves`, because the
+receipt replay in `schema` must apply the same arithmetic as the writers: the Encounter mechanics fold
+(`encounterCharacterMechanicsBatch`), the Sheet reducer (`sheetCommandReducer`) and Undo
+(`actionRevert`, which restores the previous `deathSaves` exactly).
+
+- Damage that drops a Character to 0 and overflows by at least its maximum is massive damage: dead.
+- Damage at 0 adds a failure (two for a critical hit, `DAMAGE.critical`), clears `stable`, and is dead
+  when the damage is at least the maximum.
+- Three failures is dead; there is no separate flag.
+- Regaining hit points from 0 resets the saves. A dead Character ignores healing (`HEAL`).
+- A Sheet hit point edit above 0 revives a dead Character; the Sheet applies the damage rules with
+  `critical` false.
+
+A dead Character is treated like a defeated Creature wherever the Run reads defeat
+(`isEncounterActorDefeated`, `skippedEncounterActorIds`, `defeatedEncounterActorIds`), but the Run
+keeps no copy of it (ADR 0034 decision 4): the death fact is read from the live Character play record as a
+`DeadCharacterIds` set (`readDeadCharacterIds` in persistence, the `characterDead` flag of the room's
+`ACTOR` capture, and `deadCharacterIdsOfTargets` for state staged inside one turn or batch). Everyone
+sees a dead Character as "Dead" through the Defeated presentation. A frozen actor (a completed Run, or a
+departed Character) no longer reads its Character and reads as not dead. Rolling death saving throws,
+stabilizing and healing a dying Character's saves by hand are Phase 8.3 scope (target); dying Characters
+still take their turns.
 
 ### Condition mechanics (D94, current)
 

@@ -4,7 +4,7 @@ import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/proj
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt/scene'
-import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { readEncounterActorDefeated } from './characterStates.js'
 import type { EncounterReadTransaction } from './ports.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -199,7 +199,7 @@ export async function readLiveMovementAdmission(
       actor: mover
     })
     // A defeated creature doesn't move itself (D63); the GM may still reposition its token.
-    if (membership.role !== 'OWNER' && isEncounterActorDefeated(mover))
+    if (membership.role !== 'OWNER' && (await readEncounterActorDefeated(ctx, mover)))
       rejectDomain('ACTOR_DEFEATED')
   }
   if (

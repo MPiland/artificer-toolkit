@@ -26,7 +26,10 @@ import {
   encounterLegendaryActionFeatureIds,
   resolveEncounterActionSource
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import {
+  deadCharacterIdsOfTargets,
+  isEncounterActorDefeated
+} from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   lockedRelationshipActionFacts,
@@ -317,7 +320,10 @@ export async function planNativeLiveEncounterAction(
       targetPolicy: prepared.targetPolicy,
       sceneContext
     },
-    targetDefeated: isEncounterActorDefeated(prepared.target),
+    targetDefeated: isEncounterActorDefeated(
+      prepared.target,
+      deadCharacterIdsOfTargets(movementTargets.values())
+    ),
     actionEconomy: economy,
     activationCode: activation.code,
     acknowledged: command.acknowledgedWarnings

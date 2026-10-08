@@ -363,7 +363,7 @@ export function CampaignEncounterWorkspace({
                     ) : null}
                     {actor.defeated ? (
                       <Badge color='red' variant='light'>
-                        Defeated
+                        {actor.kind === 'CHARACTER' ? 'Dead' : 'Defeated'}
                       </Badge>
                     ) : null}
                   </Group>

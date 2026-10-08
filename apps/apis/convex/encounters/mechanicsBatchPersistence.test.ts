@@ -86,7 +86,8 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
             afterTemporaryHitPoints: fixture.actor.tempHitPoints,
             maximumHitPoints: fixture.actor.maxHitPoints,
             damageTypeId: crypto.randomUUID(),
-            damageDisposition: 'NORMAL' as const
+            damageDisposition: 'NORMAL' as const,
+            critical: false
           }
         ]
       }

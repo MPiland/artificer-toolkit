@@ -407,6 +407,8 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       kind: z.literal('ACTOR'),
       revisions: liveSessionRulesRevisionsSchema,
       actor: encounterRunActorStateSchema,
+      /** Whether the actor is a Character that is dead (D96); read from its play state, never stored on the Run. */
+      characterDead: z.boolean(),
       effects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(4)),
       continueAfter: z.nullable(postgresUuidSchema)
     }),

@@ -63,6 +63,7 @@ export async function readLiveMovementTargetState(
       currentHitPoints: actor.currentHitPoints,
       temporaryHitPoints: actor.tempHitPoints,
       maximumHitPoints: actor.maxHitPoints,
+      deathSaves: null,
       conditionIds: readEncounterActorConditionState(actor.conditions).ids
     }
   const row = await readLiveCharacterRow(ctx, state, actor.sourceId)
@@ -72,6 +73,7 @@ export async function readLiveMovementTargetState(
     currentHitPoints: character.state.hitpoints.current,
     temporaryHitPoints: character.state.hitpoints.temp ?? 0,
     maximumHitPoints: plannedMaximumHitPoints,
+    deathSaves: character.state.hitpoints.deathSaves,
     conditionIds: [
       ...new Set([
         ...(character.state.conditions ?? []).map((condition) => condition.conditionTypeId),
@@ -81,9 +83,17 @@ export async function readLiveMovementTargetState(
   }
 }
 
-export function movementPersistedTransitionState(
-  transition: ReturnType<typeof characterMechanicsTargetStateDtoSchema.parse>
-) {
+/**
+ * The facts a movement or Concentration cleanup receipt binds to persisted state. Death saves are
+ * left out: a later contact of the same movement can change them after an earlier cleanup was
+ * planned, and the settlement carries them (D96).
+ */
+export function movementPersistedTransitionState(transition: {
+  currentHitPoints: number
+  temporaryHitPoints: number
+  maximumHitPoints: number
+  conditionIds: readonly string[]
+}) {
   return {
     currentHitPoints: transition.currentHitPoints,
     temporaryHitPoints: transition.temporaryHitPoints,

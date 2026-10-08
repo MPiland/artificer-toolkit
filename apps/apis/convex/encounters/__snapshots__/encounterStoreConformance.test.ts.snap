@@ -39,6 +39,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
         "authoredPath": null,
         "beforeCurrentHitPoints": 11,
         "beforeTemporaryHitPoints": 0,
+        "critical": false,
         "damageDisposition": "NORMAL",
         "damageTypeId": "<uuid:0>",
         "kind": "DAMAGE",
@@ -55,6 +56,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
       "after": {
         "conditionIds": [],
         "currentHitPoints": 9,
+        "deathSaves": null,
         "maximumHitPoints": 11,
         "scalarValues": {},
         "temporaryHitPoints": 0,
@@ -62,6 +64,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
       "before": {
         "conditionIds": [],
         "currentHitPoints": 11,
+        "deathSaves": null,
         "maximumHitPoints": 11,
         "scalarValues": {},
         "temporaryHitPoints": 0,
@@ -268,6 +271,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
             "STRENGTH": 12,
             "WISDOM": 12,
           },
+          "saveProficiencyBonuses": {},
           "vocabularySnapshotChecksum": "<sha:48>",
           "vocabularySnapshotId": "<uuid:44>",
           "vocabularySnapshotVersion": 1,

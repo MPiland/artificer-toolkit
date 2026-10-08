@@ -108,7 +108,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     characterFacts: null,
     actor,
     activeEffects: [],
-    state: { current: 10, temporary: 0, conditions: [...conditions] },
+    state: { current: 10, temporary: 0, conditions: [...conditions], deathSaves: null },
     initialConditionRows,
     effectiveMaximumHitPoints: 10,
     baseScalarValues: {},

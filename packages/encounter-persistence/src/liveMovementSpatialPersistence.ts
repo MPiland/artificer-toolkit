@@ -4,7 +4,10 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  deriveEncounterCharacterMechanicsEventCommandId,
+  targetTransitionChecksum
+} from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {
   spatialEffectTransition,
   spatialMovementEffectBeforeTransition
@@ -109,10 +112,7 @@ export async function persistLiveMovementSpatial(
     if (
       execution.targetTransition.checksum !== candidate.target.targetStateChecksum ||
       execution.targetTransition.checksum !==
-        checksumRuleDocument({
-          targetActorId,
-          ...execution.targetTransition.before
-        })
+        targetTransitionChecksum(targetActorId, execution.targetTransition.before)
     )
       throw new Error('Spatial target checksum is stale.')
     const grouped = byTarget.get(targetActorId) ?? []

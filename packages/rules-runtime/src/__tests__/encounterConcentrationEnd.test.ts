@@ -18,6 +18,7 @@ describe('encounterConcentrationEndReason', () => {
     encounterConcentrationEndReason({
       actor,
       conditionIds: [...conditionIds],
+      deadCharacterIds: new Set(),
       activeEffects: [],
       gameSystemId: SRD_SYSTEM_ID,
       definitions: srdDefinitions

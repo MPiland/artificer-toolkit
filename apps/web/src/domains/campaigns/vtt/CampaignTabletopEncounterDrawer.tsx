@@ -157,7 +157,9 @@ export function CampaignTabletopEncounterDrawer({
                       size='xs'
                     >
                       {actor.defeated
-                        ? 'Defeated'
+                        ? actor.kind === 'CHARACTER'
+                          ? 'Dead'
+                          : 'Defeated'
                         : current
                           ? 'Current turn'
                           : actor.kind.toLowerCase()}

@@ -22,7 +22,7 @@ import type {
   concentrationMaintainedDamageApplicationDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { presentEncounterResultForMember } from './resultPresentation.js'
-import { readEncounterCharacterStates } from './characterStates.js'
+import { readDeadCharacterIds, readEncounterCharacterStates } from './characterStates.js'
 import { readRunActors } from './documents.js'
 import { readNativeTurnSettlement } from './turnSettlement.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
@@ -198,11 +198,15 @@ export async function persistEncounterTurnCommit(
       })
     // The next turn skips actors defeated by the outgoing turn's effects and Legendary Actions,
     // which have just committed; the entering actor's refreshes leave hit points alone (D63).
+    const committedActors = await readRunActors(ctx, state)
     await applyEncounterInitiativeAdvance({
       repository: initiative,
       state: original,
       plan: advance,
-      defeatedActorIds: skippedEncounterActorIds(await readRunActors(ctx, state))
+      defeatedActorIds: skippedEncounterActorIds(
+        committedActors,
+        await readDeadCharacterIds(ctx, committedActors)
+      )
     })
   }
   const incoming = await persistEncounterTurnEffects(

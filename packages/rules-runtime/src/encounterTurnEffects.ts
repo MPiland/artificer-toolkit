@@ -8,7 +8,8 @@ import {
 } from './targetBoundActiveRuleEffectExecutor.js'
 import {
   deriveEncounterCharacterMechanicsEventCommandId,
-  foldCharacterMechanicsApplications
+  foldCharacterMechanicsApplications,
+  targetTransitionChecksum
 } from './encounterCharacterMechanicsBatch.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
@@ -126,6 +127,7 @@ function executionState(target: MovementTarget) {
     current: target.state.current,
     temporary: target.state.temporary,
     conditions: [...target.state.conditions],
+    deathSaves: target.state.deathSaves,
     ownConditions: target.characterFacts
       ? (target.characterFacts.character.state.conditions ?? []).map(
           (condition) => condition.conditionTypeId
@@ -228,6 +230,7 @@ function completeExecution(input: {
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
     maximumHitPoints: target.effectiveMaximumHitPoints,
+    deathSaves: input.state.deathSaves,
     scalarValues: input.state.scalarValues,
     conditionIds: input.state.conditions,
     retainedConditionIds: input.retainedConditionIds,
@@ -262,7 +265,7 @@ function completeExecution(input: {
     execution: result.execution,
     d20: result.d20,
     targetTransition: {
-      checksum: checksumRuleDocument({ targetActorId: target.actor.id, ...folded.before }),
+      checksum: targetTransitionChecksum(target.actor.id, folded.before),
       before: folded.before,
       after: folded.after
     },
@@ -516,6 +519,7 @@ async function evaluateEncounterTurnEffects(input: {
       current: after.currentHitPoints,
       temporary: after.temporaryHitPoints,
       conditions: after.conditionIds,
+      deathSaves: after.deathSaves,
       ownConditions,
       scalarValues: after.scalarValues
     }

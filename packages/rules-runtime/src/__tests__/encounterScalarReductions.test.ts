@@ -249,7 +249,7 @@ describe('Creature movement target', () => {
       actor: creature,
       activeEffects: effects,
       characterFacts: null,
-      state: { current: 7, temporary: 2, conditions: [prone] },
+      state: { current: 7, temporary: 2, conditions: [prone], deathSaves: null },
       initialConditionRows: [{ conditionTypeId: prone, note: 'Shoved' }],
       effectiveMaximumHitPoints: 11,
       baseScalarValues,

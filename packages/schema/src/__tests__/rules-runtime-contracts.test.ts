@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 
 import { MAX_CONCENTRATION_DAMAGE_APPLICATIONS } from '../shared/ruleExecutionConcentration.js'
 import * as publicRulesRuntime from '../api/rulesRuntime.js'
@@ -68,7 +69,8 @@ function turnBatchResult(): TurnBatchResult {
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
     scalarValues: {},
-    conditionIds: []
+    conditionIds: [],
+    deathSaves: NO_DEATH_SAVES
   }
   const after = { ...before, conditionIds: [turnBatchIds.condition] }
   const application = {
@@ -369,7 +371,8 @@ function maintainedCharacterReceipt() {
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
     scalarValues: {},
-    conditionIds: []
+    conditionIds: [],
+    deathSaves: NO_DEATH_SAVES
   }
   const activeEffectId = '00000000-0000-4000-8000-000000000301'
   const maintainedStateId = '00000000-0000-4000-8000-000000000302'
@@ -438,7 +441,8 @@ function encounterActorActiveEffectReceipt() {
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
     scalarValues: {},
-    conditionIds: []
+    conditionIds: [],
+    deathSaves: NO_DEATH_SAVES
   }
   return {
     kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
@@ -1795,7 +1799,8 @@ describe('rules runtime contracts', () => {
       temporaryHitPoints: 2,
       maximumHitPoints: 10,
       scalarValues: {},
-      conditionIds: []
+      conditionIds: [],
+      deathSaves: NO_DEATH_SAVES
     }
     const envelope = (application: Record<string, unknown>, after: typeof before) => ({
       kind: 'CHARACTER_MECHANICS_BATCH' as const,
@@ -2347,13 +2352,15 @@ describe('rules runtime contracts', () => {
           currentHitPoints: 10,
           temporaryHitPoints: 0,
           maximumHitPoints: 10,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: NO_DEATH_SAVES
         },
         after: {
           currentHitPoints: 10,
           temporaryHitPoints: 0,
           maximumHitPoints: 10,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: NO_DEATH_SAVES
         }
       },
       applications: []
@@ -2460,13 +2467,15 @@ describe('rules runtime contracts', () => {
           currentHitPoints: 10,
           temporaryHitPoints: 0,
           maximumHitPoints: 10,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: NO_DEATH_SAVES
         },
         after: {
           currentHitPoints: 10,
           temporaryHitPoints: 0,
           maximumHitPoints: 10,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: NO_DEATH_SAVES
         }
       },
       applications: []

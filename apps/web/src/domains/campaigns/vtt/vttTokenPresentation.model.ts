@@ -39,10 +39,16 @@ export function buildVttTokenPresentations(input: {
     const actor = actorId ? actors.get(actorId) : undefined
     const statuses = actor ? actorConditionStatuses(actor.conditions) : []
     const healthBand = actor ? healthBands.get(actor.id) : undefined
-    // Everyone sees a defeated creature fall (D63); the GM also sees how hurt the rest are.
+    // Everyone sees a defeated creature fall (D63) and a Character die (D96); the GM also sees how
+    // hurt the rest are.
     const defeated = actor?.defeated === true
-    if (defeated)
-      statuses.push({ id: 'health:defeated', kind: 'HEALTH', label: 'Defeated', shortLabel: '×' })
+    if (actor && defeated)
+      statuses.push({
+        id: 'health:defeated',
+        kind: 'HEALTH',
+        label: actor.kind === 'CHARACTER' ? 'Dead' : 'Defeated',
+        shortLabel: '×'
+      })
     else if (healthBand && healthBand !== 'HEALTHY') {
       statuses.push({
         id: `health:${healthBand}`,

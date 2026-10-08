@@ -274,12 +274,14 @@ export async function persistLiveMovementReaction(
       transition.characterId !== (actor.kind === 'CHARACTER' ? actor.sourceId : null) ||
       checksumCanonicalJson(movementPersistedTransitionState(transition.before)) !==
         checksumCanonicalJson(
-          await readLiveMovementTargetState(
-            ctx,
-            state,
-            actor,
-            transition.before.maximumHitPoints,
-            callbacks.readCampaignCharacterState
+          movementPersistedTransitionState(
+            await readLiveMovementTargetState(
+              ctx,
+              state,
+              actor,
+              transition.before.maximumHitPoints,
+              callbacks.readCampaignCharacterState
+            )
           )
         )
     )
@@ -297,12 +299,14 @@ export async function persistLiveMovementReaction(
       !actor ||
       checksumCanonicalJson(movementPersistedTransitionState(transition.after)) !==
         checksumCanonicalJson(
-          await readLiveMovementTargetState(
-            ctx,
-            state,
-            actor,
-            transition.after.maximumHitPoints,
-            callbacks.readCampaignCharacterState
+          movementPersistedTransitionState(
+            await readLiveMovementTargetState(
+              ctx,
+              state,
+              actor,
+              transition.after.maximumHitPoints,
+              callbacks.readCampaignCharacterState
+            )
           )
         )
     )

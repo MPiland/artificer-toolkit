@@ -42,7 +42,8 @@ export function createEmptyCharacterAuthored(params: {
       currency: [],
       hitpoints: {
         current: 1,
-        hitDice: []
+        hitDice: [],
+        deathSaves: { successes: 0, failures: 0, stable: false }
       }
     },
     systemId: params.systemId,

@@ -78,6 +78,7 @@ async function mechanicsFixture() {
         authoredPath: null,
         resolvedPath: 'TEST',
         kind: 'DAMAGE',
+        critical: false,
         targetActorId: actor.id,
         requestedAmount: 2,
         resolvedAmount: 2,

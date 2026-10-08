@@ -6,7 +6,10 @@ import {
   turnEffectSelectionChecksum,
   type TurnEffectBoundary
 } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  deriveEncounterCharacterMechanicsEventCommandId,
+  targetTransitionChecksum
+} from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import type {
   EncounterRunActorState,
@@ -167,8 +170,7 @@ export async function persistEncounterTurnEffects(
       throw new Error('Staged turn effect lifecycle is invalid.')
     const transition = execution.targetTransition
     if (
-      transition.checksum !==
-        checksumRuleDocument({ targetActorId: actor.id, ...transition.before }) ||
+      transition.checksum !== targetTransitionChecksum(actor.id, transition.before) ||
       (priorAfter !== null && !same(transition.before, priorAfter)) ||
       execution.applications.some(
         (application, index) =>

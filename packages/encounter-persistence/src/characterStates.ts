@@ -3,17 +3,27 @@ import type { CampaignCharacterState } from '@artificer-toolkit/schema/projectio
 import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import {
   encounterRunActorStateSchema,
+  type EncounterRunActorState,
   type EncounterRunCharacterActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
+import { isCharacterDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'
+import {
+  isEncounterActorDefeated,
+  type DeadCharacterIds
+} from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import { readCharacterMaximumHitPoints } from './characterMaximumHitPoints.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { readRunActors, replaceRunActor } from './documents.js'
-import type { EncounterPersistenceTransaction, EncounterProjectionTransaction } from './ports.js'
+import type {
+  EncounterPersistenceTransaction,
+  EncounterProjectionTransaction,
+  EncounterReadPorts
+} from './ports.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /**
@@ -29,6 +39,7 @@ export function characterProjectionState(
     current: clampCharacterCurrentHitPoints(hitpoints.current, maximumHitPoints),
     temporary: Math.max(hitpoints.temp ?? 0, 0),
     maximum: maximumHitPoints,
+    dead: isCharacterDead(hitpoints.deathSaves),
     conditions: conditions.map((condition) => {
       const definition = conditionTypes.find((entry) => entry.id === condition.conditionTypeId)
       return {
@@ -94,7 +105,7 @@ export async function readEncounterCharacterStates(
 ): Promise<EncounterProjectionCharacterStates> {
   const states = new Map<
     string,
-    { current: number; temporary: number; maximum: number; conditions: unknown }
+    { current: number; temporary: number; maximum: number; conditions: unknown; dead: boolean }
   >()
   let conditionTypes: SystemAuthoredDto['conditionTypes'] | null = null
   for (const actor of actors) {
@@ -106,7 +117,9 @@ export async function readEncounterCharacterStates(
         current: actor.frozenState.currentHitPoints,
         temporary: actor.frozenState.tempHitPoints,
         maximum: actor.frozenState.maxHitPoints,
-        conditions: actor.frozenState.conditions
+        conditions: actor.frozenState.conditions,
+        // A frozen actor no longer reads its Character, so its death is not shown.
+        dead: false
       })
       continue
     }
@@ -147,6 +160,35 @@ export async function readEncounterCharacterStates(
     )
   }
   return states
+}
+
+/**
+ * The Characters among `actors` that are dead (D96), read live from their play records: the Run keeps
+ * no copy (ADR 0034). A frozen actor no longer reads its Character, and a deleted Character is not dead.
+ */
+export async function readDeadCharacterIds(
+  ctx: EncounterReadContext & { readonly ports: Pick<EncounterReadPorts, 'readCharacterPlay'> },
+  actors: readonly (
+    | Pick<EncounterRunCharacterActorState, 'kind' | 'sourceId' | 'frozenState'>
+    | { kind: 'CREATURE' | 'CUSTOM' }
+  )[]
+): Promise<DeadCharacterIds> {
+  const dead = new Set<string>()
+  for (const actor of actors) {
+    if (actor.kind !== 'CHARACTER' || actor.frozenState) continue
+    const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
+    if (play && isCharacterDead(ctx.ports.readCharacterPlay(play).hitpoints.deathSaves))
+      dead.add(actor.sourceId)
+  }
+  return dead
+}
+
+/** Whether the actor is defeated (D63, D96): a Creature's flag, or a Character's live death. */
+export async function readEncounterActorDefeated(
+  ctx: Parameters<typeof readDeadCharacterIds>[0],
+  actor: EncounterRunActorState
+): Promise<boolean> {
+  return isEncounterActorDefeated(actor, await readDeadCharacterIds(ctx, [actor]))
 }
 
 /** A Character's current projected values, read from its play record alone. */

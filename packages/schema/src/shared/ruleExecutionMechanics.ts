@@ -6,6 +6,7 @@ import {
   activeRuleEffectScalarReductionContributionDtoSchema,
   activeRuleEffectStateContributionDtoSchema
 } from './activeRuleEffects.js'
+import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
 import { characterResourcePoolIdentitySchema } from './characterResourceIdentity.js'
 import {
@@ -78,6 +79,8 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       maximumHitPoints: integerSchema.check(z.gte(0)),
       damageTypeId: uuidSchema,
       damageDisposition: damageDispositionDtoSchema,
+      /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
+      critical: z.boolean(),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({
@@ -147,7 +150,12 @@ export const characterMechanicsTargetStateDtoSchema = lazySchema(() =>
       temporaryHitPoints: integerSchema.check(z.gte(0)),
       maximumHitPoints: integerSchema.check(z.gte(0)),
       scalarValues: z._default(z.record(uuidSchema, integerSchema.check(z.gte(0))), {}),
-      conditionIds: z.array(uuidSchema).check(z.maxLength(200))
+      conditionIds: z.array(uuidSchema).check(z.maxLength(200)),
+      /**
+       * A Character's death saves, recorded so Undo restores them exactly (D96); null for an actor
+       * that holds none (a Creature or custom actor is simply defeated at 0, D63).
+       */
+      deathSaves: z.nullable(characterDeathSavesDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

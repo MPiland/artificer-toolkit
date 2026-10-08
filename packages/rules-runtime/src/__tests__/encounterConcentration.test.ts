@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { encounterMaintainedEffectStateRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
@@ -600,6 +601,7 @@ function damage(input: { ordinal: number; appliedAmount: number; nodeId?: string
     maximumHitPoints: 40,
     damageTypeId: SLASHING.id,
     damageDisposition: input.appliedAmount === 0 ? 'IMMUNE' : 'NORMAL',
+    critical: false,
     sourceNodeId: input.nodeId ?? `damage_${input.ordinal}`,
     sourceOperationKey: 'effect.damage',
     authoredPath: null,
@@ -754,13 +756,15 @@ describe('nativeConcentrationParentDamage for Cleaving', () => {
                 currentHitPoints: 20,
                 temporaryHitPoints: 0,
                 maximumHitPoints: 20,
-                conditionIds: []
+                conditionIds: [],
+                deathSaves: NO_DEATH_SAVES
               },
               after: {
                 currentHitPoints: 20 - appliedAmount,
                 temporaryHitPoints: 0,
                 maximumHitPoints: 20,
-                conditionIds: []
+                conditionIds: [],
+                deathSaves: null
               }
             }
           : null

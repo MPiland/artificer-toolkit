@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 import {
   characterDraftCreateInputSchema,
   characterDraftSaveInputSchema
@@ -50,7 +51,8 @@ const baseRequest = {
       currency: [],
       hitpoints: {
         current: 6,
-        hitDice: []
+        hitDice: [],
+        deathSaves: NO_DEATH_SAVES
       }
     },
     systemId: '00000000-0000-4000-8000-000000000001',

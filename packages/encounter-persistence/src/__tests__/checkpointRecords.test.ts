@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterStoreDocuments } from '@artificer-toolkit/schema/projections/encounterStore'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { decodeCheckpointRecord } from '../checkpointRecords.js'
 
@@ -14,7 +15,7 @@ const play: EncounterStoreDocuments['characterPlayStates'] = {
   maximumHitPoints: 10,
   walkingSpeed: 30,
   state: {
-    hitpoints: { current: 10, hitDice: [] },
+    hitpoints: { current: 10, hitDice: [], deathSaves: NO_DEATH_SAVES },
     equipped: [],
     attuned: [],
     resourceUsage: [],

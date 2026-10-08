@@ -629,3 +629,63 @@ describe('GM undo against live Character state', () => {
     })
   }, 60000)
 })
+
+describe('a Character dying and dead in the room (D96)', () => {
+  it('dies at three failures, shows Dead to everyone, loses its turns, and Undo restores the saves', async () => {
+    const fixture = await setup()
+    let result = await start(fixture)
+    const hitPoints = (await storedCharacter(fixture)).state.hitpoints
+    await sheetCommand(fixture, (base) => ({
+      ...base,
+      type: 'ADJUST_HIT_POINTS',
+      mode: 'DAMAGE',
+      amount: hitPoints.current - 1
+    }))
+    const saves = async () => (await storedCharacter(fixture)).state.hitpoints.deathSaves
+
+    // Dropped to 0 the Character is dying: no failures yet, and still in play.
+    result = await enemyBitesHero(fixture, result)
+    expect((await storedCharacter(fixture)).state.hitpoints.current).toBe(0)
+    expect(await saves()).toEqual({ successes: 0, failures: 0, stable: false })
+    expect(projectedHero(fixture, result).defeated).toBe(false)
+
+    // Each further hit at 0 is a failure.
+    result = await enemyBitesHero(fixture, result)
+    expect(await saves()).toEqual({ successes: 0, failures: 1, stable: false })
+    result = await enemyBitesHero(fixture, result)
+    expect(await saves()).toEqual({ successes: 0, failures: 2, stable: false })
+    const dying = await saves()
+
+    // The third failure kills it; everyone sees it defeated.
+    result = await enemyBitesHero(fixture, result)
+    expect(await saves()).toEqual({ successes: 0, failures: 3, stable: false })
+    expect(projectedHero(fixture, result).defeated).toBe(true)
+    await checkpointLiveRoom(fixture.campaign.id)
+    const seen = await fixture.player.caller.query(api.encounters.projectionReads.get, {
+      encounterId: fixture.run.id
+    })
+    expect(seen.actors.find((actor) => actor.id === fixture.hero.id)).toMatchObject({
+      defeated: true
+    })
+
+    // Undo restores the previous saves exactly and the Character is back in play.
+    const undone = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: result.projection.version
+    }))
+    expect(await saves()).toEqual(dying)
+    expect(projectedHero(fixture, undone).defeated).toBe(false)
+
+    // Dead again, its turn is skipped for a full round.
+    result = await enemyBitesHero(fixture, undone)
+    expect(projectedHero(fixture, result).defeated).toBe(true)
+    const turns: Array<string | null> = []
+    for (let turn = 0; turn < 4; turn += 1) {
+      result = await advance(fixture, result)
+      turns.push(result.projection.currentActorId)
+    }
+    expect(turns).not.toContain(fixture.hero.id)
+    expect(turns).toContain(fixture.enemy.id)
+  }, 120000)
+})

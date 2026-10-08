@@ -6,6 +6,7 @@ import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/chara
 import {
   foldCharacterMechanicsApplications,
   readEncounterActorConditionState,
+  targetTransitionChecksum,
   type ReceiptApplications,
   type TargetState
 } from './encounterCharacterMechanicsBatch.js'
@@ -89,6 +90,7 @@ export function planEncounterMechanicsBatch(input: {
       currentHitPoints: actor.currentHitPoints,
       temporaryHitPoints: actor.tempHitPoints,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
+      deathSaves: null,
       conditionIds: conditions.ids,
       scalarValues: batch.effectiveScalarValues,
       retainedConditionIds: batch.retainedConditionIds,
@@ -207,6 +209,7 @@ export function planEncounterMechanicsBatch(input: {
     currentHitPoints: loaded.character.state.hitpoints.current,
     temporaryHitPoints: loaded.character.state.hitpoints.temp ?? 0,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
+    deathSaves: loaded.character.state.hitpoints.deathSaves,
     conditionIds: [...new Set([...ownConditionIds, ...campaignConditionIds])],
     scalarValues: batch.effectiveScalarValues,
     retainedConditionIds: batch.retainedConditionIds,
@@ -255,7 +258,8 @@ export function planEncounterMechanicsBatch(input: {
       hitpoints: {
         ...loaded.character.state.hitpoints,
         current: folded.after.currentHitPoints,
-        temp: folded.after.temporaryHitPoints
+        temp: folded.after.temporaryHitPoints,
+        deathSaves: folded.after.deathSaves
       },
       conditions: nextConditions,
       ...(spellSlotsChanged ? { spellSlots: batch.spellSlotUsage } : {})
@@ -294,7 +298,7 @@ export function planEncounterMechanicsBatch(input: {
 
 function transition(actorId: string, before: TargetState, after: TargetState) {
   return {
-    checksum: checksumRuleDocument({ targetActorId: actorId, ...before }),
+    checksum: targetTransitionChecksum(actorId, before),
     before,
     after
   }

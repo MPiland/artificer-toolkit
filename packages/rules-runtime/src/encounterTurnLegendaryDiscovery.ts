@@ -4,7 +4,7 @@ import {
 } from './encounterLegendaryActionDiscovery.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
-import { defeatedEncounterActorIds } from './encounterActorDefeat.js'
+import { defeatedEncounterActorIds, type DeadCharacterIds } from './encounterActorDefeat.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { compileEncounterFeatureActionPlan } from './encounterActionMechanicsPreparation.js'
@@ -96,6 +96,7 @@ export async function discoverTurnLegendaryWindows(input: {
   occurrenceId: string
   outgoingActorId: string
   actors: readonly EncounterRunActorState[]
+  deadCharacterIds: DeadCharacterIds
   movementTargets?: ReadonlyMap<string, MovementTarget>
   loadTargets(actorIds: readonly string[]): Promise<ReadonlyMap<string, MovementTarget>>
   loadSystem(): Promise<SystemAuthoredDto>
@@ -108,7 +109,7 @@ export async function discoverTurnLegendaryWindows(input: {
   }[]
 > {
   // A defeated creature takes no Legendary Actions and is no one's target (D63).
-  const defeatedActorIds = defeatedEncounterActorIds(input.actors)
+  const defeatedActorIds = defeatedEncounterActorIds(input.actors, input.deadCharacterIds)
   const actors = input.actors.filter(
     (actor) => actor.kind === 'CREATURE' && !defeatedActorIds.has(actor.id)
   )

@@ -10,6 +10,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { DeadCharacterIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import {
   encounterBasicActionEffects,
@@ -47,6 +48,11 @@ export async function readNativeLiveActorsAndEffects(input: {
   )
   if (new Set(characterIds).size !== characterIds.length)
     throw new Error('Encounter Character source binding mismatch.')
+  const deadCharacterIds: DeadCharacterIds = new Set(
+    capturedActors.flatMap(({ actor, characterDead }) =>
+      actor.kind === 'CHARACTER' && characterDead ? [actor.sourceId] : []
+    )
+  )
 
   const activeEffectsByActorId = new Map(
     await Promise.all(
@@ -93,7 +99,7 @@ export async function readNativeLiveActorsAndEffects(input: {
       })
     )
   )
-  return { actors, activeEffectsByActorId }
+  return { actors, activeEffectsByActorId, deadCharacterIds }
 }
 
 export async function prepareNativeLiveMovementTarget(input: {

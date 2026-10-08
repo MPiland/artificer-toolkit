@@ -251,7 +251,9 @@ async function moverHitPointsAfterOpportunityAttack(
       .unique()
   )
   if (!row) throw new Error('Missing the mover.')
-  return readStoredRunActor(row).currentHitPoints
+  const actor = readStoredRunActor(row)
+  if (actor.kind === 'CHARACTER') throw new Error('The mover owns its hit points in the Run.')
+  return actor.currentHitPoints
 }
 
 it('an opportunity attack is a nonmagical attack: qualified immunity stops it, plain damage lands', async () => {

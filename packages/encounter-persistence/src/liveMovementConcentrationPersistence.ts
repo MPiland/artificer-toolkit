@@ -61,7 +61,9 @@ async function requireOwnerTransitionsBefore(
     if (
       checksumCanonicalJson(movementPersistedTransitionState(transition.before)) !==
       checksumCanonicalJson(
-        await callbacks.readTargetState(state, actor, transition.before.maximumHitPoints)
+        movementPersistedTransitionState(
+          await callbacks.readTargetState(state, actor, transition.before.maximumHitPoints)
+        )
       )
     )
       throw new Error('Live Session movement Concentration owner projection changed.')
@@ -97,7 +99,9 @@ async function requireOwnerTransitionsAfter(
     if (
       checksumCanonicalJson(movementPersistedTransitionState(transition.after)) !==
       checksumCanonicalJson(
-        await callbacks.readTargetState(state, actor, transition.after.maximumHitPoints)
+        movementPersistedTransitionState(
+          await callbacks.readTargetState(state, actor, transition.after.maximumHitPoints)
+        )
       )
     )
       throw new Error('Live Session movement Concentration cleanup differs from its plan.')

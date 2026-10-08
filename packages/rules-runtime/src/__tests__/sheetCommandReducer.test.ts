@@ -2,6 +2,8 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { describe, expect, it } from 'vitest'
+import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 
 import {
   applyCharacterSheetCommand,
@@ -675,5 +677,43 @@ describe('Character Sheet hit points at 0 (D63)', () => {
       apply(other, { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 9 }).state
         .conditions ?? []
     ).toEqual([])
+  })
+})
+
+describe('Character Sheet dying and death (D96)', () => {
+  const dnd = { ...character(), systemId: DND5E_SYSTEM_ID }
+  const dying = { successes: 1, failures: 1, stable: false }
+  const dead = { successes: 0, failures: 3, stable: false }
+  const at = (current: number, deathSaves: CharacterDeathSaves = NO_DEATH_SAVES) => ({
+    ...dnd,
+    state: { ...dnd.state, hitpoints: { ...dnd.state.hitpoints, current, deathSaves } }
+  })
+  const damage = (character: ReturnType<typeof at>, amount: number) =>
+    apply(character, { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount }).state.hitpoints
+      .deathSaves
+
+  it('leaves a Character dropped to 0 dying, and kills it by massive damage', () => {
+    expect(damage(at(5), 24)).toEqual(NO_DEATH_SAVES)
+    expect(damage(at(5), 25)).toEqual(dead)
+  })
+
+  it('adds a failure for damage at 0 and kills at the maximum', () => {
+    expect(damage(at(0, dying), 3)).toEqual({ successes: 1, failures: 2, stable: false })
+    expect(damage(at(0), 20)).toEqual(dead)
+  })
+
+  it('resets the saves when a dying Character is healed, and a Sheet edit revives a dead one', () => {
+    const heal = (character: ReturnType<typeof at>) =>
+      apply(character, { ...base, type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: 4 }).state
+        .hitpoints
+    expect(heal(at(0, dying))).toMatchObject({ current: 4, deathSaves: NO_DEATH_SAVES })
+    expect(heal(at(0, dead))).toMatchObject({ current: 4, deathSaves: NO_DEATH_SAVES })
+  })
+
+  it('revives a dead Character with a hit point edit above 0 and applies damage rules below', () => {
+    const set = (character: ReturnType<typeof at>, current: number) =>
+      apply(character, { ...base, type: 'SET_HIT_POINTS', current }).state.hitpoints
+    expect(set(at(0, dead), 6)).toMatchObject({ current: 6, deathSaves: NO_DEATH_SAVES })
+    expect(set(at(0, dying), 0).deathSaves).toEqual(dying)
   })
 })

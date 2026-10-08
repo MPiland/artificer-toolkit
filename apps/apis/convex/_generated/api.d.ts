@@ -10643,6 +10643,11 @@ export declare const api: {
             exhaustion?: { level: number; notes?: string };
             hitpoints: {
               current: number;
+              deathSaves: {
+                failures: number;
+                stable: boolean;
+                successes: number;
+              };
               hitDice: Array<{ die: number; total: number; used: number }>;
               temp?: number;
             };
@@ -11016,6 +11021,11 @@ export declare const api: {
               exhaustion?: { level: number; notes?: string };
               hitpoints: {
                 current: number;
+                deathSaves: {
+                  failures: number;
+                  stable: boolean;
+                  successes: number;
+                };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp?: number;
               };
@@ -11388,6 +11398,11 @@ export declare const api: {
               exhaustion?: { level: number; notes?: string };
               hitpoints: {
                 current: number;
+                deathSaves: {
+                  failures: number;
+                  stable: boolean;
+                  successes: number;
+                };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp?: number;
               };
@@ -12086,6 +12101,11 @@ export declare const api: {
                 exhaustion?: { level: number; notes?: string };
                 hitpoints: {
                   current: number;
+                  deathSaves: {
+                    failures: number;
+                    stable: boolean;
+                    successes: number;
+                  };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp?: number;
                 };
@@ -12792,6 +12812,11 @@ export declare const api: {
                 exhaustion?: { level: number; notes?: string };
                 hitpoints: {
                   current: number;
+                  deathSaves: {
+                    failures: number;
+                    stable: boolean;
+                    successes: number;
+                  };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp?: number;
                 };
@@ -13510,6 +13535,11 @@ export declare const api: {
               exhaustion?: { level: number; notes?: string };
               hitpoints: {
                 current: number;
+                deathSaves: {
+                  failures: number;
+                  stable: boolean;
+                  successes: number;
+                };
                 hitDice: Array<{ die: number; total: number; used: number }>;
                 temp?: number;
               };
@@ -14202,6 +14232,11 @@ export declare const api: {
                 exhaustion?: { level: number; notes?: string };
                 hitpoints: {
                   current: number;
+                  deathSaves: {
+                    failures: number;
+                    stable: boolean;
+                    successes: number;
+                  };
                   hitDice: Array<{ die: number; total: number; used: number }>;
                   temp?: number;
                 };

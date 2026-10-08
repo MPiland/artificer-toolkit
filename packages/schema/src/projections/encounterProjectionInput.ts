@@ -18,11 +18,12 @@ export type EncounterProjectionActorInput = ProjectionActor<EncounterRunActorSta
 
 /**
  * Current Character hit points and conditions, with the Character's stored effective maximum, by
- * Character ID; the Run keeps no copy of them. A Character actor without an entry is not projected.
+ * Character ID; the Run keeps no copy of them. `dead` is the Character's death (D96), read from its
+ * play state. A Character actor without an entry is not projected.
  */
 export type EncounterProjectionCharacterStates = ReadonlyMap<
   string,
-  { current: number; temporary: number; maximum: number; conditions: unknown }
+  { current: number; temporary: number; maximum: number; conditions: unknown; dead: boolean }
 >
 
 export type EncounterProjectionInitiativeRoundStateInput = {

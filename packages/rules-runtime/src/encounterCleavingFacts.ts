@@ -9,7 +9,7 @@ import {
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 import { snapshotStatBlock } from './encounterProjection.js'
-import { isEncounterActorDefeated } from './encounterActorDefeat.js'
+import { deadCharacterIdsOfTargets, isEncounterActorDefeated } from './encounterActorDefeat.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { NativeEncounterActionSource } from './encounterActionSources.js'
 import type { NativeCleavingCandidate } from './encounterCleavingChoice.js'
@@ -107,6 +107,7 @@ export function cleavingDamageApplication(input: {
     afterTemporaryHitPoints: before.temporary - temporaryLost,
     maximumHitPoints: before.maximum,
     damageDisposition: 'NORMAL' as const,
+    critical: false,
     authoredPath: null,
     resolvedPath: null
   }
@@ -178,7 +179,11 @@ export function buildEncounterCleavingCandidate(input: {
 }): NativeCleavingCandidate | null {
   const { target, geometry } = input
   // Excess damage never carries into a defeated creature (D63).
-  if (target.actor.kind === 'CUSTOM' || isEncounterActorDefeated(target.actor)) return null
+  if (
+    target.actor.kind === 'CUSTOM' ||
+    isEncounterActorDefeated(target.actor, deadCharacterIdsOfTargets([target]))
+  )
+    return null
   const armorClass =
     target.actor.kind === 'CHARACTER'
       ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective

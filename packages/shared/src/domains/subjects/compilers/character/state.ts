@@ -45,6 +45,7 @@ export type CompiledCharacterHitpointState = {
   current: number
   temp?: number
   hitDice: CompiledHitDieUsage[]
+  deathSaves: CharacterHitpointsState['deathSaves']
 }
 
 export function compileHitpointState(
@@ -53,7 +54,8 @@ export function compileHitpointState(
   return {
     current: authored.current,
     temp: authored.temp,
-    hitDice: authored.hitDice
+    hitDice: authored.hitDice,
+    deathSaves: authored.deathSaves
   }
 }
 

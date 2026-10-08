@@ -135,7 +135,7 @@ function target(
     characterFacts: null,
     actor: actorState,
     activeEffects: [],
-    state: { current: 10, temporary: 0, conditions: options.conditions ?? [] },
+    state: { current: 10, temporary: 0, conditions: options.conditions ?? [], deathSaves: null },
     initialConditionRows: null,
     effectiveMaximumHitPoints: 10,
     baseScalarValues: {},

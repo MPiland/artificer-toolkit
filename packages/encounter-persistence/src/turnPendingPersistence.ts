@@ -15,6 +15,7 @@ import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-ru
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { changedFields, readRunActors } from './documents.js'
+import { readDeadCharacterIds } from './characterStates.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
@@ -136,7 +137,7 @@ export async function persistEncounterTurnPending(
       !isSettledEncounterInitiativeAdvance({
         state: normalized,
         currentActorId: state.currentActorId,
-        defeatedActorIds: skippedEncounterActorIds(actors),
+        defeatedActorIds: skippedEncounterActorIds(actors, await readDeadCharacterIds(ctx, actors)),
         plan: advance
       })
     )

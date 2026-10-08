@@ -6,7 +6,11 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { skippedEncounterActorIds } from './encounterActorDefeat.js'
+import {
+  deadCharacterIdsOfTargets,
+  skippedEncounterActorIds,
+  type DeadCharacterIds
+} from './encounterActorDefeat.js'
 import { planEncounterInitiativeAdvance } from './encounterInitiativeStateSettlement.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
@@ -27,12 +31,13 @@ export function planEncounterTurnAdvance(input: {
   state: EncounterRunState
   initiativeRound: EncounterInitiativeRoundStateDto
   actors: readonly EncounterRunActorState[]
+  deadCharacterIds: DeadCharacterIds
 }): Pick<TurnCoordinatorRootDto, 'initiativeAdvance' | 'proposedTerminalTransition'> {
   if (input.state.currentActorId === null) throw new Error('Outgoing turn is unavailable.')
   const advance = planEncounterInitiativeAdvance({
     state: input.initiativeRound,
     currentActorId: input.state.currentActorId,
-    defeatedActorIds: skippedEncounterActorIds(input.actors)
+    defeatedActorIds: skippedEncounterActorIds(input.actors, input.deadCharacterIds)
   })
   return {
     initiativeAdvance: advance,
@@ -59,6 +64,8 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     root: TurnCoordinatorRootDto
     occurrenceId: string
     actors: EncounterRunActorState[]
+    /** The Characters dead before this turn's effects and Legendary Actions (D96). */
+    deadCharacterIds: DeadCharacterIds
     /** The normalized round an `ADVANCE_TURN` advances; null for `START`. */
     initiativeRound: EncounterInitiativeRoundStateDto | null
     pending?: ServerRuleExecutionPendingSnapshotDto
@@ -105,7 +112,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     initiative: (
       input: Pick<
         Parameters<typeof prepareEncounterTurnInitiative>[0],
-        'state' | 'autoRoll' | 'root' | 'occurrenceId' | 'actors'
+        'state' | 'autoRoll' | 'root' | 'occurrenceId' | 'actors' | 'deadCharacterIds'
       > & {
         movementTargets?: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
         resume?: Parameters<typeof prepareEncounterTurnInitiative>[0]['resume']
@@ -164,12 +171,18 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   })
   if (legendary.kind === 'PENDING') return legendary
   root = legendary.root
+  // The turn's effects and Legendary Actions may have killed a Character (D96).
+  const deadCharacterIds = deadCharacterIdsOfTargets(
+    legendary.movementTargets.values(),
+    input.deadCharacterIds
+  )
   if (root.commandType === 'ADVANCE_TURN') {
     if (!input.initiativeRound) throw new Error('The normalized initiative round is unavailable.')
     const settled = planEncounterTurnAdvance({
       state,
       initiativeRound: input.initiativeRound,
-      actors: legendary.actors
+      actors: legendary.actors,
+      deadCharacterIds
     })
     // A rolled new round was already planned after this same settlement.
     if (!root.initiative) root = { ...root, ...settled }
@@ -190,6 +203,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       root,
       occurrenceId,
       actors: legendary.actors,
+      deadCharacterIds,
       movementTargets: legendary.movementTargets
     })
     if (initiative.kind === 'PENDING') return initiative

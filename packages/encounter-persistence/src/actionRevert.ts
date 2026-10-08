@@ -568,7 +568,8 @@ async function restoreCharacter(
       hitpoints: {
         ...state.hitpoints,
         current: inverse.hitPoints.currentHitPoints,
-        temp: inverse.hitPoints.temporaryHitPoints
+        temp: inverse.hitPoints.temporaryHitPoints,
+        deathSaves: inverse.hitPoints.deathSaves ?? state.hitpoints.deathSaves
       },
       conditions: (state.conditions ?? []).filter(
         (condition) => !inverse.removedConditionIds.has(condition.conditionTypeId)

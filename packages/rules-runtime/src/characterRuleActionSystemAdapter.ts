@@ -137,6 +137,8 @@ export type CharacterHitPointOutcomeApplication =
       kind: 'DAMAGE'
       damageTypeId: string
       damageDisposition: DamageDispositionDto
+      /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
+      critical: boolean
     })
 
 export interface CharacterConditionApplyOutcomeApplication {

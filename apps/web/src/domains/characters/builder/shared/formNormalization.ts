@@ -4,6 +4,7 @@ import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import {
   characterAuthoredDtoSchema,
   type CharacterAuthoredDto
@@ -53,7 +54,8 @@ export function createFallbackCharacterFormValues(
       currency: [],
       hitpoints: {
         current: 1,
-        hitDice: []
+        hitDice: [],
+        deathSaves: NO_DEATH_SAVES
       }
     },
     systemId,

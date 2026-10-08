@@ -7,7 +7,7 @@ import { encounterInitiativeSettlementDtoSchema } from '@artificer-toolkit/schem
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { stableActors } from './encounterActorState.js'
-import { skippedEncounterActorIds } from './encounterActorDefeat.js'
+import { skippedEncounterActorIds, type DeadCharacterIds } from './encounterActorDefeat.js'
 import {
   firstUndefeatedActorId,
   skipDefeatedOpeningTurns
@@ -51,6 +51,8 @@ export async function prepareEncounterTurnInitiative(input: {
   root: TurnCoordinatorRootDto
   occurrenceId: string
   actors: readonly EncounterRunActorState[]
+  /** The Characters dead once the turn's effects settled (D96); they keep their rolled place but are skipped. */
+  deadCharacterIds: DeadCharacterIds
   /** The roller's auto-roll preference; the initiator rolls initiative in this slice. */
   autoRoll: boolean
   loadSources(): Promise<InitiativeFactSources>
@@ -417,7 +419,7 @@ export async function prepareEncounterTurnInitiative(input: {
   }
   if (result.orderedActorIds.length === 0) throw new Error('Encounter initiative did not settle.')
   // Defeated actors keep their rolled place, but the round opens with the first that can act (D63).
-  const defeatedActorIds = skippedEncounterActorIds(actors)
+  const defeatedActorIds = skippedEncounterActorIds(actors, input.deadCharacterIds)
   const roundState = await skipDefeatedOpeningTurns({
     repository: staged.repository,
     state: result.state,

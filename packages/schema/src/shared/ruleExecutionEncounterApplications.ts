@@ -1,6 +1,12 @@
 import { z, lazySchema } from '../zod.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
+  deathSavesAfterDamage,
+  deathSavesAfterDeath,
+  deathSavesAfterHealing,
+  isCharacterDead
+} from './characterDeathSaves.js'
+import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
   concentrationCheckTriggerDtoSchema,
@@ -382,6 +388,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
         let maximum = value.targetTransition.before.maximumHitPoints
+        let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
         const scalarValues = {
           ...value.targetTransition.before.scalarValues
@@ -435,6 +442,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               })
             current = application.afterCurrentHitPoints
             maximum = application.afterMaximumHitPoints
+            if (maximum === 0 && deathSaves !== null) deathSaves = deathSavesAfterDeath()
             continue
           }
           if (application.kind === 'SCALAR_REDUCTION') {
@@ -458,7 +466,10 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 message: 'Scalar reduction receipt arithmetic is invalid.'
               })
             scalarValues[application.valueDefinitionId] = afterValue
-            if (application.targetDied) current = 0
+            if (application.targetDied) {
+              current = 0
+              if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+            }
             continue
           }
           if (
@@ -474,10 +485,16 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               message: 'Encounter actor hit-point application chain is invalid.'
             })
           if (application.kind === 'HEAL') {
-            const applied = Math.min(
-              application.resolvedAmount,
-              application.maximumHitPoints - application.beforeCurrentHitPoints
-            )
+            // A dead Character ignores healing (D96).
+            const applied =
+              deathSaves !== null && isCharacterDead(deathSaves)
+                ? 0
+                : Math.min(
+                    application.resolvedAmount,
+                    application.maximumHitPoints - application.beforeCurrentHitPoints
+                  )
+            if (deathSaves !== null)
+              deathSaves = deathSavesAfterHealing({ deathSaves, appliedAmount: applied })
             if (
               application.resolvedAmount !== application.requestedAmount ||
               application.afterTemporaryHitPoints !== application.beforeTemporaryHitPoints ||
@@ -528,6 +545,14 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 path: ['applications', index],
                 message: 'Damage receipt arithmetic is invalid.'
               })
+            if (deathSaves !== null)
+              deathSaves = deathSavesAfterDamage({
+                deathSaves,
+                currentHitPoints: application.beforeCurrentHitPoints,
+                maximumHitPoints: application.maximumHitPoints,
+                dealt: resolved - temporaryLost,
+                critical: application.critical
+              })
           }
           current = application.afterCurrentHitPoints
           temporary = application.afterTemporaryHitPoints
@@ -537,6 +562,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
           after.currentHitPoints !== current ||
           after.temporaryHitPoints !== temporary ||
           after.maximumHitPoints !== maximum ||
+          JSON.stringify(after.deathSaves) !== JSON.stringify(deathSaves) ||
           after.conditionIds.length !== conditions.size ||
           after.conditionIds.some((conditionId, index) => [...conditions][index] !== conditionId) ||
           JSON.stringify(after.scalarValues) !== JSON.stringify(scalarValues)

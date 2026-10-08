@@ -135,10 +135,17 @@ export interface CharacterHitDiceUsageState {
   used: number
 }
 
+export interface CharacterDeathSavesState {
+  successes: number
+  failures: number
+  stable: boolean
+}
+
 export interface CharacterHitpointsState {
   current: number
   temp?: number
   hitDice: CharacterHitDiceUsageState[]
+  deathSaves: CharacterDeathSavesState
 }
 
 export interface CharacterState {

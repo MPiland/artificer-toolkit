@@ -2,6 +2,7 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { prepareEncounterConcentrationState } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { prepareEncounterMovementConcentration } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
@@ -106,6 +107,7 @@ export function prepareNativeLiveMovementConcentration(
       if (!slot.state || !target) return null
       const reason = await encounterConcentrationEndReason({
         actor: target.actor,
+        deadCharacterIds: deadCharacterIdsOfTargets([target]),
         conditionIds: target.state.conditions,
         activeEffects: target.activeEffects,
         gameSystemId: state.gameSystemId,

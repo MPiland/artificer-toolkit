@@ -8,6 +8,7 @@ import {
   liveSessionCheckpointSceneKeys,
   type LiveSessionCheckpointSceneTable
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
@@ -79,7 +80,7 @@ const characterPlay = (): RoomDocument => ({
     maximumHitPoints: 10,
     walkingSpeed: 30,
     state: {
-      hitpoints: { current: 10, hitDice: [] },
+      hitpoints: { current: 10, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],
       attuned: [],
       resourceUsage: [],
@@ -745,7 +746,7 @@ describe('room checkpoint records', () => {
   it('checkpoints Character play changes with the room play clock', () => {
     const document = characterPlay()
     const state = {
-      hitpoints: { current: 7, hitDice: [] },
+      hitpoints: { current: 7, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],
       attuned: [],
       resourceUsage: [],
@@ -964,7 +965,7 @@ describe('room checkpoint records', () => {
       const snapshot = room.checkpointSnapshot()
       const fetched = characterPlay()
       const nextState = {
-        hitpoints: { current: 7, hitDice: [] },
+        hitpoints: { current: 7, hitDice: [], deathSaves: NO_DEATH_SAVES },
         equipped: [],
         attuned: [],
         resourceUsage: [],

@@ -9,6 +9,7 @@ import type {
   CharacterBuilderPreviewPayloadDto
 } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 
 export const characterFixture = {
   id: '00000000-0000-4000-8000-000000000101',
@@ -92,7 +93,8 @@ export const characterFixture = {
     ],
     hitpoints: {
       current: 6,
-      hitDice: [{ die: 6, total: 1, used: 0 }]
+      hitDice: [{ die: 6, total: 1, used: 0 }],
+      deathSaves: NO_DEATH_SAVES
     }
   },
   primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',

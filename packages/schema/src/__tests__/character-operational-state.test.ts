@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '../api/healthDisplay.js'
 import { characterDocumentSchema } from '../projections/characterStoredState.js'
@@ -43,7 +44,7 @@ const character = characterDocumentSchema.parse({
       attuned: []
     },
     currency: [],
-    hitpoints: { current: 6, hitDice: [] },
+    hitpoints: { current: 6, hitDice: [], deathSaves: NO_DEATH_SAVES },
     classes: [{ classId: 'wizard', spells: { prepared: ['shield'] } }, { classId: 'wizard' }],
     noteGroups: [{ id: 'session', label: 'Session', sortOrder: 0, kind: 'SESSION' }],
     notes: [

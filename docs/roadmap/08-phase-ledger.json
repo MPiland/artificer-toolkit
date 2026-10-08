@@ -4418,9 +4418,12 @@
           "id": "SPELLS-3",
           "title": "Dying and death saves",
           "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/encounters/defeat.test.ts"],
+          "journeyTests": [
+            "apps/apis/convex/encounters/defeat.test.ts",
+            "apps/apis/convex/encounters/liveCharacterState.test.ts"
+          ],
           "journeyStatus": "partial",
-          "journeyGap": "Creature 0 HP defeat, turn skip and undo only; no Character dying or death-save flow.",
+          "journeyGap": "Creature 0 HP defeat and a Character dying, dead and undone are proved; no death-save roll at turn start, stabilizing or first aid yet (3.4–3.6).",
           "origin": [],
           "acs": [
             {
@@ -4437,12 +4440,57 @@
               "id": "SPELLS-3.1"
             },
             {
-              "text": "Characters at 0 HP are dying and make death saves: prompted saves, damage at 0, massive damage, STABILIZE and healing from 0.",
+              "text": "A Character at 0 HP is dying: damage at 0 adds a death save failure (two on a critical hit), damage at 0 or that takes it to 0 with at least its maximum HP left over kills it, healing from 0 resets its death saves, and undo restores them.",
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/characterDeathSaves.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts › 0 hit points (D63) › Characters fall unconscious instead › dying and death (D96)",
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts › Character Sheet dying and death (D96)",
+                "apps/apis/convex/encounters/liveCharacterState.test.ts › a Character dying and dead in the room (D96) › dies at three failures, shows Dead to everyone, loses its turns, and Undo restores the saves",
+                "impl: packages/schema/src/shared/characterDeathSaves.ts (the one rules module; used by the mechanics fold, its receipt replay, the Sheet reducer and Undo)"
+              ],
+              "origin": [],
+              "note": "rul-9-rules-audit.md slice 3; 8.3 carry-over. Refined 2026-10-08 into 3.2–3.6 (D96). Slice A, 2026-10-08.",
+              "id": "SPELLS-3.2"
+            },
+            {
+              "text": "A dead Character takes no turns, actions or reactions, ignores healing and shows Dead to everyone; a Sheet hit point edit above 0 revives it.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterActorDefeat.test.ts › a dead Character is defeated like a Creature (D96)",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts › ignores healing for a dead Character",
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts › resets the saves when a dying Character is healed, and a Sheet edit revives a dead one",
+                "apps/apis/convex/encounters/liveCharacterState.test.ts › a Character dying and dead in the room (D96)",
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts › labels a defeated Character Dead for the GM and players alike (D96)",
+                "impl: packages/rules-runtime/src/encounterActorDefeat.ts (a dead Character joins the defeated and skipped actors, read live from its play state with no Run mirror)"
+              ],
+              "origin": [],
+              "note": "D96. Slice A, 2026-10-08.",
+              "id": "SPELLS-3.3"
+            },
+            {
+              "text": "In an Assisted Run, a dying Character makes a death save at the start of its turn, prompted to its controller or auto-rolled by their preference: 10 or higher succeeds, a 1 counts two failures, a 20 regains 1 HP, three successes stabilize it and three failures kill it. The roll is always visible to the GM.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 3; 8.3 carry-over.",
-              "id": "SPELLS-3.2"
+              "note": "D96; ADR 0034 roll prompts.",
+              "id": "SPELLS-3.4"
+            },
+            {
+              "text": "STABILIZE effects (Spare the Dying, Healer's Kit) and first aid (a DC 10 Wisdom (Medicine) check) make a dying Character stable; damage makes it dying again.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D96.",
+              "id": "SPELLS-3.5"
+            },
+            {
+              "text": "The Character Sheet shows death save successes and failures at 0 HP, lets the Sheet's editors set them, and rolls a death save outside an Encounter.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D96. Manual-mode tables track death saves here.",
+              "id": "SPELLS-3.6"
             }
           ]
         },

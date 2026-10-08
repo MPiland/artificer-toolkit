@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import { targetTransitionChecksum } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { FrozenMovementReactionRemainder } from '@artificer-toolkit/rules-runtime/encounterSpatialMovementRuleService'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { readMovementTargets } from '../../tests/fixtures/movementTargets'
@@ -86,10 +87,7 @@ describe('planNativeSpatialMovementPrefix', () => {
       const second = {
         ...execution,
         targetTransition: {
-          checksum: checksumRuleDocument({
-            targetActorId,
-            ...execution.targetTransition.after
-          }),
+          checksum: targetTransitionChecksum(targetActorId, execution.targetTransition.after),
           before: execution.targetTransition.after,
           after: { ...execution.targetTransition.after, conditionIds: [conditionId] }
         },
@@ -125,7 +123,8 @@ describe('planNativeSpatialMovementPrefix', () => {
       expect(result.projectedTargets.get(targetActorId)!.state).toEqual({
         current: execution.targetTransition.after.currentHitPoints,
         temporary: execution.targetTransition.after.temporaryHitPoints,
-        conditions: [conditionId]
+        conditions: [conditionId],
+        deathSaves: null
       })
       expect(result.projectedTargets.get(untouchedActorId)).toBe(targets.get(untouchedActorId))
       expect(JSON.stringify(targets)).toBe(before)
@@ -166,7 +165,8 @@ describe('planNativeSpatialMovementPrefix', () => {
         temporaryHitPoints: target.state.temporary,
         maximumHitPoints: target.effectiveMaximumHitPoints,
         conditionIds: [conditionId],
-        scalarValues: target.effectiveScalarValues
+        scalarValues: target.effectiveScalarValues,
+        deathSaves: target.state.deathSaves
       }
       const characterExecution = {
         ...execution,
@@ -175,20 +175,18 @@ describe('planNativeSpatialMovementPrefix', () => {
           candidate: { ...execution.candidate.candidate, targetActorId: base.actor.id }
         },
         targetTransition: {
-          checksum: checksumRuleDocument({
-            targetActorId: base.actor.id,
+          checksum: targetTransitionChecksum(base.actor.id, {
+            ...after,
             currentHitPoints: target.state.current,
-            temporaryHitPoints: target.state.temporary,
-            maximumHitPoints: target.effectiveMaximumHitPoints,
-            conditionIds: target.state.conditions,
-            scalarValues: target.effectiveScalarValues
+            conditionIds: [...target.state.conditions]
           }),
           before: {
             currentHitPoints: target.state.current,
             temporaryHitPoints: target.state.temporary,
             maximumHitPoints: target.effectiveMaximumHitPoints,
             conditionIds: [...target.state.conditions],
-            scalarValues: { ...target.effectiveScalarValues }
+            scalarValues: { ...target.effectiveScalarValues },
+            deathSaves: target.state.deathSaves
           },
           after
         },
@@ -209,7 +207,8 @@ describe('planNativeSpatialMovementPrefix', () => {
             afterTemporaryHitPoints: target.state.temporary,
             maximumHitPoints: target.effectiveMaximumHitPoints,
             damageTypeId: crypto.randomUUID(),
-            damageDisposition: 'NORMAL' as const
+            damageDisposition: 'NORMAL' as const,
+            critical: false
           },
           {
             ordinal: 1,
@@ -252,7 +251,8 @@ describe('planNativeSpatialMovementPrefix', () => {
       expect(projected.state).toEqual({
         current: 0,
         temporary: target.state.temporary,
-        conditions: [conditionId, UNCONSCIOUS]
+        conditions: [conditionId, UNCONSCIOUS],
+        deathSaves: NO_DEATH_SAVES
       })
       expect(projected.characterReactionSource?.activeConditionDefinitionIds).toEqual([
         conditionId,
@@ -282,7 +282,7 @@ describe('planNativeSpatialMovementPrefix', () => {
         candidate: { ...characterExecution.candidate, ordinal: 1 },
         // The next segment starts from the projected Character, now also unconscious.
         targetTransition: {
-          checksum: checksumRuleDocument({ targetActorId: base.actor.id, ...projectedAfter }),
+          checksum: targetTransitionChecksum(base.actor.id, projectedAfter),
           before: projectedAfter,
           after: { ...after, conditionIds: [UNCONSCIOUS] }
         },

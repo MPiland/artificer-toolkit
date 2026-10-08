@@ -273,6 +273,7 @@ describe('readNativeLiveActorsAndEffects', () => {
       kind: 'ACTOR',
       ...captureEnvelope,
       actor: runActor({ id: sortedLast }),
+      characterDead: false,
       effects: [],
       continueAfter: null
     }))
@@ -297,6 +298,7 @@ describe('readNativeLiveActorsAndEffects', () => {
         id: request.kind === 'ACTOR' ? request.actorId : sortedFirst,
         characterId: CHARACTER_A
       }),
+      characterDead: false,
       effects: [],
       continueAfter: null
     }))

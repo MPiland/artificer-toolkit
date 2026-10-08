@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { encounterSpatialRuleEffectRecordSchema } from '../projections/spatialRuleEffectPersistence.js'
@@ -274,14 +275,16 @@ function completedExecution(
         temporaryHitPoints: 0,
         maximumHitPoints: 10,
         conditionIds: [] as string[],
-        scalarValues: {}
+        scalarValues: {},
+        deathSaves: NO_DEATH_SAVES
       },
       after: {
         currentHitPoints: 10,
         temporaryHitPoints: 0,
         maximumHitPoints: 10,
         conditionIds: [] as string[],
-        scalarValues: {}
+        scalarValues: {},
+        deathSaves: NO_DEATH_SAVES
       }
     },
     applications: []
@@ -317,7 +320,8 @@ function reactionExecution(
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
     scalarValues: {},
-    conditionIds: []
+    conditionIds: [],
+    deathSaves: NO_DEATH_SAVES
   }
   const after = { ...before, currentHitPoints: 8 }
   return movementReactionActionExecutionDtoSchema.parse({
@@ -403,6 +407,7 @@ function reactionExecution(
           maximumHitPoints: 10,
           damageTypeId: ids.effect,
           damageDisposition: 'NORMAL' as const,
+          critical: false,
           sourceNodeId: 'reaction',
           sourceOperationKey: 'reaction.apply',
           authoredPath: null,
@@ -465,7 +470,8 @@ function encounterActorResourceReaction(): ReturnType<
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
     scalarValues: {},
-    conditionIds: []
+    conditionIds: [],
+    deathSaves: NO_DEATH_SAVES
   }
   return movementReactionActionExecutionDtoSchema.parse({
     ...reaction,
@@ -714,7 +720,8 @@ function maintainedReactionExecution() {
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
     scalarValues: {},
-    conditionIds: []
+    conditionIds: [],
+    deathSaves: NO_DEATH_SAVES
   }
   const targetAfter = structuredClone(reaction.application.targetTransition.after)
   reaction.maintenanceOwnerTransitions = owners.map((characterId, index) => ({
@@ -811,6 +818,7 @@ function completedSpatialDamageExecution() {
         maximumHitPoints: 10,
         damageTypeId: ids.effect,
         damageDisposition: 'NORMAL',
+        critical: false,
         sourceNodeId: 'effect',
         sourceOperationKey: 'effect.apply',
         authoredPath: null,

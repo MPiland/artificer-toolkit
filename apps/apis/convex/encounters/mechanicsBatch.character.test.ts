@@ -30,7 +30,8 @@ function damage(input: { actorId: string; current: number; temporary: number; ma
     afterTemporaryHitPoints: input.temporary,
     maximumHitPoints: input.maximum,
     damageTypeId: crypto.randomUUID(),
-    damageDisposition: 'NORMAL' as const
+    damageDisposition: 'NORMAL' as const,
+    critical: false
   }
 }
 

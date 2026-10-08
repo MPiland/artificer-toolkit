@@ -25,6 +25,7 @@ import {
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -287,6 +288,7 @@ export async function planNativeLiveConcentration(input: {
       if (!maintained) continue
       const reason = await encounterConcentrationEndReason({
         actor,
+        deadCharacterIds: deadCharacterIdsOfTargets([target]),
         conditionIds: target.state.conditions,
         activeEffects: target.activeEffects,
         gameSystemId: state.gameSystemId,

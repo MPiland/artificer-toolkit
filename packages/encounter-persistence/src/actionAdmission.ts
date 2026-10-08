@@ -4,7 +4,7 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { readEncounterActorDefeated } from './characterStates.js'
 import { nativeActionPendingResult, readNativeActionPending } from './actionPending.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
@@ -156,7 +156,7 @@ export async function readNativeEncounterActionAdmission(
       readRunActor(ctx, state, input.targetActorId)
     ])
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
-    if (isEncounterActorDefeated(actor)) rejectDomain('ACTOR_DEFEATED')
+    if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
     // Players target only actors in their projection; a hidden actor reads as unavailable.
     if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
   }

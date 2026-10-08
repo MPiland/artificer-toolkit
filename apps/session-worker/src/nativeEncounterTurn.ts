@@ -115,10 +115,12 @@ export async function planNativeLiveEncounterTurn(
   )
     throw new Error('Turn input binding mismatch.')
   const campaign = { id: state.campaignId, ownerUserId: admission.campaignOwnerUserId }
-  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
-    state,
-    capture
-  })
+  const { actors, activeEffectsByActorId, deadCharacterIds } = await readNativeLiveActorsAndEffects(
+    {
+      state,
+      capture
+    }
+  )
   const targetReads = new Map<string, ReturnType<typeof prepareNativeLiveMovementTarget>>()
   async function loadTarget(actorId: string) {
     const actor = actors.find((candidate) => candidate.id === actorId)
@@ -140,7 +142,7 @@ export async function planNativeLiveEncounterTurn(
   }
   const scenes: Array<{ sceneId: string; sceneVersion: number; definitionSaveId: string }> = []
   const stages = createNativeLiveTurnStages(
-    { state, actors },
+    { state, actors, deadCharacterIds },
     {
       system,
       activeEffectsByActorId,
@@ -170,6 +172,7 @@ export async function planNativeLiveEncounterTurn(
       occurrenceId: admission.result.occurrence.occurrenceId,
       updatedAt: occurredAt,
       readActors: async () => actors,
+      deadCharacterIds,
       readInitiativeRound,
       prepareEffects: stages.effects,
       prepareLegendary: stages.legendary
@@ -234,7 +237,12 @@ export async function planNativeLiveEncounterTurn(
       initiative: null,
       resolutionCommands: [],
       // Planned again once the outgoing turn's effects and Legendary Actions settle (D63).
-      ...planEncounterTurnAdvance({ state, initiativeRound: normalized, actors })
+      ...planEncounterTurnAdvance({
+        state,
+        initiativeRound: normalized,
+        actors,
+        deadCharacterIds
+      })
     }
     occurrenceId = crypto.randomUUID()
   } else {
@@ -280,6 +288,7 @@ export async function planNativeLiveEncounterTurn(
         occurrenceId,
         updatedAt: occurredAt,
         readActors: async () => actors,
+        deadCharacterIds,
         readInitiativeRound,
         prepareEffects: stages.effects,
         prepareLegendary: stages.legendary
@@ -336,6 +345,7 @@ export async function planNativeLiveEncounterTurn(
       root,
       occurrenceId,
       actors: initiativeActors,
+      deadCharacterIds,
       ...(initiativeTargets ? { movementTargets: initiativeTargets } : {}),
       ...(initiativeResume ? { resume: initiativeResume } : {})
     })
@@ -364,6 +374,7 @@ export async function planNativeLiveEncounterTurn(
       root,
       occurrenceId,
       actors,
+      deadCharacterIds,
       initiativeRound: root.commandType === 'ADVANCE_TURN' ? await readInitiativeRound() : null,
       updatedAt: occurredAt,
       ...(pending ? { pending } : {}),

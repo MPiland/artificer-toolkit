@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import type { EncounterDocument } from '@artificer-toolkit/encounter-persistence/store'
 import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { characterPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPlayState'
@@ -101,7 +102,12 @@ it('reconciles native play atomically, recovers after eviction and preserves the
   expect(createCharacterResourceOwnerKey(usage[0]!.owner)).toBe(pool.poolId)
   const state = characterPlayStateSchema.parse({
     ...readCharacterPlay(original.play),
-    hitpoints: { current: 7, temp: 4, hitDice: [{ die: 10, total: 2, used: 1 }] },
+    hitpoints: {
+      current: 7,
+      temp: 4,
+      hitDice: [{ die: 10, total: 2, used: 1 }],
+      deathSaves: NO_DEATH_SAVES
+    },
     inspiration: true,
     resources: [{ resourceGrantId: 'legacy-resource', used: 2 }],
     spellSlots: [{ slotKey: 'STANDARD:1', used: 1 }],
