@@ -500,7 +500,7 @@ export function applyCompletedCharacterRest(params: {
   }
 }
 
-export function sortFingerprintValue(value: unknown): unknown {
+function sortFingerprintValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortFingerprintValue)
   if (typeof value !== 'object' || value === null) return value
   return Object.fromEntries(

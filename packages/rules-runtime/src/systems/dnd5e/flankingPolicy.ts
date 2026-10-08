@@ -22,8 +22,6 @@ import {
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_FLANKING_POLICY_MODULE } from './policyModuleRegistration.js'
 
-export { DND5E_FLANKING_POLICY_MODULE } from './policyModuleRegistration.js'
-
 const MAX_FLANKING_CANDIDATES = 256
 
 type RelationshipKind = 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
@@ -39,13 +37,13 @@ interface Dnd5eFlankingCombatant {
   readonly token: Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
 }
 
-export interface Dnd5eFlankingCandidate extends Dnd5eFlankingCombatant {
+interface Dnd5eFlankingCandidate extends Dnd5eFlankingCombatant {
   readonly attackerRelationship: RelationshipKind
   readonly canSeeTarget: boolean
   readonly targetRelationship: RelationshipKind
 }
 
-export interface Dnd5eFlankingContributor {
+interface Dnd5eFlankingContributor {
   readonly domainKey: typeof DND5E_FLANKING_POLICY_MODULE.key
   readonly geometry: {
     readonly alliedActorId: string
@@ -67,7 +65,7 @@ export interface Dnd5eFlankingContributor {
   readonly sourceId: string
 }
 
-export interface Dnd5eFlankingPolicyResult {
+interface Dnd5eFlankingPolicyResult {
   readonly contributor: Dnd5eFlankingContributor | null
 }
 

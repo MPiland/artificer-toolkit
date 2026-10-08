@@ -64,7 +64,7 @@ function baseFacts(charge: CompiledCharge, context: CharacterChargeRuleFactConte
   }
 }
 
-export type CharacterChargeRuleFactContext = {
+type CharacterChargeRuleFactContext = {
   sourceLevel?: CharacterChargeSourceLevel
   spellCastLevel?: number | null
 }

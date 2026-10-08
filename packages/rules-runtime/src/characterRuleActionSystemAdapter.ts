@@ -103,8 +103,6 @@ export type CharacterRuleActionExecutionPlan =
       }[]
     }
 
-export type CharacterHitPointOutcomeKind = 'HEAL' | 'TEMPORARY_HIT_POINTS' | 'DAMAGE'
-
 /** A System adapter uses this only when an authored mechanic is structurally unsupported. */
 export class CharacterRuleActionUnsupportedCompilationError extends Error {
   constructor(message: string) {
@@ -501,7 +499,7 @@ export interface CharacterRuleActionSystemAdapter {
   }
 }
 
-export interface CharacterRuleActionPositionalTokenFact {
+interface CharacterRuleActionPositionalTokenFact {
   actorId: string
   height: number
   position: ScenePoint

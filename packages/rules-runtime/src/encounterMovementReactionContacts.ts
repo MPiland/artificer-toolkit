@@ -27,7 +27,7 @@ export interface EncounterMovementReactionContact<
   source: TSource
 }
 
-export function movementReactionContactSourceId(input: {
+function movementReactionContactSourceId(input: {
   actionId: string
   reactorActorId: string
   reactorTokenId: string

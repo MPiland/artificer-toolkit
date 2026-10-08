@@ -797,7 +797,7 @@ function getBackgroundDetailSections(
   })
 }
 
-export function buildCharacterBuilderView(
+function buildCharacterBuilderView(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
 ): CharacterBuilderViewDto {

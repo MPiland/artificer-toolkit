@@ -11,8 +11,6 @@ import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import type { EncounterSceneGridPolicyAdapter } from '../../sceneGridPolicy.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 
-export { DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY } from '@artificer-toolkit/schema/shared/optionalCombat'
-
 function hasExactAlternatingDiagonalModule(input: {
   automationMode: AutomationModeDto
   optionalCombatSnapshot: unknown

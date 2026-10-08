@@ -111,7 +111,7 @@ export function stopSceneMovementResult(
   return result
 }
 
-export function movementRemainderAtBoundary(input: {
+function movementRemainderAtBoundary(input: {
   root: SpatialMovementRuleRoot
   sceneVersion: number
   boundary: Boundary

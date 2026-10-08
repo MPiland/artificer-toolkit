@@ -27,7 +27,7 @@ import { isEncounterActorDefeated } from './encounterActorDefeat.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 
-export { healthBand, projectPlayerEncounterProjection } from './encounterPlayerProjection.js'
+export { projectPlayerEncounterProjection } from './encounterPlayerProjection.js'
 
 /** Projects a current Run with its normalized initiative round already loaded. */
 export function projectCurrentEncounterGm(input: {
@@ -254,7 +254,7 @@ export function projectGm(
  * The GM projection from the actors' projection facts and their sources' facts by checksum.
  * Character actors take hit points and conditions from the current Characters, never the Run.
  */
-export function projectGmFacts(
+function projectGmFacts(
   encounter: Omit<EncounterProjectionInput, 'actors'> & {
     actors: readonly EncounterActorProjectionFacts[]
   },

@@ -13,7 +13,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import { CharacterSheetCommandError, formatCodeLabel } from './sheetCommandReducer.js'
 
-export type CharacterSheetAdjustmentCommand = CharacterSheetAdjustmentCommandDto
+type CharacterSheetAdjustmentCommand = CharacterSheetAdjustmentCommandDto
 
 export function validateSheetAdjustmentTarget(
   input: CharacterSheetAdjustmentCommand,

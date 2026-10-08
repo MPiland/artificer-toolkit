@@ -11,7 +11,7 @@ import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { ResolvedClassSelection } from './characterBuilderSelections.js'
 import type { CharacterBuilderValidation } from './builderTypes.js'
 
-export interface CharacterSpellChoiceRequirement {
+interface CharacterSpellChoiceRequirement {
   label: string
   sourceLabel: string
   source: CharacterSpellSelectionRecord['source']

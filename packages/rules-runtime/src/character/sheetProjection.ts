@@ -15,7 +15,6 @@ import {
   FEATURE_ATTRIBUTE,
   MEASUREMENT_UNIT_REGISTRY,
   VEHICLE_CATEGORY_REGISTRY,
-  type CharacterBuildSnapshot,
   type MeasurementUnitCode
 } from '@artificer-toolkit/shared/core'
 import {
@@ -85,8 +84,6 @@ import {
   getKnownSpellIdsForClassIntent,
   getSheetSpellIdsByClass
 } from './sheetSpellIds.js'
-
-export { getPreparedAndKnownSpellIds, getSheetSpellIdsByClass } from './sheetSpellIds.js'
 
 function createVocabularyLabelMap(
   records: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined
@@ -785,40 +782,7 @@ function toCreatureHitDice(
   }))
 }
 
-export function createCompanionInputs(
-  character: CharacterAuthored,
-  creaturesById: ReadonlyMap<
-    string,
-    {
-      id: string
-      abilityScores: Record<string, number>
-      armorClass: number
-      hitPoints: number
-      size?: NonNullable<CharacterBuildSnapshot['companions']>[number]['size']
-      alignmentId?: string
-      creatureTypeId?: string
-    }
-  >
-): NonNullable<CharacterBuildSnapshot['companions']> {
-  return (character.state.creatures ?? []).flatMap((instance) => {
-    const creature = creaturesById.get(instance.creatureId)
-    if (!creature) return []
-    return [
-      {
-        companionInstanceId: instance.id,
-        creatureId: creature.id,
-        abilityScores: creature.abilityScores,
-        armorClass: creature.armorClass,
-        maxHitPoints: creature.hitPoints,
-        ...(creature.size ? { size: creature.size } : {}),
-        ...(creature.alignmentId ? { alignmentId: creature.alignmentId } : {}),
-        ...(creature.creatureTypeId ? { creatureTypeId: creature.creatureTypeId } : {})
-      }
-    ]
-  })
-}
-
-export interface ProjectCharacterSheetBundleParams {
+interface ProjectCharacterSheetBundleParams {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
   streamVersion: number
@@ -837,7 +801,7 @@ export interface ProjectCharacterSheetBundleParams {
   activeEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[]
 }
 
-export interface CharacterSheetProjectionBundle {
+interface CharacterSheetProjectionBundle {
   sheet: CharacterSheetResponseDto
   ruleProjection: CharacterSheetRuleProjection
 }

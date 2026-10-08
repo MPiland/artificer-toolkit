@@ -110,7 +110,7 @@ function assertPoolId(poolId: string, owner: CharacterResourceOwnerRef): void {
   }
 }
 
-export interface CharacterRuleResourceProjectionInput {
+interface CharacterRuleResourceProjectionInput {
   policy: Pick<CharacterRuleEvaluationResult['output'], 'resources' | 'spellAccess'>
   snapshot: Pick<CharacterRuleEvaluationResult['snapshot'], 'equipmentItems' | 'features'>
   grantFoldFacts: CharacterRuleEvaluationResult['facts']['grantFoldFacts']

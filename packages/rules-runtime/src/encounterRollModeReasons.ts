@@ -25,7 +25,7 @@ const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
 ])
 
 /** The reason a viewer reads for a contributor that comes from an actor hidden from them (D62). */
-export const ENCOUNTER_UNSEEN_SOURCE_REASON = 'Unseen source'
+const ENCOUNTER_UNSEEN_SOURCE_REASON = 'Unseen source'
 
 /** For summaries built where labels are not read; the pending read adds them. */
 export const noEncounterRollModeReasons: EncounterRollModeReasons = () => []

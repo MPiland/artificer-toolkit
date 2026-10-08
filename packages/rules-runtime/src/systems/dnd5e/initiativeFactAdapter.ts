@@ -14,8 +14,7 @@ import {
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 
-export const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID =
-  '00000000-0000-4000-8000-0000000000eb'
+const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000eb'
 
 export const DND5E_INITIATIVE_FACT_KEYS = {
   automatic: 'initiative.automatic',

@@ -19,7 +19,7 @@ import {
 } from './encounterActionEconomy.js'
 
 /** The attack the actor makes: the action it chose and the actor it targets. */
-export type EncounterAttackMade = EncounterAttackActionStateDto['attacks'][number]
+type EncounterAttackMade = EncounterAttackActionStateDto['attacks'][number]
 
 /**
  * Where an attack stands in its actor's Attack action. In Assisted mode the first attack of a turn
@@ -28,7 +28,7 @@ export type EncounterAttackMade = EncounterAttackActionStateDto['attacks'][numbe
  * attack that does not fit spends a new Action (warning when none is left) and opens a new Attack
  * action. Manual mode and every other action track nothing.
  */
-export type EncounterAttackActionEvaluation = {
+type EncounterAttackActionEvaluation = {
   /** The Action this attack spends; null when it fills an open Attack action or tracks nothing. */
   economy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
   /** The Attack action this attack joins; null when the action is not tracked. */

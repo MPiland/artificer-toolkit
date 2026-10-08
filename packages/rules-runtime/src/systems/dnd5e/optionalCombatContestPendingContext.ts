@@ -29,14 +29,3 @@ export function isDnd5eOptionalCombatContestPendingContextCurrent(input: {
   const current = prepareDnd5eOptionalCombatContestPendingContext(input.current)
   return checksumRuleDocument(sealed) === checksumRuleDocument(current)
 }
-
-/** Identifies the only actor allowed to answer one sealed contest d20 request. */
-export function requireDnd5eOptionalCombatContestRequestParticipant(input: {
-  pending: ServerOptionalCombatContestPendingApplicationContextDto
-  requestNodeId: string
-}): 'INITIATOR' | 'DEFENDER' {
-  serverOptionalCombatContestPendingContextDtoSchema.parse(input.pending)
-  if (input.requestNodeId === 'initiator_d20') return 'INITIATOR'
-  if (input.requestNodeId === 'target_d20') return 'DEFENDER'
-  throw new Error('Optional-combat contest requested an unsupported evidence node.')
-}

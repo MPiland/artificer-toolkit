@@ -76,15 +76,3 @@ export function foldActiveScalarReductions(input: {
   }
   return effective
 }
-
-export function hasActiveScalarReduction(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[]
-): boolean {
-  return effects.some(
-    (effect) =>
-      effect.definition.schemaVersion === 2 &&
-      effect.definition.stateContributions.some(
-        (contribution) => contribution.kind === 'SCALAR_REDUCTION'
-      )
-  )
-}

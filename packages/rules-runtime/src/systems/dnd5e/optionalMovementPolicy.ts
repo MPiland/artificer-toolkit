@@ -13,20 +13,13 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_OVERRUN_POLICY_MODULE,
-  DND5E_SHOVE_ASIDE_POLICY_MODULE,
-  DND5E_TUMBLE_POLICY_MODULE
-} from './policyModuleRegistration.js'
-
-export {
-  DND5E_OVERRUN_POLICY_MODULE,
-  DND5E_SHOVE_ASIDE_POLICY_MODULE,
   DND5E_TUMBLE_POLICY_MODULE
 } from './policyModuleRegistration.js'
 
 type ActionEconomy = 'ACTION' | 'BONUS_ACTION'
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
 
-export interface Dnd5eOptionalMovementPin {
+interface Dnd5eOptionalMovementPin {
   readonly definitionChecksum: string
   readonly definitionId: string
   readonly definitionVersion: number
@@ -35,7 +28,7 @@ export interface Dnd5eOptionalMovementPin {
 }
 
 /** A server-qualified contributor. This policy only appends its own size contributor. */
-export interface Dnd5eOptionalMovementContributor extends D20RollContributor {
+interface Dnd5eOptionalMovementContributor extends D20RollContributor {
   readonly id: string
   readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SHOVE_ASIDE_POLICY' | 'SIZE_RELATION'
 }
@@ -52,7 +45,7 @@ interface PolicyInput {
   readonly optionalCombatSnapshotChecksum: string | null | undefined
 }
 
-export type Dnd5eOptionalMovementResolution<T> =
+type Dnd5eOptionalMovementResolution<T> =
   | { readonly kind: 'INERT' }
   | { readonly kind: 'JUDGMENT_REQUIRED'; readonly reason: string }
   | { readonly kind: 'NOT_APPLICABLE' }
@@ -110,18 +103,6 @@ function exactUuid(value: string): boolean {
 
 function validSizeRank(value: number | null): value is number {
   return value !== null && Number.isSafeInteger(value) && value >= 0
-}
-
-function validContest(value: ContestEvidence): value is {
-  readonly initiatorTotal: number
-  readonly targetTotal: number
-} {
-  return (
-    value.initiatorTotal !== null &&
-    value.targetTotal !== null &&
-    Number.isSafeInteger(value.initiatorTotal) &&
-    Number.isSafeInteger(value.targetTotal)
-  )
 }
 
 function sizeContributor(input: {
@@ -209,7 +190,7 @@ function passage(blockerActorId: string): PassageProposal {
   }
 }
 
-export interface Dnd5eOverrunProposal {
+interface Dnd5eOverrunProposal {
   readonly contest: ContestEvidence & {
     readonly initiatorCheckDefinitionId: string
     readonly initiatorContributors: readonly Dnd5eOptionalMovementContributor[]
@@ -266,30 +247,7 @@ export function prepareDnd5eOverrunContest(
   }
 }
 
-/** Pure D&D policy; it proposes a one-turn passage and never changes Scene occupancy. */
-export function resolveDnd5eOverrun(
-  input: CommonPassageInput
-): Dnd5eOptionalMovementResolution<Dnd5eOverrunProposal> {
-  const prepared = prepareDnd5eOverrunContest(input)
-  if (prepared.kind !== 'PROPOSED') return prepared
-  if (!validContest(input.contest))
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_OVERRUN_FACTS' }
-  if (input.contest.initiatorTotal <= input.contest.targetTotal) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      ...prepared.proposal,
-      contest: {
-        ...prepared.proposal.contest,
-        ...input.contest
-      }
-    }
-  }
-}
-
-export interface Dnd5eTumbleProposal {
+interface Dnd5eTumbleProposal {
   readonly contest: ContestEvidence & {
     readonly initiatorCheckDefinitionId: string
     readonly targetCheckDefinitionId: string
@@ -355,153 +313,6 @@ export function prepareDnd5eTumbleContest(
         targetCheckDefinitionId: parameters.targetCheckDefinitionId
       },
       passage: passage(input.blockerActorId)
-    }
-  }
-}
-
-/** Tumble uses its own Acrobatics contest and deliberately does not suppress opportunity attacks. */
-export function resolveDnd5eTumble(
-  input: TumbleInput
-): Dnd5eOptionalMovementResolution<Dnd5eTumbleProposal> {
-  const prepared = prepareDnd5eTumbleContest(input)
-  if (prepared.kind !== 'PROPOSED') return prepared
-  if (!validContest(input.contest))
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_TUMBLE_FACTS' }
-  if (input.contest.initiatorTotal <= input.contest.targetTotal) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      ...prepared.proposal,
-      contest: {
-        ...prepared.proposal.contest,
-        ...input.contest
-      }
-    }
-  }
-}
-
-export interface Dnd5eShoveAsideProposal {
-  readonly contest: {
-    readonly initiatorCheckDefinitionId: string
-    readonly initiatorContributors: readonly Dnd5eOptionalMovementContributor[]
-    readonly initiatorMode: 'DISADVANTAGE' | 'NORMAL'
-    readonly initiatorTotal: number | null
-    readonly targetCheckDefinitionId: string
-    readonly targetTotal: number | null
-  }
-  readonly displacement: {
-    readonly distanceFeet: 5
-    readonly opportunityAttackSuppression: false
-    readonly remainsWithinInitiatorReach: true
-    readonly targetActorId: string
-    readonly type: 'FORCED'
-  }
-  readonly consumes: { readonly amount: 1; readonly economy: 'ACTION' }
-  readonly pin: Dnd5eOptionalMovementPin
-}
-
-/** Pure D&D policy; destination geometry is supplied only after the Scene validates it. */
-export function resolveDnd5eShoveAside(
-  input: PolicyInput & {
-    readonly attackerActorId: string
-    readonly attackerSizeRank: number | null
-    readonly actionEconomy: ActionEconomy | null
-    readonly actionEconomyAvailable: boolean | null
-    readonly contest: ContestEvidence
-    readonly destination: {
-      readonly isLegal: boolean
-      readonly remainsWithinAttackerReach: boolean
-      readonly distanceFeet: number
-    } | null
-    readonly targetActorId: string
-    readonly targetCheckDefinitionId: string | null
-    readonly targetIncapacitated: boolean | null
-    readonly targetInReach: boolean | null
-    readonly targetSizeRank: number | null
-    readonly qualifiedInitiatorContributors: readonly Dnd5eOptionalMovementContributor[]
-  }
-): Dnd5eOptionalMovementResolution<Dnd5eShoveAsideProposal> {
-  const definition = exactDefinition({
-    ...input,
-    kind: 'SHOVE_ASIDE',
-    module: DND5E_SHOVE_ASIDE_POLICY_MODULE
-  })
-  if (!definition) return { kind: 'INERT' }
-  const parameters = definition.document.parameters
-  if (parameters.kind !== 'SHOVE_ASIDE') return { kind: 'INERT' }
-  if (
-    !exactUuid(input.attackerActorId) ||
-    !exactUuid(input.targetActorId) ||
-    input.attackerActorId === input.targetActorId ||
-    !validSizeRank(input.attackerSizeRank) ||
-    !validSizeRank(input.targetSizeRank) ||
-    input.actionEconomy === null ||
-    input.actionEconomyAvailable === null ||
-    input.targetInReach === null ||
-    input.targetIncapacitated === null ||
-    input.destination === null
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_SHOVE_ASIDE_FACTS' }
-  }
-  if (input.actionEconomy !== 'ACTION' || !input.actionEconomyAvailable) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  if (
-    !input.destination.isLegal ||
-    !input.destination.remainsWithinAttackerReach ||
-    input.destination.distanceFeet !== 5
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'SHOVE_ASIDE_DESTINATION_UNRESOLVED' }
-  }
-  if (!input.targetInReach || input.targetSizeRank > input.attackerSizeRank + 1) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  if (
-    !input.targetIncapacitated &&
-    (!validContest(input.contest) ||
-      input.targetCheckDefinitionId === null ||
-      !exactUuid(input.targetCheckDefinitionId) ||
-      !parameters.defenderCheckDefinitionIds.includes(input.targetCheckDefinitionId))
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_SHOVE_ASIDE_CONTEST_FACTS' }
-  }
-  if (
-    !input.targetIncapacitated &&
-    input.contest.initiatorTotal !== null &&
-    input.contest.targetTotal !== null &&
-    input.contest.initiatorTotal <= input.contest.targetTotal
-  ) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  const contributor: Dnd5eOptionalMovementContributor = {
-    id: `${definition.definitionId}:shove-aside`,
-    influence: 'DISADVANTAGE',
-    reason: 'SHOVE_ASIDE_POLICY'
-  }
-  const d20 = resolveD20Contributors([...input.qualifiedInitiatorContributors, contributor])
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      pin: pin(definition),
-      consumes: { economy: 'ACTION', amount: 1 },
-      contest: {
-        initiatorCheckDefinitionId: parameters.initiatorCheckDefinitionId,
-        targetCheckDefinitionId:
-          input.targetCheckDefinitionId ?? parameters.defenderCheckDefinitionIds[0]!,
-        initiatorTotal: input.contest.initiatorTotal,
-        targetTotal: input.contest.targetTotal,
-        initiatorContributors: d20.contributors,
-        initiatorMode: d20.rollMode === 'ADVANTAGE' ? 'NORMAL' : d20.rollMode
-      },
-      displacement: {
-        type: 'FORCED',
-        targetActorId: input.targetActorId,
-        distanceFeet: 5,
-        remainsWithinInitiatorReach: true,
-        opportunityAttackSuppression: false
-      }
     }
   }
 }

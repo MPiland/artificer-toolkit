@@ -19,13 +19,7 @@ import {
 } from './rulesRuntimeService.js'
 import { dnd5eRulesRuntimeRegistration } from './systems/dnd5e/characterActionRuntime.js'
 
-export { requireInstalledGameSystemPolicyModule } from './platformPolicyModules.js'
-
-export {
-  evaluateInstalledCharacterActions,
-  evaluateInstalledCharacterGrantFold,
-  evaluateInstalledCharacterPolicy
-} from './platformCharacterPolicy.js'
+export { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
 export { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
 
 /**
@@ -42,11 +36,6 @@ export const installedGameSystemRuleOperations: readonly RuleOperationContract[]
   ...coreRuleOperations,
   ...installedRuntimeModules.flatMap((module) => module.operations)
 ]
-
-export type InstalledCreatureRuleFactsCompiler = (input: {
-  creature: CreatureAuthored
-  vocabulary: SystemVocabularySnapshot
-}) => EncounterCreatureRuleFactsSnapshot
 
 /**
  * Selects the installed System's compiler by immutable System identity. The

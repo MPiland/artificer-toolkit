@@ -16,8 +16,8 @@ import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 
-export const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
-export const DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY = 'dnd5e.concentration-damage-dc'
+const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
+const DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY = 'dnd5e.concentration-damage-dc'
 /** UUID identity from the D&D System vocabulary snapshot, not an ability code. */
 export const DND5E_CONSTITUTION_ABILITY_DEFINITION_ID = '00000000-0000-0000-0011-000300000000'
 export const DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY = 'dnd5e.concentration-target-actor-id'
@@ -26,7 +26,7 @@ export const DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY = 'dnd5e.concentration-s
 export const DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY =
   'dnd5e.concentration-contributor-checksum'
 
-export interface Dnd5eConcentrationContributor {
+interface Dnd5eConcentrationContributor {
   sourceId: string
   grantId: string | null
   domainKey: string | null
@@ -34,7 +34,7 @@ export interface Dnd5eConcentrationContributor {
 }
 
 /** Rejects noncanonical or altered contributor evidence before it enters a child receipt. */
-export function validateDnd5eConcentrationContributors(
+function validateDnd5eConcentrationContributors(
   contributors: readonly Dnd5eConcentrationContributor[],
   contributorChecksum: string
 ): void {

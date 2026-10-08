@@ -9,7 +9,7 @@ import { reconcileBoundedUsageTrack } from '@artificer-toolkit/shared/rules'
 
 import { EncounterValidationError } from './encounterErrors.js'
 
-export function reconcileFeatureResource(
+function reconcileFeatureResource(
   resource: EncounterActorFeatureResourceResult,
   rawUsed: number,
   previousMaximum = resource.maximum

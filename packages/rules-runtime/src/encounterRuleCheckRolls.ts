@@ -7,7 +7,7 @@ import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/
 const ruleCheckRollNamespace = '6b1f0c7e-3d2a-4f5b-9c8e-1a2b3c4d5e6f'
 
 /** One settled rule check's log identity: its occurrence plus the check's index within it. */
-export function ruleCheckRollId(occurrenceId: string, checkIndex: number) {
+function ruleCheckRollId(occurrenceId: string, checkIndex: number) {
   return uuidv5(`${occurrenceId}:${checkIndex}:rule-check-roll`, ruleCheckRollNamespace)
 }
 

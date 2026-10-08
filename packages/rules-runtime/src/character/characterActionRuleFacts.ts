@@ -1,6 +1,5 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
-export type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterGrantFoldInput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CompiledEquipmentEffectGroup } from '@artificer-toolkit/shared/subjects/compilers'
@@ -24,7 +23,7 @@ type ActionMechanicOutcome = ActionMechanicFacts['outcomes'][number]
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
 type HealOutcome = Extract<ActionMechanicOutcome, { kind: 'HEAL' }>
 
-export interface CharacterActionRuleFacts {
+interface CharacterActionRuleFacts {
   actionCandidates: ActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
 }

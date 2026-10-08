@@ -3,7 +3,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 
 type ReductionSourceEffect = Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>
 
-export type HitPointMaximumReduction = {
+type HitPointMaximumReduction = {
   activeEffectId: string
   label: string
   sourceHidden: boolean

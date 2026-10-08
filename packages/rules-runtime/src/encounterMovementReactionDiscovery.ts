@@ -35,7 +35,7 @@ import {
 } from './encounterMovementReactionSources.js'
 import type { EncounterMovementReactionActiveEffect } from './encounterRuleCapabilityState.js'
 
-export interface EncounterMovementReactionDiscoveryResult {
+interface EncounterMovementReactionDiscoveryResult {
   reactionTimeline: MovementReactionTimelineDto
   firstBoundaryDistance: number | null
 }

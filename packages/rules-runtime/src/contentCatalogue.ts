@@ -40,7 +40,7 @@ export function toContentCatalogueSource(
   } as ContentCatalogueSource
 }
 
-export type ContentCatalogueSort = 'name' | 'category' | 'family' | 'level' | 'school'
+type ContentCatalogueSort = 'name' | 'category' | 'family' | 'level' | 'school'
 
 const parentKey = (systemId: string, id: string) => `${systemId}:${id.toLowerCase()}`
 

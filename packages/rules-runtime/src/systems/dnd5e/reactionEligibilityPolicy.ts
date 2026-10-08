@@ -17,25 +17,23 @@ import { createMovementReactionChoiceDefinition } from '../../movementReactionCh
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilityStateService.js'
 import { DND5E_SYSTEM_ID, DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from './identity.js'
-export { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from './identity.js'
 
 export const DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000d1'
 export const DND5E_MOVEMENT_REACTION_CHOICE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d3'
 export const DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d4'
-export const DND5E_MOVEMENT_REACTION_ELIGIBILITY_OPERATION_KEY =
-  'dnd5e.movement-reaction-eligibility'
+const DND5E_MOVEMENT_REACTION_ELIGIBILITY_OPERATION_KEY = 'dnd5e.movement-reaction-eligibility'
 
-export const DND5E_REACTION_STAGE_FACT_KEY = 'dnd5e.reaction-stage'
-export const DND5E_REACTION_MOVEMENT_KIND_FACT_KEY = 'dnd5e.reaction-movement-kind'
-export const DND5E_REACTION_CONTACT_VALID_FACT_KEY = 'dnd5e.reaction-contact-valid'
-export const DND5E_REACTION_PERCEPTION_SATISFIED_FACT_KEY = 'dnd5e.reaction-perception-satisfied'
-export const DND5E_REACTION_REACTOR_CAN_ACT_FACT_KEY = 'dnd5e.reaction-reactor-can-act'
-export const DND5E_REACTION_TARGET_HOSTILE_FACT_KEY = 'dnd5e.reaction-target-hostile'
-export const DND5E_REACTION_ALLOWANCE_AVAILABLE_FACT_KEY = 'dnd5e.reaction-allowance-available'
-export const DND5E_REACTION_SUPPRESSED_FACT_KEY = 'dnd5e.reaction-suppressed'
+const DND5E_REACTION_STAGE_FACT_KEY = 'dnd5e.reaction-stage'
+const DND5E_REACTION_MOVEMENT_KIND_FACT_KEY = 'dnd5e.reaction-movement-kind'
+const DND5E_REACTION_CONTACT_VALID_FACT_KEY = 'dnd5e.reaction-contact-valid'
+const DND5E_REACTION_PERCEPTION_SATISFIED_FACT_KEY = 'dnd5e.reaction-perception-satisfied'
+const DND5E_REACTION_REACTOR_CAN_ACT_FACT_KEY = 'dnd5e.reaction-reactor-can-act'
+const DND5E_REACTION_TARGET_HOSTILE_FACT_KEY = 'dnd5e.reaction-target-hostile'
+const DND5E_REACTION_ALLOWANCE_AVAILABLE_FACT_KEY = 'dnd5e.reaction-allowance-available'
+const DND5E_REACTION_SUPPRESSED_FACT_KEY = 'dnd5e.reaction-suppressed'
 
-export type Dnd5eMovementReactionStage = 'BEFORE_LEAVE_REACH' | 'ENTER_REACH'
+type Dnd5eMovementReactionStage = 'BEFORE_LEAVE_REACH' | 'ENTER_REACH'
 
 function requireBoolean(inputs: Readonly<Record<string, RuleValue>>, key: string): boolean {
   const value = inputs[key]

@@ -11,13 +11,13 @@ import type {
 
 import type { CharacterBuilderRegistry, CharacterBuilderValidation } from './builderTypes.js'
 
-export type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
-export type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number]
+type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
+type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number]
 type CharacterHitpointProgressionFacts = NonNullable<
   NonNullable<CharacterRulePolicyInput['hitPointFacts']>['progression']
 >
 
-export interface CharacterHitpointProgressionPreparation {
+interface CharacterHitpointProgressionPreparation {
   facts: CharacterHitpointProgressionFacts
   entries: CharacterHitpointLevelEntry[]
 }
@@ -179,7 +179,7 @@ export function applyCharacterHitpointProgression(
   })
 }
 
-export function reconcileCharacterHitpointProgression(
+function reconcileCharacterHitpointProgression(
   classes: CharacterAuthored['intent']['classes'],
   levels: CharacterHitpointLevelEntry[]
 ): CharacterHitpointLevelEntry[] {

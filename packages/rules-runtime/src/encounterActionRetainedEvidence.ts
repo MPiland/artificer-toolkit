@@ -16,7 +16,7 @@ import {
 } from './encounterEvidenceAnswer.js'
 
 /** A settled action's retained evidence: its phases, terminal execution and application dice. */
-export type RetainedActionReceipt = {
+type RetainedActionReceipt = {
   execution: ServerCompletedRuleExecutionDto
   phaseReceipts?: z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
   application: z.infer<typeof serverRuleExecutionApplicationOutputsDtoSchema>

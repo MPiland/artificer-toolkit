@@ -12,13 +12,13 @@ import { initiativePublishedGraph } from './encounterInitiativeGraphExecution.js
 
 type InitiativeGraphSnapshot = EncounterInitiativePolicySnapshotDto['orderChoiceGraph']
 
-export type InitiativeOrderChoiceResult = {
+type InitiativeOrderChoiceResult = {
   kind: 'COMPLETE'
   selection: number
   execution: ServerCompletedRuleExecutionDto
 }
 
-export type InitiativeOrderChoiceExecution =
+type InitiativeOrderChoiceExecution =
   | { kind: 'PENDING'; continuation: ServerRuleExecutionContinuationDto }
   | InitiativeOrderChoiceResult
 

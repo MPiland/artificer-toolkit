@@ -1,10 +1,4 @@
-import { coreRuleOperations, type RuleOperationContract } from '@artificer-toolkit/shared/rules'
-
-import {
-  createRulesRuntimeService,
-  type PublishedRuleDefinitionSource,
-  type RulesRuntimeService
-} from '../../rulesRuntimeService.js'
+import { type RuleOperationContract } from '@artificer-toolkit/shared/rules'
 import {
   dnd5eAttackTestOperation,
   dnd5eActorRelationshipStateOperation,
@@ -73,20 +67,3 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eMovementInterruptionAuthorizationOperation
   ] satisfies readonly RuleOperationContract[]
 } as const
-
-/** Creates the exact D&D action runtime used by the Character-action service. */
-export function createDnd5eCharacterActionRuntime(input: {
-  continuationIntegrityKey: Uint8Array
-  definitions: PublishedRuleDefinitionSource
-}): RulesRuntimeService {
-  const operations: readonly RuleOperationContract[] = [
-    ...coreRuleOperations,
-    ...dnd5eRulesRuntimeRegistration.operations
-  ]
-  return createRulesRuntimeService({
-    capabilities: dnd5eRulesRuntimeRegistration.capabilities,
-    continuationIntegrityKey: input.continuationIntegrityKey,
-    definitions: input.definitions,
-    operations
-  })
-}

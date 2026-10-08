@@ -146,7 +146,7 @@ export function resolveCharacterChosenGrantChoices(
  * selected Equipment property is offered by each property grant. A found witness record is added
  * to a restricted catalogue; adding records from the complete pool never removes an option.
  */
-export type ChosenGrantWitnessQuestion =
+type ChosenGrantWitnessQuestion =
   | {
       kind: 'EQUIPMENT'
       candidateIds: readonly string[] | null

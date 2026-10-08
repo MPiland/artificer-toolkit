@@ -20,7 +20,7 @@ interface PositionField {
   readonly role: SelectionRole
 }
 
-export type Dnd5eOptionalCombatActionSelectionField = EntityField | PositionField
+type Dnd5eOptionalCombatActionSelectionField = EntityField | PositionField
 
 export interface Dnd5eOptionalCombatActionSelectionDescriptor {
   readonly optionId: string
@@ -29,7 +29,7 @@ export interface Dnd5eOptionalCombatActionSelectionDescriptor {
   readonly fields: readonly Dnd5eOptionalCombatActionSelectionField[]
 }
 
-export interface Dnd5eOptionalCombatActionSelection {
+interface Dnd5eOptionalCombatActionSelection {
   readonly definition: OptionalDefinition
   readonly entities: Readonly<Partial<Record<SelectionRole, string>>>
   readonly positions: Readonly<Partial<Record<SelectionRole, { x: number; y: number }>>>

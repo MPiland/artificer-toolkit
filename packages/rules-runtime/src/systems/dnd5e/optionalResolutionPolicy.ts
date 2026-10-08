@@ -2,13 +2,9 @@ import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSe
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   activeOptionalCombatDefinitions,
-  DND5E_HITTING_COVER_OPERATION_KEY,
-  DND5E_INJURIES_OPERATION_KEY,
-  DND5E_MASSIVE_DAMAGE_OPERATION_KEY,
   DND5E_MORALE_OPERATION_KEY,
   encounterOptionalCombatSnapshotDtoSchema,
   type Dnd5eOptionalCombatOutcomeDescriptorDto,
-  type Dnd5eOptionalCombatRecoveryDescriptorDto,
   type Dnd5eOptionalCombatRuleKindDto,
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
@@ -17,27 +13,13 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
-
-export { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
-export const DND5E_HITTING_COVER_POLICY_MODULE = {
-  key: DND5E_HITTING_COVER_OPERATION_KEY,
-  contractVersion: 1
-} as const
-export const DND5E_INJURIES_POLICY_MODULE = {
-  key: DND5E_INJURIES_OPERATION_KEY,
-  contractVersion: 1
-} as const
-export const DND5E_MASSIVE_DAMAGE_POLICY_MODULE = {
-  key: DND5E_MASSIVE_DAMAGE_OPERATION_KEY,
-  contractVersion: 1
-} as const
-export const DND5E_MORALE_POLICY_MODULE = {
+const DND5E_MORALE_POLICY_MODULE = {
   key: DND5E_MORALE_OPERATION_KEY,
   contractVersion: 1
 } as const
 
 /** Attacker and initial target consume two Encounter actor identities. */
-export const MAX_DND5E_CLEAVING_TARGETS = MAX_ENCOUNTER_ACTORS - 2
+const MAX_DND5E_CLEAVING_TARGETS = MAX_ENCOUNTER_ACTORS - 2
 
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
 type Resolution<T> =
@@ -115,13 +97,6 @@ function isSafeInteger(value: number | null): value is number {
   return value !== null && Number.isSafeInteger(value)
 }
 
-function findBand<TBand extends { readonly minimum: number; readonly maximum: number }>(
-  bands: readonly TBand[],
-  roll: number
-): TBand | null {
-  return bands.find((band) => roll >= band.minimum && roll <= band.maximum) ?? null
-}
-
 function hasValidMoraleTriggerScope(
   trigger: NonNullable<Parameters<typeof resolveDnd5eMorale>[0]['trigger']>
 ): boolean {
@@ -139,102 +114,7 @@ function hasValidMoraleTriggerScope(
   }
 }
 
-export interface Dnd5eHittingCoverRedirectProposal {
-  readonly attackTotal: number
-  readonly coverProviderActorId: string
-  readonly coveredTargetActorId: string
-  readonly pin: Dnd5eOptionalResolutionPin
-  readonly redirect: 'COVER_PROVIDER'
-}
-
-/** Proposes only the creature-cover redirect; application remains in ordered outcome settlement. */
-export function resolveDnd5eHittingCover(
-  input: PolicyInput & {
-    readonly attackKind: 'RANGED' | 'OTHER' | null
-    readonly attackTotal: number | null
-    readonly attackResolution: {
-      readonly naturalRoll: number | null
-      readonly missedBecauseOfCover: boolean | null
-      readonly wouldHitProtectedTargetWithoutCover: boolean | null
-    } | null
-    readonly coveredTargetActorId: string
-    readonly coveredTargetArmorClass: number | null
-    readonly coverProviders:
-      | readonly {
-          readonly actorId: string | null
-          readonly armorClass: number | null
-          readonly kind: 'CREATURE' | 'OBJECT' | 'TERRAIN' | 'BARRIER'
-        }[]
-      | null
-  }
-): Resolution<Dnd5eHittingCoverRedirectProposal> {
-  const definition = exactDefinition({
-    ...input,
-    kind: 'HITTING_COVER',
-    module: DND5E_HITTING_COVER_POLICY_MODULE
-  })
-  if (!definition) return { kind: 'INERT' }
-  if (definition.document.parameters.kind !== 'HITTING_COVER') return { kind: 'INERT' }
-  if (
-    input.attackKind === null ||
-    !isSafeInteger(input.attackTotal) ||
-    !isSafeInteger(input.coveredTargetArmorClass) ||
-    !canonicalUuid(input.coveredTargetActorId) ||
-    input.attackResolution === null ||
-    !isSafeInteger(input.attackResolution.naturalRoll) ||
-    input.attackResolution.naturalRoll < 1 ||
-    input.attackResolution.naturalRoll > 20 ||
-    input.attackResolution.missedBecauseOfCover === null ||
-    input.attackResolution.wouldHitProtectedTargetWithoutCover === null ||
-    input.coverProviders === null
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_HITTING_COVER_FACTS' }
-  }
-  if (input.attackKind !== definition.document.parameters.qualifyingAttackKind)
-    return { kind: 'NOT_APPLICABLE' }
-  const { naturalRoll, missedBecauseOfCover, wouldHitProtectedTargetWithoutCover } =
-    input.attackResolution
-  if (
-    (naturalRoll === 1 && (missedBecauseOfCover || wouldHitProtectedTargetWithoutCover)) ||
-    (naturalRoll === 20 && (!wouldHitProtectedTargetWithoutCover || missedBecauseOfCover)) ||
-    (naturalRoll !== 1 &&
-      naturalRoll !== 20 &&
-      missedBecauseOfCover &&
-      !wouldHitProtectedTargetWithoutCover)
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'CONTRADICTORY_HITTING_COVER_RESOLUTION' }
-  }
-  if (naturalRoll === 1 || naturalRoll === 20 || !missedBecauseOfCover) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  if (input.coverProviders.length !== 1) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'AMBIGUOUS_COVER_PROVIDER' }
-  }
-  const provider = input.coverProviders[0]!
-  if (
-    provider.kind !== definition.document.parameters.redirectCoverProviderKinds[0] ||
-    provider.actorId === null ||
-    provider.armorClass === null
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'UNSUPPORTED_COVER_PROVIDER' }
-  }
-  if (!canonicalUuid(provider.actorId) || !isSafeInteger(provider.armorClass)) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_COVER_PROVIDER_FACTS' }
-  }
-  if (input.attackTotal <= provider.armorClass) return { kind: 'NOT_APPLICABLE' }
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      pin: pin(definition),
-      redirect: 'COVER_PROVIDER',
-      attackTotal: input.attackTotal,
-      coveredTargetActorId: input.coveredTargetActorId,
-      coverProviderActorId: provider.actorId
-    }
-  }
-}
-
-export interface Dnd5eCleavingProposal {
+interface Dnd5eCleavingProposal {
   readonly attackTotal: number
   readonly chainStep: number
   readonly eligibleTargetActorIds: readonly string[]
@@ -401,118 +281,7 @@ export function resolveDnd5eCleaving(
   }
 }
 
-interface Dnd5eConsequenceProposal {
-  readonly consequence: Dnd5eOptionalCombatOutcomeDescriptorDto
-  readonly pin: Dnd5eOptionalResolutionPin
-  readonly recovery: Dnd5eOptionalCombatRecoveryDescriptorDto | null
-  readonly tableRoll: number
-}
-
-export function resolveDnd5eMassiveDamage(
-  input: PolicyInput & {
-    readonly damageSourceCount: number | null
-    readonly finalizedAppliedDamage: number | null
-    readonly maximumHitPoints: number | null
-    readonly savingThrow: {
-      readonly abilityDefinitionId: string
-      readonly total: number | null
-    } | null
-    readonly tableRoll: number | null
-  }
-): Resolution<Dnd5eConsequenceProposal> {
-  const definition = exactDefinition({
-    ...input,
-    kind: 'MASSIVE_DAMAGE',
-    module: DND5E_MASSIVE_DAMAGE_POLICY_MODULE
-  })
-  if (!definition) return { kind: 'INERT' }
-  if (definition.document.parameters.kind !== 'MASSIVE_DAMAGE') return { kind: 'INERT' }
-  if (
-    !isSafeInteger(input.damageSourceCount) ||
-    !isSafeInteger(input.finalizedAppliedDamage) ||
-    !isSafeInteger(input.maximumHitPoints) ||
-    input.damageSourceCount < 1 ||
-    input.finalizedAppliedDamage < 0 ||
-    input.maximumHitPoints <= 0
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_MASSIVE_DAMAGE_FACTS' }
-  }
-  if (input.damageSourceCount !== 1)
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MULTIPLE_DAMAGE_SOURCES' }
-  const threshold = Math.ceil(
-    (input.maximumHitPoints * definition.document.parameters.threshold.numerator) /
-      definition.document.parameters.threshold.denominator
-  )
-  if (input.finalizedAppliedDamage < threshold) return { kind: 'NOT_APPLICABLE' }
-  if (
-    input.savingThrow === null ||
-    input.savingThrow.abilityDefinitionId !==
-      definition.document.parameters.savingThrowAbilityDefinitionId ||
-    !isSafeInteger(input.savingThrow.total) ||
-    !isSafeInteger(input.tableRoll)
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_MASSIVE_DAMAGE_SAVE_FACTS' }
-  }
-  if (input.savingThrow.total >= definition.document.parameters.savingThrowDifficultyClass)
-    return { kind: 'NOT_APPLICABLE' }
-  const band = findBand(definition.document.parameters.bands, input.tableRoll)
-  if (band === null)
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'INVALID_MASSIVE_DAMAGE_TABLE_ROLL' }
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      pin: pin(definition),
-      tableRoll: input.tableRoll,
-      consequence: band.outcome,
-      recovery: band.recovery
-    }
-  }
-}
-
-export function resolveDnd5eInjury(
-  input: PolicyInput & {
-    readonly anatomy: 'SUPPORTED' | 'UNSUPPORTED' | 'JUDGMENT_REQUIRED' | null
-    readonly recoveryContext: 'SUPPORTED' | 'UNSUPPORTED' | 'JUDGMENT_REQUIRED' | null
-    readonly tableRoll: number | null
-    readonly trigger: {
-      readonly authorized: boolean
-      readonly kind: 'CRITICAL_HIT' | 'DROP_TO_ZERO' | 'FAIL_DEATH_SAVE_BY_FIVE_OR_MORE'
-    } | null
-  }
-): Resolution<Dnd5eConsequenceProposal> {
-  const definition = exactDefinition({
-    ...input,
-    kind: 'INJURIES',
-    module: DND5E_INJURIES_POLICY_MODULE
-  })
-  if (!definition) return { kind: 'INERT' }
-  if (definition.document.parameters.kind !== 'INJURIES') return { kind: 'INERT' }
-  if (input.trigger === null) return { kind: 'NOT_APPLICABLE' }
-  if (
-    !input.trigger.authorized ||
-    !definition.document.parameters.triggerKinds.includes(input.trigger.kind)
-  )
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'INJURY_TRIGGER_NOT_AUTHORIZED' }
-  if (input.anatomy === null || input.recoveryContext === null || !isSafeInteger(input.tableRoll))
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_INJURY_FACTS' }
-  if (input.anatomy !== 'SUPPORTED')
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'INJURY_ANATOMY_UNRESOLVED' }
-  if (input.recoveryContext !== 'SUPPORTED')
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'INJURY_RECOVERY_UNRESOLVED' }
-  const band = findBand(definition.document.parameters.bands, input.tableRoll)
-  if (band === null) return { kind: 'JUDGMENT_REQUIRED', reason: 'INVALID_INJURY_TABLE_ROLL' }
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      pin: pin(definition),
-      tableRoll: input.tableRoll,
-      consequence: band.outcome,
-      recovery: band.recovery
-    }
-  }
-}
-
-export interface Dnd5eMoraleProposal {
+interface Dnd5eMoraleProposal {
   readonly evidence: {
     readonly automaticFailure: boolean
     readonly rollMode: 'NORMAL' | 'DISADVANTAGE'
@@ -535,7 +304,7 @@ export interface Dnd5eMoraleProposal {
   readonly routeOrTerms: 'JUDGMENT_REQUIRED' | null
 }
 
-export function resolveDnd5eMorale(
+function resolveDnd5eMorale(
   input: PolicyInput & {
     readonly overwhelmingOpposition: boolean | null
     readonly escapePossible: boolean | null

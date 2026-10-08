@@ -16,13 +16,13 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { requireInstalledGameSystemPolicyModule } from './platformPolicyModules.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 
-export class OptionalCombatSourceError extends Error {
+class OptionalCombatSourceError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'OptionalCombatSourceError'
   }
 }
-export interface ResolvedOptionalCombatDefinition {
+interface ResolvedOptionalCombatDefinition {
   current: ReusableDefinitionCurrentDto
   document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
 }

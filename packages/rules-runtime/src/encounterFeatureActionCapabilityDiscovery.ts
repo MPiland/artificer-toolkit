@@ -54,7 +54,7 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
 }
 
 /** A Creature action whose authored mechanics cannot run; it is listed unavailable, not thrown. */
-export interface EncounterFeatureActionUnavailable {
+interface EncounterFeatureActionUnavailable {
   actionId: string
   ownerFeatureId: string
   label: string

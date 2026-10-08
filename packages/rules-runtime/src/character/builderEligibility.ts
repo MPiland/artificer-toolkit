@@ -10,10 +10,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import {
-  evaluateMulticlassRequirements,
-  resolveAbilityAlias
-} from '@artificer-toolkit/shared/character'
+import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import {
   getSelectedFeatureOptionIds,
   type CharacterChosenGrantOwner
@@ -162,7 +159,7 @@ function isClassSourceLevelStillAvailable(
   return source.classLevel == null || source.classLevel <= row.classLevel
 }
 
-export function isCharacterBuilderProvenanceStillValid({
+function isCharacterBuilderProvenanceStillValid({
   source,
   character,
   registry,
@@ -501,20 +498,6 @@ function getChosenGrantOwnerTiming(
   }
 
   return { kind: 'IMMEDIATE' }
-}
-
-export function resolveCharacterBuilderEffectiveAbilityScores(
-  output: CharacterRulePolicyOutput
-): Partial<Record<AbilityCode, number>> {
-  const effectiveAbilityScores: Partial<Record<AbilityCode, number>> = {}
-  for (const ability of output.derivedStats.abilities) {
-    const canonical = resolveAbilityAlias(ability.abilityId)
-    if (canonical && abilityOrder.includes(canonical as AbilityCode)) {
-      effectiveAbilityScores[canonical as AbilityCode] = ability.score.effective
-    }
-  }
-
-  return effectiveAbilityScores
 }
 
 export type FeatureOptionEligibility<
