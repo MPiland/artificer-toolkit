@@ -2,9 +2,7 @@ import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSe
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   activeOptionalCombatDefinitions,
-  DND5E_MORALE_OPERATION_KEY,
   encounterOptionalCombatSnapshotDtoSchema,
-  type Dnd5eOptionalCombatOutcomeDescriptorDto,
   type Dnd5eOptionalCombatRuleKindDto,
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
@@ -13,10 +11,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
-const DND5E_MORALE_POLICY_MODULE = {
-  key: DND5E_MORALE_OPERATION_KEY,
-  contractVersion: 1
-} as const
 
 /** Attacker and initial target consume two Encounter actor identities. */
 const MAX_DND5E_CLEAVING_TARGETS = MAX_ENCOUNTER_ACTORS - 2
@@ -95,23 +89,6 @@ function canonicalUuid(value: string): boolean {
 
 function isSafeInteger(value: number | null): value is number {
   return value !== null && Number.isSafeInteger(value)
-}
-
-function hasValidMoraleTriggerScope(
-  trigger: NonNullable<Parameters<typeof resolveDnd5eMorale>[0]['trigger']>
-): boolean {
-  switch (trigger.kind) {
-    case 'INDIVIDUAL_SURPRISED':
-    case 'INDIVIDUAL_REDUCED_TO_HALF':
-    case 'INDIVIDUAL_CANNOT_HARM_OPPOSITION':
-      return trigger.scope === 'INDIVIDUAL'
-    case 'GROUP_SURPRISED':
-    case 'GROUP_HALF_REMOVED':
-    case 'GROUP_LEADER_REMOVED':
-    case 'GROUP_LEADER_INCAPACITATED':
-    case 'GROUP_LEADER_TAKEN_PRISONER':
-      return trigger.scope === 'GROUP'
-  }
 }
 
 interface Dnd5eCleavingProposal {
@@ -277,190 +254,6 @@ export function resolveDnd5eCleaving(
       remainingFinalDamage: input.remainingFinalDamage,
       nextTargetActorId: input.nextTarget.actorId,
       visitedTargetActorIds: [...input.visitedTargetActorIds, input.nextTarget.actorId]
-    }
-  }
-}
-
-interface Dnd5eMoraleProposal {
-  readonly evidence: {
-    readonly automaticFailure: boolean
-    readonly rollMode: 'NORMAL' | 'DISADVANTAGE'
-    readonly triggerKind:
-      | 'INDIVIDUAL_SURPRISED'
-      | 'INDIVIDUAL_REDUCED_TO_HALF'
-      | 'INDIVIDUAL_CANNOT_HARM_OPPOSITION'
-      | 'GROUP_SURPRISED'
-      | 'GROUP_HALF_REMOVED'
-      | 'GROUP_LEADER_REMOVED'
-      | 'GROUP_LEADER_INCAPACITATED'
-      | 'GROUP_LEADER_TAKEN_PRISONER'
-    readonly triggerScope: 'GROUP' | 'INDIVIDUAL'
-  } & (
-    | { readonly rollerActorId: string; readonly rollerKind: 'SELF' }
-    | { readonly rollerActorId: string; readonly rollerKind: 'LEADER_OR_FALLBACK' }
-  )
-  readonly pin: Dnd5eOptionalResolutionPin
-  readonly resolution: Dnd5eOptionalCombatOutcomeDescriptorDto
-  readonly routeOrTerms: 'JUDGMENT_REQUIRED' | null
-}
-
-function resolveDnd5eMorale(
-  input: PolicyInput & {
-    readonly overwhelmingOpposition: boolean | null
-    readonly escapePossible: boolean | null
-    readonly trigger:
-      | {
-          readonly scope: 'INDIVIDUAL'
-          readonly kind:
-            | 'INDIVIDUAL_SURPRISED'
-            | 'INDIVIDUAL_REDUCED_TO_HALF'
-            | 'INDIVIDUAL_CANNOT_HARM_OPPOSITION'
-          readonly fact: 'SURPRISED' | 'HALF_HIT_POINTS_REACHED' | 'CANNOT_HARM_OPPOSITION'
-          readonly satisfied: boolean
-        }
-      | {
-          readonly scope: 'GROUP'
-          readonly kind: 'GROUP_HALF_REMOVED'
-          readonly fact: 'HALF_PARTICIPANTS_REMOVED'
-          readonly satisfied: true
-          readonly opposingSideHasLosses: false
-        }
-      | {
-          readonly scope: 'GROUP'
-          readonly kind:
-            | 'GROUP_SURPRISED'
-            | 'GROUP_LEADER_REMOVED'
-            | 'GROUP_LEADER_INCAPACITATED'
-            | 'GROUP_LEADER_TAKEN_PRISONER'
-          readonly fact:
-            | 'GROUP_SURPRISED'
-            | 'LEADER_REMOVED'
-            | 'LEADER_INCAPACITATED'
-            | 'LEADER_TAKEN_PRISONER'
-            | 'OPPONENT_REMOVED'
-          readonly satisfied: boolean
-        }
-      | null
-    readonly individualSavingThrow: {
-      readonly actorId: string
-      readonly savingThrowAbilityDefinitionId: string
-      readonly savingThrowTotal: number | null
-    } | null
-    readonly leaderOrFallback: {
-      readonly selectedActorId: string
-      readonly selection:
-        | {
-            readonly kind: 'LEADER'
-            readonly leaderActorId: string
-            readonly leaderIsEligible: true
-          }
-        | {
-            readonly kind: 'FALLBACK'
-            readonly leaderIsEligible: false
-            readonly selectedHasHighestEligibleMorale: true
-          }
-      readonly savingThrowAbilityDefinitionId: string
-      readonly savingThrowTotal: number | null
-    } | null
-  }
-): Resolution<Dnd5eMoraleProposal> {
-  const definition = exactDefinition({
-    ...input,
-    kind: 'MORALE',
-    module: DND5E_MORALE_POLICY_MODULE
-  })
-  if (!definition) return { kind: 'INERT' }
-  if (definition.document.parameters.kind !== 'MORALE') return { kind: 'INERT' }
-  if (input.trigger === null) return { kind: 'NOT_APPLICABLE' }
-  const expectedFact = {
-    INDIVIDUAL_SURPRISED: 'SURPRISED',
-    INDIVIDUAL_REDUCED_TO_HALF: 'HALF_HIT_POINTS_REACHED',
-    INDIVIDUAL_CANNOT_HARM_OPPOSITION: 'CANNOT_HARM_OPPOSITION',
-    GROUP_SURPRISED: 'GROUP_SURPRISED',
-    GROUP_HALF_REMOVED: 'HALF_PARTICIPANTS_REMOVED',
-    GROUP_LEADER_REMOVED: 'LEADER_REMOVED',
-    GROUP_LEADER_INCAPACITATED: 'LEADER_INCAPACITATED',
-    GROUP_LEADER_TAKEN_PRISONER: 'LEADER_TAKEN_PRISONER'
-  } as const
-  if (
-    !hasValidMoraleTriggerScope(input.trigger) ||
-    !input.trigger.satisfied ||
-    (input.trigger.kind === 'GROUP_HALF_REMOVED' &&
-      input.trigger.opposingSideHasLosses !== false) ||
-    expectedFact[input.trigger.kind] !== input.trigger.fact ||
-    !definition.document.parameters.triggerKinds.includes(input.trigger.kind)
-  )
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MORALE_TRIGGER_NOT_AUTHORIZED' }
-  if (input.overwhelmingOpposition === null || input.escapePossible === null) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_MORALE_FACTS' }
-  }
-  const groupRoller = input.trigger.scope === 'GROUP' ? input.leaderOrFallback : null
-  const roller = input.trigger.scope === 'INDIVIDUAL' ? input.individualSavingThrow : groupRoller
-  const rollerActorId =
-    input.trigger.scope === 'INDIVIDUAL'
-      ? input.individualSavingThrow?.actorId
-      : input.leaderOrFallback?.selectedActorId
-  if (
-    roller === null ||
-    rollerActorId === undefined ||
-    !canonicalUuid(rollerActorId) ||
-    roller.savingThrowAbilityDefinitionId !==
-      definition.document.parameters.savingThrowAbilityDefinitionId ||
-    !isSafeInteger(roller.savingThrowTotal)
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_MORALE_ROLLER_FACTS' }
-  }
-  if (
-    groupRoller !== null &&
-    ((groupRoller.selection.kind === 'LEADER' &&
-      (groupRoller.selection.leaderActorId !== groupRoller.selectedActorId ||
-        groupRoller.selection.leaderIsEligible !== true)) ||
-      (groupRoller.selection.kind === 'LEADER' &&
-        !canonicalUuid(groupRoller.selection.leaderActorId)) ||
-      (groupRoller.selection.kind === 'FALLBACK' &&
-        groupRoller.selection.selectedHasHighestEligibleMorale !== true))
-  ) {
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MORALE_LEADER_SELECTION_UNVERIFIED' }
-  }
-  const rollMode = input.overwhelmingOpposition
-    ? definition.document.parameters.overwhelmingOpposition.rollMode
-    : 'NORMAL'
-  const automaticFailure =
-    input.overwhelmingOpposition &&
-    definition.document.parameters.overwhelmingOpposition.automaticFailure
-  const outcomeKind =
-    !automaticFailure &&
-    roller.savingThrowTotal >= definition.document.parameters.savingThrowDifficultyClass
-      ? 'CONTINUE'
-      : !input.escapePossible
-        ? 'SURRENDER'
-        : 'FLEE'
-  const outcomes =
-    input.trigger.scope === 'INDIVIDUAL'
-      ? definition.document.parameters.individualOutcomes
-      : definition.document.parameters.groupOutcomes
-  const resolution = outcomes.find((outcome) => outcome.kind === outcomeKind)
-  if (
-    resolution === undefined ||
-    (resolution.kind !== 'CONTINUE' &&
-      resolution.kind !== 'FLEE' &&
-      resolution.kind !== 'SURRENDER')
-  )
-    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_MORALE_OUTCOME' }
-  return {
-    kind: 'PROPOSED',
-    proposal: {
-      pin: pin(definition),
-      resolution,
-      evidence: {
-        triggerKind: input.trigger.kind,
-        triggerScope: input.trigger.scope,
-        rollMode,
-        automaticFailure,
-        rollerActorId,
-        rollerKind: input.trigger.scope === 'INDIVIDUAL' ? 'SELF' : 'LEADER_OR_FALLBACK'
-      },
-      routeOrTerms: outcomeKind === 'CONTINUE' ? null : 'JUDGMENT_REQUIRED'
     }
   }
 }

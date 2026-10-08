@@ -67,6 +67,17 @@ Line counts come from `git diff --shortstat af7ddb75a` and include the test case
 
   `_generated/api.d.ts` is regenerated against the local Docker backend.
 
+### Recoverable rule logic
+
+An independent audit checked each rules deletion against the backlog. No deleted resolver was reachable: only Flanking, Alternating Diagonals, Disarm, Overrun, Shove Aside, Tumble and Cleaving can be enabled in Campaign settings (`isIntegratedOptionalCombatRule`). The live Disarm, Overrun and Tumble paths use the kept `prepareDnd5e*Contest` functions. The deleted code is a reference for these backlog items, recoverable from `437b2dd15`:
+
+- **MOVE-2.3, 2.4 (Shove Aside).** `resolveDnd5eShoveAside` in `systems/dnd5e/optionalMovementPolicy.ts` holds the rule checks (size within one category, incapacitated target loses, exactly 5 ft, within reach). It was a post-roll resolver with no prepare half, so the PBI rebuilds it on the prepare → contest → execution path that Overrun and Tumble use.
+- **SPELLS-8 (cast in an Encounter).** `compileCharacterSpellCastEntryPoints` in `encounterActionEntryPointCompiler.ts` covered single-effect, single-mechanic spells only.
+- **VTT_UI-1.3, 2.1 (Facing, Mark, Climb, Hitting Cover, Injuries, Massive Damage, Morale).** These rules cannot be enabled, and the ledger items cover presentation only. The resolvers were in `facingPolicy.ts`, `optionalActionPolicy.ts` and `optionalResolutionPolicy.ts`; marks are to be rebuilt on the active-effect lifecycle (`docs/architecture/dnd5e-optional-combat.md`).
+- **ENCOUNTER-4 (Speed Factor).** `encounterInitiativeTerminalSettlement.ts` was an unwired settlement guard.
+
+The unexported `resolveDnd5eMorale` and its trigger-scope helper, which only referenced each other, are removed with the rest.
+
 ## Kept on purpose (tool false positives)
 
 - **Convention entry points:**
