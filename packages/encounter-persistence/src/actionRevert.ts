@@ -24,6 +24,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
 import {
   encounterBasicActionEffects,
@@ -357,6 +358,13 @@ export async function revertLastEncounterAction(
     updateActor(owner.id, {
       resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
     })
+  }
+  const attackAction = action.attackActionTransition
+  if (attackAction) {
+    const restored = revertEncounterAttackActionTransition(actorsById.get(source.id)!, attackAction)
+    if (!restored)
+      unavailable("The actor's Attack action changed after this action; adjust manually.")
+    updateActor(source.id, { resources: restored.resources })
   }
 
   // Ally advantages (Help) the action's rolls used go back to their helpers.

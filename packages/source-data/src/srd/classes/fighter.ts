@@ -36,6 +36,7 @@ import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocab
 import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
+  attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
   equippedCategoryRestriction
@@ -723,7 +724,9 @@ export const fighter: ClassAuthored = {
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn. The number of attacks increases to three when you reach 11th level in this class and to four when you reach 20th level in this class.',
       availableAtLevel: 5,
       order: 5,
-      effects: [selfClassRuleEffect(6, CLOSED_RULE_KIND.CLASS_FIGHTER_EXTRA_ATTACK)]
+      grants: {
+        modifiers: [attacksPerAttackActionGrant(classRowId(F, 0x6f, 1), 2)]
+      }
     },
     {
       id: classRowId(F, 3, 7),
@@ -818,11 +821,22 @@ export const fighter: ClassAuthored = {
       order: 10
     },
     {
+      id: classRowId(F, 3, 18),
+      label: 'Extra Attack (2)',
+      description:
+        'You can attack three times, instead of once, whenever you take the Attack action on your turn.',
+      availableAtLevel: 11,
+      order: 11,
+      grants: {
+        modifiers: [attacksPerAttackActionGrant(classRowId(F, 0x6f, 2), 3)]
+      }
+    },
+    {
       id: classRowId(F, 3, 12),
       label: 'Ability Score Improvement',
       description: abilityScoreImprovementDescription,
       availableAtLevel: 12,
-      order: 11,
+      order: 12,
       optionChoices: [{ level: 12, count: 1 }],
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 12, optionEntry),
@@ -837,7 +851,7 @@ export const fighter: ClassAuthored = {
       label: 'Ability Score Improvement',
       description: abilityScoreImprovementDescription,
       availableAtLevel: 14,
-      order: 12,
+      order: 13,
       optionChoices: [{ level: 14, count: 1 }],
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 13, optionEntry),
@@ -853,14 +867,14 @@ export const fighter: ClassAuthored = {
       description:
         'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       availableAtLevel: 15,
-      order: 13
+      order: 14
     },
     {
       id: classRowId(F, 3, 15),
       label: 'Ability Score Improvement',
       description: abilityScoreImprovementDescription,
       availableAtLevel: 16,
-      order: 14,
+      order: 15,
       optionChoices: [{ level: 16, count: 1 }],
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 15, optionEntry),
@@ -875,7 +889,7 @@ export const fighter: ClassAuthored = {
       label: 'Ability Score Improvement',
       description: abilityScoreImprovementDescription,
       availableAtLevel: 19,
-      order: 15,
+      order: 16,
       optionChoices: [{ level: 19, count: 1 }],
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 16, optionEntry),
@@ -891,7 +905,18 @@ export const fighter: ClassAuthored = {
       description:
         'At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.',
       availableAtLevel: 18,
-      order: 16
+      order: 17
+    },
+    {
+      id: classRowId(F, 3, 19),
+      label: 'Extra Attack (3)',
+      description:
+        'You can attack four times, instead of once, whenever you take the Attack action on your turn.',
+      availableAtLevel: 20,
+      order: 18,
+      grants: {
+        modifiers: [attacksPerAttackActionGrant(classRowId(F, 0x6f, 3), 4)]
+      }
     }
   ]
 }

@@ -148,6 +148,8 @@ export interface CharacterPlayOverrides {
   /** Equips the first inventory item (the Club). */
   equipped?: boolean
   currentHitPoints?: number
+  /** The Fighter's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
+  fighterLevel?: number
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
 }
@@ -158,15 +160,27 @@ export function characterOwnerRowFor({
   userId = capturedPage.inputs.character.userId,
   play: playOverrides = {}
 }: { characterId?: string; userId?: string; play?: CharacterPlayOverrides } = {}) {
-  const {
-    equipped = false,
-    currentHitPoints = capturedPage.inputs.character.state.hitpoints.current,
-    conditions
-  } = playOverrides
+  const { equipped = false, fighterLevel = 1, conditions } = playOverrides
+  const [capturedLevel] = capturedPage.inputs.character.intent.hitpoints.levels
+  const maximumHitPoints = capturedLevel!.value + 7 * (fighterLevel - 1)
+  const { currentHitPoints = maximumHitPoints } = playOverrides
   const character = characterDocumentSchema.parse({
     ...capturedPage.inputs.character,
     id: characterId,
     userId,
+    intent: {
+      ...capturedPage.inputs.character.intent,
+      classes: [{ ...capturedPage.inputs.character.intent.classes[0]!, classLevel: fighterLevel }],
+      hitpoints: {
+        ...capturedPage.inputs.character.intent.hitpoints,
+        levels: Array.from({ length: fighterLevel }, (_, index) => ({
+          ...capturedLevel!,
+          classLevel: index + 1,
+          level: index + 1,
+          value: index === 0 ? capturedLevel!.value : 7
+        }))
+      }
+    },
     state: {
       ...capturedPage.inputs.character.state,
       equipment: {
@@ -175,7 +189,10 @@ export function characterOwnerRowFor({
           ? capturedPage.inputs.character.state.equipment.inventory.map(({ id }) => id).slice(0, 1)
           : capturedPage.inputs.character.state.equipment.equipped
       },
-      hitpoints: { ...capturedPage.inputs.character.state.hitpoints, current: currentHitPoints },
+      hitpoints: {
+        current: currentHitPoints,
+        hitDice: [{ die: 10, total: fighterLevel, used: 0 }]
+      },
       ...(conditions && { conditions })
     }
   })
@@ -200,7 +217,7 @@ export function characterOwnerRowFor({
           characterId: character.id,
           userId: character.userId,
           streamVersion: capturedPage.inputs.streamVersion,
-          maximumHitPoints: 11,
+          maximumHitPoints,
           walkingSpeed: 30,
           state: play,
           checksum: checksumRuleDocument(play),

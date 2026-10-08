@@ -1057,6 +1057,7 @@ export function CampaignVttStage({
             <CampaignTabletopActionDrawer
               actions={currentActionChoices?.actions ?? []}
               basicActions={currentActionChoices?.basicActions ?? []}
+              openAttackAction={currentActionChoices?.openAttackAction ?? null}
               actionsLoading={actionChoicesLoading}
               actionChoicesError={actionChoicesError}
               connected={live.status === 'CONNECTED'}

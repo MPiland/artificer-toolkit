@@ -38,6 +38,7 @@ export const VALUE_DOMAIN_CODE = {
   ACTION_COUNT: 'ACTION_COUNT',
   BONUS_ACTION_COUNT: 'BONUS_ACTION_COUNT',
   REACTION_COUNT: 'REACTION_COUNT',
+  ATTACKS_PER_ATTACK_ACTION: 'ATTACKS_PER_ATTACK_ACTION',
   DAMAGE_RESISTANCE: 'DAMAGE_RESISTANCE',
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
@@ -281,6 +282,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
       'Determines how many reactions the character can take before the start of their next turn.'
   },
 
+  [VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION]: {
+    code: VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION,
+    label: 'Attacks Per Attack Action',
+    tooltip: 'How many attacks the Attack action makes.',
+    description:
+      'Determines how many attacks the character makes when they take the Attack action. Several sources do not add together: the highest one applies.'
+  },
+
   [VALUE_DOMAIN_CODE.CONDITION]: {
     code: VALUE_DOMAIN_CODE.CONDITION,
     label: 'Condition',
@@ -432,6 +441,7 @@ export type ValueDomainParamByCode = {
   ACTION_COUNT: EmptyObject
   BONUS_ACTION_COUNT: EmptyObject
   REACTION_COUNT: EmptyObject
+  ATTACKS_PER_ATTACK_ACTION: EmptyObject
 
   /* ──────────────────────────────────────────────
    * CHARGES / RESOURCES

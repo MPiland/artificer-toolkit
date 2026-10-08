@@ -20,6 +20,8 @@ import {
   planEncounterMaintenanceOwner
 } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
+import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { EncounterMechanicsBatchPlan } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -44,6 +46,7 @@ export function planNativeLiveEncounterSettlement(input: {
   effects: ReturnType<typeof prepareNativeActionEffectsPlan<CharacterFacts>>
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   actionEconomyOverridden: boolean
+  attackAction: EncounterAttackActionTransitionDto | null
   maintenance: Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }) {
@@ -110,7 +113,7 @@ export function planNativeLiveEncounterSettlement(input: {
   }
   const stateEffect = create('STATE', effects.stateEffect)
   const recurringEffect = create('RECURRING', effects.recurringEffect)
-  const economyActor = input.actionEconomy
+  const consumedActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,
         consumption: input.actionEconomy,
@@ -119,6 +122,12 @@ export function planNativeLiveEncounterSettlement(input: {
     : prepared.resourceUse || mechanics.sourceResourceMechanics
       ? mechanics.settledSource
       : null
+  const economyActor = input.attackAction
+    ? applyEncounterAttackActionTransition(
+        consumedActor ?? mechanics.settledSource,
+        input.attackAction
+      )
+    : consumedActor
   const actors = new Map(
     prepared.actors.map((actor) => [
       actor.id,

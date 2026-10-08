@@ -6,7 +6,7 @@
 
 ## Current state (2026-10-07)
 
-**Latest slice commit:** `70f65ca23` (CAMPAIGN-7, seventh session below).
+**Latest slice commit:** ATTACK-8 (eighth session below); the commit titled "Close ATTACK-8".
 
 **Last full validation:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
@@ -62,6 +62,12 @@
 **Done 2026-10-07 (seventh session):**
 
 - CAMPAIGN-7 (D92): the Campaign owner may assign their own Character, and it plays like any player's for inventory transfers, chat, Encounter control and Sheet visibility. The GM's Character speaks in TABLE through ROLEPLAY; PARTY and its announcements stay players-only (ADR 0013); DIRECT is unchanged. The GM keeps full GM authority. On ownership transfer the incoming owner keeps their Character in play. The GM joins the Party roster only while playing a Character, and Play Character shows for any role with an assigned Character. Proofs: `gmCharacter.test.ts` journey (red first), `nativeCharacterSheet.test.ts`, `CampaignParty.test.tsx`, `CampaignListPage.test.tsx`. Ledger 63/124 PBIs, 284/401 ACs. Next: ATTACK-8.
+  **Done 2026-10-07 (eighth session):**
+
+- ATTACK-8 (D93): the Attack action spends the Action once and opens its attack slots (`resources.attackAction`, keyed by `turnSequence`, so a turn start writes nothing). Extra Attack is the authored `ATTACKS_PER_ATTACK_ACTION` value, highest source wins; the `CLASS_*_EXTRA_ATTACK` and Thirsting Blade closed rules are deleted. A filler attack by an actor who can't act still warns. Receipts carry `attackActionTransition`, so undo returns the slot. The drawer shows "Attack N of M" and preselects the last weapon and target. Contract: [rules-runtime](../architecture/rules-runtime.md).
+- Open, needs the user: `evidenceRolls.test.ts` and `concentration.test.ts` Manual-Run tests have failed since ENCOUNTER-2 (`3f80c6786`) because they expect `RoomCommandRefusal` instead of the decided `DOMAIN_REJECTED`/`ASSISTED_ONLY`. The assertion change awaits the user's approval.
+- SPELLS-2 runs in a parallel session in worktree `.claude/worktrees/spells-2` (branch `claude/spells-2-conditions`, [handoff](spells-2-conditions.md)); it records D94. Merge it here when it reports; `encounterActionMechanicsPreparation.ts` overlaps slightly and four of its files have CRLF line endings to check.
+
   **Next work: the WSJF ranking below, top down (ranked 2026-10-07).** WSJF = (user/business value + time criticality + risk reduction or enablement) / job size, Fibonacci scores. A PBI never starts before the PBIs it is marked "after".
 
 | #   | PBI                                     | WSJF | Note                                                                                                                                             |
@@ -71,11 +77,11 @@
 | 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                            |
 | 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                            |
 | 5   | CAMPAIGN-7                              | 4.3  | Done (seventh session).                                                                                                                          |
-| 6   | ATTACK-8                                | 4.2  | Attack slots and Extra Attack (D93, refined 2026-10-07). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                    |
+| 6   | ATTACK-8                                | 4.2  | Done (eighth session). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                                                      |
 | 7   | ATTACK-3                                | 4.0  | Journey: disposition and bendable-check warnings.                                                                                                |
 | 8   | PLATFORM-5 (5.6)                        | 4.0  | Stale or partial SRD manifest fails the audit.                                                                                                   |
 | 9   | "Needs proof" audit                     | 4.0  | PLATFORM-13.1–13.4, PLATFORM-14, PERF-3.1–3.13, PERF-4, SPELLS-3.1: link existing proofs; anything not actually built is re-sized and re-ranked. |
-| 10  | SPELLS-2                                | 3.3  | Condition mechanics; the main enabler.                                                                                                           |
+| 10  | SPELLS-2                                | 3.3  | In progress in a parallel session (spells-2-conditions.md).                                                                                      |
 | 11  | SPELLS-9                                | 4.5  | After SPELLS-2.                                                                                                                                  |
 | 12  | SPELLS-3 (3.2)                          | 4.2  | Death saves; after SPELLS-2.                                                                                                                     |
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                                     |
@@ -104,7 +110,7 @@
 | 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                                   |
 | 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                                    |
 
-Batched into one local live run (not scheduled for any single item): ACCOUNTS-1, 2, 3, 5 and 8 browser journeys; PLATFORM-4 uploads (needs the local R2 fixture); RELEASE-6; ENCOUNTER-5.
+Batched into one local live run (not scheduled for any single item): ACCOUNTS-1, 2, 3, 5 and 8 browser journeys; PLATFORM-4 uploads (needs the local R2 fixture); RELEASE-6; ENCOUNTER-5; the ATTACK-8.4 "Attack 1 of 2, then 2 of 2" drawer journey.
 
 End of phase: PLATFORM-6.2, 7.2, 8.2, 9.2, 10.2; PLATFORM-13.5 dependency refresh; PERF-1, PERF-2, PERF-3.14; RELEASE-1 to RELEASE-4.
 

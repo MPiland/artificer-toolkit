@@ -42,7 +42,11 @@ import {
   SRD_USER_ID
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  attacksPerAttackActionGrant,
+  closedRuleEffect
+} from './mechanics.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -1679,7 +1683,6 @@ export const warlock: ClassAuthored = {
           label: 'Thirsting Blade',
           description:
             'You can attack with your pact weapon twice, instead of once, whenever you take the Attack action on your turn.',
-          // Extra attack not representable as a standard modifier grant — description-only.
           // Requires warlock level 5 + Pact of the Blade (classRowId(W, 3, 24))
           restrictions: {
             id: classRowId(W, 6, 51),
@@ -1716,7 +1719,9 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_WARLOCK_THIRSTING_BLADE)],
+          grants: {
+            modifiers: [attacksPerAttackActionGrant(classRowId(W, 0x6f, 1), 2)]
+          },
           order: 24
         },
         {

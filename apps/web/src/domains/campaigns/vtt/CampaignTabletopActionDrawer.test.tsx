@@ -1,8 +1,9 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
   EncounterCommandResultDto,
+  EncounterGmProjectionDto,
   ResolveEncounterActionInputDto,
   UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -39,7 +40,8 @@ const actions = [
     attackBonus: 4,
     grip: null,
     wieldConflict: null,
-    warnings: []
+    warnings: [],
+    attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
 const warnings = [
@@ -53,12 +55,14 @@ const resolved: EncounterCommandResultDto = {
   evidenceRoll: null
 }
 
-function renderDrawer(
+function drawerElement(
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<unknown>,
   {
     choices = actions,
     unavailableActions = [],
     basicActions = [],
+    openAttackAction = null,
+    encounter = tabletopGmEncounter,
     onUseBasicAction = vi.fn(),
     isGm = false,
     waitingOn = null
@@ -66,20 +70,23 @@ function renderDrawer(
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
     basicActions?: EncounterBasicActionChoiceDto[]
+    openAttackAction?: EncounterActionChoicesDto['openAttackAction']
+    encounter?: EncounterGmProjectionDto
     onUseBasicAction?: (command: UseEncounterBasicActionInputDto) => Promise<unknown>
     isGm?: boolean
     waitingOn?: 'GM' | 'PLAYER' | null
   } = {}
 ) {
-  return renderWithAppProviders(
+  return (
     <CampaignTabletopActionDrawer
       actionChoicesError={null}
       actions={choices}
       basicActions={basicActions}
+      openAttackAction={openAttackAction}
       actionsLoading={false}
       actorIdByTokenId={new Map()}
       connected
-      encounter={tabletopGmEncounter}
+      encounter={encounter}
       isGm={isGm}
       opened
       optionalRules={[]}
@@ -100,6 +107,10 @@ function renderDrawer(
       }}
     />
   )
+}
+
+function renderDrawer(...args: Parameters<typeof drawerElement>) {
+  return renderWithAppProviders(drawerElement(...args))
 }
 
 async function chooseActionAndTarget(user: ReturnType<typeof userEvent.setup>) {
@@ -173,7 +184,8 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
       attackBonus: 8,
       grip: { value: grip, attackKey: 'longsword::MELEE_WEAPON_ATTACK' },
       wieldConflict: null,
-      warnings: []
+      warnings: [],
+      attackSlot: null
     })
     renderDrawer(onResolve, { choices: [longsword('ONE_HANDED'), longsword('TWO_HANDED')] })
 
@@ -353,6 +365,139 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     await user.click(await screen.findByRole('button', { name: 'Use Dash' }))
     await user.click(await screen.findByRole('button', { name: 'Do it anyway' }))
     expect(onUseBasicAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
+    )
+  })
+})
+
+const target = tabletopGmEncounter.actors[1]!
+// The closed option list stays mounted, so the selected action's own label is the one outside it.
+const selectedSlotLabel = (text: string) => {
+  const outsideOptions = screen
+    .getAllByText(text)
+    .filter((node) => !node.closest('[role="listbox"]'))
+  expect(outsideOptions).toHaveLength(1)
+  return outsideOptions[0]!
+}
+const slotted = (number: number, total = 2): EncounterActionChoiceDto => ({
+  ...actions[0]!,
+  attackSlot: { number, total }
+})
+const openAction = (made: number): EncounterActionChoicesDto['openAttackAction'] => ({
+  made,
+  total: 2,
+  lastActionId: actions[0]!.id,
+  lastTargetIds: [target.id]
+})
+
+describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
+  it('labels the attack an action would make in the list and for the selected action', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { choices: [slotted(1)] })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    expect(await screen.findByRole('option', { name: /Attack 1 of 2/ })).toBeVisible()
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(selectedSlotLabel('Attack 1 of 2')).toBeVisible()
+  })
+
+  it('preselects the last weapon and target of the open Attack action without submitting', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { choices: [slotted(2)], openAttackAction: openAction(1) })
+
+    expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue(
+      'Quarterstaff · Equipment'
+    )
+    expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue(target.label)
+    expect(selectedSlotLabel('Attack 2 of 2')).toBeVisible()
+    expect(onResolve).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ actionId: actions[0]!.id, targetActorId: target.id })
+    )
+  })
+
+  it('keeps the weapon and target for the next attack once the first resolves', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const view = renderDrawer(onResolve, { choices: [slotted(1)] })
+    await chooseActionAndTarget(user)
+    expect(onResolve).toHaveBeenCalledTimes(1)
+
+    view.rerender(
+      drawerElement(onResolve, {
+        choices: [slotted(2)],
+        openAttackAction: openAction(1),
+        encounter: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 }
+      })
+    )
+    await waitFor(() => expect(selectedSlotLabel('Attack 2 of 2')).toBeVisible())
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledTimes(2)
+    expect(onResolve.mock.calls[1]![0]).toMatchObject({
+      actionId: onResolve.mock.calls[0]![0].actionId,
+      targetActorId: onResolve.mock.calls[0]![0].targetActorId
+    })
+  })
+
+  it('does not preselect a weapon or target that is no longer a valid choice', async () => {
+    const stale = openAction(1)!
+    const defeatedTarget = {
+      ...tabletopGmEncounter,
+      actors: tabletopGmEncounter.actors.map((actor) =>
+        actor.id === target.id ? { ...actor, defeated: true } : actor
+      )
+    }
+
+    const missing = renderDrawer(vi.fn(), {
+      choices: [slotted(2)],
+      openAttackAction: { ...stale, lastActionId: 'gone:attack', lastTargetIds: ['gone-target'] }
+    })
+    expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: 'Target' })).toHaveValue('')
+    missing.unmount()
+
+    const defeated = renderDrawer(vi.fn(), {
+      choices: [slotted(2)],
+      openAttackAction: stale,
+      encounter: defeatedTarget
+    })
+    expect(await screen.findByRole('combobox', { name: 'Target' })).toHaveValue('')
+    defeated.unmount()
+
+    renderDrawer(vi.fn(), { choices: [actions[0]!], openAttackAction: stale })
+    expect(await screen.findByRole('combobox', { name: 'Action' })).toHaveValue('')
+  })
+
+  it('still warns about an attack outside the action and offers "Do it anyway"', async () => {
+    const user = userEvent.setup()
+    const outside = { ...actions[0]!, warnings: [warnings[0]!] }
+    const onResolve = vi
+      .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      .mockImplementationOnce(async (command) => {
+        throw new LiveSessionCommandRejectedError({
+          code: 'DOMAIN_REJECTED',
+          commandId: command.commandId,
+          currentSequence: 3,
+          message: 'This action breaks a rule. Do it anyway?',
+          reason: 'RULE_WARNINGS',
+          warnings: [warnings[0]!]
+        })
+      })
+      .mockResolvedValue(resolved)
+    renderDrawer(onResolve, { choices: [outside], openAttackAction: openAction(2) })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    expect(await screen.findByText('No action left this turn.')).toBeVisible()
+    expect(screen.queryByText(/Attack \d of \d/)).not.toBeInTheDocument()
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    await user.click(await screen.findByRole('button', { name: 'Do it anyway' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
       expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
     )
   })

@@ -37,9 +37,14 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 
+function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto['attackSlot']>) {
+  return `Attack ${number} of ${total}`
+}
+
 export function CampaignTabletopActionDrawer({
   actions,
   basicActions,
+  openAttackAction,
   actionsLoading,
   actionChoicesError,
   unavailableActions,
@@ -60,6 +65,8 @@ export function CampaignTabletopActionDrawer({
 }: {
   actions: EncounterActionChoiceDto[]
   basicActions: EncounterBasicActionChoiceDto[]
+  /** The Attack action opened this turn; its last weapon and target are preselected for the next attack. */
+  openAttackAction: EncounterActionChoicesDto['openAttackAction']
   actionsLoading: boolean
   actionChoicesError: string | null
   unavailableActions: EncounterActionChoicesDto['unavailableActions']
@@ -82,8 +89,11 @@ export function CampaignTabletopActionDrawer({
     request: GetEncounterOptionalActionChoicesInputDto
   ) => Promise<EncounterOptionalActionChoicesDto>
 }) {
-  const [actionId, setActionId] = useState<string | null>(null)
-  const [targetActorId, setTargetActorId] = useState<string | null>(null)
+  // `undefined` is untouched (the open Attack action's last weapon and target apply); `null` is cleared.
+  const [pickedActionId, setPickedActionId] = useState<string | null | undefined>(undefined)
+  const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
+    undefined
+  )
   const [optionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
@@ -109,6 +119,18 @@ export function CampaignTabletopActionDrawer({
   const currentActor =
     encounter.actors.find((actor) => actor.id === encounter.currentActorId) ?? null
   const currentActorId = currentActor?.id ?? null
+  // The server marks a weapon that still fits the open Attack action with an `attackSlot`.
+  const preselectedActionId =
+    actions.find(
+      (action) => action.id === openAttackAction?.lastActionId && action.attackSlot !== null
+    )?.id ?? null
+  const preselectedTargetActorId =
+    openAttackAction?.lastTargetIds.find((id) =>
+      encounter.actors.some((actor) => actor.id === id && !actor.defeated)
+    ) ?? null
+  const actionId = pickedActionId === undefined ? preselectedActionId : pickedActionId
+  const targetActorId =
+    pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
@@ -194,8 +216,8 @@ export function CampaignTabletopActionDrawer({
       currentOptionalChoices.fields.some((field) => !optionalValues[field.fieldId]))
 
   useEffect(() => {
-    setActionId(null)
-    setTargetActorId(null)
+    setPickedActionId(undefined)
+    setPickedTargetActorId(undefined)
     setOptionalRuleId(null)
     setFeedback(null)
     setError(null)
@@ -398,20 +420,25 @@ export function CampaignTabletopActionDrawer({
                 disabled={selectionControlsDisabled}
                 label='Action'
                 renderOption={({ option }) => {
-                  const reasons =
-                    actionGroups
-                      .get(option.value)
-                      ?.lead.warnings.map((warning) => warning.message)
-                      .join(' ') ??
-                    unavailableActions.find((action) => action.id === option.value)?.reason
-                  return reasons ? (
+                  const lead = actionGroups.get(option.value)?.lead
+                  const reasons = lead
+                    ? lead.warnings.map((warning) => warning.message).join(' ')
+                    : unavailableActions.find((action) => action.id === option.value)?.reason
+                  return reasons || lead?.attackSlot ? (
                     <div>
-                      <Text c='dimmed' size='sm'>
+                      <Text c={reasons ? 'dimmed' : undefined} size='sm'>
                         {option.label}
                       </Text>
-                      <Text c='dimmed' size='xs'>
-                        {reasons}
-                      </Text>
+                      {lead?.attackSlot ? (
+                        <Text c='dimmed' size='xs'>
+                          {attackSlotLabel(lead.attackSlot)}
+                        </Text>
+                      ) : null}
+                      {reasons ? (
+                        <Text c='dimmed' size='xs'>
+                          {reasons}
+                        </Text>
+                      ) : null}
                     </div>
                   ) : (
                     option.label
@@ -420,7 +447,7 @@ export function CampaignTabletopActionDrawer({
                 searchable
                 value={selectedAttackKey}
                 onChange={(key) =>
-                  setActionId(key === null ? null : (actionGroups.get(key)?.lead.id ?? null))
+                  setPickedActionId(key === null ? null : (actionGroups.get(key)?.lead.id ?? null))
                 }
               />
               {gripActions.length > 1 ? (
@@ -433,7 +460,7 @@ export function CampaignTabletopActionDrawer({
                   disabled={selectionControlsDisabled}
                   fullWidth
                   value={actionId ?? undefined}
-                  onChange={setActionId}
+                  onChange={setPickedActionId}
                 />
               ) : null}
               <Select
@@ -446,8 +473,13 @@ export function CampaignTabletopActionDrawer({
                 label='Target'
                 searchable
                 value={targetActorId}
-                onChange={setTargetActorId}
+                onChange={setPickedTargetActorId}
               />
+              {selectedAction?.attackSlot ? (
+                <Text fw={600} size='sm'>
+                  {attackSlotLabel(selectedAction.attackSlot)}
+                </Text>
+              ) : null}
               {selectedAction ? (
                 <Text c='dimmed' size='sm'>
                   {selectedAction.rangeLabel ?? 'System-defined range'}

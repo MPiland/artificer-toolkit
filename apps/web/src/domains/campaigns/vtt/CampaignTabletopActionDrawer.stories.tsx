@@ -32,7 +32,8 @@ const actions = [
     attackBonus: 4,
     grip: { value: 'ONE_HANDED', attackKey: 'staff-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: null,
-    warnings: []
+    warnings: [],
+    attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
 const shieldItemInstanceId = '77777777-7777-4777-8777-777777777721'
@@ -45,7 +46,8 @@ const greatswordActions = [
     attackBonus: 5,
     grip: { value: 'TWO_HANDED', attackKey: 'greatsword-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
-    warnings: []
+    warnings: [],
+    attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
 const longswordAttackKey = 'longsword-instance:MELEE_WEAPON_ATTACK'
@@ -59,7 +61,8 @@ const longswordActions = [
     damageLabel: '1d8 Slashing',
     grip: { value: 'ONE_HANDED', attackKey: longswordAttackKey },
     wieldConflict: null,
-    warnings: []
+    warnings: [],
+    attackSlot: null
   },
   {
     id: 'equipment-longsword:two-hand',
@@ -70,7 +73,8 @@ const longswordActions = [
     damageLabel: '1d10 Slashing',
     grip: { value: 'TWO_HANDED', attackKey: longswordAttackKey },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
-    warnings: []
+    warnings: [],
+    attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
 const optionalRules = [
@@ -174,6 +178,7 @@ const meta = {
     opened: false,
     waitingOn: null,
     basicActions: [],
+    openAttackAction: null,
     onUseBasicAction: sendBasicActionCommand,
     onOpen: fn(),
     onClose: fn()
@@ -312,7 +317,8 @@ export const CreatureSource: Story = {
         attackBonus: 5,
         grip: null,
         wieldConflict: null,
-        warnings: []
+        warnings: [],
+        attackSlot: null
       }
     ],
     actionsLoading: false,
@@ -511,6 +517,41 @@ export const UnavailableAction: Story = {
     const { page, drawer } = await openActions(canvasElement)
     await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
     await expect(await page.findByText('No action left this turn.')).toBeVisible()
+  }
+}
+
+/** Attack 1 of 2 is made: the drawer offers Attack 2 of 2 with the weapon and target kept. */
+export const SecondAttackPreselected: Story = {
+  args: {
+    ...ResolveTargetedAction.args,
+    actions: [{ ...actions[0], attackSlot: { number: 2, total: 2 } }],
+    openAttackAction: {
+      made: 1,
+      total: 2,
+      lastActionId: actions[0].id,
+      lastTargetIds: [targetActor.id]
+    }
+  },
+  play: async ({ canvasElement }) => {
+    resolveAction.mockClear()
+    const { drawer } = await openActions(canvasElement)
+    await expect(drawer.getByRole('combobox', { name: 'Action' })).toHaveValue(
+      'Quarterstaff · Equipment'
+    )
+    await expect(drawer.getByRole('combobox', { name: 'Target' })).toHaveValue('Vault Warden')
+    // The closed option list stays mounted; the selected action's own label is the one outside it.
+    const slotLabels = drawer
+      .getAllByText('Attack 2 of 2')
+      .filter((node) => !node.closest('[role="listbox"]'))
+    await expect(slotLabels).toHaveLength(1)
+    await expect(slotLabels[0]).toBeVisible()
+    await expect(resolveAction).not.toHaveBeenCalled()
+
+    await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
+    await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))
+    await expect(resolveAction).toHaveBeenCalledWith(
+      expect.objectContaining({ actionId: actions[0].id, targetActorId: targetActor.id })
+    )
   }
 }
 

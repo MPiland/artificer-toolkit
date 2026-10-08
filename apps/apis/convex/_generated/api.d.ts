@@ -37559,6 +37559,7 @@ export declare const api: {
         {
           actions: Array<{
             attackBonus?: number;
+            attackSlot: { number: number; total: number } | null;
             damageLabel?: string;
             grip: {
               attackKey: string;
@@ -37606,6 +37607,12 @@ export declare const api: {
           }>;
           encounterId: string;
           encounterVersion: number;
+          openAttackAction: {
+            lastActionId: string;
+            lastTargetIds: Array<string>;
+            made: number;
+            total: number;
+          } | null;
           optionalRules: Array<{ definitionId: string; label: string }>;
           unavailableActions: Array<{
             id: string;
@@ -46333,6 +46340,7 @@ export declare const internal: {
               sourceId: string;
               status: "AVAILABLE" | "UNAVAILABLE";
             }>;
+            attacksPerAttackAction?: number;
             chargeMaximums: Array<{
               baseContribution: { sourceId: string; value: number } | null;
               bonusContributions: Array<{ sourceId: string; value: number }>;

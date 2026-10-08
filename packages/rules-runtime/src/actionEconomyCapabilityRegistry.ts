@@ -15,6 +15,15 @@ export interface ActionEconomyCapabilityAdapter {
     activationKind: string
     activationAmount: number
   }): ActionEconomyCapabilityBinding
+  /**
+   * Whether an action is an attack of the Attack action: several of them share the one Action the
+   * first spends, up to the actor's attacks per Attack action.
+   */
+  isAttackActionAttack(input: {
+    activationKind: string
+    activationAmount: number
+    triggerCode: string
+  }): boolean
   /** The capability an actor that can't act (incapacitated) has suppressed. */
   actorActionCapabilityDefinitionId(): string
   refreshCapabilityDefinitionIds(): readonly string[]
@@ -51,6 +60,16 @@ export function createActionEconomyCapabilityRegistry(
         activationKind: input.activationKind,
         activationAmount: input.activationAmount
       })
+    },
+    isAttackActionAttack(input: {
+      gameSystemId: string
+      activationKind: string
+      activationAmount: number
+      triggerCode: string
+    }): boolean {
+      return (
+        bySystemId.get(canonicalSystemId(input.gameSystemId))?.isAttackActionAttack(input) ?? false
+      )
     },
     requireActorActionCapabilityDefinitionId(gameSystemId: string): string {
       const adapter = bySystemId.get(canonicalSystemId(gameSystemId))

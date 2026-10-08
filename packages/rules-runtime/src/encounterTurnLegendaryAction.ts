@@ -318,7 +318,8 @@ export async function prepareTurnLegendaryActions<
       }),
       maintainedState: null,
       maintenanceTransition: null,
-      actionEconomy: null
+      actionEconomy: null,
+      attackAction: null
     })
     if (stored.status !== 'COMPLETE') throw new Error('Legendary Action receipt is incomplete.')
     const targetCharacter = prepared.targetFacts.characterFacts

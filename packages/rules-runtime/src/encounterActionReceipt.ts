@@ -1,4 +1,5 @@
 import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
@@ -23,6 +24,7 @@ export function buildEncounterActionStoredExecution(input: {
   maintainedState: EncounterMaintainedEffectStateRecord | null
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
   actionEconomy: EncounterActionEconomyConsumption | null
+  attackAction: EncounterAttackActionTransitionDto | null
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -71,6 +73,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             actionEconomyTransition,
+            ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions: activeEffectTransitions.map(
               ({ targetActorId: _targetActorId, ...transition }) => ({
                 ...transition,
@@ -104,6 +107,7 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             actionEconomyTransition,
+            ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions,
             stateEffectTransitions,
             ...(input.maintenanceTransition

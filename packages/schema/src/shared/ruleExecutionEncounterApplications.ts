@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
@@ -276,6 +277,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         null
       ),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
+      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
       legendaryResistance: z._default(
         z.nullable(
           z.strictObject({
@@ -344,7 +347,9 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         let temporary = value.targetTransition.before.temporaryHitPoints
         let maximum = value.targetTransition.before.maximumHitPoints
         const conditions = new Set(value.targetTransition.before.conditionIds)
-        const scalarValues = { ...value.targetTransition.before.scalarValues }
+        const scalarValues = {
+          ...value.targetTransition.before.scalarValues
+        }
         for (const [index, application] of value.applications.entries()) {
           if (application.ordinal !== index)
             context.addIssue({

@@ -30,6 +30,7 @@ import {
   actionDamageRollRecord
 } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -288,6 +289,11 @@ export async function persistEncounterActionCommit(
       consumption: batch.actionEconomyTransition,
       overridden: overridesActionEconomy(input.ruleOverrides)
     })
+  if (batch.attackActionTransition)
+    settledSource = applyEncounterAttackActionTransition(
+      settledSource,
+      batch.attackActionTransition
+    )
   if (checksumCanonicalJson(settledSource) !== checksumCanonicalJson(beforeSource)) {
     const row = await ctx.db
       .query('encounterRunActors')

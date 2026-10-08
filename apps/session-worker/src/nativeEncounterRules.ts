@@ -17,7 +17,10 @@ import {
   dnd5eAttackKind,
   isDnd5eMeleeAttackKind
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
-import { evaluateEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import {
+  encounterAttackActionTransition,
+  evaluateEncounterAttackAction
+} from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   encounterActionSourceLabel,
   encounterLegendaryActionFeatureIds,
@@ -32,6 +35,7 @@ import {
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
+  encounterActionSuppressedWarning,
   evaluateEncounterActionRuleWarnings,
   overridesActionEconomy,
   RULE_WARNINGS_MESSAGE
@@ -274,7 +278,15 @@ export async function planNativeLiveEncounterAction(
       : prepared.source.capability.mechanicFacts.invocation.activation
   if (!activation || activation.amount === null)
     throw new Error('The selected action activation is not normalized.')
-  const economy = await evaluateEncounterActionEconomy({
+  const {
+    economy,
+    attackAction: openedAttackAction,
+    suppressed
+  } = await evaluateEncounterAttackAction({
+    triggerCode:
+      prepared.source.kind === 'CHARACTER_ACTION'
+        ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
+        : prepared.source.capability.mechanicFacts.invocation.triggerCode,
     actor: prepared.actor,
     state,
     activation: { code: activation.code, amount: activation.amount },
@@ -289,8 +301,16 @@ export async function planNativeLiveEncounterAction(
       }
     }
   })
+  const attackAction = openedAttackAction
+    ? encounterAttackActionTransition(openedAttackAction, {
+        actionId: command.actionId,
+        targetIds: [prepared.target.id]
+      })
+    : null
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
-    preparedWarnings: prepared.ruleWarnings,
+    preparedWarnings: suppressed
+      ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activation.code)]
+      : prepared.ruleWarnings,
     target: {
       actor: prepared.actor,
       target: prepared.target,
@@ -321,6 +341,7 @@ export async function planNativeLiveEncounterAction(
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,
     actionEconomy,
+    attackAction,
     maintenance,
     sceneContext
   })
@@ -402,6 +423,7 @@ export async function planNativeLiveEncounterAction(
     occurredAt,
     prepared,
     actionEconomy,
+    attackAction,
     ruleOverrides: ruleWarnings.overrides,
     maintenance,
     sceneContext,
@@ -456,6 +478,7 @@ export async function planNativeLiveEncounterAction(
     effects: preparedEffects,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
+    attackAction,
     maintenance,
     activeEffectsByActorId
   })
@@ -499,7 +522,8 @@ export async function planNativeLiveEncounterAction(
     effects: settlement,
     maintainedState: settlement.maintainedState,
     maintenanceTransition: settlement.maintenanceTransition,
-    actionEconomy
+    actionEconomy,
+    attackAction
   })
   const cleavingRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
   const cleaving =

@@ -178,7 +178,7 @@ const modifierGrantBaseDtoSchema = lazySchema(() =>
   })
 )
 
-const noPayloadDtoSchema = z.optional(z.undefined())
+const noPayloadDtoSchema = lazySchema(() => z.optional(z.undefined()))
 
 function buildModifierGrantVariant<
   V extends string,
@@ -664,6 +664,12 @@ const buildModifierGrantVariants = () => {
     ),
     buildModifierGrantVariant(
       'REACTION_COUNT',
+      'SET_VALUE',
+      emptyDomainDtoSchema,
+      z.object({ amount: z.number() })
+    ),
+    buildModifierGrantVariant(
+      'ATTACKS_PER_ATTACK_ACTION',
       'SET_VALUE',
       emptyDomainDtoSchema,
       z.object({ amount: z.number() })

@@ -2,6 +2,10 @@ import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/fea
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import type { EncounterProjectionInitiativeRoundStateInput } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
+import {
+  encounterAttackActionStateDtoSchema,
+  type EncounterAttackActionStateDto
+} from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
 export function requireSnapshotIdentity(actor: EncounterRunActorState) {
@@ -109,6 +113,23 @@ export function encounterRuleUsageSnapshot(
   return Object.fromEntries(
     Object.entries(normalized).sort(([left], [right]) => left.localeCompare(right))
   )
+}
+
+/** The Attack action the actor last opened, even when a later turn has made it stale. */
+export function encounterAttackActionState(
+  actor: Pick<ActorRead, 'resources'>
+): EncounterAttackActionStateDto | null {
+  const resources = isRecord(actor.resources) ? actor.resources : null
+  const stored = resources?.attackAction
+  return stored === undefined ? null : encounterAttackActionStateDtoSchema.parse(stored)
+}
+
+export function withEncounterAttackActionState(
+  actor: Pick<ActorRead, 'resources'>,
+  state: EncounterAttackActionStateDto | null
+): Record<string, unknown> {
+  const { attackAction: _previous, ...resources } = isRecord(actor.resources) ? actor.resources : {}
+  return state === null ? resources : { ...resources, attackAction: state }
 }
 
 export function stableActors<

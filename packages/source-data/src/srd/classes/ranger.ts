@@ -36,6 +36,7 @@ import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocab
 import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
+  attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction
 } from './mechanics.js'
@@ -855,7 +856,9 @@ export const ranger: ClassAuthored = {
       label: 'Extra Attack',
       description:
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
-      effects: [selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_RANGER_EXTRA_ATTACK)],
+      grants: {
+        modifiers: [attacksPerAttackActionGrant(classRowId(RA, 0x6f, 1), 2)]
+      },
       availableAtLevel: 5,
       order: 7
     },

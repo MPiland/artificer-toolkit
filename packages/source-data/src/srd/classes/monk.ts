@@ -43,6 +43,7 @@ import {
 import {
   abilityScoreImprovementOptions,
   ARTISAN_TOOL_EQUIPMENT_INDEXES,
+  attacksPerAttackActionGrant,
   closedRuleEffect,
   equippedCategoryRestriction,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
@@ -600,7 +601,9 @@ export const monk: ClassAuthored = {
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
       availableAtLevel: 5,
       order: 8,
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_MONK_EXTRA_ATTACK)]
+      grants: {
+        modifiers: [attacksPerAttackActionGrant(classRowId(M, 0x6f, 1), 2)]
+      }
     },
     {
       id: classRowId(M, 3, 10),

@@ -1,4 +1,5 @@
 import type { ActionEconomyCapabilityAdapter } from '../../actionEconomyCapabilityRegistry.js'
+import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID, DND5E_SYSTEM_ID } from './identity.js'
 import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from './reactionEligibilityPolicy.js'
 
@@ -20,6 +21,15 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
       }
     }
     return { kind: 'NONE' }
+  },
+  /** Weapon and unarmed attacks made with the Action are the Attack action; spell attacks are not. */
+  isAttackActionAttack({ activationKind, activationAmount, triggerCode }) {
+    const attackKind = dnd5eAttackKind(triggerCode)
+    return (
+      activationKind === 'ACTION' &&
+      activationAmount === 1 &&
+      (attackKind === 'MELEE' || attackKind === 'RANGED' || attackKind === 'UNARMED')
+    )
   },
   actorActionCapabilityDefinitionId() {
     return DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID

@@ -1,7 +1,5 @@
-import {
-  evaluateEncounterActionEconomy,
-  prepareEncounterActionEconomy
-} from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   resolveEncounterActionSource,
@@ -97,12 +95,18 @@ export async function prepareActionEconomy<TFacts extends CharacterTurnFacts>(
   return prepareEncounterActionEconomy(economyInput(tx, input))
 }
 
-/** Reports an unavailable allowance as overridable for Assisted RESOLVE_ACTION. */
-export async function evaluateActionEconomy<TFacts extends CharacterTurnFacts>(
+/**
+ * Reports an unavailable allowance as overridable for Assisted RESOLVE_ACTION, and where an attack
+ * stands in the actor's Attack action (`triggerCode` is empty for actions that are not attacks).
+ */
+export async function evaluateActionAttackAction<TFacts extends CharacterTurnFacts>(
   tx: EncounterTurnReadTransaction<TFacts>,
-  input: ActionEconomyInput<TFacts>
+  input: ActionEconomyInput<TFacts> & { triggerCode: string }
 ) {
-  return evaluateEncounterActionEconomy(economyInput(tx, input))
+  return evaluateEncounterAttackAction({
+    ...economyInput(tx, input),
+    triggerCode: input.triggerCode
+  })
 }
 
 /** Resolves an action from current authoritative sources, never caller mechanics. */

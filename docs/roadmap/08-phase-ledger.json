@@ -4125,41 +4125,72 @@
         {
           "id": "ATTACK-8",
           "title": "Multiattack and Extra Attack",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomAttackAction.test.ts",
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Taking the Attack action spends the Action once and opens its attack slots for the turn; each further attack that fills an open slot uses the slot, not the Action, and raises no warning. Slots refresh at the start of the actor's turn.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts › a Fighter’s Attack action in the room › spends one Action on two attacks, warns on the third, and returns the slot when the second is undone",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack in the Attack action › fills the open Attack action without spending an Action",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack in the Attack action › does not fill an Attack action opened on an earlier turn",
+                "apps/apis/convex/encounters/actionCommands.test.ts › keeps the Attack action an attack opened with the settled Run, and removes it on undo",
+                "impl: packages/rules-runtime/src/encounterAttackAction.ts, encounterActorState.ts; packages/schema/src/projections/encounterAttackAction.ts; apps/session-worker/src/nativeEncounterRules.ts, nativeEncounterSettlement.ts; packages/encounter-persistence/src/actionCommitPersistence.ts, actionRevert.ts"
+              ],
               "origin": [],
               "note": "D93; rul-9-rules-audit.md slice 6. The slot model is shared with ATTACK-11.",
               "id": "ATTACK-8.1"
             },
             {
               "text": "Extra Attack is an authored attacks-per-Attack-action total that any feature can grant; several sources don't add together and the highest wins (Fighter 5 / Ranger 5 makes 2 attacks, Fighter 11 / Paladin 5 makes 3, Fighter 20 makes 4).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterAttacksPerAttackAction.test.ts › attacks per Attack action › grows with the Fighter’s Extra Attack Features",
+                "packages/rules-runtime/src/__tests__/characterAttacksPerAttackAction.test.ts › attacks per Attack action › takes the highest source across classes instead of adding them",
+                "packages/rules-runtime/src/__tests__/characterAttacksPerAttackAction.test.ts › attacks per Attack action › counts a Warlock’s Thirsting Blade invocation",
+                "packages/schema/src/__tests__/grant-facet-schema-parsing.test.ts › grant and facet schema parsing › parses a SET_VALUE grant of attacks per Attack action and nothing else for it",
+                "impl: packages/shared/src/domains/core/valueDomain.ts; packages/rules-runtime/src/systems/dnd5e/characterModifiers.ts, characterPolicy.ts; packages/source-data/src/srd/classes (Extra Attack and Thirsting Blade grants)"
+              ],
               "origin": [],
               "note": "D93; SRD multiclassing rule. Replaces the CLASS_*_EXTRA_ATTACK closed rules.",
               "id": "ATTACK-8.2"
             },
             {
-              "text": "In Assisted mode an attack that doesn't fit the open action is not offered as part of it; attacking outside the action keeps the overridable ACTION_ECONOMY_UNAVAILABLE warning. Manual mode tracks only.",
-              "status": "TODO",
-              "proof": [],
+              "text": "In Assisted mode an attack that doesn't fit the open action is not offered as part of it; attacking outside the action keeps the overridable ACTION_ECONOMY_UNAVAILABLE warning. Manual mode tracks no slots, as it tracks no rules (ADR 0034).",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts › a Fighter’s Attack action in the room › spends one Action on two attacks, warns on the third, and returns the slot when the second is undone",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack in the Attack action › spends another Action once the Attack action is full, warning when none is left",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack in the Attack action › leaves spell attacks and other actions to the plain Action rule",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack in the Attack action › tracks nothing in Manual mode",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack by an actor that cannot act › is flagged even when it fills the open Attack action, without spending an Action",
+                "packages/rules-runtime/src/__tests__/encounterAttackAction.test.ts › an attack by an actor that cannot act › does not flag a filler whose Action is merely spent",
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts › an incapacitated Fighter finishing its Attack action in the room › warns before the attack that fills a slot, which still spends no Action",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › CampaignTabletopActionDrawer attack slots (D93) › still warns about an attack outside the action and offers \"Do it anyway\""
+              ],
               "origin": [],
               "note": "D93; ADR 0034.",
               "id": "ATTACK-8.3"
             },
             {
               "text": "The acting player sees the attacks left in the action (\"Attack 1 of 2\") with the last weapon and target kept; each attack keeps its own roll, receipt and undo, and undoing an attack returns its slot.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › CampaignTabletopActionDrawer attack slots (D93) › labels the attack an action would make in the list and for the selected action",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › CampaignTabletopActionDrawer attack slots (D93) › preselects the last weapon and target of the open Attack action without submitting",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › CampaignTabletopActionDrawer attack slots (D93) › keeps the weapon and target for the next attack once the first resolves",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › CampaignTabletopActionDrawer attack slots (D93) › does not preselect a weapon or target that is no longer a valid choice",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx › SecondAttackPreselected (Storybook browser play)",
+                "apps/session-worker/test/nativeRoomAttackAction.test.ts › a Fighter’s Attack action in the room › spends one Action on two attacks, warns on the third, and returns the slot when the second is undone"
+              ],
               "origin": [],
-              "note": "D93.",
+              "note": "D93. A live-backend browser run of \"Attack 1 of 2, then 2 of 2\" joins the next batched live run.",
               "id": "ATTACK-8.4"
             }
           ]
@@ -4293,7 +4324,7 @@
         {
           "id": "SPELLS-2",
           "title": "Conditions apply their mechanics",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],

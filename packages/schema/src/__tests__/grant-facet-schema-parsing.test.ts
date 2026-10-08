@@ -45,6 +45,32 @@ describe('grant and facet schema parsing', () => {
       expect(modifierGrantDtoSchema.safeParse(invalid).success).toBe(false)
   })
 
+  it('parses a SET_VALUE grant of attacks per Attack action and nothing else for it', () => {
+    const grant = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'extra-attack',
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'ATTACKS_PER_ATTACK_ACTION',
+      domain: {},
+      scope: 'GLOBAL',
+      modifierKind: 'SET_VALUE',
+      payload: { amount: 2 }
+    }
+    expect(modifierGrantDtoSchema.parse(grant)).toMatchObject({
+      valueDomainCode: 'ATTACKS_PER_ATTACK_ACTION',
+      modifierKind: 'SET_VALUE',
+      payload: { amount: 2 }
+    })
+    expect(
+      modifierGrantDtoSchema.safeParse({
+        ...grant,
+        modifierKind: 'BONUS',
+        payload: { valueKind: 'FIXED', amount: 1 }
+      }).success
+    ).toBe(false)
+  })
+
   it('rejects modifiers that no System consumer applies yet, with a clear message', () => {
     const base = {
       grantKind: 'MODIFIER_GRANT',

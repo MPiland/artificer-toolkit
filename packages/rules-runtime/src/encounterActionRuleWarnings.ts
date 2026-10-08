@@ -38,22 +38,31 @@ export function evaluateEncounterActionRuleWarnings(input: {
     : { kind: 'UNACKNOWLEDGED', warnings }
 }
 
+const allowanceName = (activationCode: string) => activationCode.toLowerCase().replaceAll('_', ' ')
+
+/** The overridable warning for an actor that can't take this activation right now. */
+export function encounterActionSuppressedWarning(activationCode: string): EncounterRuleWarningDto {
+  const allowance = allowanceName(activationCode)
+  const article = /^[aeiou]/.test(allowance) ? 'an' : 'a'
+  return {
+    code: 'ACTION_ECONOMY_UNAVAILABLE',
+    message: `This actor can't take ${article} ${allowance} right now.`
+  }
+}
+
 /** The overridable warning for an allowance the actor can't use now, if any. */
 export function encounterActionEconomyWarnings(
   economy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>,
   activationCode: string
 ): EncounterRuleWarningDto[] {
   if (!economy || economy.available) return []
-  const allowance = activationCode.toLowerCase().replaceAll('_', ' ')
-  const article = /^[aeiou]/.test(allowance) ? 'an' : 'a'
   return [
-    {
-      code: 'ACTION_ECONOMY_UNAVAILABLE',
-      message:
-        economy.consumption.beforeUsed >= economy.consumption.maximum
-          ? `No ${allowance} left this turn.`
-          : `This actor can't take ${article} ${allowance} right now.`
-    }
+    economy.consumption.beforeUsed >= economy.consumption.maximum
+      ? {
+          code: 'ACTION_ECONOMY_UNAVAILABLE',
+          message: `No ${allowanceName(activationCode)} left this turn.`
+        }
+      : encounterActionSuppressedWarning(activationCode)
   ]
 }
 

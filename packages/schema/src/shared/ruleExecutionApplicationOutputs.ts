@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 
 import { canonicalD20ContributorKey } from '@artificer-toolkit/shared/rules/contributors'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
@@ -87,6 +88,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
           null
         ),
         actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
+        attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
         activeEffectTransitions: z
           .array(characterActiveEffectCreateReceiptDtoSchema)
           .check(z.maxLength(1)),
@@ -125,7 +128,9 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
           let temporary = value.targetTransition.before.temporaryHitPoints
           let maximum = value.targetTransition.before.maximumHitPoints
           const conditions = new Set(value.targetTransition.before.conditionIds)
-          const scalarValues = { ...value.targetTransition.before.scalarValues }
+          const scalarValues = {
+            ...value.targetTransition.before.scalarValues
+          }
           for (const [index, application] of value.applications.entries()) {
             if (application.ordinal !== index)
               context.addIssue({

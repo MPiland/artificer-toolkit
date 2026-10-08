@@ -1,4 +1,8 @@
-import { encounterActionEconomyWarnings } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import {
+  encounterActionEconomyWarnings,
+  encounterActionSuppressedWarning
+} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
@@ -19,7 +23,7 @@ import {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { requireEncounterActorControl } from './actorController.js'
-import { evaluateActionEconomy, readDisarmSelection } from './actionPreparationReads.js'
+import { evaluateActionAttackAction, readDisarmSelection } from './actionPreparationReads.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { loadMovementTargets } from './movementTargetReads.js'
@@ -74,23 +78,39 @@ export async function readEncounterActionChoices(
           })
         ).get(actor.id)
       : undefined
-  // One allowance read per activation; Encounter rules read as the Campaign owner.
-  const economyWarnings = new Map<string, Promise<EncounterRuleWarningDto[]>>()
-  const readEconomyWarnings = (activation: { code: string; amount: number | null } | null) => {
-    if (!activation || activation.amount === null) return Promise.resolve([])
-    const key = `${activation.code}:${activation.amount}`
-    const known = economyWarnings.get(key)
+  // One allowance read per activation and attack kind; Encounter rules read as the Campaign owner.
+  type EconomyRead = {
+    warnings: EncounterRuleWarningDto[]
+    attackSlot: EncounterActionChoiceDto['attackSlot']
+  }
+  const economyReads = new Map<string, Promise<EconomyRead>>()
+  const readEconomy = (
+    activation: { code: string; amount: number | null } | null,
+    triggerCode = ''
+  ): Promise<EconomyRead> => {
+    if (!activation || activation.amount === null)
+      return Promise.resolve({ warnings: [], attackSlot: null })
+    const key = `${activation.code}:${activation.amount}:${triggerCode}`
+    const known = economyReads.get(key)
     if (known) return known
-    const read = evaluateActionEconomy(tx, {
+    const read = evaluateActionAttackAction(tx, {
       actor,
       state,
       campaign,
       activation: { code: activation.code, amount: activation.amount },
-      target: actorTarget
-    }).then((economy) => encounterActionEconomyWarnings(economy, activation.code))
-    economyWarnings.set(key, read)
+      target: actorTarget,
+      triggerCode
+    }).then(({ economy, suppressed, slot }) => ({
+      warnings: [
+        ...encounterActionEconomyWarnings(economy, activation.code),
+        ...(suppressed ? [encounterActionSuppressedWarning(activation.code)] : [])
+      ],
+      attackSlot: slot
+    }))
+    economyReads.set(key, read)
     return read
   }
+  const openAttackAction = encounterAttackActionState(actor)
   let actions: EncounterActionChoiceDto[] = []
   let unavailableActions: EncounterActionChoicesDto['unavailableActions'] = []
   if (actor.kind === 'CHARACTER') {
@@ -132,6 +152,10 @@ export async function readEncounterActionChoices(
             outcome.kind === 'DAMAGE' ? [`${outcome.expression} ${outcome.damageTypeLabel}`] : []
           )
           .join(' + ')
+        const economy = await readEconomy(
+          candidate?.mechanicFacts.invocation.activation ?? null,
+          candidate?.mechanicFacts.invocation.triggerCode
+        )
         return {
           id: action.id,
           label: action.label,
@@ -148,8 +172,9 @@ export async function readEncounterActionChoices(
               }
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
+          attackSlot: economy.attackSlot,
           warnings: [
-            ...(await readEconomyWarnings(candidate?.mechanicFacts.invocation.activation ?? null)),
+            ...economy.warnings,
             ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
               ? [
                   {
@@ -181,19 +206,26 @@ export async function readEncounterActionChoices(
     actions = await Promise.all(
       discovered.available
         .filter((action) => !legendaryFeatureIds.has(action.ownerFeatureId))
-        .map(async (action) => ({
-          id: action.actionId,
-          label: action.label,
-          ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
-          grip: action.grip
-            ? {
-                value: action.grip,
-                attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
-              }
-            : null,
-          wieldConflict: null,
-          warnings: await readEconomyWarnings(action.mechanicFacts.invocation.activation)
-        }))
+        .map(async (action) => {
+          const economy = await readEconomy(
+            action.mechanicFacts.invocation.activation,
+            action.mechanicFacts.invocation.triggerCode
+          )
+          return {
+            id: action.actionId,
+            label: action.label,
+            ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
+            grip: action.grip
+              ? {
+                  value: action.grip,
+                  attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
+                }
+              : null,
+            wieldConflict: null,
+            attackSlot: economy.attackSlot,
+            warnings: economy.warnings
+          }
+        })
     )
   }
   // The System's basic-action catalogue (Q11): its published platform entries, by label.
@@ -212,13 +244,22 @@ export async function readEncounterActionChoices(
         warnings:
           actor.kind === 'CUSTOM'
             ? []
-            : await readEconomyWarnings({ code: document.actionCost, amount: 1 })
+            : (await readEconomy({ code: document.actionCost, amount: 1 })).warnings
       }))
   )
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
     actorId: actor.id,
+    openAttackAction:
+      openAttackAction && openAttackAction.turnSequence === state.turnSequence
+        ? {
+            made: openAttackAction.attacks.length,
+            total: openAttackAction.total,
+            lastActionId: openAttackAction.attacks.at(-1)!.actionId,
+            lastTargetIds: openAttackAction.attacks.at(-1)!.targetIds
+          }
+        : null,
     actions,
     unavailableActions,
     basicActions,

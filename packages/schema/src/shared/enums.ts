@@ -365,6 +365,7 @@ export const valueDomainCodeSchema = lazySchema(() =>
     'ACTION_COUNT',
     'BONUS_ACTION_COUNT',
     'REACTION_COUNT',
+    'ATTACKS_PER_ATTACK_ACTION',
     'DAMAGE_RESISTANCE',
     'DAMAGE_IMMUNITY',
     'DAMAGE_VULNERABILITY',

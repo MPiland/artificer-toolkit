@@ -311,6 +311,8 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
   REACTION_COUNT: [MODIFIER_KIND.BONUS, MODIFIER_KIND.SET_VALUE],
 
+  ATTACKS_PER_ATTACK_ACTION: [MODIFIER_KIND.SET_VALUE],
+
   /* ──────────────────────────────────────────────
    * CHARGES / RESOURCES
    * ────────────────────────────────────────────── */

@@ -1,6 +1,7 @@
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
+import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -69,10 +70,11 @@ export function encounterActionCurrentnessChecksum(input: {
     | 'featureUsed'
   >
   actionEconomy: EncounterActionEconomyConsumption | null
+  attackAction: EncounterAttackActionTransitionDto | null
   maintenance: object | null
   sceneContext: object | null
 }) {
-  const { prepared, actionEconomy, maintenance, sceneContext } = input
+  const { prepared, actionEconomy, attackAction, maintenance, sceneContext } = input
   const { characterFacts: sourceCharacterFacts, ...sourceCurrentnessFacts } = prepared.sourceFacts
   const { characterFacts: targetCharacterFacts, ...targetCurrentnessFacts } = prepared.targetFacts
   return checksumRuleDocument({
@@ -84,6 +86,7 @@ export function encounterActionCurrentnessChecksum(input: {
     featureResource: prepared.featureResource,
     featureUsed: prepared.featureUsed,
     actionEconomy,
+    ...(attackAction ? { attackAction } : {}),
     ...(maintenance ? { maintenance } : {}),
     ...(sceneContext ? { sceneContext } : {})
   })

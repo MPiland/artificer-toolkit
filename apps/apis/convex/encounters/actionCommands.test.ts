@@ -32,6 +32,7 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import {
+  encounterAttackActionState,
   encounterRuleUsageUsed,
   featureChargeUsed,
   withEncounterRuleUsageUsed,
@@ -2062,6 +2063,31 @@ describe('GM undo of the last action', () => {
       reason: 'REVERT_UNAVAILABLE',
       message: 'The last action was already undone.'
     })
+  }, 30000)
+
+  it('keeps the Attack action an attack opened with the settled Run, and removes it on undo', async () => {
+    const base = await setup({ phased: true, targetCreature: true })
+    await queueRoomRolls(base.campaign.id, { rolls: [14], repeat: 5 })
+    try {
+      await executeInRoom(base.owner.caller, {
+        command: command({
+          encounterId: base.run.id,
+          actorId: base.actor.id,
+          targetActorId: base.target.id,
+          actionId: base.actionId
+        })
+      })
+    } finally {
+      await queueRoomRolls(base.campaign.id, { rolls: [] })
+    }
+    // A Creature attacks once per Attack action: the one Bite fills it.
+    expect(encounterAttackActionState(await sourceActorState(base))).toMatchObject({
+      kind: 'ATTACK_ACTION',
+      total: 1,
+      attacks: [{ actionId: base.actionId, targetIds: [base.target.id] }]
+    })
+    await revert(base, 1)
+    expect(encounterAttackActionState(await sourceActorState(base))).toBeNull()
   }, 30000)
 
   it('deletes the effect an action created and restores its conditions', async () => {

@@ -101,6 +101,21 @@ export function attackingItemPropertyRestriction(
   }
 }
 
+/** "You can attack N times whenever you take the Attack action": the highest source applies. */
+export function attacksPerAttackActionGrant(id: string, amount: number): ModifierGrantAuthored {
+  return {
+    id,
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION,
+    domain: {},
+    modifierKind: MODIFIER_KIND.SET_VALUE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { amount },
+    order: 0
+  }
+}
+
 /**
  * Dueling: "wielding a melee weapon in one hand and no other weapons". The attacking item is a
  * melee weapon, not wielded two-handed, and no other weapon is equipped. Uses ids `makeId(0..5)`.

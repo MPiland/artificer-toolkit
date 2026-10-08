@@ -46,7 +46,18 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * equipped, not enough uses). The drawer shows the action dimmed with these reasons; resolving it
      * still asks "Do it anyway".
      */
-    warnings: encounterRuleWarningsDtoSchema
+    warnings: encounterRuleWarningsDtoSchema,
+    /**
+     * The attack of the actor's Attack action this choice would make ("Attack 2 of 3"): a weapon
+     * attack that fits the open Attack action, or the first one of a fresh turn. Null for choices that
+     * are not part of the Attack action and for attacks that would spend a new Action ("Do it anyway").
+     */
+    attackSlot: z.nullable(
+      z.strictObject({
+        number: z.number().check(z.int()).check(z.gte(1)),
+        total: z.number().check(z.int()).check(z.gte(1))
+      })
+    )
   })
 )
 
@@ -71,6 +82,15 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     encounterId: postgresUuidSchema,
     encounterVersion: versionSchema,
     actorId: postgresUuidSchema,
+    /** The actor's Attack action this turn, once an attack has opened it. Null before the first attack. */
+    openAttackAction: z.nullable(
+      z.strictObject({
+        made: z.number().check(z.int()).check(z.gte(1)),
+        total: z.number().check(z.int()).check(z.gte(1)),
+        lastActionId: characterSheetActionDtoSchema.shape.id,
+        lastTargetIds: z.array(postgresUuidSchema)
+      })
+    ),
     actions: z.array(encounterActionChoiceDtoSchema),
     /** Creature actions whose authored mechanics cannot run, with the reason. They never resolve. */
     unavailableActions: z.array(

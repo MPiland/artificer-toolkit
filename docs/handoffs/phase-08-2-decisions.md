@@ -484,6 +484,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Assisted mode:** an attack that doesn't fit the open action is not offered. "Do it anyway" stays only for attacking outside the action (ADR 0034). Manual mode tracks only.
   - **Characters:** the Attack action is one slot of weapon attacks (grapple and shove join it in ATTACK-7). Extra Attack is an authored "attacks per Attack action" total; several sources don't add together and the highest wins (SRD multiclassing; Thirsting Blade likewise).
   - **Engulf:** grapple riders ("on hit, grappled, escape DC 14") and "grappled by this creature" targeting are authorable effects built in ATTACK-7, which closes on the full Shambling Mound turn. Engulf is never offered before its target can really be grappled.
+  - **Implementation (integration owner, 2026-10-07):** an open action is stored on the actor as `resources.attackAction` with the run's `turnSequence`, its total and the attacks made (action and targets). An action from another turn is closed, so starting a turn writes nothing. Extra Attack is a new `ATTACKS_PER_ATTACK_ACTION` value domain authored as SET_VALUE and folded highest-wins; Fighter gains the SRD table's "Extra Attack (2)" and "(3)" features at 11 and 20. Each attack receipt records the before and after state, so undo restores it like the Action allowance.
 
 ## Approved implementation decisions
 

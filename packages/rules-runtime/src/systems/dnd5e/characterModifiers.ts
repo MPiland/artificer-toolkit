@@ -179,16 +179,25 @@ export function evaluateDnd5eCharacterModifiers(
       'REPLACE_SHAPE_KIND',
       'REPLACE_CHARGE_RESET_KIND'
     ].includes(group.modifierKind)
-      ? 'last'
+      ? // Extra Attack sources do not add or override each other: the best one applies.
+        group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION'
+        ? 'highest'
+        : 'last'
       : ['ADVANTAGE', 'DISADVANTAGE'].includes(group.modifierKind)
         ? 'boolean'
         : 'additive'
     const selected =
       stacking === 'last'
         ? contributions.at(-1)
-        : stacking === 'boolean'
-          ? contributions.find((entry) => entry.resolvedValue !== 0)
-          : undefined
+        : stacking === 'highest'
+          ? contributions.reduce<(typeof contributions)[number] | undefined>(
+              (best, entry) =>
+                best === undefined || entry.resolvedValue > best.resolvedValue ? entry : best,
+              undefined
+            )
+          : stacking === 'boolean'
+            ? contributions.find((entry) => entry.resolvedValue !== 0)
+            : undefined
     return {
       domainKey: group.domainKey,
       valueDomainCode: group.valueDomainCode,

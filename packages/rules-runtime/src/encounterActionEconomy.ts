@@ -16,7 +16,10 @@ import {
 
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 
-type ActionEconomyTarget = Pick<MovementTarget, 'actor' | 'state' | 'activeEffects'>
+type ActionEconomyTarget = Pick<
+  MovementTarget,
+  'actor' | 'state' | 'activeEffects' | 'effectiveRulePolicyOutput'
+>
 
 /** The capabilities an actor's active relationship effects suppress. */
 export function activeEffectCapabilitySuppressions(effects: ActionEconomyTarget['activeEffects']) {
@@ -85,7 +88,7 @@ export async function stageEncounterActionEconomyRefreshes(input: {
   return { refreshes, refreshedActor: refreshes.length ? actor : null }
 }
 
-type ActionEconomyInput = {
+export type ActionEconomyInput = {
   actor: EncounterRunActorState
   state: EncounterRunState
   activation: { code: string; amount: number }
@@ -94,13 +97,8 @@ type ActionEconomyInput = {
   definitions: CurrentReusableDefinitionSource
 }
 
-/**
- * The allowance an action uses. An exhausted or suppressed allowance is still returned, marked
- * unavailable; only Assisted actions may override it (`prepareEncounterActionEconomy` refuses).
- */
-export async function evaluateEncounterActionEconomy(
-  input: ActionEconomyInput
-): Promise<{ consumption: EncounterActionEconomyConsumption; available: boolean } | null> {
+/** The allowance capability an activation binds to, resolved against the actor's conditions and effects. */
+async function resolveActionAllowance(input: ActionEconomyInput) {
   if (input.state.automationMode === 'MANUAL') return null
   const binding = actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
     gameSystemId: input.state.gameSystemId,
@@ -131,12 +129,29 @@ export async function evaluateEncounterActionEconomy(
   })
   const capability = capabilityState.capabilities[0]
   const usage = capability?.capability.document.usage
-  const beforeUsed = encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId)
   if (!capability || !usage || usage.refreshBoundary !== 'START_OF_TURN')
     throw new Error('The selected action allowance is unavailable.')
   return {
+    definitionId: binding.capabilityDefinitionId,
+    capability,
+    usage,
+    beforeUsed: encounterRuleUsageUsed(input.actor, binding.capabilityDefinitionId)
+  }
+}
+
+/**
+ * The allowance an action uses. An exhausted or suppressed allowance is still returned, marked
+ * unavailable; only Assisted actions may override it (`prepareEncounterActionEconomy` refuses).
+ */
+export async function evaluateEncounterActionEconomy(
+  input: ActionEconomyInput
+): Promise<{ consumption: EncounterActionEconomyConsumption; available: boolean } | null> {
+  const allowance = await resolveActionAllowance(input)
+  if (!allowance) return null
+  const { capability, usage, beforeUsed } = allowance
+  return {
     consumption: {
-      definitionId: binding.capabilityDefinitionId,
+      definitionId: allowance.definitionId,
       definitionVersion: capability.capability.definitionVersion,
       definitionChecksum: capability.capability.definitionChecksum,
       maximum: usage.maximum,
@@ -145,6 +160,16 @@ export async function evaluateEncounterActionEconomy(
     },
     available: capability.available && beforeUsed < usage.maximum
   }
+}
+
+/**
+ * Whether a condition or effect suppresses the allowance this activation binds to, ignoring how much
+ * of it is spent. An attack that fills an open Attack action spends nothing, but a suppressed actor
+ * still cannot make it.
+ */
+export async function isActionEconomySuppressed(input: ActionEconomyInput): Promise<boolean> {
+  const allowance = await resolveActionAllowance(input)
+  return allowance ? !allowance.capability.available : false
 }
 
 /** The allowance for flows without overrides (movement, Disarm): an unavailable one is refused. */

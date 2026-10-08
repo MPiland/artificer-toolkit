@@ -25,7 +25,11 @@ import { evaluateDnd5eCharacterSpellMechanics } from './characterSpellMechanics.
 import { evaluateDnd5eCharacterSpellPreparation } from './characterSpellPreparation.js'
 import { evaluateDnd5eCharacterSpellSlots } from './characterSpellSlots.js'
 import { evaluateDnd5eCharacterVitals } from './characterVitals.js'
-import { dnd5eFoldedModifierApplicability } from './modifierApplicability.js'
+import {
+  DND5E_CHARACTER_WIDE_TARGET,
+  dnd5eFoldedModifierApplicability,
+  dnd5eModifierApplies
+} from './modifierApplicability.js'
 
 /** Pure System-owned Character policy. The generic Rules Kernel remains scalar-only. */
 export function evaluateDnd5e2014CharacterPolicy(
@@ -165,6 +169,19 @@ export function evaluateDnd5e2014CharacterPolicy(
     ...rolls,
     ...evaluateDnd5eCharacterDefenses(input, grantFold),
     ...evaluateDnd5eCharacterMovementAndSenses(input, grantFold, modifierGroups),
+    attacksPerAttackAction: Math.max(
+      1,
+      ...modifierGroups
+        .filter((group) => group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION')
+        .flatMap((group) => group.contributions)
+        .filter((contribution) =>
+          dnd5eModifierApplies(
+            dnd5eFoldedModifierApplicability(grantFold, contribution),
+            DND5E_CHARACTER_WIDE_TARGET
+          )
+        )
+        .map((contribution) => contribution.value)
+    ),
     hitPointProgression,
     derivedStats: { ...derived, ...vitals },
     ...spells,

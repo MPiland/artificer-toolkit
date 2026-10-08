@@ -185,6 +185,26 @@ through `encounterActionRuleWarnings`:
 `USE_BASIC_ACTION` follows the same rule with `encounterActionEconomyWarnings` and `TARGET_DISPOSITION`.
 Action choices carry the warnings that already apply before a target is chosen.
 
+### Attack action, Multiattack and Extra Attack (current, D93)
+
+An Assisted weapon or unarmed attack made with one Action is part of the actor's Attack action
+(`isAttackActionAttack`, owned by the System's action-economy adapter; spell attacks are not).
+`evaluateEncounterAttackAction` wraps the Action evaluation: the first such attack of a turn spends the
+Action and opens the Attack action, stored at actor `resources.attackAction` with the turn sequence, the
+`total` attacks and the attacks made. The next attacks of that turn fill it without spending an Action or
+warning. A Character's total is the dnd5e policy output `attacksPerAttackAction` (value domain
+`ATTACKS_PER_ATTACK_ACTION`, SET_VALUE only, highest source wins, base 1; every class Extra Attack and
+Thirsting Blade is a grant of it) and a Creature's is 1, because a Creature's Multiattack is its own
+action. An attack that does not fit (full, stale turn) spends a new Action, warns when none is left, and
+opens a new Attack action. Settlement commits the `attackActionTransition` `{ before, after }` in the
+action's mechanics batch with the same compare-and-set as the allowance; `REVERT_LAST_ACTION` restores
+`before` only while the actor still holds `after`, else it refuses with `REVERT_UNAVAILABLE`. Action
+choices report `attackSlot` per action and the actor's `openAttackAction`. A filler attack spends nothing
+but still honors suppression: `isActionEconomySuppressed` reuses the allowance capability resolution of
+`evaluateEncounterActionEconomy`, and an actor that can't act (Incapacitated, a suppressing effect) gets
+the overridable `ACTION_ECONOMY_UNAVAILABLE` warning and no `attackSlot`; a spent Action is not
+suppression. Manual mode tracks nothing.
+
 The command proceeds only when `acknowledgedWarnings` (part of its fingerprint) covers every current
 code; otherwise it is refused with `RULE_WARNINGS`. An override spends only what remains and
 `consumeEncounterActionEconomy({ overridden: true })` lets the allowance exceed its maximum. Accepted

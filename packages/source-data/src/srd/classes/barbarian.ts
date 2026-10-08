@@ -34,6 +34,7 @@ import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
+  attacksPerAttackActionGrant,
   closedRuleEffect,
   equippedCategoryRestriction
 } from './mechanics.js'
@@ -555,7 +556,9 @@ export const barbarian: ClassAuthored = {
       label: 'Extra Attack',
       description:
         'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
-      effects: [selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_BARBARIAN_EXTRA_ATTACK)],
+      grants: {
+        modifiers: [attacksPerAttackActionGrant(classRowId(B, 0x6f, 1), 2)]
+      },
       availableAtLevel: 5,
       order: 6
     },
