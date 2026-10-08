@@ -99,7 +99,7 @@
 - SPELLS-3 slice B, 3.4 DONE (D96): a dying Character's turn starts with a death save, a turn stage after Recharge and before START_OF_TURN effects (`encounterTurnDeathSave.ts`; outcome math `deathSavesAfterRoll` in `schema/shared/characterDeathSaves.ts`; applied through the mechanics batch's `deathSave` input, phase `TURN_DEATH_SAVE`, in `persistEncounterTurnDeathSave`). Prompted to the controller as a D20_EVIDENCE with a `DEATH_SAVE` trigger, or auto-rolled. Every save posts exactly one roll card (commit card unless an app attempt already carded that die). A Character that dies at its own turn start keeps that turn and is skipped afterwards. The `liveCharacterState` D96 journey setup moved to `tests/fixtures/liveCharacterRun.ts`.
 - Registered ENCOUNTER-7: Recharge and Legendary dice post no card, and app-rolled action d20s are carded twice.
 - WSJF-ranked the seven optional-combat variants (table below the ranking).
-- Ledger 68/134 PBIs, 313/446 ACs. Next: SPELLS-3 slice C (3.5, STABILIZE and first aid), then D (3.6).
+- Ledger 68/135 PBIs, 313/449 ACs (RELEASE-7, the alpha tester play guide, registered; written once VTT behavior freezes). Next: SPELLS-3 slice C (3.5, STABILIZE and first aid), then D (3.6).
 
 **Done 2026-10-07 (parallel session, worktree `claude/spells-2-conditions`):**
 
