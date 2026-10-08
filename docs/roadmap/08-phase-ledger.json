@@ -3391,6 +3391,45 @@
               "id": "MOVE-3.1"
             }
           ]
+        },
+        {
+          "id": "MOVE-4",
+          "title": "Climb onto a larger creature",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With the rule enabled, a creature can try to climb onto a suitably larger adjacent creature with a Strength (Athletics) or Dexterity (Acrobatics) check contested by the target's Dexterity (Acrobatics), on the prepare, contest and execution path that Overrun and Tumble use.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. The removed attach and dislodge resolvers are in 437b2dd15 (optionalActionPolicy.ts).",
+              "id": "MOVE-4.1"
+            },
+            {
+              "text": "A climber that wins moves into the target's space and clings to it: it moves with the target and has advantage on attacks against it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "MOVE-4.2"
+            },
+            {
+              "text": "The target can try to dislodge the climber with the authored contest, and a dislodged climber lands in a legal adjacent space.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "MOVE-4.3"
+            },
+            {
+              "text": "Campaign settings offer the rule only once it resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "MOVE-4.4"
+            }
+          ]
         }
       ]
     },
@@ -3704,6 +3743,38 @@
               "origin": ["G5-AUTOMATIC-JOURNEY"],
               "note": "Replaces the original three-user Automatic journey (ADR 0034); AUTOMATIC is not reinstated.",
               "id": "ENCOUNTER-5.1"
+            }
+          ]
+        },
+        {
+          "id": "ENCOUNTER-6",
+          "title": "Morale",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With Morale enabled, an authored trigger (surprised, reduced to half hit points, cannot harm the opposition, half the group removed, leader removed or incapacitated) offers the GM a morale save for the creature or its group's leader (or the fallback roller).",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. The removed resolver (trigger scopes, leader/fallback roller, overwhelming opposition) is in 437b2dd15 (optionalResolutionPolicy.ts). Token presentation is VTT_UI-2.1.",
+              "id": "ENCOUNTER-6.1"
+            },
+            {
+              "text": "A failed save proposes flee, or surrender when escape is impossible; the GM confirms the outcome and it is recorded on the actor.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ENCOUNTER-6.2"
+            },
+            {
+              "text": "Campaign settings offer Morale only once it resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ENCOUNTER-6.3"
             }
           ]
         }
@@ -4265,6 +4336,152 @@
               "origin": [],
               "note": "D93. Assisted means assisted: nothing resolves without the controller's confirmation.",
               "id": "ATTACK-11.4"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-12",
+          "title": "Facing",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With Facing enabled, every token has a facing that its controller sets at the end of its move and can change as a reaction, using the kept square-grid arc geometry (classifySquareGridFootprintFacingArcs).",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. An uncalled resolver was removed by the 2026-10 dead-code sweep; recover it from 437b2dd15 (systems/dnd5e/facingPolicy.ts). Presentation is VTT_UI-1.3.",
+              "id": "ATTACK-12.1"
+            },
+            {
+              "text": "Attacks resolve with the arcs: an attacker in the target's rear arc has advantage, an actor cannot target a creature in its own rear arc, and the roll evidence names the arc.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-12.2"
+            },
+            {
+              "text": "Campaign settings offer Facing only once it resolves (isIntegratedOptionalCombatRule).",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-12.3"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-13",
+          "title": "Marking",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With Marking enabled, a melee attack marks its target until the end of the attacker's next turn, as an active effect (one mark per attacker).",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. Marks use the active-effect lifecycle (docs/architecture/dnd5e-optional-combat.md). The removed proposal resolvers are in 437b2dd15 (optionalActionPolicy.ts). Presentation is VTT_UI-1.3.",
+              "id": "ATTACK-13.1"
+            },
+            {
+              "text": "The marker's opportunity attack against the marked creature has advantage and does not use its reaction, at most once per turn and never while it cannot take reactions.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-13.2"
+            },
+            {
+              "text": "Campaign settings offer Marking only once it resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-13.3"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-14",
+          "title": "Hitting cover",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With Hitting Cover enabled, a ranged attack that misses only because of cover hits the cover; when a creature provides the cover and the roll would hit it, the attack hits that creature, and the roll evidence says so.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. The removed resolver is in 437b2dd15 (optionalActionPolicy.ts).",
+              "id": "ATTACK-14.1"
+            },
+            {
+              "text": "Campaign settings offer Hitting Cover only once it resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-14.2"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-15",
+          "title": "Lingering injuries",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With Injuries enabled, the authored triggers (taking a critical hit, dropping to 0 HP, failing a death save by 5 or more) offer the GM a roll on the authored lingering-injury table.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. The death-save trigger needs SPELLS-3. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts). Token presentation is VTT_UI-2.1.",
+              "id": "ATTACK-15.1"
+            },
+            {
+              "text": "An accepted injury is recorded on the Character, shows on the Sheet, and is removed by the healing the table names.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-15.2"
+            },
+            {
+              "text": "Campaign settings offer Injuries only once it resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-15.3"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-16",
+          "title": "Massive damage (system shock)",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": ["G2-OPTIONAL-COMBAT"],
+          "acs": [
+            {
+              "text": "With Massive Damage enabled, a creature that takes damage from one source of at least half its hit point maximum makes the authored Constitution save, and a failure applies the rolled system-shock result.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "note": "2014 DMG variant, approved for Phase 8. Not the SRD instant-death rule, which D96 already applies. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts).",
+              "id": "ATTACK-16.1"
+            },
+            {
+              "text": "Campaign settings offer Massive Damage only once it resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["G2-OPTIONAL-COMBAT"],
+              "id": "ATTACK-16.2"
             }
           ]
         }
