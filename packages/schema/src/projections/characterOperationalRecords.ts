@@ -69,27 +69,17 @@ function collectionRecord<Schema extends z.ZodMiniType>(value: Schema) {
   )
 }
 
-export const characterStoredInventoryItemSchema = collectionRecord(
-  characterEquipmentItemStateDtoSchema
-)
-export const characterStoredCurrencyGroupSchema = collectionRecord(
-  characterCurrencyGroupStateDtoSchema
-)
-export const characterStoredClassSpellStateSchema = collectionRecord(characterClassStateDtoSchema)
-export const characterStoredSpellCustomizationSchema = collectionRecord(
-  characterSpellCustomizationSchema
-)
-export const characterStoredCreatureInstanceSchema = collectionRecord(
-  characterOwnedCreatureStateDtoSchema
-)
-export const characterStoredVehicleInstanceSchema = collectionRecord(
-  characterOwnedVehicleStateDtoSchema
-)
-export const characterStoredNoteSchema = collectionRecord(characterNoteStateDtoSchema)
-export const characterStoredNoteGroupSchema = collectionRecord(characterNoteGroupStateDtoSchema)
+const characterStoredInventoryItemSchema = collectionRecord(characterEquipmentItemStateDtoSchema)
+const characterStoredCurrencyGroupSchema = collectionRecord(characterCurrencyGroupStateDtoSchema)
+const characterStoredClassSpellStateSchema = collectionRecord(characterClassStateDtoSchema)
+const characterStoredSpellCustomizationSchema = collectionRecord(characterSpellCustomizationSchema)
+const characterStoredCreatureInstanceSchema = collectionRecord(characterOwnedCreatureStateDtoSchema)
+const characterStoredVehicleInstanceSchema = collectionRecord(characterOwnedVehicleStateDtoSchema)
+const characterStoredNoteSchema = collectionRecord(characterNoteStateDtoSchema)
+const characterStoredNoteGroupSchema = collectionRecord(characterNoteGroupStateDtoSchema)
 
 /** One relationship record per instance; IDs preserve the existing optional assignment maps. */
-export const characterStoredExtraEquipmentSchema = collectionRecord(
+const characterStoredExtraEquipmentSchema = collectionRecord(
   lazySchema(() =>
     z.strictObject({
       kind: z.enum(['CREATURE', 'VEHICLE']),

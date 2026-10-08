@@ -88,7 +88,7 @@ const abilityScoreIncreaseFactSchema = lazySchema(() =>
 // Index entries hold each root's own picker facts. Labels resolved through the System vocabulary
 // or another root (speed names, proficiency targets, a subrace's inherited facts) are joined by
 // the reader, because they can change in another scope without this object changing.
-export const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
+const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
   z.discriminatedUnion('category', [
     z.strictObject({
       ...identityShape(),
@@ -109,7 +109,7 @@ export const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
   ])
 )
 
-export const contentSnapshotClassIndexEntrySchema = lazySchema(() =>
+const contentSnapshotClassIndexEntrySchema = lazySchema(() =>
   z.discriminatedUnion('category', [
     z.strictObject({
       ...identityShape(),
@@ -132,7 +132,7 @@ export const contentSnapshotClassIndexEntrySchema = lazySchema(() =>
   ])
 )
 
-export const contentSnapshotBackgroundIndexEntrySchema = lazySchema(() =>
+const contentSnapshotBackgroundIndexEntrySchema = lazySchema(() =>
   z.strictObject({
     ...identityShape(),
     description: z.optional(authoredRichTextSchema),
@@ -142,7 +142,7 @@ export const contentSnapshotBackgroundIndexEntrySchema = lazySchema(() =>
 )
 
 /** Effective facts after variant resolution, as stored in the root's Equipment option projection. */
-export const contentSnapshotEquipmentIndexEntrySchema = lazySchema(() =>
+const contentSnapshotEquipmentIndexEntrySchema = lazySchema(() =>
   z.strictObject({
     ...identityShape(),
     parentEquipmentId: z.nullable(authoredIdentifierSchema),
@@ -154,7 +154,7 @@ export const contentSnapshotEquipmentIndexEntrySchema = lazySchema(() =>
   })
 )
 
-export const contentSnapshotSpellIndexEntrySchema = lazySchema(() =>
+const contentSnapshotSpellIndexEntrySchema = lazySchema(() =>
   z.strictObject({
     ...identityShape(),
     attributes: spellAuthoredDtoSchema.shape.attributes,
@@ -169,9 +169,7 @@ export const contentSnapshotSpellIndexEntrySchema = lazySchema(() =>
 )
 
 /** Feats, Creatures and Vehicles are picked or looked up by identity only. */
-export const contentSnapshotIdentityIndexEntrySchema = lazySchema(() =>
-  z.strictObject(identityShape())
-)
+const contentSnapshotIdentityIndexEntrySchema = lazySchema(() => z.strictObject(identityShape()))
 
 // List entries hold what a catalogue page shows and filters on. They are a separate part so the
 // Builder's index stays small and neither reads `documents`. Labels of other roots (a parent,
@@ -182,7 +180,7 @@ const listIdentityShape = () => ({
   description: z.optional(authoredRichTextSchema)
 })
 
-export const contentSnapshotRaceListEntrySchema = lazySchema(() =>
+const contentSnapshotRaceListEntrySchema = lazySchema(() =>
   z.discriminatedUnion('category', [
     z.strictObject({
       ...listIdentityShape(),
@@ -197,7 +195,7 @@ export const contentSnapshotRaceListEntrySchema = lazySchema(() =>
   ])
 )
 
-export const contentSnapshotClassListEntrySchema = lazySchema(() =>
+const contentSnapshotClassListEntrySchema = lazySchema(() =>
   z.discriminatedUnion('category', [
     z.strictObject({ ...listIdentityShape(), category: z.literal('BASE') }),
     z.strictObject({
@@ -208,24 +206,22 @@ export const contentSnapshotClassListEntrySchema = lazySchema(() =>
   ])
 )
 
-export const contentSnapshotEquipmentListEntrySchema = lazySchema(() =>
+const contentSnapshotEquipmentListEntrySchema = lazySchema(() =>
   z.strictObject({ ...listIdentityShape(), category: equipmentCategoryCodeSchema })
 )
 
-export const contentSnapshotCreatureListEntrySchema = lazySchema(() =>
+const contentSnapshotCreatureListEntrySchema = lazySchema(() =>
   z.strictObject({ ...listIdentityShape(), category: creatureCategoryCodeSchema })
 )
 
-export const contentSnapshotVehicleListEntrySchema = lazySchema(() =>
+const contentSnapshotVehicleListEntrySchema = lazySchema(() =>
   z.strictObject({ ...listIdentityShape(), category: vehicleCategoryCodeSchema })
 )
 
 /** Backgrounds and Feats have no category. */
-export const contentSnapshotPlainListEntrySchema = lazySchema(() =>
-  z.strictObject(listIdentityShape())
-)
+const contentSnapshotPlainListEntrySchema = lazySchema(() => z.strictObject(listIdentityShape()))
 
-export const contentSnapshotSpellListEntrySchema = lazySchema(() =>
+const contentSnapshotSpellListEntrySchema = lazySchema(() =>
   z.strictObject({
     ...listIdentityShape(),
     level: spellAuthoredDtoSchema.shape.level,

@@ -120,7 +120,6 @@ export const sceneRecipientCaptureSchema = lazySchema(() =>
 
 export type SceneCurrentEntityPageInput = z.infer<typeof sceneCurrentEntityPageInputSchema>
 export type SceneCurrentEntityPage = z.infer<typeof sceneCurrentEntityPageSchema>
-export type SceneRecipientPageInput = z.infer<typeof sceneRecipientPageInputSchema>
 export type SceneRecipientPage = z.infer<typeof sceneRecipientPageSchema>
 export type SceneRecipientHeader = z.infer<typeof sceneRecipientHeaderSchema>
 export type SceneRecipientHeaderInput = z.infer<typeof sceneRecipientHeaderInputSchema>

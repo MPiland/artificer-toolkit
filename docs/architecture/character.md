@@ -694,8 +694,8 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
   (`characterPlayStateSchema`): the state's hit points (current, temporary, hit dice), resources,
   spell slots, conditions, exhaustion, inspiration and equipment item-use state, plus the Sheet state's
-  resource usage and party visibility. `splitCharacterPlayState` and `mergeCharacterPlayState` are
-  pure, and a property test proves split then merge round-trips. `characterStoredState.ts` is the one
+  resource usage and party visibility. `splitCharacterPlayState`, `mergeCharacterStatePlay` and
+  `mergeCharacterSheetStatePlay` are pure. `characterStoredState.ts` is the one
   reader (`readCharacterRecord`, `readCharacterSheetState`, checksum and identity checks) and pure
   re-encoder (`encodeCharacterRecord`) for a complete Character capture joined with its play record.
   `characterOperationalRecords.ts` defines typed storage; `characterOperationalState.ts` owns its

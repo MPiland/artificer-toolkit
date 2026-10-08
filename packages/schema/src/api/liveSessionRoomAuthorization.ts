@@ -26,7 +26,7 @@ export const liveSessionRoomAuthorizationRevisionsSchema = lazySchema(() =>
 )
 
 /** Membership, roles and Campaign Character assignments; changes with the CAMPAIGN revision. */
-export const liveSessionRoomCampaignAuthorizationSchema = lazySchema(() =>
+const liveSessionRoomCampaignAuthorizationSchema = lazySchema(() =>
   z.strictObject({
     ownerUserId: uuidSchema,
     /** Current ACTIVE members only; an archived Campaign has none. */
@@ -38,7 +38,7 @@ export const liveSessionRoomCampaignAuthorizationSchema = lazySchema(() =>
 )
 
 /** One assigned Character's owner and party visibility ("Party can view" and health display). */
-export const liveSessionRoomCharacterAuthorizationSchema = lazySchema(() =>
+const liveSessionRoomCharacterAuthorizationSchema = lazySchema(() =>
   z.strictObject({
     characterId: uuidSchema,
     ownerUserId: uuidSchema,
@@ -46,7 +46,7 @@ export const liveSessionRoomCharacterAuthorizationSchema = lazySchema(() =>
   })
 )
 
-export const liveSessionRoomPreferenceSchema = lazySchema(() =>
+const liveSessionRoomPreferenceSchema = lazySchema(() =>
   z.strictObject({
     userId: uuidSchema,
     autoRollDice: z.boolean(),

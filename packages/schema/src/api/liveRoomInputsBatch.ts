@@ -6,8 +6,8 @@ export const MAX_ROOM_INPUT_PAGE_DOCUMENTS = 1024
  * A response stops taking pages once it holds this many documents or bytes, so it is at most one
  * page larger than the budget.
  */
-export const ROOM_INPUT_BATCH_DOCUMENTS = 2048
-export const ROOM_INPUT_BATCH_BYTES = 2 * 1024 * 1024
+const ROOM_INPUT_BATCH_DOCUMENTS = 2048
+const ROOM_INPUT_BATCH_BYTES = 2 * 1024 * 1024
 export const MAX_ROOM_INPUT_RESPONSE_DOCUMENTS =
   ROOM_INPUT_BATCH_DOCUMENTS + MAX_ROOM_INPUT_PAGE_DOCUMENTS
 

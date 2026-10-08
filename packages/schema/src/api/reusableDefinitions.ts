@@ -38,12 +38,6 @@ export const reusableDefinitionWorkspaceDtoSchema = lazySchema(() =>
   })
 )
 
-export const listReusableDefinitionsInputDtoSchema = lazySchema(() =>
-  z.strictObject({
-    gameSystemId: serverUuidIdentityDtoSchema
-  })
-)
-
 export const listReusableDefinitionsPageInputDtoSchema = lazySchema(() =>
   z.strictObject({
     gameSystemId: serverUuidIdentityDtoSchema,
@@ -93,7 +87,6 @@ export const publishReusableDefinitionDraftInputDtoSchema = lazySchema(() =>
 )
 
 export type ReusableDefinitionWorkspaceDto = z.infer<typeof reusableDefinitionWorkspaceDtoSchema>
-export type ReusableDefinitionSummaryDto = z.infer<typeof reusableDefinitionSummaryDtoSchema>
 export type ListReusableDefinitionsPageInputDto = z.infer<
   typeof listReusableDefinitionsPageInputDtoSchema
 >

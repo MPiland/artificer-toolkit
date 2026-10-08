@@ -40,4 +40,3 @@ export const acquiredEquipmentRulesSchema = lazySchema(() =>
     )
   })
 )
-export type AcquiredEquipmentRules = z.infer<typeof acquiredEquipmentRulesSchema>

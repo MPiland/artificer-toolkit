@@ -14,17 +14,7 @@ export const characterChargeSourceLevelSchema = lazySchema(() =>
   ])
 )
 
-export const characterResourceOwnerKindSchema = lazySchema(() =>
-  z.enum([
-    'AUTHORED_GRANT',
-    'AUTHORED_SOURCE',
-    'ITEM_INSTANCE',
-    'COMPANION_FEATURE',
-    'SPELL_SOURCE'
-  ])
-)
-
-export const characterResourceResetKindSchema = lazySchema(() =>
+const characterResourceResetKindSchema = lazySchema(() =>
   z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
 )
 
@@ -176,7 +166,7 @@ const resourceOutputCommonSchema = lazySchema(() =>
   })
 )
 
-export const characterResourceSchema = lazySchema(() =>
+const characterResourceSchema = lazySchema(() =>
   z.discriminatedUnion('ownerKind', [
     z.extend(resourceOutputCommonSchema, {
       ownerKind: z.literal('AUTHORED_GRANT'),
@@ -271,5 +261,3 @@ export const characterResourcesSchema = lazySchema(() =>
 
 export type CharacterChargeSourceLevel = z.infer<typeof characterChargeSourceLevelSchema>
 export type CharacterResourcePoolCandidate = z.infer<typeof characterResourcePoolCandidateSchema>
-export type CharacterResourceUsageFacts = z.infer<typeof characterResourceUsageFactsSchema>
-export type CharacterResource = z.infer<typeof characterResourceSchema>

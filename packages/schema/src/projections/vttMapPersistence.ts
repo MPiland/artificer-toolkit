@@ -26,7 +26,7 @@ export const vttMapStoredVariantSchema = lazySchema(() =>
     })
   ])
 )
-export const vttMapProcessingOperationSchema = lazySchema(() =>
+const vttMapProcessingOperationSchema = lazySchema(() =>
   z.strictObject({
     id: postgresUuidSchema,
     expiresAt: z.number(),

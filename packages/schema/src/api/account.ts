@@ -35,8 +35,6 @@ export const accountProfileUpdateInputSchema = lazySchema(() =>
   })
 )
 
-export type AccountProfileUpdateInput = z.input<typeof accountProfileUpdateInputSchema>
-
 export const accountRollPreferencesDtoSchema = lazySchema(() =>
   z.strictObject({
     autoRollDice: z.boolean(),
@@ -53,21 +51,9 @@ export const setAutoRollDiceInputSchema = lazySchema(() =>
   })
 )
 
-export type SetAutoRollDiceInput = z.infer<typeof setAutoRollDiceInputSchema>
-
 export const setGmRollVisibilityInputSchema = lazySchema(() =>
   z.strictObject({ gmRollVisibility: rollVisibilityDtoSchema })
 )
-
-export type SetGmRollVisibilityInput = z.infer<typeof setGmRollVisibilityInputSchema>
-
-export const accountUsernameStatusInputSchema = lazySchema(() =>
-  z.strictObject({
-    username: z.string().check(z.maxLength(100))
-  })
-)
-
-export type AccountUsernameStatusInput = z.infer<typeof accountUsernameStatusInputSchema>
 
 export const accountUsernameStatusDtoSchema = lazySchema(() =>
   z.strictObject({

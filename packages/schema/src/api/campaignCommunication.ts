@@ -78,7 +78,7 @@ export const campaignRealtimeEnvelopeDtoSchema = lazySchema(() =>
 export const campaignConversationKindDtoSchema = lazySchema(() =>
   z.enum(['TABLE', 'PARTY', 'DIRECT'])
 )
-export const campaignChatRoomDtoSchema = campaignConversationKindDtoSchema
+const campaignChatRoomDtoSchema = campaignConversationKindDtoSchema
 export const campaignChatEntryKindDtoSchema = lazySchema(() =>
   z.enum(['CHAT', 'ROLL', 'ROLL_NOTICE'])
 )

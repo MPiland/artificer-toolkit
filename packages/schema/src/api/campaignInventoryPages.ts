@@ -51,7 +51,7 @@ export const campaignCurrencySystemPageSchema = lazySchema(() =>
 export type CampaignCurrencySystemPage = z.infer<typeof campaignCurrencySystemPageSchema>
 
 // Convex's transport cannot validate recursive JSON; retain the domain payload behind encoding.
-export const campaignInventoryAuditEventTransportSchema = lazySchema(() =>
+const campaignInventoryAuditEventTransportSchema = lazySchema(() =>
   z.extend(z.omit(campaignInventoryAuditEventDtoSchema, { payload: true }), {
     payloadJson: z.string()
   })

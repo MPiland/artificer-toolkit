@@ -25,6 +25,3 @@ export const characterSceneVisionResultSchema: z.ZodMiniType<SceneCharacterVisio
       )
     })
 )
-
-export type CharacterMechanicsReadInput = z.infer<typeof characterMechanicsReadInputSchema>
-export type CharacterSceneVisionResult = z.infer<typeof characterSceneVisionResultSchema>

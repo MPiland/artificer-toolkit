@@ -83,9 +83,6 @@ export const developmentReceiptLedgerNativeWindowSchema = lazySchema(() =>
 )
 
 export type DevelopmentReceiptLedgerScope = z.infer<typeof developmentReceiptLedgerScopeSchema>
-export type DevelopmentReceiptLedgerEntryInput = z.infer<
-  typeof developmentReceiptLedgerEntryInputSchema
->
 export type DevelopmentReceiptLedgerSeedInput = z.infer<
   typeof developmentReceiptLedgerSeedInputSchema
 >

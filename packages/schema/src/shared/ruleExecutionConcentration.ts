@@ -81,7 +81,6 @@ export const concentrationCheckTriggerDtoSchema = lazySchema(() =>
 export type ConcentrationDamageSourceLabelsDto = z.infer<
   typeof concentrationDamageSourceLabelsDtoSchema
 >
-export type ConcentrationCheckTriggerDto = z.infer<typeof concentrationCheckTriggerDtoSchema>
 
 /** The display name recorded for one damage application, if any. */
 export function concentrationDamageSourceLabel(

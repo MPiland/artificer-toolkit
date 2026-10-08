@@ -238,9 +238,6 @@ export const authoredCatalogueSourceCountsSchema = lazySchema(() =>
 )
 
 export type AuthoredCatalogueMetadata = z.infer<typeof authoredCatalogueMetadataSchema>
-export type AuthoredCatalogueSearchBackfillInput = z.infer<
-  typeof authoredCatalogueSearchBackfillInputSchema
->
 export type AuthoredCatalogueSearchBackfillResult = z.infer<
   typeof authoredCatalogueSearchBackfillResultSchema
 >
@@ -249,4 +246,3 @@ export type AuthoredCatalogueItem = z.infer<typeof authoredCatalogueItemSchema>
 export type AuthoredCataloguePage = z.infer<typeof authoredCataloguePageSchema>
 export type AuthoredCatalogueCounts = z.infer<typeof authoredCatalogueCountsSchema>
 export type AuthoredCatalogueSummary = z.infer<typeof authoredCatalogueSummarySchema>
-export type AuthoredCatalogueOwnerCounts = z.infer<typeof authoredCatalogueOwnerCountsSchema>

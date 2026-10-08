@@ -42,7 +42,7 @@ export const developmentAccountDeletionKnownSchema = lazySchema(() =>
   })
 )
 
-export const developmentAccountDeletionScopeSchema = lazySchema(() =>
+const developmentAccountDeletionScopeSchema = lazySchema(() =>
   z.enum(['IDENTITY', 'CHARACTERS', 'AUTHORED', 'DEFERRED'])
 )
 

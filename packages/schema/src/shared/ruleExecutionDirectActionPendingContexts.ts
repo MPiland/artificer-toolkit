@@ -30,7 +30,7 @@ import {
 } from './ruleExecutionPrimitives.js'
 
 /** Server-only interstitial control evidence retained when a failed TEST uses Legendary Resistance. */
-export const directActionLegendaryResistanceOutcomeAuditDtoSchema = lazySchema(() =>
+const directActionLegendaryResistanceOutcomeAuditDtoSchema = lazySchema(() =>
   z.strictObject({
     choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
     selection: z.enum(['DECLINE', 'USE']),

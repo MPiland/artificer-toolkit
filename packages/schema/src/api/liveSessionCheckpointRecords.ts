@@ -184,12 +184,8 @@ export type LiveSessionCheckpointHistoryTable = keyof typeof liveSessionCheckpoi
 export type LiveSessionCheckpointRecordChange = z.infer<
   typeof liveSessionCheckpointRecordChangeSchema
 >
-export type LiveSessionCheckpointHistoryEntry = z.infer<
-  typeof liveSessionCheckpointHistoryEntrySchema
->
 export type ReceiptLedgerEntry = z.infer<typeof receiptLedgerEntrySchema>
 export type ReceiptLedgerEntryTable = keyof typeof receiptLedgerEntryKeyFields
-export type LiveSessionRoomWriteSet = z.infer<typeof liveSessionRoomWriteSetSchema>
 
 /** Private room rolls merge into the owner's bounded history, never replace its global snapshot. */
 export const liveSessionCheckpointRetainedRollSchema = lazySchema(() =>

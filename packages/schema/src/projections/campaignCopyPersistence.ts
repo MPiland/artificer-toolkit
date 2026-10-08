@@ -26,5 +26,3 @@ export const campaignStoredCopySchema = lazySchema(() =>
     updatedAt: timestampSchema
   })
 )
-
-export type CampaignStoredCopy = z.infer<typeof campaignStoredCopySchema>

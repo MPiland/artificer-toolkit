@@ -21,7 +21,7 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 
-export const spatialTargetCurrentnessPinDtoSchema = lazySchema(() =>
+const spatialTargetCurrentnessPinDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('CHARACTER'),
@@ -38,7 +38,7 @@ export const spatialTargetCurrentnessPinDtoSchema = lazySchema(() =>
   ])
 )
 
-export const spatialAggregateVersionSchema = lazySchema(() => integerSchema.check(z.gte(0)))
+const spatialAggregateVersionSchema = lazySchema(() => integerSchema.check(z.gte(0)))
 
 export const spatialEffectCurrentnessPinDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -86,7 +86,7 @@ export const spatialPendingCandidateDtoSchema = lazySchema(() =>
 
 export const pendingD20FaceSchema = lazySchema(() => integerSchema.check(z.gte(1)).check(z.lte(20)))
 
-export const movementPassageContestParticipantReceiptDtoSchema = lazySchema(() =>
+const movementPassageContestParticipantReceiptDtoSchema = lazySchema(() =>
   z
     .strictObject({
       rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),

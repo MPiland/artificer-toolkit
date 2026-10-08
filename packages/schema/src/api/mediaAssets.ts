@@ -77,7 +77,7 @@ export const characterPortraitLookupSchema = lazySchema(
   () => imageLookupTargetSchema._zod.def.options[1]
 )
 /** The cropped image slots a user fills with their own content art. */
-export const mediaImageSlotTargetSchema = lazySchema(() =>
+const mediaImageSlotTargetSchema = lazySchema(() =>
   z.discriminatedUnion('type', [
     mediaTargetSchema._zod.def.options[0],
     characterPortraitTargetSchema,
@@ -257,21 +257,15 @@ export const mediaImageAttachInputSchema = lazySchema(() =>
 export type MediaProfileClass = z.infer<typeof mediaProfileClassSchema>
 export type MediaStoredAsset = z.infer<typeof mediaStoredAssetSchema>
 export type MediaStoredVariant = z.infer<typeof mediaStoredVariantSchema>
-export type MediaCropThumbnail = z.infer<typeof mediaCropThumbnailSchema>
 export type MediaCropThumbnailClaim = z.infer<typeof mediaCropThumbnailClaimSchema>
-export type MediaProcessingOperation = z.infer<typeof mediaProcessingOperationSchema>
 export type MediaImageBinding = z.infer<typeof mediaImageBindingSchema>
-export type MediaImageSlotTarget = z.infer<typeof mediaImageSlotTargetSchema>
 export type MediaReferencedImage = z.infer<typeof mediaReferencedImageSchema>
 export type MediaImageSaveSettlement = z.infer<typeof mediaImageSaveSettlementSchema>
 export type AvatarBindingDto = z.infer<typeof avatarBindingSchema>
-export type ImageUploadMetadata = z.infer<typeof avatarUploadInputSchema>
 export type MediaProcessClaim = z.infer<typeof mediaProcessClaimSchema>
 export type AuthoredImageTarget = z.infer<typeof authoredImageTargetSchema>
 export type AuthoredImageLookup = z.infer<typeof authoredImageLookupSchema>
 export type CharacterPortraitTarget = z.infer<typeof characterPortraitTargetSchema>
 export type CharacterPortraitLookup = z.infer<typeof characterPortraitLookupSchema>
-export type MediaLibraryListInput = z.infer<typeof mediaLibraryListInputSchema>
 export type MediaLibraryItemDto = z.infer<typeof mediaLibraryItemDtoSchema>
 export type MediaLibraryPage = z.infer<typeof mediaLibraryPageSchema>
-export type MediaImageAttachInput = z.infer<typeof mediaImageAttachInputSchema>

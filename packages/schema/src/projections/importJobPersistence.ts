@@ -216,9 +216,5 @@ export const importStoredResultSchema = lazySchema(() =>
     resultJson: z.string()
   })
 )
-
-export type ImportStoredPreviewSession = z.infer<typeof importStoredPreviewSessionSchema>
 export type ImportStoredPreviewDescriptor = z.infer<typeof importStoredPreviewDescriptorSchema>
 export type ImportStoredJob = z.infer<typeof importStoredJobSchema>
-export type ImportStoredResult = z.infer<typeof importStoredResultSchema>
-export type ImportStoredStage = z.infer<typeof importStoredStageSchema>

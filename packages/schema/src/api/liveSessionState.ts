@@ -135,4 +135,3 @@ export type LiveSessionStorageRecoveryInput = z.infer<typeof liveSessionStorageR
 export type LiveSessionDrainReleaseInput = z.infer<typeof liveSessionDrainReleaseInputSchema>
 export type LiveSessionAuthorityDto = z.infer<typeof liveSessionAuthorityDtoSchema>
 export type LiveSessionPublishInput = z.infer<typeof liveSessionPublishInputSchema>
-export type LiveSessionPublishResponse = z.infer<typeof liveSessionPublishResponseSchema>

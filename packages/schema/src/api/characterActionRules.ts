@@ -281,7 +281,7 @@ const actionInvocationFactSchema = lazySchema(() =>
   })
 )
 
-export const characterActionMechanicFactSchema = lazySchema(() =>
+const characterActionMechanicFactSchema = lazySchema(() =>
   z.strictObject({
     invocation: actionInvocationFactSchema,
     outcomes: z
@@ -543,7 +543,6 @@ export interface CharacterActionRuleEntryPoint {
   activationSourceKind: CharacterActionCandidate['activationSourceKind']
   compiledEffect: CompiledEffectGroup
 }
-export type CharacterActionDecision = z.infer<typeof characterActionDecisionsSchema>[number]
 export type CharacterResolvedActionMechanic = z.infer<typeof characterResolvedActionMechanicSchema>
 
 export const characterActionSpellSourceSchema = lazySchema(() =>
@@ -607,11 +606,11 @@ export const characterSpellActionFactsSchema = lazySchema(() =>
     )
 )
 
-export const characterSpellCastCandidateIdSchema = lazySchema(() =>
+const characterSpellCastCandidateIdSchema = lazySchema(() =>
   stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
 )
 
-export const characterSpellCastCandidateSchema = lazySchema(() =>
+const characterSpellCastCandidateSchema = lazySchema(() =>
   z.strictObject({
     sequence: integerSchema.check(z.gte(0)).check(z.lte(4_999)),
     candidateId: characterSpellCastCandidateIdSchema,
@@ -689,7 +688,7 @@ export const characterSpellCastSlotsSchema = lazySchema(() =>
     )
 )
 
-export const characterSpellCastReasonSchema = lazySchema(() =>
+const characterSpellCastReasonSchema = lazySchema(() =>
   z.enum([
     'CANTRIP',
     'AT_WILL',
@@ -816,8 +815,6 @@ export const characterActionModelOutputSchema = lazySchema(() =>
     spellCastDecisions: z._default(characterSpellCastDecisionsSchema, [])
   })
 )
-
-export const CHARACTER_ACTION_MODEL_KEY = 'character-action-resolve'
 
 export const characterActionModelInputSchema = lazySchema(() =>
   z.strictObject({

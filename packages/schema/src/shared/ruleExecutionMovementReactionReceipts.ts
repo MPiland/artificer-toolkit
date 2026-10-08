@@ -24,7 +24,7 @@ import {
   ruleExecutionUuidSchema as uuid
 } from './ruleExecutionPrimitives.js'
 
-export const movementReactionCharacterTransitionDtoSchema = lazySchema(() =>
+const movementReactionCharacterTransitionDtoSchema = lazySchema(() =>
   z.strictObject({
     characterId: uuid,
     beforeStreamVersion: integer.check(z.gte(0)),

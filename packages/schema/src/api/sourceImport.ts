@@ -35,12 +35,6 @@ export const sourceImportSubjectDtoSchema = lazySchema(() =>
   })
 )
 
-// Authored mechanics exceed Convex's 16-level document nesting limit. Metadata
-// remains indexed; the validated, canonical JSON payload is losslessly encoded.
-export const sourceImportStoredSubjectDtoSchema = lazySchema(() =>
-  z.extend(z.omit(sourceImportSubjectDtoSchema, { document: true }), { documentJson: z.string() })
-)
-
 export const sourceImportDefinitionDtoSchema = lazySchema(() =>
   z.strictObject({
     id: canonicalUuidSchema,
@@ -165,7 +159,6 @@ export const sourceImportAuditPageDtoSchema = lazySchema(() =>
 )
 export type SourceImportBootstrapResultDto = z.infer<typeof sourceImportBootstrapResultDtoSchema>
 export type SourceImportAuditPageDto = z.infer<typeof sourceImportAuditPageDtoSchema>
-export type SourceImportDefinitionDto = z.infer<typeof sourceImportDefinitionDtoSchema>
 export type SourceImportAuditDto = z.infer<typeof sourceImportAuditDtoSchema>
 export type SourceImportSeedResultDto = z.infer<typeof sourceImportSeedResultDtoSchema>
 export type SourceImportBootstrapInput = z.infer<typeof sourceImportBootstrapInputSchema>

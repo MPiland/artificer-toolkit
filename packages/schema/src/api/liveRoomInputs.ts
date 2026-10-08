@@ -28,7 +28,7 @@ export const liveRoomAuthorityRevisionsSchema = lazySchema(() =>
       )
     )
 )
-export const MAX_ROOM_INPUT_CHARACTERS = 128
+const MAX_ROOM_INPUT_CHARACTERS = 128
 
 /**
  * Where a paged read resumes: the position in the read's fixed order (a Run table, or a Character

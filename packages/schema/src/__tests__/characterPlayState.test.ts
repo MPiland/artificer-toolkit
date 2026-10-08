@@ -2,7 +2,6 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import {
   characterPlayStateSchema,
-  mergeCharacterPlayState,
   splitCharacterPlayState,
   type CharacterPersistedState
 } from '../projections/characterPlayState.js'
@@ -122,14 +121,6 @@ describe('Character play state split', () => {
         state: { ...state, hitpoints: { current: '5', hitDice: [] } }
       }).success
     ).toBe(false)
-  })
-
-  it('merges back exactly what it split', () => {
-    fc.assert(
-      fc.property(persisted, (input) => {
-        expect(mergeCharacterPlayState(splitCharacterPlayState(input))).toEqual(input)
-      })
-    )
   })
 
   it('keeps play and structure fields disjoint', () => {

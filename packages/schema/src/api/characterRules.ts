@@ -315,7 +315,7 @@ const characterDerivedProficiencyOverrideSchema = lazySchema(() =>
   )
 )
 
-export const characterDerivedBaseFactsSchema = lazySchema(() =>
+const characterDerivedBaseFactsSchema = lazySchema(() =>
   z.strictObject({
     abilities: z
       .array(
@@ -1061,7 +1061,7 @@ export const characterRuleSenseRangeSchema = lazySchema(() =>
     })
   )
 )
-export const characterRuleSenseSchema = lazySchema(() =>
+const characterRuleSenseSchema = lazySchema(() =>
   z.strictObject({
     senseDefinitionId: serverUuidIdentityDtoSchema,
     range: characterRuleSenseRangeSchema
