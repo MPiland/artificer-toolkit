@@ -76,10 +76,12 @@
         {
           "id": "PLATFORM-2",
           "title": "Typed schemas, indexes and bounded contracts",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/schemaBoundary.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "Covers schema and contract isolation only; no proof of indexes, bounded reads or the one-System bootstrap admission.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/schemaBoundary.test.ts",
+            "apps/apis/convex/platformJourney.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["F02"],
           "acs": [
             {
@@ -185,14 +187,14 @@
           "origin": ["F15"],
           "acs": [
             {
-              "text": "All 1,083 original source files are preserved in packages/source-data/src with no missing or unexpected paths, and all 1,051 root UUIDs are retained.",
+              "text": "All 1,083 original source files are preserved in packages/source-data/src with no missing or unexpected paths, and all 1,057 root UUIDs are retained.",
               "status": "DONE",
               "proof": [".codex/validation/phase82-foundation/content-import-review.md"],
               "origin": ["F15.1", "G5-SRD-PARITY"],
               "id": "PLATFORM-5.1"
             },
             {
-              "text": "Import loads 1 System, 1,051 roots and 50 reusable definitions with their original UUIDs; an identical rerun inserts nothing and matches the manifest checksum.",
+              "text": "Import loads 1 System, 1,057 roots and 50 reusable definitions with their original UUIDs; an identical rerun inserts nothing and matches the manifest checksum.",
               "status": "DONE",
               "proof": [".codex/validation/phase82-foundation/content-import-review.md"],
               "origin": ["F15.2"],
@@ -1102,14 +1104,14 @@
         {
           "id": "AUTHORING-2",
           "title": "Content keeps stable public IDs and checksums",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/content/publication.test.ts",
             "apps/apis/convex/content/classPublication.test.ts",
-            "apps/apis/convex/content/systems.test.ts"
+            "apps/apis/convex/content/systems.test.ts",
+            "apps/apis/convex/content/identityJourney.test.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "UUID and checksum stability is proved through Background and Class publication and System reads only; the other domains are not covered.",
+          "journeyStatus": "verified",
           "origin": ["C02"],
           "acs": [
             {
@@ -1188,7 +1190,7 @@
               "id": "AUTHORING-4.1"
             },
             {
-              "text": "Canonical replay, index repair and the managed backfill complete all 1,051 roots.",
+              "text": "Canonical replay, index repair and the managed backfill complete all 1,057 roots.",
               "status": "DONE",
               "proof": [".codex/validation/phase82-class-spell-final/c04-acceptance.md"],
               "origin": ["C04.2"],
@@ -1481,13 +1483,13 @@
         {
           "id": "AUTHORING-13",
           "title": "Publication validates and compiles mechanics",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/contentSnapshots/build.test.ts",
-            "apps/apis/convex/content/publicationDocument.test.ts"
+            "apps/apis/convex/content/publicationDocument.test.ts",
+            "apps/apis/convex/content/publicationJourney.test.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Snapshot builds and document normalization are tested; publication-time validation and compilation are proved per domain (AUTHORING-3 to 10), not as one flow.",
+          "journeyStatus": "verified",
           "origin": ["C13", "A36-S1", "A36-S2"],
           "acs": [
             {
@@ -1516,14 +1518,16 @@
         {
           "id": "AUTHORING-14",
           "title": "Duplicate content with fresh IDs",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/content/drafts.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "Copy of SRD mechanics into an owned draft is tested; there is no all-domain duplication conformance run.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/content/drafts.test.ts",
+            "apps/apis/convex/content/duplicationJourney.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["C14"],
           "acs": [
             {
-              "text": "Clone conformance passes all 1,051 canonical records with fresh owned UUIDs, stable internal remapping, preserved external references and unchanged sources.",
+              "text": "Clone conformance passes all 1,057 canonical records with fresh owned UUIDs, stable internal remapping, preserved external references and unchanged sources.",
               "status": "DONE",
               "proof": [".codex/validation/phase82-c14-final/acceptance.md"],
               "origin": ["C14.1", "G3-AUTHORING-WORKFLOWS"],
@@ -1576,6 +1580,32 @@
               "proof": [".codex/validation/phase82-c15-final/acceptance.md"],
               "origin": ["C15.3"],
               "id": "AUTHORING-15.3"
+            }
+          ]
+        },
+        {
+          "id": "AUTHORING-16",
+          "title": "Item names carry no use or bundle counts",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "The SRD Healer's Kit is named \"Healer's Kit\"; its 10 uses live only in its charges, so the Sheet and Encounter show the remaining uses rather than a fixed count in the name.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Raised by the user 2026-10-08 (SPELLS-3.5 review). Rename the label, source file and export; keep the record id. Measurements that never change (Rope (50 ft), Pole (10-foot), Rations (1 day)) keep their names.",
+              "id": "AUTHORING-16.1"
+            },
+            {
+              "text": "SRD ammunition and other bundled items (Arrows, Crossbow Bolts, Blowgun Needles, Sling Bullets, Iron Spikes) are named without the bundle count, inventory quantity counts single pieces, and the price is per piece.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D97: one item per piece, priced per piece from the SRD bundle price; no sale-unit field (no merchants).",
+              "id": "AUTHORING-16.2"
             }
           ]
         }
@@ -1750,13 +1780,13 @@
         {
           "id": "BUILDER-3",
           "title": "Characters reconcile when sources change",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/characters/repairState.test.ts",
-            "apps/apis/convex/campaigns/membershipDepartureEffects.test.ts"
+            "apps/apis/convex/campaigns/membershipDepartureEffects.test.ts",
+            "apps/apis/convex/characters/sourceChangeJourney.test.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Repair state and departure repair are tested; Builder preview and commit after a same-source publication replacement are not evident.",
+          "journeyStatus": "verified",
           "origin": ["P03"],
           "acs": [
             {
@@ -4728,11 +4758,11 @@
               "id": "SPELLS-3.4"
             },
             {
-              "text": "STABILIZE effects (Spare the Dying, Healer's Kit) and first aid (a DC 10 Wisdom (Medicine) check) make a dying Character stable; damage makes it dying again.",
+              "text": "A STABILIZE effect (the Healer's Kit) makes a dying Character stable; a target that is not dying is the overridable TARGET_NOT_DYING warning and changes nothing; damage makes it dying again; GM undo restores the death saves.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "D96.",
+              "note": "D96. Split 2026-10-08 with the user's approval: first aid is SPELLS-3.7; casting Spare the Dying moved to SPELLS-8.2.",
               "id": "SPELLS-3.5"
             },
             {
@@ -4742,6 +4772,14 @@
               "origin": [],
               "note": "D96. Manual-mode tables track death saves here.",
               "id": "SPELLS-3.6"
+            },
+            {
+              "text": "First aid is a System basic action: the helper spends an Action and makes a DC 10 Wisdom (Medicine) check, and success makes a dying target stable.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D96. Split from SPELLS-3.5 on 2026-10-08.",
+              "id": "SPELLS-3.7"
             }
           ]
         },
@@ -4831,6 +4869,14 @@
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions).",
               "id": "SPELLS-8.1"
+            },
+            {
+              "text": "Spare the Dying is castable in an Encounter and stabilizes a dying target through the STABILIZE executor; its undead and construct exclusion applies to targets.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Moved from SPELLS-3.5 on 2026-10-08 (D96). The D&D compiler rejects any non-empty excludedCreatureTypeIds today.",
+              "id": "SPELLS-8.2"
             }
           ]
         },
