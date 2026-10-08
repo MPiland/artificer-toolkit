@@ -1,3 +1,4 @@
+import { encounterStoredRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
@@ -16,6 +17,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  readRoomTimeline,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 
@@ -241,6 +243,60 @@ describe('Encounter journeys through the room (V13.1)', () => {
     expect(hitPoints(undone, base.enemy.id)).toBe(base.enemy.currentHitPoints)
     const again = await send(base.owner, await base.bite(base.companion.id, base.enemy.id))
     expect(hitPoints(again, base.enemy.id)).toBeLessThan(base.enemy.currentHitPoints)
+    await expectReplayAcrossRelease(base, steps)
+  }, 120000)
+
+  it('a player\'s "Do it anyway" on bendable warnings, the GM\'s override badge, then a GM undo (ADR 0034)', async () => {
+    const base = await playerControlFixture()
+    await setActorControllers(base, base.companion.id, [base.other.userId])
+    const { steps, send } = journey()
+    // The Bite targets another creature, so biting itself is a bendable disposition warning.
+    const atSelf = await base.bite(base.companion.id, base.companion.id)
+    const before = await stored(base)
+    await expect(
+      domainRejection(executeInRoom(base.other.caller, { command: atSelf }))
+    ).resolves.toEqual({
+      code: 'DOMAIN_REJECTED',
+      reason: 'RULE_WARNINGS',
+      message: 'This action breaks a rule. Do it anyway?',
+      warnings: [{ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }]
+    })
+    expect(await stored(base)).toEqual(before)
+
+    const overridden = await send(base.other, {
+      ...atSelf,
+      commandId: crypto.randomUUID(),
+      acknowledgedWarnings: ['TARGET_DISPOSITION']
+    })
+    expect(overridden.projection.version).toBe(atSelf.expectedVersion + 1)
+    const timeline = await readRoomTimeline(base.owner.caller, base.campaign.id)
+    expect(
+      timeline.find((entry) => entry.version === overridden.projection.version)?.ruleOverrides
+    ).toEqual([{ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }])
+
+    // The Action is spent, so a second Bite warns too, and writes nothing until acknowledged.
+    const second = await base.bite(base.companion.id, base.enemy.id)
+    const afterOverride = await stored(base)
+    await expect(
+      domainRejection(executeInRoom(base.other.caller, { command: second }))
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'ACTION_ECONOMY_UNAVAILABLE' }]
+    })
+    expect(await stored(base)).toEqual(afterOverride)
+
+    // The GM undoes the override; the Action comes back, so the Bite at the enemy needs no override.
+    await send(base.owner, await runCommand(base, 'REVERT_LAST_ACTION'))
+    const bite = await base.bite(base.companion.id, base.enemy.id)
+    const bitten = await send(base.other, bite)
+    expect(bitten.projection.version).toBe(bite.expectedVersion + 1)
+    // The player sees no enemy hit points, so the damage shows in the enemy's stored state.
+    const enemy = (await stored(base)).actors.find((actor) => actor.id === base.enemy.id)
+    const enemyState =
+      enemy && encounterStoredRunActorStateSchema.parse(JSON.parse(enemy.stateJson))
+    if (!enemyState || !('currentHitPoints' in enemyState))
+      throw new Error('Missing the stored enemy health.')
+    expect(enemyState.currentHitPoints).toBeLessThan(base.enemy.currentHitPoints)
     await expectReplayAcrossRelease(base, steps)
   }, 120000)
 })

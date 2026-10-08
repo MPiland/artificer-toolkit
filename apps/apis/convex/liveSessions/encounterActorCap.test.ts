@@ -17,7 +17,10 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { api, internal } from '../_generated/api'
+import { createEncounterRun } from '../encounters/runs'
+import { withSceneVisionTracking } from '../lib/mutations'
 
 useLocalRoomWorker()
 
@@ -66,12 +69,20 @@ it('starts and advances a turn in a Run at the actor cap through the room', asyn
       sourceId: wolf.id
     }))
   })
-  const prepared = await base.owner.caller.mutation(api.encounters.runs.create, {
-    campaignId: base.campaign.id,
-    blueprintId: blueprint.id,
-    commandId: crypto.randomUUID()
-  })
+  const reads = createDatabaseIoTotals()
+  const prepared = await base.owner.caller.run((ctx) =>
+    createEncounterRun(
+      // Counted beneath the trigger layer, so actor-insert trigger reads count too.
+      withSceneVisionTracking({ ...ctx, db: countDatabaseIo(ctx.db, reads) }),
+      { campaignId: base.campaign.id, blueprintId: blueprint.id, commandId: crypto.randomUUID() }
+    )
+  )
   expect(prepared.actors).toHaveLength(MAX_ENCOUNTER_ACTORS)
+  // Creating a Run at the cap read 20.3 MB (over the 16 MiB transaction limit) when every actor
+  // insert's trigger re-read the whole Run (b75d8a908); keep it far inside the limit.
+  console.info('Run creation reads at the cap', JSON.stringify(reads.reads.byTable))
+  expect(reads.reads.bytes).toBeLessThan((16 * 1024 * 1024) / 4)
+  expect(reads.reads.documents).toBeLessThan(32_000 / 4)
   await seedRoomContentSnapshots(base.campaign.id)
   let active = await executeInRoom(base.owner.caller, {
     command: {

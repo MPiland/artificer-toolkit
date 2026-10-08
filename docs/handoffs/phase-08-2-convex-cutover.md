@@ -6,7 +6,7 @@
 
 ## Current state (2026-10-07)
 
-**Latest slice commit:** ATTACK-8 (eighth session below); the commit titled "Close ATTACK-8".
+**Latest slice commit:** ATTACK-3, PLATFORM-5.6 and the needs-proof audit (ninth session below); the commit titled "Close ATTACK-3 and PLATFORM-5".
 
 **Last full validation:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
@@ -68,47 +68,55 @@
 - The `evidenceRolls.test.ts` and `concentration.test.ts` Manual-Run tests, failing since ENCOUNTER-2 (`3f80c6786`), now expect the decided `DOMAIN_REJECTED`/`ASSISTED_ONLY` refusal (commit "Expect the exact Manual-Run refusal", 20/20 passing).
 - SPELLS-2 runs in a parallel session in worktree `.claude/worktrees/spells-2` (branch `claude/spells-2-conditions`, [handoff](spells-2-conditions.md)); it records D94. At this handoff it had passed typecheck and codegen and was running the full apis suite before committing. Next session starts by merging that branch here once it is committed (read its final report first); `encounterActionMechanicsPreparation.ts` overlaps slightly and four of its files have CRLF line endings to check.
 
+**Done 2026-10-07 (ninth session):**
+
+- ATTACK-3: journey `encounterJourneys.test.ts` › a player's "Do it anyway" on bendable warnings. The player's companion bites itself (TARGET_DISPOSITION), overrides it, the GM's timeline entry carries `ruleOverrides`, a second Bite warns ACTION_ECONOMY_UNAVAILABLE and writes nothing, the GM undoes, and the next Bite needs no override. A HOSTILE-only Bite is not a compiled attack (`effectActionCompiler` needs `dispositionKind: 'ANY'`), so the warning uses the self-target.
+- PLATFORM-5.6: `seedAudit.test.ts` fails the audit for a stale record and for a missing one. The committed `srdManifest.generated.ts` was stale (both `seed.test.ts` tests red on this branch); regenerated with `yarn workspace @artificer-toolkit/apis generate:srd:manifest`.
+- PERF-4.1: `encounterActorCap.test.ts` meters Run creation at the cap with `countDatabaseIo` (under a quarter of the 16 MiB and 32,000-document limits).
+- Needs-proof audit (user approvals 2026-10-07): proofs linked for SPELLS-3.1, PERF-3.1–3.3, 3.5, 3.6, 3.8, 3.9, 3.12, 4.2, 4.3; PERF-3.13 and PLATFORM-13.1 retired; PERF-3.7, 4.1, 4.3 and PLATFORM-13.4 reworded. Open gaps, each with its ledger note: PLATFORM-13.2, 13.3, 13.4, 14.1, 14.2, 14.3 and PERF-3.4, 3.7, 3.10, 3.11.
+- Ledger 66/125 PBIs, 301/407 ACs (counts include the audit edits).
+
   **Next work: the WSJF ranking below, top down (ranked 2026-10-07).** WSJF = (user/business value + time criticality + risk reduction or enablement) / job size, Fibonacci scores. A PBI never starts before the PBIs it is marked "after".
 
-| #   | PBI                                     | WSJF | Note                                                                                                                                             |
-| --- | --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                           |
-| 2   | PRIVACY-3                               | 5.3  | Done (fourth session).                                                                                                                           |
-| 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                            |
-| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                            |
-| 5   | CAMPAIGN-7                              | 4.3  | Done (seventh session).                                                                                                                          |
-| 6   | ATTACK-8                                | 4.2  | Done (eighth session). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                                                      |
-| 7   | ATTACK-3                                | 4.0  | Journey: disposition and bendable-check warnings.                                                                                                |
-| 8   | PLATFORM-5 (5.6)                        | 4.0  | Stale or partial SRD manifest fails the audit.                                                                                                   |
-| 9   | "Needs proof" audit                     | 4.0  | PLATFORM-13.1–13.4, PLATFORM-14, PERF-3.1–3.13, PERF-4, SPELLS-3.1: link existing proofs; anything not actually built is re-sized and re-ranked. |
-| 10  | SPELLS-2                                | 3.3  | In progress in a parallel session (spells-2-conditions.md).                                                                                      |
-| 11  | SPELLS-9                                | 4.5  | After SPELLS-2.                                                                                                                                  |
-| 12  | SPELLS-3 (3.2)                          | 4.2  | Death saves; after SPELLS-2.                                                                                                                     |
-| 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                                     |
-| 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                           |
-| 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                                  |
-| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Journey gaps.                                                                                                                                    |
-| 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                           |
-| 18  | AUTHORING-14                            | 2.7  | All-domain duplication conformance.                                                                                                              |
-| 19  | ATTACK-7                                | 2.6  | Grapple and shove; 7.2 Engulf (after ATTACK-11).                                                                                                 |
-| 20  | VTT_UI-2                                | 2.6  |                                                                                                                                                  |
-| 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                         |
-| 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                               |
-| 23  | PLATFORM-2                              | 2.3  | Journey gap.                                                                                                                                     |
-| 24  | SHEET-7                                 | 2.0  |                                                                                                                                                  |
-| 25  | AUTHORING-12 (12.4)                     | 1.8  |                                                                                                                                                  |
-| 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                        |
-| 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                                  |
-| 28  | REACTION-4                              | 1.5  | After SPELLS-8.                                                                                                                                  |
-| 29  | SPELLS-4                                | 1.5  |                                                                                                                                                  |
-| 30  | ATTACK-6                                | 1.3  |                                                                                                                                                  |
-| 31  | ATTACK-5                                | 1.2  | After SPELLS-2 and ATTACK-7: 35 of its 41 allowlisted attacks are grapple, swallow, attach, drain and condition riders (`OUTCOME_KIND`).         |
-| 32  | AUTHORING-1 (1.4, 1.5)                  | 1.1  |                                                                                                                                                  |
-| 33  | VTT_UI-3                                | 1.0  |                                                                                                                                                  |
-| 34  | ROOM-6                                  | 0.9  | Test fixtures only.                                                                                                                              |
-| 35  | ENCOUNTER-4                             | 0.8  | Speed Factor (optional rule).                                                                                                                    |
-| 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                                   |
-| 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                                    |
+| #   | PBI                                     | WSJF | Note                                                                                                                                     |
+| --- | --------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                   |
+| 2   | PRIVACY-3                               | 5.3  | Done (fourth session).                                                                                                                   |
+| 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                    |
+| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                    |
+| 5   | CAMPAIGN-7                              | 4.3  | Done (seventh session).                                                                                                                  |
+| 6   | ATTACK-8                                | 4.2  | Done (eighth session). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                                              |
+| 7   | ATTACK-3                                | 4.0  | Done (ninth session).                                                                                                                    |
+| 8   | PLATFORM-5 (5.6)                        | 4.0  | Done (ninth session).                                                                                                                    |
+| 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
+| 10  | SPELLS-2                                | 3.3  | In progress in a parallel session (spells-2-conditions.md).                                                                              |
+| 11  | SPELLS-9                                | 4.5  | After SPELLS-2.                                                                                                                          |
+| 12  | SPELLS-3 (3.2)                          | 4.2  | Death saves; after SPELLS-2.                                                                                                             |
+| 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                             |
+| 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                   |
+| 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
+| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Journey gaps.                                                                                                                            |
+| 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                   |
+| 18  | AUTHORING-14                            | 2.7  | All-domain duplication conformance.                                                                                                      |
+| 19  | ATTACK-7                                | 2.6  | Grapple and shove; 7.2 Engulf (after ATTACK-11).                                                                                         |
+| 20  | VTT_UI-2                                | 2.6  |                                                                                                                                          |
+| 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                 |
+| 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                       |
+| 23  | PLATFORM-2                              | 2.3  | Journey gap.                                                                                                                             |
+| 24  | SHEET-7                                 | 2.0  |                                                                                                                                          |
+| 25  | AUTHORING-12 (12.4)                     | 1.8  |                                                                                                                                          |
+| 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                |
+| 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                          |
+| 28  | REACTION-4                              | 1.5  | After SPELLS-8.                                                                                                                          |
+| 29  | SPELLS-4                                | 1.5  |                                                                                                                                          |
+| 30  | ATTACK-6                                | 1.3  |                                                                                                                                          |
+| 31  | ATTACK-5                                | 1.2  | After SPELLS-2 and ATTACK-7: 35 of its 41 allowlisted attacks are grapple, swallow, attach, drain and condition riders (`OUTCOME_KIND`). |
+| 32  | AUTHORING-1 (1.4, 1.5)                  | 1.1  |                                                                                                                                          |
+| 33  | VTT_UI-3                                | 1.0  |                                                                                                                                          |
+| 34  | ROOM-6                                  | 0.9  | Test fixtures only.                                                                                                                      |
+| 35  | ENCOUNTER-4                             | 0.8  | Speed Factor (optional rule).                                                                                                            |
+| 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                           |
+| 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                            |
 
 Batched into one local live run (not scheduled for any single item): ACCOUNTS-1, 2, 3, 5 and 8 browser journeys; PLATFORM-4 uploads (needs the local R2 fixture); RELEASE-6; ENCOUNTER-5; the ATTACK-8.4 "Attack 1 of 2, then 2 of 2" drawer journey.
 

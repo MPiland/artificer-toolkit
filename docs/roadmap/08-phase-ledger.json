@@ -176,7 +176,7 @@
         {
           "id": "PLATFORM-5",
           "title": "Import and audit the SRD source data",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/content/seed.test.ts",
             "apps/apis/convex/content/import.test.ts"
@@ -221,8 +221,12 @@
             },
             {
               "text": "The SRD manifest freshness check is hardened: a stale or partial manifest fails the import audit explicitly.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/content/seedAudit.test.ts › fails the audit explicitly for a stored corpus that is stale or partial",
+                "apps/apis/convex/content/seed.test.ts › embeds the current canonical SRD manifest",
+                "scripts/validatePreStagingLocal.mjs generated-parity stage (regenerates srdManifest.generated.ts)"
+              ],
               "origin": ["P81-CURRENT-MANIFEST"],
               "note": "Original PARTIAL: freshness hardening not explicit in 8.2.",
               "id": "PLATFORM-5.6"
@@ -428,18 +432,10 @@
           "origin": [],
           "acs": [
             {
-              "text": "Checkpoint Codex relocation",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
-              "origin": ["CP-S0"],
-              "id": "PLATFORM-13.1"
-            },
-            {
               "text": "Code-quality groundwork",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: built (planLiveSceneCommand, callLiveSessionRoute with LIVE_SESSION_ROUTE_PATHS, ed1faa3e6); stateHttp single factory and fixture consolidation still to verify.",
               "origin": ["CP-S1"],
               "id": "PLATFORM-13.2"
             },
@@ -447,15 +443,15 @@
               "text": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: convex-test 0.0.60 done (6507a4678); per-file timings unrecorded and the parallelism trial not run (vitest.config still serial).",
               "origin": ["TST-0"],
               "id": "PLATFORM-13.3"
             },
             {
-              "text": "Relocate 12 pure files out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
+              "text": "Relocate the pure files (about 25) out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: relocation done (0fd4adbd7, about 25 files, not 12); confirm the worker movement tests cover Concentration checks, passage contests and reaction order.",
               "origin": ["TST-6"],
               "id": "PLATFORM-13.4"
             },
@@ -481,7 +477,7 @@
               "text": "Web tests reliable: test workers capped to physical cores; 3 full runs, 0 failures",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: cap built (020e60aae, maxWorkers 50%); the three clean full runs are not recorded.",
               "origin": ["TST-7"],
               "id": "PLATFORM-14.1"
             },
@@ -489,7 +485,7 @@
               "text": "Renamed apps/web/tests/convex to live-backend; the Convex hook no longer misfires",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: rename done (a7fe02631); the hook misfire fix still to confirm against the hook config.",
               "origin": ["TST-8"],
               "id": "PLATFORM-14.2"
             },
@@ -497,7 +493,7 @@
               "text": "TanStack Start and Storybook upgrade",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: versions current through REL-8 (Start 1.168.60, Storybook 10.6.1); no Storybook or app boot check recorded.",
               "origin": ["A35-S11g"],
               "id": "PLATFORM-14.3"
             }
@@ -3836,10 +3832,12 @@
         {
           "id": "ATTACK-3",
           "title": "Assisted guidance and GM undo",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/liveSessions/encounterJourneys.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "GM undo and replay are covered; disposition warnings and Assisted bendable-check warnings are not evident.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/liveSessions/encounterJourneys.test.ts",
+            "apps/apis/convex/liveSessions/encounterJourneys.test.ts › a player's \"Do it anyway\" on bendable warnings, the GM's override badge, then a GM undo (ADR 0034)"
+          ],
+          "journeyStatus": "verified",
           "origin": ["CP-S6f"],
           "acs": [
             {
@@ -4350,9 +4348,14 @@
           "acs": [
             {
               "text": "0 HP defeat",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/defeat.test.ts › defeats a Creature in the commit whose damage drops it to 0, then skips its turns",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts › defeats a Creature in the batch whose damage takes it to 0",
+                "impl: packages/rules-runtime/src/encounterActorDefeat.ts (D63; a Character at 0 HP falls unconscious, SPELLS-3.2)",
+                "c7d38aacb"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["RUL-6"],
               "id": "SPELLS-3.1"
             },
@@ -5230,25 +5233,37 @@
           "acs": [
             {
               "text": "Slim Encounter records: GM edit 47→9 KB, attack 59→21 KB; projection reads 691→218 KB at 100 actors; tied START 17.2→0.8 MB",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "docs/validation/phase-08-2/adr-0035-s1b-record-shapes-2026-09-28.md",
+                "apps/apis/convex/encounters/encounterWriteSets.test.ts › measures each command and the projection read (100-actor projection read and tied START bounds)",
+                "51f9e71ee"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S1b"],
               "id": "PERF-3.1"
             },
             {
               "text": "The switch, part 4 (found in VS-8): every member reads the live Encounter (turn, pending decision, timeline) from the room, not Convex subscriptions that lag until the next checkpoint",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/roomEncounterSession.test.ts › matches the Convex reads for the GM, a controlling player and a bystander",
+                "apps/web/src/domains/campaigns/vtt/liveSessionClient.test.ts",
+                "e3dfcc9c5"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S6d"],
               "id": "PERF-3.2"
             },
             {
               "text": "The switch, part 5 (found in VS-8): turn action choices, evidence rolls and Scene bindings come from the room, not Convex reads keyed to a version the room has moved past",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/roomEncounterSession.test.ts › answers the turn choices like the Convex queries for the GM and a controlling player",
+                "apps/apis/convex/encounters/roomEncounterSession.test.ts › answers the latest evidence rolls for the roller and the GM",
+                "9652224d1"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S6e"],
               "id": "PERF-3.3"
             },
@@ -5256,47 +5271,64 @@
               "text": "Budgets in gates, shadow harness deleted, architecture docs rewritten",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: v15Budgets.mjs gates validatePreStagingLocal; shadow harness has no code left but no deletion record; reconcile the 4.3 MB script budget with the 4.51 MB Q16 figure.",
               "origin": ["A35-S9"],
               "id": "PERF-3.4"
             },
             {
               "text": "Delta-sized flushes: per-section checkpoint I/O measured, then no Campaign-wide reads; lease renewal leaves the checkpoint",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "docs/validation/phase-08-2/a35-s10a-flush-io-2026-10-03.md",
+                "apps/apis/convex/liveSessions/checkpoint.test.ts › reads the same bytes for a one-actor flush however many members and actors the Campaign has",
+                "193b44d4e"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S10a"],
               "id": "PERF-3.5"
             },
             {
               "text": "No forced flushes for binding, admission or round change; the room re-challenges sockets before their sign-in expires",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeLiveSessionRoom.test.ts › challenges an admitted socket a minute before its token expires and closes it if unanswered (A35-S10b)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › saves a burst of commands only at a save point, however long the quiet (Amendment 25)",
+                "61d91ee54"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S10b"],
               "id": "PERF-3.6"
             },
             {
-              "text": "Dirty-only flush at N; live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately",
+              "text": "Live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "\"Dirty-only flush at N\" removed: superseded by save points (D90, PERF-3.8). Proof to link: summary feed and eager reload in apps/session-worker/test/nativeCharacterSheet.test.ts (040c3dd53). Approved by the user on 2026-10-07 (needs-proof audit).",
               "origin": ["A35-S10c"],
               "id": "PERF-3.7"
             },
             {
               "text": "Save points replace the flush interval; a chat backlog save is the only other trigger",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › saves a burst of commands only at a save point, however long the quiet (Amendment 25)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › saves in the background once the unsaved chat entries reach the chat push window (Amendment 25)",
+                "apps/session-worker/test/nativeCharacterSheet.test.ts › does not save in the background for journal size alone, only for unsaved chat entries (Amendment 25)",
+                "f13925492"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S11a"],
               "id": "PERF-3.8"
             },
             {
               "text": "Scene movement evidence and command receipts stay in the room",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/src/roomSceneCommandPersistence.test.ts › commits native move and door rows that pack with a Scene-history undo into one checkpoint",
+                "apps/session-worker/test/nativeRoomEncounterStore.test.ts › does not count commands or Scene command evidence as unsaved chat entries (Amendment 26)",
+                "f13925492"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S11b"],
               "id": "PERF-3.9"
             },
@@ -5304,7 +5336,7 @@
               "text": "Live readers use the room while a table runs",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: built (f13925492, Amendment 28) but no test proves each reader is served by the room while a table runs.",
               "origin": ["A35-S11c"],
               "id": "PERF-3.10"
             },
@@ -5312,25 +5344,22 @@
               "text": "Static actor snapshots in their own rows; whole-journal save pages",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "needs proof",
+              "note": "Audit: built (f13925492, Amendment 29); no test asserts the separate static actor-snapshot rows.",
               "origin": ["A35-S11e"],
               "id": "PERF-3.11"
             },
             {
               "text": "One inline checkpoint per save, folded from the streamed journal",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/src/roomCheckpoints.test.ts › folds a multi-command backlog that fits the atomic bound into one checkpoint",
+                "apps/session-worker/src/roomCheckpoints.test.ts › folds a raw journal larger than one read page into one checkpoint",
+                "apps/session-worker/src/roomCheckpoints.test.ts › publishes one command above 240 KiB in a single checkpoint",
+                "f13925492"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["A35-S11j"],
               "id": "PERF-3.12"
-            },
-            {
-              "text": "Room capture cache and one-read command bundle (2 round trips)",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
-              "origin": ["CP-S4-b"],
-              "id": "PERF-3.13"
             },
             {
               "text": "Budgets in gates, faster suites, one full test-and-fix run, then the V15 load run",
@@ -5351,26 +5380,33 @@
           "origin": [],
           "acs": [
             {
-              "text": "Command speed: bundle and commit hotspots, 100-actor creation fix",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "text": "Creating an Encounter Run at the 100-actor cap stays within the Convex transaction read limit (20.3 MB → 2.5 MB read, b75d8a908)",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/liveSessions/encounterActorCap.test.ts › starts and advances a turn in a Run at the actor cap through the room (Run creation reads under a quarter of the 16 MiB and 32,000-document limits)",
+                "b75d8a908"
+              ],
+              "note": "Bundle and commit hotspots removed: superseded by ADR 0035. The cap Run is 1 Character and 99 Creatures. Approved by the user on 2026-10-07 (needs-proof audit).",
               "origin": ["PRF-1"],
               "id": "PERF-4.1"
             },
             {
               "text": "Lazy schema construction: 56–83% less module load per Convex call",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "docs/validation/phase-08-2/d59-lazy-schema-rollout-2026-09-27.md",
+                "packages/schema/src/__tests__/lazy-schemas.test.ts › defers every exported schema except z.json()",
+                "yarn lint:schemas (scripts/lazySchemas.mjs --check)"
+              ],
+              "note": "Needs-proof audit 2026-10-07: proof linked.",
               "origin": ["PRF-2"],
               "id": "PERF-4.2"
             },
             {
-              "text": "Inlined SHA-256 and parse-once: 21–60% less movement handler CPU",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "text": "The inlined SHA-256 matches the reference digests byte for byte",
+              "status": "DONE",
+              "proof": ["packages/shared/src/__tests__/sha256.test.ts", "96fd3c72a"],
+              "note": "Parse-once removed with its deleted code; the 21–60% CPU figure is not re-measured. Approved by the user on 2026-10-07 (needs-proof audit).",
               "origin": ["PRF-4"],
               "id": "PERF-4.3"
             }
@@ -5603,6 +5639,18 @@
       "id": "PRF-3",
       "reason": "superseded by D64, A35-S6c3: Reaction answer speed on the per-command path",
       "decision": "Recorded as superseded in docs/roadmap/08-2-work-slices.json."
+    },
+    {
+      "id": "PLATFORM-13.1",
+      "origin": ["CP-S0"],
+      "reason": "CP-S0 was a one-off checkpoint of the Codex relocation (cce41580d) with no lasting behavior to prove.",
+      "decision": "Approved by the user on 2026-10-07 (needs-proof audit)."
+    },
+    {
+      "id": "PERF-3.13",
+      "origin": ["CP-S4-b"],
+      "reason": "ADR 0035: commands run in the room, so the CP-S4-b room capture cache and one-read command bundle were removed; no command makes a per-command Convex round trip.",
+      "decision": "Approved by the user on 2026-10-07 (needs-proof audit)."
     }
   ],
   "openQuestions": []
