@@ -50,6 +50,31 @@ export function deathSavesAfterHealing(input: {
     : input.deathSaves
 }
 
+/**
+ * The death saves after a dying Character's death save roll (a d20 with no modifiers). 20 regains
+ * 1 hit point, which resets the saves; 10 or more is a success, 2 to 9 a failure and 1 two
+ * failures. A third success makes the Character stable (counts reset) and a third failure dead.
+ */
+export function deathSavesAfterRoll(
+  deathSaves: CharacterDeathSaves,
+  rawDie: number
+): { deathSaves: CharacterDeathSaves; regainsHitPoint: boolean } {
+  if (rawDie === 20) return { deathSaves: NO_DEATH_SAVES, regainsHitPoint: true }
+  const successes = deathSaves.successes + (rawDie >= 10 ? 1 : 0)
+  const failures = Math.min(
+    DEATH_SAVE_LIMIT,
+    deathSaves.failures + (rawDie === 1 ? 2 : rawDie < 10 ? 1 : 0)
+  )
+  if (failures >= DEATH_SAVE_LIMIT) return { deathSaves: DEAD, regainsHitPoint: false }
+  return {
+    deathSaves:
+      successes >= DEATH_SAVE_LIMIT
+        ? { successes: 0, failures: 0, stable: true }
+        : { successes, failures, stable: false },
+    regainsHitPoint: false
+  }
+}
+
 /** A target that died outright (hit point maximum reduced to 0, or a terminal scalar reduction). */
 export function deathSavesAfterDeath(): CharacterDeathSaves {
   return DEAD

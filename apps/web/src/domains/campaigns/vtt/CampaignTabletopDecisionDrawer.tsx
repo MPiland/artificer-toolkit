@@ -182,7 +182,9 @@ export function CampaignTabletopDecisionDrawer({
                 ? 'Cleaving choice'
                 : pending.kind === 'D20_EVIDENCE' && pending.trigger?.kind === 'CONCENTRATION'
                   ? 'Concentration check'
-                  : decisionTitle(pending.kind)}
+                  : pending.kind === 'D20_EVIDENCE' && pending.trigger?.kind === 'DEATH_SAVE'
+                    ? 'Death save'
+                    : decisionTitle(pending.kind)}
             </Text>
             {skipped ? null : (
               <Text c='dimmed' size='sm'>

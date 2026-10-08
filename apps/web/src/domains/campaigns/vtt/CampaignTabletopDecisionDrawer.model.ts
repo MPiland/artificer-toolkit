@@ -2,7 +2,7 @@ import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolki
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { concentrationPromptText } from '../ruleCheckCopy'
+import { concentrationPromptText, deathSavePromptText } from '../ruleCheckCopy'
 
 export type InitiativeDeclarationAdjudicationValues = Partial<
   Record<InitiativeDeclarationAdjudicationFieldDto['key'], string | string[] | number | null>
@@ -58,7 +58,7 @@ export function rollPromptText(
   actorLabel: string,
   trigger: EncounterRuleRollTriggerDto | undefined
 ) {
-  return trigger?.kind === 'CONCENTRATION'
-    ? concentrationPromptText(actorLabel, trigger)
-    : `Roll for ${actorLabel}`
+  if (trigger?.kind === 'CONCENTRATION') return concentrationPromptText(actorLabel, trigger)
+  if (trigger?.kind === 'DEATH_SAVE') return deathSavePromptText(actorLabel, trigger)
+  return `Roll for ${actorLabel}`
 }

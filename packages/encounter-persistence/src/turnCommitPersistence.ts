@@ -30,13 +30,18 @@ import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
-import { persistEncounterTurnResources } from './turnResourcesPersistence.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import {
+  persistEncounterTurnDeathSave,
+  persistEncounterTurnResources
+} from './turnResourcesPersistence.js'
+import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 
 /** Commits a DO-computed turn in one transaction, using the native normalized writes and receipts. */
 export async function persistEncounterTurnCommit(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+  },
   input: LiveSessionEncounterTurnCommitInput,
   callbacks: {
     validateReadFence(
@@ -209,6 +214,11 @@ export async function persistEncounterTurnCommit(
       )
     })
   }
+  await persistEncounterTurnDeathSave(
+    ctx,
+    { state, campaign, root, occurrenceId: input.occurrenceId, occurredAt: input.occurredAt },
+    callbacks.applyMechanics
+  )
   const incoming = await persistEncounterTurnEffects(
     ctx,
     {
@@ -299,6 +309,7 @@ export async function persistEncounterTurnCommit(
     initiative: root.initiative,
     initiativeAdvance: root.initiativeAdvance,
     rechargePlan: root.completedRechargePlan,
+    deathSavePlan: root.completedDeathSavePlan,
     outgoingEffects:
       root.outgoingTurn && outgoing
         ? { phase: root.outgoingTurn, result: outgoing.result }
@@ -310,6 +321,7 @@ export async function persistEncounterTurnCommit(
     includeOccurrence:
       occurrenceVersion > 0 ||
       root.completedRechargePlan != null ||
+      root.completedDeathSavePlan != null ||
       (root.outgoingTurn !== undefined && root.outgoingTurn.kind !== 'NONE') ||
       input.incomingTurn.kind !== 'NONE' ||
       !!root.completedLegendaryActions?.length ||

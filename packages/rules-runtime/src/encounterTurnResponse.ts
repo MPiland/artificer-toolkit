@@ -81,6 +81,7 @@ export function prepareEncounterTurnResponse(input: {
     context.kind !== 'ENCOUNTER_INITIATIVE' &&
     context.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION' &&
     context.kind !== 'ENCOUNTER_TURN_RECHARGE' &&
+    context.kind !== 'ENCOUNTER_TURN_DEATH_SAVE' &&
     context.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
     context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
     context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
@@ -224,9 +225,12 @@ export function prepareEncounterTurnResponse(input: {
       if (resolution.kind !== 'ENTER_INTEGER' && resolution.kind !== 'SYSTEM_ROLL')
         throw new Error('Recharge integer evidence is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
-    } else if (context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS') {
+    } else if (
+      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
+      context.kind === 'ENCOUNTER_TURN_DEATH_SAVE'
+    ) {
       if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
-        throw new Error('Turn-effect d20 evidence is required.')
+        throw new Error('Turn d20 evidence is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
     } else {
       // A Legendary Action pauses on its d20 or on one of its damage dice.

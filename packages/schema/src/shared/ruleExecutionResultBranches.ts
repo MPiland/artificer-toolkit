@@ -27,6 +27,7 @@ import {
   MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES,
   turnActionEconomyRefreshDtoSchema,
   turnLegendaryActionEvidenceDtoSchema,
+  turnDeathSaveExecutionDtoSchema,
   turnLegendaryActionRefreshDtoSchema,
   turnRechargeExecutionDtoSchema
 } from './ruleExecutionTurnResources.js'
@@ -168,6 +169,9 @@ export const initiativeCompleteRuleExecutionResultDtoSchema = lazySchema(() =>
           .array(turnRechargeExecutionDtoSchema)
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES))
+      ),
+      deathSaveExecutions: z.optional(
+        z.array(turnDeathSaveExecutionDtoSchema).check(z.minLength(1)).check(z.maxLength(1))
       ),
       legendaryActions: z.optional(
         z.array(turnLegendaryActionEvidenceDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))

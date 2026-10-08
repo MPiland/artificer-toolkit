@@ -96,6 +96,7 @@ function turnBatchResult(): TurnBatchResult {
     initiative: null,
     initiativeAdvance: null,
     rechargeExecutions: [],
+    deathSaveExecutions: [],
     executions: [
       {
         ordinal: 0,

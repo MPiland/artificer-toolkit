@@ -4,6 +4,7 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
+  deathSavesAfterRoll,
   deathSavesAfterSheetEdit,
   isCharacterDead
 } from '../shared/characterDeathSaves.js'
@@ -114,6 +115,55 @@ describe('Character death saves (D96)', () => {
     it('leaves the saves when nothing was regained and ignores healing for the dead', () => {
       expect(deathSavesAfterHealing({ deathSaves: dying, appliedAmount: 0 })).toBe(dying)
       expect(deathSavesAfterHealing({ deathSaves: dead, appliedAmount: 5 })).toBe(dead)
+    })
+  })
+
+  describe('a death save roll', () => {
+    it('adds two failures on a 1 and one failure on 2 to 9', () => {
+      expect(deathSavesAfterRoll(NO_DEATH_SAVES, 1)).toEqual({
+        deathSaves: { successes: 0, failures: 2, stable: false },
+        regainsHitPoint: false
+      })
+      expect(deathSavesAfterRoll(NO_DEATH_SAVES, 9)).toEqual({
+        deathSaves: { successes: 0, failures: 1, stable: false },
+        regainsHitPoint: false
+      })
+    })
+
+    it('adds a success on 10 to 19', () => {
+      expect(deathSavesAfterRoll(NO_DEATH_SAVES, 10).deathSaves).toEqual({
+        successes: 1,
+        failures: 0,
+        stable: false
+      })
+      expect(deathSavesAfterRoll(dying, 19)).toEqual({
+        deathSaves: { successes: 2, failures: 1, stable: false },
+        regainsHitPoint: false
+      })
+    })
+
+    it('regains 1 hit point and resets the saves on a 20', () => {
+      expect(deathSavesAfterRoll(dying, 20)).toEqual({
+        deathSaves: NO_DEATH_SAVES,
+        regainsHitPoint: true
+      })
+    })
+
+    it('stabilizes on the third success with the counts reset', () => {
+      expect(deathSavesAfterRoll({ successes: 2, failures: 2, stable: false }, 12)).toEqual({
+        deathSaves: { successes: 0, failures: 0, stable: true },
+        regainsHitPoint: false
+      })
+    })
+
+    it('is dead on the third failure, including a 1 with two failures already', () => {
+      expect(deathSavesAfterRoll({ successes: 2, failures: 2, stable: false }, 5)).toEqual({
+        deathSaves: dead,
+        regainsHitPoint: false
+      })
+      expect(
+        deathSavesAfterRoll({ successes: 0, failures: 2, stable: false }, 1).deathSaves
+      ).toEqual(dead)
     })
   })
 

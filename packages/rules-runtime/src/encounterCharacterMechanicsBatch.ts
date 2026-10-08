@@ -6,6 +6,7 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
+  deathSavesAfterRoll,
   isCharacterDead,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
@@ -31,6 +32,7 @@ export type EncounterCharacterMechanicsEventPhase =
   | 'MOVEMENT_REACTION_OUTCOME'
   | 'MOVEMENT_REACTION_RESOURCE'
   | 'SPATIAL_EFFECT'
+  | 'TURN_DEATH_SAVE'
   | 'TURN_EFFECT'
 
 export function deriveEncounterCharacterMechanicsEventCommandId(input: {
@@ -107,6 +109,8 @@ export function foldCharacterMechanicsApplications<
    */
   layers?: { ownConditionIds: readonly string[]; campaignConditionIds: readonly string[] }
   applications: readonly CharacterRuleActionApplication[]
+  /** A dying Character's turn-start death save (D96), applied after the applications. */
+  deathSaveRoll?: { rawDie: number }
 }): {
   before: TargetState<TDeathSaves>
   after: TargetState<TDeathSaves>
@@ -386,6 +390,13 @@ export function foldCharacterMechanicsApplications<
     temporary = effective.afterTemporaryHitPoints
     const { targetActorId: _targetActorId, ...receiptApplication } = effective
     receipt.push({ ...receiptApplication, ordinal })
+  }
+  if (input.deathSaveRoll) {
+    if (deathSaves === null || current !== 0 || deathSaves.stable || isCharacterDead(deathSaves))
+      throw new EncounterValidationError('Only a dying Character makes a death save.')
+    const roll = deathSavesAfterRoll(deathSaves, input.deathSaveRoll.rawDie)
+    deathSaves = roll.deathSaves
+    if (roll.regainsHitPoint) current = Math.min(1, maximum)
   }
   const after: TargetState<TDeathSaves> = {
     // The rules never turn a Character's death saves into none, or an actor's into some.

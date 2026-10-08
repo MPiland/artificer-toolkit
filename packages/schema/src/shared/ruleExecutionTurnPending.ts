@@ -27,8 +27,11 @@ import {
   turnLegendaryActionEvidenceDtoSchema,
   turnLegendaryActionRefreshDtoSchema,
   turnRechargeCandidateDtoSchema,
+  turnDeathSaveCandidateDtoSchema,
+  turnDeathSaveExecutionDtoSchema,
   turnRechargeExecutionDtoSchema,
   type CompletedTurnRechargePlanDto,
+  type TurnDeathSaveExecutionDto,
   type TurnActionEconomyRefreshDto,
   type TurnLegendaryActionEvidenceDto,
   type TurnLegendaryActionRefreshDto
@@ -124,6 +127,8 @@ export interface TurnCoordinatorRootDto {
   /** The entering actor's basic-action effects, which end as its turn starts (Q11). */
   stagedBasicActionExpiry?: EncounterBasicActionEffectDto[]
   completedRechargePlan?: CompletedTurnRechargePlanDto | null
+  /** The entering Character's death save, staged with the turn and applied at terminal commit. */
+  completedDeathSavePlan?: TurnDeathSaveExecutionDto | null
   proposedTerminalTransition: {
     status: 'ACTIVE' | 'COMPLETED'
     round: number
@@ -247,6 +252,7 @@ export const turnCoordinatorRootDtoSchema: z.ZodMiniType<TurnCoordinatorRootDto>
     stagedBasicActionExpiry: z.optional(encounterBasicActionEffectsDtoSchema.check(z.minLength(1))),
     /** Recharge outcomes are staged with the turn and applied only at terminal commit. */
     completedRechargePlan: z.optional(z.nullable(z.lazy(() => completedTurnRechargePlanDtoSchema))),
+    completedDeathSavePlan: z.optional(z.nullable(z.lazy(() => turnDeathSaveExecutionDtoSchema))),
     proposedTerminalTransition: z.strictObject({
       status: z.enum(['ACTIVE', 'COMPLETED']),
       round: integerSchema.check(z.gte(1)),
@@ -426,6 +432,28 @@ export const turnRechargePendingContextDtoSchema = lazySchema(() =>
         validateCandidate(current, completed.length, ['currentCandidate'])
         for (const [index, candidate] of remaining.entries())
           validateCandidate(candidate, completed.length + index + 1, ['remainingCandidates', index])
+      })
+    )
+)
+
+export const turnDeathSavePendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_TURN_DEATH_SAVE'),
+      schemaVersion: z.literal(1),
+      phase: z.literal('START_OF_TURN'),
+      root: turnCoordinatorRootDtoSchema,
+      candidate: turnDeathSaveCandidateDtoSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.root.proposedTerminalTransition.currentActorId !== value.candidate.actorId) {
+          context.addIssue({
+            code: 'custom',
+            path: ['candidate', 'actorId'],
+            message: 'A death save belongs to the entering current actor.'
+          })
+        }
       })
     )
 )

@@ -21,7 +21,10 @@ import {
   type StoredRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { TurnResolutionCommandDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnCommands'
-import type { CompletedTurnRechargePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
+import type {
+  CompletedTurnRechargePlanDto,
+  TurnDeathSaveExecutionDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
@@ -53,6 +56,7 @@ export async function completeNativeInitiativeOccurrence(input: {
   initiative: EncounterInitiativeSettlementDto | null
   initiativeAdvance: EncounterInitiativeAdvancePlanDto | null
   rechargePlan?: CompletedTurnRechargePlanDto | null
+  deathSavePlan?: TurnDeathSaveExecutionDto | null
   legendaryActions?: TurnCoordinatorRootDto['completedLegendaryActions']
   legendaryActionRefreshes?: TurnCoordinatorRootDto['stagedLegendaryActionRefreshes']
   actionEconomyRefreshes?: TurnCoordinatorRootDto['stagedActionEconomyRefreshes']
@@ -94,6 +98,7 @@ export async function completeNativeInitiativeOccurrence(input: {
     initiative: input.initiative,
     initiativeAdvance: input.initiativeAdvance,
     ...(input.rechargePlan ? { rechargeExecutions: input.rechargePlan.executions } : {}),
+    ...(input.deathSavePlan ? { deathSaveExecutions: [input.deathSavePlan] } : {}),
     ...(input.legendaryActions?.length ? { legendaryActions: input.legendaryActions } : {}),
     ...(input.legendaryActionRefreshes?.length
       ? { legendaryActionRefreshes: input.legendaryActionRefreshes }

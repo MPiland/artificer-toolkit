@@ -91,8 +91,15 @@
 - SPELLS-3 refined: 3.2 became 3.2–3.6, under D96 (dying, death saves and death; slices A–D are listed there).
 - SPELLS-3 slice A (`cb0d837bc`), 3.2 and 3.3 DONE. Damage at 0 HP adds death-save failures (two on a crit), massive damage kills, healing from 0 resets the saves, and undo restores them. A dead Character (failures = 3) is skipped, ignores healing and shows Dead; a Sheet HP edit above 0 revives it. The math is in `schema/shared/characterDeathSaves.ts`, because receipt replay needs it too. `deathSaves` is a required play-state field (local Convex reset and reseeded, backup `local-validation/convex-reset/spells3a.before.zip`). Also fixed: a SPELLS-9 `JourneyBase` type error in `encounterJourneys.test.ts`, and the stale SPELLS-9 projection snapshots.
 - Dead-code sweep merged (report `docs/validation/dead-code-sweep-2026-10.md`). An independent audit against the backlog found no reachable or needed deletion: of the deleted optional rules, only Shove Aside can be enabled, and it never had a working path (MOVE-2.3, 2.4). The report lists where the removed rule logic can be recovered (`437b2dd15`) for MOVE-2.3/2.4, SPELLS-8, VTT_UI-1.3/2.1 and ENCOUNTER-4. Follow-ups made before merging: the deleted play-state split/merge round-trip test was restored against the live merges, and the dead Morale resolver and stale doc references were removed. Merged tree: gate clean, and the schema, rules-runtime, encounter-persistence, session-worker, web and Convex suites all pass.
-- Registered the seven approved 2014 DMG optional-combat variants that had no build work (`08-vtt-optional-combat-coverage.json` lists them as FOUNDATION only): ATTACK-12 Facing, ATTACK-13 Marking, ATTACK-14 Hitting cover, ATTACK-15 Lingering injuries, ATTACK-16 Massive damage (system shock), ENCOUNTER-6 Morale, MOVE-4 Climb onto a larger creature. Each is offered in Campaign settings only once it resolves. They still need WSJF ranking against the table below.
+- Registered the seven approved 2014 DMG optional-combat variants that had no build work (`08-vtt-optional-combat-coverage.json` lists them as FOUNDATION only): ATTACK-12 Facing, ATTACK-13 Marking, ATTACK-14 Hitting cover, ATTACK-15 Lingering injuries, ATTACK-16 Massive damage (system shock), ENCOUNTER-6 Morale, MOVE-4 Climb onto a larger creature. Each is offered in Campaign settings only once it resolves. Ranked 2026-10-08 (twelfth session); see the variants table below the ranking.
 - Ledger 68/133 PBIs, 312/444 ACs. Next: SPELLS-3 slice B (3.4, the turn-start death save), then C (3.5) and D (3.6, which also shows Dead for frozen actors).
+
+**Done 2026-10-08 (twelfth session):**
+
+- SPELLS-3 slice B, 3.4 DONE (D96): a dying Character's turn starts with a death save, a turn stage after Recharge and before START_OF_TURN effects (`encounterTurnDeathSave.ts`; outcome math `deathSavesAfterRoll` in `schema/shared/characterDeathSaves.ts`; applied through the mechanics batch's `deathSave` input, phase `TURN_DEATH_SAVE`, in `persistEncounterTurnDeathSave`). Prompted to the controller as a D20_EVIDENCE with a `DEATH_SAVE` trigger, or auto-rolled. Every save posts exactly one roll card (commit card unless an app attempt already carded that die). A Character that dies at its own turn start keeps that turn and is skipped afterwards. The `liveCharacterState` D96 journey setup moved to `tests/fixtures/liveCharacterRun.ts`.
+- Registered ENCOUNTER-7: Recharge and Legendary dice post no card, and app-rolled action d20s are carded twice.
+- WSJF-ranked the seven optional-combat variants (table below the ranking).
+- Ledger 68/134 PBIs, 313/446 ACs. Next: SPELLS-3 slice C (3.5, STABILIZE and first aid), then D (3.6).
 
 **Done 2026-10-07 (parallel session, worktree `claude/spells-2-conditions`):**
 
@@ -112,7 +119,7 @@
 | 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
 | 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
-| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Death saves (D96). Slice A (3.2, 3.3) done (eleventh session); next B (3.4), C (3.5), D (3.6).                                             |
+| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Death saves (D96). A (3.2, 3.3) and B (3.4) done; next C (3.5), D (3.6).                                                                 |
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                             |
 | 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                   |
 | 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
@@ -138,6 +145,19 @@
 | 35  | ENCOUNTER-4                             | 0.8  | Speed Factor (optional rule).                                                                                                            |
 | 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                           |
 | 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                            |
+
+**Optional-combat variants (ranked 2026-10-08).** Each is opt-in and offered only once it resolves, so value and time criticality are low (2 and 1) and size decides. They slot into the table above by WSJF; none outranks SPELLS-3.
+
+| PBI         | WSJF | Size | Slots after                | Note                                                                                            |
+| ----------- | ---- | ---- | -------------------------- | ----------------------------------------------------------------------------------------------- |
+| ATTACK-16   | 1.3  | 3    | #29 SPELLS-4               | Massive damage (system shock): one Constitution save on a large single-source hit.              |
+| ATTACK-14   | 0.8  | 5    | #34 ROOM-6, after SPELLS-7 | Hitting cover. No cover rules exist yet; cover arrives with SPELLS-7 (area and multi-target).   |
+| ATTACK-13   | 0.8  | 5    | #34 ROOM-6                 | Marking: a mark effect plus a free, advantaged opportunity attack.                              |
+| ENCOUNTER-6 | 0.8  | 5    | #34 ROOM-6                 | Morale: GM-offered save on authored triggers, recorded outcome.                                 |
+| ATTACK-12   | 0.5  | 8    | #36 MOVE-2                 | Facing: token facing UI, set at end of move and as a reaction; rear-arc attacks.                |
+| ATTACK-15   | 0.5  | 8    | #36 MOVE-2                 | Lingering injuries; after SPELLS-3 (failed death save trigger) and needs Sheet display.         |
+| ENCOUNTER-7 | 2.3  | 3    | #21 ATTACK-9               | Not a variant: one roll card per turn-stage roll and per app-rolled action d20 (GM visibility). |
+| MOVE-4      | 0.4  | 8    | #36 MOVE-2, after MOVE-2   | Climb onto a larger creature; reuses the Overrun and Tumble contest path, so it follows MOVE-2. |
 
 Batched into one local live run (not scheduled for any single item): ACCOUNTS-1, 2, 3, 5 and 8 browser journeys; PLATFORM-4 uploads (needs the local R2 fixture); RELEASE-6; ENCOUNTER-5; the ATTACK-8.4 "Attack 1 of 2, then 2 of 2" drawer journey.
 

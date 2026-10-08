@@ -47,6 +47,8 @@ export type EncounterMechanicsBatchInput = {
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
+  /** A dying Character's turn-start death save die (D96); Characters only. */
+  deathSave?: { rawDie: number }
 }
 
 export type EncounterMechanicsBatchPlan = {
@@ -84,6 +86,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot use Character resources.')
     if (batch.stowEquippedItemInstanceId !== undefined)
       throw new Error('Encounter non-Character actors cannot stow Character equipment.')
+    if (batch.deathSave !== undefined)
+      throw new Error('Encounter non-Character actors make no death saves.')
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     const folded = foldCharacterMechanicsApplications({
       targetActorId: actor.id,
@@ -214,7 +218,8 @@ export function planEncounterMechanicsBatch(input: {
     scalarValues: batch.effectiveScalarValues,
     retainedConditionIds: batch.retainedConditionIds,
     layers: { ownConditionIds, campaignConditionIds },
-    applications: batch.applications
+    applications: batch.applications,
+    deathSaveRoll: batch.deathSave
   })
   const existingConditionIds = new Set(ownConditionIds)
   const nextConditionIds = new Set(folded.afterOwnConditionIds)

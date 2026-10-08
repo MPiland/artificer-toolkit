@@ -259,9 +259,14 @@ keeps no copy of it (ADR 0034 decision 4): the death fact is read from the live 
 `DeadCharacterIds` set (`readDeadCharacterIds` in persistence, the `characterDead` flag of the room's
 `ACTOR` capture, and `deadCharacterIdsOfTargets` for state staged inside one turn or batch). Everyone
 sees a dead Character as "Dead" through the Defeated presentation. A frozen actor (a completed Run, or a
-departed Character) no longer reads its Character and reads as not dead. Rolling death saving throws,
-stabilizing and healing a dying Character's saves by hand are Phase 8.3 scope (target); dying Characters
-still take their turns.
+departed Character) no longer reads its Character and reads as not dead. In an ASSISTED Run a dying
+Character (0 HP, not stable, not dead) makes a death save as its turn starts (D96, current): a d20 with
+no modifiers, rolled by the actor's controller through the roll prompt (`DEATH_SAVE` trigger) or by the
+auto-roll preference. 10 or more is a success, 2-9 a failure, a 1 two failures, a 20 regains 1 HP (resets
+the saves and removes the 0-HP condition through the heal rules); three successes stabilize, three
+failures kill. `deathSavesAfterRoll` (schema) owns the rule. The stage runs after Recharge and before
+incoming `START_OF_TURN` effects and is not undoable; a MANUAL Run prompts nothing. Stabilizing by hand
+(Medicine, Spare the Dying) and Sheet tracking of death saves are not built (target).
 
 ### Condition mechanics (D94, current)
 
@@ -320,7 +325,7 @@ Lifecycle order: `START` creates a `PREPARING` round, evaluates the policy, reso
 activates the first participant, then enters that actor's `START_OF_TURN`. At an `EACH_ROUND` wrap the
 outgoing `END_OF_TURN` settles before the next round is evaluated. While evidence or a choice is pending,
 the root command keeps one Encounter occurrence at an unchanged version. Every preterminal phase
-(outgoing effects, the proposed round, incoming Recharge) stays non-mutating until the terminal commit
+(outgoing effects, the proposed round, incoming Recharge, the incoming Character's death save) stays non-mutating until the terminal commit
 re-validates and applies it atomically, so a pause leaves aggregate state unchanged. One Campaign has at
 most one `ACTIVE` Encounter Run.
 

@@ -28,6 +28,7 @@ import { DND5E_SYSTEM_ID } from './identity.js'
 
 const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000e1'
+const DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000ec'
 const DND5E_RECHARGE_4_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e5'
 const DND5E_RECHARGE_5_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e7'
 const DND5E_RECHARGE_6_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e9'
@@ -259,6 +260,24 @@ export function createDnd5eRechargeDefinition(threshold: 4 | 5 | 6) {
       }
     ],
     outputs: { recharged: { kind: 'NODE_OUTPUT', nodeId: 'recharge', port: 'passed' } }
+  })
+}
+
+/** A death save is a d20 with no modifiers (SRD 5.1); the die is the graph's one evidence request. */
+export function createDnd5eDeathSaveDefinition() {
+  return published({
+    schemaVersion: 1,
+    id: DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID,
+    gameSystemId: DND5E_SYSTEM_ID,
+    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+    nodes: [
+      {
+        id: 'd20',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+      }
+    ],
+    outputs: { rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' } }
   })
 }
 

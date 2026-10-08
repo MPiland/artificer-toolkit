@@ -195,9 +195,10 @@ export async function readPendingRunDecision(
   }
   if (
     context.kind === 'ENCOUNTER_TURN_RECHARGE' ||
+    context.kind === 'ENCOUNTER_TURN_DEATH_SAVE' ||
     context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
   ) {
-    // Turn-effect saves and Recharge dice go to their actor's controllers.
+    // Turn-effect saves, death saves and Recharge dice go to their actor's controllers.
     const actorId = turnPendingActorId(pendingSnapshot)
     if (actorId === null || !controlledActorIds.has(actorId)) return null
     if (

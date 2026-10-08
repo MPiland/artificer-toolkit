@@ -13,6 +13,17 @@ export function concentrationTriggerText({ damage, sourceLabel, dc }: Concentrat
   return `took ${amount}${sourceLabel ? ` from ${sourceLabel}` : ''} (DC ${dc})`
 }
 
+const countText = (count: number, singular: string, plural = `${singular}s`) =>
+  `${count} ${count === 1 ? singular : plural}`
+
+/** The prompt line naming who rolls a death save and the saves they already hold. */
+export function deathSavePromptText(
+  actorLabel: string,
+  { successes, failures }: { successes: number; failures: number }
+) {
+  return `Death save for ${actorLabel} (${countText(successes, 'success', 'successes')}, ${countText(failures, 'failure')}, no modifiers)`
+}
+
 /** The prompt line naming who rolls a Concentration check and why. */
 export function concentrationPromptText(actorLabel: string, trigger: ConcentrationTrigger) {
   return `Concentration check for ${actorLabel}: ${concentrationTriggerText(trigger)}`

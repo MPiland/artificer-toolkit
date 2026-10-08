@@ -4,6 +4,7 @@ import { prepareTurnLegendaryActions } from '@artificer-toolkit/rules-runtime/en
 import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { discoverTurnLegendaryWindows } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryDiscovery'
 import { prepareEncounterTurnRecharge } from '@artificer-toolkit/rules-runtime/encounterTurnRecharge'
+import { prepareEncounterTurnDeathSave } from '@artificer-toolkit/rules-runtime/encounterTurnDeathSave'
 import { prepareEncounterTurnInitiative } from '@artificer-toolkit/rules-runtime/encounterTurnInitiative'
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
 import { prepareEncounterInitiativeDeclarationSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationSources'
@@ -153,6 +154,13 @@ export function createNativeLiveTurnStages(
         definitions,
         createRuntime,
         rollD6: () => random(6) + 1
+      }),
+    deathSave: (stage) =>
+      prepareEncounterTurnDeathSave<CharacterFacts>({
+        ...stage,
+        loadTarget,
+        createRuntime,
+        rollD20
       }),
     initiative: (stage) => {
       async function loadCharacter(actor: EncounterRunCharacterActorState) {

@@ -35,6 +35,7 @@ export async function requireTurnResponseController(
     context?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION' ||
     context?.kind === 'ENCOUNTER_INITIATIVE' ||
     context?.kind === 'ENCOUNTER_TURN_RECHARGE' ||
+    context?.kind === 'ENCOUNTER_TURN_DEATH_SAVE' ||
     context?.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
     context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
     context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'

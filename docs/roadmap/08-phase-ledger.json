@@ -3777,6 +3777,32 @@
               "id": "ENCOUNTER-6.3"
             }
           ]
+        },
+        {
+          "id": "ENCOUNTER-7",
+          "title": "Every turn-stage roll posts one roll card",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Recharge and Legendary Action dice, whether auto-rolled, app-rolled or entered, each post exactly one roll card routed like other rule rolls (Table for a player's actor, GM private history for a hidden actor, the GM's preference otherwise), as the turn-start death save does.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-08 in SPELLS-3 slice B: auto-rolled turn-stage dice post no card, so the GM never sees them. Pattern: persistEncounterTurnDeathSave in turnResourcesPersistence.ts.",
+              "id": "ENCOUNTER-7.1"
+            },
+            {
+              "text": "An action d20 rolled by the app posts one card, not an attempt card plus a second card at commit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-08: evidenceRolls.ts cards each app attempt and actionCommitPersistence.ts cards the settled d20 again.",
+              "id": "ENCOUNTER-7.2"
+            }
+          ]
         }
       ]
     },
@@ -4637,10 +4663,11 @@
           "status": "IN_PROGRESS",
           "journeyTests": [
             "apps/apis/convex/encounters/defeat.test.ts",
-            "apps/apis/convex/encounters/liveCharacterState.test.ts"
+            "apps/apis/convex/encounters/liveCharacterState.test.ts",
+            "apps/apis/convex/encounters/turnDeathSave.test.ts"
           ],
           "journeyStatus": "partial",
-          "journeyGap": "Creature 0 HP defeat and a Character dying, dead and undone are proved; no death-save roll at turn start, stabilizing or first aid yet (3.4–3.6).",
+          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, and the turn-start death save are proved; no stabilizing, first aid or Sheet tracker yet (3.5, 3.6).",
           "origin": [],
           "acs": [
             {
@@ -4687,10 +4714,17 @@
             },
             {
               "text": "In an Assisted Run, a dying Character makes a death save at the start of its turn, prompted to its controller or auto-rolled by their preference: 10 or higher succeeds, a 1 counts two failures, a 20 regains 1 HP, three successes stabilize it and three failures kill it. The roll is always visible to the GM.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/turnDeathSave.test.ts › a dying Character’s turn-start death save (D96) (prompt and a 10 succeeds; app roll carded once; auto-roll, a 1 is two failures, third failure kills and later turns skip; a 20 revives at 1 HP; three successes stabilize; every save has exactly one GM-visible card)",
+                "packages/schema/src/__tests__/characterDeathSaves.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts › a turn-start death save",
+                "packages/rules-runtime/src/__tests__/encounterDeathSave.test.ts (no save for a Creature, at the end of combat or in a Manual Encounter; d20 bounds)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.model.test.ts",
+                "impl: packages/rules-runtime/src/encounterTurnDeathSave.ts (turn stage after Recharge); packages/encounter-persistence/src/turnResourcesPersistence.ts (persistEncounterTurnDeathSave)"
+              ],
               "origin": [],
-              "note": "D96; ADR 0034 roll prompts.",
+              "note": "D96; ADR 0034 roll prompts. Slice B, 2026-10-08. A Manual Run is proved in rules-runtime only.",
               "id": "SPELLS-3.4"
             },
             {

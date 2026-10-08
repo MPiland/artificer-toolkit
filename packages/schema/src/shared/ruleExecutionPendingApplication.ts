@@ -18,6 +18,7 @@ import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionIniti
 import { serverOptionalCombatContestPendingContextDtoSchema } from './ruleExecutionOptionalCombatPending.js'
 import {
   legendaryActionEvidencePendingContextDtoSchema,
+  turnDeathSavePendingContextDtoSchema,
   turnEffectPendingContextDtoSchema,
   turnRechargePendingContextDtoSchema
 } from './ruleExecutionTurnPending.js'
@@ -33,6 +34,7 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof encounterActionPendingContextDtoSchema>
   | z.infer<typeof turnEffectPendingContextDtoSchema>
   | z.infer<typeof turnRechargePendingContextDtoSchema>
+  | z.infer<typeof turnDeathSavePendingContextDtoSchema>
   | z.infer<typeof spatialPendingContextDtoSchema>
   | z.infer<typeof movementReactionPendingContextDtoSchema>
   | z.infer<typeof legendaryActionEvidencePendingContextDtoSchema>
@@ -52,6 +54,7 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         encounterActionPendingContextDtoSchema,
         turnEffectPendingContextDtoSchema,
         turnRechargePendingContextDtoSchema,
+        turnDeathSavePendingContextDtoSchema,
         spatialPendingContextDtoSchema,
         movementReactionPendingContextDtoSchema,
         legendaryActionEvidencePendingContextDtoSchema,

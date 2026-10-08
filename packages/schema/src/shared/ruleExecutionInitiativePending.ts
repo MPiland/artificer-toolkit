@@ -19,6 +19,7 @@ import { pendingCompletedTurnPhaseDtoSchema } from './ruleExecutionResults.js'
 import {
   completedTurnRechargePlanDtoSchema,
   turnActionEconomyRefreshDtoSchema,
+  turnDeathSaveExecutionDtoSchema,
   turnLegendaryActionEvidenceDtoSchema,
   turnLegendaryActionRefreshDtoSchema
 } from './ruleExecutionTurnResources.js'
@@ -107,6 +108,9 @@ export const encounterInitiativePendingContextDtoSchema = lazySchema(() =>
         ),
         completedRechargePlan: z.optional(
           z.nullable(z.lazy(() => completedTurnRechargePlanDtoSchema))
+        ),
+        completedDeathSavePlan: z.optional(
+          z.nullable(z.lazy(() => turnDeathSaveExecutionDtoSchema))
         ),
         resolutionCommands: z._default(
           z.array(turnResolutionCommandDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS * 20)),

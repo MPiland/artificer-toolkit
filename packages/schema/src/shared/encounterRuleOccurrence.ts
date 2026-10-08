@@ -109,6 +109,12 @@ export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
       }),
       sourceLabel: z.nullable(triggerLabelSchema),
       dc: z.number().check(z.int()).check(z.positive())
+    }),
+    /** A dying Character's turn-start death save, with the saves it has made so far. */
+    z.strictObject({
+      kind: z.literal('DEATH_SAVE'),
+      successes: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2)),
+      failures: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))
     })
   ])
 )

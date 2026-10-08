@@ -18,6 +18,7 @@ import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
 import type { prepareEncounterTurnInitiative } from './encounterTurnInitiative.js'
 import type { prepareTurnLegendaryActions } from './encounterTurnLegendaryAction.js'
 import type { prepareEncounterTurnRecharge } from './encounterTurnRecharge.js'
+import type { prepareEncounterTurnDeathSave } from './encounterTurnDeathSave.js'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
@@ -124,6 +125,20 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         'state' | 'autoRoll' | 'root' | 'occurrenceId' | 'actors' | 'pending' | 'rawDie'
       >
     ) => ReturnType<typeof prepareEncounterTurnRecharge>
+    deathSave: (
+      input: Pick<
+        Parameters<typeof prepareEncounterTurnDeathSave<TCharacterFacts>>[0],
+        | 'state'
+        | 'userId'
+        | 'root'
+        | 'occurrenceId'
+        | 'actors'
+        | 'movementTargets'
+        | 'pending'
+        | 'rawDie'
+        | 'autoRoll'
+      >
+    ) => ReturnType<typeof prepareEncounterTurnDeathSave<TCharacterFacts>>
   }
 ) {
   const { state, campaign, autoRoll, occurrenceId, pending } = input
@@ -261,10 +276,32 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       })
     )
   }
+  // A dying Character's save follows Recharge and precedes its start-of-turn effects, which then
+  // see the save's outcome (D96).
+  const actorId = root.proposedTerminalTransition.currentActorId
+  const deathSave = await stages.deathSave({
+    state,
+    userId: campaign.ownerUserId,
+    autoRoll: actorAutoRoll(actorId),
+    root,
+    occurrenceId,
+    actors: recharge.actors,
+    movementTargets,
+    ...(pending?.snapshotKind === 'KERNEL_EVIDENCE' &&
+    pending.applicationContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE'
+      ? {
+          pending: { ...pending, applicationContext: { ...pending.applicationContext, root } },
+          ...(input.rawDie === undefined ? {} : { rawDie: input.rawDie })
+        }
+      : {})
+  })
+  if (deathSave.kind === 'PENDING') return deathSave
+  if (deathSave.plan) root = { ...root, completedDeathSavePlan: deathSave.plan }
+  if (deathSave.target && actorId !== null) movementTargets.set(actorId, deathSave.target)
   const incoming = await stages.effects({
     state,
     userId: campaign.ownerUserId,
-    autoRoll: actorAutoRoll(root.proposedTerminalTransition.currentActorId),
+    autoRoll: actorAutoRoll(actorId),
     root,
     occurrenceId,
     actors: recharge.actors,
@@ -286,6 +323,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     incomingActors: recharge.actors,
     outgoing,
     incoming,
-    rechargePlan: recharge.plan
+    rechargePlan: recharge.plan,
+    deathSavePlan: deathSave.plan
   }
 }

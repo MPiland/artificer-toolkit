@@ -17,8 +17,14 @@ type RechargePendingContext = Extract<
   { kind: 'ENCOUNTER_TURN_RECHARGE' }
 >
 
+type DeathSavePendingContext = Extract<
+  ServerKernelRuleExecutionPendingSnapshotDto['applicationContext'],
+  { kind: 'ENCOUNTER_TURN_DEATH_SAVE' }
+>
+
 /**
- * The actor a pending turn step belongs to: a turn-effect save's target, the recharging Creature, or
+ * The actor a pending turn step belongs to: a turn-effect save's target, the recharging Creature, the
+ * dying Character making its death save, or
  * the Creature choosing and rolling a Legendary Action, or that action's target rolling its save. Its
  * controllers and the GM answer it (ADR 0034 decision 3; D24, D30), so a Creature the GM granted to a
  * player acts and rolls with that player.
@@ -34,6 +40,8 @@ export function turnPendingActorId(pending: ServerRuleExecutionPendingSnapshotDt
       return context.currentCandidate.targetActorId
     case 'ENCOUNTER_TURN_RECHARGE':
       return context.currentCandidate.actorId
+    case 'ENCOUNTER_TURN_DEATH_SAVE':
+      return context.candidate.actorId
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
       return context.rollerActorId
     default:
@@ -49,6 +57,52 @@ export function requireRechargePending(snapshot: ServerRuleExecutionPendingSnaps
   if (kernel.applicationContext.kind !== 'ENCOUNTER_TURN_RECHARGE')
     throw new Error('The pending occurrence is not Recharge evidence.')
   return { snapshot: kernel, context: kernel.applicationContext }
+}
+
+export function requireDeathSavePending(snapshot: ServerRuleExecutionPendingSnapshotDto): {
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+  context: DeathSavePendingContext
+} {
+  const kernel = requireServerKernelRuleExecutionPendingSnapshot(snapshot)
+  if (kernel.applicationContext.kind !== 'ENCOUNTER_TURN_DEATH_SAVE')
+    throw new Error('The pending occurrence is not death save evidence.')
+  return { snapshot: kernel, context: kernel.applicationContext }
+}
+
+function projectNativeDeathSavePending(input: {
+  snapshot: ServerRuleExecutionPendingSnapshotDto
+  occurrenceId: string
+  occurrenceVersion: number
+  encounterVersion: number
+}): PendingEncounterRuleOccurrenceSummaryDto {
+  const { snapshot, context } = requireDeathSavePending(input.snapshot)
+  if (
+    snapshot.occurrenceId !== input.occurrenceId ||
+    snapshot.request.kind !== 'INTEGER_RANGE' ||
+    snapshot.request.min !== 1 ||
+    snapshot.request.max !== 20
+  )
+    throw new Error('Death save evidence is stale.')
+  return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
+    kind: 'D20_EVIDENCE',
+    occurrenceId: input.occurrenceId,
+    occurrenceVersion: input.occurrenceVersion,
+    encounterVersion: input.encounterVersion,
+    rollerActorId: context.candidate.actorId,
+    trigger: {
+      kind: 'DEATH_SAVE',
+      successes: context.candidate.deathSaves.successes,
+      failures: context.candidate.deathSaves.failures
+    },
+    request: {
+      requestId: snapshot.request.requestId,
+      min: 1,
+      max: 20,
+      rollMode: 'NORMAL',
+      derivedRollModeReasons: []
+    },
+    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+  })
 }
 
 function projectNativeRechargePending(input: {
@@ -181,8 +235,9 @@ export function projectNativeTurnPending(
       allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
     })
   }
+  if (context.kind === 'ENCOUNTER_TURN_DEATH_SAVE') return projectNativeDeathSavePending(input)
   return (
-    input.snapshot.applicationContext.kind === 'ENCOUNTER_TURN_RECHARGE'
+    context.kind === 'ENCOUNTER_TURN_RECHARGE'
       ? projectNativeRechargePending
       : projectNativeLegendaryPending
   )(input)

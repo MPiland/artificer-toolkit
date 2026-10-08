@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { concentrationPromptText, concentrationTriggerText } from './ruleCheckCopy'
+import {
+  concentrationPromptText,
+  concentrationTriggerText,
+  deathSavePromptText
+} from './ruleCheckCopy'
+
+describe('death save copy', () => {
+  it('names the actor and the saves already held', () => {
+    expect(deathSavePromptText('Aria', { successes: 1, failures: 2 })).toBe(
+      'Death save for Aria (1 success, 2 failures, no modifiers)'
+    )
+    expect(deathSavePromptText('Aria', { successes: 0, failures: 1 })).toBe(
+      'Death save for Aria (0 successes, 1 failure, no modifiers)'
+    )
+  })
+})
 
 describe('Concentration check copy', () => {
   it('names the actor, damage, source and DC', () => {

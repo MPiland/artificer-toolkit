@@ -818,6 +818,48 @@ describe('0 hit points (D63)', () => {
         expect(plan.characterUpdate).toBeNull()
         expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 0, deathSaves: dead })
       })
+
+      describe('a turn-start death save', () => {
+        const save = (rawDie: number, deathSaves = dying as CharacterDeathSaves) =>
+          planEncounterMechanicsBatch({
+            batch: { ...characterBatch([]), deathSave: { rawDie }, forceVersionAdvance: true },
+            actor,
+            userId: USER_ID,
+            characterFacts: facts(0, [{ conditionTypeId: UNCONSCIOUS }], deathSaves)
+          })
+
+        it('regains 1 hit point on a 20, resetting the saves and removing Unconscious', () => {
+          const plan = save(20)
+          expect(plan.characterUpdate?.character.state).toMatchObject({
+            hitpoints: { current: 1, deathSaves: NO_DEATH_SAVES },
+            conditions: []
+          })
+          expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 1 })
+        })
+
+        it('adds two failures on a 1', () => {
+          expect(savesOf(save(1))).toEqual(dead)
+          expect(savesOf(save(1, NO_DEATH_SAVES))).toEqual({
+            successes: 0,
+            failures: 2,
+            stable: false
+          })
+        })
+
+        it('is dead on the third failure and stable on the third success', () => {
+          expect(savesOf(save(5, { successes: 0, failures: 2, stable: false }))).toEqual(dead)
+          expect(savesOf(save(14, { successes: 2, failures: 0, stable: false }))).toEqual({
+            successes: 0,
+            failures: 0,
+            stable: true
+          })
+        })
+
+        it('refuses a Character that is not dying', () => {
+          expect(() => save(12, stable)).toThrow('Only a dying Character makes a death save.')
+          expect(() => save(12, dead)).toThrow('Only a dying Character makes a death save.')
+        })
+      })
     })
   })
 })

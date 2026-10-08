@@ -32,7 +32,13 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readRunActor, writeRunActor } from './documents.js'
-import type { EncounterCharacterWriteTransaction } from './ports.js'
+import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import type {
+  CampaignAuthority,
+  EncounterCharacterWriteTransaction,
+  EncounterWritePorts
+} from './ports.js'
+import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 
@@ -393,4 +399,103 @@ export async function persistEncounterTurnResources(
       actor = await readActor(enteringId)
     }
   }
+}
+
+/**
+ * Applies the entering Character's sealed turn-start death save (D96) after the initiative advance
+ * and before incoming effects, so those effects read the Character's bumped stream version.
+ */
+export async function persistEncounterTurnDeathSave(
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+  },
+  input: {
+    state: EncounterRunState
+    campaign: CampaignAuthority['campaign']
+    root: TurnCoordinatorRootDto
+    occurrenceId: string
+    occurredAt: string
+  },
+  applyMechanics: (
+    batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+  ) => Promise<EncounterMechanicsBatchResult>
+): Promise<void> {
+  const { state, root, occurrenceId, occurredAt } = input
+  const plan = root.completedDeathSavePlan
+  if (!plan) return
+  const { candidate } = plan
+  const enteringId = root.proposedTerminalTransition.currentActorId
+  if (
+    state.automationMode === 'MANUAL' ||
+    root.expectedEncounterVersion !== state.version ||
+    enteringId !== candidate.actorId
+  )
+    throw new Error('Live Session death save owner is stale.')
+  const actor = await readRunActor(ctx, state, candidate.actorId)
+  const row = await ctx.ports.readCharacterRow(candidate.characterId)
+  if (
+    actor.kind !== 'CHARACTER' ||
+    actor.sourceId !== candidate.characterId ||
+    !row ||
+    row.status !== 'ACTIVE' ||
+    row.systemId !== state.gameSystemId ||
+    row.play.streamVersion !== candidate.streamVersion
+  )
+    throw new Error('Live Session death save Character is stale.')
+  const applied = await applyMechanics({
+    encounterId: state.id,
+    targetActorId: actor.id,
+    expectedEncounterVersion: state.version,
+    occurrenceId,
+    sourceCommandId: root.rootCommandId,
+    commandId: deriveEncounterCharacterMechanicsEventCommandId({
+      occurrenceId,
+      sourceCommandId: root.rootCommandId,
+      phase: 'TURN_DEATH_SAVE',
+      ordinal: 0,
+      targetCharacterId: candidate.characterId
+    }),
+    occurredAt,
+    applications: [],
+    deathSave: { rawDie: plan.rawDie },
+    effectiveMaximumHitPoints: candidate.effectiveMaximumHitPoints,
+    forceVersionAdvance: true
+  })
+  const { before, after } = applied.targetTransition
+  if (
+    applied.receiptApplications.length !== 0 ||
+    applied.characterStreamVersion !== candidate.streamVersion + 1 ||
+    checksumCanonicalJson(before.deathSaves) !== checksumCanonicalJson(candidate.deathSaves) ||
+    checksumCanonicalJson(after.deathSaves) !== checksumCanonicalJson(plan.afterDeathSaves) ||
+    after.currentHitPoints !== (plan.regainsHitPoint ? 1 : 0)
+  )
+    throw new Error('Live Session death save settlement differs from its plan.')
+  // Every save gets exactly one card, the Character's own roll. A save the app rolled already has
+  // its "Rolled by the app" attempt card, so only an auto-rolled or entered die is carded here.
+  const appRolled = (
+    await ctx.db
+      .query('encounterEvidenceRolls')
+      .withIndex('by_occurrenceId_version_requestId_userId', (q) =>
+        q.eq('occurrenceId', occurrenceId)
+      )
+      .collect()
+  ).some((attempt) => attempt.value === plan.rawDie)
+  if (appRolled) return
+  const system = await ctx.ports.requireSystem(state.gameSystemId)
+  const roll = deathSaveRollRecord({
+    occurrenceId,
+    rawDie: plan.rawDie,
+    rollerLabel: actor.label,
+    ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+    createdAt: occurredAt
+  })
+  await recordRuleRollCard(ctx, {
+    campaign: input.campaign,
+    encounterId: state.id,
+    roller: actor,
+    initiatorUserId: root.initiatorUserId,
+    visibility: undefined,
+    clientNonce: roll.id,
+    roll
+  })
 }

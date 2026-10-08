@@ -100,6 +100,30 @@ export function actionD20RollRecord(input: {
   })
 }
 
+/** The roll-log record of a dying Character's turn-start death save: one d20, no modifiers (D96). */
+export function deathSaveRollRecord(input: {
+  occurrenceId: string
+  rawDie: number
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const evaluated = evaluateRollExpression(
+    parseRollExpression('1d20'),
+    { nextInt: () => input.rawDie - 1 },
+    'NORMAL'
+  )
+  return rollRecordDtoSchema.parse({
+    id: ruleCheckRollId(input.occurrenceId, 0),
+    ...evaluated,
+    characterId: null,
+    characterLabel: input.rollerLabel,
+    source: { kind: 'SAVING_THROW', label: 'Death save' },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
 /**
  * The roll-log record of the damage an action requested, total only: the persisted evidence keeps
  * the amount, not its dice faces, so the card shows the label and the total (no terms).

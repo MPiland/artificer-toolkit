@@ -24,6 +24,7 @@ import {
 } from './nativeEncounterTargets.js'
 import { createNativeLiveTurnStages } from './nativeEncounterTurnPreparation.js'
 import {
+  resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   withEncounterAppRoll,
   type EncounterResponseAnswer
@@ -99,6 +100,7 @@ export async function planNativeLiveEncounterTurn(
     ((context?.kind === 'ENCOUNTER_INITIATIVE' ||
       context?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION' ||
       context?.kind === 'ENCOUNTER_TURN_RECHARGE' ||
+      context?.kind === 'ENCOUNTER_TURN_DEATH_SAVE' ||
       context?.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
       context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
       context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE') &&
@@ -254,6 +256,7 @@ export async function planNativeLiveEncounterTurn(
       pendingContext.kind !== 'ENCOUNTER_INITIATIVE' &&
       pendingContext.kind !== 'ENCOUNTER_INITIATIVE_DECLARATION' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_RECHARGE' &&
+      pendingContext.kind !== 'ENCOUNTER_TURN_DEATH_SAVE' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' &&
       pendingContext.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
@@ -336,6 +339,15 @@ export async function planNativeLiveEncounterTurn(
           answer: resolution,
           random: execution.random
         })
+      else if (pendingContext.kind === 'ENCOUNTER_TURN_DEATH_SAVE') {
+        const roll = resolveEncounterD20Answer({
+          derivedRollMode: 'NORMAL',
+          answer: resolution,
+          rollD20: () => execution.random(20) + 1
+        })
+        if (roll.rollMode !== 'NORMAL') throw new Error('A death save is a single d20 roll.')
+        rawDie = roll.natural
+      }
     }
   }
   if (admission.command.type === 'START' || initiativeResume) {

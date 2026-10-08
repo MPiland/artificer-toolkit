@@ -38686,12 +38686,14 @@ export declare const api: {
                   rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                 };
                 rollerActorId: string | null;
-                trigger?: {
-                  damage: { amount: number; typeLabel: string | null };
-                  dc: number;
-                  kind: "CONCENTRATION";
-                  sourceLabel: string | null;
-                };
+                trigger?:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number };
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -38920,12 +38922,18 @@ export declare const api: {
                     rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   };
                   rollerActorId: string | null;
-                  trigger?: {
-                    damage: { amount: number; typeLabel: string | null };
-                    dc: number;
-                    kind: "CONCENTRATION";
-                    sourceLabel: string | null;
-                  };
+                  trigger?:
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "CONCENTRATION";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        failures: number;
+                        kind: "DEATH_SAVE";
+                        successes: number;
+                      };
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -39630,12 +39638,14 @@ export declare const api: {
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
             };
             rollerActorId: string | null;
-            trigger?: {
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              kind: "CONCENTRATION";
-              sourceLabel: string | null;
-            };
+            trigger?:
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "CONCENTRATION";
+                  sourceLabel: string | null;
+                }
+              | { failures: number; kind: "DEATH_SAVE"; successes: number };
           }
         | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -40315,12 +40325,14 @@ export declare const api: {
                   rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                 };
                 rollerActorId: string | null;
-                trigger?: {
-                  damage: { amount: number; typeLabel: string | null };
-                  dc: number;
-                  kind: "CONCENTRATION";
-                  sourceLabel: string | null;
-                };
+                trigger?:
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "CONCENTRATION";
+                      sourceLabel: string | null;
+                    }
+                  | { failures: number; kind: "DEATH_SAVE"; successes: number };
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;

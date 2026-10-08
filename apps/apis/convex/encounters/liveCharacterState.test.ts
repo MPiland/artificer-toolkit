@@ -1,47 +1,30 @@
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
-import { makeFunctionReference } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type {
-  CreateEncounterBlueprintInputDto,
-  CreateEncounterInputDto,
-  EncounterBlueprintDto,
-  EncounterExecuteInput,
-  EncounterGmProjectionDto
-} from '@artificer-toolkit/schema/api/encounters'
-import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
-import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
-import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { healthBand } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
-import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
-import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
-import {
-  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
-  SRD_RULE_STATE_DEFINITIONS
-} from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { importedSubject } from '../../tests/fixtures/publication'
-import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { api, internal } from '../_generated/api'
-import { loadCharacterSheetFacts } from '../characters/sheetFacts'
-import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
-import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
-  attachRoomWorker,
+  advance,
+  deafened,
+  enemyBites,
+  execute,
+  setup,
+  sheetCommand,
+  start,
+  storedCharacter,
+  toEnemyTurn,
+  type CommandResult,
+  type Fixture
+} from '../../tests/fixtures/liveCharacterRun'
+import { api } from '../_generated/api'
+import {
   checkpointLiveRoom,
   checkpointRoom,
   executeInRoom,
-  executeSheetInRoom,
   invalidateRoomInputs,
   queueRoomRolls,
-  seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 
@@ -50,281 +33,9 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-const createBlueprint = makeFunctionReference<
-  'mutation',
-  CreateEncounterBlueprintInputDto,
-  EncounterBlueprintDto
->('encounters/blueprints:create')
-const createRun = makeFunctionReference<
-  'mutation',
-  CreateEncounterInputDto,
-  EncounterGmProjectionDto
->('encounters/runs:create')
-
-const wolfBite = wolf.features?.find((feature) => feature.label === 'Bite')
-const wolfBiteEffect = wolfBite?.effects?.[0]
-if (!wolfBite || !wolfBiteEffect || wolfBiteEffect.invocation.kind !== 'ACTION')
-  throw new Error('Missing Wolf Bite fixture.')
-const biteInvocation = wolfBiteEffect.invocation
-
-/** A one-damage, any-range action so the journey needs no Scene geometry. */
-function oneDamageBite() {
-  return {
-    ...structuredClone(wolfBiteEffect!),
-    invocation: {
-      ...biteInvocation,
-      triggerCode: 'ACTIVATED' as const,
-      range: { id: biteInvocation.range.id, rangeKind: 'UNLIMITED' as const },
-      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
-    },
-    paths: wolfBiteEffect!.paths?.slice(0, 1).map((path) => {
-      if (!('resultBlock' in path)) return path
-      return {
-        ...path,
-        pathCode: 'ON_USE' as const,
-        resultBlock: {
-          ...path.resultBlock,
-          outcomes: path.resultBlock.outcomes.map((outcome) => {
-            if (outcome.effectKind !== 'DAMAGE') throw new Error('Expected Bite damage.')
-            return {
-              id: outcome.id,
-              effectKind: 'DAMAGE' as const,
-              damageTypeId: outcome.damageTypeId,
-              valueKind: 'FIXED' as const,
-              scalingKind: 'NONE' as const,
-              amount: 1
-            }
-          })
-        }
-      }
-    })
-  }
-}
-
-const deafenedCondition = srdSystemRecord.conditionTypes.find(
-  (condition) => condition.code === 'DEAFENED'
-)
-if (!deafenedCondition) throw new Error('Missing Deafened condition.')
-const deafened = deafenedCondition
-
-const creature = {
-  ...wolf,
-  id: crypto.randomUUID(),
-  features: wolf.features?.map((feature) =>
-    feature.label === 'Bite' ? { ...feature, effects: [oneDamageBite()] } : feature
-  )
-}
-
-async function setup() {
-  const characterEffect = oneDamageBite()
-  const base = await setupCharacterRun({
-    spellcasting: {
-      ...wizard.spellcasting!,
-      spellLimits: [
-        {
-          classLevel: 1,
-          slots: [{ spellLevel: 1, slotCount: 2 }],
-          learnedSpellsLimit: 0,
-          cantripsLimit: 0
-        }
-      ]
-    },
-    features: [
-      {
-        ...structuredClone(wolfBite!),
-        id: crypto.randomUUID(),
-        availableAtLevel: 1,
-        effects: [characterEffect]
-      }
-    ]
-  })
-  await attachRoomWorker(base.t)
-  const initiative = createEncounterInitiativeDefinitions([
-    { procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' }
-  ])
-  await base.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: [
-      ...SRD_RULE_STATE_DEFINITIONS.filter(
-        (definition) =>
-          definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID || definition.id === deafened.id
-      ),
-      ...initiative.definitions
-    ]
-  })
-  await base.t.mutation(internal.content.import.importSubjects, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })]
-  })
-  const settings = await base.owner.caller.query(api.campaigns.playSettings.get, {
-    campaignId: base.campaign.id
-  })
-  const { version, updatedAt: _updatedAt, ...settingFields } = settings
-  await base.owner.caller.mutation(api.campaigns.playSettings.save, {
-    ...settingFields,
-    expectedVersion: version,
-    automationMode: 'ASSISTED',
-    initiativePolicyDefinitionId: initiative.policyIds[0]!,
-    initiativeTieDefinitionId: null
-  })
-  await seedRoomContentSnapshots(base.campaign.id)
-  const blueprint = await base.owner.caller.mutation(createBlueprint, {
-    gameSystemId: base.campaign.gameSystemId,
-    name: 'Live Character state journey',
-    commandId: crypto.randomUUID(),
-    enemies: [{ kind: 'CREATURE', sourceId: creature.id }]
-  })
-  const run = await base.owner.caller.mutation(createRun, {
-    campaignId: base.campaign.id,
-    blueprintId: blueprint.id,
-    commandId: crypto.randomUUID()
-  })
-  const hero = run.actors.find((actor) => actor.kind === 'CHARACTER')
-  const enemy = run.actors.find((actor) => actor.kind === 'CREATURE')
-  if (!hero || !enemy) throw new Error('Missing journey actors.')
-  const actionIds = await base.t.run(async (ctx) => {
-    const facts = await loadCharacterSheetFacts(
-      ctx,
-      base.owner.userId,
-      base.character.id,
-      base.campaign.id
-    )
-    const heroAction = facts?.ruleEvaluation.facts.actionCandidates.find(
-      (candidate) => candidate.effectId === characterEffect.id
-    )
-    const row = await ctx.db
-      .query('encounterRuns')
-      .withIndex('by_publicId', (q) => q.eq('id', run.id))
-      .unique()
-    if (!row || !heroAction) throw new Error('Missing journey action sources.')
-    const enemyAction = discoverEncounterFeatureActionCapabilities({
-      actor: await readRunActor(
-        { db: createConvexEncounterStoreReader(ctx) },
-        readRunState(row),
-        enemy.id
-      ),
-      conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
-      abilityDefinitions: (srdSystemRecord.abilities ?? []).map((ability) => ({
-        id: ability.id,
-        code: ability.code
-      }))
-    }).find((capability) => capability.mechanicFacts.invocation.triggerCode === 'ACTIVATED')
-    if (!enemyAction) throw new Error('Missing journey Creature action.')
-    return { hero: heroAction.actionId, enemy: enemyAction.actionId }
-  })
-  return { ...base, run, hero, enemy, actionIds }
-}
-
-type Fixture = Awaited<ReturnType<typeof setup>>
-
-function execute(
-  fixture: Fixture,
-  command: (base: { encounterId: string; commandId: string }) => EncounterExecuteInput['command']
-) {
-  return executeInRoom(fixture.owner.caller, {
-    command: command({ encounterId: fixture.run.id, commandId: crypto.randomUUID() })
-  })
-}
-
-async function sheetCommand(
-  fixture: Fixture,
-  command: (base: { commandId: string; expectedVersion: number }) => CharacterSheetCommandInputDto
-) {
-  // The room holds the Character's play state, so the Sheet version is read after a checkpoint.
-  // The held receipt's `targetTransition.before.conditionIds` is asserted in `nativeRoomEffectReceipts.test.ts`.
-  await checkpointLiveRoom(fixture.campaign.id)
-  const sheet = await fixture.player.caller.query(api.characters.sheet.get, {
-    id: fixture.character.id
-  })
-  if (!sheet) throw new Error('Missing journey Sheet.')
-  const input = command({
-    commandId: crypto.randomUUID(),
-    expectedVersion: sheet.meta.streamVersion
-  })
-  // Once the room holds the Character, play-state commands go through it; Sheet adjustments and
-  // edits made before the Run starts stay Convex-direct.
-  const held = await fixture.t.run((ctx) => readCharacterLiveHold(ctx, fixture.character.id))
-  if (held && isCharacterSheetLivePlayCommand(input)) {
-    await executeSheetInRoom(fixture.player.caller, {
-      scope: 'CHARACTER_SHEET',
-      characterId: fixture.character.id,
-      encounterId: fixture.run.id,
-      command: input
-    })
-    return
-  }
-  await fixture.player.caller.mutation(api.characters.sheetCommands.execute, {
-    id: fixture.character.id,
-    command: input
-  })
-}
-
-async function storedCharacter(fixture: Fixture) {
-  await checkpointLiveRoom(fixture.campaign.id)
-  return fixture.t.run(async (ctx) => {
-    const row = await readCharacterRow(ctx, fixture.character.id)
-    if (!row) throw new Error('Missing journey Character.')
-    return characterAuthoredDtoSchema.parse(readCharacterRecord(row)) as CharacterAuthored
-  })
-}
-
-type CommandResult = Awaited<ReturnType<typeof execute>>
-
-function advance(fixture: Fixture, result: CommandResult) {
-  const expectedVersion = result.projection.version
-  return execute(fixture, (base) => ({ ...base, type: 'ADVANCE_TURN', expectedVersion }))
-}
-
-async function start(fixture: Fixture) {
-  let result = await execute(fixture, (base) => ({
-    ...base,
-    type: 'START',
-    expectedVersion: fixture.run.version
-  }))
-  while (result.occurrence?.status === 'PENDING') {
-    const pending = result.occurrence.pending
-    if (!pending || pending.kind !== 'INITIATIVE_ORDER' || !pending.optionIds[0])
-      throw new Error('Unexpected Automatic initiative decision.')
-    const occurrence = result.occurrence
-    const expectedVersion = result.projection.version
-    result = await execute(fixture, (base) => ({
-      ...base,
-      type: 'RESOLVE_RULE_OCCURRENCE',
-      expectedVersion,
-      correlationId: null,
-      occurrenceId: occurrence.occurrenceId,
-      expectedOccurrenceVersion: occurrence.occurrenceVersion,
-      resolution: {
-        kind: 'INITIATIVE_ENTITY',
-        requestId: pending.requestId,
-        entityId: pending.optionIds[0]!
-      }
-    }))
-  }
-  expect(result.projection.status).toBe('ACTIVE')
-  return result
-}
-
 /** Advances to the Creature's next turn and has it bite the Character. */
 async function enemyBitesHero(fixture: Fixture, from: CommandResult) {
-  let result = await advance(fixture, from)
-  while (result.projection.currentActorId !== fixture.enemy.id)
-    result = await advance(fixture, result)
-  const expectedVersion = result.projection.version
-  result = await execute(fixture, (base) => ({
-    ...base,
-    type: 'RESOLVE_ACTION',
-    acceptedWieldConflict: null,
-    acknowledgedWarnings: [],
-    expectedVersion,
-    actorId: fixture.enemy.id,
-    targetActorId: fixture.hero.id,
-    actionId: fixture.actionIds.enemy,
-    optionalCombatIntent: null,
-    sceneContext: null
-  }))
-  expect(result.occurrence?.status).toBe('COMPLETE')
-  return result
+  return enemyBites(fixture, await toEnemyTurn(fixture, from))
 }
 
 /** Commits a Builder edit of the current Character document, as its player would. */
@@ -634,6 +345,8 @@ describe('a Character dying and dead in the room (D96)', () => {
   it('dies at three failures, shows Dead to everyone, loses its turns, and Undo restores the saves', async () => {
     const fixture = await setup()
     let result = await start(fixture)
+    // The Character's own turn-start death save rolls a 1, which is two failures (turnDeathSave.test.ts).
+    await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: 0 })
     const hitPoints = (await storedCharacter(fixture)).state.hitpoints
     await sheetCommand(fixture, (base) => ({
       ...base,
@@ -649,15 +362,13 @@ describe('a Character dying and dead in the room (D96)', () => {
     expect(await saves()).toEqual({ successes: 0, failures: 0, stable: false })
     expect(projectedHero(fixture, result).defeated).toBe(false)
 
-    // Each further hit at 0 is a failure.
-    result = await enemyBitesHero(fixture, result)
-    expect(await saves()).toEqual({ successes: 0, failures: 1, stable: false })
-    result = await enemyBitesHero(fixture, result)
-    expect(await saves()).toEqual({ successes: 0, failures: 2, stable: false })
+    // Its turn start adds the rolled failures; the Creature's next hit at 0 is one more.
+    result = await toEnemyTurn(fixture, result)
     const dying = await saves()
+    expect(dying).toEqual({ successes: 0, failures: 2, stable: false })
 
     // The third failure kills it; everyone sees it defeated.
-    result = await enemyBitesHero(fixture, result)
+    result = await enemyBites(fixture, result)
     expect(await saves()).toEqual({ successes: 0, failures: 3, stable: false })
     expect(projectedHero(fixture, result).defeated).toBe(true)
     await checkpointLiveRoom(fixture.campaign.id)
@@ -678,7 +389,7 @@ describe('a Character dying and dead in the room (D96)', () => {
     expect(projectedHero(fixture, undone).defeated).toBe(false)
 
     // Dead again, its turn is skipped for a full round.
-    result = await enemyBitesHero(fixture, undone)
+    result = await enemyBites(fixture, undone)
     expect(projectedHero(fixture, result).defeated).toBe(true)
     const turns: Array<string | null> = []
     for (let turn = 0; turn < 4; turn += 1) {

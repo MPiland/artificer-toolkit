@@ -3,7 +3,9 @@ import { z, lazySchema } from '../zod.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
+import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS, authoredShortTextSchema } from './authoredLimits.js'
+import { deathSavesAfterRoll, isCharacterDead } from './characterDeathSaves.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
@@ -22,6 +24,7 @@ import {
 export const MAX_ENCOUNTER_TURN_RECHARGE_CANDIDATES = AUTHORED_LIMITS.nestedCollectionItems
 
 export type CompletedTurnRechargePlanDto = z.infer<typeof completedTurnRechargePlanDtoSchema>
+export type TurnDeathSaveExecutionDto = z.infer<typeof turnDeathSaveExecutionDtoSchema>
 export type TurnLegendaryActionEvidenceDto = z.infer<typeof turnLegendaryActionEvidenceDtoSchema>
 
 export type TurnLegendaryActionRefreshDto = {
@@ -156,6 +159,51 @@ export const completedTurnRechargePlanDtoSchema = lazySchema(() =>
             })
           }
           identities.add(identity)
+        }
+      })
+    )
+)
+
+/** The dying Character whose death save is made as its turn starts (D96). */
+export const turnDeathSaveCandidateDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actorId: uuidSchema,
+    characterId: uuidSchema,
+    /** The Character stream version the save is planned against; the commit fences on it. */
+    streamVersion: integerSchema.check(z.gte(0)),
+    /** The Character's effective maximum hit points, which cap the single point a 20 regains. */
+    effectiveMaximumHitPoints: integerSchema.check(z.gte(1)),
+    /** The saves before the roll: dying, so not stable and under three failures. */
+    deathSaves: characterDeathSavesDtoSchema
+  })
+)
+
+export const turnDeathSaveExecutionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      candidate: turnDeathSaveCandidateDtoSchema,
+      execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      /** The d20 with no modifiers. */
+      rawDie: integerSchema.check(z.gte(1)).check(z.lte(20)),
+      afterDeathSaves: characterDeathSavesDtoSchema,
+      /** A 20 regains 1 hit point. */
+      regainsHitPoint: z.boolean()
+    })
+    .check(
+      z.superRefine((value, context) => {
+        const before = value.candidate.deathSaves
+        const roll = deathSavesAfterRoll(before, value.rawDie)
+        if (
+          before.stable ||
+          isCharacterDead(before) ||
+          roll.regainsHitPoint !== value.regainsHitPoint ||
+          checksumRuleDocument(roll.deathSaves) !== checksumRuleDocument(value.afterDeathSaves)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['afterDeathSaves'],
+            message: 'A completed death save must replay its d20 against a dying Character.'
+          })
         }
       })
     )

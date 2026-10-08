@@ -77,6 +77,8 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
       return answerRequired('Initiative')
     case 'ENCOUNTER_TURN_RECHARGE':
       return answerRequired('A Recharge roll')
+    case 'ENCOUNTER_TURN_DEATH_SAVE':
+      return answerRequired('A death save')
     case 'ENCOUNTER_TURN_ACTIVE_EFFECTS':
       return answerRequired('A turn-effect save')
     case 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE':
