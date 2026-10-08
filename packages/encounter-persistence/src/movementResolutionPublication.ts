@@ -67,7 +67,7 @@ type MovementResponseSaveContext = {
   userId: string
 }
 
-export type MovementResponsePublicationCallbacks = {
+type MovementResponsePublicationCallbacks = {
   readGeometrySave: (saveId: string) => Promise<MovementResponseSaveContext>
   readSceneReceipt: (
     sceneId: string,

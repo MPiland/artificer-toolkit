@@ -23,16 +23,11 @@ import {
   clearClassOwnedChoices,
   clearPrimaryClassDependents,
   clearRaceDependents,
-  clearSubraceDependents,
   clearSubclassOwnedChoices
 } from '../shared/dependencyClearing'
 import { createStartingEquipmentDecision } from '../steps/equipment/startingEquipment'
 import { getCharacterBuilderResolutionFingerprint } from '../state/resolutionFingerprints'
-import { getReadinessMessages, totalClassLevel } from '../core/readiness'
-import {
-  characterBuilderDraftPayloadFixture,
-  characterBuilderPayloadFixture
-} from '../fixtures/characterBuilder.fixtures'
+import { characterBuilderPayloadFixture } from '../fixtures/characterBuilder.fixtures'
 
 describe('character builder utilities', () => {
   it('creates draft-safe fallback values without normalized child placeholders', () => {
@@ -345,20 +340,6 @@ describe('character builder utilities', () => {
     ])
   })
 
-  it('reports builder readiness from backend view data', () => {
-    expect(getReadinessMessages(characterBuilderPayloadFixture.resolution)).toEqual([])
-    expect(getReadinessMessages(characterBuilderDraftPayloadFixture.resolution)).toEqual([
-      'Choose a race.',
-      'Choose a class.',
-      'Race',
-      'Class'
-    ])
-  })
-
-  it('calculates class level from builder form rows', () => {
-    expect(totalClassLevel(toCharacterFormValues(characterBuilderPayloadFixture))).toBe(1)
-  })
-
   it('clears race-owned dependent selections when the race changes', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
     values.intent.featureAcquisitions = [
@@ -545,9 +526,6 @@ describe('character builder utilities', () => {
     expect(
       clearRaceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)
     ).toEqual(['class', 'subclass', 'background'])
-    expect(
-      clearSubraceDependents(values).intent.chosenGrantSelections?.map((selection) => selection.id)
-    ).toEqual(['race', 'class', 'subclass', 'background'])
     expect(
       clearClassOwnedChoices(values, values.intent.classes[0]).intent.chosenGrantSelections?.map(
         (selection) => selection.id

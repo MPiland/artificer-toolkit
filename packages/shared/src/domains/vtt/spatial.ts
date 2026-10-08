@@ -6,11 +6,11 @@ export { VTT_SPATIAL_LIMITS } from './scene.js'
 const EPSILON = 1e-8
 
 export type SpatialAnchorKind = 'FIXED' | 'TOKEN'
-export type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
+type SpatialGeometryFrame = 'SCENE_ABSOLUTE' | 'TOKEN_LOCAL'
 export type SpatialMovementKind = 'VOLUNTARY' | 'FORCED' | 'TELEPORT'
 export type SpatialTriggerMode = 'ENTER' | 'EXIT' | 'CROSS'
 
-export type SpatialGeometry =
+type SpatialGeometry =
   | {
       readonly kind: 'CIRCLE'
       readonly center: ScenePoint
@@ -51,7 +51,7 @@ export interface SpatialMovementCandidate {
 }
 
 /** One complete outside-to-outside crossing of a stationary token's occupied footprint. */
-export interface TokenFootprintPathCrossing {
+interface TokenFootprintPathCrossing {
   readonly entry: ScenePoint
   readonly entryPathDistance: number
   readonly exit: ScenePoint
@@ -153,14 +153,11 @@ function validSpatialEffect(effect: SpatialEffectInstance, tokenIds: ReadonlySet
 }
 
 /** Scene token positions are the centers of their occupied footprints. */
-export function sceneTokenAnchor(token: Pick<SceneToken, 'position'>): ScenePoint {
+function sceneTokenAnchor(token: Pick<SceneToken, 'position'>): ScenePoint {
   return { ...token.position }
 }
 
-export function translateSpatialGeometry(
-  geometry: SpatialGeometry,
-  origin: ScenePoint
-): SpatialGeometry {
+function translateSpatialGeometry(geometry: SpatialGeometry, origin: ScenePoint): SpatialGeometry {
   return geometry.kind === 'CIRCLE'
     ? {
         kind: 'CIRCLE',

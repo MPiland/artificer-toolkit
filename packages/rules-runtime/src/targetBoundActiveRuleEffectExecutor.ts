@@ -35,7 +35,7 @@ import {
  * its exact frozen source and current target facts. Re-exported by the
  * turn-bound wrapper for compatibility with existing callers.
  */
-export class CharacterActiveRuleEffectExecutionError extends Error {
+class CharacterActiveRuleEffectExecutionError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'CharacterActiveRuleEffectExecutionError'

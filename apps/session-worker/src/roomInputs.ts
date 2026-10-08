@@ -49,7 +49,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { LiveSessionRoomAuthorizationRevisions } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 
 /** Reads one scope of the room's rules inputs from Convex, for `epoch`'s Campaign. */
-export type RoomInputsReader = (
+type RoomInputsReader = (
   epoch: string,
   scope: LiveRoomInputsScope
 ) => Promise<LiveRoomInputsResponse>

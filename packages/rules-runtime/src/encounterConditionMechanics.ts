@@ -266,7 +266,7 @@ export function encounterConditionHitIsCritical(input: {
 }
 
 /** A saving throw's contributors from the saver's conditions. */
-export function encounterConditionSaveContributors(input: {
+function encounterConditionSaveContributors(input: {
   holderActorId: string
   mechanics: readonly EncounterConditionMechanic[]
   abilityDefinitionId: string

@@ -10,7 +10,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 
-export class InitiativePolicySourceError extends Error {
+class InitiativePolicySourceError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'InitiativePolicySourceError'
@@ -42,7 +42,7 @@ function requireExactGraph(input: {
   return { current: input.current, document }
 }
 
-export async function resolveCurrentInitiativePolicySources(input: {
+async function resolveCurrentInitiativePolicySources(input: {
   definitions: CurrentReusableDefinitionSource
   gameSystemId: string
   policyDefinitionId: string

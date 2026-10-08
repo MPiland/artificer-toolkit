@@ -80,12 +80,6 @@ export function describeVttPing(
   return `${username ?? 'A table member'} pinged the map.`
 }
 
-export function findPresentedScene(
-  scenes: CampaignSceneStateDto[]
-): CampaignSceneStateDto | undefined {
-  return scenes[0]
-}
-
 export function canMoveSceneToken(
   token: CampaignSceneStateDto['tokens'][number],
   viewer: Pick<VttSceneTokenDragUpdate, 'boundTokenControl' | 'currentUserId' | 'role'>

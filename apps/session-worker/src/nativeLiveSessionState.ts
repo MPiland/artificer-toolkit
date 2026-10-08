@@ -9,7 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveRoomState'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
-export type NativeLiveSessionState = LiveRoomSceneState
+type NativeLiveSessionState = LiveRoomSceneState
 
 export function createNativeLiveSessionState(scene: NativeLiveSessionState['scene'] = null): {
   state: NativeLiveSessionState

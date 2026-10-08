@@ -83,22 +83,6 @@ export const characterMark = style({
   }
 })
 
-export const characterMarkIcon = style({
-  '@layer': {
-    [app]: {
-      height: '34px',
-      opacity: 0.9,
-      width: '34px',
-      '@media': {
-        '(max-width: 760px)': {
-          height: '24px',
-          width: '24px'
-        }
-      }
-    }
-  }
-})
-
 export const eyebrow = style({
   '@layer': {
     [app]: {

@@ -5,7 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/subjects/feat'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 
-export interface CreateEmptyFeatInput {
+interface CreateEmptyFeatInput {
   systemId: string
 }
 
@@ -57,23 +57,6 @@ export function createEmptyCharge(): ChargeDto {
     limitKind: 'FIXED_AMOUNT',
     scalingKind: 'NONE',
     amount: 1
-  }
-}
-
-export function createEmptyPrerequisites(): NonNullable<FeatAuthoredDto['prerequisites']> {
-  return {
-    id: crypto.randomUUID(),
-    groups: []
-  }
-}
-
-export function createEmptyGrants(): NonNullable<FeatAuthoredDto['grants']> {
-  return {
-    feats: [],
-    modifiers: [],
-    proficiencies: [],
-    senses: [],
-    spells: []
   }
 }
 

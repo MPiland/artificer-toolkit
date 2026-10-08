@@ -38,12 +38,12 @@ type CollectionPresentation = {
 type CollectionRowIcon = 'box' | 'sparkles' | 'sword'
 type CollectionColumnKey = 'name' | 'source' | 'restrictions'
 
-export type CollectionColumn = {
+type CollectionColumn = {
   key: CollectionColumnKey
   label: string
 }
 
-export type CollectionRowCell = CollectionColumn & {
+type CollectionRowCell = CollectionColumn & {
   value: string
 }
 

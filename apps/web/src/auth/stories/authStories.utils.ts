@@ -1,7 +1,7 @@
 import { fn } from 'storybook/test'
 import type { AuthClient, AuthResult } from '../authClient'
 
-export interface MockAuthClientOptions {
+interface MockAuthClientOptions {
   result?: AuthResult
   delayMs?: number
 }
@@ -45,5 +45,3 @@ export function createMockAuthClient(options: MockAuthClientOptions = {}): AuthC
     })
   }
 }
-
-export const mockAuthClient = createMockAuthClient()

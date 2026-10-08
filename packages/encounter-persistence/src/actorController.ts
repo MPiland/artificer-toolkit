@@ -14,7 +14,7 @@ type ControlInput = {
 }
 
 /** `GM` for the Campaign owner, `CONTROLLER` for a player who controls the actor. */
-export type EncounterActorControl = 'GM' | 'CONTROLLER'
+type EncounterActorControl = 'GM' | 'CONTROLLER'
 
 function actorControl(
   membership: EncounterDocument<'campaignMemberships'>,

@@ -10,7 +10,7 @@ import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { callLiveSessionRoute, type NativeLiveSessionEnvironment } from './liveSessionRoutes.js'
 
 /** What one publication cost the Worker: the payload it carried and the requests that took. */
-export interface RoomCheckpointPublication {
+interface RoomCheckpointPublication {
   response: LiveSessionCheckpointResponse
   payloadBytes: number
   requests: number

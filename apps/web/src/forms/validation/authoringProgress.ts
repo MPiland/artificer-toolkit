@@ -22,7 +22,7 @@ export type AuthoringProgressSummary = {
   warningCount: number
 }
 
-export type AuthoringProgressState = {
+type AuthoringProgressState = {
   canFinalize: boolean
   firstBlockingStepId?: string
   firstBlockingStatus?: Exclude<AuthoringStepProgressStatus, 'complete'>

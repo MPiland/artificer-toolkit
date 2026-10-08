@@ -253,7 +253,7 @@ export function evaluateDnd5eCharacterResources(
   }
 }
 
-export function evaluateDnd5eCharacterResourcePools(
+function evaluateDnd5eCharacterResourcePools(
   input: Pick<CharacterRulePolicyInput, 'resourcePoolCandidates' | 'resourceUsageFacts'>,
   fold: Pick<CharacterGrantFoldOutput, 'activeSourceIds' | 'modifiers'>,
   spellAccess: Pick<CharacterRulePolicyOutput['spellAccess'][number], 'accessId'>[],

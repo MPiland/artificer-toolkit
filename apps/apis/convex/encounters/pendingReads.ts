@@ -10,7 +10,7 @@ import {
 import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
 import type { QueryCtx } from '../_generated/server'
-import { internalQuery, query } from '../lib/queries'
+import { query } from '../lib/queries'
 import { encounterReadTransaction } from './encounterPorts'
 import { readMemberEncounter } from './readAccess'
 
@@ -37,4 +37,3 @@ const pendingRuleOccurrenceDefinition = {
 }
 
 export const pendingRuleOccurrence = query(pendingRuleOccurrenceDefinition)
-export const forPrepared = internalQuery(pendingRuleOccurrenceDefinition)

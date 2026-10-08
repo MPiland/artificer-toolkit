@@ -1,4 +1,4 @@
-export type AuthoringDefaultKind =
+type AuthoringDefaultKind =
   | 'abilityScores'
   | 'activation'
   | 'applyGrants'

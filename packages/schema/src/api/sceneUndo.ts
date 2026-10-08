@@ -3,8 +3,6 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { scenePointDtoSchema, sceneUndoLastMoveCommandInputDtoSchema } from './vttScenes.js'
 import { scenePresentationFenceSchema } from './sceneGeometry.js'
 
-const version = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
-
 export const sceneUndoExecuteInputSchema = lazySchema(() =>
   z.strictObject({
     input: sceneUndoLastMoveCommandInputDtoSchema,
@@ -29,30 +27,5 @@ export const sceneUndoCommandResultSchema = lazySchema(() =>
   })
 )
 
-export const sceneUndoPrepareInputSchema = lazySchema(() =>
-  z.extend(sceneUndoExecuteInputSchema, {
-    cursor: z.nullable(z.string())
-  })
-)
-export const sceneUndoPrepareResultSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('REPLAY'), result: sceneUndoCommandResultSchema }),
-    z.strictObject({
-      kind: z.literal('READY'),
-      targetCommandId: postgresUuidSchema,
-      beforeVersion: version
-    }),
-    z.strictObject({ kind: z.literal('NEXT'), cursor: z.string() })
-  ])
-)
-export const sceneUndoFinishInputSchema = lazySchema(() =>
-  z.extend(sceneUndoExecuteInputSchema, {
-    targetCommandId: postgresUuidSchema
-  })
-)
-
 export type SceneUndoExecuteInput = z.infer<typeof sceneUndoExecuteInputSchema>
 export type SceneUndoCommandResult = z.infer<typeof sceneUndoCommandResultSchema>
-export type SceneUndoPrepareInput = z.infer<typeof sceneUndoPrepareInputSchema>
-export type SceneUndoPrepareResult = z.infer<typeof sceneUndoPrepareResultSchema>
-export type SceneUndoFinishInput = z.infer<typeof sceneUndoFinishInputSchema>

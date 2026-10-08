@@ -92,7 +92,7 @@ export const sceneGeometryCommandResultSchema = lazySchema(() =>
       })
     )
 )
-export const sceneGeometryBeginReadySchema = lazySchema(() =>
+const sceneGeometryBeginReadySchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('READY'),
     saveId: postgresUuidSchema,
@@ -110,7 +110,7 @@ export const sceneGeometryBeginResultSchema = lazySchema(() =>
     sceneGeometryBeginReadySchema
   ])
 )
-export const sceneGeometrySaveLookupSchema = lazySchema(() =>
+const sceneGeometrySaveLookupSchema = lazySchema(() =>
   z.strictObject({ saveId: postgresUuidSchema })
 )
 export const sceneGeometryStageFogInputSchema = lazySchema(() =>
@@ -119,7 +119,7 @@ export const sceneGeometryStageFogInputSchema = lazySchema(() =>
   })
 )
 /** Each entity's ordinal in the Scene definition save; null for an entity added during play. */
-export const sceneTokenOrdinalsSchema = lazySchema(() =>
+const sceneTokenOrdinalsSchema = lazySchema(() =>
   z
     .array(z.strictObject({ tokenId: postgresUuidSchema, baseOrdinal: z.nullable(version) }))
     .check(z.maxLength(VTT_SCENE_LIMITS.tokens))

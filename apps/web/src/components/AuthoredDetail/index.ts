@@ -1,15 +1,10 @@
 export {
-  AuthoredDetailEmptyBlock,
-  AuthoredDetailFactGrid,
   AuthoredDetailItemList,
   AuthoredDetailLayout,
-  AuthoredDetailNav,
   AuthoredDetailPillList,
-  AuthoredDetailProse,
-  AuthoredDetailSection
+  AuthoredDetailProse
 } from './AuthoredDetail'
 export {
-  formatCount,
   escapeHtml,
   formatEnumLabel,
   formatNumber,
@@ -17,8 +12,7 @@ export {
   formatReferenceLabel,
   formatReferenceLabelList,
   formatReferenceList,
-  stripHtml,
-  summarizeHtml
+  stripHtml
 } from './detailFormatters'
 export { buildAuthoredDetailNotice } from './detailNotice'
 export {
@@ -26,7 +20,6 @@ export {
   compactAuthoredDetailActions,
   compactAuthoredDetailSections,
   hasDetailText,
-  sortLabelDescriptionRecords,
   toDetailItems
 } from './detailModels'
 export {
@@ -37,20 +30,5 @@ export {
 export { resolveAuthoredDetailState } from './authoredDetailState'
 export { useAuthoredDetailActions } from './useAuthoredDetailActions'
 export { useAuthoredExportAction } from './useAuthoredExportAction'
-export type { LabelDescriptionRecord } from './detailModels'
-export type { ReferenceLabelOption } from './detailFormatters'
 export type { GrantDetailLine } from './grantDetailPresenters'
-export type {
-  AuthoredDetailAction,
-  AuthoredDetailActionTone,
-  AuthoredDetailFact,
-  AuthoredDetailNotice,
-  AuthoredDetailNoticeTone,
-  AuthoredDetailPendingOperation,
-  AuthoredDetailSectionModel
-} from './AuthoredDetail.types'
-export type {
-  AuthoredDetailResponse,
-  AuthoredDetailViewMode,
-  ResolvedAuthoredDetailState
-} from './authoredDetailState'
+export type { AuthoredDetailFact, AuthoredDetailSectionModel } from './AuthoredDetail.types'

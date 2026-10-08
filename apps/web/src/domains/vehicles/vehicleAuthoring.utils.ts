@@ -1,4 +1,3 @@
-import type { CostDto } from '@artificer-toolkit/schema/subjects/shared'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type {
@@ -15,7 +14,7 @@ export type VehicleFormValues = Omit<VehicleAuthoringInputDto, 'properties' | 'u
   properties?: VehiclePropertyFormValue[]
 }
 
-export interface CreateEmptyVehicleInput {
+interface CreateEmptyVehicleInput {
   systemId: string
 }
 
@@ -30,13 +29,6 @@ export function createEmptyVehicle({ systemId }: CreateEmptyVehicleInput): Vehic
     category: VEHICLE_CATEGORY_CODE.LAND,
     properties: [],
     features: []
-  }
-}
-
-export function createEmptyCost(): CostDto {
-  return {
-    amount: 0,
-    currencyId: ''
   }
 }
 
@@ -55,12 +47,6 @@ export function createEmptyFeature(order: number): FeatureDto {
     label: '',
     description: '',
     order
-  }
-}
-
-export function createEmptyProperty(): VehiclePropertyFormValue {
-  return {
-    value: ''
   }
 }
 

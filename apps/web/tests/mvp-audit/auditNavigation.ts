@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-export type AuditNavigation = {
+type AuditNavigation = {
   finalUrl: string
   responseStatus: number | null
   prerequisite?: string

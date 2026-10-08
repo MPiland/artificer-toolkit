@@ -6,7 +6,7 @@ export interface D20RollContributor {
   influence: D20ContributorInfluence
 }
 
-export interface ResolvedD20Contributors<TContributor extends D20RollContributor> {
+interface ResolvedD20Contributors<TContributor extends D20RollContributor> {
   contributors: readonly TContributor[]
   rollMode: RollMode
 }

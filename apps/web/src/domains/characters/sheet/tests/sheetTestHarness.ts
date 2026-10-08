@@ -139,30 +139,3 @@ export function mockMobileSheetViewport() {
     })
   }
 }
-
-export function mockTabletLandscapeViewport() {
-  const originalMatchMedia = window.matchMedia
-
-  Object.defineProperty(window, 'matchMedia', {
-    configurable: true,
-    writable: true,
-    value: vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes('orientation: landscape'),
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }))
-  })
-
-  return () => {
-    Object.defineProperty(window, 'matchMedia', {
-      configurable: true,
-      writable: true,
-      value: originalMatchMedia
-    })
-  }
-}

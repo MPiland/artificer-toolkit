@@ -1,13 +1,13 @@
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const publicIdPattern = /^[0-9a-z]+$/i
 
-export interface AuthoredRouteSubject {
+interface AuthoredRouteSubject {
   id: string
   publicId: string
   label: string
 }
 
-export interface ParsedAuthoredRouteHandle {
+interface ParsedAuthoredRouteHandle {
   id: string
   isLegacy: boolean
 }
@@ -46,7 +46,7 @@ export function parseAuthoredRouteId(handle: string) {
   return parseAuthoredRouteHandle(handle)?.id ?? handle
 }
 
-export function isLegacyAuthoredRouteId(value: string) {
+function isLegacyAuthoredRouteId(value: string) {
   return uuidPattern.test(value)
 }
 
@@ -61,7 +61,7 @@ export function isCanonicalAuthoredRouteHandle(
   return publicId === expected.publicId && slug === expected.slug
 }
 
-export function getAuthoredRouteSubjectLabel(
+function getAuthoredRouteSubjectLabel(
   active: { item?: { label?: string } | null } | null | undefined,
   draft: { label?: string } | null | undefined
 ) {

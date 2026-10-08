@@ -18,7 +18,7 @@ type HeaderIconActionProps = {
   onClick?: () => void
 }
 
-export function HeaderIconAction({
+function HeaderIconAction({
   ariaControls,
   ariaExpanded,
   children,

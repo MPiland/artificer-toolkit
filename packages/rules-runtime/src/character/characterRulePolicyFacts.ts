@@ -44,7 +44,7 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   actionEntryPoints: ReturnType<typeof buildCharacterActionRuleFacts>['entryPoints']
 }
 
-export interface CharacterRulePolicyFactsPreparation {
+interface CharacterRulePolicyFactsPreparation {
   assembled: CharacterRuleSnapshotResult
   spellFacts: ReturnType<typeof buildCharacterSpellRuleFacts>
 }

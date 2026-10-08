@@ -198,7 +198,7 @@ export const liveSessionEncounterRulesInputSchema = lazySchema(() =>
 )
 
 /** An Encounter capture's Run INPUTS: its state and System. */
-export const liveSessionEncounterInputsResponseSchema = lazySchema(() =>
+const liveSessionEncounterInputsResponseSchema = lazySchema(() =>
   z.strictObject({
     kind: z.literal('INPUTS'),
     revisions: liveSessionRulesRevisionsSchema,

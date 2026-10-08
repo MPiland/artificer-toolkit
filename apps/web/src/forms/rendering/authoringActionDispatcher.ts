@@ -3,7 +3,7 @@ import type { NodeRuntimeCollectionActionDto } from '@artificer-toolkit/schema/a
 
 type CollectionActionType = NodeRuntimeCollectionActionDto['type']
 
-export type CollectionActionHandlers = Partial<
+type CollectionActionHandlers = Partial<
   Record<CollectionActionType, (event: MouseEvent<HTMLButtonElement>) => void>
 >
 

@@ -201,7 +201,7 @@ export async function startEncounterMovementReactionAtBoundary(input: {
   })
 }
 
-export async function startEncounterMovementReactionChoice(input: {
+async function startEncounterMovementReactionChoice(input: {
   runtime: RulesRuntimeService
   occurrenceId: string
   gameSystemId: string

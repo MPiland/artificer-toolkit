@@ -24,23 +24,6 @@ export function clearRaceDependents(character: CharacterFormValues): CharacterFo
   }
 }
 
-export function clearSubraceDependents(character: CharacterFormValues): CharacterFormValues {
-  return {
-    ...character,
-    intent: {
-      ...character.intent,
-      ancestrySelections: undefined,
-      featureAcquisitions: character.intent.featureAcquisitions.filter(
-        (acquisition) => !isSubraceOwnedFeatureSource(acquisition.source)
-      ),
-      chosenGrantSelections: filterOptionalIntentRows(
-        character.intent.chosenGrantSelections,
-        (selection) => !isSubraceOwnedFeatureSource(selection.source)
-      )
-    }
-  }
-}
-
 export function clearClassDependents(row: CharacterClassRow): CharacterClassRow {
   return {
     classId: row.classId,
@@ -146,12 +129,6 @@ function isRaceOwnedFeatureSource(source: CharacterFeatureAcquisition['source'])
   const kind = getSourceKind(source)
 
   return kind === 'RACE' || kind === 'SUBRACE' || kind === 'ANCESTRY'
-}
-
-function isSubraceOwnedFeatureSource(source: CharacterFeatureAcquisition['source']): boolean {
-  const kind = getSourceKind(source)
-
-  return kind === 'SUBRACE' || kind === 'ANCESTRY'
 }
 
 function isClassOwnedFeatureSource(

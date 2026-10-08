@@ -14,7 +14,7 @@ const origin = 'http://localhost:3000'
 const accountDeletePath = '/api/auth/account/delete'
 const wrongPassword = 'Wrong-current-password-4061!'
 
-export type AccountDeletionBrowserStage =
+type AccountDeletionBrowserStage =
   | 'READY'
   | 'INVALID_EMAIL_NO_WRITE'
   | 'WRONG_PASSWORD_NO_WRITE'
@@ -30,7 +30,7 @@ type BrowserAccount = {
   username: string
 }
 
-export type AccountDeletionBrowserInput = {
+type AccountDeletionBrowserInput = {
   accounts: {
     subject: BrowserAccount
     auditor: BrowserAccount

@@ -6,7 +6,7 @@ import { SPELLCASTING_ATTRIBUTE } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 
-export interface CharacterSpellPreparationEligibility {
+interface CharacterSpellPreparationEligibility {
   classId: string
   preparedSpellLimit: number
   eligibleSpellIds: string[]

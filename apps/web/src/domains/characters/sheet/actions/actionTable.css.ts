@@ -93,129 +93,12 @@ globalStyle(`${actionDataCell} > strong`, {
   }
 })
 
-export const actionTable = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      minWidth: 0
-    }
-  }
-})
-
-export const actionTableHeader = style({
-  '@layer': {
-    [app]: {
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      color: foundationVars.color.text.muted,
-      display: 'grid',
-      fontSize: '0.64rem',
-      fontWeight: 700,
-      gap: '10px',
-      gridTemplateColumns:
-        '18px minmax(110px, 1fr) minmax(48px, 0.28fr) minmax(54px, 0.3fr) minmax(110px, 0.75fr)',
-      letterSpacing: '0.04em',
-      padding: '0 0 6px',
-      textTransform: 'uppercase'
-    }
-  }
-})
-
-export const actionTableRow = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'center',
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      display: 'grid',
-      gap: '10px',
-      gridTemplateColumns:
-        '18px minmax(110px, 1fr) minmax(48px, 0.28fr) minmax(54px, 0.3fr) minmax(110px, 0.75fr)',
-      minHeight: '38px',
-      minWidth: 0,
-      padding: '7px 0',
-      selectors: {
-        '&:last-child': {
-          borderBottom: 0
-        }
-      }
-    }
-  }
-})
-
-export const actionIcon = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'center',
-      border: `1px solid ${foundationVars.color.border.strong}`,
-      borderRadius: foundationVars.radius.pill,
-      color: foundationVars.color.text.accent,
-      display: 'grid',
-      height: '18px',
-      justifyItems: 'center',
-      width: '18px'
-    }
-  }
-})
-
-export const actionKindText = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.68rem',
-      fontWeight: 700,
-      lineHeight: 1.15,
-      textTransform: 'capitalize'
-    }
-  }
-})
-
-export const playTableHeader = style({
-  '@layer': {
-    [app]: {
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      color: foundationVars.color.text.muted,
-      display: 'grid',
-      fontSize: '0.66rem',
-      fontWeight: 700,
-      gap: '10px',
-      gridTemplateColumns: 'minmax(0, 1fr) minmax(86px, auto) minmax(96px, auto)',
-      letterSpacing: '0.06em',
-      padding: '0 0 7px',
-      textTransform: 'uppercase'
-    }
-  }
-})
-
-export const playTableRow = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'center',
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      display: 'grid',
-      gap: '10px',
-      gridTemplateColumns: 'minmax(0, 1fr) minmax(86px, auto) minmax(96px, auto)',
-      minHeight: '34px',
-      minWidth: 0,
-      padding: '8px 0'
-    }
-  }
-})
-
 export const playRowTitle = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
       fontSize: '0.78rem',
       fontWeight: 700,
-      lineHeight: 1.2
-    }
-  }
-})
-
-export const playRowMeta = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.7rem',
       lineHeight: 1.2
     }
   }

@@ -14,7 +14,7 @@ import { EncounterConflictError, EncounterValidationError } from './encounterErr
 import { assertEncounterFeatureActionCapabilityCurrent } from './encounterFeatureActionCapabilityDiscovery.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 
-export type InitiativeDeclarationSelection =
+type InitiativeDeclarationSelection =
   | { kind: 'CHARACTER_ACTION'; optionId: string }
   | { kind: 'CHARACTER_SPELL_CAST'; optionId: string }
   | { kind: 'CREATURE_FEATURE_ACTION'; optionId: string }

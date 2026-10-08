@@ -206,7 +206,7 @@ export const sceneCurrentCollections = [
   'measurements'
 ] as const
 
-export type SceneCurrentEntityPages = Record<
+type SceneCurrentEntityPages = Record<
   (typeof sceneCurrentCollections)[number],
   SceneCurrentEntityPage['page']
 >

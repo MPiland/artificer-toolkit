@@ -76,20 +76,19 @@ import {
 } from './dnd5eTestOperationKeys.js'
 
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
-export const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
-export const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
-  'dnd5e.temporary-hit-points-proposal'
+const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
+const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
-export const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
+const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
-export const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduction-proposal'
-export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
-export const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
-export const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
+const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduction-proposal'
+const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
+const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
+const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
 const DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY = 'dnd5e.damage-multiplier'
-export const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
+const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
 export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-apply-proposal'
-export const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
+const DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY =
   'dnd5e.movement-interruption-authorization'
 const DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY = 'dnd5e.actor-relationship-state'
 const DND5E_CONDITION_DURATION_OPERATION_KEY = 'dnd5e.condition-duration'
@@ -97,8 +96,8 @@ const DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION = 1
 /** The most target turns an Encounter active effect counts (its persisted tick bound). */
 const MAX_ACTIVE_EFFECT_TURNS = 10_000
 export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
-export const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
-export const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
+const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
+const DND5E_TARGET_DEFENSE_FACT_KEY = 'dnd5e.target-defense'
 export const DND5E_SAVE_MODIFIER_FACT_KEY = 'dnd5e.save-modifier'
 export const DND5E_SAVE_DC_FACT_KEY = 'dnd5e.save-dc'
 export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-checksum'
@@ -106,7 +105,7 @@ export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-
 export const DND5E_TEST_OUTCOME_RULE_FACT_KEY = 'dnd5e.test-outcome-rule'
 export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
 export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
-export const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
+const DND5E_CONDITION_IMMUNE_FACT_KEYS = {
   ON_USE: 'dnd5e.target-condition-immune.on-use',
   ON_HIT: 'dnd5e.target-condition-immune.on-hit',
   ON_MISS: 'dnd5e.target-condition-immune.on-miss',
@@ -132,7 +131,7 @@ function isPathConditionImmuneFactKey(factKey: string, pathCode: string): boolea
     conditionImmuneFactKey(pathCode, index + 1)
   ).includes(factKey)
 }
-export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
+const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_USE: 'dnd5e.resolved-damage-expression.on-use',
   ON_HIT: 'dnd5e.resolved-damage-expression.on-hit',
   ON_MISS: 'dnd5e.resolved-damage-expression.on-miss',
@@ -140,9 +139,9 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_SAVE_FAIL: 'dnd5e.resolved-damage-expression.on-save-fail',
   ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success'
 } as const satisfies Record<SpecializedPath, string>
-export const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
+const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
-export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
+const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -150,18 +149,17 @@ export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
 const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY =
   'dnd5e.active-effect-repeat-save-condition-id'
 const DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY = 'dnd5e.active-effect-timed-condition-id'
-export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
+const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ROLL_INFLUENCE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-roll-influence'
-export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
+const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY =
   'dnd5e.active-effect-repeat-save-perception-requirement'
-export { DND5E_ATTACK_TEST_OPERATION_KEY, DND5E_SAVE_TEST_OPERATION_KEY }
-export const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
-export const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
+export { DND5E_SAVE_TEST_OPERATION_KEY }
+const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
+const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.test-temporary-hit-points-proposal'
 export const DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.test-damage-proposal'
-export const DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-condition-proposal'
-export const DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY =
-  'dnd5e.test-scalar-reduction-proposal'
+const DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-condition-proposal'
+const DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-scalar-reduction-proposal'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -178,7 +176,7 @@ const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_
 function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
 }
-export class Dnd5eEffectActionCompilerError extends Error {
+class Dnd5eEffectActionCompilerError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'Dnd5eEffectActionCompilerError'
@@ -222,7 +220,7 @@ function isSpecializedPath(value: string): value is SpecializedPath {
 }
 
 /** Server-derived facts only. They select an authored scaling row; they never alter graph topology. */
-export type Dnd5eEffectScalingFacts = Readonly<{
+type Dnd5eEffectScalingFacts = Readonly<{
   characterLevel?: number
   parentClassLevel?: number
   spellCastLevel?: number
@@ -231,7 +229,7 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
 
-export type Dnd5eEffectActionTemplate = Readonly<{
+type Dnd5eEffectActionTemplate = Readonly<{
   phase: 'TEST' | 'OUTCOME'
   published: ServerPublishedRuleDefinitionDto
   templateChecksum: string
@@ -350,7 +348,7 @@ export function resolveCreatureDamageExpression(input: {
   return modifier === 0 ? dice : `${dice}${modifier > 0 ? '+' : ''}${modifier}`
 }
 /** Exact compiled-effect input shared by runtime publication and source manifest admission. */
-export type Dnd5eCompiledEffectActionSource = Pick<
+type Dnd5eCompiledEffectActionSource = Pick<
   EffectActionCapabilityDescriptor,
   | 'gameSystemId'
   | 'entryPointDefinitionId'
@@ -2972,7 +2970,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
  * absent: after this phase resolves, the occurrence specializes exactly the
  * selected authored path and therefore never asks for unselected damage dice.
  */
-export function compileDnd5eEffectActionTestTemplate({
+function compileDnd5eEffectActionTestTemplate({
   action
 }: {
   action: Dnd5eCompiledEffectActionSource
@@ -4126,27 +4124,6 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   }
 }
 
-/** Build the selected OUTCOME phase from exact locked facts after TEST completes. */
-export function specializeDnd5eEffectActionOutcome(input: {
-  action: Dnd5eCompiledEffectActionSource
-  testTemplate: Dnd5eEffectActionTemplate
-  selectedPath: SpecializedPath
-  facts: Dnd5eEffectScalingFacts
-}): Dnd5eEffectActionTemplate | null {
-  const expectedTest = compileDnd5eEffectActionTestTemplate({ action: input.action })
-  if (
-    input.testTemplate.phase !== 'TEST' ||
-    input.testTemplate.published.id !== input.action.effectId ||
-    input.testTemplate.templateChecksum !== input.testTemplate.published.checksum ||
-    input.testTemplate.templateChecksum !== expectedTest.templateChecksum
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'D&D outcome specialization must bind its exact TEST template.'
-    )
-  }
-  return specializeDnd5eEffectActionOutcomeBody(input)
-}
-
 /**
  * A movement interruption is an explicit authored reaction binding.  The
  * compiler projects it into the graph so execution never infers it from an
@@ -4243,7 +4220,7 @@ function bindMovementInterruptionOutput(input: {
   })
 }
 
-export function compileDnd5eEffectAction({
+function compileDnd5eEffectAction({
   action
 }: {
   action: Dnd5eCompiledEffectActionSource
@@ -4387,23 +4364,6 @@ export function compileDnd5eEffectAction({
       definition
     })
   })
-}
-
-/**
- * Uses the exact publication compiler as the source-capability predicate.
- * Expected unsupported authored shapes are a closed classification; malformed
- * source/pin failures still throw and abort generation.
- */
-export function classifyDnd5eCompiledEffectAction(
-  action: Dnd5eCompiledEffectActionSource
-): 'AUTOMATIC' | 'JUDGMENT_REQUIRED' {
-  try {
-    compileDnd5eEffectAction({ action })
-    return 'AUTOMATIC'
-  } catch (error) {
-    if (error instanceof CharacterRuleActionUnsupportedCompilationError) return 'JUDGMENT_REQUIRED'
-    throw error
-  }
 }
 function positive(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0

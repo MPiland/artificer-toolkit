@@ -17,7 +17,7 @@ import type { CompiledChargeUse, CompiledRange } from '@artificer-toolkit/shared
 import type { CompiledCharacterClassState } from '@artificer-toolkit/shared/subjects/compilers'
 
 /** Sheet-facing presentation data rehydrated from one validated Character rule-policy result. */
-export type CharacterRuleRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+type CharacterRuleRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
 
 export interface CharacterRuleRollModes {
   initiative: CharacterRuleRollMode
@@ -53,7 +53,7 @@ export interface CharacterRuleDefense {
   source?: CharacterMechanicSourceRef
 }
 
-export interface CharacterRuleMovementSpeed {
+interface CharacterRuleMovementSpeed {
   speedId: string
   amount: number
   unit: MeasurementUnitCode

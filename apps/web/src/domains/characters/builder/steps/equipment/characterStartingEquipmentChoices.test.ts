@@ -2,7 +2,6 @@ import { createStartingEquipmentDecision } from './startingEquipment'
 import {
   type ChosenStartingEquipmentItem,
   ensureDefaultStartingEquipmentGroupOptions,
-  formatStartingEquipmentChoiceLabel,
   formatStartingEquipmentItem,
   formatStartingEquipmentItems,
   getStartingEquipmentItemOptions,
@@ -53,7 +52,7 @@ describe('CharacterStartingEquipmentChoices utils', () => {
     ]
 
     expect(
-      formatStartingEquipmentChoiceLabel(
+      formatStartingEquipmentItem(
         {
           id: 'devotional-choice',
           order: 1,
@@ -63,11 +62,12 @@ describe('CharacterStartingEquipmentChoices utils', () => {
           authoringModeKind: 'SELECTED',
           equipmentIds: ['prayer-book', 'prayer-wheel']
         },
-        equipmentOptions
+        equipmentOptions,
+        []
       )
     ).toBe('Choose 1 Prayer Book or Prayer Wheel')
     expect(
-      formatStartingEquipmentChoiceLabel(
+      formatStartingEquipmentItem(
         {
           id: 'martial-melee-choice',
           order: 1,
@@ -77,7 +77,8 @@ describe('CharacterStartingEquipmentChoices utils', () => {
           selectionKind: 'CHOSEN',
           count: 1
         },
-        equipmentOptions
+        equipmentOptions,
+        []
       )
     ).toBe('Choose 1 martial melee weapon')
     expect(

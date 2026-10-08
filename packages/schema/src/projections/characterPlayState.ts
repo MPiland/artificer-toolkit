@@ -54,7 +54,7 @@ export const characterSheetStructureSchema = lazySchema(() =>
 )
 
 export type CharacterPlayState = z.infer<typeof characterPlayStateSchema>
-export type CharacterStructureState = z.infer<typeof characterStructureStateSchema>
+type CharacterStructureState = z.infer<typeof characterStructureStateSchema>
 export type CharacterSheetStructure = z.infer<typeof characterSheetStructureSchema>
 type CharacterState = z.infer<typeof characterStateDtoSchema>
 type CharacterSheetState = z.infer<typeof characterSheetStateSchema>
@@ -66,15 +66,15 @@ export interface CharacterPersistedState {
 }
 
 /** The same state divided into its Builder-owned structure and its play record. */
-export interface CharacterSplitState {
+interface CharacterSplitState {
   structure: { state: CharacterStructureState; sheetState: CharacterSheetStructure }
   play: CharacterPlayState
 }
 
 /** The play fields that live in the Character `state`. */
-export type CharacterStatePlay = Omit<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
+type CharacterStatePlay = Omit<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
 /** The play fields that live in the Sheet state. */
-export type CharacterSheetStatePlay = Pick<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
+type CharacterSheetStatePlay = Pick<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
 
 /** Divides a Character `state` into its structure and the play fields it carries. Pure. */
 export function splitCharacterStatePlay(state: CharacterState): {
@@ -137,7 +137,7 @@ export function mergeCharacterStatePlay(
 }
 
 /** Divides a Sheet state into its structure and its play fields. Pure. */
-export function splitCharacterSheetStatePlay(sheetState: CharacterSheetState): {
+function splitCharacterSheetStatePlay(sheetState: CharacterSheetState): {
   structure: CharacterSheetStructure
   play: CharacterSheetStatePlay
 } {
@@ -163,16 +163,5 @@ export function splitCharacterPlayState({
   return {
     structure: { state: statePart.structure, sheetState: sheetPart.structure },
     play: { ...statePart.play, ...sheetPart.play }
-  }
-}
-
-/** Joins structure and play back into one Character state and Sheet state. The inverse of split. */
-export function mergeCharacterPlayState({
-  structure,
-  play
-}: CharacterSplitState): CharacterPersistedState {
-  return {
-    state: mergeCharacterStatePlay(structure.state, play),
-    sheetState: mergeCharacterSheetStatePlay(structure.sheetState, play)
   }
 }

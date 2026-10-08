@@ -15,29 +15,29 @@ const transientInterpolationSnapDistance = 0.25
 const minimumVttZoomScale = 0.02
 const maximumVttZoomScale = 8
 
-export interface VttFogMask {
+interface VttFogMask {
   height: number
   opacity: Uint8ClampedArray
   width: number
 }
 
-export interface VttMapReloadState {
+interface VttMapReloadState {
   assetKey: string | null
   credentialKey: string | null
   layerEmpty: boolean
   loadComplete: boolean
 }
 
-export type VttMapLoadDecision = 'LOAD_MISSING' | 'NONE' | 'RESET'
+type VttMapLoadDecision = 'LOAD_MISSING' | 'NONE' | 'RESET'
 
-export interface VttMapLoadDecisionInput {
+interface VttMapLoadDecisionInput {
   currentAssetKey: string | null
   loadedPartIds: readonly string[]
   nextAssetKey: string | null
   requiredPartIds: readonly string[]
 }
 
-export interface VttSceneTokenDragState {
+interface VttSceneTokenDragState {
   appearanceKey: string
   origin: ScenePoint
   tokenId: string
@@ -100,7 +100,7 @@ export type VttScenePresentationOverlay =
       points: ScenePoint[]
     }
 
-export type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {
+type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {
   x: number
   y: number
 }

@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  buildSpellListFilters,
-  mapSpellListToAuthoredItems,
-  spellListSortOptions,
-  summarizeSpellList
-} from './spellListMapper'
+import { buildSpellFilters, mapSpellCatalogueItem, spellListSortOptions } from './spellListMapper'
 import { foundationVars } from '#css/foundations.css'
 import type { SpellListResponseDto } from '@artificer-toolkit/schema/api/content'
 
@@ -61,7 +56,7 @@ const response: SpellListResponseDto = {
 
 describe('spell list mapper', () => {
   it('maps provenance and permissions into authored list display items', () => {
-    const items = mapSpellListToAuthoredItems(response)
+    const items = response.items.map(mapSpellCatalogueItem)
 
     expect(items[0]).toMatchObject({
       name: 'Magic Missile',
@@ -91,14 +86,17 @@ describe('spell list mapper', () => {
     })
   })
 
-  it('builds filters and summary from the DTO response', () => {
-    const filters = buildSpellListFilters(response)
+  it('builds filters from the facets and exposes sort options', () => {
+    const filters = buildSpellFilters({
+      classes: [{ id: 'class-wizard', label: 'Wizard' }],
+      levels: [{ id: 1 }, { id: 3 }],
+      schools: [{ id: 'school-evocation', label: 'Evocation' }]
+    })
 
     expect(filters.map((filter) => filter.key)).toEqual(['school', 'level', 'class'])
     expect(filters[0]?.options[0]).toEqual({ value: 'school-evocation', label: 'Evocation' })
     expect(filters[2]?.options[0]).toEqual({ value: 'class-wizard', label: 'Wizard' })
     expect(spellListSortOptions).toContainEqual({ value: 'school', label: 'School' })
     expect(spellListSortOptions).not.toContainEqual({ value: 'status', label: 'Status' })
-    expect(summarizeSpellList(response)).toBe('2 spells / 1 SRD / 1 homebrew')
   })
 })

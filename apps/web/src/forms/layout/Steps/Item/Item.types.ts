@@ -1,5 +1,3 @@
-import { ReactNode } from 'react'
-
 export type ItemIcon =
   | 'book'
   | 'bolt'
@@ -31,12 +29,4 @@ export type ItemProps = {
   onSelect?: () => void
   status?: ItemStatus
   tone?: ItemTone
-}
-
-export type StepsProps = {
-  ariaLabel?: string
-  ariaHidden?: boolean
-  className?: string
-  children: ReactNode
-  onClose?: () => void
 }

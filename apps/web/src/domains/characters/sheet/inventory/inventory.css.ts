@@ -207,10 +207,6 @@ export const itemManagementRow = style({
   }
 })
 
-export const groupManagementGrid = style({
-  '@layer': { [app]: { display: 'grid', gap: '8px' } }
-})
-
 globalStyle(`${inventorySummary} > span`, {
   '@layer': {
     [app]: {

@@ -34,12 +34,12 @@ type Resolution = ResolveRuleOccurrenceInputDto['resolution']
 type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext']
 type MovementReactionContext = Extract<PendingContext, { kind: 'ENCOUNTER_MOVEMENT_REACTION' }>
 /** Only the facts that decide a void, so the decision stays one pure table. */
-export type RuleOccurrenceVoidFacts =
+type RuleOccurrenceVoidFacts =
   | { kind: Exclude<PendingContext['kind'], 'ENCOUNTER_MOVEMENT_REACTION'> }
   | { kind: 'ENCOUNTER_MOVEMENT_REACTION'; phase: Pick<MovementReactionContext['phase'], 'kind'> }
 
 /** What a GM void does to one pending decision (ADR 0034 decision 2). */
-export type RuleOccurrenceVoid =
+type RuleOccurrenceVoid =
   | { kind: 'CANCEL' }
   | { kind: 'DECLINE'; resolution: Resolution }
   | { kind: 'REFUSE'; message: string }
@@ -96,7 +96,7 @@ export function voidDeclineCommandId(voidCommandId: string) {
 }
 
 /** The GM answer a declining void settles through, the same path a GM decline takes. */
-export function voidDeclineCommand(
+function voidDeclineCommand(
   input: VoidRuleOccurrenceInputDto,
   occurrence: Pick<EncounterDocument<'encounterRuleOccurrences'>, 'id' | 'version'>,
   resolution: Resolution
@@ -382,57 +382,4 @@ export async function postMovementDecisionSkipped(
     clientNonce: skip.voidCommandId,
     body: MOVEMENT_DECISION_SKIPPED_MESSAGE
   })
-}
-
-/**
- * Whether a void declined a movement decision (D26): its decline committed a receipt, and the
- * occurrence's root is a Scene move. Both survive the decline, so a retry after a crash between the
- * decline and the void record reaches the same answer.
- */
-async function declinedMovementDecision(
-  ctx: EncounterPersistenceTransaction,
-  run: EncounterDocument<'encounterRuns'>,
-  voidCommand: VoidRuleOccurrenceInputDto
-) {
-  const occurrence = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_publicId', (q) => q.eq('id', voidCommand.occurrenceId.toLowerCase()))
-    .unique()
-  if (!occurrence || occurrence.encounterId !== run.id) return false
-  const root = await ctx.db
-    .query('encounterRuleReceipts')
-    .withIndex('by_encounterId_commandId', (q) =>
-      q.eq('encounterId', run.id).eq('commandId', occurrence.rootCommandId)
-    )
-    .unique()
-  return (
-    root?.commandType === 'MOVE_SCENE_TOKEN' &&
-    (await hasDeclineReceipt(ctx, run.campaignId, voidCommand.commandId.toLowerCase()))
-  )
-}
-
-/**
- * Records a void after its decline committed, and announces a skipped movement decision on a Scene
- * the room does not own (D29) exactly as the room does (D26, D39).
- */
-export async function recordDeclinedRuleOccurrenceVoid(
-  ctx: VoidChatTransaction,
-  args: unknown
-): Promise<EncounterCommandResultDto> {
-  const result = await recordRuleOccurrenceVoid(ctx, args)
-  const voidCommand = voidRuleOccurrenceInputDtoSchema.parse(args)
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', voidCommand.encounterId.toLowerCase()))
-    .unique()
-  if (!run) throw new Error('Encounter is unavailable.')
-  if (await declinedMovementDecision(ctx, run, voidCommand)) {
-    const { userId } = await ctx.ports.requireIdentity()
-    await postMovementDecisionSkipped(ctx, {
-      campaignId: run.campaignId,
-      gmUserId: userId,
-      voidCommand
-    })
-  }
-  return result
 }

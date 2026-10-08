@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 /** Most attacks one Attack action can make; bounds the stored state. */
-export const MAX_ATTACKS_PER_ATTACK_ACTION = 10
+const MAX_ATTACKS_PER_ATTACK_ACTION = 10
 
 /**
  * The Attack action an actor has opened this turn and the attacks it has made so far. It lives in the

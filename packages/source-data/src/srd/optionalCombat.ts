@@ -133,7 +133,7 @@ function conditionId(code: (typeof SRD_CONDITION_TYPES)[number]['code']): string
   return condition.id
 }
 
-export interface SrdOptionalCombatDefinitionSeed {
+interface SrdOptionalCombatDefinitionSeed {
   id: string
   definitionFamilyKey: 'dnd5e-optional-combat'
   label: string

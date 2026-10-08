@@ -25,16 +25,6 @@ export const header = style({
   }
 })
 
-export const divider = style({
-  '@layer': {
-    [app]: {
-      marginBlock: `${foundationVars.space[3]} 0`,
-      border: 'none',
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`
-    }
-  }
-})
-
 export const body = style({
   '@layer': {
     [app]: {
@@ -75,36 +65,6 @@ export const subheading = style({
       color: foundationVars.color.text.primary,
       fontSize: '12px',
       fontWeight: foundationVars.fontWeight.bold,
-      lineHeight: '16px'
-    }
-  }
-})
-
-export const ruleList = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[2],
-      margin: 0,
-      padding: 0,
-      listStyle: 'none'
-    }
-  }
-})
-
-export const ruleItem = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[2],
-      padding: `${foundationVars.space[2]} ${foundationVars.space[2]}`,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.surface.recessed,
-      color: foundationVars.color.text.secondary,
-      fontSize: '12px',
       lineHeight: '16px'
     }
   }

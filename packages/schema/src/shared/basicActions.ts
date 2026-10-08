@@ -6,7 +6,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { postgresUuidSchema } from './postgresUuid.js'
 
-export const basicActionMechanicDtoSchema = lazySchema(() =>
+const basicActionMechanicDtoSchema = lazySchema(() =>
   z.enum(
     Object.values(BASIC_ACTION_MECHANIC_CODE) as [
       BasicActionMechanicCode,
@@ -14,7 +14,6 @@ export const basicActionMechanicDtoSchema = lazySchema(() =>
     ]
   )
 )
-export type BasicActionMechanicDto = z.infer<typeof basicActionMechanicDtoSchema>
 
 /** The allowance a basic action spends; a free one spends none. */
 export const basicActionCostDtoSchema = lazySchema(() => z.enum(['ACTION', 'BONUS_ACTION', 'FREE']))

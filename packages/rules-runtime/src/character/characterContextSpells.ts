@@ -25,7 +25,7 @@ type SpellGrantFeature = {
   }>
 }
 
-export function featureContributesSpellGrant(
+function featureContributesSpellGrant(
   feature: SpellGrantFeature,
   character: CharacterAuthored,
   source?: CharacterProvenance

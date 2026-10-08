@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  createEmptyAncestry,
-  createEmptyAncestryOption,
   createEmptyBaseRace,
   createEmptyDetail,
   createEmptyFeature,
-  createEmptySubrace,
   normalizeRaceForSubmit,
   resolveCreateRaceSystemId,
   upsertById
@@ -18,7 +15,7 @@ describe('race authoring helpers', () => {
     vi.restoreAllMocks()
   })
 
-  it('creates editable base race and subrace drafts', () => {
+  it('creates editable base race drafts', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     expect(createEmptyBaseRace({ systemId: 'dnd-5e-srd' })).toMatchObject({
@@ -30,14 +27,6 @@ describe('race authoring helpers', () => {
       size: 'MEDIUM',
       systemId: 'dnd-5e-srd'
     })
-    expect(createEmptySubrace({ systemId: 'dnd-5e-srd' })).toMatchObject({
-      id: generatedId,
-      label: '',
-      status: 'DRAFT',
-      category: 'SUBRACE',
-      parentRaceId: '',
-      systemId: 'dnd-5e-srd'
-    })
   })
 
   it('uses only real system list data when creating races', () => {
@@ -47,7 +36,18 @@ describe('race authoring helpers', () => {
 
   it('normalizes category-specific payloads before save', () => {
     const base = createEmptyBaseRace({ systemId: 'dnd-5e-srd' })
-    const subrace = createEmptySubrace({ systemId: 'dnd-5e-srd' })
+    const subrace = {
+      id: generatedId,
+      label: '',
+      quote: '',
+      description: '',
+      status: 'DRAFT' as const,
+      category: 'SUBRACE' as const,
+      parentRaceId: '',
+      details: [],
+      features: [],
+      systemId: 'dnd-5e-srd'
+    }
 
     expect(
       normalizeRaceForSubmit({
@@ -91,8 +91,6 @@ describe('race authoring helpers', () => {
 
     expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
     expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
-    expect(createEmptyAncestry()).toMatchObject({ id: generatedId, options: [] })
-    expect(createEmptyAncestryOption(3)).toMatchObject({ id: generatedId, order: 3, features: [] })
 
     const original = createEmptyFeature(1)
     const updated = { ...original, label: 'Fleet of Foot' }

@@ -66,7 +66,7 @@ export type MovementCommandTransition =
   | { kind: 'REACTION'; execution: { characterTransitions: readonly CharacterVersionTransition[] } }
   | { kind: 'CONCENTRATION' | 'CONCENTRATION_END'; execution: ConcentrationChild }
 
-export type MovementChangedAggregate = {
+type MovementChangedAggregate = {
   aggregateId: string
   aggregateKind: 'CHARACTER' | 'ENCOUNTER' | 'SCENE'
   beforeVersion: number
@@ -110,12 +110,6 @@ function characterVersions(
       ...transition
     }))
     .sort((left, right) => left.aggregateId.localeCompare(right.aggregateId))
-}
-
-export function movementReactionCharacterAggregateVersions(
-  reactionExecutions: readonly MovementReactionCharacterExecution[]
-): MovementChangedAggregate[] {
-  return characterVersions(reactionExecutions)
 }
 
 /**

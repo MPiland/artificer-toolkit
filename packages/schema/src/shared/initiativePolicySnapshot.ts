@@ -31,13 +31,13 @@ const initiativePolicySnapshotDefinitionBaseSchema = lazySchema(() =>
   })
 )
 
-export const initiativePolicySnapshotPolicyDtoSchema = lazySchema(() =>
+const initiativePolicySnapshotPolicyDtoSchema = lazySchema(() =>
   z.extend(initiativePolicySnapshotDefinitionBaseSchema, {
     document: initiativePolicyReusableDefinitionDocumentDtoSchema
   })
 )
 
-export const initiativePolicySnapshotGraphDtoSchema = lazySchema(() =>
+const initiativePolicySnapshotGraphDtoSchema = lazySchema(() =>
   z.extend(initiativePolicySnapshotDefinitionBaseSchema, {
     document: ruleGraphDefinitionDtoSchema
   })
@@ -138,7 +138,4 @@ export const encounterInitiativePolicySummaryDtoSchema = lazySchema(() =>
 
 export type EncounterInitiativePolicySnapshotDto = z.infer<
   typeof encounterInitiativePolicySnapshotDtoSchema
->
-export type EncounterInitiativePolicySummaryDto = z.infer<
-  typeof encounterInitiativePolicySummaryDtoSchema
 >

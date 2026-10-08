@@ -1,6 +1,5 @@
 import {
   DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
-  DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID,
   DND5E_RECHARGE_4_LIFECYCLE_DEFINITION_ID,
   DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID,
   DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID,
@@ -27,28 +26,17 @@ import { requireResolvedRuleCapabilityStateIntegrity } from '../../ruleCapabilit
 import { DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID } from './reactionEligibilityPolicy.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 
-export const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
+const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000e1'
-export const DND5E_LEGENDARY_RESISTANCE_CHOICE_GRAPH_DEFINITION_ID =
-  '00000000-0000-4000-8000-0000000000e3'
-export const DND5E_RECHARGE_4_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e5'
-export const DND5E_RECHARGE_5_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e7'
-export const DND5E_RECHARGE_6_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e9'
-
-export {
-  DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
-  DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID,
-  DND5E_RECHARGE_4_LIFECYCLE_DEFINITION_ID,
-  DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID,
-  DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID
-}
+const DND5E_RECHARGE_4_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e5'
+const DND5E_RECHARGE_5_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e7'
+const DND5E_RECHARGE_6_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e9'
 
 /** Application-derived equality of the locked outgoing and owner actor identities; not D&D policy. */
-export const DND5E_LEGENDARY_OUTGOING_ACTOR_DIFFERS_FACT_KEY =
-  'dnd5e.legendary.outgoing-actor-differs'
-export const DND5E_LEGENDARY_OWNER_CAN_ACT_FACT_KEY = 'dnd5e.legendary.owner-can-act'
-export const DND5E_LEGENDARY_REMAINING_POOL_FACT_KEY = 'dnd5e.legendary.remaining-pool'
-export const DND5E_LEGENDARY_WINDOW_USED_FACT_KEY = 'dnd5e.legendary.window-used'
+const DND5E_LEGENDARY_OUTGOING_ACTOR_DIFFERS_FACT_KEY = 'dnd5e.legendary.outgoing-actor-differs'
+const DND5E_LEGENDARY_OWNER_CAN_ACT_FACT_KEY = 'dnd5e.legendary.owner-can-act'
+const DND5E_LEGENDARY_REMAINING_POOL_FACT_KEY = 'dnd5e.legendary.remaining-pool'
+const DND5E_LEGENDARY_WINDOW_USED_FACT_KEY = 'dnd5e.legendary.window-used'
 
 function requireBoolean(inputs: Readonly<Record<string, RuleValue>>, key: string): boolean {
   const value = inputs[key]
@@ -231,47 +219,6 @@ export function createDnd5eLegendaryActionLifecycleDefinition() {
     refreshStage: 'START_OF_TURN',
     resourceRecovery: 'FULL',
     maximumActionsPerWindow: 1
-  })
-}
-
-export function createDnd5eLegendaryResistanceChoiceDefinition() {
-  return published({
-    schemaVersion: 1,
-    id: DND5E_LEGENDARY_RESISTANCE_CHOICE_GRAPH_DEFINITION_ID,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'choice',
-        operation: { key: 'evidence.bounded-choice-index', contractVersion: 1 },
-        inputs: {
-          minIndex: { kind: 'LITERAL', value: 0 },
-          maxIndex: { kind: 'LITERAL', value: 1 }
-        }
-      },
-      {
-        id: 'use',
-        operation: { key: 'number.compare-threshold', contractVersion: 1 },
-        inputs: {
-          value: { kind: 'NODE_OUTPUT', nodeId: 'choice', port: 'selectedIndex' },
-          threshold: { kind: 'LITERAL', value: 1 }
-        }
-      }
-    ],
-    outputs: { use: { kind: 'NODE_OUTPUT', nodeId: 'use', port: 'passed' } }
-  })
-}
-
-export function createDnd5eLegendaryResistanceLifecycleDefinition() {
-  const graph = createDnd5eLegendaryResistanceChoiceDefinition()
-  return dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema.parse({
-    schemaVersion: 1,
-    kind: 'LEGENDARY_RESISTANCE',
-    id: DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID,
-    gameSystemId: DND5E_SYSTEM_ID,
-    choiceGraph: { ...exactGraphPin(graph), useOutput: 'use' },
-    interruptedStage: 'AFTER_FAILED_SAVE_BEFORE_OUTCOME',
-    replacement: 'SAVE_SUCCESS'
   })
 }
 

@@ -11,7 +11,7 @@ export const campaignStoredVehicleSchema = lazySchema(() =>
     cleanupJobId: z.optional(uuidSchema)
   })
 )
-export const vehicleCleanupPhaseSchema = lazySchema(() =>
+const vehicleCleanupPhaseSchema = lazySchema(() =>
   z.enum([
     'VALIDATE_ITEMS',
     'VALIDATE_GROUPS',
@@ -45,7 +45,7 @@ export const vehicleCleanupGrantSchema = lazySchema(() =>
     vehicleDefinitionId: uuidSchema
   })
 )
-export const vehicleCleanupCountsSchema = lazySchema(() =>
+const vehicleCleanupCountsSchema = lazySchema(() =>
   z.strictObject({
     items: count,
     topLevelItems: count,

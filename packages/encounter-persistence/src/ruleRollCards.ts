@@ -5,7 +5,7 @@ import { readEncounterActorPrimaryController } from './actorController.js'
 import type { CampaignAuthority, EncounterReadTransaction, EncounterWritePorts } from './ports.js'
 
 /** The Encounter actor that made a roll. */
-export type RuleRollRoller = Pick<
+type RuleRollRoller = Pick<
   EncounterRunActorState,
   'id' | 'kind' | 'sourceId' | 'controllerUserIds' | 'public'
 >

@@ -28,7 +28,7 @@ import {
   movementConcentrationExecutionsDtoSchema
 } from './ruleExecutionMovementConcentration.js'
 
-export const turnEffectTargetTransitionDtoSchema = lazySchema(() =>
+const turnEffectTargetTransitionDtoSchema = lazySchema(() =>
   z.strictObject({
     checksum: checksumSchema,
     before: characterMechanicsTargetStateDtoSchema,
@@ -47,7 +47,7 @@ export const turnEffectCharacterTransitionDtoSchema = lazySchema(() =>
   })
 )
 
-export const turnEffectExecutionOwnerDtoSchema = lazySchema(() =>
+const turnEffectExecutionOwnerDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('CHARACTER'), characterId: uuidSchema }),
     z.strictObject({ kind: z.literal('ENCOUNTER_ACTOR') })
@@ -62,7 +62,7 @@ export const turnEffectEncounterActorTransitionDtoSchema = lazySchema(() =>
   })
 )
 
-export const spatialEffectTransitionDtoSchema = lazySchema(() =>
+const spatialEffectTransitionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('DELETE'),

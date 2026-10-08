@@ -27,7 +27,7 @@ export type UnavailableInitiativeScore = {
 
 export type InitiativeScoreExecution = SettledInitiativeScore | UnavailableInitiativeScore
 
-export type InitiativeScoreStartResult =
+type InitiativeScoreStartResult =
   | { kind: 'PENDING'; continuation: ServerRuleExecutionContinuationDto }
   | { kind: 'COMPLETE'; result: InitiativeScoreExecution }
 
@@ -94,14 +94,4 @@ export async function resumeInitiativeScoreGraph(input: {
   return execution.status === 'PAUSED'
     ? { kind: 'PENDING', continuation: execution.continuation }
     : { kind: 'COMPLETE', result: requireInitiativeScore(execution, input.pin) }
-}
-
-export function compareInitiativeScores(
-  left: SettledInitiativeScore,
-  right: SettledInitiativeScore
-): number {
-  if (left.sortDirection !== right.sortDirection) {
-    throw new Error('Initiative scores from different order directions cannot be compared.')
-  }
-  return left.sortDirection === 'ASCENDING' ? left.score - right.score : right.score - left.score
 }

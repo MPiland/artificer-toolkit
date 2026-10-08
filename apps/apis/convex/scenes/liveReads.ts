@@ -1,16 +1,14 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
   sceneLiveStateHeaderSchema,
-  sceneLiveStateEntityPageInputSchema,
-  sceneLiveChangesPageInputSchema,
-  sceneLiveEntityChangesPageSchema
+  sceneLiveStateEntityPageInputSchema
 } from '@artificer-toolkit/schema/api/sceneLiveState'
 import { sceneDefinitionEntityPageSchema } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
 import { getCampaignLiveSceneInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { query } from '../lib/queries'
-import { readLiveScene, parseLiveEntity } from './liveDocuments'
+import { readLiveScene } from './liveDocuments'
 
 function stored<T extends { _id: unknown; _creationTime: unknown }>(row: T) {
   const { _id, _creationTime, ...value } = row
@@ -56,37 +54,6 @@ export const entities = query({
         )
           throw new Error('Stored live Scene entity is inconsistent.')
         return { ordinal: entity.ordinal, value: entity.value }
-      })
-    })
-  }
-})
-
-export const changes = query({
-  args: zodToConvexFields(sceneLiveChangesPageInputSchema.shape),
-  returns: zodToConvex(sceneLiveEntityChangesPageSchema),
-  handler: async (ctx, args) => {
-    const input = sceneLiveChangesPageInputSchema.parse(args)
-    const { header } = await readLiveScene(ctx, input.sceneId, 'OWNER')
-    if (
-      header.version !== input.expectedVersion ||
-      header.definitionSaveId !== input.definitionSaveId.toLowerCase()
-    )
-      throw new Error('Live Scene snapshot changed before hydration.')
-    const result = await ctx.db
-      .query('sceneLiveEntities')
-      .withIndex('by_sceneId_collection_entityId', (q) =>
-        q.eq('sceneId', header.id).eq('collection', input.collection)
-      )
-      .paginate({ ...input.paginationOpts, maximumRowsRead: 8, maximumBytesRead: 512 * 1024 })
-    return sceneLiveEntityChangesPageSchema.parse({
-      ...result,
-      page: result.page.map((row) => {
-        const {
-          sceneId: _sceneId,
-          checksum: _checksum,
-          ...change
-        } = parseLiveEntity(row, header.version)
-        return change
       })
     })
   }

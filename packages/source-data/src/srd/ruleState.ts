@@ -11,8 +11,7 @@ import { SRD_ABILITY_DEFINITION_IDS, SRD_CONDITION_TYPES, SRD_SYSTEM_ID } from '
 
 export const SRD_REACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d2'
 export const SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d4'
-export const SRD_POSITIONAL_SUPPORT_CAPABILITY_DEFINITION_ID =
-  '00000000-0000-4000-8000-0000000000d5'
+const SRD_POSITIONAL_SUPPORT_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d5'
 /** Suppressible breathing capability used by target-owned relationship effects. */
 export const SRD_BREATHING_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d6'
 export const SRD_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d7'
@@ -24,7 +23,7 @@ type RuleStateDocument =
   | RuleCapabilityReusableDefinitionDocumentDto
   | ConditionRuleStateReusableDefinitionDocumentDto
 
-export interface SrdRuleStateDefinitionSeed {
+interface SrdRuleStateDefinitionSeed {
   id: string
   definitionFamilyKey: 'rule-capability' | 'condition-rule-state'
   label: string

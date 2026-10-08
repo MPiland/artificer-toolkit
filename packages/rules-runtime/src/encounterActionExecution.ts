@@ -207,7 +207,7 @@ type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
 type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
 
 /** A paused request resumed by its answer; whose roll it was no longer matters. */
-export type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
+type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
 
 /** Whose roll a paused action request is: the acting source's or its target's (a save). */
 export type EncounterActionRoller = 'SOURCE' | 'TARGET'
@@ -225,7 +225,7 @@ export type PendingNativeActionGraphs = {
   phaseReceipts?: NativePhaseReceipts
 }
 
-export type NativeActionTestBoundary = {
+type NativeActionTestBoundary = {
   kind: 'TEST_BOUNDARY'
   /** Original sealed TEST request, retained for the server-owned interstitial context. */
   continuation: ServerRuleExecutionContinuationDto

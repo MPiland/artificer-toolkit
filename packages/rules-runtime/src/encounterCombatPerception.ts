@@ -38,7 +38,7 @@ function pinnedSenseInstanceId(observerActorId: string, pin: PinnedSenseDefiniti
   )
 }
 
-export function combatPerceptionCapabilitiesFromPinnedSenses(input: {
+function combatPerceptionCapabilitiesFromPinnedSenses(input: {
   observerActorId: string
   sceneGrid: SceneGrid
   pinnedSenseDefinitions: readonly PinnedSenseDefinition[]

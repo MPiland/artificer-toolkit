@@ -10,5 +10,3 @@ export const liveCharacterHoldSchema = lazySchema(() =>
     epoch: postgresUuidSchema
   })
 )
-
-export type LiveCharacterHold = z.infer<typeof liveCharacterHoldSchema>

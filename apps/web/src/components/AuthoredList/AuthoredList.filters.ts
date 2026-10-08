@@ -43,7 +43,7 @@ export function itemMatchesSelectedFilters(
   })
 }
 
-export function getItemFilterValues(item: AuthoredListItem, filterKey: string) {
+function getItemFilterValues(item: AuthoredListItem, filterKey: string) {
   const value = item.filterValues?.[filterKey]
 
   if (!value) return []
@@ -51,7 +51,7 @@ export function getItemFilterValues(item: AuthoredListItem, filterKey: string) {
   return Array.isArray(value) ? value : [value]
 }
 
-export function getFacetedFilterOptions({
+function getFacetedFilterOptions({
   filter,
   filters,
   filterValues,

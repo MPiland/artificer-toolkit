@@ -102,7 +102,7 @@ export const sceneFogChunkReferenceSchema = lazySchema(() =>
     checksum: projectionChecksumSchema
   })
 )
-export const sceneFogLayerHeaderSchema = lazySchema(() =>
+const sceneFogLayerHeaderSchema = lazySchema(() =>
   z.strictObject({
     ownerUserId: z.nullable(postgresUuidSchema),
     width: dimension,

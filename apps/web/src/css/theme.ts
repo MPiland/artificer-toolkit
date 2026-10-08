@@ -1,5 +1,4 @@
 import { Button, createTheme, CSSVariablesResolver } from '@mantine/core'
-import { themeToVars } from '@mantine/vanilla-extract'
 import { brandColorScale, foundationVars } from './foundations.css.ts'
 
 export const theme = createTheme({
@@ -54,8 +53,6 @@ export const theme = createTheme({
     }
   }
 })
-
-export const vars = themeToVars(theme)
 
 export const resolver: CSSVariablesResolver = () => ({
   variables: {},

@@ -2,7 +2,7 @@ import { richHtmlToPlainText } from '#lib/richText'
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export interface ReferenceLabelOption {
+interface ReferenceLabelOption {
   value: string
   label: string
 }
@@ -16,7 +16,7 @@ export function formatEnumLabel(value: string | null | undefined): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-export function formatCount(
+function formatCount(
   count: number | null | undefined,
   singular: string,
   plural = `${singular}s`
@@ -84,12 +84,6 @@ export function escapeHtml(value: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
-}
-
-export function summarizeHtml(html: string | null | undefined, fallback: string): string {
-  const text = stripHtml(html)
-  if (!text) return fallback
-  return text.length > 190 ? `${text.slice(0, 187).trim()}...` : text
 }
 
 export function formatNumber(value: number | null | undefined, suffix = ''): string {

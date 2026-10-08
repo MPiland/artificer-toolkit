@@ -3,7 +3,6 @@ import {
   createEmptyCharge,
   createEmptyFeat,
   createEmptyFeature,
-  createEmptyGrants,
   normalizeFeatForSubmit,
   resolveCreateFeatSystemId,
   upsertById
@@ -48,7 +47,10 @@ describe('feat authoring helpers', () => {
       effects: undefined,
       features: undefined,
       grants: {
-        ...createEmptyGrants(),
+        modifiers: [],
+        proficiencies: [],
+        senses: [],
+        spells: [],
         feats: [
           {
             id: 'grant-feat',

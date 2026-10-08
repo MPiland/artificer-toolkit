@@ -7,9 +7,7 @@ import {
   createEmptyFeature,
   createEmptyMulticlass,
   createEmptyProficiency,
-  createEmptySpecialization,
   normalizeClassForSubmit,
-  resolveClassEditReadOnly,
   resolveCreateClassSystemId
 } from '../classAuthoring.utils'
 
@@ -89,7 +87,6 @@ describe('class authoring utilities', () => {
 
     expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
     expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
-    expect(createEmptySpecialization(3)).toMatchObject({ id: generatedId, order: 3 })
     expect(createEmptyMulticlass()).toMatchObject({
       id: generatedId,
       requirementGroups: { groups: [] }
@@ -99,26 +96,5 @@ describe('class authoring utilities', () => {
   it('requires a real system id for create mode', () => {
     expect(resolveCreateClassSystemId([{ id: 'system-1' }])).toBe('system-1')
     expect(resolveCreateClassSystemId([])).toBeNull()
-  })
-
-  it('keeps locked active classes read-only even when a draft row exists', () => {
-    expect(
-      resolveClassEditReadOnly({
-        canEdit: false,
-        hasActiveClass: true
-      })
-    ).toBe(true)
-    expect(
-      resolveClassEditReadOnly({
-        canEdit: false,
-        hasActiveClass: false
-      })
-    ).toBe(false)
-    expect(
-      resolveClassEditReadOnly({
-        canEdit: true,
-        hasActiveClass: true
-      })
-    ).toBe(false)
   })
 })

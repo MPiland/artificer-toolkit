@@ -8,7 +8,7 @@ export enum CurrencyCode {
   PLATINUM = 'PLATINUM'
 }
 
-export type CurrencyOption = Vocabulary<CurrencyCode> & {
+type CurrencyOption = Vocabulary<CurrencyCode> & {
   baseCurrencyCode: CurrencyCode
   baseValue: number
 }

@@ -15,7 +15,7 @@ export const vttLoadFixtureExercise = {
   warmupMs: 1_000
 } as const
 
-export type VttLoadFixtureExerciseMode = 'FULL' | 'RAF_ONLY' | 'TRANSIENTS'
+type VttLoadFixtureExerciseMode = 'FULL' | 'RAF_ONLY' | 'TRANSIENTS'
 
 function fixtureUuid(value: number): string {
   return `00000000-0000-4000-8000-${value.toString(16).padStart(12, '0')}`

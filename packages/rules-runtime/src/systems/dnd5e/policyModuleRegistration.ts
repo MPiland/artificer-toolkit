@@ -16,7 +16,7 @@ export const DND5E_FLANKING_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
-export const DND5E_FACING_POLICY_MODULE = {
+const DND5E_FACING_POLICY_MODULE = {
   key: DND5E_FACING_OPERATION_KEY,
   contractVersion: 1
 } as const
@@ -31,7 +31,7 @@ export const DND5E_OVERRUN_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
-export const DND5E_SHOVE_ASIDE_POLICY_MODULE = {
+const DND5E_SHOVE_ASIDE_POLICY_MODULE = {
   key: DND5E_SHOVE_ASIDE_OPERATION_KEY,
   contractVersion: 1
 } as const

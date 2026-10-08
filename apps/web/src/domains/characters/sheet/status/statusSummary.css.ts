@@ -126,30 +126,6 @@ export const mobileInspirationButton = style({
   }
 })
 
-export const resourceSummaryList = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '8px'
-    }
-  }
-})
-
-export const resourceSummaryRow = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'center',
-      background: foundationVars.color.surface.subtle,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      display: 'grid',
-      gap: '10px',
-      gridTemplateColumns: 'minmax(0, 1fr) auto',
-      padding: '10px'
-    }
-  }
-})
-
 export const statusStrip = style({
   '@layer': {
     [app]: {

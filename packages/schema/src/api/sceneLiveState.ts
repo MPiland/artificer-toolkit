@@ -7,7 +7,6 @@ import {
   sceneDefinitionEntitySchema
 } from './sceneDefinitionSave.js'
 import { sceneDefinitionSettingsDtoSchema, sceneMeasurementDtoSchema } from './vttScenes.js'
-import { campaignListPageSchema } from './campaignList.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
 
 export const sceneLiveCollectionSchema = lazySchema(() =>
@@ -54,11 +53,6 @@ export const sceneLiveEntityChangeSchema = lazySchema(() =>
     version: z.number().check(z.int()).check(z.positive())
   })
 )
-export const sceneLiveEntityChangesPageSchema = lazySchema(() =>
-  z.extend(campaignListPageSchema, {
-    page: z.array(sceneLiveEntityChangeSchema)
-  })
-)
 
 export const sceneLiveStateEntityPageInputSchema = lazySchema(() =>
   z.strictObject({
@@ -67,12 +61,6 @@ export const sceneLiveStateEntityPageInputSchema = lazySchema(() =>
     expectedVersion: z.number().check(z.int()).check(z.nonnegative()),
     collection: sceneDefinitionEntityPageInputSchema.shape.collection,
     paginationOpts: sceneDefinitionEntityPageInputSchema.shape.paginationOpts
-  })
-)
-
-export const sceneLiveChangesPageInputSchema = lazySchema(() =>
-  z.extend(sceneLiveStateEntityPageInputSchema, {
-    collection: sceneLiveCollectionSchema
   })
 )
 

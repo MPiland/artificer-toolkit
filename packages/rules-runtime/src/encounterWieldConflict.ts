@@ -10,7 +10,7 @@ import {
   resolveDnd5eShieldArmorClass
 } from './systems/dnd5e/characterVitals.js'
 
-export type EncounterWieldConflict =
+type EncounterWieldConflict =
   | { kind: 'NONE' }
   | { kind: 'STOW_SHIELD'; shieldItemInstanceId: string; armorClassDelta: number }
 

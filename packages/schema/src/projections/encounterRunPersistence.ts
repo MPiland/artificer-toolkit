@@ -127,7 +127,6 @@ export const encounterStoredTurnMovementSchema = lazySchema(() =>
     speedBonuses: z.number().check(z.int()).check(z.nonnegative())
   })
 )
-export type EncounterStoredTurnMovement = z.infer<typeof encounterStoredTurnMovementSchema>
 
 /** A movement decision the GM skipped (D26, D39), so its player's drawer can say so. */
 export const encounterStoredDecisionSkipSchema = lazySchema(() =>

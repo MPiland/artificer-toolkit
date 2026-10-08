@@ -17,8 +17,6 @@ export const authoringSearchSchema = z.object({
   )
 })
 
-export type AuthoringSearch = z.infer<typeof authoringSearchSchema>
-
 export function markAuthoringStepNavigationState<TState extends object>(state: TState) {
   return { ...state, __authoringStepNavigation: true as const }
 }

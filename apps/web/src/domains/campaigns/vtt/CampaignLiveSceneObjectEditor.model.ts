@@ -11,7 +11,7 @@ export interface LiveSceneObjectSelection {
   section: LiveSceneObjectSection
 }
 
-export interface LiveSceneObjectOption {
+interface LiveSceneObjectOption {
   label: string
   selection: LiveSceneObjectSelection
   value: string

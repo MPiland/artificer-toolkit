@@ -2,7 +2,7 @@ import { safeParse } from 'zod/mini'
 import type * as core from 'zod/v4/core'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 
-export interface ParsedAuthoredDraft<TValue> {
+interface ParsedAuthoredDraft<TValue> {
   draft: AuthoredDraftDto | null
   item: TValue | undefined
   isInvalid: boolean

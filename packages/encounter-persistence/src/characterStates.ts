@@ -57,7 +57,7 @@ export function characterProjectionState(
  * actor of a room-held Run without one has departed (D74): the room freezes it, and until then
  * readers treat it as frozen.
  */
-export async function readCampaignCharacterAssignment(
+async function readCampaignCharacterAssignment(
   ctx: EncounterReadContext,
   campaignId: string,
   characterId: string

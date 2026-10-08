@@ -28,7 +28,7 @@ export const campaignInventoryCleanupListInputSchema = lazySchema(() =>
     vehicleId: z.optional(uuidSchema)
   })
 )
-export const campaignInventoryCleanupNoticeSchema = lazySchema(() =>
+const campaignInventoryCleanupNoticeSchema = lazySchema(() =>
   z.strictObject({
     ...pendingFields(),
     retryReady: z.boolean()
@@ -45,5 +45,4 @@ export const campaignInventoryCleanupRetryInputSchema = lazySchema(() =>
     jobId: uuidSchema
   })
 )
-export type CampaignInventoryCleanupNotice = z.infer<typeof campaignInventoryCleanupNoticeSchema>
 export type CampaignInventoryCleanupPage = z.infer<typeof campaignInventoryCleanupPageSchema>

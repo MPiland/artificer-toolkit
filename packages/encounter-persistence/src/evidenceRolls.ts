@@ -154,19 +154,6 @@ async function admitEvidenceRoll(
   }
 }
 
-/** The dice a "Roll dice" draws, as die sizes: none for a replay, two for a d20 with a mode. */
-export async function readEvidenceRollDice(
-  ctx: EncounterReadTransaction,
-  command: RollRuleEvidenceInputDto,
-  userId: string
-): Promise<number[]> {
-  const admitted = await admitEvidenceRoll(ctx, command, userId)
-  if (admitted.kind === 'REPLAY') return []
-  const { die, rollMode, request } = admitted
-  if (!die) return [request.max - request.min + 1]
-  return rollMode && rollMode !== 'NORMAL' ? [die, die] : [die]
-}
-
 /**
  * Records one "Roll dice" with the room's draws (`nextInt`, D41) and posts it to the table roll
  * log. It settles nothing; rerolls are further attempts.

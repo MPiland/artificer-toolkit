@@ -19,7 +19,6 @@ import type {
   EncounterExecuteInput,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import {

@@ -3,7 +3,6 @@ import type { CampaignConditionDto } from '@artificer-toolkit/schema/api/campaig
 import type { CharacterRestPreviewResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
-import type { CharacterEvent } from '@artificer-toolkit/shared/core'
 import { sameCharacterSheetAdjustmentSlot } from './sheetAdjustmentIdentity.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 
@@ -19,12 +18,6 @@ export interface CharacterSheetCampaignContext {
   secretAdjustmentIds: Set<string>
   conditions: CampaignConditionDto[]
   currencyOptions?: CharacterSheetCurrencyOptionDto[]
-}
-
-export interface CharacterLiveSessionRuleContext {
-  adjustments: CharacterSheetAdjustment[]
-  additionalConditions: Array<{ conditionTypeId: string; notes?: string }>
-  attunementSlotOverride: number | null
 }
 
 export function mergeCampaignSheetAdjustments(
@@ -235,14 +228,4 @@ export function projectCharacterRestForViewer(
     context.contentMaturity,
     context.viewer
   )
-}
-
-export function filterCharacterHistoryForViewer(
-  events: readonly CharacterEvent[],
-  characterOwnerId: string,
-  viewer: CharacterSheetViewer
-): CharacterEvent[] {
-  return viewer === 'CAMPAIGN_OWNER'
-    ? [...events]
-    : events.filter((event) => event.actorId === characterOwnerId)
 }

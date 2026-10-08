@@ -11,25 +11,6 @@ import { formatProficiencyLevel, getAbilityShortLabel } from './characterSheetOv
 import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
 import { withRollModifier } from '../dice/dice.utils'
 
-export function CharacterSheetOverviewProficiencies({
-  abilities,
-  savingThrows,
-  skills,
-  openPanel
-}: {
-  abilities: CharacterSheetCommonDto['overview']['abilities']
-  savingThrows: CharacterSheetCommonDto['overview']['savingThrows']
-  skills: CharacterSheetCommonDto['overview']['skills']
-  openPanel?: (target: CharacterSheetPanelTargetDto) => void
-}) {
-  return (
-    <div className={proficiencyStyles.proficiencyPanelGrid}>
-      <CharacterSheetSavingThrowsPanel openPanel={openPanel} savingThrows={savingThrows} />
-      <CharacterSheetSkillsPanel abilities={abilities} openPanel={openPanel} skills={skills} />
-    </div>
-  )
-}
-
 export function CharacterSheetSavingThrowsPanel({
   savingThrows,
   openPanel,

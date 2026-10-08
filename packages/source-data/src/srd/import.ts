@@ -28,7 +28,7 @@ import {
 } from './catalogue.js'
 import { srdBaselineContent } from './index.js'
 
-export interface SrdImportSubject {
+interface SrdImportSubject {
   subjectKind: AuthoredSubjectKind
   id: string
   systemId: string
@@ -37,7 +37,7 @@ export interface SrdImportSubject {
   document: JsonValue
 }
 
-export interface SrdImportManifest {
+interface SrdImportManifest {
   systems: { id: string; checksum: string; document: JsonValue }[]
   subjects: SrdImportSubject[]
   definitions: (Omit<SrdReusableDefinitionSeed, 'document'> & {

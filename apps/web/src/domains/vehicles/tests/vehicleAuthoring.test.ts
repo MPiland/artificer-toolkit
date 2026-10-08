@@ -1,8 +1,6 @@
 import {
-  createEmptyCost,
   createEmptyDetail,
   createEmptyFeature,
-  createEmptyProperty,
   createEmptyVehicle,
   normalizeVehicleForSubmit,
   resolveCreateVehicleSystemId,
@@ -49,10 +47,8 @@ describe('vehicle authoring utils', () => {
   })
 
   it('creates nested group defaults', () => {
-    expect(createEmptyCost()).toEqual({ amount: 0, currencyId: '' })
     expect(createEmptyDetail(2)).toMatchObject({ label: '', order: 2 })
     expect(createEmptyFeature(3)).toMatchObject({ label: '', order: 3 })
-    expect(createEmptyProperty()).toEqual({ value: '' })
   })
 
   it('requires a real system for create mode', () => {

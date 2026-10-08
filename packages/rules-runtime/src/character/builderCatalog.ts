@@ -497,7 +497,7 @@ function getBackgroundGrantFacts(
     .map((group) => ({ label: group.label, value: group.entries.join(', ') }))
 }
 
-export function toPlainText(value: string): string {
+function toPlainText(value: string): string {
   return value
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')

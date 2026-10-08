@@ -16,7 +16,7 @@ type EncounterActorOptionalContestActor = {
   snapshot: unknown
 }
 
-export type EncounterActorOptionalContestContext = {
+type EncounterActorOptionalContestContext = {
   readonly actorId: string
   readonly equipment: {
     readonly equipmentId: string
@@ -39,7 +39,7 @@ export type EncounterActorOptionalContestContext = {
   readonly stateChecksum: string
 }
 
-export type EncounterActorOptionalContestFacts = Pick<
+type EncounterActorOptionalContestFacts = Pick<
   EncounterActorOptionalContestContext,
   'actorId' | 'ruleFacts' | 'size'
 >

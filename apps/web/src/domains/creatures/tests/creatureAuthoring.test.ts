@@ -3,7 +3,6 @@ import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/cr
 import {
   createDefaultAbilityScores,
   createEmptyCreature,
-  createEmptyMountProfile,
   normalizeCreatureForSubmit,
   resolveCreateCreatureSystemId,
   toCreatureFormValues
@@ -141,7 +140,7 @@ describe('creature authoring helpers', () => {
         amount: 75,
         currencyId: 'gold'
       },
-      mountProfile: createEmptyMountProfile(),
+      mountProfile: { mountType: 'CONTROLLED', riderCount: 1, notes: '' },
       features: [
         {
           id: 'trampling-charge',

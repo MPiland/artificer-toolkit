@@ -1,6 +1,6 @@
 import { sha256Hex } from './sha256.js'
 
-export type CanonicalJson =
+type CanonicalJson =
   | boolean
   | null
   | number

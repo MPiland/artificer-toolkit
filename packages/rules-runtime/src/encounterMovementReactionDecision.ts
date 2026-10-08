@@ -21,7 +21,7 @@ type EvaluatedEncounterMovementReaction<
   TSource extends MovementReactionEligibilitySource = MovementReactionEligibilitySource
 > = EvaluatedMovementReactionCandidate<TSource>
 
-export interface EncounterMovementReactionChoiceOption<
+interface EncounterMovementReactionChoiceOption<
   TSource extends MovementReactionEligibilitySource = MovementReactionEligibilitySource
 > {
   kind: 'REACT'
@@ -29,7 +29,7 @@ export interface EncounterMovementReactionChoiceOption<
   evaluated: EvaluatedEncounterMovementReaction<TSource>
 }
 
-export interface EncounterMovementReactionChoiceGroup<
+interface EncounterMovementReactionChoiceGroup<
   TSource extends MovementReactionEligibilitySource = MovementReactionEligibilitySource
 > {
   pathDistance: number

@@ -17,7 +17,7 @@ import {
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 
-export type OptionalContestD20Policy = {
+type OptionalContestD20Policy = {
   actorId: string
   requestNodeId: 'initiator_d20' | 'target_d20'
   rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
@@ -34,7 +34,7 @@ export type OptionalContestD20Policy = {
 /** Entered dice, the roller's app roll, or an auto-roll for a contest participant's d20. */
 export type OptionalContestResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
 
-export type EncounterOptionalContestActionExecution =
+type EncounterOptionalContestActionExecution =
   | {
       kind: 'PENDING'
       continuation: ServerRuleExecutionContinuationDto
@@ -91,7 +91,7 @@ function resolveFaces(input: {
   return faces
 }
 
-export function completeEncounterOptionalContestActionExecution(input: {
+function completeEncounterOptionalContestActionExecution(input: {
   execution: ServerCompletedRuleExecutionDto
   initiator: OptionalContestD20Policy
   defender: OptionalContestD20Policy

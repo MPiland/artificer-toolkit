@@ -18,7 +18,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { findEncounterFeatureResource } from './encounterActorRuleOutput.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 
-export type EncounterRechargeActor = Pick<EncounterRunActorState, 'id' | 'kind'> & {
+type EncounterRechargeActor = Pick<EncounterRunActorState, 'id' | 'kind'> & {
   snapshot: unknown
 }
 
@@ -40,7 +40,7 @@ export type EncounterRechargeCandidate = {
   maximum: number
 }
 
-export type EncounterRechargeExecution =
+type EncounterRechargeExecution =
   | {
       kind: 'COMPLETE'
       candidate: EncounterRechargeCandidate

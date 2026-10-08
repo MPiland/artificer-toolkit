@@ -37,16 +37,6 @@ export const item = style({
   }
 })
 
-export const collapse = style({
-  '@layer': {
-    [app]: {
-      flex: '0 0 auto',
-      blockSize: '100%',
-      minBlockSize: 0
-    }
-  }
-})
-
 export const header = style({
   '@layer': {
     [app]: {

@@ -8,7 +8,7 @@ import {
   watchNavigationAbortedRequests
 } from './campaignCollaboration'
 
-export type CampaignLifecycleStage =
+type CampaignLifecycleStage =
   | 'before-copy'
   | 'before-delete'
   | 'created'
@@ -28,7 +28,7 @@ type StageInput = {
   notebookCategories?: readonly NotebookCategory[]
 }
 
-export type CampaignLifecycleBrowserInput = {
+type CampaignLifecycleBrowserInput = {
   owner: Credential
   evidenceDirectory: string
   srdSystemLabel: string

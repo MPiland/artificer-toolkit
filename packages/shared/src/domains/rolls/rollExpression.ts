@@ -18,7 +18,7 @@ export type RollSelection = {
 }
 export type RollReroll = { kind: 'ONCE' | 'REPEAT'; value: number }
 
-export interface RollEvidence {
+interface RollEvidence {
   terms: {
     count: number
     die: number

@@ -397,8 +397,7 @@ and every mechanics-bearing path is classified Automatic, Assisted or explicit M
 
 `platformRulesRuntime` supplies the installed capabilities and operations to execution and publication.
 The focused `platformEncounterPolicy` and `platformCharacterPolicy` bindings use the same D&D policies and
-System UUID without initializing the rest. `evaluateInstalledEncounterActors`,
-`evaluateInstalledCharacterGrantFold`, `evaluateInstalledCharacterActions` and
+System UUID without initializing the rest. `evaluateInstalledEncounterActors` and
 `evaluateInstalledCharacterPolicy` select the System by UUID, validate schema facts and results, and
 reject unknown Systems. Whole-policy composition resolves spell access before the grant fold, then
 modifiers and derived stats, defenses, movement and senses, vitals, spell mechanics, slots and resources,

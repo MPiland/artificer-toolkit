@@ -96,10 +96,6 @@ export const receiptHeaderSchemas = {
   encounterRuleReceipts: encounterRuleReceiptHeaderSchema,
   characterCommandReceipts: characterCommandReceiptHeaderSchema
 }
-
-export type EncounterRunCommandHeader = z.infer<typeof encounterRunCommandHeaderSchema>
-export type EncounterRuleReceiptHeader = z.infer<typeof encounterRuleReceiptHeaderSchema>
-export type CharacterCommandReceiptHeader = z.infer<typeof characterCommandReceiptHeaderSchema>
 export type ReceiptHeaderTable = keyof typeof receiptHeaderSchemas
 export type ReceiptHeaderDocuments = {
   [Table in ReceiptHeaderTable]: z.infer<(typeof receiptHeaderSchemas)[Table]>

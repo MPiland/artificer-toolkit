@@ -1,4 +1,4 @@
-export type AuthoredDetailSearch = {
+type AuthoredDetailSearch = {
   view?: 'active' | 'draft'
 }
 

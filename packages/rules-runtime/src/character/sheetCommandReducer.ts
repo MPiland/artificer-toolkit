@@ -30,12 +30,7 @@ import { applyCharacterNoteCommand } from './sheetNotes.js'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 export type SheetSpellSlot = ReducerSheetResponseDto['spells']['slots'][number]
-export type SheetResource = ReducerSheetResponseDto['resources']['items'][number]
-export function createNamedError(name: string, message: string): Error {
-  const error = new Error(message)
-  error.name = name
-  return error
-}
+type SheetResource = ReducerSheetResponseDto['resources']['items'][number]
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
@@ -249,26 +244,12 @@ function updateSpellSlotUsage(
 }
 
 /** Applies the already-authorized spell-slot transition used by CAST_SPELL. */
-export function applyApprovedSpellCastState(input: {
+function applyApprovedSpellCastState(input: {
   character: CharacterAuthored
   slotKey: string | null
 }): CharacterAuthored {
   if (input.slotKey === null) return clearEmptyStateArrays(input.character)
   return updateSpellSlotUsage(input.character, input.slotKey, (used) => used + 1)
-}
-
-/** Returns the exact persisted spell-slot usage after one approved slot cast. */
-export function nextApprovedSpellCastSlotUsage(
-  spellSlots: CharacterAuthored['state']['spellSlots'] | undefined,
-  slotKey: string | null
-): CharacterAuthored['state']['spellSlots'] | undefined {
-  if (slotKey === null) return spellSlots
-  const next = new Map((spellSlots ?? []).map((slot) => [slot.slotKey, slot.used]))
-  next.set(slotKey, (next.get(slotKey) ?? 0) + 1)
-  const entries = [...next.entries()]
-    .filter(([, used]) => used > 0)
-    .map(([key, used]) => ({ slotKey: key, used }))
-  return entries.length ? entries : undefined
 }
 
 type CharacterCurrencyGroup = CharacterAuthored['state']['currency'][number]

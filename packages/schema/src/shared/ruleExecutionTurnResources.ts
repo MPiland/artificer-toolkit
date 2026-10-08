@@ -254,7 +254,7 @@ export const legendaryActionChoiceGroupDtoSchema = lazySchema(() =>
     )
 )
 
-export const legendaryActionCharacterTransitionDtoSchema = lazySchema(() =>
+const legendaryActionCharacterTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
       characterId: uuidSchema,

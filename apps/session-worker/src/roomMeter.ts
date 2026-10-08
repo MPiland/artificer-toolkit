@@ -10,9 +10,9 @@ import { z } from 'zod'
 import type { RoomStorage } from './roomEncounterStore.js'
 
 /** How Cloudflare bills an incoming request; WebSocket messages count 20:1 (ADR 0035 Decision 9). */
-export type RoomRequestKind = 'WEBSOCKET_MESSAGE' | 'HTTP' | 'ALARM'
+type RoomRequestKind = 'WEBSOCKET_MESSAGE' | 'HTTP' | 'ALARM'
 
-export interface CheckpointTotals {
+interface CheckpointTotals {
   count: number
   /** Worker→Convex requests: one inline, or stage + parts + commit. */
   requests: number
@@ -27,7 +27,7 @@ export interface CheckpointTotals {
 }
 
 /** Everything the room counted from its first request after a release until its next release. */
-export interface RoomMeterTotals {
+interface RoomMeterTotals {
   epoch: string | null
   startedAt: number
   endedAt: number | null
@@ -44,7 +44,7 @@ export interface RoomMeterTotals {
   checkpoints: Partial<Record<LiveSessionCheckpointReason, CheckpointTotals>>
 }
 
-export interface CheckpointSample {
+interface CheckpointSample {
   reason: LiveSessionCheckpointReason
   payloadBytes: number
   requests: number
@@ -53,7 +53,7 @@ export interface CheckpointSample {
 }
 
 /** Where a room keeps its meter across hibernation; development only, so it is never metered itself. */
-export interface RoomMeterStore {
+interface RoomMeterStore {
   read(): string | null
   write(state: string): void
   clear(): void

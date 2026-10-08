@@ -93,7 +93,7 @@ export function collectCharacterReferencedSpellIds(
 }
 
 /** Shared by source batching and context assembly so their required roots cannot diverge. */
-export function collectCharacterRuleSourceSelections(character: CharacterAuthored) {
+function collectCharacterRuleSourceSelections(character: CharacterAuthored) {
   const selected = new Map<string, Set<AuthoredPublicationDocument['subjectKind']>>()
   function select(
     kind: AuthoredPublicationDocument['subjectKind'],
@@ -500,7 +500,7 @@ export async function assembleCharacterBuilderContext<
  * Commit's catalogue readers. They read the records a Character references by id, and answer each
  * pool-emptiness question with one readable witness from the complete pool, or none.
  */
-export type CharacterReferencedCatalogueReaders = {
+type CharacterReferencedCatalogueReaders = {
   /** Readable current Equipment among `ids`, with their parents; unreadable ids are skipped. */
   readEquipment(ids: ReadonlySet<string>): Promise<CharacterEquipmentPool>
   /** Readable current Feats among `ids`; unreadable ids are skipped. */

@@ -65,12 +65,6 @@ function mapCharacterListItemToAuthoredItem(item: CharacterListItem): AuthoredLi
   }
 }
 
-export function mapCharacterListToAuthoredItems(
-  response: CharacterListResponseDto
-): AuthoredListItem[] {
-  return response.items.map(mapCharacterListItemToAuthoredItem)
-}
-
 export function mapCharacterListToActiveAuthoredItems(
   response: CharacterListResponseDto
 ): AuthoredListItem[] {

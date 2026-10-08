@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { hasMaterialComponent, normalizeSpellForSubmit } from '../spellAuthoring.utils'
+import { normalizeSpellForSubmit } from '../spellAuthoring.utils'
 import { spellFixture } from '../spellAuthoring.fixtures'
 
 describe('Spell authoring runtime', () => {
-  it('keeps material description visible when material is selected or existing data is present', () => {
-    expect(hasMaterialComponent({ components: ['MATERIAL'] })).toBe(true)
-    expect(hasMaterialComponent({ components: [], materialDescription: 'A pearl' })).toBe(true)
-    expect(hasMaterialComponent({ components: ['VERBAL'] })).toBe(false)
-  })
-
   it('normalizes spell ownership-insensitive payloads for REST submit', () => {
     const normalized = normalizeSpellForSubmit({
       ...spellFixture,

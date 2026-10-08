@@ -11,7 +11,7 @@ import {
   visuallyHidden
 } from './ThemeToggle.css'
 
-export interface ThemeToggleProps {
+interface ThemeToggleProps {
   className?: string
 }
 

@@ -1,6 +1,6 @@
 import type { Page, Request, Response, TestInfo } from '@playwright/test'
 
-export type AuditNetworkRecord = {
+type AuditNetworkRecord = {
   durationMs: number | null
   error?: string
   method: string
@@ -11,7 +11,7 @@ export type AuditNetworkRecord = {
 
 type MutableRecord = AuditNetworkRecord & { startedAt: number }
 
-export type AuditNetworkCapture = {
+type AuditNetworkCapture = {
   records: () => AuditNetworkRecord[]
   attach: (testInfo: TestInfo, name: string) => Promise<void>
   dispose: () => void

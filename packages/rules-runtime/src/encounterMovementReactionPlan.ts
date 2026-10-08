@@ -80,7 +80,7 @@ export type MovementReactionSettlementInput<
     | Extract<Awaited<ReturnType<typeof advanceNativeActionGraphs>>, { kind: 'PENDING' }>
 }
 
-export function verifyCompletedMovementReactionPlan<
+function verifyCompletedMovementReactionPlan<
   TFacts extends ProjectableCharacterFacts,
   TRow extends MovementCharacterRow
 >(input: { prepared: PreparedReaction<TFacts, TRow>; execution: CompletedReaction }) {

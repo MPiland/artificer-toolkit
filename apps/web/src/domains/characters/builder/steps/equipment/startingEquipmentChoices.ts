@@ -12,9 +12,9 @@ export const STARTING_EQUIPMENT_MODE = {
 } as const
 
 export type StartingEquipmentGroup = StartingEquipmentDto['sets'][number]['groups'][number]
-export type StartingEquipmentOption = StartingEquipmentGroup['options'][number]
+type StartingEquipmentOption = StartingEquipmentGroup['options'][number]
 export type StartingEquipmentItem = StartingEquipmentOption['items'][number]
-export type StartingEquipmentMode = keyof typeof STARTING_EQUIPMENT_MODE
+type StartingEquipmentMode = keyof typeof STARTING_EQUIPMENT_MODE
 export type StartingGold = NonNullable<CharacterBuilderStartingEquipmentViewDto['startingGold']>
 export type ChosenStartingEquipmentItem = StartingEquipmentItem & {
   startingEquipmentKind: 'EQUIPMENT'
@@ -215,13 +215,6 @@ export function formatStartingEquipmentItems(
   )
 }
 
-export function formatStartingEquipmentChoiceLabel(
-  item: ChosenStartingEquipmentItem,
-  equipmentOptions: CharacterBuilderChoiceOptionDto[]
-): string {
-  return `Choose ${item.count} ${formatStartingEquipmentTarget(item, equipmentOptions)}`
-}
-
 export function formatStartingEquipmentItem(
   item: StartingEquipmentItem,
   equipmentOptions: CharacterBuilderChoiceOptionDto[],
@@ -264,10 +257,6 @@ export function isChosenStartingEquipmentItem(
     item.selectionKind === 'CHOSEN' &&
     'count' in item
   )
-}
-
-export function hasStartingEquipmentChoices(option: StartingEquipmentOption): boolean {
-  return option.items.some(isChosenStartingEquipmentItem)
 }
 
 function createStartingGoldSelection(

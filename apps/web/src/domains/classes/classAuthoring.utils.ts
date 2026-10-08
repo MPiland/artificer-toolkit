@@ -1,13 +1,10 @@
-import type { ChargeDto, StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
+import type { ChargeDto } from '@artificer-toolkit/schema/shared'
 import type {
   ClassAuthoringInputDto,
   ClassSpellcastingDto
 } from '@artificer-toolkit/schema/subjects/class'
 import type {
   ClassMulticlassDto,
-  ClassResourceDto,
-  ClassSpecializationDto,
-  ClassSpellLimitDto,
   ClassStartingGoldDto
 } from '@artificer-toolkit/schema/subjects/shared'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
@@ -24,13 +21,8 @@ import { createEmptyStartingEquipment } from '#app/forms/rendering/startingEquip
 
 export type ClassFormValues = ClassAuthoringInputDto
 
-export interface CreateEmptyClassInput {
+interface CreateEmptyClassInput {
   systemId: string
-}
-
-export interface ResolveClassEditReadOnlyInput {
-  canEdit?: boolean
-  hasActiveClass: boolean
 }
 
 export function createEmptyClass({
@@ -109,13 +101,6 @@ export function resolveCreateClassSystemId(systems: readonly { id: string }[]): 
   return systems[0]?.id ?? null
 }
 
-export function resolveClassEditReadOnly({
-  canEdit,
-  hasActiveClass
-}: ResolveClassEditReadOnlyInput): boolean {
-  return hasActiveClass && canEdit === false
-}
-
 export function createEmptyDetail(order: number): DetailDto {
   return {
     id: crypto.randomUUID(),
@@ -147,7 +132,7 @@ export function createEmptyProficiency(order: number): ProficiencyGrantDto {
   }
 }
 
-export function createEmptyStartingGold(): ClassStartingGoldDto {
+function createEmptyStartingGold(): ClassStartingGoldDto {
   return {
     multiplier: 1,
     currencyId: '',
@@ -155,14 +140,14 @@ export function createEmptyStartingGold(): ClassStartingGoldDto {
   }
 }
 
-export function createEmptyHitpoint(): NonNullable<ClassAuthoringInputDto['hitpoint']> {
+function createEmptyHitpoint(): NonNullable<ClassAuthoringInputDto['hitpoint']> {
   return {
     ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: '1d8'
   }
 }
 
-export function createEmptyCharge(): ChargeDto {
+function createEmptyCharge(): ChargeDto {
   return {
     id: crypto.randomUUID(),
     resetKind: CHARGE_RESET_KIND.LONG_REST,
@@ -182,31 +167,6 @@ export function createEmptyMulticlass(): ClassMulticlassDto {
   }
 }
 
-export function createEmptyRequirementGroup(): ClassMulticlassDto['requirementGroups']['groups'][number] {
-  return {
-    id: crypto.randomUUID(),
-    requirements: []
-  }
-}
-
-export function createEmptyRequirement(): ClassMulticlassDto['requirementGroups']['groups'][number]['requirements'][number] {
-  return {
-    id: crypto.randomUUID(),
-    ability: ABILITY_CODE.STRENGTH,
-    min: 13
-  }
-}
-
-export function createEmptyResource(): ClassResourceDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    availableAtLevel: 1,
-    charges: createEmptyCharge()
-  }
-}
-
 export function createEmptySpellcasting(): ClassSpellcastingDto {
   return {
     spellLimits: [],
@@ -215,46 +175,4 @@ export function createEmptySpellcasting(): ClassSpellcastingDto {
     attributes: [],
     charges: createEmptyCharge()
   }
-}
-
-export function createEmptySpellLimit(order: number): ClassSpellLimitDto {
-  return {
-    classLevel: order,
-    slots: []
-  }
-}
-
-export function createEmptySpellSlot(order: number): ClassSpellLimitDto['slots'][number] {
-  return {
-    spellLevel: order,
-    slotCount: 0
-  }
-}
-
-export function createEmptyPrepareLimit(): NonNullable<ClassSpellcastingDto['prepareLimit']> {
-  return {
-    methodKinds: [],
-    perLevel: []
-  }
-}
-
-export function createEmptyPrepareLimitLevel(
-  order: number
-): NonNullable<NonNullable<ClassSpellcastingDto['prepareLimit']>['perLevel']>[number] {
-  return {
-    classLevel: order,
-    amount: 0
-  }
-}
-
-export function createEmptySpecialization(order: number): ClassSpecializationDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    order
-  }
-}
-
-export function createEmptyStartingEquipmentRecord(): StartingEquipmentDto {
-  return createEmptyStartingEquipment()
 }

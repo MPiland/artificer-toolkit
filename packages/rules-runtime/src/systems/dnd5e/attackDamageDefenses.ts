@@ -13,7 +13,7 @@ export type Dnd5eQualifiedDamageDefense = {
   readonly bypassedBy: readonly DamageDefenseBypassCode[]
 }
 
-export type Dnd5eAttackTraits = Readonly<Record<'magical' | 'silvered' | 'adamantine', boolean>>
+type Dnd5eAttackTraits = Readonly<Record<'magical' | 'silvered' | 'adamantine', boolean>>
 
 const TRAIT_BY_BYPASS: Record<DamageDefenseBypassCode, keyof Dnd5eAttackTraits> = {
   MAGICAL: 'magical',

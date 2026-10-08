@@ -102,7 +102,7 @@ export type MovementTarget<
   conditionMechanics: readonly EncounterConditionMechanic[]
 }
 
-export function nativeCharacterMaximumHitPoints(
+function nativeCharacterMaximumHitPoints(
   characterFacts: CharacterMovementFacts,
   activeEffects: ActiveRuleEffectRecord[]
 ) {

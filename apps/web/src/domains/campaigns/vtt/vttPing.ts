@@ -7,7 +7,7 @@ export const vttPingMoveTolerancePx = 8
 /** How long a ping ring shows. */
 export const vttPingLifetimeMs = 1_500
 
-export interface VttPingPress {
+interface VttPingPress {
   /** Starts a press at a screen point; the ping lands on `mapPoint`. */
   start: (screenPoint: ScenePoint, mapPoint: ScenePoint) => void
   /** Cancels the press once the pointer drifts past the tolerance. */

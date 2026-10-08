@@ -11,14 +11,14 @@ import {
  * outside this helper so a System policy, rather than token presentation,
  * decides whether a crossing can be attempted.
  */
-export interface EncounterMovementPassageContact {
+interface EncounterMovementPassageContact {
   readonly blockerActorId: string
   readonly blockerTokenId: string
   readonly contact: ScenePoint
   readonly pathDistance: number
 }
 
-export type EncounterMovementPassageDiscovery =
+type EncounterMovementPassageDiscovery =
   | { readonly kind: 'NONE' }
   | { readonly kind: 'ENDPOINT_OCCUPIED'; readonly blockerActorIds: readonly string[] }
   | {

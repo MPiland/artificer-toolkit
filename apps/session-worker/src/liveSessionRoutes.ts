@@ -58,7 +58,7 @@ export class LiveSessionDomainRejectionError extends LiveSessionRouteError {
 }
 
 /** How long the room waits for a private route before treating its outcome as unknown. */
-export const LIVE_SESSION_ROUTE_TIMEOUT_MS = 10_000
+const LIVE_SESSION_ROUTE_TIMEOUT_MS = 10_000
 
 function safeOrigin(value: string): URL {
   let url: URL

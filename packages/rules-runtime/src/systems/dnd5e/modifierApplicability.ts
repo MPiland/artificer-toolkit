@@ -38,7 +38,7 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
 }
 
 /** The facts of one folded modifier that decide where it applies. */
-export type Dnd5eModifierApplicability = {
+type Dnd5eModifierApplicability = {
   readonly sourceId: string
   readonly scope: 'GLOBAL' | 'SOURCE'
   readonly itemRequirements: CharacterGrantFoldRestriction
@@ -46,7 +46,7 @@ export type Dnd5eModifierApplicability = {
 }
 
 /** An unknown scope narrows to the modifier's own source. */
-export function dnd5eModifierScope(grant: unknown): 'GLOBAL' | 'SOURCE' {
+function dnd5eModifierScope(grant: unknown): 'GLOBAL' | 'SOURCE' {
   return characterPolicyRecord(grant).scope === 'GLOBAL' ? 'GLOBAL' : 'SOURCE'
 }
 
@@ -76,7 +76,7 @@ function itemConditionMatches(condition: ItemCondition, item: Dnd5eAttackingItem
 }
 
 /** OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement. */
-export function dnd5eItemRequirementsMet(
+function dnd5eItemRequirementsMet(
   requirements: CharacterGrantFoldRestriction,
   item: Dnd5eAttackingItem | null
 ): boolean {

@@ -13,7 +13,7 @@ import {
   VEHICLE_NODE_MAP
 } from '@artificer-toolkit/shared/maps'
 
-export type RuntimeNodeMap = NodeMap<Record<string, unknown>>
+type RuntimeNodeMap = NodeMap<Record<string, unknown>>
 
 const rootMaps = [
   SPELL_NODE_MAP,

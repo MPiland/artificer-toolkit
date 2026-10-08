@@ -53,10 +53,6 @@ export const encounterSpatialRuleEffectRecordSchema = lazySchema(() =>
     updatedAt: activeRuleEffectTimestampSchema
   })
 )
-
-export type EncounterSpatialRuleEffectStored = z.infer<
-  typeof encounterSpatialRuleEffectStoredSchema
->
 export type EncounterSpatialRuleEffectRecord = z.infer<
   typeof encounterSpatialRuleEffectRecordSchema
 >

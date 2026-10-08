@@ -5,7 +5,7 @@ import {
 
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 
-export interface MovementReactionCapabilityDescriptor<
+interface MovementReactionCapabilityDescriptor<
   TCapability extends EffectActionCapabilityDescriptor = EffectActionCapabilityDescriptor
 > {
   capability: TCapability

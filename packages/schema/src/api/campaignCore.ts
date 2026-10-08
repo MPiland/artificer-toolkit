@@ -307,9 +307,6 @@ export const campaignInviteVersionInputSchema = lazySchema(() =>
     expectedVersion: versionSchema
   })
 )
-export const acceptCampaignInviteInputSchema = campaignInviteVersionInputSchema
-export const declineCampaignInviteInputSchema = campaignInviteVersionInputSchema
-export const revokeCampaignInviteInputSchema = campaignInviteVersionInputSchema
 export const requestCampaignOwnershipTransferInputSchema = lazySchema(() =>
   z.strictObject({
     campaignId: uuidSchema,

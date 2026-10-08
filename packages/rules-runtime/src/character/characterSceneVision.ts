@@ -30,7 +30,7 @@ function supportsOrdinaryDarknessVision(
 }
 
 /** Presentation-only scalar; combat eligibility uses the shared perception resolver. */
-export function resolveCharacterSceneVisionDimRangeFeet(
+function resolveCharacterSceneVisionDimRangeFeet(
   pinnedSenseDefinitions: readonly Pick<PinnedSenseDefinition, 'document' | 'range'>[]
 ): number | null {
   return pinnedSenseDefinitions.reduce<number | null>((maximum, pin) => {

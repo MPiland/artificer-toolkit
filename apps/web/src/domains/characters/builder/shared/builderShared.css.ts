@@ -54,20 +54,6 @@ export const title = style({
   }
 })
 
-export const builderShell = style({
-  '@layer': {
-    [app]: {
-      background: foundationVars.color.surface.panel,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.xl,
-      boxShadow: foundationVars.shadow.card,
-      display: 'grid',
-      gap: '24px',
-      padding: '24px'
-    }
-  }
-})
-
 export const section = style({
   '@layer': {
     [app]: {

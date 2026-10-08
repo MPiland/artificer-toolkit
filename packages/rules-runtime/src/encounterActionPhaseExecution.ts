@@ -10,7 +10,7 @@ import type {
   CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
 
-export type EncounterActionPhaseResolution =
+type EncounterActionPhaseResolution =
   | { kind: 'SINGLE_GRAPH' }
   | { kind: 'PAUSED'; phase: 'TEST' | 'OUTCOME' }
   | { kind: 'TEST_ONLY'; selectedPath: string }

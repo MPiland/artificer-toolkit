@@ -3,21 +3,6 @@ import {
   isServerKernelRuleExecutionPendingSnapshot,
   type ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-
-type KernelMovementContext = Extract<
-  Extract<
-    ServerRuleExecutionPendingSnapshotDto,
-    { snapshotKind: 'KERNEL_EVIDENCE' }
-  >['applicationContext'],
-  { kind: 'ENCOUNTER_SPATIAL_MOVEMENT' | 'ENCOUNTER_MOVEMENT_REACTION' }
->
-type PassageContext = Extract<
-  Extract<
-    ServerRuleExecutionPendingSnapshotDto,
-    { snapshotKind: 'AGGREGATE_CHOICE' }
-  >['applicationContext'],
-  { kind: 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' }
->
 type MovementContestContext = Extract<
   Extract<
     ServerRuleExecutionPendingSnapshotDto,
@@ -35,11 +20,6 @@ type MovementContestContext = Extract<
     >['movementContinuation']
   >
 }
-
-export type EncounterMovementPendingContext =
-  | KernelMovementContext
-  | PassageContext
-  | MovementContestContext
 
 /** Extract the sealed spatial root from the only pending contexts a Scene may resume. */
 export function readEncounterMovementPendingContext(

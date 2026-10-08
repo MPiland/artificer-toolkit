@@ -16,7 +16,7 @@ import type {
 export const tabletopCampaignId = '11111111-1111-4111-8111-111111111111'
 export const tabletopCurrentUserId = '22222222-2222-4222-8222-222222222222'
 export const tabletopMapAssetId = '66666666-6666-4666-8666-666666666666'
-export const tabletopEncounterId = '88888888-8888-4888-8888-888888888888'
+const tabletopEncounterId = '88888888-8888-4888-8888-888888888888'
 
 const tabletopMapDataUrl =
   'data:image/svg+xml,' +

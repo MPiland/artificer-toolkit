@@ -8,7 +8,7 @@ export enum PassiveCode {
   WISDOM = 'WISDOM'
 }
 
-export type PassiveOption = Vocabulary<PassiveCode> & {
+type PassiveOption = Vocabulary<PassiveCode> & {
   ability: AbilityCode
 }
 

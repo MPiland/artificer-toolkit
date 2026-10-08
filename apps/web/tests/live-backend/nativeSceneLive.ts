@@ -8,7 +8,7 @@ import { isDeepStrictEqual } from 'node:util'
 
 const expect = playwrightExpect.configure({ timeout: 30_000 })
 
-export type NativeLiveSessionSocketTrace = {
+type NativeLiveSessionSocketTrace = {
   expectedOrigin: string
   connections: NativeLiveSessionConnectionTrace[]
   framesReceived: string[]
@@ -29,7 +29,7 @@ type NativeLiveSessionConnectionTrace = {
   frames: NativeLiveSessionFrame[]
 }
 
-export type NativeLiveSessionAuthenticationRefreshEvidence = {
+type NativeLiveSessionAuthenticationRefreshEvidence = {
   authenticationCount: number
   initialExpiresAt: number
   messageOrder: ['AUTHENTICATION_REQUIRED', 'AUTHENTICATE', 'TRANSIENT_READY']

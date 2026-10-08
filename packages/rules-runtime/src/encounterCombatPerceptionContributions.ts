@@ -28,7 +28,7 @@ export interface LockedCombatPerceptionEffect {
   definition: Pick<ActiveRuleEffectDefinitionDto, 'perceptionContributions'>
 }
 
-export interface CombatPerceptionContributionPartitions {
+interface CombatPerceptionContributionPartitions {
   observerContributions: readonly CombatPerceptionContributionSource[]
   subjectContributions: readonly CombatPerceptionContributionSource[]
   localAreaContributions: readonly CombatPerceptionContributionSource[]

@@ -94,11 +94,11 @@ export function nativeMovementResistanceResource(
   return resource
 }
 
-export type NativeMovementLegendaryResistanceSelection =
+type NativeMovementLegendaryResistanceSelection =
   | { kind: 'DECLINE' }
   | { kind: 'OPTION'; optionId: string }
 
-export interface NativeMovementLegendaryResistanceChargeProposal {
+interface NativeMovementLegendaryResistanceChargeProposal {
   ownerActorId: string
   ownerFeatureId: string
   chargeId: string

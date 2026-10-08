@@ -26,7 +26,7 @@ type InventoryCampaign = Pick<CampaignDetailDto, 'role'> & {
   memberships: ReadonlyArray<InventoryMembership>
 }
 
-export type InventoryCurrencyRow = Omit<InventoryCurrency, 'amount'> & { amount: string }
+type InventoryCurrencyRow = Omit<InventoryCurrency, 'amount'> & { amount: string }
 
 export function parseOwner(value: string, campaignId: string): InventoryOwnerRefDto {
   if (value === 'PARTY') return { kind: 'CAMPAIGN', campaignId }

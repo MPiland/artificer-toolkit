@@ -43,7 +43,7 @@ import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 
 type LegendaryEvidence = NonNullable<TurnCoordinatorRootDto['completedLegendaryActions']>[number]
 type Choice = LegendaryEvidence['choice']
-export type TurnLegendaryActionInput<
+type TurnLegendaryActionInput<
   TCharacterFacts extends ProjectableCharacterFacts = ProjectableCharacterFacts
 > = {
   state: EncounterRunState

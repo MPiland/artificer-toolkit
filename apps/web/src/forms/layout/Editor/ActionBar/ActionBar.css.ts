@@ -137,27 +137,6 @@ export const start = style({
   }
 })
 
-export const center = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: foundationVars.space[2],
-      pointerEvents: 'none',
-      '@media': {
-        [overlayRail]: {
-          display: 'none'
-        },
-        [mobile]: {
-          gridColumn: '1 / -1',
-          gridRow: '2',
-          justifyContent: 'flex-start'
-        }
-      }
-    }
-  }
-})
-
 export const end = style({
   '@layer': {
     [app]: {

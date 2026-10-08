@@ -31,7 +31,7 @@ import type { EncounterMovementReactionActiveEffect } from './encounterRuleCapab
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
-export type EncounterLegendaryActionActor = EncounterProjectionActorInput
+type EncounterLegendaryActionActor = EncounterProjectionActorInput
 
 export interface EncounterLegendaryActionCandidate extends LegendaryActionEligibilitySource {
   action: EncounterFeatureActionCapabilityDescriptor
@@ -49,7 +49,7 @@ export interface EncounterLegendaryActionCandidate extends LegendaryActionEligib
   >[number]['evidence']
 }
 
-export interface StagedLegendaryActionRefresh {
+interface StagedLegendaryActionRefresh {
   ordinal: number
   actorId: string
   actorCurrentnessChecksum: string
@@ -62,7 +62,7 @@ export interface StagedLegendaryActionRefresh {
   afterUsed: number
 }
 
-export interface EncounterLegendaryActionRefreshPlan<
+interface EncounterLegendaryActionRefreshPlan<
   TActor extends EncounterLegendaryActionActor = EncounterLegendaryActionActor
 > {
   refreshes: readonly StagedLegendaryActionRefresh[]

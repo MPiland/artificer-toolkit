@@ -9,7 +9,7 @@ export type InitiativeScoreOrderGroup = {
   classification: 'SETTLED' | 'TIED'
 }
 
-export type InitiativeOrderingResult =
+type InitiativeOrderingResult =
   | { kind: 'ORDERED'; groups: readonly InitiativeScoreOrderGroup[] }
   | { kind: 'ORDER_CHOICE_REQUIRED'; entities: readonly { kind: 'ACTOR' | 'SIDE'; id: string }[] }
 

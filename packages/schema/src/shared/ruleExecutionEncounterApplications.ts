@@ -56,7 +56,7 @@ import {
 } from './ruleExecutionPrimitives.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
-export const concentrationCleanupDtoSchema = lazySchema(() =>
+const concentrationCleanupDtoSchema = lazySchema(() =>
   z.strictObject({
     maintainedStateId: uuidSchema,
     removedDependentEffectIds: z

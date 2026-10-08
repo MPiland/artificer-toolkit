@@ -56,7 +56,7 @@ type NextRangeBuilder<
     : EncounterIndexRangeBuilder<Document, Fields, PlusOne<Position>>
 
 /** Equality on an index's leading fields, then at most one bounded range on the next. */
-export interface EncounterIndexRangeBuilder<
+interface EncounterIndexRangeBuilder<
   Document,
   Fields extends readonly (keyof Document)[],
   Position extends number = 0

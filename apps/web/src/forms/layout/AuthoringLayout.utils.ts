@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
-import type { AuthoringStepProgressStatus } from '../validation/authoringProgress'
 
 export function getAuthoringStatus(mode: string, isDraft: boolean) {
   if (mode === 'create') return { label: 'Draft' }
@@ -26,18 +25,4 @@ export function getRulesetLabel(
   return rulesetName.includes(system.rulesetVersion)
     ? rulesetName
     : `${rulesetName} ${system.rulesetVersion}`
-}
-
-export function getFinalizeBlockReason(status: AuthoringStepProgressStatus | undefined): string {
-  switch (status) {
-    case 'error':
-      return 'Fix step errors before finalizing.'
-    case 'warning':
-      return 'Resolve step warnings before finalizing.'
-    case 'incomplete':
-      return 'Complete every required step before finalizing.'
-    case 'complete':
-    case undefined:
-      return 'Complete every step before finalizing.'
-  }
 }

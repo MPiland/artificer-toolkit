@@ -9,9 +9,7 @@ import {
 } from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 
-export const ENCOUNTER_ACTOR_MODEL_KEY = 'encounter-actor-policy'
-
-export const encounterActorResourceReconciliationPolicySchema = lazySchema(() =>
+const encounterActorResourceReconciliationPolicySchema = lazySchema(() =>
   z.enum(['CLAMP_USED_TO_MAXIMUM'])
 )
 

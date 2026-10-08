@@ -1,7 +1,7 @@
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterRuleActionPresentationReferences } from './characterRuleActionProjection.js'
 
-export interface CharacterSheetMechanicOwner {
+interface CharacterSheetMechanicOwner {
   description?: string | null
   id: string
   kind: 'EQUIPMENT' | 'FEATURE' | 'FEATURE_OPTION' | 'FEAT' | 'SPELL'
@@ -20,7 +20,7 @@ function ownerKey(owner: Pick<CharacterSheetMechanicOwner, 'id' | 'kind'>): stri
   return `${owner.kind}:${owner.id}`
 }
 
-export interface CharacterSheetMechanicPresentationSources {
+interface CharacterSheetMechanicPresentationSources {
   actionReferences: CharacterRuleActionPresentationReferences
   hiddenOwnerKeys: ReadonlySet<string>
   ownersByKey: ReadonlyMap<string, CharacterSheetMechanicOwner>

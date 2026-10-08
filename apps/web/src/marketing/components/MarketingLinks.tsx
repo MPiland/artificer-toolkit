@@ -1,13 +1,13 @@
 import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from 'react'
 import { scrollToMarketingHash } from './marketing.utils'
 
-export type MarketingRouteHref = '/' | '/sign-in' | '/sign-up'
+type MarketingRouteHref = '/' | '/sign-in' | '/sign-up'
 
-export type MarketingHashLinkProps = Omit<ComponentPropsWithoutRef<'a'>, 'href'> & {
+type MarketingHashLinkProps = Omit<ComponentPropsWithoutRef<'a'>, 'href'> & {
   href: `#${string}`
 }
 
-export interface MarketingRouteLinkProps {
+interface MarketingRouteLinkProps {
   className?: string
   children: ReactNode
   to: MarketingRouteHref

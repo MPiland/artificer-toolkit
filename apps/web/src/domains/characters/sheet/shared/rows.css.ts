@@ -2,45 +2,6 @@ import { style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
-export const playBadge = style({
-  '@layer': {
-    [app]: {
-      justifySelf: 'start',
-      maxWidth: '120px'
-    }
-  }
-})
-
-export const featureSummary = style({
-  '@layer': {
-    [app]: {
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
-      display: 'grid',
-      gap: '10px',
-      paddingTop: '12px'
-    }
-  }
-})
-
-export const featureSummaryList = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '8px'
-    }
-  }
-})
-
-export const featureSummaryRow = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '4px',
-      minWidth: 0
-    }
-  }
-})
-
 export const compactDataList = style({
   '@layer': {
     [app]: {

@@ -5,13 +5,13 @@ import type { CampaignSceneState } from './scene.js'
 const EPSILON = 1e-9
 
 /** Mechanics safety limit: 16 by 16 cells covers unusually large tactical tokens. */
-export const MAX_SQUARE_GRID_FOOTPRINT_CELLS = 256
+const MAX_SQUARE_GRID_FOOTPRINT_CELLS = 256
 
 /** A single geometry query must retain all evidence or fail closed rather than omit it. */
-export const MAX_SQUARE_GRID_INTERACTION_EVIDENCE = 1_024
+const MAX_SQUARE_GRID_INTERACTION_EVIDENCE = 1_024
 
 /** Bounds exact occupied-cell segment work for pure geometry queries. */
-export const MAX_SQUARE_GRID_LINE_CHECKS = 65_536
+const MAX_SQUARE_GRID_LINE_CHECKS = 65_536
 
 export interface SquareGridCell {
   readonly column: number
@@ -20,7 +20,7 @@ export interface SquareGridCell {
   readonly row: number
 }
 
-export interface SquareGridFootprint {
+interface SquareGridFootprint {
   readonly bounds: {
     readonly bottom: number
     readonly left: number
@@ -48,24 +48,24 @@ export interface SquareGridFlankingPair {
   readonly attackerSector: SquareGridContactSector
 }
 
-export type SquareGridFacingArc = 'FRONT' | 'LEFT_SIDE' | 'REAR' | 'RIGHT_SIDE'
+type SquareGridFacingArc = 'FRONT' | 'LEFT_SIDE' | 'REAR' | 'RIGHT_SIDE'
 
-export interface SquareGridFootprintFacingArcs {
+interface SquareGridFootprintFacingArcs {
   readonly sourceToTarget: SquareGridFacingArc | null
   readonly targetToSource: SquareGridFacingArc | null
 }
 
-export interface SquareGridCoverIntervenor {
+interface SquareGridCoverIntervenor {
   readonly cell: SquareGridCell
   readonly tokenId: string
 }
 
-export interface SquareGridTokenFootprint {
+interface SquareGridTokenFootprint {
   readonly footprint: SquareGridFootprint
   readonly tokenId: string
 }
 
-export interface SquareGridShoveAsideDestination {
+interface SquareGridShoveAsideDestination {
   readonly direction: SquareGridContactSector
   readonly position: ScenePoint
   readonly remainsAdjacentToAttacker: true
@@ -287,7 +287,7 @@ function footprintsOverlap(left: SquareGridFootprint, right: SquareGridFootprint
 }
 
 /** Returns whether two exact occupied square-grid footprints touch by a side or corner. */
-export function areSquareGridFootprintsAdjacent(input: {
+function areSquareGridFootprintsAdjacent(input: {
   readonly grid: SceneGrid
   readonly left: SquareGridFootprint
   readonly right: SquareGridFootprint

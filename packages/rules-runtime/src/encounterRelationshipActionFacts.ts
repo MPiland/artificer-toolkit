@@ -10,7 +10,7 @@ export interface EncounterRelationshipD20Contributor {
   readonly influence: 'ADVANTAGE' | 'DISADVANTAGE'
 }
 
-export type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
+type EncounterRelationshipActiveEffectsByActorId = ReadonlyMap<
   string,
   readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 >

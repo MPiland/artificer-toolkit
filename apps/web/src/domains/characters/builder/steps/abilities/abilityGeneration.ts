@@ -1,12 +1,8 @@
 import {
   ABILITY_OPTIONS,
-  ADVANCEMENT_METHOD_OPTIONS,
   CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS,
   CHARACTER_ABILITY_GENERATION_METHOD,
-  HITPOINT_CALC_METHOD_OPTIONS,
-  POINT_BUY_SCORE_REGISTRY,
   POINT_BUY_SCORE_OPTIONS,
-  POINT_BUY_TOTAL_POINTS,
   STANDARD_ARRAY_SCORE_OPTIONS,
   type AbilityCode
 } from '@artificer-toolkit/shared/core'
@@ -29,7 +25,7 @@ type PointBuyAbilities = Extract<
 >
 type AbilityAssignment = (StandardArrayAbilities | PointBuyAbilities)['assignments'][number]
 type AbilityAssignmentCode = AbilityCode
-export type CharacterAbilityFormAssignments = Array<AbilityAssignment>
+type CharacterAbilityFormAssignments = Array<AbilityAssignment>
 export type CharacterAbilityDraftSlot = {
   ability?: AbilityCode
   option?: string
@@ -40,8 +36,6 @@ const abilityOptionDefinitions = ABILITY_OPTIONS.map((option) => ({
   label: option.label
 })) satisfies { value: AbilityAssignmentCode; label: string }[]
 
-export const abilityOptions: SelectOption[] = abilityOptionDefinitions
-
 export const abilityCodes = abilityOptionDefinitions.map((option) => option.value)
 const abilityCodeSet = new Set<AbilityAssignmentCode>(abilityCodes)
 
@@ -49,28 +43,12 @@ export function isCharacterAbilityCode(value: string): value is AbilityAssignmen
   return abilityCodeSet.has(value as AbilityAssignmentCode)
 }
 
-export const advancementMethodOptions: SelectOption[] = ADVANCEMENT_METHOD_OPTIONS.map(
-  (option) => ({ value: option.code, label: option.label })
-)
-
-export const abilityMethodOptions: SelectOption[] = CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS.map(
+const abilityMethodOptions: SelectOption[] = CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS.map(
   (option) => ({ value: option.code, label: option.label })
 )
 
 const abilityMethodLabelByValue = new Map(
   abilityMethodOptions.map((option) => [option.value, option.label])
-)
-
-export const hitpointMethodOptions: SelectOption[] = HITPOINT_CALC_METHOD_OPTIONS.map((option) => ({
-  value: option.code,
-  label: option.label
-}))
-
-export const standardArrayOptions: SelectOption[] = STANDARD_ARRAY_SCORE_OPTIONS.map(
-  (option): SelectOption => ({ value: option.code, label: option.label })
-)
-export const pointBuyOptions: SelectOption[] = POINT_BUY_SCORE_OPTIONS.map(
-  (option): SelectOption => ({ value: option.code, label: option.label })
 )
 
 const standardArrayOptionValues = new Set<string>(
@@ -81,14 +59,6 @@ const allAbilityOptionValues = new Set<string>([
   ...standardArrayOptionValues,
   ...pointBuyOptionValues
 ])
-
-export { POINT_BUY_TOTAL_POINTS }
-
-export function getPointBuyCost(option: string | undefined): number {
-  return option && pointBuyOptionValues.has(option)
-    ? POINT_BUY_SCORE_REGISTRY[option as keyof typeof POINT_BUY_SCORE_REGISTRY].cost
-    : 0
-}
 
 export function isAbilityAssignmentOption(
   value: string
@@ -122,13 +92,6 @@ export function cacheActiveAbilityIntent(
   abilities: CharacterFormValues['intent']['abilities']
 ): AbilityIntentCache {
   return mergeAbilityIntentCache(cache, abilities)
-}
-
-export function getCachedAbilityIntent(
-  cache: AbilityIntentCache | undefined,
-  method: CharacterAbilityGenerationMethod
-): CharacterFormValues['intent']['abilities'] {
-  return cache?.methods[method] ?? createEmptyAbilityIntent(method)
 }
 
 export function getAbilityDraftSlots(

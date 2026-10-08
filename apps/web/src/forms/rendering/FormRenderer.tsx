@@ -52,7 +52,7 @@ import { Alert, Button, Group, Loader, Modal, Stack, Text } from '@mantine/core'
 import { CircleHelp } from 'lucide-react'
 import { AuthoringArtworkControl } from '../AuthoringArtworkControl'
 
-export type FormRendererOptions<TValues extends object> = {
+type FormRendererOptions<TValues extends object> = {
   defaultValues: TValues
 }
 

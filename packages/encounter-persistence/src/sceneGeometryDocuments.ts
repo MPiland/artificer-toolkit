@@ -61,7 +61,7 @@ export function assertGeometryReceiving(
     throw new Error('Scene changed before geometry publication.')
 }
 
-export type MovementResolution = {
+type MovementResolution = {
   command: ResolveRuleOccurrenceInputDto
   snapshot: ServerRuleExecutionPendingSnapshotDto
   context: ReturnType<typeof readEncounterMovementPendingContext>['context']

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect } from 'react'
 import type { ReactNode } from 'react'
 
-export interface ShellHeaderSupplementContextValue {
+interface ShellHeaderSupplementContextValue {
   setHeaderSupplement: (supplement: ShellHeaderSupplement | null) => void
 }
 
@@ -39,19 +39,6 @@ export function useShellHeaderSupplement(
 
     return () => context.setHeaderSupplement(null)
   }, [actions, content, context, hideBreadcrumbLeaf])
-
-  return Boolean(context)
-}
-
-export function useShellAuthoringChrome(chrome: ShellAuthoringChrome | null) {
-  const context = useContext(ShellHeaderSupplementContext)
-
-  useEffect(() => {
-    if (!context) return undefined
-    context.setHeaderSupplement(chrome ? { authoringChrome: chrome } : null)
-
-    return () => context.setHeaderSupplement(null)
-  }, [chrome, context])
 
   return Boolean(context)
 }

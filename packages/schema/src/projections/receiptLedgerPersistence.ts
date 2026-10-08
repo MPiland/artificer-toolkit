@@ -77,12 +77,7 @@ export const characterReceiptPurgeInputSchema = lazySchema(() =>
 export type ReceiptLedgerPayloadMetadata = z.infer<typeof receiptLedgerPayloadMetadataSchema>
 export type ReceiptLedgerMetadata = z.infer<typeof receiptLedgerMetadataSchema>
 export type ReceiptLedgerPointer = z.infer<typeof receiptLedgerPointerSchema>
-export type ReceiptLedgerPartMetadata = z.infer<typeof receiptLedgerPartMetadataSchema>
 export type CharacterReceiptPurgeInput = z.infer<typeof characterReceiptPurgeInputSchema>
-
-/** Convex validates these binary fields with v.bytes(); the shared codec checks their byte limits. */
-export type ReceiptLedgerStoredRecord = ReceiptLedgerMetadata & { payload: ArrayBuffer | null }
-export type ReceiptLedgerStoredPart = ReceiptLedgerPartMetadata & { bytes: ArrayBuffer }
 export type ReceiptLedgerEncodedPayload = ReceiptLedgerPayloadMetadata & {
   payload: ArrayBuffer | null
   parts: ArrayBuffer[]

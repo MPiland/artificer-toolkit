@@ -38,7 +38,7 @@ export type PendingInitiativeOrderResolution = {
   laterSegments: readonly InitiativeTieResolutionSegment[]
 }
 
-export type InitiativeOrderResolutionResult =
+type InitiativeOrderResolutionResult =
   | PendingInitiativeOrderResolution
   | {
       kind: 'COMPLETE'

@@ -14,7 +14,7 @@ function canonicalSystemId(value: string): string {
   return parsed.data
 }
 
-export function createCharacterRuleActionSystemAdapterRegistry(
+function createCharacterRuleActionSystemAdapterRegistry(
   adapters: readonly CharacterRuleActionSystemAdapter[]
 ): CharacterRuleActionSystemAdapterRegistry {
   const bySystemId = new Map<string, CharacterRuleActionSystemAdapter>()

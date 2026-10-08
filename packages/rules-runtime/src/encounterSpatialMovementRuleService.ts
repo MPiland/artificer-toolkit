@@ -31,7 +31,6 @@ import {
   executeTargetBoundActiveRuleEffectWithPause,
   reconstructTargetBoundActiveRuleEffectCompletion,
   resumeTargetBoundActiveRuleEffectWithPause,
-  verifyTargetBoundActiveRuleEffectContinuation,
   type TargetBoundActiveRuleEffectExecutionPaused,
   type TargetBoundActiveRuleEffectExecutionInput,
   type TargetBoundActiveRuleEffectExecutionResult
@@ -46,7 +45,6 @@ import {
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 export { checksumSpatialCurrentness } from './encounterSpatialMovementCurrentness.js'
-export { spatialEffectTransition } from './encounterSpatialMovementEffects.js'
 
 type SpatialBatch = Extract<
   StoredRuleExecutionResultDto,
@@ -113,7 +111,7 @@ export type SpatialMovementRuleRoot = {
 }
 
 /** A d20 answer to the pending spatial contact: entered dice or the roller's app roll. */
-export type SpatialMovementRuleResolution = Extract<
+type SpatialMovementRuleResolution = Extract<
   EncounterEvidenceAnswer,
   { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' }
 >
@@ -861,288 +859,7 @@ function frozenSpatialCandidates(
   ]
 }
 
-/**
- * Proves that a just-prepared pending spatial/reaction boundary still binds
- * the Scene, spatial roots, and target facts the native publisher is about to
- * persist. It deliberately stages evidence only; it never settles mechanics.
- */
-export async function verifyPreparedSpatialMovementRuleBatch(input: {
-  encounter: SpatialMovementEncounter
-  sceneId: string
-  sceneVersion: number
-  sceneTokens: readonly SpatialSceneToken[]
-  actorIdByTokenId: ReadonlyMap<string, string>
-  spatialScope: {
-    snapshot(): Promise<EncounterSpatialRuleEffectRecord[]>
-    lockById(input: { id: string }): Promise<EncounterSpatialRuleEffectRecord | null>
-  }
-  loadTargets(actorIds: readonly string[]): Promise<ReadonlyMap<string, SpatialMovementTarget>>
-  runtime: RulesRuntimeService
-  pendingSnapshot: ServerKernelRuleExecutionPendingSnapshotDto
-  /** The sealed boundary immediately before one response stages a new pending boundary. */
-  resume?: {
-    root: FrozenMovementReactionRemainder['root']
-    resolutionCommand: MovementRuleResolutionCommand
-  }
-}): Promise<void> {
-  const context = input.pendingSnapshot.applicationContext
-  if (
-    context.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT' &&
-    !(
-      context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-      (context.phase.kind === 'CHOICE' || context.phase.kind === 'SPATIAL_EVIDENCE')
-    )
-  )
-    throw new EncounterConflictError('The pending occurrence is not a spatial boundary.')
-  if (
-    (!input.resume && context.root.resolutionCommands.length !== 0) ||
-    (context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-      (context.appliedSpatialPrefix !== null || context.completedReactionExecutions.length !== 0))
-  )
-    throw new EncounterConflictError('The pending spatial boundary already has settled commands.')
-
-  const root = context.root
-  if (
-    root.encounterId !== input.encounter.id ||
-    root.sceneId !== input.sceneId ||
-    root.expectedEncounterVersion !== input.encounter.version ||
-    (!input.resume && root.expectedSceneVersion !== input.sceneVersion)
-  )
-    throw new EncounterConflictError('The pending spatial root does not match the current Scene.')
-  const movingToken = input.sceneTokens.find((token) => token.id === root.tokenId)
-  if (!movingToken) throw new EncounterConflictError('The pending spatial token is stale.')
-  if (input.resume) {
-    verifyFrozenReactionRoot({
-      context: { root: input.resume.root },
-      root,
-      currentPosition: movingToken.position,
-      sceneVersion: input.sceneVersion
-    })
-    verifyResumedPendingHistory({
-      prior: input.resume.root.resolutionCommands,
-      proposed: root.resolutionCommands,
-      command: input.resume.resolutionCommand
-    })
-    if (root.pathStartDistance + 1e-8 < input.resume.root.pathStartDistance)
-      throw new EncounterConflictError('The resumed spatial path retreated.')
-  } else if (!samePoint(movingToken.position, root.originalPath[0]!))
-    throw new EncounterConflictError('The pending spatial token is no longer at the path origin.')
-  const contact = pathPointAtDistance(root.originalPath, root.pathStartDistance)
-  if (!contact || !samePoint(contact, root.currentPosition))
-    throw new EncounterConflictError(
-      'The pending spatial contact is not on its authoritative path.'
-    )
-  const expectedCurrentSceneVersion =
-    input.sceneVersion + (samePoint(movingToken.position, root.currentPosition) ? 0 : 1)
-  if (root.currentSceneVersion !== expectedCurrentSceneVersion)
-    throw new EncounterConflictError('The pending spatial Scene version is stale.')
-  if (
-    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-    context.completedSpatialExecutions.some(
-      (execution) =>
-        execution.execution.movementInterruption?.kind === 'STOP' &&
-        execution.candidate.candidate.pathDistance + 1e-8 < root.pathStartDistance
-    )
-  )
-    throw new EncounterConflictError('A retained spatial STOP precedes the pending reaction.')
-
-  const expected =
-    context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-      ? [
-          ...context.completedExecutions.map((execution) => execution.candidate),
-          context.currentCandidate,
-          ...context.remainingCandidates
-        ]
-      : [
-          ...context.completedSpatialExecutions.map((execution) => execution.candidate),
-          ...(context.phase.kind === 'SPATIAL_EVIDENCE' ? [context.phase.currentCandidate] : []),
-          ...context.remainingSpatialCandidates
-        ]
-  const snapshotEffects = await input.spatialScope.snapshot()
-  const candidates = collectSpatialMovementCandidates({
-    actorIdByTokenId: input.actorIdByTokenId,
-    effects: snapshotEffects.map(toSpatialInstance),
-    movementKind: root.movementKind,
-    path: root.originalPath,
-    tokens: input.sceneTokens,
-    movingTokenId: root.tokenId
-  })
-  const selectionChecksum = checksumSpatialMovementSelection({
-    encounterId: input.encounter.id,
-    sceneId: input.sceneId,
-    tokenId: root.tokenId,
-    movementKind: root.movementKind,
-    path: root.originalPath,
-    candidates
-  })
-  const sealedSelectionChecksum =
-    context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-      ? context.selectionChecksum
-      : context.spatialSelectionChecksum
-  if (
-    selectionChecksum !== sealedSelectionChecksum ||
-    candidates.length !== expected.length ||
-    candidates.some(
-      (candidate, ordinal) =>
-        checksumRuleDocument(candidate) !== checksumRuleDocument(expected[ordinal]?.candidate)
-    )
-  )
-    throw new EncounterConflictError('The pending spatial candidate selection changed.')
-
-  const actorById = new Map(input.encounter.actors.map((actor) => [actor.id, actor]))
-  const targetActorIds = [...new Set(candidates.map((candidate) => candidate.targetActorId))]
-  for (const actorId of targetActorIds)
-    if (!actorById.has(actorId))
-      throw new EncounterConflictError('A pending spatial target left the Encounter.')
-  const targets = await input.loadTargets(targetActorIds)
-  for (const actorId of targetActorIds)
-    if (!targets.has(actorId))
-      throw new EncounterConflictError('A pending spatial target is stale.')
-
-  const snapshotById = new Map(snapshotEffects.map((effect) => [effect.id, effect]))
-  const lockedEffects = new Map<string, EncounterSpatialRuleEffectRecord>()
-  for (const effectId of [...new Set(candidates.map((candidate) => candidate.effectId))].sort()) {
-    const snapshot = snapshotById.get(effectId)
-    const effect = await input.spatialScope.lockById({ id: effectId })
-    if (!snapshot || !effect || !sameSpatialRoot(snapshot, effect))
-      throw new EncounterConflictError('A pending spatial root changed before publication.')
-    lockedEffects.set(effectId, effect)
-  }
-  const lockedCandidates = collectSpatialMovementCandidates({
-    actorIdByTokenId: input.actorIdByTokenId,
-    effects: [...lockedEffects.values()].map(toSpatialInstance),
-    movementKind: root.movementKind,
-    path: root.originalPath,
-    tokens: input.sceneTokens,
-    movingTokenId: root.tokenId
-  })
-  if (checksumRuleDocument(lockedCandidates) !== checksumRuleDocument(candidates))
-    throw new EncounterConflictError('Pending spatial candidates changed while locking roots.')
-  const currentnessChecksum = checksumSpatialCurrentness({
-    encounter: input.encounter,
-    candidates: candidates.map((candidate, ordinal) =>
-      pendingCandidate({
-        ordinal,
-        candidate,
-        effect: lockedEffects.get(candidate.effectId)!,
-        target: targets.get(candidate.targetActorId)!,
-        state: targets.get(candidate.targetActorId)!.state,
-        d20Policy: null
-      })
-    )
-  })
-  if (
-    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-    currentnessChecksum !== context.spatialCurrentnessChecksum
-  )
-    throw new EncounterConflictError('The pending spatial currentness facts changed.')
-
-  const states = new Map(
-    [...targets.entries()].map(([actorId, target]) => [actorId, copyState(target.state)])
-  )
-  const applications = new Map<string, CharacterRuleActionApplication[]>()
-  const executions: SpatialExecution[] = []
-  const completed =
-    context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-      ? context.completedExecutions
-      : context.completedSpatialExecutions
-  for (const stored of completed) {
-    const candidate = candidates[stored.ordinal]
-    const effect = candidate && lockedEffects.get(candidate.effectId)
-    const target = candidate && targets.get(candidate.targetActorId)
-    const state = candidate ? states.get(candidate.targetActorId) : null
-    if (!candidate || !effect || !target || !state)
-      throw new EncounterConflictError('The pending spatial completed prefix is incomplete.')
-    const pending = pendingCandidate({
-      ordinal: stored.ordinal,
-      candidate,
-      effect,
-      target,
-      state,
-      d20Policy: stored.candidate.d20Policy
-    })
-    if (!samePendingCandidate(pending, stored.candidate))
-      throw new EncounterConflictError('A completed spatial candidate is stale.')
-    const reconstructed = reconstructTargetBoundActiveRuleEffectCompletion({
-      executionInput: executionInput({
-        effect,
-        target,
-        state,
-        occurrenceId: input.pendingSnapshot.occurrenceId,
-        runtime: input.runtime
-      }),
-      execution: stored.execution,
-      d20Evidence: stored.d20
-    })
-    const rebuilt = completeExecution({
-      ordinal: stored.ordinal,
-      pending,
-      effect,
-      target,
-      state,
-      result: reconstructed
-    })
-    if (checksumRuleDocument(rebuilt) !== checksumRuleDocument(stored))
-      throw new EncounterConflictError('The pending spatial execution cannot be reconstructed.')
-    stageExecution({ execution: rebuilt, states, applications, executions })
-  }
-  const currentPendingCandidate =
-    context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-      ? context.currentCandidate
-      : context.phase.kind === 'SPATIAL_EVIDENCE'
-        ? context.phase.currentCandidate
-        : null
-  if (currentPendingCandidate) {
-    const candidate = candidates[currentPendingCandidate.ordinal]
-    const effect = candidate && lockedEffects.get(candidate.effectId)
-    const target = candidate && targets.get(candidate.targetActorId)
-    const state = candidate ? states.get(candidate.targetActorId) : null
-    if (!candidate || !effect || !target || !state)
-      throw new EncounterConflictError('The pending spatial current candidate is stale.')
-    try {
-      verifyTargetBoundActiveRuleEffectContinuation({
-        ...executionInput({
-          effect,
-          target,
-          state,
-          occurrenceId: input.pendingSnapshot.occurrenceId,
-          runtime: input.runtime
-        }),
-        continuation: input.pendingSnapshot,
-        expectedEvidencePolicy: currentPendingCandidate.d20Policy
-      })
-    } catch (error) {
-      throw new EncounterConflictError(
-        error instanceof Error ? error.message : 'The pending spatial continuation is stale.'
-      )
-    }
-  }
-
-  for (const [ordinal, candidate] of candidates.entries()) {
-    if (ordinal < completed.length) continue
-    const effect = lockedEffects.get(candidate.effectId)!
-    const target = targets.get(candidate.targetActorId)!
-    const pending = pendingCandidate({
-      ordinal,
-      candidate,
-      effect,
-      target,
-      state: states.get(candidate.targetActorId)!,
-      d20Policy:
-        currentPendingCandidate !== null && ordinal === currentPendingCandidate.ordinal
-          ? currentPendingCandidate.d20Policy
-          : null
-    })
-    const sealed = expected[ordinal]
-    const matches =
-      currentPendingCandidate !== null && ordinal === currentPendingCandidate.ordinal
-        ? samePendingCandidate(pending, currentPendingCandidate)
-        : sealed !== undefined && sameRemainingPendingCandidate(pending, sealed)
-    if (!matches) throw new EncounterConflictError('A pending spatial candidate changed.')
-  }
-}
-
-export function checksumSpatialMovementSelection(input: {
+function checksumSpatialMovementSelection(input: {
   encounterId: string
   sceneId: string
   tokenId: string
@@ -1151,27 +868,6 @@ export function checksumSpatialMovementSelection(input: {
   candidates: readonly unknown[]
 }): string {
   return checksumRuleDocument(input)
-}
-
-function verifyResumedPendingHistory(input: {
-  prior: readonly MovementRuleResolutionCommand[]
-  proposed: readonly MovementRuleResolutionCommand[]
-  command: MovementRuleResolutionCommand
-}) {
-  const command = movementRuleResolutionCommandDtoSchema.parse(input.command)
-  const expected = [...input.prior, command]
-  const commandIds = new Set<string>()
-  for (const [index, entry] of input.prior.entries()) {
-    if (entry.expectedOccurrenceVersion !== index || commandIds.has(entry.commandId))
-      throw new EncounterConflictError('The resumed spatial response history is stale.')
-    commandIds.add(entry.commandId)
-  }
-  if (
-    command.expectedOccurrenceVersion !== input.prior.length ||
-    commandIds.has(command.commandId) ||
-    checksumRuleDocument(input.proposed) !== checksumRuleDocument(expected)
-  )
-    throw new EncounterConflictError('The resumed spatial response history is stale.')
 }
 
 function verifyFrozenReactionRoot(input: {

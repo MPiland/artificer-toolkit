@@ -14,7 +14,6 @@ import {
 } from '@artificer-toolkit/shared/maps'
 import {
   AuthoringLayout,
-  chooseInitialAuthoringFormValues,
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem,
   FormRenderer,
@@ -1342,40 +1341,6 @@ describe('authoring progress', () => {
 })
 
 describe('authoring default value helpers', () => {
-  it('chooses draft values before active values and clones the selected values', () => {
-    const draftValues = { details: { label: 'Draft' } }
-    const activeValues = { details: { label: 'Active' } }
-    const selected = chooseInitialAuthoringFormValues({
-      draftValues,
-      activeValues,
-      createEmptyValues: () => ({ details: { label: 'Empty' } })
-    })
-
-    selected.details.label = 'Changed'
-
-    expect(selected).toEqual({ details: { label: 'Changed' } })
-    expect(draftValues).toEqual({ details: { label: 'Draft' } })
-  })
-
-  it('falls back to active values and then the empty-value factory', () => {
-    const createEmptyValues = vi.fn(() => ({ id: 'generated-id', order: 1 }))
-
-    expect(
-      chooseInitialAuthoringFormValues({
-        activeValues: { id: 'active-id', order: 2 },
-        createEmptyValues
-      })
-    ).toEqual({ id: 'active-id', order: 2 })
-    expect(createEmptyValues).not.toHaveBeenCalled()
-
-    expect(
-      chooseInitialAuthoringFormValues({
-        createEmptyValues
-      })
-    ).toEqual({ id: 'generated-id', order: 1 })
-    expect(createEmptyValues).toHaveBeenCalledTimes(1)
-  })
-
   it('creates child node defaults through node factories', () => {
     const arrayNode: NodeRuntimeNodeDto = {
       id: 'features',

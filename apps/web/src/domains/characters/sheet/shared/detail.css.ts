@@ -2,51 +2,8 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
-export const itemHeadingRow = style({
-  '@layer': { [app]: { alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: '8px' } }
-})
-
 export const badgeRow = style({
   '@layer': { [app]: { display: 'flex', flexWrap: 'wrap', gap: '6px' } }
-})
-
-export const mechanicList = style({
-  '@layer': { [app]: { display: 'grid', gap: '8px', marginTop: '8px' } }
-})
-
-export const mechanicBlock = style({
-  '@layer': { [app]: { display: 'grid', gap: '3px', minWidth: 0 } }
-})
-
-export const mechanicFacts = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.76rem',
-      lineHeight: 1.35
-    }
-  }
-})
-
-export const mechanicOutcome = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.primary,
-      fontSize: '0.8rem',
-      fontWeight: 650,
-      lineHeight: 1.35
-    }
-  }
-})
-
-export const mechanicScaling = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.accent,
-      fontSize: '0.72rem',
-      lineHeight: 1.35
-    }
-  }
 })
 
 export const drawerStack = style({
