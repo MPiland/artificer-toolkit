@@ -206,6 +206,7 @@ export async function persistEncounterCleavingResponse(
     authorizedCharacterIds: characterIds,
     occurredAt,
     concentration: input.concentration,
+    concentrationEnds: input.concentrationEnds,
     pendingConcentration: input.pendingConcentration
   })
   const projection = projectCurrentEncounterGm({

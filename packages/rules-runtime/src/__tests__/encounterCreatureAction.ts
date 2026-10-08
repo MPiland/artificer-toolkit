@@ -167,6 +167,7 @@ export function creatureActor(input: {
   conditionImmunityIds?: readonly string[]
   damageResistanceIds?: readonly string[]
   damageVulnerabilityIds?: readonly string[]
+  qualifiedDamageDefenses?: NonNullable<CreatureAuthored['qualifiedDamageDefenses']>
   featureChargesUsed?: Readonly<Record<string, number>>
   hitPoints?: number
 }): EncounterRunActorState {
@@ -180,6 +181,7 @@ export function creatureActor(input: {
     damageVulnerabilities: [...(input.damageVulnerabilityIds ?? [])],
     damageResistances: [...(input.damageResistanceIds ?? [])],
     damageImmunities: [],
+    qualifiedDamageDefenses: [...(input.qualifiedDamageDefenses ?? [])],
     conditionImmunities: [...(input.conditionImmunityIds ?? [])],
     features: [...input.features]
   }

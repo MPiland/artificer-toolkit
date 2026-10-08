@@ -93,7 +93,7 @@
 | 8   | PLATFORM-5 (5.6)                        | 4.0  | Done (ninth session).                                                                                                                    |
 | 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
-| 11  | SPELLS-9                                | 4.5  | After SPELLS-2.                                                                                                                          |
+| 11  | SPELLS-9                                | 4.5  | In progress (tenth session, D95). Larger than S-M: slice A rules commits, B movement, C GM and Sheet edits; opportunity-attack defenses. |
 | 12  | SPELLS-3 (3.2)                          | 4.2  | Death saves; after SPELLS-2.                                                                                                             |
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                             |
 | 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                   |

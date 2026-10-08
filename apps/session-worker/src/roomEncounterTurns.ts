@@ -33,7 +33,7 @@ import { persistRoomConcentrationChildren } from './roomConcentrationPersistence
 export async function executeRoomEncounterTurn(input: {
   ctx: EncounterCharacterWriteTransaction & {
     ports: EncounterCharacterWriteTransaction['ports'] &
-      Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
+      Pick<EncounterWritePorts, 'recordConcentrationCheckRoll' | 'postRulesChatMessage'>
   }
   store: RoomEncounterStore
   transaction: RoomTransaction

@@ -3,6 +3,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -13,6 +14,7 @@ import { dependentEffectDefinition } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
   readPendingActionDecision,
+  readRoomChatBodies,
   readRoomHistory,
   type RoomHistory
 } from './roomHistoryReads.js'
@@ -22,6 +24,7 @@ const CHARACTER_ACTOR_ID = testUuid(0x801)
 const CHARACTER_ID = testUuid(0x802)
 const DEPENDENT_HOLDER_ID = testUuid(0x803)
 const INDEPENDENT_EFFECT_ID = testUuid(0x5300)
+const HOLDER_ID = testUuid(0x804)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -192,5 +195,190 @@ describe('room Concentration checks', () => {
     expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
     expect(before.maintainedStates).toHaveLength(1)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+  })
+})
+
+const conditionId = (code: string) => {
+  const condition = srdSystemRecord.conditionTypes.find((candidate) => candidate.code === code)
+  if (!condition) throw new Error(`The SRD ${code} condition is missing.`)
+  return condition.id
+}
+
+/** A Creature holds the Concentration the Wolf's Bite then hits (with a dependent effect on a second Wolf). */
+function creatureHolderRoom(
+  holder: Pick<Parameters<typeof srdCreatureActor>[0], 'conditionIds' | 'currentHitPoints'> & {
+    hidden?: boolean
+  }
+) {
+  const attacker = biteWolf('ATTACK')
+  const { hidden, ...holderOptions } = holder
+  return actionRoom({
+    autoRoll: 'GAME_MASTER',
+    rolls: [18],
+    actors: [
+      srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
+      {
+        ...srdCreatureActor({ id: HOLDER_ID, creature: plainWolf, ...holderOptions }),
+        public: !hidden
+      },
+      srdCreatureActor({ id: DEPENDENT_HOLDER_ID, creature: plainWolf })
+    ],
+    ownerFeatureId: creatureFeature(attacker, 'Bite').id,
+    concentration: true,
+    concentrationOwnerActorId: HOLDER_ID,
+    concentrationDependentActorIds: [DEPENDENT_HOLDER_ID]
+  })
+}
+
+/** The Concentration end children (D95) the room recorded, one receipt each. */
+function concentrationEnds(history: RoomHistory) {
+  return history.receipts.flatMap((receipt) => {
+    const execution = parseReceiptExecution(receipt)
+    return receipt.commandType === 'CONCENTRATION_END' &&
+      execution.status === 'AGGREGATE_CHOICE_COMPLETE' &&
+      execution.applicationOutputs.kind === 'CONCENTRATION_END'
+      ? [{ receipt, output: execution.applicationOutputs }]
+      : []
+  })
+}
+
+describe('room Concentration ends without a check (D95)', () => {
+  it('ends a Character’s Concentration when the hit drops it to 0 hit points, rolling and prompting nothing', async () => {
+    // The Wolf's hit deals 1 damage to a Character on 1 hit point, who falls Unconscious.
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18],
+      characterPlay: { currentHitPoints: 1 }
+    })
+    const [dependentId] = room.room.dependentEffectIds
+    const before = await readRoomHistory(room.room.base.stub)
+    await startedBite(room)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toEqual([])
+    expect(after.maintainedStates).toEqual([])
+    expect(effectIds(after)).not.toContain(dependentId)
+    expect(effectIds(after)).toContain(INDEPENDENT_EFFECT_ID)
+    const [end, ...others] = concentrationEnds(after)
+    expect(others).toEqual([])
+    expect(end!.output).toMatchObject({
+      kind: 'CONCENTRATION_END',
+      ownerActorId: CHARACTER_ACTOR_ID,
+      maintainedStateId: before.maintainedStates[0]!.id,
+      reason: 'INCAPACITATED',
+      cleanup: { maintainedStateId: before.maintainedStates[0]!.id }
+    })
+    expect(end!.output.cleanup.removedDependentEffectIds).toContain(dependentId)
+    const parent = after.receipts.find((receipt) => receipt.commandType !== 'CONCENTRATION_END')
+    expect(end!.output.parentOccurrenceId).toBe(parent!.occurrenceId)
+  })
+
+  it('refuses to undo an action whose damage ended a Concentration, naming what it cannot restore', async () => {
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18],
+      characterPlay: { currentHitPoints: 1 }
+    })
+    await startedBite(room)
+    const answer = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'REVERT_UNAVAILABLE',
+      message: expect.stringContaining('lost Concentration')
+    })
+  })
+
+  it.each([
+    { name: 'defeated', holder: { currentHitPoints: 1 }, reason: 'DEFEATED' as const },
+    {
+      name: 'Paralyzed',
+      holder: { conditionIds: [conditionId('PARALYZED')] },
+      reason: 'INCAPACITATED' as const
+    },
+    {
+      name: 'Stunned',
+      holder: { conditionIds: [conditionId('STUNNED')] },
+      reason: 'INCAPACITATED' as const
+    },
+    {
+      name: 'Incapacitated',
+      holder: { conditionIds: [conditionId('INCAPACITATED')] },
+      reason: 'INCAPACITATED' as const
+    }
+  ])(
+    'ends a Creature’s Concentration when it is $name, with no check and a table notice',
+    async (scenario) => {
+      const room = await creatureHolderRoom(scenario.holder)
+      const before = await readRoomHistory(room.room.base.stub)
+      expect(before.maintainedStates).toHaveLength(1)
+      const { answer } = await room.startAction(HOLDER_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      const after = await readRoomHistory(room.room.base.stub)
+      expect(concentrationChecks(after)).toEqual([])
+      expect(after.maintainedStates).toEqual([])
+      expect(after.activeEffects).toEqual([])
+      expect(concentrationEnds(after).map(({ output }) => output.reason)).toEqual([scenario.reason])
+      expect(await readRoomChatBodies(room.room.base.stub)).toEqual([
+        expect.stringMatching(
+          scenario.reason === 'DEFEATED'
+            ? /is defeated and loses Concentration\.$/
+            : /can't act and loses Concentration\.$/
+        )
+      ])
+    }
+  )
+
+  it('posts no notice for a hidden Creature’s end, which is private like its check card', async () => {
+    const room = await creatureHolderRoom({ conditionIds: [conditionId('STUNNED')], hidden: true })
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationEnds(after)).toHaveLength(1)
+    expect(after.maintainedStates).toEqual([])
+    expect(await readRoomChatBodies(room.room.base.stub)).toEqual([])
+  })
+
+  it('ends a Character’s Concentration while a Sheet condition stops it acting, posting the table notice', async () => {
+    const stunned = { conditionTypeId: conditionId('STUNNED'), label: 'Stunned' }
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18],
+      characterPlay: { conditions: [stunned] }
+    })
+    await startedBite(room)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toEqual([])
+    expect(after.maintainedStates).toEqual([])
+    expect(concentrationEnds(after).map(({ output }) => output.reason)).toEqual(['INCAPACITATED'])
+    expect(await readRoomChatBodies(room.room.base.stub)).toEqual([
+      expect.stringMatching(/can't act and loses Concentration\.$/)
+    ])
+  })
+
+  it('keeps a Character’s Concentration while it is only Grappled and Restrained (speed 0), asking for the check', async () => {
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18],
+      characterPlay: {
+        conditions: [
+          { conditionTypeId: conditionId('GRAPPLED'), label: 'Grappled' },
+          { conditionTypeId: conditionId('RESTRAINED'), label: 'Restrained' }
+        ]
+      }
+    })
+    await startedBite(room)
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationEnds(after)).toEqual([])
+    expect(after.maintainedStates).toHaveLength(1)
+    expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
   })
 })

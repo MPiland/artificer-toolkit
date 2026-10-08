@@ -32,7 +32,10 @@ export type LiveSessionEncounterCleavingCommitInput = Omit<
   rules: z.infer<typeof encounterActorRuleOutputSchema>
   maintenanceOwners: z.infer<typeof liveSessionEncounterMaintenanceOwnerRequestSchema>[]
   cleaving: ServerAggregateChoicePendingSnapshotDto | null
-} & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>
+} & Pick<
+    LiveSessionEncounterActionCommitInput,
+    'concentration' | 'pendingConcentration' | 'concentrationEnds'
+  >
 
 export const liveSessionEncounterCleavingCommitInputSchema: z.ZodMiniType<LiveSessionEncounterCleavingCommitInput> =
   lazySchema(() =>

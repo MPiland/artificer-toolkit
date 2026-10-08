@@ -11,7 +11,8 @@ import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
   readPendingActionDecision,
-  readRoomHistory
+  readRoomHistory,
+  type RoomHistory
 } from './roomHistoryReads.js'
 
 const SOURCE_ID = testUuid(0x900)
@@ -26,10 +27,16 @@ afterEach(() => {
  * A Wolf whose Bite hits for 40 within 20 ft, beside three plain Wolves of 11 hit points: with
  * Cleaving on, the finalized damage carries through the chain (40 - 11 = 29, then 29 - 11 = 18).
  */
-function cleavingRoom(options: { autoRoll?: 'GAME_MASTER'; rolls?: readonly number[] }) {
+function cleavingRoom(options: {
+  autoRoll?: 'GAME_MASTER'
+  rolls?: readonly number[]
+  /** The target that holds a Concentration the Bite then ends. */
+  concentrationOwnerActorId?: string
+}) {
   const attacker = biteWolf('ATTACK', { damage: 40, reachFeet: 20 })
   return actionRoom({
     ...options,
+    concentration: options.concentrationOwnerActorId !== undefined,
     actors: [
       srdCreatureActor({ id: SOURCE_ID, creature: attacker }),
       ...TARGET_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
@@ -120,4 +127,60 @@ describe('room Cleaving chain', () => {
       expect(carried.sort((left, right) => right - left)).toEqual([29, 18])
     }
   )
+
+  describe('with a target that holds Concentration (D95)', () => {
+    const concentrationEnds = (history: RoomHistory) =>
+      history.receipts.flatMap((receipt) => {
+        const execution = parseReceiptExecution(receipt)
+        return execution.status === 'AGGREGATE_CHOICE_COMPLETE' &&
+          execution.applicationOutputs.kind === 'CONCENTRATION_END'
+          ? [execution.applicationOutputs]
+          : []
+      })
+
+    it('ends a defeated first target’s Concentration in the attack commit that offers the chain', async () => {
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        concentrationOwnerActorId: TARGET_IDS[0]
+      })
+      await startAttack(room)
+      const offered = await readRoomHistory(room.room.base.stub)
+      expect(offered.maintainedStates).toEqual([])
+      expect(concentrationEnds(offered)).toMatchObject([
+        { ownerActorId: TARGET_IDS[0], reason: 'DEFEATED' }
+      ])
+      const first = await pendingChoice(room)
+      expect(
+        (
+          await room.resolve(first, {
+            kind: 'OPTION',
+            optionId: first.pending.options[0]!.optionId
+          })
+        ).type
+      ).toBe('COMMAND_COMMITTED')
+      expect(concentrationEnds(await readRoomHistory(room.room.base.stub))).toHaveLength(1)
+    })
+
+    it('ends a later target’s Concentration in the Cleaving response commit that defeats it', async () => {
+      const room = await cleavingRoom({
+        autoRoll: 'GAME_MASTER',
+        rolls: [18],
+        concentrationOwnerActorId: TARGET_IDS[1]
+      })
+      await startAttack(room)
+      const offered = await readRoomHistory(room.room.base.stub)
+      expect(offered.maintainedStates).toHaveLength(1)
+      expect(concentrationEnds(offered)).toEqual([])
+      const first = await pendingChoice(room)
+      const option = first.pending.options.find((entry) => entry.targetActorId === TARGET_IDS[1])
+      const answer = await room.resolve(first, { kind: 'OPTION', optionId: option!.optionId })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      const settled = await readRoomHistory(room.room.base.stub)
+      expect(settled.maintainedStates).toEqual([])
+      expect(concentrationEnds(settled)).toMatchObject([
+        { ownerActorId: TARGET_IDS[1], reason: 'DEFEATED' }
+      ])
+    })
+  })
 })

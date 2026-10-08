@@ -67,7 +67,10 @@ export async function persistEncounterTurnCommit(
         userId: string
         authorizedCharacterIds: ReadonlySet<string>
         occurredAt: string
-      } & Pick<LiveSessionEncounterTurnCommitInput, 'concentration' | 'pendingConcentration'>
+      } & Pick<
+        LiveSessionEncounterTurnCommitInput,
+        'concentration' | 'concentrationEnds' | 'pendingConcentration'
+      >
     ): Promise<{ actors: EncounterRunActorState[]; failed: boolean }>
   }
 ): Promise<EncounterCommandResultDto> {
@@ -242,6 +245,7 @@ export async function persistEncounterTurnCommit(
     authorizedCharacterIds: characterIds,
     occurredAt: input.occurredAt,
     concentration: input.concentration,
+    concentrationEnds: input.concentrationEnds,
     pendingConcentration: input.pendingConcentration
   })
   const nextProjection = projectCurrentEncounterGm({

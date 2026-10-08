@@ -38,6 +38,7 @@ import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/
 import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/concentration.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+  SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -56,6 +57,7 @@ import {
 } from '../../tests/fixtures/encounterAction'
 import { api, components, internal } from '../_generated/api'
 import { seedConcentration } from '../../tests/fixtures/concentration'
+import { concentrationEndOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import {
@@ -300,6 +302,7 @@ async function setup(
       ...SRD_RULE_STATE_DEFINITIONS.filter(
         (definition) =>
           definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID ||
+          definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID ||
           srdSystemRecord.conditionTypes.some(
             (condition) =>
               condition.id === definition.id &&
@@ -719,131 +722,73 @@ describe('native Cleaving action settlement', () => {
     )
   }, 60_000)
 
-  it.each([
-    { face: 20, outcome: 'SAVE_SUCCESS' as const, transport: 'room' as const },
-    { face: 1, outcome: 'SAVE_FAILURE' as const, transport: 'room' as const }
-  ])(
-    'orders an Assisted concentration $outcome before the deferred Cleaving choice via $transport',
-    async ({ face, outcome }) => {
-      const base = await setup('PROMPT', false, true)
-      if (!base.characterId) throw new Error('Missing Cleaving concentration Character.')
-      const seeded = await seedConcentration({
-        t: base.t,
-        run: base.run,
-        target: base.run.actors[1]!,
-        character: { id: base.characterId }
-      })
-      const dependentDefinition = seeded.dependent.definition
-      if (dependentDefinition.schemaVersion !== 2)
-        throw new Error('Expected a current active-effect definition.')
-      const candidateEffectId = await base.t.run(async (ctx) => {
-        const dexterity = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')
-        if (!dexterity) throw new Error('Missing Cleaving candidate Dexterity.')
-        const authoredEffectId = crypto.randomUUID()
-        return (
-          await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
-            id: crypto.randomUUID(),
-            owner: {
-              kind: 'ENCOUNTER_ACTOR',
-              encounterId: base.run.id,
-              targetActorId: base.run.actors[2]!.id
+  // D95 supersedes the D63 ordering of a Concentration check before the deferred Cleaving choice: a
+  // Cleaving first target is always at 0 hit points, and a Character there falls Unconscious, so
+  // its Concentration ends in the attack commit with no check and the choice is offered directly.
+  it("ends a Cleaving first target Character's Concentration with no check and offers the choice", async () => {
+    const base = await setup('PROMPT', false, true)
+    if (!base.characterId) throw new Error('Missing Cleaving concentration Character.')
+    const seeded = await seedConcentration({
+      t: base.t,
+      run: base.run,
+      target: base.run.actors[1]!,
+      character: { id: base.characterId }
+    })
+    const dependentDefinition = seeded.dependent.definition
+    if (dependentDefinition.schemaVersion !== 2)
+      throw new Error('Expected a current active-effect definition.')
+    const candidateEffectId = await base.t.run(async (ctx) => {
+      const dexterity = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')
+      if (!dexterity) throw new Error('Missing Cleaving candidate Dexterity.')
+      const authoredEffectId = crypto.randomUUID()
+      return (
+        await createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+          id: crypto.randomUUID(),
+          owner: {
+            kind: 'ENCOUNTER_ACTOR',
+            encounterId: base.run.id,
+            targetActorId: base.run.actors[2]!.id
+          },
+          definition: {
+            ...dependentDefinition,
+            authoredEffectId,
+            frozenGraph: {
+              ...dependentDefinition.frozenGraph,
+              source: {
+                ...dependentDefinition.frozenGraph.source,
+                definitionId: authoredEffectId
+              }
             },
-            definition: {
-              ...dependentDefinition,
-              authoredEffectId,
-              frozenGraph: {
-                ...dependentDefinition.frozenGraph,
-                source: {
-                  ...dependentDefinition.frozenGraph.source,
-                  definitionId: authoredEffectId
-                }
-              },
-              stateContributions: [
-                {
-                  kind: 'SCALAR_REDUCTION',
-                  valueDefinitionId: dexterity.id,
-                  amount: 2,
-                  stacking: 'ADDITIVE',
-                  floor: 0,
-                  recoveryTriggers: ['LONG_REST'],
-                  terminalConsequence: 'TARGET_DIED',
-                  sourceOutcomeId: crypto.randomUUID(),
-                  sourceNodeId: 'concentration_candidate',
-                  sourceOperationKey: 'concentration_candidate'
-                }
-              ]
-            },
-            lifecycle: seeded.dependent.lifecycle,
-            maintainedEffectStateId: seeded.state.id
-          })
-        ).id
-      })
-      const { root, result } = await completeParent(base)
-      expect(result.occurrence?.status).toBe('COMPLETE')
-      const afterParent = await records(base)
-      expect(afterParent.occurrences.filter((entry) => entry.state === 'PENDING')).toHaveLength(1)
-      const pending = await pendingFor(base, base.other.caller)
-      if (!pending || pending.kind !== 'D20_EVIDENCE')
-        throw new Error('Expected concentration before Cleaving.')
-      const input: EncounterExecuteInput = {
-        command: {
-          type: 'RESOLVE_RULE_OCCURRENCE',
-          encounterId: base.run.id,
-          commandId: crypto.randomUUID(),
-          correlationId: null,
-          expectedVersion: pending.encounterVersion,
-          occurrenceId: pending.occurrenceId,
-          expectedOccurrenceVersion: pending.occurrenceVersion,
-          resolution: {
-            kind: 'ENTER_DICE',
-            requestId: pending.request.requestId,
-            rawFaces: pending.request.rollMode === 'NORMAL' ? [face] : [face, face],
-            rollMode: pending.request.rollMode
-          }
-        }
-      }
-      const concentration = encounterCommandResultDtoSchema.parse(
-        await executeInRoom(base.other.caller, input)
-      )
-      expect(concentration.occurrence).toMatchObject({ status: 'COMPLETE' })
-      // The save's outcome is the Concentration roll card of the die the target's controller entered.
-      expect(await readRoomRollCards(base.other.caller, base.campaign.id)).toContainEqual(
-        expect.objectContaining({
-          ruleCheck: expect.objectContaining({
-            kind: 'CONCENTRATION',
-            actorId: pending.rollerActorId,
-            faces: [face],
-            outcome: outcome === 'SAVE_SUCCESS' ? 'KEPT' : 'LOST'
-          })
+            stateContributions: [
+              {
+                kind: 'SCALAR_REDUCTION',
+                valueDefinitionId: dexterity.id,
+                amount: 2,
+                stacking: 'ADDITIVE',
+                floor: 0,
+                recoveryTriggers: ['LONG_REST'],
+                terminalConsequence: 'TARGET_DIED',
+                sourceOutcomeId: crypto.randomUUID(),
+                sourceNodeId: 'concentration_candidate',
+                sourceOperationKey: 'concentration_candidate'
+              }
+            ]
+          },
+          lifecycle: seeded.dependent.lifecycle,
+          maintainedEffectStateId: seeded.state.id
         })
-      )
-      const afterConcentration = await records(base)
-      expect(
-        afterConcentration.occurrences.filter((entry) => entry.state === 'PENDING')
-      ).toHaveLength(1)
-      // The parent's stored receipt is untouched by the concentration child: the room still answers
-      // a retry of the root from it.
-      await expect(executeInRoom(base.owner.caller, base.command)).resolves.toEqual(
-        await withCurrentProjection(base, base.owner.caller, root)
-      )
-      const cleaving = await pendingChoice(base)
-      const decline = response(base, cleaving, true)
-      const declined = await executeInRoom(base.owner.caller, { command: decline })
-      expect((await records(base)).occurrences.some((entry) => entry.state === 'PENDING')).toBe(
-        false
-      )
-      const currentConcentration = encounterCommandResultDtoSchema.parse(
-        await withCurrentProjection(base, base.other.caller, concentration)
-      )
-      await expect(
-        executeInRoom(base.other.caller, input).then((retried) =>
-          encounterCommandResultDtoSchema.parse(retried)
-        )
-      ).resolves.toEqual(currentConcentration)
-      await expect(executeInRoom(base.owner.caller, { command: decline })).resolves.toEqual(
-        await withCurrentProjection(base, base.owner.caller, declined)
-      )
-      const effects = await base.t.run((ctx) =>
+      ).id
+    })
+    const { root, result } = await completeParent(base)
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    const afterParent = await records(base)
+    // The only pending occurrence is the Cleaving choice: no Concentration check precedes it.
+    const pending = afterParent.occurrences.filter((entry) => entry.state === 'PENDING')
+    expect(pending).toHaveLength(1)
+    const choice = await pendingChoice(base)
+    expect(choice.options.length).toBeGreaterThan(0)
+    const characterEffectIds = (
+      await base.t.run((ctx) =>
         ctx.db
           .query('characterActiveRuleEffects')
           .withIndex('by_characterId_createdOrdinal_id', (query) =>
@@ -851,24 +796,43 @@ describe('native Cleaving action settlement', () => {
           )
           .collect()
       )
-      expect(effects.map((effect) => effect.id)).toContain(seeded.independent.id)
-      expect(effects.map((effect) => effect.id).includes(seeded.dependent.id)).toBe(
-        outcome === 'SAVE_SUCCESS'
-      )
-      const candidateEffects = await base.t.run((ctx) =>
-        ctx.db
-          .query('encounterActiveRuleEffects')
-          .withIndex('by_encounterId_targetActorId_id', (query) =>
-            query.eq('encounterId', base.run.id).eq('targetActorId', base.run.actors[2]!.id)
-          )
-          .collect()
-      )
-      expect(candidateEffects.map((effect) => effect.id).includes(candidateEffectId)).toBe(
-        outcome === 'SAVE_SUCCESS'
-      )
-    },
-    60_000
-  )
+    ).map((effect) => effect.id)
+    expect(characterEffectIds).toContain(seeded.independent.id)
+    expect(characterEffectIds).not.toContain(seeded.dependent.id)
+    const candidateEffects = await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterActiveRuleEffects')
+        .withIndex('by_encounterId_targetActorId_id', (query) =>
+          query.eq('encounterId', base.run.id).eq('targetActorId', base.run.actors[2]!.id)
+        )
+        .collect()
+    )
+    expect(candidateEffects.map((effect) => effect.id)).not.toContain(candidateEffectId)
+    // The end is a durable child of the parent action, keyed by its occurrence and the slot.
+    const endId = concentrationEndOccurrenceId(result.occurrence!.occurrenceId, seeded.state.id)
+    expect(afterParent.occurrences.find((entry) => entry.id === endId)).toMatchObject({
+      state: 'COMPLETED'
+    })
+    const chat = await base.other.caller.query(api.campaigns.chat.list, {
+      campaignId: base.campaign.id,
+      room: 'TABLE',
+      limit: 100
+    })
+    expect(
+      chat.entries.filter((entry) => entry.body?.endsWith("can't act and loses Concentration."))
+    ).toHaveLength(1)
+    // The parent's stored receipt is untouched by the end: the room still answers a retry of the
+    // root from it.
+    await expect(executeInRoom(base.owner.caller, base.command)).resolves.toEqual(
+      await withCurrentProjection(base, base.owner.caller, root)
+    )
+    const decline = response(base, choice, true)
+    const declined = await executeInRoom(base.owner.caller, { command: decline })
+    expect((await records(base)).occurrences.some((entry) => entry.state === 'PENDING')).toBe(false)
+    await expect(executeInRoom(base.owner.caller, { command: decline })).resolves.toEqual(
+      await withCurrentProjection(base, base.owner.caller, declined)
+    )
+  }, 60_000)
 
   it('cleans an attacker-owned concentration dependent after Automatic Cleaving damage', async () => {
     const base = await setup('AUTO_ROLL', true, true)

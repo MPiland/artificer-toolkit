@@ -198,6 +198,7 @@ export async function planNativeLiveConcentrationResponse(
     maintenanceOwners: [...maintenanceOwners.values()],
     concentration: planned.completed,
     pendingConcentration: pending,
+    concentrationEnds: planned.concentrationEnds,
     cleaving
   })
   return { kind: 'PLANNED' as const, input }

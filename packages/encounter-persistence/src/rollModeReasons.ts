@@ -58,8 +58,7 @@ async function readContributorSource(
       ]
     }
   }
-  const holder =
-    /^(?:basic-action|condition):(.+)$/.exec(contributor.domainKey ?? '')?.[1] ?? null
+  const holder = /^(?:basic-action|condition):(.+)$/.exec(contributor.domainKey ?? '')?.[1] ?? null
   // A condition's rule-state definition shares its id, so the System condition label names it.
   if (parts[0] === 'condition') {
     const conditionId = parts[1]?.toLowerCase() ?? ''

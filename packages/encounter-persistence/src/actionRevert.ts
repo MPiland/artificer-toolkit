@@ -175,14 +175,19 @@ export async function revertLastEncounterAction(
       continue
     }
     if (
-      (outputs?.kind !== 'CONCENTRATION_CHECK' && outputs?.kind !== 'CLEAVING_DAMAGE') ||
+      (outputs?.kind !== 'CONCENTRATION_CHECK' &&
+        outputs?.kind !== 'CONCENTRATION_END' &&
+        outputs?.kind !== 'CLEAVING_DAMAGE') ||
       outputs.parentOccurrenceId !== root.ruleOccurrenceId
     ) {
       unsupported.add('a later rule result')
       continue
     }
     childOccurrenceIds.add(receipt.occurrenceId)
-    if (outputs.kind === 'CONCENTRATION_CHECK') {
+    if (outputs.kind === 'CONCENTRATION_END') {
+      // The holder couldn't act, so its maintained effect ended without a check (D95).
+      unsupported.add('lost Concentration')
+    } else if (outputs.kind === 'CONCENTRATION_CHECK') {
       // A failed save ended a maintained effect whose contents the receipt does not keep.
       if (outputs.outcome === 'SAVE_FAILURE') unsupported.add('lost Concentration')
     } else if (outputs.outcome === 'APPLIED') cleaving.push(outputs)

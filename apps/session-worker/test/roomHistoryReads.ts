@@ -77,3 +77,12 @@ export function readPendingActionDecision(stub: RoomStub) {
     }
   })
 }
+
+/** The bodies of the Run's chat entries, in the order the room stored them. */
+export function readRoomChatBodies(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) =>
+    new RoomEncounterStore(context.storage)
+      .documents('campaignConversationEntryPayloads')
+      .flatMap((payload) => (payload.kind === 'CHAT' && payload.body ? [payload.body] : []))
+  )
+}

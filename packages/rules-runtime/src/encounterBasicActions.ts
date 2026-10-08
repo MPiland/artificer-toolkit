@@ -130,14 +130,29 @@ async function unableToActOrMove(input: {
       : []
   })
   if (feet.length && feet.every((value) => value === 0)) return true
+  return encounterActorCannotAct({
+    conditionIds: target.state.conditions,
+    activeEffects: target.activeEffects,
+    gameSystemId: input.gameSystemId,
+    definitions: input.definitions
+  })
+}
+
+/** Whether the System's actor-action capability is suppressed for the target (Speed is ignored). */
+export async function encounterActorCannotAct(input: {
+  conditionIds: readonly string[]
+  activeEffects: MovementTarget['activeEffects']
+  gameSystemId: string
+  definitions: CurrentReusableDefinitionSource
+}) {
   const capabilityDefinitionId =
     actionEconomyCapabilityRegistry.requireActorActionCapabilityDefinitionId(input.gameSystemId)
   const state = await resolveRuleCapabilityState({
     definitions: input.definitions,
     gameSystemId: input.gameSystemId,
-    activeConditionDefinitionIds: target.state.conditions,
+    activeConditionDefinitionIds: input.conditionIds,
     capabilityDefinitionIds: [capabilityDefinitionId],
-    activeEffectSuppressions: activeEffectCapabilitySuppressions(target.activeEffects)
+    activeEffectSuppressions: activeEffectCapabilitySuppressions(input.activeEffects)
   })
   return state.capabilities[0]?.available === false
 }

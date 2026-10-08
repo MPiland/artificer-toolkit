@@ -955,6 +955,42 @@ describe('rules runtime contracts', () => {
       })
     ).toThrow()
   })
+  it('accepts a Concentration end only when its cleanup targets the ended maintained state', () => {
+    const ended = {
+      kind: 'CONCENTRATION_END' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: '00000000-0000-4000-8000-000000000021',
+      parentOccurrenceId: '00000000-0000-4000-8000-000000000022',
+      ownerActorId: '00000000-0000-4000-8000-000000000023',
+      maintainedStateId: '00000000-0000-4000-8000-000000000024',
+      reason: 'DEFEATED' as const,
+      cleanup: {
+        maintainedStateId: '00000000-0000-4000-8000-000000000024',
+        removedDependentEffectIds: [],
+        characterOwnerTransitions: []
+      }
+    }
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(ended)).toMatchObject({
+      kind: 'CONCENTRATION_END',
+      reason: 'DEFEATED'
+    })
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...ended,
+        cleanup: { ...ended.cleanup, maintainedStateId: '00000000-0000-4000-8000-000000000025' }
+      })
+    ).toThrow()
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({ ...ended, reason: 'GRAPPLED' })
+    ).toThrow()
+    expect(
+      serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
+        schemaVersion: 1,
+        transition: 'CONCENTRATION_END',
+        expectedAggregateVersion: 3
+      })
+    ).toMatchObject({ transition: 'CONCENTRATION_END' })
+  })
   it('requires immutable active-effect identity/configuration and matching mutable ticks', () => {
     const authoredEffectId = '00000000-0000-4000-8000-000000000011'
     const compiledEntryId = '00000000-0000-4000-8000-000000000012'

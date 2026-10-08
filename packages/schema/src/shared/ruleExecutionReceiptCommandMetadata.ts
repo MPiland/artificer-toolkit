@@ -56,6 +56,11 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = lazySchema(() 
       }),
       z.strictObject({
         schemaVersion: z.literal(1),
+        transition: z.literal('CONCENTRATION_END'),
+        expectedAggregateVersion: aggregateVersionSchema
+      }),
+      z.strictObject({
+        schemaVersion: z.literal(1),
         transition: z.literal('RESUME'),
         expectedAggregateVersion: aggregateVersionSchema,
         expectedOccurrenceVersion: aggregateVersionSchema,

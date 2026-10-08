@@ -407,7 +407,8 @@ export async function planNativeLiveEncounterTurn(
             ).values()
           ],
           concentration: completion.concentration.completed,
-          pendingConcentration: completion.concentration.pending
+          pendingConcentration: completion.concentration.pending,
+          concentrationEnds: completion.concentration.concentrationEnds
         })
       : null
   return {

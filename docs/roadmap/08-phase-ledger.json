@@ -4538,9 +4538,9 @@
         {
           "id": "SPELLS-9",
           "title": "Concentration and defense completions",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": ["apps/apis/convex/liveSessions/encounterJourneys.test.ts"],
+          "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
@@ -4548,10 +4548,19 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 10 (depends on conditions).",
+              "note": "D95, 2026-10-08. Done: direct actions, turn effects and Cleaving end Concentration with no check (nativeRoomConcentration, nativeRoomCleaving, nativeRoomTurnEffects, cleaving.test.ts, concentrationEnd.test.ts, encounterActorCannotAct.test.ts); nonmagical, silvered and adamantine defenses apply to direct and opportunity attacks (encounterDamageDefenses.test.ts, movementBasicActions.test.ts). Remaining: movement reaction and spatial ends; GM UPDATE_ACTOR and Sheet edits.",
               "id": "SPELLS-9.1"
+            },
+            {
+              "text": "A Creature that holds Concentration makes a Concentration check when it takes damage that does not defeat it, and the commit succeeds.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-9 (D95, 2026-10-08): the planner skips non-Character holders (prepareEncounterConcentrationState returns null) while persistence binds their slot, so the commit fails as \"children are incomplete\".",
+              "id": "SPELLS-9.2"
             }
-          ]
+          ],
+          "journeyGap": "Direct-action end proved; movement and GM or Sheet edit ends are not built yet."
         },
         {
           "id": "SPELLS-10",

@@ -18,6 +18,7 @@ import {
   encounterRunStateSchema
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -153,7 +154,10 @@ export async function setupCreatureReactionRun(
   selectionPolicy: 'AUTOMATIC' | 'CHOICE' = 'CHOICE',
   additionalSelectionPolicy: 'AUTOMATIC' | 'CHOICE' = selectionPolicy,
   legendarySaveTarget: boolean | { outcomeDice: true; stopOnFailedSave?: boolean } = false,
-  authored: { maintainedRecurring?: boolean } = {}
+  authored: {
+    maintainedRecurring?: boolean
+    qualifiedDamageDefenses?: NonNullable<CreatureAuthored['qualifiedDamageDefenses']>
+  } = {}
 ) {
   const stopOnFailedSave =
     typeof legendarySaveTarget === 'object' && legendarySaveTarget.stopOnFailedSave === true
@@ -236,6 +240,9 @@ export async function setupCreatureReactionRun(
     })
   const creature = creatureAuthoredDtoSchema.parse({
     ...reactionCreature,
+    ...(authored.qualifiedDamageDefenses
+      ? { qualifiedDamageDefenses: authored.qualifiedDamageDefenses }
+      : {}),
     features: reactionCreature.features?.map((feature) => ({
       ...feature,
       ...(withAttackRoll && !maintenanceDefinitionId && feature.label === 'Bite'

@@ -49,6 +49,55 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 
+/** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
+export const concentrationCleanupDtoSchema = lazySchema(() =>
+  z.strictObject({
+    maintainedStateId: uuidSchema,
+    removedDependentEffectIds: z
+      .array(uuidSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
+    characterOwnerTransitions: z
+      .array(
+        z.strictObject({
+          characterId: uuidSchema,
+          beforeStreamVersion: aggregateVersionSchema,
+          afterStreamVersion: aggregateVersionSchema
+        })
+      )
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2))
+  })
+)
+
+/** A Concentration slot that ended because its holder can't act or is defeated; no check is rolled (D95). */
+export const concentrationEndDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ownerActorId: uuidSchema,
+    maintainedStateId: uuidSchema,
+    reason: z.enum(['INCAPACITATED', 'DEFEATED']),
+    cleanup: concentrationCleanupDtoSchema
+  })
+)
+
+export const concentrationEndApplicationOutputDtoSchema = lazySchema(() =>
+  z
+    .extend(concentrationEndDtoSchema, {
+      kind: z.literal('CONCENTRATION_END'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      parentOccurrenceId: uuidSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.cleanup.maintainedStateId !== value.maintainedStateId)
+          context.addIssue({
+            code: 'custom',
+            path: ['cleanup', 'maintainedStateId'],
+            message: 'Concentration end cleanup must target the ended maintained state.'
+          })
+      })
+    )
+)
+
 export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -113,23 +162,7 @@ export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
           })
         ),
       contextChecksum: checksumSchema,
-      cleanup: z.nullable(
-        z.strictObject({
-          maintainedStateId: uuidSchema,
-          removedDependentEffectIds: z
-            .array(uuidSchema)
-            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
-          characterOwnerTransitions: z
-            .array(
-              z.strictObject({
-                characterId: uuidSchema,
-                beforeStreamVersion: aggregateVersionSchema,
-                afterStreamVersion: aggregateVersionSchema
-              })
-            )
-            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2))
-        })
-      ),
+      cleanup: z.nullable(concentrationCleanupDtoSchema),
       nextOccurrenceId: z.nullable(uuidSchema),
       skipped: z
         .array(

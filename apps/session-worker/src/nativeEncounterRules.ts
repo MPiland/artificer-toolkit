@@ -644,6 +644,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     maintainedState: plan.settlement.maintainedState,
     concentration: plan.concentration.completed,
     pendingConcentration: plan.concentration.pending,
+    concentrationEnds: plan.concentration.concentrationEnds,
     cleaving: plan.cleaving,
     allyAdvantageUses: plan.allyAdvantageUses
   })

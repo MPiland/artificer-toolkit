@@ -16,6 +16,16 @@ export function concentrationOccurrenceId(
     concentrationNamespace
   )
 }
+/** One CONCENTRATION_END child per ended maintained state of a parent commit. */
+export function concentrationEndOccurrenceId(
+  parentOccurrenceId: string,
+  maintainedStateId: string
+) {
+  return uuidv5(
+    `${parentOccurrenceId}:${maintainedStateId}:concentration-end`,
+    concentrationNamespace
+  )
+}
 export function concentrationCommandId(occurrenceId: string) {
   return uuidv5(`${occurrenceId}:command`, concentrationNamespace)
 }

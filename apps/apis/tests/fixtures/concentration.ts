@@ -168,6 +168,8 @@ export async function seedConcentration(fixture: {
   run: { id: string; gameSystemId: string }
   target: { id: string }
   character: { id: string }
+  /** The Character's current hit points when seeded; unchanged when omitted. */
+  characterHitPoints?: number
 }) {
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
@@ -290,6 +292,9 @@ export async function seedConcentration(fixture: {
         ...character,
         state: {
           ...character.state,
+          ...(fixture.characterHitPoints === undefined
+            ? {}
+            : { hitpoints: { ...character.state.hitpoints, current: fixture.characterHitPoints } }),
           conditions: [{ conditionTypeId: blinded.id }, { conditionTypeId: poisoned.id }]
         }
       },

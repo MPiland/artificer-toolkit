@@ -143,7 +143,11 @@ export async function prepareNativeLiveMovementTarget(input: {
     (effect) =>
       effect.mechanic === 'DISADVANTAGE_ON_ATTACKS_AGAINST' || effect.mechanic === 'SAVE_ADVANTAGE'
   )
-    ? await withEncounterBasicActionDefense({ target, gameSystemId: state.gameSystemId, definitions })
+    ? await withEncounterBasicActionDefense({
+        target,
+        gameSystemId: state.gameSystemId,
+        definitions
+      })
     : target
   return { target: defended, revisions }
 }

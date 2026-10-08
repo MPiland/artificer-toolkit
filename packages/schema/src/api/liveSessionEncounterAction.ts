@@ -18,6 +18,7 @@ import {
 } from '../projections/activeRuleEffectPersistence.js'
 import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecutionMechanics.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
+import { concentrationEndDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '../shared/ruleExecutionReceiptCommandMetadata.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
@@ -96,6 +97,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
     metadata: z.infer<typeof serverRuleExecutionReceiptCommandMetadataDtoSchema>
   }[]
   pendingConcentration: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
+  /** Concentration slots this commit ended because their holders can't act or are defeated (D95). */
+  concentrationEnds: z.infer<typeof concentrationEndDtoSchema>[]
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The helpers' ally advantages (Help, Q11) this attack used; its commit removes them. */
   allyAdvantageUses: EncounterAllyAdvantageUseDto[]
@@ -112,7 +115,8 @@ export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
       })
     )
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-  pendingConcentration: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema)
+  pendingConcentration: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+  concentrationEnds: z.array(concentrationEndDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 }))
 
 export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSessionEncounterActionCommitInput> =

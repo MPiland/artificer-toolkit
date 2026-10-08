@@ -14,12 +14,21 @@ import {
   type PlayerControlFixture
 } from '../../tests/fixtures/playerControl'
 import {
+  attachFixtureRoom,
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
   readRoomTimeline,
-  useLocalRoomWorker
+  useLocalRoomWorker,
+  type RoomCaller
 } from '../../tests/fixtures/localRoomWorker'
+import {
+  concentrationAction,
+  concentrationRecords,
+  seedConcentration,
+  setupConcentration
+} from '../../tests/fixtures/concentration'
+import { api } from '../_generated/api'
 
 useLocalRoomWorker()
 
@@ -32,7 +41,9 @@ useLocalRoomWorker()
  * worker's `roomEncounterReplayIndex.test.ts` covers that path.
  */
 
-type Member = PlayerControlFixture['owner']
+type Member = { caller: RoomCaller }
+/** What a journey's replay checks read: any fixture that holds a Run in a Campaign's room. */
+type JourneyBase = Pick<PlayerControlFixture, 'campaign' | 'run' | 't'>
 type D20Pending = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'D20_EVIDENCE' }>
 type Step = { member: Member; command: EncounterCommandInputDto; result: EncounterCommandResultDto }
 
@@ -57,7 +68,7 @@ async function d20Pending(base: PlayerControlFixture, member: Member): Promise<D
  * Every row of the Run Convex holds once the room checkpoints (the Run's history stays in the
  * room until it completes, D85), with its replay index: a replay must leave them unchanged.
  */
-async function stored(base: PlayerControlFixture) {
+async function stored(base: JourneyBase) {
   await checkpointLiveRoom(base.campaign.id)
   const encounterId = base.run.id
   return base.t.run(async (ctx) => ({
@@ -100,7 +111,7 @@ function journey() {
  * hydrate carries over: its own dice, evidence and occurrence over the Run's current projection,
  * with no roll and no write. A "Roll dice" replay returns only its evidence roll.
  */
-async function expectReplayAcrossRelease(base: PlayerControlFixture, steps: readonly Step[]) {
+async function expectReplayAcrossRelease(base: JourneyBase, steps: readonly Step[]) {
   const before = await stored(base)
   expect(before.replayIndex.map((row) => row.commandId)).toEqual(
     expect.arrayContaining(steps.map((step) => step.command.commandId))
@@ -297,6 +308,33 @@ describe('Encounter journeys through the room (V13.1)', () => {
     if (!enemyState || !('currentHitPoints' in enemyState))
       throw new Error('Missing the stored enemy health.')
     expect(enemyState.currentHitPoints).toBeLessThan(base.enemy.currentHitPoints)
+    await expectReplayAcrossRelease(base, steps)
+  }, 120000)
+})
+
+describe('Concentration ends without a check (D95)', () => {
+  it("a player's concentrating Character knocked to 0 by the GM's Creature loses it, with no roll", async () => {
+    const base = await setupConcentration('AUTO_ROLL')
+    const seeded = await seedConcentration({ ...base, characterHitPoints: 1 })
+    await attachFixtureRoom(base.t, base.campaign.id)
+    const { steps, send } = journey()
+    const hit = await send(base.owner, concentrationAction(base))
+    expect(hit.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
+    expect(hit.roll).toBeNull()
+
+    await checkpointLiveRoom(base.campaign.id)
+    const settled = await concentrationRecords(base)
+    expect(settled.states.map((state) => state.id)).not.toContain(seeded.state.id)
+    expect(settled.effects.map((effect) => effect.id)).not.toContain(seeded.dependent.id)
+    expect(settled.effects.map((effect) => effect.id)).toContain(seeded.independent.id)
+    const chat = await base.player.caller.query(api.campaigns.chat.list, {
+      campaignId: base.campaign.id,
+      room: 'TABLE',
+      limit: 100
+    })
+    expect(
+      chat.entries.filter((entry) => entry.body?.endsWith('loses Concentration.'))
+    ).toHaveLength(1)
     await expectReplayAcrossRelease(base, steps)
   }, 120000)
 })

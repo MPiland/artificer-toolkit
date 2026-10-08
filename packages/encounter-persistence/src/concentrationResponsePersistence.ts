@@ -38,7 +38,7 @@ import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './
 export async function persistEncounterConcentrationResponse(
   ctx: EncounterCharacterWriteTransaction & {
     ports: EncounterCharacterWriteTransaction['ports'] &
-      Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
+      Pick<EncounterWritePorts, 'recordConcentrationCheckRoll' | 'postRulesChatMessage'>
   },
   input: LiveSessionEncounterConcentrationCommitInput,
   callbacks: {
@@ -78,6 +78,9 @@ export async function persistEncounterConcentrationResponse(
     execution.applicationOutputs.kind !== 'CONCENTRATION_CHECK'
   )
     throw new Error('Live Session concentration did not complete.')
+  // The holder's end was settled with the damage that prompted this check (D95).
+  if (input.concentrationEnds.length)
+    throw new Error('Live Session concentration response carries unexpected ends.')
   const output = execution.applicationOutputs
   const failed = output.outcome === 'SAVE_FAILURE'
   if (
@@ -274,6 +277,7 @@ export async function persistEncounterConcentrationResponse(
       authorizedCharacterIds: characterIds,
       occurredAt: input.occurredAt,
       concentration: input.concentration,
+      concentrationEnds: input.concentrationEnds,
       pendingConcentration: nextPending
     })
   ).actors

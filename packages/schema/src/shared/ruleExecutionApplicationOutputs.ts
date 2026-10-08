@@ -20,6 +20,7 @@ import {
   characterItemUseStateTransitionDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
+  concentrationEndApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema
@@ -41,6 +42,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
     cleavingDamageApplicationOutputDtoSchema,
     contestedActionApplicationOutputDtoSchema,
     concentrationCheckApplicationOutputDtoSchema,
+    concentrationEndApplicationOutputDtoSchema,
     encounterActorMechanicsBatchApplicationOutputDtoSchema,
     z
       .strictObject({

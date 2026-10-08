@@ -8,9 +8,11 @@ import type {
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { setupCreatureReactionRun } from '../../tests/fixtures/movementReaction'
 import { setupReactionMovementScene } from '../../tests/fixtures/automaticSceneMovement'
@@ -40,8 +42,13 @@ const pendingRuleOccurrence = makeFunctionReference<
  * An Assisted Run on the mover's turn: a Creature next to a reactor with an opportunity attack,
  * with the move's Scene bound. With `withHelper`, the reactor's ally (off the Scene) acts first.
  */
-async function moverTurn(withHelper = false) {
-  const base = await setupCreatureReactionRun(null, true, withHelper)
+async function moverTurn(
+  withHelper = false,
+  qualifiedDamageDefenses?: CreatureAuthored['qualifiedDamageDefenses']
+) {
+  const base = await setupCreatureReactionRun(null, true, withHelper, 'CHOICE', 'CHOICE', false, {
+    qualifiedDamageDefenses
+  })
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     definitions: SRD_BASIC_ACTION_DEFINITIONS
@@ -218,4 +225,43 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
     rollMode: 'ADVANTAGE'
   })
   expect(await effectsOf(base, helper.id)).toEqual([])
+})
+
+/** The mover's Hit Points after the reactor's opportunity attack (natural 20, minimal damage dice). */
+async function moverHitPointsAfterOpportunityAttack(
+  qualifiedDamageDefenses?: CreatureAuthored['qualifiedDamageDefenses']
+) {
+  const base = await moverTurn(false, qualifiedDamageDefenses)
+  await queueRoomRolls(base.campaign.id, { rolls: [19], repeat: 0 })
+  const choice = (await moveAwayFromReactor(base)).occurrence?.pending
+  if (choice?.kind !== 'MOVEMENT_REACTION' || !choice.choice.options[0])
+    throw new Error('Expected the opportunity attack choice.')
+  const settled = await answer(base, choice, {
+    kind: 'OPTION',
+    optionId: choice.choice.options[0].optionId
+  })
+  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+  await checkpointLiveRoom(base.campaign.id)
+  const row = await base.t.run((ctx) =>
+    ctx.db
+      .query('encounterRunActors')
+      .withIndex('by_encounterId_id', (q) =>
+        q.eq('encounterId', base.run.id).eq('id', base.mover.id)
+      )
+      .unique()
+  )
+  if (!row) throw new Error('Missing the mover.')
+  return readStoredRunActor(row).currentHitPoints
+}
+
+it('an opportunity attack is a nonmagical attack: qualified immunity stops it, plain damage lands', async () => {
+  const piercing = SRD_DAMAGE_TYPES.find((type) => type.code === 'PIERCING')
+  if (!piercing) throw new Error('Missing the SRD piercing damage type.')
+  const unprotected = await moverHitPointsAfterOpportunityAttack()
+  expect(unprotected).toBeLessThan(11)
+  expect(
+    await moverHitPointsAfterOpportunityAttack([
+      { kind: 'IMMUNITY', damageTypeIds: [piercing.id], bypassedBy: ['MAGICAL', 'SILVERED'] }
+    ])
+  ).toBe(11)
 })

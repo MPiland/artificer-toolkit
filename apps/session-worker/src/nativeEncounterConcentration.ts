@@ -25,6 +25,8 @@ import {
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
+import { encounterActorCannotAct } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -86,12 +88,11 @@ export async function planNativeLiveConcentration(input: {
     factsChecksum: string
   }> = []
   let failed = false
-  const cleanups: Array<{
-    state: EncounterMaintainedEffectStateRecord
-    removed: Parameters<typeof projectNativeLiveMaintenanceOwners>[0]['maintenance']['removed']
-    characterVersions: Parameters<
-      typeof projectNativeLiveMaintenanceOwners
-    >[0]['maintenance']['characterVersions']
+  const concentrationEnds: Array<{
+    ownerActorId: string
+    maintainedStateId: string
+    reason: 'INCAPACITATED' | 'DEFEATED'
+    cleanup: Awaited<ReturnType<typeof loseConcentration>>
   }> = []
   let pending: ServerKernelRuleExecutionPendingSnapshotDto | null = null
   let resumed: {
@@ -101,8 +102,16 @@ export async function planNativeLiveConcentration(input: {
   } | null = null
   if (input.resume && (!input.applications.length || input.state.automationMode === 'MANUAL'))
     throw new Error('The concentration response is unavailable.')
-  if (!input.applications.length || input.state.automationMode === 'MANUAL')
-    return { ...projection, completed: [], cleanups, pending, resumed, nextState: state }
+  // A MANUAL Run keeps its Concentration slots: nothing is rolled or ended automatically.
+  if (input.state.automationMode === 'MANUAL')
+    return {
+      ...projection,
+      completed: [],
+      concentrationEnds,
+      pending,
+      resumed,
+      nextState: state
+    }
 
   const { capture } = input
   const slots = new Map<string, EncounterMaintainedEffectStateRecord | null>()
@@ -113,7 +122,7 @@ export async function planNativeLiveConcentration(input: {
   let vocabulary:
     | Extract<LiveSessionEncounterRulesResponse, { kind: 'SYSTEM_VOCABULARY' }>['snapshot']
     | undefined
-  async function current(targetActorId: string) {
+  async function slotFor(targetActorId: string) {
     if (!slots.has(targetActorId)) {
       const created = input.settlement.maintainedState
       if (
@@ -132,20 +141,24 @@ export async function planNativeLiveConcentration(input: {
         slots.set(targetActorId, response.state)
       }
     }
+    return slots.get(targetActorId)!
+  }
+  async function readDefinition(definitionId: string) {
+    if (!definitions.has(definitionId)) {
+      const response = await capture({ kind: 'DEFINITION', definitionId })
+      if (response.kind !== 'DEFINITION')
+        throw new Error('Concentration definition is unavailable.')
+      definitions.set(definitionId, response.definition)
+    }
+    return definitions.get(definitionId)!
+  }
+  async function current(targetActorId: string) {
     return prepareEncounterConcentrationState({
       state,
       targetActorId,
-      maintained: slots.get(targetActorId)!,
+      maintained: await slotFor(targetActorId),
       loadTarget: () => projection.projectedTargets.get(targetActorId),
-      readDefinition: async (definitionId) => {
-        if (!definitions.has(definitionId)) {
-          const response = await capture({ kind: 'DEFINITION', definitionId })
-          if (response.kind !== 'DEFINITION')
-            throw new Error('Concentration definition is unavailable.')
-          definitions.set(definitionId, response.definition)
-        }
-        return definitions.get(definitionId)!
-      },
+      readDefinition,
       readVocabulary: async () => {
         if (!vocabulary) {
           const response = await capture({ kind: 'SYSTEM_VOCABULARY' })
@@ -157,6 +170,150 @@ export async function planNativeLiveConcentration(input: {
       }
     })
   }
+
+  /** Drops one Concentration slot and its dependents from the projection; the receipt cleanup it returns is persisted as a lost check or a CONCENTRATION_END. */
+  async function loseConcentration(maintained: EncounterMaintainedEffectStateRecord) {
+    const created = input.settlement.maintainedState?.id === maintained.id
+    const slot = created
+      ? {
+          state: maintained,
+          dependents: input.settlement.createdEffects.filter(
+            (effect) => effect.maintainedEffectStateId === maintained.id
+          )
+        }
+      : await readNativeLiveMaintenanceSlot({
+          encounterId: input.state.id,
+          actorId: maintained.ownerActorId,
+          definitionId: maintained.maintenanceDefinitionId,
+          capture
+        })
+    if (!slot.state || checksumCanonicalJson(slot.state) !== checksumCanonicalJson(maintained))
+      throw new Error('The concentration state changed before cleanup.')
+    const captured = created
+      ? []
+      : (
+          await readNativeLiveMaintenanceOwners({
+            gameSystemId: input.state.gameSystemId,
+            actors: projection.actors,
+            activeEffectsByActorId: projection.activeEffectsByActorId,
+            removed: slot.dependents,
+            slot: {
+              actorId: maintained.ownerActorId,
+              definitionId: slot.state.maintenanceDefinitionId,
+              stateId: slot.state.id
+            },
+            capture
+          })
+        ).owners
+    const owners: NativeLiveMaintenanceOwner[] = []
+    const uniqueOwners = new Map(
+      slot.dependents.map((effect) => [checksumCanonicalJson(effect.owner), effect.owner])
+    )
+    for (const [key, owner] of uniqueOwners) {
+      const prior =
+        projection.maintenanceOwners.find((entry) => checksumCanonicalJson(entry.owner) === key) ??
+        captured.find((entry) => checksumCanonicalJson(entry.owner) === key)
+      const target = [...projection.projectedTargets.values()].find((value) =>
+        owner.kind === 'CHARACTER'
+          ? value.actor.kind === 'CHARACTER' && value.actor.sourceId === owner.characterId
+          : value.actor.id === owner.targetActorId
+      )
+      const actor = projection.actors.find((value) =>
+        owner.kind === 'CHARACTER'
+          ? value.kind === 'CHARACTER' && value.sourceId === owner.characterId
+          : value.id === owner.targetActorId
+      )
+      const effects = actor ? projection.activeEffectsByActorId.get(actor.id) : prior?.effects
+      if (!effects) throw new Error('Concentration effect owner is unavailable.')
+      const row = target?.characterFacts?.active ?? prior?.character ?? null
+      if (owner.kind === 'CHARACTER' && (!row || row.id !== owner.characterId))
+        throw new Error('Concentration Character owner is unavailable.')
+      owners.push({ owner, effects: [...effects], character: row })
+    }
+    const characterVersions = owners
+      .flatMap((owner) =>
+        owner.character
+          ? [
+              {
+                characterId: owner.character.id,
+                beforeStreamVersion: owner.character.play.streamVersion
+              }
+            ]
+          : []
+      )
+      .sort((left, right) => left.characterId.localeCompare(right.characterId))
+    const reconciled = projectNativeLiveMaintenanceOwners({
+      ...projection,
+      maintenance: { owners, removed: slot.dependents, characterVersions },
+      createdEffects: [],
+      campaignId: input.state.campaignId,
+      gameSystemId: input.state.gameSystemId,
+      occurredAt: input.occurredAt
+    })
+    const retainedOwners = new Map(
+      projection.maintenanceOwners.map((owner) => [checksumCanonicalJson(owner.owner), owner])
+    )
+    for (const owner of reconciled.maintenanceOwners)
+      retainedOwners.set(checksumCanonicalJson(owner.owner), owner)
+    projection = {
+      ...reconciled,
+      maintenanceOwners: [...retainedOwners.values()]
+    }
+    slots.set(maintained.ownerActorId, null)
+    return {
+      maintainedStateId: slot.state.id,
+      removedDependentEffectIds: slot.dependents.map((effect) => effect.id),
+      characterOwnerTransitions: characterVersions.map((entry) => ({
+        ...entry,
+        afterStreamVersion: entry.beforeStreamVersion + 1
+      }))
+    }
+  }
+
+  if (!input.resume) {
+    const definitionSource = {
+      requireCurrent: async (definitionId: string) => {
+        const definition = await readDefinition(definitionId)
+        if (!definition) throw new Error('Concentration capability definition is unavailable.')
+        return definition
+      }
+    }
+    const heldTargets = [...projection.projectedTargets.values()].sort((left, right) =>
+      left.actor.id.localeCompare(right.actor.id)
+    )
+    for (const target of heldTargets) {
+      const actor = projection.actors.find((value) => value.id === target.actor.id)
+      if (!actor) throw new Error('Concentration actor is unavailable.')
+      const maintained = await slotFor(actor.id)
+      if (!maintained) continue
+      const reason = isEncounterActorDefeated(actor)
+        ? 'DEFEATED'
+        : (await encounterActorCannotAct({
+              conditionIds: target.state.conditions,
+              activeEffects: target.activeEffects,
+              gameSystemId: state.gameSystemId,
+              definitions: definitionSource
+            }))
+          ? 'INCAPACITATED'
+          : null
+      if (reason)
+        concentrationEnds.push({
+          ownerActorId: actor.id,
+          maintainedStateId: maintained.id,
+          reason,
+          cleanup: await loseConcentration(maintained)
+        })
+    }
+  }
+  if (!input.applications.length)
+    return {
+      ...projection,
+      completed: [],
+      concentrationEnds,
+      pending,
+      resumed,
+      nextState: state
+    }
 
   const bindings = new Map<string, string>()
   const selectedApplications = input.resume
@@ -240,7 +397,10 @@ export async function planNativeLiveConcentration(input: {
     })()
     const resolution = resume
       ? withEncounterAppRoll(resume.response.resolution, resume.appRoll)
-      : { kind: 'AUTO_ROLL' as const, requestId: continuation.request.requestId }
+      : {
+          kind: 'AUTO_ROLL' as const,
+          requestId: continuation.request.requestId
+        }
     if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'SYSTEM_ROLL' &&
@@ -255,107 +415,8 @@ export async function planNativeLiveConcentration(input: {
       runtime: input.runtime,
       random: input.random ?? nextRollInt
     })
-    let cleanup: Parameters<typeof completeNativeConcentrationResult>[0]['cleanup'] = null
-    if (evidence.failed) {
-      failed = true
-      const created = input.settlement.maintainedState?.id === maintainedStateId
-      const slot = created
-        ? {
-            state: loaded.maintained,
-            dependents: input.settlement.createdEffects.filter(
-              (effect) => effect.maintainedEffectStateId === maintainedStateId
-            )
-          }
-        : await readNativeLiveMaintenanceSlot({
-            encounterId: input.state.id,
-            actorId: application.targetActorId,
-            definitionId: loaded.maintained.maintenanceDefinitionId,
-            capture
-          })
-      if (
-        !slot.state ||
-        checksumCanonicalJson(slot.state) !== checksumCanonicalJson(loaded.maintained)
-      )
-        throw new Error('The concentration state changed before cleanup.')
-      const captured = created
-        ? []
-        : (
-            await readNativeLiveMaintenanceOwners({
-              gameSystemId: input.state.gameSystemId,
-              actors: projection.actors,
-              activeEffectsByActorId: projection.activeEffectsByActorId,
-              removed: slot.dependents,
-              slot: {
-                actorId: application.targetActorId,
-                definitionId: slot.state.maintenanceDefinitionId,
-                stateId: slot.state.id
-              },
-              capture
-            })
-          ).owners
-      const owners: NativeLiveMaintenanceOwner[] = []
-      const uniqueOwners = new Map(
-        slot.dependents.map((effect) => [checksumCanonicalJson(effect.owner), effect.owner])
-      )
-      for (const [key, owner] of uniqueOwners) {
-        const prior =
-          projection.maintenanceOwners.find(
-            (entry) => checksumCanonicalJson(entry.owner) === key
-          ) ?? captured.find((entry) => checksumCanonicalJson(entry.owner) === key)
-        const target = [...projection.projectedTargets.values()].find((value) =>
-          owner.kind === 'CHARACTER'
-            ? value.actor.kind === 'CHARACTER' && value.actor.sourceId === owner.characterId
-            : value.actor.id === owner.targetActorId
-        )
-        const actor = projection.actors.find((value) =>
-          owner.kind === 'CHARACTER'
-            ? value.kind === 'CHARACTER' && value.sourceId === owner.characterId
-            : value.id === owner.targetActorId
-        )
-        const effects = actor ? projection.activeEffectsByActorId.get(actor.id) : prior?.effects
-        if (!effects) throw new Error('Concentration effect owner is unavailable.')
-        const row = target?.characterFacts?.active ?? prior?.character ?? null
-        if (owner.kind === 'CHARACTER' && (!row || row.id !== owner.characterId))
-          throw new Error('Concentration Character owner is unavailable.')
-        owners.push({ owner, effects: [...effects], character: row })
-      }
-      const characterVersions = owners
-        .flatMap((owner) =>
-          owner.character
-            ? [
-                {
-                  characterId: owner.character.id,
-                  beforeStreamVersion: owner.character.play.streamVersion
-                }
-              ]
-            : []
-        )
-        .sort((left, right) => left.characterId.localeCompare(right.characterId))
-      const reconciled = projectNativeLiveMaintenanceOwners({
-        ...projection,
-        maintenance: { owners, removed: slot.dependents, characterVersions },
-        createdEffects: [],
-        campaignId: input.state.campaignId,
-        gameSystemId: input.state.gameSystemId,
-        occurredAt: input.occurredAt
-      })
-      const retainedOwners = new Map(
-        projection.maintenanceOwners.map((owner) => [checksumCanonicalJson(owner.owner), owner])
-      )
-      for (const owner of reconciled.maintenanceOwners)
-        retainedOwners.set(checksumCanonicalJson(owner.owner), owner)
-      projection = { ...reconciled, maintenanceOwners: [...retainedOwners.values()] }
-      slots.set(application.targetActorId, null)
-      cleanups.push({ state: slot.state, removed: slot.dependents, characterVersions })
-      cleanup = {
-        maintainedStateId: slot.state.id,
-        removedDependentEffectIds: slot.dependents.map((effect) => effect.id),
-        characterOwnerTransitions: characterVersions.map((entry) => ({
-          ...entry,
-          afterStreamVersion: entry.beforeStreamVersion + 1
-        }))
-      }
-    }
+    if (evidence.failed) failed = true
+    const cleanup = evidence.failed ? await loseConcentration(loaded.maintained) : null
     const result = completeNativeConcentrationResult({
       context,
       continuation,
@@ -365,7 +426,11 @@ export async function planNativeLiveConcentration(input: {
       initialFactsChecksum: checksumRuleDocument(facts)
     })
     if (isResumed)
-      resumed = { result, failed: evidence.failed, selectedNatural: evidence.selectedNatural }
+      resumed = {
+        result,
+        failed: evidence.failed,
+        selectedNatural: evidence.selectedNatural
+      }
     else
       settled.push({
         result,
@@ -404,5 +469,12 @@ export async function planNativeLiveConcentration(input: {
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
     })
   }))
-  return { ...projection, completed, cleanups, pending, resumed, nextState }
+  return {
+    ...projection,
+    completed,
+    concentrationEnds,
+    pending,
+    resumed,
+    nextState
+  }
 }

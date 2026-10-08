@@ -9,28 +9,33 @@ import {
   type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
+import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { concentrationEndDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   completeNativeConcentrationResult,
   NativeConcentrationContext
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
-import { concentrationCommandId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import {
+  concentrationCommandId,
+  concentrationEndOccurrenceId
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildCommandIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
 import { changedFields } from './documents.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterWritePorts } from './ports.js'
 
-export async function persistNativeConcentrationResult(
-  ctx: EncounterWriteContext & {
-    ports: Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
-  },
+/** Inserts (or completes) a Concentration child's COMPLETED occurrence and its one durable receipt. */
+async function persistCompletedConcentrationChild(
+  ctx: EncounterWriteContext,
   input: {
     state: EncounterRunState
-    result: ReturnType<typeof completeNativeConcentrationResult>
+    result: StoredRuleExecutionResultDto
     occurrence?: EncounterDocument<'encounterRuleOccurrences'>
     commandId: string
+    commandType: string
     fingerprint: string
     userId: string
     correlationId: string | null
@@ -67,7 +72,7 @@ export async function persistNativeConcentrationResult(
       encounterId: state.id,
       occurrenceId: result.occurrenceId,
       commandId: input.commandId,
-      commandType: input.occurrence ? 'RESOLVE_RULE_OCCURRENCE' : 'CONCENTRATION_CHECK',
+      commandType: input.commandType,
       commandFingerprint: input.fingerprint,
       encounterVersion: state.version,
       commandMetadataJson: JSON.stringify(
@@ -80,6 +85,24 @@ export async function persistNativeConcentrationResult(
       createdAt: input.occurredAt
     })
   )
+}
+
+export async function persistNativeConcentrationResult(
+  ctx: EncounterWriteContext & {
+    ports: Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
+  },
+  input: Omit<
+    Parameters<typeof persistCompletedConcentrationChild>[1],
+    'result' | 'commandType'
+  > & {
+    result: ReturnType<typeof completeNativeConcentrationResult>
+  }
+) {
+  const { result, state } = input
+  await persistCompletedConcentrationChild(ctx, {
+    ...input,
+    commandType: input.occurrence ? 'RESOLVE_RULE_OCCURRENCE' : 'CONCENTRATION_CHECK'
+  })
   // Every settled check, answered or automatic, gets its own roll-log entry.
   await ctx.ports.recordConcentrationCheckRoll({
     state,
@@ -87,6 +110,64 @@ export async function persistNativeConcentrationResult(
     authorUserId: input.userId,
     occurredAt: input.occurredAt
   })
+}
+
+/**
+ * Records one Concentration end (D95): a child occurrence and receipt of the parent commit that
+ * rolled no check, so undo can see the maintained effect was lost.
+ */
+export async function persistNativeConcentrationEnd(
+  ctx: EncounterWriteContext,
+  input: {
+    state: EncounterRunState
+    parentOccurrenceId: string
+    end: ReturnType<typeof concentrationEndDtoSchema.parse>
+    userId: string
+    correlationId: string
+    occurredAt: string
+  }
+) {
+  const { state, parentOccurrenceId, end } = input
+  const occurrenceId = concentrationEndOccurrenceId(parentOccurrenceId, end.maintainedStateId)
+  const existing = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
+    .unique()
+  if (existing) throw new Error('The concentration end occurrence already exists.')
+  const result: StoredRuleExecutionResultDto = {
+    status: 'AGGREGATE_CHOICE_COMPLETE',
+    schemaVersion: 1,
+    occurrenceId,
+    occurrenceVersion: 1,
+    applicationOutputs: {
+      ...end,
+      kind: 'CONCENTRATION_END',
+      schemaVersion: 1,
+      occurrenceId,
+      parentOccurrenceId
+    }
+  }
+  await persistCompletedConcentrationChild(ctx, {
+    state,
+    result,
+    commandId: concentrationCommandId(occurrenceId),
+    commandType: 'CONCENTRATION_END',
+    fingerprint: checksumRuleDocument({
+      parentOccurrenceId,
+      ownerActorId: end.ownerActorId,
+      maintainedStateId: end.maintainedStateId,
+      reason: end.reason
+    }),
+    userId: input.userId,
+    correlationId: input.correlationId,
+    metadata: {
+      schemaVersion: 1,
+      transition: 'CONCENTRATION_END',
+      expectedAggregateVersion: state.version
+    },
+    occurredAt: input.occurredAt
+  })
+  return occurrenceId
 }
 
 export async function persistNativeConcentrationPending(

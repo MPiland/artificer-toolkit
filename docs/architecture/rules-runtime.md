@@ -428,6 +428,11 @@ pauses on the first child; only the GM or the maintained Character's controller 
 damage, turn effects and Cleaving use the same coordinators (`encounterConcentration*`,
 `encounterCleaving*`); the room modules are `nativeEncounterConcentration`, `nativeEncounterCleaving` and
 `nativeEncounterMovementConcentration`.
+A holder that is defeated or can't act after the commit's mechanics (`encounterActorCannotAct`: the
+System actor-action capability, not Speed) loses Concentration with no check (D95). The planner returns
+`concentrationEnds`; persistence re-derives each reason (`concentrationEnd.ts`), applies the lost-check
+cleanup and writes a `CONCENTRATION_END` child receipt, which undo treats as lost Concentration.
+Direct actions, turn effects and Cleaving end it today; movement and GM or Sheet edits are SPELLS-9 work.
 
 **Movement and reactions.** Contacts form one frozen path timeline ordered by distance
 (`encounterMovementPath`); spatial effects resolve before reaction candidates at the same distance, and a

@@ -38,6 +38,42 @@ async function quillVolleyDamage(defenses: {
   }
 }
 
+/**
+ * A Quill Volley against a Wolf immune to piercing "from nonmagical attacks". As a ranged weapon
+ * attack (natural 11 hits AC 13) it is such an attack; without a range it is not an attack at all.
+ */
+async function quillVolleyAgainstNonmagicalImmunity(asAttack: boolean) {
+  const prepared = await prepareCreatureAction({
+    actor: creatureActor({
+      id: SOURCE_ID,
+      label: 'Quill Beast',
+      features: [quillVolley({ charges: 3, cost: 1, ...(asAttack ? { rangeFeet: 60 } : {}) })]
+    }),
+    target: creatureActor({
+      id: TARGET_ID,
+      label: 'Wolf',
+      features: [],
+      qualifiedDamageDefenses: [
+        { kind: 'IMMUNITY', damageTypeIds: [piercing], bypassedBy: ['MAGICAL', 'SILVERED'] }
+      ]
+    }),
+    featureId: QUILL_VOLLEY_ID,
+    overridable: true
+  })
+  const { mechanics } = await settleCreatureAction({ prepared, rolls: asAttack ? [10] : [] })
+  return mechanics.mechanics.targetTransition.after.currentHitPoints
+}
+
+describe('qualified damage defenses', () => {
+  it('shrug off a nonmagical Creature attack', async () => {
+    expect(await quillVolleyAgainstNonmagicalImmunity(true)).toBe(11)
+  })
+
+  it('do not reduce damage that is not from an attack', async () => {
+    expect(await quillVolleyAgainstNonmagicalImmunity(false)).toBe(8)
+  })
+})
+
 describe('damage resistance and vulnerability', () => {
   it('halves (rounding down) and then doubles when both apply, rather than cancelling', async () => {
     expect(

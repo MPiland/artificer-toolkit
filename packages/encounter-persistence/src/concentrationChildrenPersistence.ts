@@ -12,9 +12,11 @@ import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolki
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
+  persistNativeConcentrationEnd,
   persistNativeConcentrationPending,
   persistNativeConcentrationResult
 } from './actionChildPersistence.js'
+import { postConcentrationEndMessage, readConcentrationEndReason } from './concentrationEnd.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
@@ -58,7 +60,7 @@ export async function bindEncounterConcentrationApplications(
 export async function persistEncounterConcentrationChildren(
   ctx: EncounterCharacterWriteTransaction & {
     ports: EncounterCharacterWriteTransaction['ports'] &
-      Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
+      Pick<EncounterWritePorts, 'recordConcentrationCheckRoll' | 'postRulesChatMessage'>
   },
   args: {
     state: EncounterRunState
@@ -73,7 +75,10 @@ export async function persistEncounterConcentrationChildren(
     userId: string
     authorizedCharacterIds: ReadonlySet<string>
     occurredAt: string
-  } & Pick<LiveSessionEncounterActionCommitInput, 'concentration' | 'pendingConcentration'>,
+  } & Pick<
+    LiveSessionEncounterActionCommitInput,
+    'concentration' | 'concentrationEnds' | 'pendingConcentration'
+  >,
   callbacks: {
     currentCharacterStreamVersion(characterId: string): Promise<number>
     applyCleanup(input: {
@@ -98,6 +103,60 @@ export async function persistEncounterConcentrationChildren(
   let actors = args.actors
   let correlationId = args.correlationId
   let failed = false
+  // D95: a holder that can't act or is defeated loses Concentration with no check. Every reason is
+  // derived from the committed state before any cleanup runs, as the planner derived them.
+  const ends: {
+    end: (typeof args.concentrationEnds)[number]
+    slot: NonNullable<Awaited<ReturnType<typeof store.findMaintainedStateById>>>
+    holder: EncounterRunActorState
+  }[] = []
+  let previousOwnerId: string | null = null
+  for (const end of args.concentrationEnds) {
+    const slot = await store.findMaintainedStateById({
+      encounterId: state.id,
+      stateId: end.maintainedStateId
+    })
+    const holder = actors.find((actor) => actor.id === end.ownerActorId)
+    if (
+      state.automationMode === 'MANUAL' ||
+      (previousOwnerId !== null && end.ownerActorId.localeCompare(previousOwnerId) <= 0) ||
+      !slot ||
+      slot.ownerActorId !== end.ownerActorId ||
+      slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
+      !holder ||
+      (await readConcentrationEndReason(ctx, { state, actor: holder, userId: args.userId })) !==
+        end.reason
+    )
+      throw new Error('Live Session concentration end is unexpected.')
+    previousOwnerId = end.ownerActorId
+    ends.push({ end, slot, holder })
+  }
+  for (const { end, slot, holder } of ends) {
+    actors = await callbacks.applyCleanup({
+      state,
+      actors,
+      slot,
+      cleanup: end.cleanup,
+      authorizedCharacterIds: args.authorizedCharacterIds,
+      occurredAt: args.occurredAt
+    })
+    const occurrenceId = await persistNativeConcentrationEnd(ctx, {
+      state,
+      parentOccurrenceId,
+      end,
+      userId: args.userId,
+      correlationId,
+      occurredAt: args.occurredAt
+    })
+    await postConcentrationEndMessage(ctx, {
+      state,
+      actor: holder,
+      reason: end.reason,
+      occurrenceId,
+      userId: args.userId
+    })
+    remaining = remaining.filter((entry) => entry.maintainedStateId !== end.maintainedStateId)
+  }
   for (const child of args.concentration) {
     const result = child.result
     const application = remaining.shift()
