@@ -161,6 +161,8 @@ export interface MovementRoomConfig {
     radius: number
     variant?: number
     save?: boolean
+    /** Applies this condition instead of dealing damage. */
+    condition?: { conditionId: string }
     moving?: { activation: 'ONE_SHOT' | 'REPEATABLE'; hidden: boolean }
   }[]
   /** The mover, a Character, maintains Concentration. */

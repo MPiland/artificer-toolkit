@@ -5,7 +5,10 @@ import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from './activeRuleEff
 import { movementReactionChoiceOptionDtoSchema } from './reaction.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
-import { movementConcentrationExecutionsDtoSchema } from './ruleExecutionMovementConcentration.js'
+import {
+  movementConcentrationEndDtoSchema,
+  movementConcentrationExecutionsDtoSchema
+} from './ruleExecutionMovementConcentration.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
   serverCompletedRuleExecutionDtoSchema
@@ -63,6 +66,7 @@ export const movementReactionActionExecutionDtoSchema = lazySchema(() =>
       .strictObject({
         ordinal: receiptOrdinal,
         sourceCommandId: uuid,
+        concentrationEnd: z.optional(movementConcentrationEndDtoSchema),
         concentrationChecks: z.optional(movementConcentrationExecutionsDtoSchema),
         option: movementReactionChoiceOptionDtoSchema,
         allowance: z.strictObject({

@@ -432,7 +432,15 @@ A holder that is defeated or can't act after the commit's mechanics (`encounterA
 System actor-action capability, not Speed) loses Concentration with no check (D95). The planner returns
 `concentrationEnds`; persistence re-derives each reason (`concentrationEnd.ts`), applies the lost-check
 cleanup and writes a `CONCENTRATION_END` child receipt, which undo treats as lost Concentration.
-Direct actions, turn effects and Cleaving end it today; movement and GM or Sheet edits are SPELLS-9 work.
+Direct actions, turn effects, Cleaving and movement end it today; GM or Sheet edits are SPELLS-9 work.
+A movement contact that defeats or incapacitates the holder (a damaging spatial effect or condition, or a
+movement reaction) ends it in `prepareEncounterMovementConcentration` before any check is planned, so the
+cumulative projection rolls no check for that holder and later contacts observe the lost slot. The end
+rides on the contact execution as `concentrationEnd` (one per contact, beside `concentrationChecks`),
+settles as a `CONCENTRATION_END` movement settlement and persists through
+`persistLiveMovementConcentrationEnd`, which re-derives the reason (`encounterConcentrationEndReason`,
+shared with the direct planner). Known limit: a spatial effect that incapacitates only through a non-condition
+active effect, and a reaction that affects a creature other than the batch target, are not detected.
 
 **Movement and reactions.** Contacts form one frozen path timeline ordered by distance
 (`encounterMovementPath`); spatial effects resolve before reaction candidates at the same distance, and a

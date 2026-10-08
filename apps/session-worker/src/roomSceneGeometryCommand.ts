@@ -1,3 +1,7 @@
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { publishSceneGeometry } from '@artificer-toolkit/encounter-persistence/sceneGeometryPublication'
 import { publishSpatialPending } from '@artificer-toolkit/encounter-persistence/spatialPendingPublication'
 import { publishSpatialTerminal } from '@artificer-toolkit/encounter-persistence/spatialTerminalPublication'
@@ -12,7 +16,10 @@ import {
 import { persistMovementSettlements } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
 import { persistLiveMovementSpatial } from '@artificer-toolkit/encounter-persistence/liveMovementSpatialPersistence'
 import { persistLiveMovementReaction } from '@artificer-toolkit/encounter-persistence/liveMovementReactionPersistence'
-import { persistLiveMovementConcentration } from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
+import {
+  persistLiveMovementConcentration,
+  persistLiveMovementConcentrationEnd
+} from '@artificer-toolkit/encounter-persistence/liveMovementConcentrationPersistence'
 import {
   readLiveCharacterStreamVersion,
   readLiveMovementTargetState
@@ -285,6 +292,14 @@ export async function executeRoomSceneGeometry(input: {
       observed,
       batch
     })
+  const concentrationCallbacks = {
+    applyCleanup: (cleanup: Parameters<typeof applyLiveConcentrationCleanup>[1]) =>
+      applyLiveConcentrationCleanup(ctx, cleanup),
+    currentCharacterStreamVersion: (state: EncounterRunState, id: string) =>
+      readLiveCharacterStreamVersion(ctx, state, id),
+    readTargetState: (state: EncounterRunState, actor: EncounterRunActorState, maximum: number) =>
+      readLiveMovementTargetState(ctx, state, actor, maximum, readCampaignCharacterState)
+  }
   let settled = false
   const settle = async () => {
     if (settled || plan.preparation.outcome.kind === 'UNINTERRUPTED')
@@ -313,13 +328,9 @@ export async function executeRoomSceneGeometry(input: {
             readCampaignCharacterState
           }),
         persistConcentration: (step) =>
-          persistLiveMovementConcentration(ctx, step, {
-            applyCleanup: (cleanup) => applyLiveConcentrationCleanup(ctx, cleanup),
-            currentCharacterStreamVersion: (state, id) =>
-              readLiveCharacterStreamVersion(ctx, state, id),
-            readTargetState: (state, actor, maximum) =>
-              readLiveMovementTargetState(ctx, state, actor, maximum, readCampaignCharacterState)
-          })
+          persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
+        persistConcentrationEnd: (step) =>
+          persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks)
       }
     )
   }

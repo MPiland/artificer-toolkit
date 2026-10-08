@@ -1,10 +1,59 @@
 import { z, lazySchema } from '../zod.js'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from './activeRuleEffects.js'
-import { concentrationCheckApplicationOutputDtoSchema } from './ruleExecutionEncounterApplications.js'
+import {
+  concentrationCheckApplicationOutputDtoSchema,
+  concentrationEndApplicationOutputDtoSchema
+} from './ruleExecutionEncounterApplications.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import { ruleExecutionChecksumSchema, ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+
+const movementOwnerTransitionsDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        targetActorId: ruleExecutionUuidSchema,
+        characterId: z.nullable(ruleExecutionUuidSchema),
+        before: characterMechanicsTargetStateDtoSchema,
+        after: characterMechanicsTargetStateDtoSchema
+      })
+    )
+    .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR))
+)
+
+/** Owner transitions exist only with cleanup, one per canonical actor, each bound to a cleanup Character owner. */
+function validateMovementOwnerTransitions(
+  ownerTransitions: z.infer<typeof movementOwnerTransitionsDtoSchema>,
+  cleanup: { characterOwnerTransitions: readonly { characterId: string }[] } | null,
+  context: z.core.$RefinementCtx
+) {
+  let priorActorId = ''
+  const ownerCharacterIds = new Set<string>()
+  for (const [index, transition] of ownerTransitions.entries()) {
+    if (transition.targetActorId <= priorActorId || cleanup === null)
+      context.addIssue({
+        code: 'custom',
+        path: ['ownerTransitions', index],
+        message:
+          'Concentration owner transitions require failed-save cleanup and unique canonical actors.'
+      })
+    priorActorId = transition.targetActorId
+    if (
+      transition.characterId !== null &&
+      (!cleanup?.characterOwnerTransitions.some(
+        (owner) => owner.characterId === transition.characterId
+      ) ||
+        ownerCharacterIds.has(transition.characterId))
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['ownerTransitions', index, 'characterId'],
+        message: 'Concentration actor changes must bind one exact cleanup Character owner.'
+      })
+    if (transition.characterId !== null) ownerCharacterIds.add(transition.characterId)
+  }
+}
 
 /** Completed child evidence retained at the damage contact that caused it. */
 export const movementConcentrationExecutionDtoSchema = lazySchema(() =>
@@ -39,48 +88,16 @@ export const movementConcentrationExecutionDtoSchema = lazySchema(() =>
               })
           })
         ),
-      ownerTransitions: z
-        .array(
-          z.strictObject({
-            targetActorId: ruleExecutionUuidSchema,
-            characterId: z.nullable(ruleExecutionUuidSchema),
-            before: characterMechanicsTargetStateDtoSchema,
-            after: characterMechanicsTargetStateDtoSchema
-          })
-        )
-        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR))
+      ownerTransitions: movementOwnerTransitionsDtoSchema
     })
     .check(
-      z.superRefine((value, context) => {
-        let priorActorId = ''
-        const ownerCharacterIds = new Set<string>()
-        for (const [index, transition] of value.ownerTransitions.entries()) {
-          if (
-            transition.targetActorId <= priorActorId ||
-            value.result.applicationOutputs.cleanup === null
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['ownerTransitions', index],
-              message:
-                'Concentration owner transitions require failed-save cleanup and unique canonical actors.'
-            })
-          priorActorId = transition.targetActorId
-          if (
-            transition.characterId !== null &&
-            (!value.result.applicationOutputs.cleanup?.characterOwnerTransitions.some(
-              (owner) => owner.characterId === transition.characterId
-            ) ||
-              ownerCharacterIds.has(transition.characterId))
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['ownerTransitions', index, 'characterId'],
-              message: 'Concentration actor changes must bind one exact cleanup Character owner.'
-            })
-          if (transition.characterId !== null) ownerCharacterIds.add(transition.characterId)
-        }
-      })
+      z.superRefine((value, context) =>
+        validateMovementOwnerTransitions(
+          value.ownerTransitions,
+          value.result.applicationOutputs.cleanup,
+          context
+        )
+      )
     )
 )
 
@@ -108,6 +125,36 @@ export const movementConcentrationExecutionsDtoSchema = lazySchema(() =>
     )
 )
 
+/** A holder's Concentration that ended at a movement contact with no check (D95); one holder per contact. */
+export const movementConcentrationEndDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      sourceCommandId: ruleExecutionUuidSchema,
+      result: z.strictObject({
+        occurrenceId: ruleExecutionUuidSchema,
+        applicationOutputs: concentrationEndApplicationOutputDtoSchema
+      }),
+      ownerTransitions: movementOwnerTransitionsDtoSchema
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.result.occurrenceId !== value.result.applicationOutputs.occurrenceId)
+          context.addIssue({
+            code: 'custom',
+            path: ['result', 'occurrenceId'],
+            message: 'A movement Concentration end must retain its exact child identity.'
+          })
+        validateMovementOwnerTransitions(
+          value.ownerTransitions,
+          value.result.applicationOutputs.cleanup,
+          context
+        )
+      })
+    )
+)
+
 export type MovementConcentrationExecutionDto = z.infer<
   typeof movementConcentrationExecutionDtoSchema
 >
+
+export type MovementConcentrationEndDto = z.infer<typeof movementConcentrationEndDtoSchema>

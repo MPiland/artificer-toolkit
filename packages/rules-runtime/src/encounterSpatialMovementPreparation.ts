@@ -204,7 +204,7 @@ export async function prepareEncounterSpatialMovement<
   }
   const evaluated = await evaluateEncounterSpatialMovementRuleBatch({
     ...input,
-    interruptAfterDamageToActorIds: concentrationActorIds,
+    interruptAfterContactToActorIds: concentrationActorIds,
     actorUserId: userId,
     encounter: { ...state, actors: state.actorIds.map((id) => ({ id })) },
     runtime: args.runtime,
@@ -287,7 +287,10 @@ export async function prepareEncounterSpatialMovement<
   })
   if (
     replayFaces.length &&
-    !(evaluated.kind === 'REACTION_BOUNDARY' && evaluated.damageExecutionOrdinal !== undefined)
+    !(
+      evaluated.kind === 'REACTION_BOUNDARY' &&
+      evaluated.concentrationExecutionOrdinal !== undefined
+    )
   )
     throw new Error('Retained spatial replay evidence contains unused d20 faces.')
   if (evaluated.kind !== 'REACTION_BOUNDARY' || !evaluated.completedExecutions.length)

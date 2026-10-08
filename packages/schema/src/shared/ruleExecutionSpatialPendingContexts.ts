@@ -291,7 +291,11 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
           const envelope =
             execution &&
             (() => {
-              const { concentrationChecks: _concentrationChecks, ...damageEnvelope } = execution
+              const {
+                concentrationChecks: _concentrationChecks,
+                concentrationEnd: _concentrationEnd,
+                ...damageEnvelope
+              } = execution
               return damageEnvelope
             })()
           if (

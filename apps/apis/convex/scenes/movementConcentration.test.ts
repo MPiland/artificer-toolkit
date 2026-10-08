@@ -4,7 +4,10 @@ import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import {
+  concentrationEndOccurrenceId,
+  concentrationOccurrenceId
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_CONCENTRATION_DEFINITIONS,
@@ -93,7 +96,8 @@ function response(input: {
 async function installConcentration(
   value: MovementFixture,
   target: { id: string } = value.base.mover,
-  character: { id: string } = value.base.character
+  character: { id: string } = value.base.character,
+  characterHitPoints?: number
 ) {
   for (const definitions of sourceImportBatches(SRD_CONCENTRATION_DEFINITIONS))
     await value.base.t.mutation(internal.content.import.importDefinitions, {
@@ -106,7 +110,8 @@ async function installConcentration(
     t: value.base.t,
     run: value.base.run,
     target,
-    character
+    character,
+    characterHitPoints
   })
 }
 
@@ -654,3 +659,39 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
   expect(departed.receiptLedgerParts).toEqual(staged.receiptLedgerParts)
   expect(departed.sceneStates).toEqual(staged.sceneStates)
 }, 120_000)
+
+it('ends Concentration without a check when a movement reaction defeats the holder (D95)', async () => {
+  const value = await setupAutomaticCharacterMovement(['AUTOMATIC'], false, {
+    features: [concentrationAdvantageFeature]
+  })
+  const seeded = await installConcentration(value, undefined, undefined, 1)
+  // The reaction's attack roll is 15; its damage lands on the minimum, which is enough at 1 hit point.
+  await queueRoomRolls(value.base.campaign.id, { rolls: [14], repeat: 0 })
+
+  const { occurrence } = await useMovementReactionsInRoom(value)
+
+  expect(occurrence?.status).toBe('COMPLETE')
+  const after = await records(value)
+  // The slot and its dependent effect end; the independent effect stays.
+  expect(after.maintained.map((state) => state.id)).not.toContain(seeded.state.id)
+  expect(after.characterEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
+  if (!after.character) throw new Error('Defeated Character is unavailable.')
+  expect(readCharacterRecord(after.character).state.hitpoints.current).toBe(0)
+  // The end is a durable child of the movement root and no check is rolled. Its receipt is
+  // room-held history: apps/session-worker/test/nativeMovementConcentrationEnd.test.ts pins it.
+  const root = after.occurrences.find((entry) => entry.id === occurrence?.occurrenceId)
+  expect(
+    after.occurrences.find(
+      (entry) => entry.id === concentrationEndOccurrenceId(root!.id, seeded.state.id)
+    )
+  ).toMatchObject({ state: 'COMPLETED' })
+  // The GM controls this Character, so the end's chat entry is private and posts nothing; the
+  // table-visible entry is pinned in apps/session-worker/test/nativeMovementConcentrationEnd.test.ts.
+  await expect(
+    value.owner.caller.query(api.campaigns.chat.list, {
+      campaignId: value.base.campaign.id,
+      room: 'TABLE',
+      limit: 100
+    })
+  ).rejects.toThrow('Conversation not found.')
+}, 60_000)

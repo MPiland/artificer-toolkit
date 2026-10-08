@@ -3,7 +3,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { encounterActorCannotAct } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { isDepartedCharacterActor } from './characterStates.js'
@@ -51,7 +51,8 @@ export async function readConcentrationEndReason(
       targetActorId: actor.id
     })
   }
-  return (await encounterActorCannotAct({
+  return encounterConcentrationEndReason({
+    actor,
     conditionIds,
     activeEffects,
     gameSystemId: state.gameSystemId,
@@ -62,9 +63,7 @@ export async function readConcentrationEndReason(
         return current
       }
     }
-  }))
-    ? 'INCAPACITATED'
-    : null
+  })
 }
 
 /**

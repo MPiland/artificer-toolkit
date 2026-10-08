@@ -499,7 +499,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Record:** each ending is a child receipt `CONCENTRATION_END` (`ownerActorId`, `maintainedStateId`, `reason` `INCAPACITATED` or `DEFEATED`, and the lost-check `cleanup` shape) on the commit that caused it, persisted through `applyLiveConcentrationCleanup`. Persistence re-derives the reason from the committed actors instead of trusting the planner. Chat shows it with the visibility of a concentration check card, without dice.
   - **Undo:** treated like a failed concentration check ("lost Concentration").
   - **Cleaving:** a Cleaving first target is always at 0 hit points, so its Concentration ends in the attack commit and no concentration check is pending before the Cleaving choice.
-  - **Limits:** MANUAL Runs end nothing automatically (the GM tracks it). The chat entry names the holder, not the spell or condition, and a hidden Creature's end posts no entry (the receipt still records it).
+  - **Movement:** an end observes the state after the contact that caused it and is persisted as a `CONCENTRATION_END` child of the movement root. Later contacts of the same move roll nothing for that holder. A contact that applies a condition now interrupts the move for the Concentration pass like damage does. The receipt's cumulative spatial span ignores a later contact that changes nothing (a 0 HP holder taking more damage), and an end's owner `before` may add conditions the System derived from the contact's hit point change (D63).
+  - **Limits:** MANUAL Runs end nothing automatically (the GM tracks it). The chat entry names the holder, not the spell or condition, and a hidden Creature's end posts no entry (the receipt still records it). A movement contact scans one holder, its batch target; movement reactions are single-target today, so a future multi-target reaction must scan every holder it changes.
 
 ## Approved implementation decisions
 

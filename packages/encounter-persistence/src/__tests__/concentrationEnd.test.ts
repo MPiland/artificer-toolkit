@@ -9,6 +9,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readConcentrationEndReason } from '../concentrationEnd.js'
 import { persistEncounterConcentrationChildren } from '../concentrationChildrenPersistence.js'
+import { persistLiveMovementConcentrationEnd } from '../liveMovementConcentrationPersistence.js'
+import { concentrationEndOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { createActiveRuleEffectStore } from '../effectStore.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
 import type { EncounterCharacterWriteTransaction } from '../ports.js'
@@ -51,6 +53,7 @@ async function holderFixture(actor: Holder) {
       requireCampaignAuthority: async () => ({ campaign: { ownerUserId: USER_ID } }),
       readCurrentDefinition: async (definitionId: string) =>
         srdDefinitions.requireCurrent(definitionId),
+      readGmRollVisibility: async () => 'PRIVATE',
       postRulesChatMessage
     }
   } as unknown as EncounterCharacterWriteTransaction & {
@@ -197,5 +200,170 @@ describe('persistEncounterConcentrationChildren refuses a forged Concentration e
     expect(snapshot()).toEqual(before)
     expect(memory.documents('encounterMaintainedEffectStates')).toHaveLength(1)
     expect(memory.documents('encounterRuleReceipts')).toEqual([])
+  })
+})
+
+describe('persistLiveMovementConcentrationEnd refuses a forged movement end', () => {
+  const COMMAND_ID = '00000000-0000-4000-8000-0000000c0005'
+  const defeated: Parameters<typeof creatureActor>[0] = {
+    id: ACTOR_ID,
+    kind: 'CUSTOM',
+    snapshot: {},
+    currentHitPoints: 0,
+    defeated: true
+  }
+  const cases: Array<
+    [string, Parameters<typeof creatureActor>[0], { reason?: 'INCAPACITATED'; occurrence?: string }]
+  > = [
+    ['a holder that can act', { id: ACTOR_ID, kind: 'CUSTOM', snapshot: {} }, {}],
+    ['a defeated holder claimed as incapacitated', defeated, { reason: 'INCAPACITATED' }],
+    ['an end with a forged occurrence id', defeated, { occurrence: COMMAND_ID }]
+  ]
+
+  it.each(cases)('%s', async (_name, actorInput, forged) => {
+    const actor = creatureActor(actorInput)
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(actor)
+    const snapshot = () => OWNED_TABLES.map((table) => structuredClone(memory.documents(table)))
+    const before = snapshot()
+    const applyCleanup = vi.fn()
+    const occurrenceId = forged.occurrence ?? concentrationEndOccurrenceId(OCCURRENCE_ID, SLOT_ID)
+
+    await expect(
+      persistLiveMovementConcentrationEnd(
+        ctx as unknown as Parameters<typeof persistLiveMovementConcentrationEnd>[0],
+        {
+          state: srdEncounterState({ actors: [actor], currentActorId: null }),
+          actors: [actor],
+          parentOccurrenceId: OCCURRENCE_ID,
+          sourceCommandId: COMMAND_ID,
+          userId: USER_ID,
+          authorizedCharacterIds: new Set(),
+          occurredAt: '2026-10-08T00:00:00.000Z',
+          execution: {
+            sourceCommandId: COMMAND_ID,
+            result: {
+              occurrenceId,
+              applicationOutputs: {
+                kind: 'CONCENTRATION_END',
+                schemaVersion: 1,
+                occurrenceId,
+                parentOccurrenceId: OCCURRENCE_ID,
+                ownerActorId: actor.id,
+                maintainedStateId: SLOT_ID,
+                reason: forged.reason ?? 'DEFEATED',
+                cleanup: {
+                  maintainedStateId: SLOT_ID,
+                  removedDependentEffectIds: [],
+                  characterOwnerTransitions: []
+                }
+              }
+            },
+            ownerTransitions: []
+          }
+        },
+        { currentCharacterStreamVersion: vi.fn(), applyCleanup, readTargetState: vi.fn() }
+      )
+    ).rejects.toThrow('Live Session movement Concentration end is unexpected.')
+
+    expect(applyCleanup).not.toHaveBeenCalled()
+    expect(postRulesChatMessage).not.toHaveBeenCalled()
+    expect(snapshot()).toEqual(before)
+  })
+})
+
+/**
+ * The timeline schema cannot know which conditions the System derives onto a holder (D63), so it
+ * lets an end's owner `before` differ from the receipt only by conditions. Persistence is what
+ * binds that `before` to the committed state, so a forged extra condition is refused here.
+ */
+describe('persistLiveMovementConcentrationEnd binds the owner projection to stored state', () => {
+  const COMMAND_ID = '00000000-0000-4000-8000-0000000c0005'
+  const DERIVED_CONDITION_ID = '00000000-0000-4000-8000-0000000c0006'
+  const FORGED_CONDITION_ID = '00000000-0000-4000-8000-0000000c0007'
+  const stored = {
+    currentHitPoints: 0,
+    temporaryHitPoints: 0,
+    maximumHitPoints: 0,
+    conditionIds: [DERIVED_CONDITION_ID]
+  }
+
+  async function persistWithBefore(conditionIds: string[]) {
+    const actor = creatureActor({
+      id: ACTOR_ID,
+      kind: 'CUSTOM',
+      snapshot: {},
+      currentHitPoints: 0,
+      defeated: true
+    })
+    const { memory, ctx, postRulesChatMessage } = await holderFixture(actor)
+    const snapshot = () => OWNED_TABLES.map((table) => structuredClone(memory.documents(table)))
+    const before = snapshot()
+    const applyCleanup = vi.fn(async () => [actor])
+    const occurrenceId = concentrationEndOccurrenceId(OCCURRENCE_ID, SLOT_ID)
+    const persisted = persistLiveMovementConcentrationEnd(
+      ctx as unknown as Parameters<typeof persistLiveMovementConcentrationEnd>[0],
+      {
+        state: srdEncounterState({ actors: [actor], currentActorId: null }),
+        actors: [actor],
+        parentOccurrenceId: OCCURRENCE_ID,
+        sourceCommandId: COMMAND_ID,
+        userId: USER_ID,
+        authorizedCharacterIds: new Set(),
+        occurredAt: '2026-10-08T00:00:00.000Z',
+        execution: {
+          sourceCommandId: COMMAND_ID,
+          result: {
+            occurrenceId,
+            applicationOutputs: {
+              kind: 'CONCENTRATION_END',
+              schemaVersion: 1,
+              occurrenceId,
+              parentOccurrenceId: OCCURRENCE_ID,
+              ownerActorId: actor.id,
+              maintainedStateId: SLOT_ID,
+              reason: 'DEFEATED',
+              cleanup: {
+                maintainedStateId: SLOT_ID,
+                removedDependentEffectIds: [],
+                characterOwnerTransitions: []
+              }
+            }
+          },
+          ownerTransitions: [
+            {
+              targetActorId: actor.id,
+              characterId: null,
+              before: { ...stored, scalarValues: {}, conditionIds },
+              after: { ...stored, scalarValues: {}, conditionIds }
+            }
+          ]
+        }
+      },
+      {
+        currentCharacterStreamVersion: vi.fn(),
+        applyCleanup,
+        readTargetState: vi.fn(async () => stored)
+      }
+    )
+    return { persisted, applyCleanup, postRulesChatMessage, snapshot, before }
+  }
+
+  it('accepts an owner projection that matches the stored derived conditions', async () => {
+    const { persisted, applyCleanup } = await persistWithBefore([DERIVED_CONDITION_ID])
+
+    await expect(persisted).resolves.toHaveLength(1)
+    expect(applyCleanup).toHaveBeenCalledOnce()
+  })
+
+  it('refuses an owner projection that adds a condition the holder never had', async () => {
+    const { persisted, applyCleanup, postRulesChatMessage, snapshot, before } =
+      await persistWithBefore([DERIVED_CONDITION_ID, FORGED_CONDITION_ID])
+
+    await expect(persisted).rejects.toThrow(
+      'Live Session movement Concentration owner projection changed.'
+    )
+    expect(applyCleanup).not.toHaveBeenCalled()
+    expect(postRulesChatMessage).not.toHaveBeenCalled()
+    expect(snapshot()).toEqual(before)
   })
 })

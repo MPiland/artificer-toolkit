@@ -2,6 +2,7 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { prepareEncounterConcentrationState } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { prepareEncounterMovementConcentration } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
 import { projectEncounterMovementConcentrationEnd } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
@@ -91,9 +92,46 @@ export function prepareNativeLiveMovementConcentration(
         projection,
         capture
       }),
-    projectEnd: async (context, targets, projection) => {
-      const actorId = context.application.targetActorId
-      const definitionId = context.maintainedState.maintenanceDefinitionId
+    findEnd: async (actorId, targets, projection) => {
+      const definitionId = DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+      const slot =
+        projection?.slots.get(`${actorId}:${definitionId}`) ??
+        (await readNativeLiveMaintenanceSlot({
+          encounterId: state.id,
+          actorId,
+          definitionId,
+          capture
+        }))
+      const target = targets.get(actorId)
+      if (!slot.state || !target) return null
+      const reason = await encounterConcentrationEndReason({
+        actor: target.actor,
+        conditionIds: target.state.conditions,
+        activeEffects: target.activeEffects,
+        gameSystemId: state.gameSystemId,
+        definitions: {
+          requireCurrent: async (id) => {
+            const response = await capture({ kind: 'DEFINITION', definitionId: id })
+            if (response.kind !== 'DEFINITION' || !response.definition)
+              throw new Error('Concentration capability definition is unavailable.')
+            return response.definition
+          }
+        }
+      })
+      return reason
+        ? {
+            maintainedState: {
+              id: slot.state.id,
+              version: slot.state.version,
+              maintenanceDefinitionId: slot.state.maintenanceDefinitionId,
+              descriptorChecksum: slot.state.descriptorChecksum
+            },
+            reason
+          }
+        : null
+    },
+    projectEnd: async ({ actorId, maintainedState }, targets, projection) => {
+      const definitionId = maintainedState.maintenanceDefinitionId
       const projectedSlot = projection?.slots.get(`${actorId}:${definitionId}`)
       const slot =
         projectedSlot ??
@@ -106,12 +144,12 @@ export function prepareNativeLiveMovementConcentration(
       const maintained = slot.state
       if (
         !maintained ||
-        maintained.id !== context.maintainedState.id ||
+        maintained.id !== maintainedState.id ||
         maintained.encounterId !== state.id ||
         maintained.ownerActorId !== actorId ||
-        maintained.version !== context.maintainedState.version ||
+        maintained.version !== maintainedState.version ||
         maintained.maintenanceDefinitionId !== definitionId ||
-        maintained.descriptorChecksum !== context.maintainedState.descriptorChecksum
+        maintained.descriptorChecksum !== maintainedState.descriptorChecksum
       )
         throw new Error('Movement Concentration state changed before cleanup.')
       const { owners, characterVersions } = await readNativeLiveMaintenanceOwners({

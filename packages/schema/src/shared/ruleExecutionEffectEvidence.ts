@@ -23,7 +23,10 @@ import {
   spatialPendingCandidateDtoSchema
 } from './ruleExecutionSpatial.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
-import { movementConcentrationExecutionsDtoSchema } from './ruleExecutionMovementConcentration.js'
+import {
+  movementConcentrationEndDtoSchema,
+  movementConcentrationExecutionsDtoSchema
+} from './ruleExecutionMovementConcentration.js'
 
 export const turnEffectTargetTransitionDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -150,6 +153,7 @@ export const spatialMovementExecutionDtoSchema = lazySchema(() =>
         .check(z.gte(0))
         .check(z.lte(MAX_SPATIAL_CANDIDATES - 1)),
       candidate: spatialPendingCandidateDtoSchema,
+      concentrationEnd: z.optional(movementConcentrationEndDtoSchema),
       concentrationChecks: z.optional(movementConcentrationExecutionsDtoSchema),
       execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),

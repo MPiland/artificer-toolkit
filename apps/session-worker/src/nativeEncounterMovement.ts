@@ -648,7 +648,7 @@ export async function prepareNativeLiveMovement(
   const settlementInputs = planned.settlements.map((settlement): LiveSessionMovementSettlement => {
     if (settlement.kind === 'CONCENTRATION')
       return liveSessionMovementSettlementSchema.parse({
-        kind: 'CONCENTRATION',
+        kind: settlement.plan.kind === 'END' ? 'CONCENTRATION_END' : 'CONCENTRATION',
         execution: settlement.plan.execution
       })
     if (settlement.kind === 'REACTION') {

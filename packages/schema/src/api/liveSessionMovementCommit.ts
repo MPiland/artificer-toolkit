@@ -15,7 +15,10 @@ import {
   spatialEffectTransitionEntryDtoSchema
 } from '../shared/ruleExecutionEffectEvidence.js'
 import { movementReactionActionExecutionDtoSchema } from '../shared/ruleExecutionMovementReactionReceipts.js'
-import { movementConcentrationExecutionDtoSchema } from '../shared/ruleExecutionMovementConcentration.js'
+import {
+  movementConcentrationEndDtoSchema,
+  movementConcentrationExecutionDtoSchema
+} from '../shared/ruleExecutionMovementConcentration.js'
 import { movementPassageContestReceiptDtoSchema } from '../shared/ruleExecutionSpatial.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
@@ -52,6 +55,11 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('CONCENTRATION'),
       execution: movementConcentrationExecutionDtoSchema
+    }),
+    /** The Concentration a contact ended with no check (D95); it settles before that contact's checks. */
+    z.strictObject({
+      kind: z.literal('CONCENTRATION_END'),
+      execution: movementConcentrationEndDtoSchema
     }),
     z.strictObject({
       kind: z.literal('PASSAGE'),
@@ -100,7 +108,7 @@ export const liveSessionMovementCommitInputSchema = lazySchema(() =>
     settlements: z
       .array(liveSessionMovementSettlementSchema)
       .check(
-        z.maxLength(MAX_SPATIAL_CANDIDATES + MAX_ENCOUNTER_ACTORS * (MAX_ENCOUNTER_ACTORS + 1))
+        z.maxLength(2 * MAX_SPATIAL_CANDIDATES + MAX_ENCOUNTER_ACTORS * (MAX_ENCOUNTER_ACTORS + 2))
       )
   })
 )

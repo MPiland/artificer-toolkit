@@ -12,6 +12,7 @@ import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
+  DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
@@ -20,6 +21,7 @@ import {
   DND5E_SAVE_MODIFIER_FACT_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
+  DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionCompiler.js'
@@ -32,8 +34,9 @@ type GraphNode = RuleGraphDefinition['nodes'][number]
 /**
  * The persisted input of a public spatial effect that deals 1 fire damage to whoever crosses its
  * circle, or, with `save`, to whoever fails a Dexterity save against DC 30 (no one passes). Its
- * graph is frozen by the supplied rules runtime, as casting freezes it. Fixture data only: the
- * runtime, not this builder, decides what the graph does.
+ * graph is frozen by the supplied rules runtime, as casting freezes it. With  (and no
+ * ), it applies that condition instead of dealing damage. Fixture data only: the runtime,
+ * not this builder, decides what the graph does.
  */
 export async function buildSpatialDamageEffect(input: {
   runtime: Pick<RulesRuntimeService, 'executeResolvedWithGraph'>
@@ -52,6 +55,8 @@ export async function buildSpatialDamageEffect(input: {
   }
   /** Deals the damage only on a failed save, which the room rolls or asks for as d20 evidence. */
   save: boolean
+  /** Applies this condition to whoever crosses the circle, dealing no damage. */
+  condition?: { conditionId: string }
   /** Ticks the effect lasts, or null while it never expires. */
   remainingTicks: number | null
   /** Anchors the effect to a token instead of the Scene, so it travels with that token. */
@@ -65,6 +70,8 @@ export async function buildSpatialDamageEffect(input: {
   if (!fire) throw new Error('The SRD fire damage type is missing.')
   const { definitionId, entryId, occurrenceId } = input.ids
   const damageNodeId = input.save ? 'proposal-on_save_fail' : 'damage'
+  if (input.condition && input.save)
+    throw new Error('A spatial condition effect cannot also require a save.')
   const d20Node = {
     id: 'd20',
     operation: { key: 'evidence.integer-range', contractVersion: 1 },
@@ -104,6 +111,20 @@ export async function buildSpatialDamageEffect(input: {
       damageTypeId: { kind: 'LITERAL', value: fire.id }
     }
   } satisfies GraphNode
+  const conditionNode = {
+    id: damageNodeId,
+    operation: { key: DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
+    inputs: {
+      targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+      targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
+      conditionId: { kind: 'LITERAL', value: input.condition?.conditionId ?? '' },
+      conditionImmune: { kind: 'FACT', factKey: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY }
+    }
+  } satisfies GraphNode
+  const conditionOutputs = {
+    targetActorId: { kind: 'NODE_OUTPUT', nodeId: damageNodeId, port: 'targetActorId' },
+    conditionId: { kind: 'NODE_OUTPUT', nodeId: damageNodeId, port: 'conditionId' }
+  } satisfies RuleGraphDefinition['outputs']
   const saveOutputs = {
     targetActorId: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'targetActorId' },
     naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'naturalD20' },
@@ -121,8 +142,10 @@ export async function buildSpatialDamageEffect(input: {
     id: definitionId,
     gameSystemId: SRD_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: input.save ? [d20Node, saveTestNode, saveDamageNode] : [damageNode],
-    outputs: input.save ? saveOutputs : damageOutputs,
+    nodes: input.save
+      ? [d20Node, saveTestNode, saveDamageNode]
+      : [input.condition ? conditionNode : damageNode],
+    outputs: input.save ? saveOutputs : input.condition ? conditionOutputs : damageOutputs,
     sourceEntryBindings: [{ sourceEntryId: entryId, nodeId: damageNodeId }]
   } satisfies RuleGraphDefinition
   const prepared = await input.runtime.executeResolvedWithGraph?.({
@@ -137,6 +160,7 @@ export async function buildSpatialDamageEffect(input: {
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: checksumRuleDocument([]),
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE'
         }),
+        ...(input.condition && { [DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY]: false }),
         [DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]: checksumRuleDocument({
           targetActorId: input.targetActorId,
           currentHitPoints: input.targetHitPoints,

@@ -4,7 +4,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { encounterSpatialRuleEffectRecordSchema } from '../projections/spatialRuleEffectPersistence.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
-import type { MovementConcentrationExecutionDto } from './ruleExecutionMovementConcentration.js'
+import type {
+  MovementConcentrationEndDto,
+  MovementConcentrationExecutionDto
+} from './ruleExecutionMovementConcentration.js'
 import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
@@ -246,6 +249,16 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           left: z.infer<typeof characterMechanicsTargetStateDtoSchema>,
           right: z.infer<typeof characterMechanicsTargetStateDtoSchema>
         ) => JSON.stringify(left) === JSON.stringify(right)
+        /**
+         * The persisted state an end observes may carry conditions the System derived from the
+         * contact's hit point change (D63), which the contact's own transition does not list.
+         */
+        const continuesWithDerivedConditions = (
+          prior: z.infer<typeof characterMechanicsTargetStateDtoSchema>,
+          observed: z.infer<typeof characterMechanicsTargetStateDtoSchema>
+        ) =>
+          sameState({ ...observed, conditionIds: prior.conditionIds }, prior) &&
+          prior.conditionIds.every((id) => observed.conditionIds.includes(id))
         const actorCharacters = new Map<string, string>()
         const characterActors = new Map<string, string>()
         const bindCharacter = (actorId: string, characterId: string, path: (string | number)[]) => {
@@ -315,10 +328,14 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             if (group.characterId !== null && afterVersion !== null)
               currentVersions.set(group.characterId, afterVersion)
             const summary = spatialSummaries.get(ownerKey)
+            // A contact that changes nothing adds nothing to the cumulative span; what happened
+            // since (such as a Concentration end) is proved by its own transitions.
             if (summary) {
-              summary.after = group.after
-              summary.afterVersion = afterVersion
-              summary.changed ||= changed
+              if (changed) {
+                summary.after = group.after
+                summary.afterVersion = afterVersion
+                summary.changed = true
+              }
             } else
               spatialSummaries.set(ownerKey, {
                 before: group.before,
@@ -331,12 +348,13 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
           }
           openSpatialGroups.clear()
         }
-        const applyConcentrationChecks = (
-          checks: readonly MovementConcentrationExecutionDto[],
-          path: (string | number)[]
+        const applyConcentrationChildren = (
+          children: readonly (MovementConcentrationExecutionDto | MovementConcentrationEndDto)[],
+          path: (string | number)[],
+          key: 'concentrationEnd' | 'concentrationChecks'
         ) => {
-          for (const [index, check] of checks.entries()) {
-            const checkPath = [...path, 'concentrationChecks', index]
+          for (const [index, check] of children.entries()) {
+            const checkPath = [...path, key, index]
             const output = check.result.applicationOutputs
             if (output.parentOccurrenceId !== batch.occurrenceId)
               context.addIssue({
@@ -427,7 +445,12 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
                   ? `ENCOUNTER_ACTOR:${ownerTransition.targetActorId}`
                   : `CHARACTER:${ownerTransition.characterId}`
               const priorState = currentStates.get(ownerKey)
-              if (priorState !== undefined && !sameState(priorState, ownerTransition.before))
+              if (
+                priorState !== undefined &&
+                !(key === 'concentrationEnd'
+                  ? continuesWithDerivedConditions(priorState, ownerTransition.before)
+                  : sameState(priorState, ownerTransition.before))
+              )
                 context.addIssue({
                   code: 'custom',
                   path: [...ownerPath, 'before'],
@@ -540,9 +563,21 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             else openSpatialGroups.get(ownerKey)!.after = execution.targetTransition.after
             if (characterId !== null && currentVersion === undefined)
               currentVersions.set(characterId, pinVersion!)
-            if (execution.concentrationChecks !== undefined) {
+            if (
+              execution.concentrationEnd !== undefined ||
+              execution.concentrationChecks !== undefined
+            ) {
               finishSpatialGroups()
-              applyConcentrationChecks(execution.concentrationChecks, ['executions', event.index])
+              applyConcentrationChildren(
+                execution.concentrationEnd ? [execution.concentrationEnd] : [],
+                ['executions', event.index],
+                'concentrationEnd'
+              )
+              applyConcentrationChildren(
+                execution.concentrationChecks ?? [],
+                ['executions', event.index],
+                'concentrationChecks'
+              )
             }
             continue
           }
@@ -767,11 +802,16 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
               })
             currentStates.set(ownerKey, transition.after)
           }
-          if (reaction.concentrationChecks !== undefined)
-            applyConcentrationChecks(reaction.concentrationChecks, [
-              'reactionExecutions',
-              event.index
-            ])
+          applyConcentrationChildren(
+            reaction.concentrationEnd ? [reaction.concentrationEnd] : [],
+            ['reactionExecutions', event.index],
+            'concentrationEnd'
+          )
+          applyConcentrationChildren(
+            reaction.concentrationChecks ?? [],
+            ['reactionExecutions', event.index],
+            'concentrationChecks'
+          )
         }
         finishSpatialGroups()
         for (const [ownerKey, summary] of spatialSummaries) {

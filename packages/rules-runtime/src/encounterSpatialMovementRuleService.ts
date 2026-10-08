@@ -159,8 +159,8 @@ export type SpatialMovementRuleEvaluation =
     }
   | {
       kind: 'REACTION_BOUNDARY'
-      /** A caller must resolve this damaging contact before evaluating even a same-position suffix. */
-      damageExecutionOrdinal?: number
+      /** A caller must settle this holder-affecting contact (damage or a condition) before evaluating even a same-position suffix. */
+      concentrationExecutionOrdinal?: number
       boundaryDistance: number
       boundaryPosition: ScenePoint
       movementIntent: SpatialMovementIntent | null
@@ -231,7 +231,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   beforeTerminalApply?: () => Promise<void>
   /** Stages, but does not apply, every spatial candidate through this contact. */
   interruptAfterPathDistance?: number
-  interruptAfterDamageToActorIds?: ReadonlySet<string>
+  interruptAfterContactToActorIds?: ReadonlySet<string>
 }): Promise<SpatialMovementRuleEvaluation> {
   const root = normalizeRoot(input.root)
   let interruptAfterPathDistance = normalizeInterruptDistance(
@@ -557,7 +557,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
   const pendingSpatialCandidate =
     resumeContext?.currentCandidate ?? frozenReactionRemainder?.currentSpatialCandidate ?? null
   let stopAtDistance: number | null = appliedStopDistance
-  let damageExecutionOrdinal: number | undefined
+  let concentrationExecutionOrdinal: number | undefined
 
   for (const [candidateIndex, candidate] of candidates.entries()) {
     const ordinal = appliedExecutions.length + candidateIndex
@@ -750,13 +750,15 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
       stopAtDistance ??= candidate.pathDistance
     }
     if (
-      input.interruptAfterDamageToActorIds?.has(candidate.targetActorId) &&
+      input.interruptAfterContactToActorIds?.has(candidate.targetActorId) &&
       completed.applications.some(
-        (application) => application.kind === 'DAMAGE' && application.appliedAmount > 0
+        (application) =>
+          (application.kind === 'DAMAGE' && application.appliedAmount > 0) ||
+          (application.kind === 'CONDITION_APPLY' && application.applied)
       )
     ) {
       interruptAfterPathDistance = candidate.pathDistance
-      damageExecutionOrdinal = completed.ordinal
+      concentrationExecutionOrdinal = completed.ordinal
       break
     }
   }
@@ -769,7 +771,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
     const nextOrdinal = appliedExecutions.length + executions.length
     return {
       kind: 'REACTION_BOUNDARY',
-      ...(damageExecutionOrdinal === undefined ? {} : { damageExecutionOrdinal }),
+      ...(concentrationExecutionOrdinal === undefined ? {} : { concentrationExecutionOrdinal }),
       boundaryDistance: interruptAfterPathDistance,
       boundaryPosition,
       movementIntent: intent(root.tokenId, input.currentPosition, boundaryPosition),

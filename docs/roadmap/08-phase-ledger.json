@@ -4548,7 +4548,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "D95, 2026-10-08. Done: direct actions, turn effects and Cleaving end Concentration with no check (nativeRoomConcentration, nativeRoomCleaving, nativeRoomTurnEffects, cleaving.test.ts, concentrationEnd.test.ts, encounterActorCannotAct.test.ts); nonmagical, silvered and adamantine defenses apply to direct and opportunity attacks (encounterDamageDefenses.test.ts, movementBasicActions.test.ts). Remaining: movement reaction and spatial ends; GM UPDATE_ACTOR and Sheet edits.",
+              "note": "D95, 2026-10-08. Done: direct actions, turn effects and Cleaving end Concentration with no check (nativeRoomConcentration, nativeRoomCleaving, nativeRoomTurnEffects, cleaving.test.ts, concentrationEnd.test.ts, encounterActorCannotAct.test.ts); nonmagical, silvered and adamantine defenses apply to direct and opportunity attacks (encounterDamageDefenses.test.ts, movementBasicActions.test.ts). Movement reaction and spatial ends done (slice B: nativeMovementConcentrationEnd.test.ts, encounterConcentrationEnd.test.ts, concentrationEnd.test.ts, movementConcentration.test.ts, movementSettlementPersistence.test.ts, spatial-movement-rule-contracts.test.ts; spatial and reaction condition or state-effect incapacitation in nativeMovementConcentrationEnd.test.ts). Remaining: GM UPDATE_ACTOR and Sheet edits.",
               "id": "SPELLS-9.1"
             },
             {
@@ -4560,7 +4560,7 @@
               "id": "SPELLS-9.2"
             }
           ],
-          "journeyGap": "Direct-action end proved; movement and GM or Sheet edit ends are not built yet."
+          "journeyGap": "Direct-action and movement ends proved; GM or Sheet edit ends are not built yet."
         },
         {
           "id": "SPELLS-10",

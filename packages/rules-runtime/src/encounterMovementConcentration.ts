@@ -6,7 +6,9 @@ import {
   type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
+  movementConcentrationEndDtoSchema,
   movementConcentrationExecutionDtoSchema,
+  type MovementConcentrationEndDto,
   type MovementConcentrationExecutionDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMovementConcentration'
 import {
@@ -21,7 +23,10 @@ import {
   type NativeConcentrationContext,
   type prepareEncounterConcentrationState
 } from './encounterConcentration.js'
-import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
+import {
+  concentrationEndOccurrenceId,
+  concentrationOccurrenceId
+} from './encounterConcentrationIdentity.js'
 import { projectSpatialMovementCandidates } from './encounterSpatialMovementCurrentness.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
@@ -33,9 +38,12 @@ type DiceResolution = Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }
 
 /** Child receipts do not change the identity of the damage that caused them. */
 export function movementDamageEnvelope<
-  T extends { concentrationChecks?: MovementConcentrationExecutionDto[] }
+  T extends {
+    concentrationChecks?: MovementConcentrationExecutionDto[]
+    concentrationEnds?: MovementConcentrationEndDto[]
+  }
 >(execution: T) {
-  const { concentrationChecks: _checks, ...envelope } = execution
+  const { concentrationChecks: _checks, concentrationEnds: _ends, ...envelope } = execution
   return envelope
 }
 
@@ -63,6 +71,12 @@ function movementConcentrationDamageSource(
         : [],
     true
   )
+  const holderActorId = spatial
+    ? spatial.candidate.candidate.targetActorId
+    : reactionApplication?.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        reactionApplication?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+      ? reactionApplication.targetActorId
+      : null
   const offset =
     (remainder.completedSpatialExecutions.length +
       remainder.completedReactionExecutions.length -
@@ -70,6 +84,7 @@ function movementConcentrationDamageSource(
     RULE_GRAPH_LIMITS.NODES
   return {
     execution,
+    holderActorId,
     envelopeChecksum: checksumRuleDocument(movementDamageEnvelope(execution)),
     applications: damage.map((application) => ({
       ...application,
@@ -78,13 +93,28 @@ function movementConcentrationDamageSource(
   }
 }
 
-export type MovementConcentrationSettlement = {
-  state: EncounterRunState
-  context: NativeConcentrationContext
-  continuation: Parameters<typeof evaluateNativeConcentrationEvidence>[0]['continuation']
-  execution: MovementConcentrationExecutionDto
-  userId: string
-  occurredAt: string
+/** One contact's Concentration children settle in order: its end first, then each check. */
+export type MovementConcentrationSettlement =
+  | { kind: 'END'; execution: MovementConcentrationEndDto }
+  | {
+      kind: 'CHECK'
+      state: EncounterRunState
+      context: NativeConcentrationContext
+      continuation: Parameters<typeof evaluateNativeConcentrationEvidence>[0]['continuation']
+      execution: MovementConcentrationExecutionDto
+      userId: string
+      occurredAt: string
+    }
+
+type MovementMaintainedStateRef = NativeConcentrationContext['maintainedState']
+type MovementConcentrationProjectedEnd<
+  TCharacterFacts extends ProjectableCharacterFacts,
+  TProjection
+> = {
+  targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+  projection: TProjection
+  cleanup: NonNullable<MovementConcentrationExecutionDto['result']['applicationOutputs']['cleanup']>
+  ownerTransitions: MovementConcentrationExecutionDto['ownerTransitions']
 }
 
 /** Forecast checks between contacts; only the Scene finish mutation applies these plans. */
@@ -115,18 +145,20 @@ export async function prepareEncounterMovementConcentration<
     ): ReturnType<typeof prepareEncounterConcentrationState<MovementTarget<TCharacterFacts>>>
     runtime(): Promise<RulesRuntimeService>
     random(max: number): number
-    projectEnd(
-      context: NativeConcentrationContext,
+    /** The holder's slot when the contact left it defeated or unable to act (D95), else null. */
+    findEnd(
+      actorId: string,
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>,
       projection?: TProjection
     ): Promise<{
-      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-      projection: TProjection
-      cleanup: NonNullable<
-        MovementConcentrationExecutionDto['result']['applicationOutputs']['cleanup']
-      >
-      ownerTransitions: MovementConcentrationExecutionDto['ownerTransitions']
-    }>
+      maintainedState: MovementMaintainedStateRef
+      reason: MovementConcentrationEndDto['result']['applicationOutputs']['reason']
+    } | null>
+    projectEnd(
+      end: { actorId: string; maintainedState: MovementMaintainedStateRef },
+      targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>,
+      projection?: TProjection
+    ): Promise<MovementConcentrationProjectedEnd<TCharacterFacts, TProjection>>
   }
 ) {
   const source = movementConcentrationDamageSource(input.remainder, input.source)
@@ -135,6 +167,7 @@ export async function prepareEncounterMovementConcentration<
   let projection = input.projection
   const settlements: MovementConcentrationSettlement[] = []
   const checks = [...(source.execution.concentrationChecks ?? [])]
+  let end = source.execution.concentrationEnd
   const phase = input.resume?.snapshot.applicationContext
   const frozen =
     phase?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && phase.phase.kind === 'CONCENTRATION_EVIDENCE'
@@ -149,6 +182,54 @@ export async function prepareEncounterMovementConcentration<
   )
     throw new Error('The issued movement Concentration phase is unavailable.')
   let remaining: NativeConcentrationContext['remaining'] = []
+  /** The projection after a Concentration slot is lost: later checks and contacts observe it. */
+  const adoptEnd = (
+    ended: { targets: typeof targets; projection: TProjection },
+    maintainedStateId: string
+  ) => {
+    const candidates = projectSpatialMovementCandidates({
+      candidates: remainder.remainingSpatialCandidates,
+      beforeTargets: targets,
+      afterTargets: ended.targets
+    })
+    targets = ended.targets
+    projection = ended.projection
+    remaining = remaining.filter((entry) => entry.maintainedStateId !== maintainedStateId)
+    remainder = {
+      ...remainder,
+      remainingSpatialCandidates: candidates,
+      spatialCurrentnessChecksum: checksumSpatialCurrentness({
+        encounter: input.state,
+        candidates
+      })
+    }
+  }
+  /** The source contact retains its end and checks beside its (unchanged) damage envelope. */
+  const retainChildren = () => {
+    const children = {
+      ...(end ? { concentrationEnd: end } : {}),
+      ...(checks.length ? { concentrationChecks: [...checks] } : {})
+    }
+    const completedSpatialExecutions = remainder.completedSpatialExecutions.map((entry) =>
+      input.source.kind === 'SPATIAL' && entry.ordinal === input.source.executionOrdinal
+        ? { ...entry, ...children }
+        : entry
+    )
+    remainder = {
+      ...remainder,
+      completedSpatialExecutions,
+      completedReactionExecutions: remainder.completedReactionExecutions.map((entry) =>
+        input.source.kind === 'REACTION' && entry.ordinal === input.source.executionOrdinal
+          ? { ...entry, ...children }
+          : entry
+      ),
+      appliedSpatialPrefix:
+        remainder.appliedSpatialPrefix?.status === 'BATCH_COMPLETE' &&
+        remainder.appliedSpatialPrefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+          ? { ...remainder.appliedSpatialPrefix, executions: completedSpatialExecutions }
+          : remainder.appliedSpatialPrefix
+    }
+  }
   if (frozen) {
     if (
       frozen.parentOccurrenceId !== input.occurrenceId ||
@@ -168,6 +249,42 @@ export async function prepareEncounterMovementConcentration<
       )
         throw new Error('Movement Concentration retained damage is unavailable.')
   } else if (input.state.automationMode !== 'MANUAL') {
+    // D95: a holder the contact defeated or left unable to act loses Concentration with no check,
+    // so the checks below observe the lost slot and roll none for it.
+    const found = source.holderActorId
+      ? await callbacks.findEnd(source.holderActorId, targets, projection)
+      : null
+    if (source.holderActorId && found) {
+      const ended = await callbacks.projectEnd(
+        { actorId: source.holderActorId, maintainedState: found.maintainedState },
+        targets,
+        projection
+      )
+      const occurrenceId = concentrationEndOccurrenceId(
+        input.occurrenceId,
+        found.maintainedState.id
+      )
+      end = movementConcentrationEndDtoSchema.parse({
+        sourceCommandId: input.sourceCommandId,
+        result: {
+          occurrenceId,
+          applicationOutputs: {
+            kind: 'CONCENTRATION_END',
+            schemaVersion: 1,
+            occurrenceId,
+            parentOccurrenceId: input.occurrenceId,
+            ownerActorId: source.holderActorId,
+            maintainedStateId: found.maintainedState.id,
+            reason: found.reason,
+            cleanup: ended.cleanup
+          }
+        },
+        ownerTransitions: ended.ownerTransitions
+      })
+      settlements.push({ kind: 'END', execution: end })
+      adoptEnd(ended, found.maintainedState.id)
+      retainChildren()
+    }
     for (const application of source.applications) {
       const current = await callbacks.loadState(application.targetActorId, targets, projection)
       if (current) remaining.push({ ...application, maintainedStateId: current.maintained.id })
@@ -266,7 +383,13 @@ export async function prepareEncounterMovementConcentration<
       runtime: runtime!,
       random: callbacks.random
     })
-    const ended = evidence.failed ? await callbacks.projectEnd(context, targets, projection) : null
+    const ended = evidence.failed
+      ? await callbacks.projectEnd(
+          { actorId: application.targetActorId, maintainedState: context.maintainedState },
+          targets,
+          projection
+        )
+      : null
     const execution = movementConcentrationExecutionDtoSchema.parse({
       sourceCommandId: input.sourceCommandId,
       result: completeNativeConcentrationResult({
@@ -283,6 +406,7 @@ export async function prepareEncounterMovementConcentration<
       throw new Error('Prepared movement Concentration does not match current mechanics.')
     checks.push(execution)
     settlements.push({
+      kind: 'CHECK',
       state: input.state,
       context,
       continuation: started.continuation,
@@ -290,43 +414,8 @@ export async function prepareEncounterMovementConcentration<
       userId: input.userId,
       occurredAt: input.occurredAt
     })
-    if (ended) {
-      const candidates = projectSpatialMovementCandidates({
-        candidates: remainder.remainingSpatialCandidates,
-        beforeTargets: targets,
-        afterTargets: ended.targets
-      })
-      targets = ended.targets
-      projection = ended.projection
-      remaining = remaining.filter((entry) => entry.maintainedStateId !== maintainedStateId)
-      remainder = {
-        ...remainder,
-        remainingSpatialCandidates: candidates,
-        spatialCurrentnessChecksum: checksumSpatialCurrentness({
-          encounter: input.state,
-          candidates
-        })
-      }
-    }
-    const completedSpatialExecutions = remainder.completedSpatialExecutions.map((entry) =>
-      input.source.kind === 'SPATIAL' && entry.ordinal === input.source.executionOrdinal
-        ? { ...entry, concentrationChecks: [...checks] }
-        : entry
-    )
-    remainder = {
-      ...remainder,
-      completedSpatialExecutions,
-      completedReactionExecutions: remainder.completedReactionExecutions.map((entry) =>
-        input.source.kind === 'REACTION' && entry.ordinal === input.source.executionOrdinal
-          ? { ...entry, concentrationChecks: [...checks] }
-          : entry
-      ),
-      appliedSpatialPrefix:
-        remainder.appliedSpatialPrefix?.status === 'BATCH_COMPLETE' &&
-        remainder.appliedSpatialPrefix.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-          ? { ...remainder.appliedSpatialPrefix, executions: completedSpatialExecutions }
-          : remainder.appliedSpatialPrefix
-    }
+    if (ended) adoptEnd(ended, maintainedStateId)
+    retainChildren()
     resume = undefined
   }
   if (

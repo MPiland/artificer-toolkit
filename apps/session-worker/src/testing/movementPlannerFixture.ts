@@ -2,6 +2,7 @@ import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
 import {
   createDnd5eMovementReactionChoiceDefinition,
+  DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
   createDnd5eOpportunityReactionEligibilityDefinition,
   DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
@@ -124,6 +125,53 @@ export const saveStopWolf: CreatureAuthored = (() => {
   }
 })()
 
+/**
+ * The `reactionWolf` whose hit deals no damage but leaves a state effect that suppresses the
+ * target's actor-action capability, as a non-condition source of "can't act" would.
+ */
+export const incapacitatingReactionWolf: CreatureAuthored = (() => {
+  const bite = creatureFeature(reactionWolf, 'Bite')
+  const effect = bite.effects?.[0]
+  const hit = effect?.paths[0]
+  if (!effect || !hit || !('resultBlock' in hit))
+    throw new Error('The reaction Wolf Bite is missing.')
+  return {
+    ...reactionWolf,
+    features: [
+      {
+        ...bite,
+        effects: [
+          {
+            ...effect,
+            paths: [
+              {
+                ...hit,
+                resultBlock: {
+                  ...hit.resultBlock,
+                  outcomes: [
+                    {
+                      id: testUuid(0x7101),
+                      effectKind: 'ACTOR_RELATIONSHIP' as const,
+                      modules: [
+                        {
+                          id: testUuid(0x7102),
+                          order: 1,
+                          kind: 'TARGET_CAPABILITY_SUPPRESSION' as const,
+                          capabilityDefinitionIds: [DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+})()
+
 /** A Wolf that carries the Dragon's Legendary Resistance (its saves may be turned into successes). */
 export const legendaryWolf: CreatureAuthored = (() => {
   const resistance = adultBlackDragon.features?.find((feature) =>
@@ -165,6 +213,8 @@ export async function spatialDamageEffect(input: {
   variant?: number
   /** Deals the damage only on a failed save, which the room rolls or asks for as d20 evidence. */
   save?: boolean
+  /** Applies this condition instead of dealing damage. */
+  condition?: { conditionId: string }
   /** Anchors the effect to a token instead of the Scene, so it travels with that token. */
   moving?: {
     sourceTokenId: string
@@ -188,6 +238,7 @@ export async function spatialDamageEffect(input: {
       effectId: testUuid(0x6005 + offset)
     },
     save: input.save ?? false,
+    condition: input.condition,
     remainingTicks: 3,
     moving: input.moving
   })

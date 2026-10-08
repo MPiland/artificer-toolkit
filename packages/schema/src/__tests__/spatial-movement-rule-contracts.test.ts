@@ -273,14 +273,14 @@ function completedExecution(
         currentHitPoints: 10,
         temporaryHitPoints: 0,
         maximumHitPoints: 10,
-        conditionIds: [],
+        conditionIds: [] as string[],
         scalarValues: {}
       },
       after: {
         currentHitPoints: 10,
         temporaryHitPoints: 0,
         maximumHitPoints: 10,
-        conditionIds: [],
+        conditionIds: [] as string[],
         scalarValues: {}
       }
     },
@@ -1897,5 +1897,140 @@ describe('spatial movement rule contracts', () => {
       expect(serverRuleExecutionReceiptCommandMetadataDtoSchema.safeParse(malformed).success).toBe(
         false
       )
+  })
+})
+
+describe('Concentration ends in the spatial movement receipt timeline (D95)', () => {
+  const maintainedStateId = ids.entry
+  const derivedConditionId = ids.source
+
+  /**
+   * Two contacts on one Character with a Concentration end after the first. The end observes the
+   * persisted state, which may carry conditions the System derived (D63); the second contact then
+   * continues from the end's resulting state.
+   */
+  function endedSpatialResult(options: { observedConditionIds: string[]; secondChanges: boolean }) {
+    const result = bridgedSpatialResult()
+    result.reactionExecutions = []
+    const [first, second] = result.executions as [
+      ReturnType<typeof completedExecution>,
+      ReturnType<typeof completedExecution>
+    ]
+    const observed = { ...first.targetTransition.after, conditionIds: options.observedConditionIds }
+    Object.assign(first, {
+      concentrationEnd: {
+        sourceCommandId: ids.commandTwo,
+        result: {
+          occurrenceId: ids.effectTwo,
+          applicationOutputs: {
+            kind: 'CONCENTRATION_END' as const,
+            schemaVersion: 1 as const,
+            occurrenceId: ids.effectTwo,
+            parentOccurrenceId: ids.occurrence,
+            ownerActorId: ids.actor,
+            maintainedStateId,
+            reason: 'DEFEATED' as const,
+            cleanup: {
+              maintainedStateId,
+              removedDependentEffectIds: [],
+              characterOwnerTransitions: [
+                { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 }
+              ]
+            }
+          }
+        },
+        ownerTransitions: [
+          {
+            targetActorId: ids.actor,
+            characterId: ids.character,
+            before: observed,
+            after: observed
+          }
+        ]
+      }
+    })
+    second.candidate.target.streamVersion = 6
+    second.targetTransition.before = observed
+    second.targetTransition.after = options.secondChanges
+      ? { ...observed, currentHitPoints: observed.currentHitPoints - 1 }
+      : observed
+    const [transition] = result.characterTransitions
+    transition!.beforeStreamVersion = 4
+    transition!.before = first.targetTransition.before
+    if (options.secondChanges) {
+      transition!.afterStreamVersion = 7
+      transition!.after = second.targetTransition.after
+    } else {
+      transition!.afterStreamVersion = 5
+      transition!.after = first.targetTransition.after
+    }
+    return result
+  }
+
+  const accepts = (result: ReturnType<typeof endedSpatialResult>) =>
+    storedRuleExecutionResultDtoSchema.safeParse(result).success
+
+  it('accepts an end that observes the conditions the System derived for the contact', () => {
+    expect(accepts(endedSpatialResult({ observedConditionIds: [], secondChanges: false }))).toBe(
+      true
+    )
+    expect(
+      accepts(
+        endedSpatialResult({ observedConditionIds: [derivedConditionId], secondChanges: false })
+      )
+    ).toBe(true)
+  })
+
+  it('leaves the schema lenient about WHICH extra condition: persistence rejects a forged one', () => {
+    // The schema cannot know the System's derivation, so any extra condition is accepted here.
+    // `persistLiveMovementConcentrationEnd` binds the owner `before` to the stored state and
+    // rejects a forged condition (packages/encounter-persistence concentrationEnd.test.ts).
+    expect(
+      accepts(endedSpatialResult({ observedConditionIds: [ids.user], secondChanges: false }))
+    ).toBe(true)
+  })
+
+  it('still rejects an end that observes a different hit point state', () => {
+    const result = endedSpatialResult({ observedConditionIds: [], secondChanges: false })
+    const end = (
+      result.executions[0] as unknown as {
+        concentrationEnd: { ownerTransitions: { before: { currentHitPoints: number } }[] }
+      }
+    ).concentrationEnd
+    end.ownerTransitions[0]!.before.currentHitPoints = 3
+    expect(accepts(result)).toBe(false)
+  })
+
+  it('keeps the span when a later contact changes nothing', () => {
+    expect(
+      accepts(
+        endedSpatialResult({ observedConditionIds: [derivedConditionId], secondChanges: false })
+      )
+    ).toBe(true)
+    // The span must not absorb the no-op contact's state after the end.
+    const result = endedSpatialResult({
+      observedConditionIds: [derivedConditionId],
+      secondChanges: false
+    })
+    result.characterTransitions[0]!.afterStreamVersion = 6
+    expect(accepts(result)).toBe(false)
+  })
+
+  it('updates the span when a later contact changes the state', () => {
+    const result = endedSpatialResult({
+      observedConditionIds: [derivedConditionId],
+      secondChanges: true
+    })
+    expect(accepts(result)).toBe(true)
+    // A stale span that ignores the later change is rejected.
+    const stale = endedSpatialResult({
+      observedConditionIds: [derivedConditionId],
+      secondChanges: true
+    })
+    stale.characterTransitions[0]!.afterStreamVersion = 5
+    stale.characterTransitions[0]!.after = (
+      stale.executions[0] as ReturnType<typeof completedExecution>
+    ).targetTransition.after
+    expect(accepts(stale)).toBe(false)
   })
 })

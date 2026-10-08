@@ -25,8 +25,7 @@ import {
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
-import { encounterActorCannotAct } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -286,16 +285,13 @@ export async function planNativeLiveConcentration(input: {
       if (!actor) throw new Error('Concentration actor is unavailable.')
       const maintained = await slotFor(actor.id)
       if (!maintained) continue
-      const reason = isEncounterActorDefeated(actor)
-        ? 'DEFEATED'
-        : (await encounterActorCannotAct({
-              conditionIds: target.state.conditions,
-              activeEffects: target.activeEffects,
-              gameSystemId: state.gameSystemId,
-              definitions: definitionSource
-            }))
-          ? 'INCAPACITATED'
-          : null
+      const reason = await encounterConcentrationEndReason({
+        actor,
+        conditionIds: target.state.conditions,
+        activeEffects: target.activeEffects,
+        gameSystemId: state.gameSystemId,
+        definitions: definitionSource
+      })
       if (reason)
         concentrationEnds.push({
           ownerActorId: actor.id,

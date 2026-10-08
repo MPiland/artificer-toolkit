@@ -15,15 +15,29 @@ type CharacterVersionTransition = {
   afterStreamVersion: number
 }
 
+type ConcentrationChild = {
+  result: {
+    applicationOutputs: {
+      cleanup: { characterOwnerTransitions: readonly CharacterVersionTransition[] } | null
+    }
+  }
+}
+
+/** A contact's Concentration children advance Character versions in order: its end, then its checks. */
+function concentrationChildren(contact: {
+  concentrationEnd?: ConcentrationChild
+  concentrationChecks?: readonly ConcentrationChild[]
+}) {
+  return [
+    ...(contact.concentrationEnd ? [contact.concentrationEnd] : []),
+    ...(contact.concentrationChecks ?? [])
+  ]
+}
+
 type MovementReactionCharacterExecution = {
   characterTransitions: readonly CharacterVersionTransition[]
-  concentrationChecks?: readonly {
-    result: {
-      applicationOutputs: {
-        cleanup: { characterOwnerTransitions: readonly CharacterVersionTransition[] } | null
-      }
-    }
-  }[]
+  concentrationEnd?: ConcentrationChild
+  concentrationChecks?: readonly ConcentrationChild[]
 }
 
 type MovementPendingSpatialExecution = {
@@ -35,13 +49,8 @@ type MovementPendingSpatialExecution = {
       | { kind: 'ENCOUNTER_ACTOR' }
   }
   targetTransition: { before: unknown; after: unknown }
-  concentrationChecks?: readonly {
-    result: {
-      applicationOutputs: {
-        cleanup: { characterOwnerTransitions: readonly CharacterVersionTransition[] } | null
-      }
-    }
-  }[]
+  concentrationEnd?: ConcentrationChild
+  concentrationChecks?: readonly ConcentrationChild[]
 }
 
 type MovementPendingSpatialPrefix = {
@@ -55,16 +64,7 @@ export type MovementCommandTransition =
       result: { characterTransitions: readonly CharacterVersionTransition[] }
     }
   | { kind: 'REACTION'; execution: { characterTransitions: readonly CharacterVersionTransition[] } }
-  | {
-      kind: 'CONCENTRATION'
-      execution: {
-        result: {
-          applicationOutputs: {
-            cleanup: { characterOwnerTransitions: readonly CharacterVersionTransition[] } | null
-          }
-        }
-      }
-    }
+  | { kind: 'CONCENTRATION' | 'CONCENTRATION_END'; execution: ConcentrationChild }
 
 export type MovementChangedAggregate = {
   aggregateId: string
@@ -97,8 +97,8 @@ function characterVersions(
   }
   for (const execution of reactionExecutions) {
     for (const transition of execution.characterTransitions) append(transition)
-    for (const check of execution.concentrationChecks ?? [])
-      for (const transition of check.result.applicationOutputs.cleanup?.characterOwnerTransitions ??
+    for (const child of concentrationChildren(execution))
+      for (const transition of child.result.applicationOutputs.cleanup?.characterOwnerTransitions ??
         [])
         append(transition)
   }
@@ -173,10 +173,10 @@ export function movementPendingCharacterAggregateVersions(
         before: execution.targetTransition.before,
         after: execution.targetTransition.after
       })
-    if (execution.concentrationChecks !== undefined) {
+    if (execution.concentrationEnd !== undefined || execution.concentrationChecks !== undefined) {
       finishSpatialGroups()
-      for (const check of execution.concentrationChecks)
-        for (const transition of check.result.applicationOutputs.cleanup
+      for (const child of concentrationChildren(execution))
+        for (const transition of child.result.applicationOutputs.cleanup
           ?.characterOwnerTransitions ?? [])
           append(transition)
     }

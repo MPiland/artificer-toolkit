@@ -328,18 +328,18 @@ export async function prepareEncounterMovementContinuation<
       boundary,
       timeline
     })
-    if (boundary.damageExecutionOrdinal !== undefined) {
+    if (boundary.concentrationExecutionOrdinal !== undefined) {
       const concentration = await callbacks.prepareConcentration({
         autoRoll: input.autoRoll,
         remainder,
         targets,
         projection: maintenanceProjection,
-        executionOrdinal: boundary.damageExecutionOrdinal,
+        executionOrdinal: boundary.concentrationExecutionOrdinal,
         ...(input.retained
           ? {
               retainedChecks:
                 retainedMovementSpatialExecutions(input.retained).find(
-                  (entry) => entry.ordinal === boundary.damageExecutionOrdinal
+                  (entry) => entry.ordinal === boundary.concentrationExecutionOrdinal
                 )?.concentrationChecks ?? []
             }
           : {})
