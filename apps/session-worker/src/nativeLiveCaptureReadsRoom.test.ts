@@ -200,10 +200,11 @@ describe('readNativeLiveMaintenanceOwners over the real room', () => {
         ])
         const row = room.characterRows.get(CHARACTER_A)!
         const stored = room.store.documents('characters').find(({ id }) => id === CHARACTER_A)
-        expect(result.owners[0]?.character).toEqual({
-          ...row,
-          sheetStateChecksum: stored?.sheetStateChecksum
-        })
+        // The head holds no aggregate hashes; the held capture carries the assembled ones.
+        expect(stored).toBeDefined()
+        expect(stored).not.toHaveProperty('checksum')
+        expect(stored).not.toHaveProperty('sheetStateChecksum')
+        expect(result.owners[0]?.character).toEqual(row)
         expect(result.characterVersions).toEqual([
           { characterId: CHARACTER_A, beforeStreamVersion: row.play.streamVersion }
         ])

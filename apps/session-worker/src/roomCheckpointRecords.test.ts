@@ -872,8 +872,6 @@ describe('room checkpoint records', () => {
         systemId: uuid(5),
         label: 'Character',
         status: 'ACTIVE',
-        checksum: sha256Hex('structure'),
-        sheetStateChecksum: sha256Hex('sheet'),
         portraitAssetId: uuid(6),
         createdAt: timestamp,
         updatedAt: timestamp

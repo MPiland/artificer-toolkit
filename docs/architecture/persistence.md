@@ -308,13 +308,15 @@ is updated with definition and live Scene references and is checked by account d
 ### Character operational records
 
 Mutable Character data is split by the reads and writes that use it, and a complete Character is assembled at
-Builder, rules, import and capture boundaries (`characters/stateDocuments.ts`). Heads store identity, clocks and
-complete structure checksums; Build and play values are typed and each owned collection has one checksummed row
-per instance with its array position.
+Builder, rules, import and capture boundaries (`characters/stateDocuments.ts`). Heads store identity and clocks only;
+Build and play values are typed and each owned collection has one checksummed row per instance with its array
+position. The complete structure and Sheet-state checksums are derived when the records are assembled
+(`assembleCharacterStructure`, `packages/schema/src/projections/characterOperationalState.ts`), so a write that
+changes one collection never rewrites an aggregate hash on the head.
 
 | Table                                                                           | Contents                                                                                                                                |
 | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `characters`                                                                    | UUID, owner, System, status, label, portrait metadata, structure clock and checksums, stored `maximumHitPoints` and `walkingSpeed`      |
+| `characters`                                                                    | UUID, owner, System, status, label, portrait metadata and the structure clock                                                           |
 | `characterBuildStates`                                                          | Profile and Builder intent, with per-family counts that prove collection completeness                                                   |
 | `characterPlayStates`                                                           | HP, hit dice, inspiration, resources, slots, conditions, exhaustion, equipped and attuned IDs, usage, party visibility, `streamVersion` |
 | `characterInventoryItems`, `characterCurrencyGroups`, `characterExtraEquipment` | One row per item, currency group or extra-equipment link                                                                                |
@@ -330,11 +332,13 @@ lives in `packages/schema`, independent of the full mechanics graph.
 
 ### Stored maximum hit points and walking speed
 
-`characters/characterWrites.writeCharacterRecord` is the only writer of a `characters` row. In the same
-transaction it evaluates the written Character (`resolveCharacterRecordStats`,
-`packages/rules-runtime/src/character/characterRecordStats.ts`) and stores `maximumHitPoints` (the Sheet's
-effective maximum before Encounter reductions) and `walkingSpeed` (effective `WALK` feet, the Encounter movement
-budget, D38). Callers keep authority, replay, receipts and the one-stream-advance rule. A DRAFT Character keeps
+`characters/characterWrites.ts` owns every Character record write. `writeCharacterRecord` writes a complete
+Character; `writeCharacterNoteRecords` writes a note edit through only the note and note-group rows, the Build
+counts, the structure clock and, outside live play, the play clock (SHEET-7). A note never changes rules
+inputs, so it keeps the stored stats. In the same transaction `writeCharacterRecord` evaluates the written
+Character (`resolveCharacterRecordStats`, `packages/rules-runtime/src/character/characterRecordStats.ts`) and
+stores on the play record `maximumHitPoints` (the Sheet's effective maximum before Encounter reductions) and
+`walkingSpeed` (effective `WALK` feet, the Encounter movement budget, D38). Callers keep authority, replay, receipts and the one-stream-advance rule. A DRAFT Character keeps
 its last stored stats. Campaign-owned inputs (GM adjustments, attunement override, assignment, departure) refresh
 the stats without advancing the stream. Rules never read the stored values; projections display them. A
 published-content change reaches a Character's stored stats on its next write while the Sheet always shows the

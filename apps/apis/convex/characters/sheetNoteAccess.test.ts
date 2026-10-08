@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { characterCollectionSchemas } from '@artificer-toolkit/schema/projections/characterOperationalRecords'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
@@ -7,6 +8,10 @@ import { executeCharacterSheetCommandAcknowledgement } from './sheetCommands'
 import * as sheetFacts from './sheetFacts'
 import * as receipts from './sheetCommandReceipts'
 import { readCharacterRecord } from './stateDocuments'
+
+const UNRELATED_COLLECTIONS = Object.keys(characterCollectionSchemas).filter(
+  (table) => table !== 'characterNotes' && table !== 'characterNoteGroups'
+)
 
 describe('Character note command access', () => {
   it('commits and replays notes without preparing rules or changing mechanical values', async () => {
@@ -57,6 +62,61 @@ describe('Character note command access', () => {
     } finally {
       evaluate.mockRestore()
     }
+  })
+
+  it('reads and writes only notes and groups, collection counts, clocks and receipt', async () => {
+    const { owner, character, readState } = await readySheetFixture()
+    const before = await readState()
+    const stored = readCharacterRecord(before.character!)
+    expect(stored.state.equipment.inventory.length).toBeGreaterThan(0)
+    const totals = createDatabaseIoTotals()
+    await owner.caller.run((ctx) =>
+      executeCharacterSheetCommandAcknowledgement(
+        { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+        owner.userId,
+        {
+          id: character.id,
+          command: {
+            type: 'CREATE_NOTE',
+            commandId: crypto.randomUUID(),
+            expectedVersion: before.character!.play.streamVersion,
+            title: 'Metered note',
+            groupId: 'session-notes'
+          }
+        }
+      )
+    )
+    for (const table of UNRELATED_COLLECTIONS) {
+      expect(totals.reads.byTable[table], table).toBeUndefined()
+      expect(totals.writes.byTable[table], table).toBeUndefined()
+    }
+    expect(totals.reads.byTable.characterBuildStates?.distinct).toBe(1)
+    expect(totals.reads.byTable.characterPlayStates?.distinct).toBe(1)
+    expect(totals.reads.byTable.characters?.distinct).toBe(1)
+    // One new note row and the default group, then the build counts, the head's structure clock and
+    // the play clock; nothing else is rewritten.
+    expect(totals.writes.byTable.characterNotes?.documents).toBe(1)
+    expect(totals.writes.byTable.characterNoteGroups?.documents).toBe(1)
+    expect(totals.writes.byTable.replace?.documents).toBe(2)
+    expect(totals.writes.byTable.patch?.documents).toBe(1)
+    expect(totals.writes.byTable.delete).toBeUndefined()
+    const after = await readState()
+    const written = readCharacterRecord(after.character!)
+    // The built-in Session Notes group is materialized as the one written group row.
+    const [group] = written.state.noteGroups ?? []
+    expect(written.state.noteGroups).toEqual([
+      expect.objectContaining({ kind: 'SESSION', label: 'Session Notes' })
+    ])
+    expect(written.state.notes).toEqual([
+      expect.objectContaining({ title: 'Metered note', groupId: group!.id })
+    ])
+    expect({
+      ...written,
+      state: { ...written.state, notes: undefined, noteGroups: undefined }
+    }).toEqual({ ...stored, state: { ...stored.state, notes: undefined, noteGroups: undefined } })
+    expect(after.character!.play.state).toEqual(before.character!.play.state)
+    expect(after.character!.play.streamVersion).toBe(before.character!.play.streamVersion + 1)
+    expect(after.character!.updatedAt).toBe(after.character!.play.updatedAt)
   })
 
   it('rolls back a note and both clocks when retaining its receipt fails', async () => {

@@ -93,8 +93,6 @@ describe('checkpoint record decoding', () => {
       systemId: userId,
       label: 'Character',
       status: 'ACTIVE',
-      checksum,
-      sheetStateChecksum: checksum,
       portraitAssetId: undefined,
       createdAt: updatedAt,
       updatedAt

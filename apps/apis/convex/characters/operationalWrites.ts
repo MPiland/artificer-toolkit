@@ -1,6 +1,10 @@
 import type { WithoutSystemFields } from 'convex/server'
 import { encodeCharacterOperationalStructure } from '@artificer-toolkit/schema/projections/characterOperationalState'
-import type { CharacterCollectionTable } from '@artificer-toolkit/schema/projections/characterOperationalRecords'
+import type {
+  CharacterCollectionRecords,
+  CharacterCollectionTable,
+  CharacterStoredBuildState
+} from '@artificer-toolkit/schema/projections/characterOperationalRecords'
 import type { z } from 'zod'
 import type { characterStoredRecordSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import type { Doc } from '../_generated/dataModel'
@@ -40,74 +44,44 @@ async function syncCollection(
   }
 }
 
+type OperationalRecords = {
+  build: CharacterStoredBuildState
+  collections: Partial<CharacterCollectionRecords>
+}
+
+/**
+ * Writes the build record and the given collections where they changed from `before`. A focused
+ * write passes only the collections it owns; every other record stays unread and unwritten.
+ */
+export async function writeCharacterOperationalRecords(
+  ctx: MutationCtx,
+  before: OperationalRecords | null,
+  after: OperationalRecords
+) {
+  if (before?.build.checksum !== after.build.checksum) {
+    const stored = await ctx.db
+      .query('characterBuildStates')
+      .withIndex('by_characterId', (q) => q.eq('characterId', after.build.characterId))
+      .unique()
+    if (stored) await ctx.db.replace(stored._id, after.build)
+    else await ctx.db.insert('characterBuildStates', after.build)
+  }
+  for (const [table, rows] of Object.entries(after.collections) as [
+    CharacterCollectionTable,
+    CharacterCollectionRecords[CharacterCollectionTable]
+  ][])
+    await syncCollection(ctx, table, before?.collections[table] ?? [], rows)
+}
+
 /** Shares the caller's transaction and preserves all collection ordering and public IDs. */
 export async function writeCharacterOperationalStructure(
   ctx: MutationCtx,
   current: Capture | null,
   next: Capture
 ) {
-  const before = current ? encodeCharacterOperationalStructure(current) : null
-  const after = encodeCharacterOperationalStructure(next)
-  if (before?.build.checksum !== after.build.checksum) {
-    const stored = await ctx.db
-      .query('characterBuildStates')
-      .withIndex('by_characterId', (q) => q.eq('characterId', next.id))
-      .unique()
-    if (stored) await ctx.db.replace(stored._id, after.build)
-    else await ctx.db.insert('characterBuildStates', after.build)
-  }
-  await syncCollection(
+  await writeCharacterOperationalRecords(
     ctx,
-    'characterInventoryItems',
-    before?.collections.characterInventoryItems ?? [],
-    after.collections.characterInventoryItems
-  )
-  await syncCollection(
-    ctx,
-    'characterCurrencyGroups',
-    before?.collections.characterCurrencyGroups ?? [],
-    after.collections.characterCurrencyGroups
-  )
-  await syncCollection(
-    ctx,
-    'characterClassSpellStates',
-    before?.collections.characterClassSpellStates ?? [],
-    after.collections.characterClassSpellStates
-  )
-  await syncCollection(
-    ctx,
-    'characterSpellCustomizations',
-    before?.collections.characterSpellCustomizations ?? [],
-    after.collections.characterSpellCustomizations
-  )
-  await syncCollection(
-    ctx,
-    'characterCreatureInstances',
-    before?.collections.characterCreatureInstances ?? [],
-    after.collections.characterCreatureInstances
-  )
-  await syncCollection(
-    ctx,
-    'characterVehicleInstances',
-    before?.collections.characterVehicleInstances ?? [],
-    after.collections.characterVehicleInstances
-  )
-  await syncCollection(
-    ctx,
-    'characterNotes',
-    before?.collections.characterNotes ?? [],
-    after.collections.characterNotes
-  )
-  await syncCollection(
-    ctx,
-    'characterNoteGroups',
-    before?.collections.characterNoteGroups ?? [],
-    after.collections.characterNoteGroups
-  )
-  await syncCollection(
-    ctx,
-    'characterExtraEquipment',
-    before?.collections.characterExtraEquipment ?? [],
-    after.collections.characterExtraEquipment
+    current ? encodeCharacterOperationalStructure(current) : null,
+    encodeCharacterOperationalStructure(next)
   )
 }
