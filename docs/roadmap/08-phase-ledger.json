@@ -6048,6 +6048,38 @@
               "id": "RELEASE-6.1"
             }
           ]
+        },
+        {
+          "id": "RELEASE-7",
+          "title": "Alpha testers have a play guide for the live table",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A plain-language guide with Player and GM sections explains every live-table flow an alpha tester meets: joining a Session, Scenes, tokens and movement, Manual versus Assisted Encounters, initiative, the turn stages (Recharge, death saves, start-of-turn effects), attacks, saves, spells and reactions, Public and Private GM rolls and their reveals, the auto-roll preference, and what can and cannot be undone.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from phase-08-2-decisions.md and the ADRs.",
+              "id": "RELEASE-7.1"
+            },
+            {
+              "text": "The guide lists the known gaps testers will hit and tells them how to send feedback and what to include (Campaign, Scene, round, what they expected and what happened).",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "RELEASE-7.2"
+            },
+            {
+              "text": "A walkthrough of the release candidate confirms every statement in the guide matches the build before alpha invites go out.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "RELEASE-7.3"
+            }
+          ]
         }
       ]
     }
