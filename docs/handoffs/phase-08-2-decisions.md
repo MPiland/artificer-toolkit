@@ -515,7 +515,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 * **D97** (2026-10-08) Item counts: uses, quantity and price (AUTHORING-16; Q21). The user ruled that uses and quantity are different things and that there are no merchants: players add items and pay coin by hand. Claude decided the pricing.
   - **Uses** are an item's charges: the Healer's Kit is one item with 10 charges, named "Healer's Kit".
   - **Quantity** counts identical pieces: ammunition and Iron Spikes are single-piece items ("Arrows"), and firing one lowers the inventory quantity.
-  - **Price** is per piece, derived from the SRD bundle price (Arrows 5 cp, Crossbow Bolts 5 cp, Blowgun Needles 2 cp, Sling Bullets 0.2 cp, Iron Spikes 1 sp). No sale-unit field is added, since nothing would read it; a future merchant interface ([future enhancements](../roadmap/future-enhancements.md#merchant-interface)) adds one when it needs it.
+  - **Price** is per piece, derived from the SRD bundle price (Arrows 5 cp, Crossbow Bolts 5 cp, Blowgun Needles 2 cp, Sling Bullets 0.2 cp, Iron Spikes 1 sp). No sale-unit field is added: a future merchant interface ([future enhancements](../roadmap/future-enhancements.md#merchant-interface)) lists a line as item, quantity and price (Arrow, quantity 20, 1 gp), so the item never needs one.
   - Fixed measurements stay in names (Rope (50 ft, hempen), Pole (10-foot), Rations (1 day)): they never change.
 
 ## Approved implementation decisions

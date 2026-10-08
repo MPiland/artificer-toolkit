@@ -154,7 +154,7 @@ Raised by the user on 2026-10-07 during Phase 8.2; post-beta.
 
 ### Merchant interface
 
-Players add bought items to their inventory by hand and subtract the coin themselves; there are no merchants. Candidate: a GM-run merchant (a stock list priced from the System's equipment, with optional markups) where a player buys an item and the app adds it to inventory and deducts the coins in one step. Bundled SRD ammunition (20 arrows for 1 gp) would then need a sale unit on the item. Raised by the user on 2026-10-08 during Phase 8.2 (Q21); post-launch.
+Players add bought items to their inventory by hand and subtract the coin themselves; there are no merchants. Candidate: a GM-run merchant (a stock list priced from the System's equipment, with optional markups) where a player buys an item and the app adds it to inventory and deducts the coins in one step. A merchant line is just the item, a quantity and a price (Arrow, quantity 20, 1 gp), so items need no sale unit. Raised by the user on 2026-10-08 during Phase 8.2 (Q21); post-launch.
 
 ## Other future enhancements (parked)
 

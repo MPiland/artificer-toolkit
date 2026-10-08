@@ -229,43 +229,54 @@ describe('Character Sheet inventory', () => {
     expect(screen.getByRole('button', { name: /add item/i })).toBeDisabled()
   })
 
-  it('adds inventory items through sheet commands', async () => {
-    const user = userEvent.setup()
-    const submitCommand = vi.fn()
-    const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
-      Element.prototype,
-      'scrollIntoView'
-    )
-    Element.prototype.scrollIntoView = vi.fn()
-
-    try {
-      renderWithAppProviders(
-        <CharacterSheetInventory
-          pending={false}
-          sheet={createSheet()}
-          submitCommand={submitCommand}
-        />
+  it.each([
+    { entered: 'nothing', typedQuantity: undefined, quantity: 1 },
+    { entered: 'a quantity of 20', typedQuantity: '20', quantity: 20 }
+  ])(
+    'adds inventory items through sheet commands when $entered is entered',
+    async ({ typedQuantity, quantity }) => {
+      const user = userEvent.setup()
+      const submitCommand = vi.fn()
+      const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+        Element.prototype,
+        'scrollIntoView'
       )
+      Element.prototype.scrollIntoView = vi.fn()
 
-      await openEquipmentManager(user)
-      await user.click(screen.getByRole('combobox', { name: /^equipment$/i }))
-      await user.keyboard('{ArrowDown}{Enter}')
-      await user.click(screen.getByRole('button', { name: /add item/i }))
-    } finally {
-      if (scrollIntoViewDescriptor) {
-        Object.defineProperty(Element.prototype, 'scrollIntoView', scrollIntoViewDescriptor)
-      } else {
-        Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+      try {
+        renderWithAppProviders(
+          <CharacterSheetInventory
+            pending={false}
+            sheet={createSheet()}
+            submitCommand={submitCommand}
+          />
+        )
+
+        await openEquipmentManager(user)
+        await user.click(screen.getByRole('combobox', { name: /^equipment$/i }))
+        await user.keyboard('{ArrowDown}{Enter}')
+        if (typedQuantity) {
+          const quantityInput = screen.getByRole('textbox', { name: /^quantity$/i })
+          await user.clear(quantityInput)
+          await user.type(quantityInput, typedQuantity)
+        }
+        await user.click(screen.getByRole('button', { name: /add item/i }))
+      } finally {
+        if (scrollIntoViewDescriptor) {
+          Object.defineProperty(Element.prototype, 'scrollIntoView', scrollIntoViewDescriptor)
+        } else {
+          Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+        }
       }
-    }
 
-    expect(submitCommand).toHaveBeenCalledWith({
-      type: 'ADD_INVENTORY_ITEM',
-      equipmentId: fullEquipmentOptions[0].id,
-      quantity: 1,
-      expectedVersion: 4
-    })
-  })
+      expect(submitCommand).toHaveBeenCalledWith({
+        type: 'ADD_INVENTORY_ITEM',
+        equipmentId: fullEquipmentOptions[0].id,
+        quantity,
+        expectedVersion: 4
+      })
+    }
+  )
 
   it('renders inventory item reference details from equipment records', async () => {
     const user = userEvent.setup()
