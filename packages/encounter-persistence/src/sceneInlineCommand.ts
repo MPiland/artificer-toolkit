@@ -22,12 +22,12 @@ import { advanceLiveState, parseSceneLiveEntity } from './sceneLiveState.js'
 type StoredRow<T extends { parse(value: unknown): unknown }> = ReturnType<T['parse']>
 
 /** Why an inline Scene command was refused; integrity failures throw instead. */
-export type SceneInlineRefusal = {
+type SceneInlineRefusal = {
   kind: 'FORBIDDEN' | 'STALE' | 'INVALID'
   message: string
 }
 
-export type SceneInlinePlan =
+type SceneInlinePlan =
   | SceneInlineRefusal
   | { kind: 'REPLAY'; result: SceneCommandResultDto }
   | {

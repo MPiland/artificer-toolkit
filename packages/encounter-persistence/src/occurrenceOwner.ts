@@ -12,7 +12,7 @@ type PendingContext = ServerRuleExecutionPendingSnapshotDto['applicationContext'
  * The native coordinator that owns a rule occurrence, in native resume precedence. `commands.ts`
  * dispatches on it and the Session room routes pending occurrences by it.
  */
-export type NativeEncounterOccurrenceOwner =
+type NativeEncounterOccurrenceOwner =
   | 'DISARM'
   | 'CONCENTRATION'
   | 'CLEAVING'

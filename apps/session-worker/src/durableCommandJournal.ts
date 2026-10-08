@@ -11,9 +11,9 @@ const CHUNK_CODE_UNITS = 128 * 1024
 const textEncoder = new TextEncoder()
 const jwtPattern = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 
-export type DurableCommandJournalStatus = 'ACTIVE' | 'DRAINING' | 'RELEASED'
+type DurableCommandJournalStatus = 'ACTIVE' | 'DRAINING' | 'RELEASED'
 
-export interface DurableCommandJournalState {
+interface DurableCommandJournalState {
   authorityEpoch: string
   drainFinalChecksum: string | null
   drainFinalSequence: number | null
@@ -25,7 +25,7 @@ export interface DurableCommandJournalState {
   status: DurableCommandJournalStatus
 }
 
-export interface DurableCommandReceipt extends LiveSessionRoomCommandDurability {
+interface DurableCommandReceipt extends LiveSessionRoomCommandDurability {
   actorId: string
   commandId: string
   fingerprint: string
@@ -34,22 +34,22 @@ export interface DurableCommandReceipt extends LiveSessionRoomCommandDurability 
   stateChecksum: string
 }
 
-export interface DurableCommandOutboxEntry {
+interface DurableCommandOutboxEntry {
   payloadJson: string
   sequence: number
   stateChecksum: string
 }
 
-export type DurableCommandLookup =
+type DurableCommandLookup =
   | { kind: 'MISSING' }
   | { kind: 'MISMATCHED_REUSE' }
   | { kind: 'REPLAY'; receipt: DurableCommandReceipt }
 
-export type DurableCommandCommitResult =
+type DurableCommandCommitResult =
   | { kind: 'COMMITTED'; receipt: DurableCommandReceipt; state: DurableCommandJournalState }
   | { kind: 'REPLAY'; receipt: DurableCommandReceipt }
 
-export type DurableCommandJournalErrorCode =
+type DurableCommandJournalErrorCode =
   | 'AUTHORITY_MISMATCH'
   | 'COMMAND_ID_REUSE'
   | 'CORRUPT_JOURNAL'

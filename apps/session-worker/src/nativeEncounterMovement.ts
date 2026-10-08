@@ -87,7 +87,7 @@ type ContinuationInput = MovementContinuationInput<
   CharacterFacts,
   NativeLiveMovementMaintenanceProjection
 >
-export type NativeLiveMovementSettlement =
+type NativeLiveMovementSettlement =
   | { kind: 'SPATIAL'; plan: PreparedSpatialMovementPlan<CharacterFacts> }
   | { kind: 'REACTION'; plan: MovementReactionSettlementInput<CharacterFacts, CharacterRow> }
   | { kind: 'CONCENTRATION'; plan: MovementConcentrationSettlement }

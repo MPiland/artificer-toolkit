@@ -60,7 +60,7 @@ type SpatialTerminalGeometry<TGeometry extends SpatialSceneGeometry> =
   | Pick<TGeometry, 'sceneTokens' | 'actorIdByTokenId'>
   | { sceneTokens: SceneToken[]; actorIdByTokenId: Map<string, string> }
 
-export type SceneGeometryPublication<TGeometry extends SpatialSceneGeometry> = {
+type SceneGeometryPublication<TGeometry extends SpatialSceneGeometry> = {
   publishPreparedMovementResponse: (
     request: SceneGeometryFinishInput,
     geometry: SpatialTerminalGeometry<TGeometry> | null

@@ -80,7 +80,7 @@ export class RoomAccountBuckets {
   }
 }
 
-export interface BucketScope {
+interface BucketScope {
   epoch: string
   kind: AccountBucketKind
   role: 'OWNER' | 'PLAYER'

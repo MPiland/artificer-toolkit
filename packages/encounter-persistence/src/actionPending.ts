@@ -69,7 +69,7 @@ export async function canAnswerNativeActionEvidence(
   return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
 }
 
-export type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
+type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
 export function projectNativeActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,

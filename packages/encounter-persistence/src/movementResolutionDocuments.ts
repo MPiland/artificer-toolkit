@@ -31,7 +31,7 @@ type MovementRuleResolutionCommand = ReturnType<
   (typeof movementRuleResolutionCommandDtoSchema)['parse']
 >
 
-export type MovementResponseAuthority = CampaignAuthority & {
+type MovementResponseAuthority = CampaignAuthority & {
   userId: string
   run: EncounterDocument<'encounterRuns'>
   state: EncounterRunState
@@ -41,7 +41,7 @@ export type MovementResponseAuthority = CampaignAuthority & {
   root: ReturnType<typeof readEncounterMovementPendingContext>['root']
 }
 
-export type CurrentMovementResolution = MovementResponseAuthority & {
+type CurrentMovementResolution = MovementResponseAuthority & {
   command: ResolveRuleOccurrenceInputDto
   appRoll: Awaited<ReturnType<typeof readEncounterSettledAppRoll>>
   answer: ReturnType<typeof withEncounterAppRoll>
