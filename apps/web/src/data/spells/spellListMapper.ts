@@ -2,7 +2,7 @@ import type { SpellListResponseDto } from '@artificer-toolkit/schema/api/content
 import type { AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
 import { getSpellSchoolAccent } from './spellSchoolAccents'
 
-export interface SpellCatalogueItem {
+interface SpellCatalogueItem {
   id: string
   publicId: string
   label: string
@@ -31,10 +31,6 @@ function formatCastingTime(amount?: number, unit?: string) {
   if (!amount || !unit) return undefined
   const normalizedUnit = unit.toLowerCase().replaceAll('_', ' ')
   return `${amount} ${normalizedUnit}`
-}
-
-export function mapSpellListToAuthoredItems(response: SpellListResponseDto): AuthoredListItem[] {
-  return response.items.map(mapSpellCatalogueItem)
 }
 
 export function mapSpellCatalogueItem(item: SpellCatalogueItem): AuthoredListItem {
@@ -91,20 +87,6 @@ export const spellListSortOptions = [
   { value: 'school', label: 'School' }
 ]
 
-export function buildSpellListFilters(response: SpellListResponseDto): AuthoredListFilter[] {
-  const spellMeta = response.meta as {
-    classes?: SpellMetaGroup[]
-    schools?: SpellMetaGroup[]
-    levels?: SpellMetaGroup[]
-  }
-
-  return buildSpellFilters({
-    classes: spellMeta.classes ?? [],
-    levels: spellMeta.levels ?? [],
-    schools: spellMeta.schools ?? []
-  })
-}
-
 export function buildSpellFilters(facets: {
   classes: SpellMetaGroup[]
   levels: SpellMetaGroup[]
@@ -139,8 +121,4 @@ export function buildSpellFilters(facets: {
       }))
     }
   ]
-}
-
-export function summarizeSpellList(response: SpellListResponseDto) {
-  return `${response.summary.activeCount} spells / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

@@ -44,7 +44,7 @@ import type {
 } from './MobileAppFooter/MobileAppFooter.types'
 import * as styles from './shell.css'
 
-export interface ShellProps {
+interface ShellProps {
   navigation: AppShellNavGroup[]
   currentPath: string
   currentHref?: string
@@ -55,7 +55,7 @@ export interface ShellProps {
   children: ReactNode
 }
 
-export interface PageHeaderProps {
+interface PageHeaderProps {
   eyebrow?: string
   title: string
   description?: string

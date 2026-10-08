@@ -143,23 +143,6 @@ export const proficiencySummaryValues = style({
   }
 })
 
-export const proficiencyPanelGrid = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'start',
-      display: 'grid',
-      gap: '12px',
-      gridTemplateColumns: 'minmax(220px, 0.7fr) minmax(300px, 1fr)',
-      minWidth: 0,
-      '@media': {
-        '(max-width: 820px)': {
-          gridTemplateColumns: '1fr'
-        }
-      }
-    }
-  }
-})
-
 export const proficiencyHeading = style({
   '@layer': {
     [app]: {

@@ -28,7 +28,3 @@ export function getDefaultImportCustomContentChoice(
     ? 'ACTIVE'
     : 'DRAFT'
 }
-
-export function formatImportSubjectKind(subjectKind: ImportRelatedContent['subjectKind']): string {
-  return `${subjectKind[0]}${subjectKind.slice(1).toLowerCase()}`
-}

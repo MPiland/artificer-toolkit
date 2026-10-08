@@ -248,22 +248,6 @@ export const slotPipUsed = style({
   }
 })
 
-export const builderHandoff = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'start',
-      display: 'grid',
-      gap: '12px',
-      gridTemplateColumns: 'minmax(0, 1fr) auto',
-      '@media': {
-        '(max-width: 440px)': {
-          gridTemplateColumns: '1fr'
-        }
-      }
-    }
-  }
-})
-
 export const entryLink = style({
   '@layer': {
     [app]: {

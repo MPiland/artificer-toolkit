@@ -98,7 +98,7 @@ export function CharacterSheetSensesPanel({
   )
 }
 
-export function CharacterSheetDefensesPanel({
+function CharacterSheetDefensesPanel({
   sheet,
   openPanel,
   headingId = 'character-sheet-defenses'

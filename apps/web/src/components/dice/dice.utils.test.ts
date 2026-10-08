@@ -1,10 +1,9 @@
 import { InterleavedBuffer, InterleavedBufferAttribute } from 'three'
-import type { RollRecordDto, RollResultDto } from '@artificer-toolkit/schema/api/rolls'
+import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { formatRollEvidence } from './dice.utils'
 import {
   getScaledColliderVertices,
   getTargetQuaternion,
-  getVisualDice,
   getVisualDiceStages,
   isDieNearlyStill
 } from './dice3d.utils'
@@ -23,29 +22,7 @@ describe('dice presentation utilities', () => {
     expect(isDieNearlyStill({ x: 0, y: 0, z: 0 }, { x: 1.1, y: 0, z: 0 })).toBe(false)
   })
 
-  it('renders a d100 result as percentile and ones dice with valid target faces', () => {
-    const roll = {
-      id: 'roll-100',
-      characterId: 'character-1',
-      characterLabel: 'Aria',
-      source: { kind: 'MANUAL', label: 'Manual roll' },
-      ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
-      normalizedExpression: '1d100',
-      evidence: {
-        terms: [{ count: 1, die: 100, rolls: [47], subtotal: 47 }],
-        modifier: 0,
-        mode: 'NORMAL',
-        subtotal: 47,
-        transform: { kind: 'NONE' },
-        total: 47
-      },
-      createdAt: '2026-07-30T18:00:00.000Z'
-    } satisfies RollRecordDto
-
-    expect(getVisualDice(roll)).toEqual([
-      { die: 100, faceValue: 40, id: 'roll-100:0:0:percentile', kept: true },
-      { die: 10, faceValue: 7, id: 'roll-100:0:0:ones', kept: true }
-    ])
+  it('has valid target faces for d100 percentile and ones dice', () => {
     expect(() => getTargetQuaternion(100, 40)).not.toThrow()
     expect(() => getTargetQuaternion(10, 7)).not.toThrow()
   })

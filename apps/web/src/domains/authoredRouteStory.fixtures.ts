@@ -283,7 +283,7 @@ const seedFireballEffects = [
   }
 ] satisfies SpellAuthoredDto['effects']
 
-export const seedAcolyteBackground = {
+const seedAcolyteBackground = {
   kind: 'BACKGROUND',
   id: '00000000-0000-0000-0040-000100000000',
   label: 'Acolyte',
@@ -313,7 +313,7 @@ export const seedAcolyteBackground = {
   systemId: seedStorySystemId
 } satisfies BackgroundAuthoredDto
 
-export const seedWizardClass = {
+const seedWizardClass = {
   id: '00000000-0000-0000-0010-000c00000000',
   label: 'Wizard',
   category: 'BASE',
@@ -353,7 +353,7 @@ export const seedWizardClass = {
   systemId: seedStorySystemId
 } satisfies ClassAuthoredDto
 
-export const seedAcolyteCreature = {
+const seedAcolyteCreature = {
   id: '00000000-0000-0000-0070-000200000000',
   label: 'Acolyte',
   userId: seedStoryUserId,
@@ -693,7 +693,7 @@ export const seedAstralTearAwakenedEquipment = {
   systemId: seedStorySystemId
 } satisfies EquipmentAuthoredDto
 
-export const seedGrapplerFeat = {
+const seedGrapplerFeat = {
   id: '00000000-0000-0000-0050-000b00000000',
   label: 'Grappler',
   description:
@@ -799,7 +799,7 @@ export const seedFireballSpell = {
   systemId: seedStorySystemId
 } satisfies SpellAuthoredDto
 
-export const seedSailingShipVehicle = {
+const seedSailingShipVehicle = {
   id: '00000000-0000-0000-0080-000500000000',
   label: 'Sailing Ship',
   description:

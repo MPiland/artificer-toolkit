@@ -343,7 +343,7 @@ const toTypographyScale = <
     }
   }
 
-export const sharedFoundationTokens = {
+const sharedFoundationTokens = {
   font: {
     sans: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif",
     display:

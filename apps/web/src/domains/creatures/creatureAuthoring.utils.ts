@@ -2,17 +2,7 @@ import type {
   CreatureAuthoringInputDto,
   CreatureAuthoredDto
 } from '@artificer-toolkit/schema/subjects/creature'
-import type { DetailDto } from '@artificer-toolkit/schema/shared'
-import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { SpeedDto } from '@artificer-toolkit/schema/shared'
-import {
-  CREATURE_CATEGORY_CODE,
-  CREATURE_COMPANION_BOND_TYPE_CODE,
-  CREATURE_INITIATIVE_MODE_CODE,
-  CREATURE_MOUNT_TYPE_CODE,
-  MEASUREMENT_UNIT_CODE,
-  SIZE_CODE
-} from '@artificer-toolkit/shared/core'
+import { CREATURE_CATEGORY_CODE, SIZE_CODE } from '@artificer-toolkit/shared/core'
 
 type CreatureStringFormValue = {
   value: string
@@ -38,7 +28,7 @@ export type CreatureFormValues = Omit<
   npcProfile?: CreatureNpcProfileFormValues
 }
 
-export interface CreateEmptyCreatureInput {
+interface CreateEmptyCreatureInput {
   systemId: string
 }
 
@@ -78,57 +68,6 @@ export function createDefaultAbilityScores(): CreatureFormValues['abilityScores'
     INTELLIGENCE: 10,
     WISDOM: 10,
     CHARISMA: 10
-  }
-}
-
-export function createEmptyDetail(order: number): DetailDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptyFeature(order: number): FeatureDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptySpeed(): SpeedDto {
-  return {
-    speedId: '',
-    amount: 30,
-    unit: MEASUREMENT_UNIT_CODE.FEET
-  }
-}
-
-export function createEmptyMountProfile(): NonNullable<CreatureFormValues['mountProfile']> {
-  return {
-    mountType: CREATURE_MOUNT_TYPE_CODE.CONTROLLED,
-    riderCount: 1,
-    notes: ''
-  }
-}
-
-export function createEmptyCompanionProfile(): NonNullable<CreatureFormValues['companionProfile']> {
-  return {
-    bondType: CREATURE_COMPANION_BOND_TYPE_CODE.ANIMAL_COMPANION,
-    initiativeMode: CREATURE_INITIATIVE_MODE_CODE.USES_PC_INITIATIVE,
-    notes: ''
-  }
-}
-
-export function createEmptyNpcProfile(): NonNullable<CreatureFormValues['npcProfile']> {
-  return {
-    bonds: [],
-    flaws: [],
-    ideals: [],
-    personalityTraits: []
   }
 }
 
@@ -209,11 +148,4 @@ function toStringFormValues(
 
 export function resolveCreateCreatureSystemId(systems: readonly { id: string }[]): string | null {
   return systems[0]?.id ?? null
-}
-
-export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
-  const exists = items.some((current) => current.id === item.id)
-  return exists
-    ? items.map((current) => (current.id === item.id ? item : current))
-    : [...items, item]
 }

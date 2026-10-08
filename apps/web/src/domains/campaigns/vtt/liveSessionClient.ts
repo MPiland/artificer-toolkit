@@ -73,7 +73,7 @@ export type LiveSessionCharacterSheetPush = Extract<
   { type: 'CHARACTER_SHEET' }
 >
 
-export type LiveSessionEncounterSessionPush = Extract<
+type LiveSessionEncounterSessionPush = Extract<
   LiveSessionWebSocketServerMessageDto,
   { type: 'ENCOUNTER_SESSION' }
 >['session']
@@ -96,7 +96,7 @@ export class LiveSessionReadRejectedError extends Error {
   }
 }
 
-export interface LiveSessionDurableState {
+interface LiveSessionDurableState {
   commandReady: boolean
   recipientState: LiveSessionRecipientStateDto | null
   sequence: number | null

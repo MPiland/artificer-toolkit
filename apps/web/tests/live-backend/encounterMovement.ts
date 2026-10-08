@@ -34,7 +34,7 @@ export type EncounterMovementAccount = {
   username: string
 }
 
-export type EncounterMovementStage =
+type EncounterMovementStage =
   | 'hydrated'
   | 'movement-issued'
   | 'passage-issued'
@@ -46,7 +46,7 @@ export type EncounterMovementStage =
   | 'reconnected'
   | 'departed'
 
-export type EncounterMovementBrowserInput = {
+type EncounterMovementBrowserInput = {
   scenario?: 'REACTION' | 'PASSAGE'
   owner: EncounterMovementAccount
   player: EncounterMovementAccount
@@ -76,12 +76,12 @@ export type EncounterMovementBrowserInput = {
 }
 
 /** A Scene command the tabletop sent through the Session room, with the sequence it carried. */
-export type RoomSceneCommandFrame = {
+type RoomSceneCommandFrame = {
   command: SceneCommandInputDto | SceneFogPublishCommandInput
   expectedSessionSequence: number
 }
 
-export type EncounterMovementUndoSubmission = {
+type EncounterMovementUndoSubmission = {
   command: RoomSceneCommandFrame
   result: SceneCommandResultDto
 }

@@ -15,7 +15,6 @@ import {
 } from '../fields/AppFormFields'
 
 export { useFieldContext } from './AppForm.context'
-export type { AppFieldProps, AppSelectFieldProps } from '../fields/AppFormFields'
 
 const appFieldComponents = {
   TextField,

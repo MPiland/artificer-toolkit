@@ -309,17 +309,6 @@ export const tabletHiddenFacts = style({
   }
 })
 
-export const overviewStack = style({
-  '@layer': {
-    [app]: {
-      alignContent: 'start',
-      display: 'grid',
-      gap: '16px',
-      minWidth: 0
-    }
-  }
-})
-
 export const overviewPanel = style({
   '@layer': {
     [app]: {
@@ -352,17 +341,6 @@ export const overviewPanelHeader = style({
           flexDirection: 'column'
         }
       }
-    }
-  }
-})
-
-export const metricGrid = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '8px',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
-      minWidth: 0
     }
   }
 })

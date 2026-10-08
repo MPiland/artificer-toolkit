@@ -1,6 +1,6 @@
 import type { CampaignClockRecoveryPromptDto } from '@artificer-toolkit/schema/api/campaignSessions'
 
-export type ClockRecoveryBoundaryKind = CampaignClockRecoveryPromptDto['boundaryKind']
+type ClockRecoveryBoundaryKind = CampaignClockRecoveryPromptDto['boundaryKind']
 
 /** Explicit names for the boundary the GM is deciding about; the clock never auto-recovers in combat. */
 export const CLOCK_RECOVERY_BOUNDARY_LABELS = {

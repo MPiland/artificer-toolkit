@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildCharacterListFilters,
-  mapCharacterListToAuthoredItems,
   mapCharacterListToActiveAuthoredItems,
   mapCharacterListToDraftAuthoredItems,
   summarizeCharacterList
@@ -21,7 +20,10 @@ describe('character list mapper', () => {
     })
   })
   it('maps active and draft-only characters into authored list rows', () => {
-    const items = mapCharacterListToAuthoredItems(characterListFixture)
+    const items = [
+      ...mapCharacterListToActiveAuthoredItems(characterListFixture),
+      ...mapCharacterListToDraftAuthoredItems(characterListFixture)
+    ]
 
     expect(items.find((item) => item.id === characterListFixture.items[0].id)).toMatchObject({
       name: 'Astra Vale',

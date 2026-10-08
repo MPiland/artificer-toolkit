@@ -203,7 +203,7 @@ function getStatusChipClassName(label: string): string {
   )
 }
 
-export function AuthoredDetailNav({ sections }: AuthoredDetailNavProps) {
+function AuthoredDetailNav({ sections }: AuthoredDetailNavProps) {
   return (
     <nav className={styles.nav} aria-label='Detail sections'>
       {sections.map((section) => (
@@ -234,7 +234,7 @@ export function AuthoredDetailPillList({ items, label }: AuthoredDetailPillListP
   )
 }
 
-export function AuthoredDetailSection({ section }: AuthoredDetailSectionProps) {
+function AuthoredDetailSection({ section }: AuthoredDetailSectionProps) {
   return (
     <section className={styles.section} id={section.id} aria-labelledby={`${section.id}-title`}>
       <header className={styles.sectionHeader}>
@@ -248,7 +248,7 @@ export function AuthoredDetailSection({ section }: AuthoredDetailSectionProps) {
   )
 }
 
-export function AuthoredDetailFactGrid({ facts }: AuthoredDetailFactGridProps) {
+function AuthoredDetailFactGrid({ facts }: AuthoredDetailFactGridProps) {
   if (!facts.length) {
     return <AuthoredDetailEmptyBlock>No facts are available yet.</AuthoredDetailEmptyBlock>
   }
@@ -303,7 +303,7 @@ export function AuthoredDetailProse({
   )
 }
 
-export function AuthoredDetailEmptyBlock({ children }: AuthoredDetailEmptyBlockProps) {
+function AuthoredDetailEmptyBlock({ children }: AuthoredDetailEmptyBlockProps) {
   return <div className={styles.emptyBlock}>{children}</div>
 }
 

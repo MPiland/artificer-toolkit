@@ -12,7 +12,7 @@ import { CampaignSessionPrepareView } from './components/session-workspace/Campa
 import { CampaignSessionRunView } from './components/session-workspace/CampaignSessionRunView'
 import * as styles from './campaigns.css'
 
-export type SessionWorkspaceView = 'PREPARE' | 'RUN' | 'CLOSEOUT'
+type SessionWorkspaceView = 'PREPARE' | 'RUN' | 'CLOSEOUT'
 
 const labels: Record<SessionWorkspaceView, string> = {
   PREPARE: 'Prepare',

@@ -187,7 +187,7 @@ export const characterSheetStoryMeta = {
   }
 } satisfies Meta<typeof CharacterSheetView>
 
-export type CharacterSheetStory = StoryObj<typeof characterSheetStoryMeta>
+type CharacterSheetStory = StoryObj<typeof characterSheetStoryMeta>
 
 export const characterSheetTabletViewports = {
   characterSheetTabletPortrait: {

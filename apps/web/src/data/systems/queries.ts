@@ -1,4 +1,4 @@
-import { type QueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { type QueryClient } from '@tanstack/react-query'
 import type {
   SystemListPageDto,
   SystemListResponseDto
@@ -32,10 +32,6 @@ export function getSystem(id: string) {
 
 export function getSystemSummary(id: string) {
   return convexQuery(convexApi.content.systems.summary, { id })
-}
-
-export function useGetSystem(id: string) {
-  return useSuspenseQuery(getSystem(id))
 }
 
 export function getSystemRuleCapability(id: string) {

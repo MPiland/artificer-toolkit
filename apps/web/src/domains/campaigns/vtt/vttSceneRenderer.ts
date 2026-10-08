@@ -58,7 +58,7 @@ export type CampaignVttTool =
   | 'FOG_REVEAL'
   | 'FOG_HIDE'
 
-export interface VttSceneRendererCallbacks {
+interface VttSceneRendererCallbacks {
   onMapLoadStatus?: (status: VttMapLoadStatus) => void
   onCreateAnnotation?: (position: ScenePoint) => void
   onCreateBarrier: (

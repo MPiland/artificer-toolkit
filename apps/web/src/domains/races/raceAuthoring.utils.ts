@@ -34,7 +34,7 @@ export type RaceFormValues = {
   systemId: string
 }
 
-export interface CreateEmptyRaceInput {
+interface CreateEmptyRaceInput {
   systemId: string
 }
 
@@ -52,21 +52,6 @@ export function createEmptyBaseRace({ systemId }: CreateEmptyRaceInput): RaceFor
     features: [],
     size: SIZE_CODE.MEDIUM,
     speeds: [createEmptySpeed()],
-    systemId
-  }
-}
-
-export function createEmptySubrace({ systemId }: CreateEmptyRaceInput): RaceFormValues {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    quote: '',
-    description: '',
-    status: 'DRAFT',
-    category: RACE_CATEGORY_CODE.SUBRACE,
-    parentRaceId: '',
-    details: [],
-    features: [],
     systemId
   }
 }
@@ -93,32 +78,11 @@ export function createEmptyFeature(order: number): FeatureDto {
   }
 }
 
-export function createEmptySpeed(): SpeedDto {
+function createEmptySpeed(): SpeedDto {
   return {
     speedId: '',
     amount: 30,
     unit: MEASUREMENT_UNIT_CODE.FEET
-  }
-}
-
-export function createEmptyAncestry(): NonNullable<BaseRaceDto['ancestry']> {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    options: []
-  }
-}
-
-export function createEmptyAncestryOption(
-  order: number
-): NonNullable<BaseRaceDto['ancestry']>['options'][number] {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order,
-    features: []
   }
 }
 

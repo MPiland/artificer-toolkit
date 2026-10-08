@@ -35,7 +35,7 @@ export const actionDensityAdapter = {
 } as const satisfies Record<ControlDensity, { button: ButtonProps['size']; icon: string }>
 
 /** Exhaustive web typography recipes for future Authoring Schema presentation variants. */
-export const authoringTextStyleAdapter = {
+const authoringTextStyleAdapter = {
   title: foundationVars.typography.title,
   heading: foundationVars.typography.heading,
   body: foundationVars.typography.body,
@@ -49,7 +49,7 @@ export const authoringTextStyleAdapter = {
 >
 
 /** Exhaustive web color mapping for schema-selected text tone. */
-export const authoringTextToneAdapter = {
+const authoringTextToneAdapter = {
   primary: foundationVars.color.text.primary,
   secondary: foundationVars.color.text.secondary,
   muted: foundationVars.color.text.muted,
@@ -58,7 +58,7 @@ export const authoringTextToneAdapter = {
 } as const satisfies Record<SemanticTextTone, string>
 
 /** Exhaustive web recipe mapping for schema-selected surface intent. */
-export const authoringSurfaceAdapter = {
+const authoringSurfaceAdapter = {
   transparent: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',

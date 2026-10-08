@@ -1,18 +1,11 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { facetDtoSchema } from '@artificer-toolkit/schema/shared'
-import { modifierGrantDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   createEmptyBaseEquipment,
-  createEmptyModifier,
-  createEmptyRestrictions,
-  createEmptyVariantEquipment,
   normalizeEquipmentForSubmit,
   resolveCreateEquipmentSystemId
 } from '../equipmentAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
-const variantId = '00000000-0000-4000-8000-000000000002'
-const nestedId = '00000000-0000-4000-8000-000000000003'
 
 describe('equipment authoring helpers', () => {
   afterEach(() => {
@@ -32,19 +25,6 @@ describe('equipment authoring helpers', () => {
       category: 'ADVENTURING_GEAR',
       properties: [],
       systemId: 'dnd-5e-srd'
-    })
-  })
-
-  it('creates editable variant equipment defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue(variantId)
-
-    const equipment = createEmptyVariantEquipment({ systemId: 'dnd-5e-srd' })
-
-    expect(equipment).toMatchObject({
-      id: variantId,
-      category: 'VARIANT',
-      parentEquipmentId: '',
-      properties: []
     })
   })
 
@@ -73,8 +53,21 @@ describe('equipment authoring helpers', () => {
 
   it('normalizes a variant with its selected parent', () => {
     const normalized = normalizeEquipmentForSubmit({
-      ...createEmptyVariantEquipment({ systemId: 'dnd-5e-srd' }),
-      parentEquipmentId: 'equipment-base-1'
+      kind: 'EQUIPMENT',
+      id: generatedId,
+      label: '',
+      description: '',
+      status: 'DRAFT',
+      quote: '',
+      rarityId: '',
+      systemId: 'dnd-5e-srd',
+      category: 'VARIANT',
+      parentEquipmentId: 'equipment-base-1',
+      properties: [],
+      effects: [],
+      modifiers: [],
+      features: [],
+      requiresAttunement: false
     })
 
     expect(normalized).toMatchObject({
@@ -90,21 +83,5 @@ describe('equipment authoring helpers', () => {
   it('uses only real system list data when creating equipment', () => {
     expect(resolveCreateEquipmentSystemId([])).toBeNull()
     expect(resolveCreateEquipmentSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
-  })
-
-  it('creates schema-valid restriction and modifier editor defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue(nestedId)
-
-    expect(facetDtoSchema.parse(createEmptyRestrictions())).toMatchObject({
-      id: nestedId,
-      groups: []
-    })
-    expect(modifierGrantDtoSchema.parse(createEmptyModifier(2))).toMatchObject({
-      id: nestedId,
-      order: 2,
-      grantKind: 'MODIFIER_GRANT',
-      valueDomainCode: 'HIT_POINTS_MAX',
-      modifierKind: 'BONUS'
-    })
   })
 })

@@ -27,10 +27,7 @@ export function createDefaultAuthoringObjectItem(
   return createDefaultAuthoringNodeValue(getChildMapId(node), 1)
 }
 
-export function createDefaultAuthoringNodeValue(
-  childMapId: string,
-  order = 1
-): AuthoringGroupValues {
+function createDefaultAuthoringNodeValue(childMapId: string, order = 1): AuthoringGroupValues {
   const defaultKind = getAuthoringDefaultKind(childMapId)
 
   switch (defaultKind) {
@@ -643,7 +640,7 @@ export function createDefaultEffect(order: number): EffectDto {
   }
 }
 
-export function createDefaultPath(
+function createDefaultPath(
   order: number,
   pathCode: EffectAuthored['paths'][number]['pathCode'] = 'ON_USE'
 ): EffectAuthored['paths'][number] {
@@ -661,7 +658,7 @@ export function createDefaultPath(
   }
 }
 
-export function createRange(rangeKind = 'SELF', amount = 30): RangeDto {
+function createRange(rangeKind = 'SELF', amount = 30): RangeDto {
   return rangeKind === 'DISTANCE'
     ? { id: crypto.randomUUID(), rangeKind: 'DISTANCE', amount, unit: 'FEET' }
     : {

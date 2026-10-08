@@ -177,7 +177,7 @@ function collectStaticNodeMap(nodeMap: unknown, registry: Map<string, StaticNode
   }
 }
 
-export function createResolvedFormModelFromNodeMap<TValues extends object>(
+function createResolvedFormModelFromNodeMap<TValues extends object>(
   mapId: string,
   nodeMap: NodeMap<TValues>,
   options: StaticResolvedFormModelOptions = {}

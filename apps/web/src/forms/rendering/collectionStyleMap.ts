@@ -1,8 +1,8 @@
 import * as collectionStyles from './CollectionField.css'
 
-export type CollectionRowLayout = 'default' | 'card' | 'flat' | 'compact'
+type CollectionRowLayout = 'default' | 'card' | 'flat' | 'compact'
 
-export type CollectionStyleClassSet = {
+type CollectionStyleClassSet = {
   container: string
   header: string
   list: string

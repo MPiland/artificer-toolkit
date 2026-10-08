@@ -269,7 +269,7 @@ function NameContent({
   )
 }
 
-export function AuthoredListAttributeContent({
+function AuthoredListAttributeContent({
   value,
   fallback
 }: {

@@ -1,5 +1,2 @@
 export * from './ThemeToggle'
 export * from './Select'
-export { default as RichTextEditor } from './RichTextEditor'
-export type { RichTextEditorProps } from './RichTextEditor'
-export { default as Spinner } from './Spinner'

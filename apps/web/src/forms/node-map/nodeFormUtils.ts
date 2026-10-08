@@ -15,7 +15,7 @@ export interface ResolvedNodeClearableForm<TValues extends object> {
   ) => void
 }
 
-export interface ClearResolvedNodeFormPathsOptions {
+interface ClearResolvedNodeFormPathsOptions {
   preservePristine?: boolean
 }
 

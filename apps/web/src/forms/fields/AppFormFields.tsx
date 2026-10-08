@@ -11,7 +11,7 @@ import {
   type SelectOption
 } from '../utils/formUtils'
 
-export type AppFieldProps = {
+type AppFieldProps = {
   label?: string
   description?: string
   error?: ReactNode
@@ -23,7 +23,7 @@ export type AppFieldProps = {
   minimum?: number
 }
 
-export type AppSelectFieldProps = AppFieldProps & {
+type AppSelectFieldProps = AppFieldProps & {
   data: SelectOption[]
 }
 

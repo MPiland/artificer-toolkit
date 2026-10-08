@@ -61,7 +61,7 @@ export type AuthoringNavigationNode = {
   target?: AuthoringNavigationTarget
 }
 
-export type AuthoringNavigationState = {
+type AuthoringNavigationState = {
   navigationTargets: readonly AuthoringNavigationTarget[]
   navigationTree: readonly AuthoringNavigationNode[]
   progressSummary: AuthoringProgressSummary
@@ -152,7 +152,7 @@ export function findAuthoringValidationTarget(
     .sort((left, right) => right.score - left.score)[0]?.target
 }
 
-export function createNavigationTargetId({
+function createNavigationTargetId({
   fieldPathPrefix,
   kind,
   mapId,

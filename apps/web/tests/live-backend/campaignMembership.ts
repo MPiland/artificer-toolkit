@@ -24,7 +24,7 @@ type MembershipAccount = {
   client: Pick<DevelopmentClient, 'query'>
 }
 
-export type CampaignMembershipBrowserInput = {
+type CampaignMembershipBrowserInput = {
   origin: string
   publicId: string
   campaignId: string

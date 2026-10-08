@@ -25,7 +25,7 @@ function isUrlLike(value: string): boolean {
   return value.startsWith('/') || /^https?:\/\//i.test(value)
 }
 
-export function scrubSentryUrl(value: string): string {
+function scrubSentryUrl(value: string): string {
   if (!isUrlLike(value)) return value
 
   return value.split(/[?#]/, 1)[0]

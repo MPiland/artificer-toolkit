@@ -102,14 +102,6 @@ export const startingEquipmentIncludedList = style({
   }
 })
 
-export const startingEquipmentItemRow = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.primary
-    }
-  }
-})
-
 export const startingEquipmentChoiceList = style({
   '@layer': {
     [app]: {

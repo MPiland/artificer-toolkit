@@ -13,7 +13,7 @@ export type ContentSnapshotLocation = {
 }
 
 /** The heads both the Builder manifest and the catalogue manifest name. */
-export type ContentSnapshotManifestHeads = {
+type ContentSnapshotManifestHeads = {
   sources: readonly { kind: 'PLATFORM' | 'USER'; head: ContentSnapshotHead | null }[]
   campaign?: { head: ContentSnapshotHead | null } | null
 }

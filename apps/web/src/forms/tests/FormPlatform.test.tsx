@@ -18,9 +18,6 @@ import {
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem,
   FormRenderer,
-  getResolvedNodeOptions,
-  getResolvedNodeRequired,
-  getResolvedNodeVisible,
   useAppForm,
   useAuthoringForm,
   withForm
@@ -1392,14 +1389,6 @@ describe('authoring form platform', () => {
 
     await user.click(trigger)
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
-  })
-
-  it('reads resolved node helpers from step models', () => {
-    expect(getResolvedNodeRequired(resolvedModel, 'label')).toBe(true)
-    expect(getResolvedNodeVisible(resolvedModel, 'hiddenText')).toBe(false)
-    expect(getResolvedNodeOptions(resolvedModel, 'category', [])).toEqual([
-      { value: 'spell', label: 'Spell' }
-    ])
   })
 
   it('creates nested defaults from child map ids', () => {

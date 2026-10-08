@@ -252,24 +252,6 @@ export const heroContent = style({
   }
 })
 
-export const eyebrow = style({
-  '@layer': {
-    [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 'fit-content',
-      padding: `${foundationVars.space[2]} ${foundationVars.space[4]}`,
-      border: `1px solid ${foundationVars.color.accent.border}`,
-      borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.accent.soft,
-      color: foundationVars.color.text.primary,
-      fontSize: '0.75rem',
-      fontWeight: 600
-    }
-  }
-})
-
 export const heroTitle = style({
   '@layer': {
     [app]: {

@@ -1,27 +1,8 @@
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
 import type { CharacterBuilderReferencesDto } from '@artificer-toolkit/schema/api/characters'
-import {
-  abilityCodes,
-  isAbilityAssignmentOption,
-  standardArrayOptions,
-  type CharacterAbilityFormAssignments
-} from './abilityGeneration'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
-
-type AbilityAssignment = CharacterAbilityFormAssignments[number]
 type HitpointLevel = CharacterFormValues['intent']['hitpoints']['levels'][number]
 type CharacterClassReference = CharacterBuilderReferencesDto['classes'][number]
-
-export function createDefaultAbilityAssignments(): AbilityAssignment[] {
-  return abilityCodes.map((ability, index) => {
-    const option = standardArrayOptions[index]?.value ?? '8'
-
-    return {
-      ability,
-      option: isAbilityAssignmentOption(option) ? option : '8'
-    }
-  })
-}
 
 export function syncHitpointLevels({
   character,

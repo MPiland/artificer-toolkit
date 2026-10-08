@@ -4,7 +4,7 @@ import type { AuthoringFormMode } from './AuthoringFormContext'
 export type AuthoredFormRouteMode = Extract<AuthoringFormMode, 'create' | 'edit'>
 export type CharacterBuilderRouteMode = Extract<AuthoringFormMode, 'create' | 'edit'>
 
-export type AuthoredFormRouteContext = {
+type AuthoredFormRouteContext = {
   authoring: {
     kind: 'authored-form'
     domain: AuthoredFormDomain
@@ -12,14 +12,14 @@ export type AuthoredFormRouteContext = {
   }
 }
 
-export type CharacterBuilderRouteContext = {
+type CharacterBuilderRouteContext = {
   authoring: {
     kind: 'character-builder'
     mode: CharacterBuilderRouteMode
   }
 }
 
-export type AuthoredFormRouteLoaderData<TData = unknown> = {
+type AuthoredFormRouteLoaderData<TData = unknown> = {
   authoringData: TData
 }
 

@@ -2,18 +2,6 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
-export const sectionHeadingRow = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'baseline',
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '6px 12px',
-      justifyContent: 'space-between'
-    }
-  }
-})
-
 export const spellCastingSummary = style({
   '@layer': {
     [app]: {

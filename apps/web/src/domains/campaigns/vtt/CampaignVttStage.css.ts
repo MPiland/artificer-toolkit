@@ -249,23 +249,6 @@ export const empty = style({
   }
 })
 
-export const attachControls = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'minmax(14rem, 24rem) auto',
-      gap: foundationVars.space[2],
-      alignItems: 'end',
-      inlineSize: '100%',
-      '@media': {
-        [compact]: {
-          gridTemplateColumns: '1fr'
-        }
-      }
-    }
-  }
-})
-
 export const error = style({
   '@layer': {
     [app]: {

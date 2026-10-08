@@ -5,7 +5,7 @@ import { ThemeToggle } from '#ui/primitives/ThemeToggle/ThemeToggle'
 import * as styles from '../auth.css'
 import { MoveLeft } from 'lucide-react'
 
-export interface AuthPageShellProps {
+interface AuthPageShellProps {
   title: string
   description: string
   children: ReactNode

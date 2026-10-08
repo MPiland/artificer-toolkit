@@ -447,7 +447,7 @@ export const damageItem = style({
   }
 })
 
-export const damageAmountBase = style({
+const damageAmountBase = style({
   '@layer': {
     [app]: {
       fontFamily: foundationVars.font.mono,

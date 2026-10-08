@@ -15,7 +15,7 @@ import { marketingHeroHighlights } from '../data/marketingContent'
 import { AppMockup } from './AppMockup'
 import { MarketingHashLink, MarketingRouteLink } from './MarketingLinks'
 
-export interface MarketingHeroProps {
+interface MarketingHeroProps {
   publicSignUpEnabled?: boolean
   showPricingLink?: boolean
 }

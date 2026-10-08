@@ -33,7 +33,7 @@ export type CharacterBuilderContentStatus = {
   failedKind?: ContentSnapshotKind | null
 }
 
-export type CharacterBuilderEvaluation = {
+type CharacterBuilderEvaluation = {
   /** Null until the evaluation inputs are ready; the Builder keeps its current payload meanwhile. */
   resolve: ((values: CharacterFormValues) => Promise<CharacterBuilderPayloadDto>) | null
   /** The finalization preview, with the feature source hints commit sends for its Character. */

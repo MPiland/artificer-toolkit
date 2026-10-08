@@ -73,7 +73,7 @@ const EMPTY_DELETE_CONFIG = {
   draftQueryKey: ['authoring', 'empty-draft'] as const
 }
 
-export type AuthoringFormProviderProps = {
+type AuthoringFormProviderProps = {
   children: ReactNode
   data?: unknown
   domain?: AuthoredFormDomain

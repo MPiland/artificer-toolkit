@@ -1,48 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
-import { overviewPanel } from '../overview/overview.css'
-
-export const playPanel = style([
-  overviewPanel,
-  {
-    '@layer': {
-      [app]: {
-        gap: '8px'
-      }
-    }
-  }
-])
-
-export const playPanelHeader = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'start',
-      display: 'flex',
-      gap: '12px',
-      justifyContent: 'space-between'
-    }
-  }
-})
-
-export const playTable = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      minWidth: 0
-    }
-  }
-})
-
-export const actionSummary = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '10px',
-      minWidth: 0
-    }
-  }
-})
 
 export const actionFilterBar = style({
   '@layer': {

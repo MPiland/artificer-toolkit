@@ -8,14 +8,14 @@ import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 
 export type AuthoredDetailViewMode = 'active' | 'draft' | 'invalid-draft-only' | 'missing'
 
-export interface AuthoredDetailResponse<TItem> {
+interface AuthoredDetailResponse<TItem> {
   item: TItem | null
   hasDraft: boolean
   permissions: AuthoredContentPermissionsDto
   provenance: AuthoredContentProvenanceDto
 }
 
-export interface ResolvedAuthoredDetailState<TItem> {
+interface ResolvedAuthoredDetailState<TItem> {
   activeItem: TItem | null
   canViewActive: boolean
   draft: AuthoredDraftDto | null

@@ -4,7 +4,7 @@ import type { AuthoredDetailAction, AuthoredDetailSectionModel } from './Authore
 import type { AuthoredDetailViewMode } from './authoredDetailState'
 import { formatEnumLabel, stripHtml } from './detailFormatters'
 
-export interface LabelDescriptionRecord {
+interface LabelDescriptionRecord {
   id?: string
   label?: string
   description?: string | null
@@ -12,7 +12,7 @@ export interface LabelDescriptionRecord {
   availableAtLevel?: number
 }
 
-export function sortLabelDescriptionRecords<TRecord extends LabelDescriptionRecord>(
+function sortLabelDescriptionRecords<TRecord extends LabelDescriptionRecord>(
   records: readonly TRecord[] | null | undefined
 ): TRecord[] {
   return [...(records ?? [])].sort((first, second) => {

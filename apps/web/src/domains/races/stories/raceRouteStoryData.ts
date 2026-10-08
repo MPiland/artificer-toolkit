@@ -1,5 +1,4 @@
 import type { AuthoredDraftDto, RaceResponseDto } from '@artificer-toolkit/schema/api/content'
-import type { SystemListResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import type { RaceDetailLoaderData } from '#app/routes/-routeLoaderData'
 
@@ -7,29 +6,11 @@ const STORY_USER_ID = 'storybook-user'
 const STORY_SYSTEM_ID = 'dnd5e-2014'
 const DRAGONBORN_ID = 'srd-race-dragonborn'
 const DRAGONBORN_PUBLIC_ID = 'dragonborn'
-const DRAGONBORN_SLUG = 'dragonborn'
-
-export const raceRouteStoryParams = {
-  racePublicId: DRAGONBORN_PUBLIC_ID,
-  raceSlug: DRAGONBORN_SLUG
-} as const
 
 export const raceRouteStoryUser = {
   id: STORY_USER_ID,
   email: 'author@example.test'
 }
-
-export const raceStorySystems = [
-  {
-    id: STORY_SYSTEM_ID,
-    label: 'D&D 5e (2014)',
-    description: 'Seed-derived SRD system used for Storybook authoring review.',
-    rulesetCode: 'dnd5e',
-    rulesetVersion: '2014',
-    userId: 'srd',
-    rulesCatalogues: []
-  }
-] satisfies SystemListResponseDto
 
 const raceStoryReferences = {
   heritages: [
@@ -47,7 +28,7 @@ const raceStoryReferences = {
   ]
 } satisfies NonNullable<NonNullable<RaceResponseDto>['meta']>
 
-export const seedDerivedDragonbornRace = {
+const seedDerivedDragonbornRace = {
   id: DRAGONBORN_ID,
   label: 'Dragonborn',
   quote: 'Proud dragonkin shaped by clan and ancestry.',
@@ -219,7 +200,7 @@ const draftDragonbornRace = {
   status: 'DRAFT'
 } satisfies RaceAuthoredDto
 
-export const raceStoryDraft = {
+const raceStoryDraft = {
   subjectKind: 'RACE',
   subjectId: seedDerivedDragonbornRace.id,
   publicId: DRAGONBORN_PUBLIC_ID,
@@ -236,7 +217,7 @@ export const raceStoryDraft = {
   payload: draftDragonbornRace
 } satisfies AuthoredDraftDto
 
-export const activeRaceResponse = {
+const activeRaceResponse = {
   publicId: DRAGONBORN_PUBLIC_ID,
   activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: true,
@@ -255,7 +236,7 @@ export const activeRaceResponse = {
   }
 } satisfies NonNullable<RaceResponseDto>
 
-export const draftRaceResponse = {
+const draftRaceResponse = {
   ...activeRaceResponse,
   item: draftDragonbornRace
 } satisfies NonNullable<RaceResponseDto>

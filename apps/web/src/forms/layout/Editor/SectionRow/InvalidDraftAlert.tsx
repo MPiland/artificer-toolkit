@@ -1,6 +1,6 @@
 import { Alert, Button, Group, Text } from '@mantine/core'
 
-export interface InvalidDraftAlertProps {
+interface InvalidDraftAlertProps {
   domainLabel: string
   isDiscarding?: boolean
   onDiscard: () => void

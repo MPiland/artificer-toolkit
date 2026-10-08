@@ -156,8 +156,6 @@ export function createSecurityHeaders(options: SecurityHeaderOptions = {}) {
   } as const
 }
 
-export const SECURITY_HEADERS = createSecurityHeaders()
-
 export function withSecurityHeaders(
   response: Response,
   { preserveExisting = false, ...options }: WithSecurityHeadersOptions = {}

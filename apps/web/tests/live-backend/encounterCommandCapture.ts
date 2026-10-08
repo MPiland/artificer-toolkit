@@ -12,7 +12,7 @@ import type {
 
 const expect = playwrightExpect.configure({ timeout: 90_000 })
 
-export type CapturedEncounterCommand = {
+type CapturedEncounterCommand = {
   command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
   result?: EncounterCommandResultDto
   error?: string

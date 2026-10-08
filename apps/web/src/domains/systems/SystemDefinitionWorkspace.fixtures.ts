@@ -7,7 +7,7 @@ import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/sch
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { authoredRouteStorySystem } from '#domains/authoredRouteStory.fixtures'
 
-export const definitionId = '77777777-7777-4777-8777-777777777777'
+const definitionId = '77777777-7777-4777-8777-777777777777'
 const contentSourceId = '88888888-8888-4888-8888-888888888888'
 const authorUserId = '99999999-9999-4999-8999-999999999999'
 const timestamp = '2026-08-30T00:00:00.000Z'

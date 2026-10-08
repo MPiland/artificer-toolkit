@@ -260,7 +260,7 @@ function hasActiveRailDescendant(item: ItemProps): boolean {
   return Boolean(item.isActive || item.children?.some(hasActiveRailDescendant))
 }
 
-export function aggregateRailStatus(
+function aggregateRailStatus(
   statuses: readonly (ItemStatus | undefined)[] | undefined
 ): ItemStatus {
   const resolvedStatuses = statuses?.filter((status): status is ItemStatus => Boolean(status)) ?? []

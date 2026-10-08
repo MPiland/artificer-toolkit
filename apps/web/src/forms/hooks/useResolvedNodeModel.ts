@@ -5,7 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { fingerprintNodeRuntimeRequest, useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 
-export interface UseResolvedNodeModelOptions {
+interface UseResolvedNodeModelOptions {
   mapId: string
   values: Record<string, unknown>
   parentValues?: Record<string, unknown>

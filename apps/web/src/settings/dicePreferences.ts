@@ -10,7 +10,7 @@ export interface DicePresentationPreferences {
   shadowQuality: DiceShadowQuality
 }
 
-export const DEFAULT_DICE_PRESENTATION_PREFERENCES: DicePresentationPreferences = {
+const DEFAULT_DICE_PRESENTATION_PREFERENCES: DicePresentationPreferences = {
   animate3d: true,
   postProcessing: true,
   shadowQuality: 'MEDIUM'

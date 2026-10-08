@@ -104,7 +104,7 @@ import { EquipmentParentPreview } from '../previews/EquipmentParentPreview'
 import { renderEquipmentPreview } from '../previews/equipmentParentPreview.utils'
 import { isObjectValue } from '../utils/valueGuards'
 
-export type AuthoredFormSystemCreateData = {
+type AuthoredFormSystemCreateData = {
   system?: SystemResponseDto | null
   systems: readonly { id: string }[]
 }

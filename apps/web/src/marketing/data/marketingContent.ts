@@ -3,13 +3,13 @@ import {
   ENTITLEMENT_PRICING
 } from '@artificer-toolkit/shared/account/entitlements'
 
-export const marketingPricingEnabled = false
+const marketingPricingEnabled = false
 
 const pricingNavigation = marketingPricingEnabled
   ? ([{ label: 'Pricing', href: '#pricing' }] as const)
   : []
 
-export const marketingNavigation = [
+const marketingNavigation = [
   { label: 'Features', href: '#features' },
   ...pricingNavigation,
   { label: 'Sign in', href: '/sign-in' }
@@ -21,7 +21,7 @@ export function getMarketingNavigation(publicSignUpEnabled: boolean) {
     : marketingNavigation.filter((item) => item.href !== '#pricing')
 }
 
-export type MarketingSectionHash = '#features' | '#pricing'
+type MarketingSectionHash = '#features' | '#pricing'
 
 export function isMarketingSectionEnabled(hash: MarketingSectionHash) {
   return marketingNavigation.some((item) => item.href === hash)

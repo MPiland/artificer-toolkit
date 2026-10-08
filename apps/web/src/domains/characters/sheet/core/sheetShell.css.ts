@@ -183,18 +183,6 @@ export const desktopWorkspacePanel = style({
   }
 })
 
-export const mobileViewTitle = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.primary,
-      fontSize: '1.35rem',
-      fontWeight: 760,
-      lineHeight: 1.15,
-      margin: 0
-    }
-  }
-})
-
 export const visuallyHidden = style({
   '@layer': {
     [app]: {

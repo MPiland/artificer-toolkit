@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/account'
 import { betterAuthClient } from '#app/auth/betterAuthClient'
 
-export type AccountActionResult = {
+type AccountActionResult = {
   ok: boolean
   message?: string
 }

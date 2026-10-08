@@ -20,61 +20,6 @@ export const canvas = style({
   }
 })
 
-export const railSlot = style({
-  '@layer': {
-    [app]: {
-      gridArea: 'rail',
-      minBlockSize: 0,
-      minInlineSize: 0,
-      overflow: 'hidden',
-      backgroundColor: foundationVars.color.surface.recessed
-    }
-  }
-})
-
-export const navigationDrawerContent = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      blockSize: '100%',
-      minBlockSize: 0,
-      overflow: 'hidden',
-      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.recessed,
-      color: foundationVars.color.text.primary
-    }
-  }
-})
-
-export const navigationDrawerBody = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flex: 1,
-      blockSize: '100%',
-      minBlockSize: 0,
-      overflow: 'hidden',
-      padding: 0,
-      backgroundColor: foundationVars.color.surface.recessed
-    }
-  }
-})
-
-export const navigationDrawerRailMount = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flex: 1,
-      blockSize: '100%',
-      inlineSize: '100%',
-      minBlockSize: 0,
-      minInlineSize: 0,
-      overflow: 'hidden'
-    }
-  }
-})
-
 export const main = style({
   '@layer': {
     [app]: {

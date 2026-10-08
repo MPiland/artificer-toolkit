@@ -7,9 +7,9 @@ type SheetSpell = CharacterSheet['spells']['spells'][number]
 export type CharacterSheetMechanic = NonNullable<
   NonNullable<SheetAction['mechanic']> | NonNullable<SheetSpell['mechanics']>[number]
 >
-export type CharacterSheetMechanicOutcome = CharacterSheetMechanic['outcomes'][number]
+type CharacterSheetMechanicOutcome = CharacterSheetMechanic['outcomes'][number]
 
-export type CharacterSheetMechanicSummary = {
+type CharacterSheetMechanicSummary = {
   effectId: string
   facts: string
   outcomes: string[]
@@ -31,10 +31,7 @@ export function summarizeCharacterSheetMechanics(
   }))
 }
 
-export function formatMechanicOutcome(
-  outcome: CharacterSheetMechanicOutcome,
-  castLevel?: number
-): string {
+function formatMechanicOutcome(outcome: CharacterSheetMechanicOutcome, castLevel?: number): string {
   const path = formatOutcomePath(outcome.pathCode)
 
   switch (outcome.kind) {

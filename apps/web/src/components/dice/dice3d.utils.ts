@@ -169,12 +169,6 @@ function toVisualDice(
   })
 }
 
-export function getVisualDice(roll: RollResultDto): VisualDie[] {
-  return roll.evidence.terms.flatMap<VisualDie>((term, termIndex) =>
-    toVisualDice(term, term.rolls, (rollIndex) => `${roll.id}:${termIndex}:${rollIndex}`)
-  )
-}
-
 export function getVisualDiceStages(roll: RollResultDto): VisualDie[][] {
   const stageCount = Math.max(
     1,

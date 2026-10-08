@@ -1,5 +1,5 @@
 export const acceptedMapTypes = ['image/jpeg', 'image/png', 'image/webp'] as const
-export type AcceptedMapType = (typeof acceptedMapTypes)[number]
+type AcceptedMapType = (typeof acceptedMapTypes)[number]
 
 export function acceptedMapType(value: string): AcceptedMapType | null {
   return acceptedMapTypes.find((candidate) => candidate === value) ?? null
