@@ -6,7 +6,7 @@
 
 ## Current state (2026-10-07)
 
-**Latest slice commit:** SPELLS-9 slice A (tenth session below), `b13e5fe73`.
+**Latest slice commit:** SPELLS-9 closed (tenth session below), `36cbc764a`.
 
 **Last full validation:** `eca5bbc76`. Every room-routed test now runs on the real Session Worker in local workerd, and the stand-in room fixtures are deleted (see [Room test fixtures](../architecture/live-sessions.md)).
 
@@ -79,9 +79,12 @@
 **Done 2026-10-08 (tenth session):**
 
 - SPELLS-2 merged (`a5c8cb3f4`).
-- SPELLS-9 slice A (`b13e5fe73`, D95): a holder that is defeated or can't act after a direct action, turn effect or Cleaving loses Concentration with no check. The end is a `CONCENTRATION_END` child receipt with a rules chat entry, and undo reports lost Concentration. Qualified damage defenses are proved for direct and opportunity attacks. Validation: 10 Convex files 100/100, session-worker 371/371, encounter-persistence 56/56, typecheck 13/13. Remaining: slice B (movement reactions and spatial effects), slice C (GM `UPDATE_ACTOR` and Sheet edits), and SPELLS-9.2 (a Creature holder's damage commit fails "children are incomplete").
+- SPELLS-9 slice A (`b13e5fe73`, D95): a holder that is defeated or can't act after a direct action, turn effect or Cleaving loses Concentration with no check. The end is a `CONCENTRATION_END` child receipt with a rules chat entry, and undo reports lost Concentration. Qualified damage defenses are proved for direct and opportunity attacks. Validation: 10 Convex files 100/100, session-worker 371/371, encounter-persistence 56/56, typecheck 13/13.
+- SPELLS-9 slice B (`1ae22a765`): opportunity attacks and spatial contacts that defeat or incapacitate the holder (condition or capability-suppressing effect) end it; later contacts in the move roll nothing. A movement contact scans only its batch target (movement reactions are single-target; recorded in D95).
+- SPELLS-9 slice C (`5ecdb340a`): GM actor edits and Sheet hit point or condition edits end it; the edit's command id is the receipt parent, and the Sheet write, cleanup and receipt share one stream-version bump. Edits are not undoable.
+- SPELLS-9.2 (`36cbc764a`), SPELLS-9 done: Creature holders make the check on every path; `targetCharacter` is nullable. Found and fixed: Creature save proficiency was authored but never compiled, so every Creature save lacked its proficiency bonus; `saveProficiencyBonuses` is now a required pinned rule fact (local Convex reset and reseeded, backup `local-validation/convex-reset/spells92-save-proficiency.before.zip`). Registered SPELLS-10.6: Character Concentration saves ignore condition roll modes.
 - Dead code awaiting the user's OK to delete: `executeEncounterMovementReactionAction` and its helpers in `encounterMovementReactionActionExecution.ts`.
-- Ledger 67/126 PBIs, 308/419 ACs.
+- Ledger 68/126 PBIs, 310/420 ACs. Next: SPELLS-3.2.
 
 **Done 2026-10-07 (parallel session, worktree `claude/spells-2-conditions`):**
 
@@ -100,7 +103,7 @@
 | 8   | PLATFORM-5 (5.6)                        | 4.0  | Done (ninth session).                                                                                                                    |
 | 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
-| 11  | SPELLS-9                                | 4.5  | In progress (tenth session, D95). Larger than S-M: slice A rules commits, B movement, C GM and Sheet edits; opportunity-attack defenses. |
+| 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
 | 12  | SPELLS-3 (3.2)                          | 4.2  | Death saves; after SPELLS-2.                                                                                                             |
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                             |
 | 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                   |
