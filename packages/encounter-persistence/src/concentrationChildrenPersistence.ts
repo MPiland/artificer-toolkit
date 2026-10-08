@@ -20,6 +20,7 @@ import { postConcentrationEndMessage, readConcentrationEndReason } from './conce
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
+import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
 import type { concentrationCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 
 type ConcentrationDamageApplication = ReturnType<
@@ -204,9 +205,9 @@ export async function persistEncounterConcentrationChildren(
       slot.ownerActorId !== application.targetActorId ||
       slot.maintenanceDefinitionId !== DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID ||
       !target ||
-      (target.kind === 'CHARACTER' &&
-        (await callbacks.currentCharacterStreamVersion(target.sourceId)) !==
-          output.targetCharacter.streamVersion)
+      (await concentrationTargetPinChanged(target, output.targetCharacter, (characterId) =>
+        callbacks.currentCharacterStreamVersion(characterId)
+      ))
     )
       throw new Error('Live Session concentration target changed.')
     const existing = await ctx.db
@@ -273,9 +274,9 @@ export async function persistEncounterConcentrationChildren(
       !slot ||
       slot.ownerActorId !== application.targetActorId ||
       !target ||
-      (target.kind === 'CHARACTER' &&
-        (await callbacks.currentCharacterStreamVersion(target.sourceId)) !==
-          context.targetCharacter.streamVersion) ||
+      (await concentrationTargetPinChanged(target, context.targetCharacter, (characterId) =>
+        callbacks.currentCharacterStreamVersion(characterId)
+      )) ||
       pending.occurrenceId !== concentrationOccurrenceId(parentOccurrenceId, damage) ||
       pending.graph.source.gameSystemId !== state.gameSystemId ||
       pending.graph.source.definitionId !== context.concentrationDefinition.id ||

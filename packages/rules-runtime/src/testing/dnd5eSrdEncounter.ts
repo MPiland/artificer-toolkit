@@ -22,6 +22,7 @@ import {
   type SrdReusableDefinitionSeed
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -212,6 +213,17 @@ export function srdCreatureActor(input: {
   })
 }
 
+/**
+ * An SRD Creature as the installed System stores it: damage defenses and condition immunities
+ * resolved to vocabulary identities. A raw stat block carries labels, which leave the Run actor's
+ * target protection unnormalized.
+ */
+export function installedSrdCreature(raw: CreatureAuthored): CreatureAuthored {
+  const installed = srdBaselineContent.subjects.creatures.find((entry) => entry.id === raw.id)
+  if (!installed) throw new Error(`SRD Creature "${raw.label}" is not installed.`)
+  return installed
+}
+
 /** Hand-written normalized Creature rule facts, for scalar arithmetic independent of any stat block. */
 export function creatureRuleFacts(scores: Record<Ability, number>) {
   return {
@@ -225,6 +237,7 @@ export function creatureRuleFacts(scores: Record<Ability, number>) {
         score
       ])
     ),
+    saveProficiencyBonuses: {},
     resourceAbilityScores: {},
     initiativeAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY
   }

@@ -170,6 +170,7 @@ describe('native movement target facts', () => {
             vocabularySnapshotChecksum: 'a'.repeat(64),
             abilityScores: { [abilityId]: 12 },
             checkTotals: {},
+            saveProficiencyBonuses: {},
             resourceAbilityScores: {},
             initiativeAbilityDefinitionId: abilityId
           }

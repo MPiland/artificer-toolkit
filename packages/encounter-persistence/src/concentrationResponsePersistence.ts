@@ -27,6 +27,7 @@ import {
   persistNativeConcentrationResult,
   insertNativeCleavingChoice
 } from './actionChildPersistence.js'
+import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
 import { readLiveConcentrationResponseAdmission } from './liveConcentrationResponseAdmission.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
@@ -140,20 +141,16 @@ export async function persistEncounterConcentrationResponse(
       ownerActorId: actorId,
       maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
     })
-    if (
-      slot &&
-      admission.actors.some((actor) => actor.id === actorId && actor.kind === 'CHARACTER')
-    )
-      slots.set(actorId, slot)
+    if (slot && admission.actors.some((actor) => actor.id === actorId)) slots.set(actorId, slot)
   }
   const slot = slots.get(context.application.targetActorId)
   const target = admission.actors.find((actor) => actor.id === context.application.targetActorId)
   if (
     !slot ||
     !target ||
-    target.kind !== 'CHARACTER' ||
-    (await callbacks.currentCharacterStreamVersion(state, target.sourceId)) !==
-      context.targetCharacter.streamVersion ||
+    (await concentrationTargetPinChanged(target, context.targetCharacter, (characterId) =>
+      callbacks.currentCharacterStreamVersion(state, characterId)
+    )) ||
     checksumCanonicalJson(context.maintainedState) !==
       checksumCanonicalJson({
         id: slot.id,

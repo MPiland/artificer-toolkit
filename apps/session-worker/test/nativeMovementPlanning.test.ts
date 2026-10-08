@@ -464,3 +464,55 @@ describe('movement-triggered Concentration', () => {
     expect(executions[1]).not.toHaveProperty('concentrationChecks')
   })
 })
+
+describe('movement-triggered Concentration held by a Creature', () => {
+  const hazard = { center: { x: 350, y: 150 }, radius: 50 }
+
+  /** A Wolf maintaining Concentration crosses a spatial effect that deals it 1 damage (DC 10). */
+  function creatureConcentrationRoom(rolls: readonly number[]) {
+    return movementRoom({
+      actors: [srdCreatureActor({ id: MOVER_ID, creature: plainWolf })],
+      moverActorId: MOVER_ID,
+      positions: { [MOVER_ID]: MOVER_START },
+      autoRoll: 'GAME_MASTER',
+      concentration: true,
+      concentrationDependentActorIds: [MOVER_ID],
+      spatialEffects: [hazard],
+      rolls
+    })
+  }
+
+  const walk = [MOVER_START, { x: 550, y: 150 }]
+
+  it('keeps Concentration when the GM-rolled Creature check succeeds', async () => {
+    const room = await creatureConcentrationRoom([19])
+
+    await room.move(walk)
+
+    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+      result: {
+        applicationOutputs: {
+          outcome: 'SAVE_SUCCESS',
+          application: { targetActorId: MOVER_ID },
+          d20: { selectedNatural: 20, modifier: 1, dc: 10 }
+        }
+      }
+    })
+  })
+
+  it('ends Concentration when the GM-rolled Creature check fails', async () => {
+    const room = await creatureConcentrationRoom([0])
+
+    await room.move(walk)
+
+    expect(await resolvedReceipt(room, 'CONCENTRATION_CHECK')).toMatchObject({
+      result: {
+        applicationOutputs: {
+          outcome: 'SAVE_FAILURE',
+          d20: { rawFaces: [1], rollMode: 'NORMAL', total: 2, dc: 10 },
+          cleanup: { maintainedStateId: CONCENTRATION_STATE_ID }
+        }
+      }
+    })
+  })
+})

@@ -3,7 +3,9 @@ import {
   encounterRunStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -23,6 +25,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
+import { compileDnd5eCreatureRuleFacts } from '../systems/dnd5e/creatureRuleFacts.js'
 import { withFeatureChargeUsed } from '../encounterActorState.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
@@ -157,10 +160,29 @@ export function quillVolley(input: {
   }
 }
 
-/** A Wolf stat block (DEX 15, 11 HP) carrying the given Features in place of its own. */
+/** The SRD System vocabulary pinned the way a published snapshot is. */
+function srdVocabularySnapshot() {
+  const identity = {
+    snapshotId: '00000000-0000-4000-8000-00000000e005',
+    systemId: srdSystemRecord.id,
+    snapshotVersion: 1,
+    schemaVersion: 1,
+    document: srdSystemRecord
+  }
+  return systemVocabularySnapshotSchema.parse({
+    ...identity,
+    checksum: checksumRuleDocument(identity)
+  })
+}
+
+/**
+ * A Wolf stat block (DEX 15, 11 HP) carrying the given Features in place of its own. A `statBlock`
+ * replaces the Wolf and has its rule facts compiled by the product's Creature fact compiler.
+ */
 export function creatureActor(input: {
   id: string
   label: string
+  statBlock?: CreatureAuthored
   features: readonly CreatureFeature[]
   disposition?: EncounterRunActorState['disposition']
   conditionIds?: readonly string[]
@@ -172,9 +194,10 @@ export function creatureActor(input: {
   hitPoints?: number
 }): EncounterRunActorState {
   const sourceId = crypto.randomUUID()
-  const hitPoints = input.hitPoints ?? wolf.hitPoints
+  const base = input.statBlock ?? wolf
+  const hitPoints = input.hitPoints ?? base.hitPoints
   const payload = {
-    ...wolf,
+    ...base,
     id: sourceId,
     label: input.label,
     hitPoints,
@@ -223,18 +246,24 @@ export function creatureActor(input: {
       sourceChecksum: 'a'.repeat(64),
       maxHitPoints: hitPoints,
       payload,
-      ruleFacts: {
-        gameSystemId: SRD_SYSTEM_ID,
-        vocabularySnapshotId: '00000000-0000-4000-8000-00000000e005',
-        vocabularySnapshotVersion: 1,
-        vocabularySnapshotChecksum: 'b'.repeat(64),
-        abilityScores: Object.fromEntries(
-          SRD_ABILITIES.map(({ id, code }) => [id, wolf.abilityScores[code]])
-        ),
-        checkTotals: {},
-        resourceAbilityScores: wolf.abilityScores,
-        initiativeAbilityDefinitionId: srdAbilityId('DEXTERITY')
-      }
+      ruleFacts: input.statBlock
+        ? compileDnd5eCreatureRuleFacts({
+            creature: input.statBlock,
+            vocabulary: srdVocabularySnapshot()
+          })
+        : {
+            gameSystemId: SRD_SYSTEM_ID,
+            vocabularySnapshotId: '00000000-0000-4000-8000-00000000e005',
+            vocabularySnapshotVersion: 1,
+            vocabularySnapshotChecksum: 'b'.repeat(64),
+            abilityScores: Object.fromEntries(
+              SRD_ABILITIES.map(({ id, code }) => [id, wolf.abilityScores[code]])
+            ),
+            checkTotals: {},
+            saveProficiencyBonuses: {},
+            resourceAbilityScores: wolf.abilityScores,
+            initiativeAbilityDefinitionId: srdAbilityId('DEXTERITY')
+          }
     }
   })
 }

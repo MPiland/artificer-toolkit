@@ -214,6 +214,56 @@ describe('a room ADVANCE_TURN that ends the round', () => {
     ).toEqual([])
   })
 
+  it.each([
+    { face: 20, outcome: 'SAVE_SUCCESS' as const, kept: true },
+    { face: 1, outcome: 'SAVE_FAILURE' as const, kept: false }
+  ])(
+    'rolls the incoming Creature’s Concentration check for the GM when its START_OF_TURN damage does not defeat it ($outcome)',
+    async ({ face, outcome, kept }) => {
+      const first = srdCreatureActor({ id: FIRST_ID, creature: plainWolf })
+      const second = srdCreatureActor({ id: SECOND_ID, creature: plainWolf })
+      const effectDefinitions: Awaited<ReturnType<typeof seedTurnSaveEffect>>['definition'][] = []
+      const room = await movementRoom({
+        actors: [first, second],
+        moverActorId: FIRST_ID,
+        positions: { [FIRST_ID]: { x: 150, y: 150 }, [SECOND_ID]: { x: 250, y: 150 } },
+        autoRoll: 'GAME_MASTER',
+        // A natural 1 fails the DC 30 turn save (1 damage), then the GM's Concentration die follows.
+        rolls: [0, face - 1],
+        definitions: effectDefinitions,
+        concentration: true,
+        concentrationOwnerActorId: SECOND_ID,
+        seed: async ({ effects, encounterId, occurredAt }) => {
+          const incoming = await seedTurnSaveEffect({
+            effects,
+            encounterId,
+            actor: second,
+            stage: 'START_OF_TURN',
+            ticks: 1,
+            damage: 1,
+            occurredAt
+          })
+          effectDefinitions.push(incoming.definition)
+        }
+      })
+      const before = await readRoomHistory(room.base.stub)
+      expect(before.maintainedStates).toHaveLength(1)
+      const answer = await advanceCommand(room, before.runs[0]!.version).send()
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+      const after = await readRoomHistory(room.base.stub)
+      expect(after.maintainedStates).toHaveLength(kept ? 1 : 0)
+      const checks = after.receipts.flatMap((receipt) => {
+        const result = parseReceiptExecution(receipt)
+        return result.status === 'COMPLETE' &&
+          result.applicationOutputs.kind === 'CONCENTRATION_CHECK'
+          ? [result.applicationOutputs]
+          : []
+      })
+      expect(checks).toMatchObject([{ outcome }])
+    }
+  )
+
   it('journals the ROUND_WRAP advance in the receipt and the command row, with the new round current', async () => {
     const room = await movementRoom({
       actors: [

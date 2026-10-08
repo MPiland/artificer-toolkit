@@ -48,10 +48,7 @@ export async function readNativeConcentrationResponseAdmission(
   const actors = await readRunActors(ctx, state)
   const controlled = await readEncounterControlledActorIds(ctx, { campaign, membership, actors })
   const authorized = (targetActorId: string) =>
-    actors.some(
-      (actor) =>
-        actor.id === targetActorId && actor.kind === 'CHARACTER' && controlled.has(actor.id)
-    )
+    actors.some((actor) => actor.id === targetActorId && controlled.has(actor.id))
   const fingerprint = checksumCanonicalJson(response)
   const prior = await ctx.db
     .query('encounterRunCommands')

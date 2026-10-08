@@ -20,6 +20,7 @@ import {
   closeRoom,
   executeInRoom,
   executeSheetInRoom,
+  queueRoomRolls,
   readRoomRollCards,
   readRoomTimeline,
   useLocalRoomWorker,
@@ -425,6 +426,36 @@ describe('Concentration ends without a check (D95)', () => {
     expect(edited.roll).toBeNull()
     const settled = await expectEndedWithoutCheck(base, seeded)
     expect(settled.character?.play.streamVersion).toBe(before.play.streamVersion + 1)
+  }, 120000)
+})
+
+describe('A Creature that holds Concentration makes the check (SPELLS-9.2)', () => {
+  it("the GM's Creature, hit by another Creature, rolls its Constitution save for the GM and loses its spell on a failure", async () => {
+    const base = await setupConcentration('AUTO_ROLL', undefined, 'CREATURE')
+    const seeded = await seedConcentration({ ...base, creatureHolder: true })
+    await attachFixtureRoom(base.t, base.campaign.id)
+    await queueRoomRolls(base.campaign.id, { rolls: [0] })
+    const { steps, send } = journey()
+
+    const hit = await send(base.owner, concentrationAction(base))
+    expect(hit.occurrence?.status ?? 'COMPLETE').toBe('COMPLETE')
+
+    // The GM's auto-roll settled the check in the same commit: nothing waits, and it failed.
+    await checkpointLiveRoom(base.campaign.id)
+    const settled = await concentrationRecords(base)
+    expect(settled.pending).toEqual([])
+    expect(settled.states.map((state) => state.id)).not.toContain(seeded.state.id)
+    expect(settled.actorEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
+    expect(await readRoomRollCards(base.owner.caller, base.campaign.id)).toContainEqual(
+      expect.objectContaining({
+        ruleCheck: expect.objectContaining({
+          kind: 'CONCENTRATION',
+          actorId: base.target.id,
+          outcome: 'LOST'
+        })
+      })
+    )
+    await expectReplayAcrossRelease(base, steps)
   }, 120000)
 })
 

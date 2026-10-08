@@ -123,6 +123,33 @@ export function compileDnd5eCreatureRuleFacts(input: {
         : 0)
   }
 
+  const saveProficiencyBonuses: Record<string, number> = {}
+  for (const proficiency of creature.proficiencies ?? []) {
+    if (proficiency.proficiencyKind !== PROFICIENCY_KIND.SAVE_ABILITY) continue
+    if (challengeRating === null) continue
+    const abilityIds =
+      proficiency.authoringModeKind === 'ALL'
+        ? Object.keys(abilityScores)
+        : (proficiency.abilities ?? []).map((code) => {
+            const definition = abilitiesByCode.get(code)
+            if (!definition)
+              throw new Error('Creature save proficiency references a missing ability.')
+            return definition.id
+          })
+    for (const abilityId of abilityIds) {
+      if (abilityId in saveProficiencyBonuses) {
+        throw new Error('Creature save proficiency coverage is duplicated.')
+      }
+      saveProficiencyBonuses[abilityId] = scaleProficiency({
+        bonus: challengeRating.proficiencyBonus,
+        level: proficiency.level,
+        ...(proficiency.level === SCALING_AMOUNT_KIND.HALF
+          ? { rounding: proficiency.rounding }
+          : {})
+      })
+    }
+  }
+
   return encounterCreatureRuleFactsSnapshotSchema.parse({
     gameSystemId: vocabulary.systemId,
     vocabularySnapshotId: vocabulary.snapshotId,
@@ -130,6 +157,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
     vocabularySnapshotChecksum: vocabulary.checksum,
     abilityScores,
     checkTotals,
+    saveProficiencyBonuses,
     resourceAbilityScores: creature.abilityScores,
     initiativeAbilityDefinitionId: initiativeAbility.id
   })

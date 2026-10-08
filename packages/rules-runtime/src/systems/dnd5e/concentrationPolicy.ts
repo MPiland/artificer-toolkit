@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
   compareCanonicalD20Contributors,
@@ -93,6 +94,43 @@ export const dnd5eConcentrationCapabilityContribution = {
   GameSystemRuleCapabilityContract,
   'definitionFamilyKeys' | 'factContracts' | 'operationContracts'
 >
+
+const creatureSaveRowsSchema = z.array(
+  z.looseObject({
+    abilityDefinitionId: z.string(),
+    ruleDefinitionId: z.optional(z.string()),
+    conditionTypeId: z.optional(z.string()),
+    modifier: z.number(),
+    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    contributors: z.array(
+      z.looseObject({
+        sourceId: z.string(),
+        grantId: z.nullable(z.string()),
+        domainKey: z.nullable(z.string()),
+        influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+      })
+    )
+  })
+)
+
+/**
+ * The saving throws a Concentration holder rolls from: a Character's effective policy output, else
+ * a Creature's or custom actor's derived save rows, which already carry its condition contributors (D94).
+ */
+export function dnd5eConcentrationHolderSaves(target: {
+  effectiveRulePolicyOutput: {
+    savingThrowDefinitions?: readonly z.infer<typeof creatureSaveRowsSchema>[number][]
+  } | null
+  targetDerivedFacts: Readonly<Record<string, unknown>>
+}) {
+  return (
+    target.effectiveRulePolicyOutput ?? {
+      savingThrowDefinitions: creatureSaveRowsSchema.parse(
+        target.targetDerivedFacts.savingThrowDefinitions
+      )
+    }
+  )
+}
 
 /**
  * Derives the D&D-specific saving-throw facts consumed by the portable

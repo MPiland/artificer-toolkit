@@ -1,8 +1,10 @@
 import {
   characterActor,
   creatureFeature,
+  installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -208,17 +210,19 @@ const conditionId = (code: string) => {
 function creatureHolderRoom(
   holder: Pick<Parameters<typeof srdCreatureActor>[0], 'conditionIds' | 'currentHitPoints'> & {
     hidden?: boolean
+    rolls?: number[]
+    creature?: Parameters<typeof srdCreatureActor>[0]['creature']
   }
 ) {
   const attacker = biteWolf('ATTACK')
-  const { hidden, ...holderOptions } = holder
+  const { hidden, rolls = [18], creature = plainWolf, ...holderOptions } = holder
   return actionRoom({
     autoRoll: 'GAME_MASTER',
-    rolls: [18],
+    rolls,
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
       {
-        ...srdCreatureActor({ id: HOLDER_ID, creature: plainWolf, ...holderOptions }),
+        ...srdCreatureActor({ id: HOLDER_ID, creature, ...holderOptions }),
         public: !hidden
       },
       srdCreatureActor({ id: DEPENDENT_HOLDER_ID, creature: plainWolf })
@@ -380,5 +384,84 @@ describe('room Concentration ends without a check (D95)', () => {
     expect(concentrationEnds(after)).toEqual([])
     expect(after.maintainedStates).toHaveLength(1)
     expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
+  })
+})
+
+describe('room Concentration checks held by a Creature', () => {
+  it.each([
+    { face: 20, outcome: 'SAVE_SUCCESS' as const, kept: true },
+    { face: 1, outcome: 'SAVE_FAILURE' as const, kept: false }
+  ])(
+    'auto-rolls the Creature’s Constitution save for the GM and settles $outcome in the same commit',
+    async ({ face, outcome, kept }) => {
+      // The attack die shows 19 and hits for 1 damage; the GM's auto-rolled save die follows.
+      const room = await creatureHolderRoom({ rolls: [18, face - 1] })
+      const [dependentId] = room.room.dependentEffectIds
+      const { answer } = await room.startAction(HOLDER_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      const after = await readRoomHistory(room.room.base.stub)
+      expect(concentrationChecks(after)).toMatchObject([{ outcome }])
+      expect(after.maintainedStates).toHaveLength(kept ? 1 : 0)
+      expect(effectIds(after).includes(dependentId!)).toBe(kept)
+    }
+  )
+
+  it('adds a proficient Creature’s proficiency bonus to the auto-rolled Concentration save', async () => {
+    // The installed SRD Black Dragon Wyrmling (CR 2, +2) is proficient in Constitution saves: +1 and
+    // +2 is +3. A natural 7 totals 10 against the DC 10, which a plain +1 would fail.
+    const room = await creatureHolderRoom({
+      creature: installedSrdCreature(blackDragonWyrmling),
+      rolls: [18, 6]
+    })
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toMatchObject([
+      { outcome: 'SAVE_SUCCESS', d20: { selectedNatural: 7, modifier: 3, total: 10, dc: 10 } }
+    ])
+    expect(after.maintainedStates).toHaveLength(1)
+  })
+
+  it('pauses a GM-prompted Creature check for the GM and keeps the Concentration on a successful answer', async () => {
+    const attacker = biteWolf('ATTACK')
+    const room = await actionRoom({
+      rolls: [18],
+      actors: [
+        srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
+        srdCreatureActor({ id: HOLDER_ID, creature: plainWolf }),
+        srdCreatureActor({ id: DEPENDENT_HOLDER_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: creatureFeature(attacker, 'Bite').id,
+      concentration: true,
+      concentrationOwnerActorId: HOLDER_ID,
+      concentrationDependentActorIds: [DEPENDENT_HOLDER_ID]
+    })
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // Nobody auto-rolls, so the GM enters the Wolf's attack die first, then the holder's save die.
+    const attack = await room.pendingDecision()
+    if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected an attack roll.')
+    await room.resolve(attack, {
+      kind: 'ENTER_DICE',
+      requestId: attack.pending.request.requestId,
+      rawFaces: [19],
+      rollMode: attack.pending.request.rollMode
+    })
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
+    expect(decision.pending).toMatchObject({ rollerActorId: HOLDER_ID })
+    const { request } = decision.pending
+    const resolved = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [20],
+      rollMode: request.rollMode
+    })
+    expect(resolved.type, JSON.stringify(resolved)).toBe('COMMAND_COMMITTED')
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toMatchObject([{ outcome: 'SAVE_SUCCESS' }])
+    expect(after.maintainedStates).toHaveLength(1)
   })
 })

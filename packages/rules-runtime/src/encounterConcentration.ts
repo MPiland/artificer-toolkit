@@ -20,6 +20,7 @@ import { concentrationDamageSourceLabel } from '@artificer-toolkit/schema/shared
 import {
   DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
   dnd5eConcentrationDamageDc,
+  dnd5eConcentrationHolderSaves,
   resolveDnd5eConcentrationSaveFacts
 } from './systems/dnd5e/concentrationPolicy.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './systems/dnd5e/concentrationIdentity.js'
@@ -75,15 +76,24 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
     !input.state.actorIds.includes(input.targetActorId)
   )
     throw new Error('The concentration target does not match its Encounter owner.')
-  if (target.actor.kind !== 'CHARACTER') return null
   const character = target.characterFacts
   const vocabulary = await input.readVocabulary()
-  if (
-    !character ||
-    !vocabulary ||
-    !target.characterCurrentness ||
-    !target.effectiveRulePolicyOutput
-  )
+  const characterPins =
+    target.actor.kind === 'CHARACTER'
+      ? character && target.characterCurrentness && target.effectiveRulePolicyOutput
+        ? {
+            streamVersion: character.active.play.streamVersion,
+            baseProjectionChecksum: target.characterCurrentness.projectionChecksum,
+            campaignOverlayChecksum: checksumRuleDocument({
+              base: target.characterCurrentness.projectionChecksum,
+              context: target.characterCurrentness.mechanicalContextChecksum,
+              output: target.effectiveRulePolicyOutput
+            }),
+            mechanicalContextChecksum: target.characterCurrentness.mechanicalContextChecksum
+          }
+        : null
+      : undefined
+  if (!vocabulary || characterPins === null)
     throw new Error('The concentration Character facts are unavailable.')
   const current = await input.readDefinition(maintenancePolicy.damageCheckDefinitionId)
   if (!current || current.gameSystemId !== input.state.gameSystemId)
@@ -117,16 +127,7 @@ export async function prepareEncounterConcentrationState<TTarget extends Movemen
         version: vocabulary.snapshotVersion,
         checksum: vocabulary.checksum
       },
-      targetCharacter: {
-        streamVersion: character.active.play.streamVersion,
-        baseProjectionChecksum: target.characterCurrentness.projectionChecksum,
-        campaignOverlayChecksum: checksumRuleDocument({
-          base: target.characterCurrentness.projectionChecksum,
-          context: target.characterCurrentness.mechanicalContextChecksum,
-          output: target.effectiveRulePolicyOutput
-        }),
-        mechanicalContextChecksum: target.characterCurrentness.mechanicalContextChecksum
-      }
+      targetCharacter: characterPins ?? null
     }
   }
 }
@@ -138,7 +139,7 @@ export function createNativeConcentrationContext(input: {
       NativeConcentrationContext,
       'concentrationDefinition' | 'systemVocabularySnapshot' | 'targetCharacter'
     >
-    target: Pick<MovementTarget, 'effectiveRulePolicyOutput'>
+    target: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
     damageTypes: readonly { id: string; label: string }[]
   }
   parentOccurrenceId: string
@@ -152,7 +153,7 @@ export function createNativeConcentrationContext(input: {
   const facts = resolveDnd5eConcentrationSaveFacts({
     appliedDamage: application.appliedAmount,
     targetActorId: application.targetActorId,
-    rulePolicyOutput: current.target.effectiveRulePolicyOutput!
+    rulePolicyOutput: dnd5eConcentrationHolderSaves(current.target)
   })
   const maintainedState = {
     id: current.maintained.id,

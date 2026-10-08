@@ -424,7 +424,7 @@ action Feature of the same Creature through `actionReference: { featureId, charg
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
 damage source against a maintained state, with the DC from that source's total damage. Assisted mode
-pauses on the first child; only the GM or the maintained Character's controller settles it. Movement
+pauses on the first child; only the GM or the holder's controller settles it. A Creature or custom actor holder makes the same check (SPELLS-9.2): `dnd5eConcentrationHolderSaves` reads its save rows from the Run actor's derived facts (ability modifier, the Creature's authored save proficiency bonus from the pinned `saveProficiencyBonuses` rule fact, and condition contributors), its pinned `targetCharacter` evidence is null, and a GM-controlled holder rolls under the GM's roll preference. Movement
 damage, turn effects and Cleaving use the same coordinators (`encounterConcentration*`,
 `encounterCleaving*`); the room modules are `nativeEncounterConcentration`, `nativeEncounterCleaving` and
 `nativeEncounterMovementConcentration`.

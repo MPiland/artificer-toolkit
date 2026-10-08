@@ -30,6 +30,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function snapshotRuleFacts(actor: EncounterActorRuleFactActor): {
   abilityScores: Record<string, number>
   checkTotals: Record<string, number>
+  saveProficiencyBonuses: Record<string, number>
   resourceAbilityScores: Record<string, number>
   initiativeAbilityDefinitionId: string | null
   vocabularySnapshot: { id: string; version: number; checksum: string } | null
@@ -37,6 +38,7 @@ function snapshotRuleFacts(actor: EncounterActorRuleFactActor): {
   const empty = {
     abilityScores: {},
     checkTotals: {},
+    saveProficiencyBonuses: {},
     resourceAbilityScores: {},
     initiativeAbilityDefinitionId: null,
     vocabularySnapshot: null
@@ -49,6 +51,7 @@ function snapshotRuleFacts(actor: EncounterActorRuleFactActor): {
   return {
     abilityScores: ruleFacts.abilityScores ?? {},
     checkTotals: ruleFacts.checkTotals ?? {},
+    saveProficiencyBonuses: ruleFacts.saveProficiencyBonuses,
     resourceAbilityScores: ruleFacts.resourceAbilityScores ?? {},
     initiativeAbilityDefinitionId: ruleFacts.initiativeAbilityDefinitionId,
     vocabularySnapshot: {

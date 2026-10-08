@@ -71,7 +71,8 @@ export function evaluateDnd5e2014EncounterActors(candidate: unknown): EncounterA
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([abilityDefinitionId, score]) => ({
           abilityDefinitionId,
-          modifier: abilityModifier(score),
+          modifier:
+            abilityModifier(score) + (actor.saveProficiencyBonuses[abilityDefinitionId] ?? 0),
           rollMode: 'NORMAL' as const,
           contributors: []
         })),

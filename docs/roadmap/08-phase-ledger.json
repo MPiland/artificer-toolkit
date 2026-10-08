@@ -4538,9 +4538,9 @@
         {
           "id": "SPELLS-9",
           "title": "Concentration and defense completions",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/liveSessions/encounterJourneys.test.ts"],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -4557,14 +4557,20 @@
             },
             {
               "text": "A Creature that holds Concentration makes a Concentration check when it takes damage that does not defeat it, and the commit succeeds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterConcentration.test.ts",
+                "apps/session-worker/test/nativeRoomConcentration.test.ts",
+                "apps/session-worker/test/nativeMovementPlanning.test.ts",
+                "apps/session-worker/test/nativeRoomTurnEffects.test.ts",
+                "apps/apis/convex/encounters/concentration.test.ts",
+                "apps/apis/convex/liveSessions/encounterJourneys.test.ts"
+              ],
               "origin": [],
-              "note": "Registered from SPELLS-9 (D95, 2026-10-08): the planner skips non-Character holders (prepareEncounterConcentrationState returns null) while persistence binds their slot, so the commit fails as \"children are incomplete\".",
+              "note": "D95, 2026-10-08. A Creature or custom actor holder rolls the Constitution save like a Character: DC max(10, half damage), the Creature's save modifier (dnd5eConcentrationHolderSaves: the ability modifier plus the CR-based proficiency bonus of an authored save proficiency, pinned as the saveProficiencyBonuses rule fact so every Creature save uses it) and condition roll modes (D94). GM-controlled holders auto-roll or prompt the GM per the GM's roll preference, and the roll stays private for a hidden Creature. Planner and persistence agree on the holder set; the pinned Character stream (targetCharacter) is null for a non-Character holder. Direct actions, turn effects and movement contacts are proved; Cleaving shares the same coordinator (cleaving.test.ts regression).",
               "id": "SPELLS-9.2"
             }
-          ],
-          "journeyGap": "SPELLS-9.2 (non-Character holder damage check) is not built; D95 ends are proved on direct, movement and edit paths."
+          ]
         },
         {
           "id": "SPELLS-10",
@@ -4613,6 +4619,14 @@
               "origin": [],
               "note": "Registered from SPELLS-2 (D94): concentration takes no condition contributors and binds the outcome rule NONE. Concentration ending on incapacitation is SPELLS-9.1.",
               "id": "SPELLS-10.5"
+            },
+            {
+              "text": "A Character's Concentration check applies its conditions' save roll modes (for example Exhaustion 3 gives Disadvantage), the same as a Creature holder's.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-08 from SPELLS-9.2: Creature Concentration saves take D94 condition contributors through the Creature save rows; the Character Concentration save path takes none.",
+              "id": "SPELLS-10.6"
             }
           ]
         }

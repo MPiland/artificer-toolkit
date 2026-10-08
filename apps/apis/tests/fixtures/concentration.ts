@@ -76,13 +76,17 @@ const creature = {
   )
 }
 
-/** A Creature attacks the Character; `source` swaps in another Creature action by trigger. */
+/**
+ * A Creature attacks the Character, or with `holder: 'CREATURE'` a second Creature of the same kind;
+ * `source` swaps in another Creature action by trigger.
+ */
 export async function setupConcentration(
   rolls: FixtureRolls,
   source: { creature: { id: string; systemId: string; label: string }; triggerCode: string } = {
     creature,
     triggerCode: 'ACTIVATED'
-  }
+  },
+  holder: 'CHARACTER' | 'CREATURE' = 'CHARACTER'
 ) {
   const base = await setupCharacterRun()
   // Each roll follows its actor's controller: the GM for Creatures, the player for the Character.
@@ -106,15 +110,22 @@ export async function setupConcentration(
     gameSystemId: base.campaign.gameSystemId,
     name: 'Concentration damage fixture',
     commandId: crypto.randomUUID(),
-    enemies: [{ kind: 'CREATURE', sourceId: source.creature.id }]
+    enemies: Array.from({ length: holder === 'CREATURE' ? 2 : 1 }, () => ({
+      kind: 'CREATURE' as const,
+      sourceId: source.creature.id
+    }))
   })
   const run = await base.owner.caller.mutation(api.encounters.runs.create, {
     campaignId: base.campaign.id,
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
-  const actor = run.actors.find((candidate) => candidate.kind === 'CREATURE')
-  const target = run.actors.find((candidate) => candidate.kind === 'CHARACTER')
+  const creatures = run.actors.filter((candidate) => candidate.kind === 'CREATURE')
+  const actor = creatures[0]
+  const target =
+    holder === 'CREATURE'
+      ? creatures[1]
+      : run.actors.find((candidate) => candidate.kind === 'CHARACTER')
   if (!actor || !target) throw new Error('Concentration fixture actors are unavailable.')
   await base.t.run((ctx) =>
     activateFixtureRun(ctx, run.id, {
@@ -170,6 +181,8 @@ export async function seedConcentration(fixture: {
   character: { id: string }
   /** The Character's current hit points when seeded; unchanged when omitted. */
   characterHitPoints?: number
+  /** The target is a Creature: its effects belong to its Run actor and it has no Character state. */
+  creatureHolder?: boolean
 }) {
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
@@ -249,9 +262,16 @@ export async function seedConcentration(fixture: {
         { kind: 'CONDITION_OWNERSHIP' as const, conditionId: poisoned.id, baselinePresent: false }
       ]
     } satisfies ActiveRuleEffectDefinitionDto
+    const owner = fixture.creatureHolder
+      ? ({
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: fixture.run.id,
+          targetActorId: fixture.target.id
+        } as const)
+      : ({ kind: 'CHARACTER', characterId: fixture.character.id } as const)
     const dependent = await store.create({
       id: crypto.randomUUID(),
-      owner: { kind: 'CHARACTER', characterId: fixture.character.id },
+      owner,
       definition,
       lifecycle: { schemaVersion: 1, remainingTicks: 3 },
       maintainedEffectStateId: state.id
@@ -260,7 +280,7 @@ export async function seedConcentration(fixture: {
     const independentCompiledEntryId = crypto.randomUUID()
     const independent = await store.create({
       id: crypto.randomUUID(),
-      owner: { kind: 'CHARACTER', characterId: fixture.character.id },
+      owner,
       definition: {
         ...definition,
         authoredEffectId: independentAuthoredEffectId,
@@ -284,6 +304,7 @@ export async function seedConcentration(fixture: {
       },
       lifecycle: { schemaVersion: 1, remainingTicks: 3 }
     })
+    if (fixture.creatureHolder) return { state, dependent, independent, blinded, poisoned }
     const characterRow = await readCharacterRow(ctx, fixture.character.id)
     if (!characterRow) throw new Error('Concentration Character is unavailable.')
     const character = readCharacterRecord(characterRow)
@@ -331,6 +352,12 @@ export async function concentrationRecords(
       .query('characterActiveRuleEffects')
       .withIndex('by_characterId_createdOrdinal_id', (query) =>
         query.eq('characterId', fixture.character.id)
+      )
+      .collect(),
+    actorEffects: await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_encounterId_targetActorId_id', (query) =>
+        query.eq('encounterId', fixture.run.id)
       )
       .collect(),
     character: await readCharacterRow(ctx, fixture.character.id),

@@ -278,6 +278,7 @@ function creature(input: {
           [SRD_ATHLETICS_SKILL_ID]: 2,
           [SRD_ACROBATICS_SKILL_ID]: 3
         },
+        saveProficiencyBonuses: {},
         resourceAbilityScores: {},
         initiativeAbilityDefinitionId: srdSystemRecord.abilities![0]!.id
       }
@@ -593,7 +594,7 @@ describe('availableEncounterMovementPassageChoice', () => {
   })
 })
 
-describe('passage contests under the contestants\' conditions (D94)', () => {
+describe("passage contests under the contestants' conditions (D94)", () => {
   const POISONED = SRD_CONDITION_TYPES.find((condition) => condition.code === 'POISONED')!.id
   const poisoned = (actor: EncounterRunActorState): EncounterRunActorState => {
     // A Character actor's conditions live on its Character, which the Run reads.

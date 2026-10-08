@@ -93,6 +93,8 @@ export const encounterCreatureRuleFactsSnapshotSchema = lazySchema(() =>
       abilityScores: z.record(serverUuidIdentityDtoSchema, z.number()),
       /** UUID-backed check totals pinned with the Creature Blueprint snapshot. */
       checkTotals: z.optional(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int()))),
+      /** Proficiency bonus added to a saving throw, keyed by ability definition; absent when not proficient. */
+      saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
       resourceAbilityScores: z.partialRecord(abilityCodeSchema, z.number()),
       initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema
     })
@@ -124,6 +126,8 @@ const encounterActorRuleFactSchema = lazySchema(() =>
       abilityScores: z.record(serverUuidIdentityDtoSchema, z.number()),
       /** Immutable Blueprint-compiled UUID check totals; codes and labels are never evaluated. */
       checkTotals: z._default(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())), {}),
+      /** Immutable proficiency bonus per proficient save, keyed by ability definition. */
+      saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
       resourceAbilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number())),
       initiativeAbilityDefinitionId: z.optional(z.nullable(serverUuidIdentityDtoSchema)),
       vocabularySnapshot: z.optional(

@@ -6,7 +6,10 @@ import type {
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
-import { measuredDistance, type EncounterActionSceneContext } from './encounterActionTargetPolicy.js'
+import {
+  measuredDistance,
+  type EncounterActionSceneContext
+} from './encounterActionTargetPolicy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import {
@@ -220,7 +223,9 @@ function uniqueContributors(
 /** Without a Scene to measure on, a melee attack is within the range and a ranged one beyond it. */
 function attackInRange(range: ConditionMechanicAttackRangeDto, attack: EncounterConditionAttack) {
   if (range.kind === 'ANY') return true
-  const distance = attack.sceneContext ? measuredDistance(attack.sceneContext, range.distance) : null
+  const distance = attack.sceneContext
+    ? measuredDistance(attack.sceneContext, range.distance)
+    : null
   const within = distance ? distance.measured <= distance.maximum : attack.melee
   return range.kind === 'WITHIN' ? within : !within
 }

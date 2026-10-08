@@ -39,7 +39,7 @@ type SavePath = {
 
 /** A Creature Feature forcing one fixed-DC save of a single target. */
 function saveFeature(input: {
-  ability: 'DEXTERITY' | 'WISDOM'
+  ability: 'DEXTERITY' | 'WISDOM' | 'INTELLIGENCE'
   dc: number
   paths: readonly SavePath[]
 }) {
@@ -162,6 +162,7 @@ async function resolve(input: {
   conditionImmunityIds?: readonly string[]
   conditionIds?: readonly string[]
   savingThrowDefinitions?: readonly unknown[]
+  targetStatBlock?: typeof blackDragonWyrmling
 }) {
   const prepared = await prepareCreatureAction({
     actor: creatureActor({ id: SOURCE_ID, label: 'Save Caster', features: [input.feature] }),
@@ -169,6 +170,7 @@ async function resolve(input: {
       id: TARGET_ID,
       label: 'Wolf',
       features: [],
+      ...(input.targetStatBlock ? { statBlock: input.targetStatBlock } : {}),
       ...(input.conditionIds ? { conditionIds: input.conditionIds } : {}),
       ...(input.conditionImmunityIds ? { conditionImmunityIds: input.conditionImmunityIds } : {})
     }),
@@ -215,6 +217,31 @@ describe('saving throw outcomes through action execution', () => {
       contributors: []
     })
     expect(result.hitPoints).toBe(2)
+  })
+
+  it('adds a proficient Creature’s proficiency bonus to its saving throw', async () => {
+    // The SRD Black Dragon Wyrmling: DEX 14 (+2) and a proficient DEX save at +2 (CR 2) is +4.
+    const result = await resolve({
+      feature: acidSpray(),
+      rolls: [9],
+      targetStatBlock: blackDragonWyrmling
+    })
+    expect(result.d20).toMatchObject({ selectedNatural: 10, modifier: 4, total: 14 })
+    expect(result.d20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+  })
+
+  it('leaves a Creature without a save proficiency at its ability modifier', async () => {
+    // The same Wyrmling is not proficient in Intelligence saves: INT 10 is +0.
+    const result = await resolve({
+      feature: saveFeature({
+        ability: 'INTELLIGENCE',
+        dc: 13,
+        paths: [{ pathCode: PATH_CODE.ON_SAVE_FAIL, outcome: { kind: 'DAMAGE', amount: 9 } }]
+      }),
+      rolls: [9],
+      targetStatBlock: blackDragonWyrmling
+    })
+    expect(result.d20).toMatchObject({ modifier: 0, total: 10 })
   })
 
   it('succeeds on a total equal to the DC and applies only the success outcome', async () => {
@@ -294,7 +321,7 @@ describe('saving throw outcomes through action execution', () => {
   })
 })
 
-describe('saving throws under the saver\'s conditions (D94)', () => {
+describe("saving throws under the saver's conditions (D94)", () => {
   it('fails a Dexterity save of a Paralyzed or Stunned target even on a natural 20', async () => {
     for (const code of ['PARALYZED', 'STUNNED']) {
       // Natural 20 + DEX 2 = 22 against DC 13, failed anyway: the d20 is still rolled.
@@ -303,12 +330,16 @@ describe('saving throws under the saver\'s conditions (D94)', () => {
         rolls: [19],
         conditionIds: [srdConditionId(code)]
       })
-      expect(result.d20).toMatchObject({ selectedNatural: 20, total: 22, resultPath: 'ON_SAVE_FAIL' })
+      expect(result.d20).toMatchObject({
+        selectedNatural: 20,
+        total: 22,
+        resultPath: 'ON_SAVE_FAIL'
+      })
       expect(result.hitPoints).toBe(2)
     }
   })
 
-  it('rolls a Paralyzed target\'s Wisdom save normally', async () => {
+  it("rolls a Paralyzed target's Wisdom save normally", async () => {
     // Natural 13 + WIS 1 = 14 against DC 13: Paralyzed fails only Strength and Dexterity saves.
     const result = await resolve({
       feature: acidBurst(),
@@ -350,7 +381,7 @@ describe('saving throws under the saver\'s conditions (D94)', () => {
     expect(dropped[DND5E_TEST_OUTCOME_RULE_FACT_KEY]).toBe('NONE')
     expect(checksumRuleDocument(dropped)).not.toBe(test?.boundFactsChecksum)
   })
-  it('rolls a Restrained target\'s Dexterity save with disadvantage', async () => {
+  it("rolls a Restrained target's Dexterity save with disadvantage", async () => {
     // Natural 18 and 2 keep 2: 2 + DEX 2 = 4 against DC 13.
     const result = await resolve({
       feature: acidSpray(),

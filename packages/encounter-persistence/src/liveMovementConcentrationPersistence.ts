@@ -25,6 +25,7 @@ import { postConcentrationEndMessage, readConcentrationEndReason } from './conce
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { applyLiveConcentrationCleanup } from './concentrationCleanupPersistence.js'
 import { movementPersistedTransitionState } from './liveMovementTargetState.js'
+import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
 
 type MovementConcentrationPersistenceCallbacks = {
   applyCleanup: (
@@ -146,10 +147,10 @@ export async function persistLiveMovementConcentration(
     target.encounterId !== state.id ||
     target.systemId !== state.gameSystemId ||
     !state.actorIds.includes(target.id) ||
-    target.kind !== 'CHARACTER' ||
-    !input.authorizedCharacterIds.has(target.sourceId) ||
-    (await callbacks.currentCharacterStreamVersion(state, target.sourceId)) !==
-      output.targetCharacter.streamVersion
+    (target.kind === 'CHARACTER' && !input.authorizedCharacterIds.has(target.sourceId)) ||
+    (await concentrationTargetPinChanged(target, output.targetCharacter, (characterId) =>
+      callbacks.currentCharacterStreamVersion(state, characterId)
+    ))
   )
     throw new Error('Live Session movement Concentration target changed.')
   const store = createActiveRuleEffectStore(ctx)

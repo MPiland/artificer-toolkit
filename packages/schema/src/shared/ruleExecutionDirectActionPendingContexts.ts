@@ -505,12 +505,15 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
         contributors: canonicalConcentrationContributorsDtoSchema,
         contributorChecksum: checksumSchema
       }),
-      targetCharacter: z.strictObject({
-        streamVersion: integerSchema.check(z.gte(0)),
-        baseProjectionChecksum: checksumSchema,
-        campaignOverlayChecksum: checksumSchema,
-        mechanicalContextChecksum: checksumSchema
-      }),
+      /** The pinned Character stream; null for a Creature or custom actor holder. */
+      targetCharacter: z.nullable(
+        z.strictObject({
+          streamVersion: integerSchema.check(z.gte(0)),
+          baseProjectionChecksum: checksumSchema,
+          campaignOverlayChecksum: checksumSchema,
+          mechanicalContextChecksum: checksumSchema
+        })
+      ),
       systemVocabularySnapshot: z.strictObject({
         id: uuidSchema,
         version: integerSchema.check(z.gte(1)),

@@ -115,12 +115,15 @@ export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
         version: integerSchema.check(z.gte(1)),
         checksum: checksumSchema
       }),
-      targetCharacter: z.strictObject({
-        streamVersion: aggregateVersionSchema,
-        baseProjectionChecksum: checksumSchema,
-        campaignOverlayChecksum: checksumSchema,
-        mechanicalContextChecksum: checksumSchema
-      }),
+      /** The pinned Character stream; null for a Creature or custom actor holder. */
+      targetCharacter: z.nullable(
+        z.strictObject({
+          streamVersion: aggregateVersionSchema,
+          baseProjectionChecksum: checksumSchema,
+          campaignOverlayChecksum: checksumSchema,
+          mechanicalContextChecksum: checksumSchema
+        })
+      ),
       application: concentrationMaintainedDamageApplicationDtoSchema,
       /** The context's display trigger, so every settled check can be logged without its context. */
       trigger: concentrationCheckTriggerDtoSchema,

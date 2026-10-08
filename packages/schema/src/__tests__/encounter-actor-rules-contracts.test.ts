@@ -18,6 +18,7 @@ describe('Encounter actor rule contracts', () => {
         {
           actorId,
           abilityScores: { [dexterityId]: 14, [charismaId]: 18 },
+          saveProficiencyBonuses: {},
           targetProtection,
           featureResources: [
             {
@@ -65,6 +66,7 @@ describe('Encounter actor rule contracts', () => {
     const actor = {
       actorId,
       abilityScores: {},
+      saveProficiencyBonuses: {},
       targetProtection,
       featureResources: [
         { featureId: 'feature-1', charge: null, used: 0 },
@@ -86,6 +88,15 @@ describe('Encounter actor rule contracts', () => {
         ]
       })
     ).toThrow(/duplicated/)
+  })
+
+  it('requires the pinned save proficiency bonuses on every actor fact', () => {
+    expect(() =>
+      encounterActorRuleInputSchema.parse({
+        contractVersion: 1,
+        actors: [{ actorId, abilityScores: {}, targetProtection, featureResources: [] }]
+      })
+    ).toThrow()
   })
 
   it('requires complete finite state and accepts a zero maximum', () => {

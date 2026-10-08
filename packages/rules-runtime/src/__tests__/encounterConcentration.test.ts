@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { encounterMaintainedEffectStateRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   type ConcentrationDamageApplicationDto
@@ -8,13 +11,15 @@ import {
 import { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
   completeNativeConcentrationResult,
   createNativeConcentrationContext,
-  evaluateNativeConcentrationEvidence
+  evaluateNativeConcentrationEvidence,
+  prepareEncounterConcentrationState
 } from '../encounterConcentration.js'
+import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import {
   nativeConcentrationDamageApplications,
   nativeConcentrationDamageSourceLabels,
@@ -37,9 +42,12 @@ import { SRD, evaluateSrdCharacter, srdByLabel } from './dnd5eSrdCharacter.js'
 import { createSrdRulesRuntime, creatureFeature } from '../testing/dnd5eSrdEncounter.js'
 import {
   creatureActor,
+  creatureEncounter,
   prepareCreatureAction,
-  settleCreatureAction
+  settleCreatureAction,
+  srdConditionId
 } from './encounterCreatureAction.js'
+import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e001'
 const CASTER_ID = '00000000-0000-4000-8000-0000000000a1'
@@ -52,6 +60,8 @@ const FIRE = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'FIRE')!
 const SLASHING = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === 'SLASHING')!
 const CHECKSUM = (character: string) => character.repeat(64)
 const DRAGON_ID = '00000000-0000-4000-8000-0000000000a3'
+import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
+
 const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
 
 type SaveDefinition = NonNullable<CharacterRulePolicyOutput['savingThrowDefinitions']>[number]
@@ -310,7 +320,10 @@ async function startCheck(input: {
           mechanicalContextChecksum: CHECKSUM('6')
         }
       },
-      target: { effectiveRulePolicyOutput: input.rulePolicyOutput ?? sorcerer.output },
+      target: {
+        effectiveRulePolicyOutput: input.rulePolicyOutput ?? sorcerer.output,
+        targetDerivedFacts: {}
+      },
       damageTypes: SRD_DAMAGE_TYPES
     },
     parentOccurrenceId: PARENT_OCCURRENCE_ID,
@@ -768,5 +781,161 @@ describe('nativeConcentrationParentDamage for Cleaving', () => {
     ])
     expect(nativeConcentrationParentDamage(cleaving('APPLIED', 0))).toEqual([])
     expect(nativeConcentrationParentDamage(cleaving('DECLINED', 0))).toEqual([])
+  })
+})
+
+describe('Concentration held by a Creature', () => {
+  const WOLF_ID = '00000000-0000-4000-8000-0000000000b1'
+  const WOLF_CONSTITUTION_MODIFIER = 1
+
+  async function wolfHolder(
+    conditions: { conditionTypeId: string; level: number }[] = [],
+    statBlock?: Parameters<typeof creatureActor>[0]['statBlock']
+  ) {
+    const wolf = {
+      ...creatureActor({
+        id: WOLF_ID,
+        label: 'Wolf',
+        features: [],
+        ...(statBlock ? { statBlock } : {})
+      }),
+      conditions
+    }
+    const { state, movementTargets } = creatureEncounter([wolf])
+    const target = await withEncounterConditionMechanics({
+      target: movementTargets.get(WOLF_ID)!,
+      gameSystemId: srdSystemRecord.id,
+      definitions: srdConditionDefinitionSource()
+    })
+    const maintenanceDocument = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      kind: 'RULE_MAINTENANCE',
+      id: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+      gameSystemId: srdSystemRecord.id,
+      replacementPolicy: 'REPLACE_SAME_DEFINITION',
+      emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY',
+      damageCheckDefinitionId: published.id
+    })
+    const definitions = [maintenanceDocument, published.definition].map((document) =>
+      reusableDefinitionCurrentDtoSchema.parse({
+        id: document.id,
+        gameSystemId: srdSystemRecord.id,
+        contentSourceId: '00000000-0000-4000-8000-0000000000d8',
+        definitionFamilyKey: 'kind' in document ? 'rule-maintenance' : document.definitionFamilyKey,
+        label: 'kind' in document ? 'Concentration maintenance' : 'Concentration save',
+        description: null,
+        document,
+        checksum: checksumRuleDocument(document),
+        contractVersion: 1,
+        version: 1,
+        publishedAt: TIMESTAMP,
+        publishedBy: '00000000-0000-4000-8000-0000000000d9'
+      })
+    )
+    const vocabularyIdentity = {
+      snapshotId: '00000000-0000-4000-8000-00000000d201',
+      systemId: srdSystemRecord.id,
+      snapshotVersion: 1,
+      schemaVersion: 1,
+      document: srdSystemRecord
+    }
+    const vocabulary = systemVocabularySnapshotSchema.parse({
+      ...vocabularyIdentity,
+      checksum: checksumRuleDocument(vocabularyIdentity)
+    })
+    const slot = encounterMaintainedEffectStateRecordSchema.parse({
+      ...maintained,
+      ownerActorId: WOLF_ID,
+      descriptor: {
+        ...maintained.descriptor,
+        sourceActorId: WOLF_ID,
+        definitionChecksum: definitions[0]!.checksum
+      }
+    })
+    const current = await prepareEncounterConcentrationState({
+      state,
+      targetActorId: WOLF_ID,
+      maintained: slot,
+      loadTarget: () => target,
+      readVocabulary: async () => vocabulary,
+      readDefinition: async (id) => definitions.find((definition) => definition.id === id) ?? null
+    })
+    return { current, state }
+  }
+
+  async function startWolfCheck(
+    current: NonNullable<Awaited<ReturnType<typeof wolfHolder>>['current']>,
+    appliedAmount: number
+  ) {
+    const runtime = await createSrdRulesRuntime()
+    const checked = application({ ordinal: 0, appliedAmount, targetActorId: WOLF_ID })
+    const { context, facts } = createNativeConcentrationContext({
+      current,
+      parentOccurrenceId: PARENT_OCCURRENCE_ID,
+      parentCommandFingerprint: CHECKSUM('7'),
+      application: checked,
+      remaining: [],
+      finalizedDamageEnvelopeChecksum: CHECKSUM('8'),
+      sourceLabels: []
+    })
+    const occurrenceId = concentrationOccurrenceId(PARENT_OCCURRENCE_ID, checked)
+    const started = await runtime.executeResolved({
+      command: { definitionId: published.id, occurrenceId, facts },
+      published: current.published
+    })
+    if (started.status !== 'PAUSED') throw new Error('The concentration check must ask for a d20.')
+    return { runtime, context, occurrenceId, continuation: started.continuation }
+  }
+
+  it('prepares a Creature holder with no Character pins', async () => {
+    const { current } = await wolfHolder()
+    expect(current).not.toBeNull()
+    expect(current!.pins.targetCharacter).toBeNull()
+  })
+
+  it('rolls the Creature Constitution save at the damage DC', async () => {
+    const { current } = await wolfHolder()
+    const check = await startWolfCheck(current!, 23)
+    expect(check.context.trigger.dc).toBe(11)
+    expect(check.context.save).toMatchObject({
+      modifier: WOLF_CONSTITUTION_MODIFIER,
+      rollMode: 'NORMAL',
+      contributors: []
+    })
+    if (check.continuation.request.kind !== 'INTEGER_RANGE') throw new Error('Expected a d20.')
+    const requestId = check.continuation.request.requestId
+    const roll = (face: number) =>
+      evaluateNativeConcentrationEvidence({
+        runtime: check.runtime,
+        random: () => face - 1,
+        context: check.context,
+        continuation: check.continuation,
+        resolution: { kind: 'AUTO_ROLL', requestId },
+        expectedOccurrenceId: check.occurrenceId
+      })
+    expect(await roll(10)).toMatchObject({ failed: false })
+    expect(await roll(9)).toMatchObject({ failed: true })
+  })
+
+  it("adds a proficient Creature's proficiency bonus to its Concentration save", async () => {
+    // The SRD Black Dragon Wyrmling: CON 13 (+1) and a proficient CON save at +2 (CR 2) is +3.
+    const { current } = await wolfHolder([], blackDragonWyrmling)
+    const check = await startWolfCheck(current!, 12)
+    expect(check.context.save).toMatchObject({ modifier: 3, rollMode: 'NORMAL' })
+  })
+
+  it("applies the Creature's condition roll mode to its Concentration save (D94)", async () => {
+    const exhaustion = srdConditionId('EXHAUSTION')
+    const { current } = await wolfHolder([{ conditionTypeId: exhaustion, level: 3 }])
+    const check = await startWolfCheck(current!, 12)
+    expect(check.context.save.rollMode).toBe('DISADVANTAGE')
+    expect(check.context.save.contributors).toEqual([
+      {
+        sourceId: `condition:${exhaustion}`,
+        grantId: null,
+        domainKey: `condition:${WOLF_ID}`,
+        influence: 'DISADVANTAGE'
+      }
+    ])
   })
 })

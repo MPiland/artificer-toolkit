@@ -4811,7 +4811,9 @@ function repeatedFollowUpSaveResultPath(input: {
   }
   const outcomeRule = input.execution.evidence.facts[DND5E_TEST_OUTCOME_RULE_FACT_KEY]
   if (!isDnd5eTestOutcomeRule(outcomeRule) || saveTrace.inputs.outcomeRule !== outcomeRule) {
-    throw new Dnd5eEffectActionCompilerError('The committed D&D repeat-save outcome rule is invalid.')
+    throw new Dnd5eEffectActionCompilerError(
+      'The committed D&D repeat-save outcome rule is invalid.'
+    )
   }
   const expected = dnd5eTestResultPath({
     kind: 'SAVE',
@@ -6241,7 +6243,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: dc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(conditionOutcomeRules, nestedSaveAbilityDefinitionId)
+          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
+            conditionOutcomeRules,
+            nestedSaveAbilityDefinitionId
+          )
         },
         d20RollMode: matches[0]!.rollMode,
         d20Roller: 'TARGET',
@@ -6340,7 +6345,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_SAVE_MODIFIER_FACT_KEY]: modifier,
           [DND5E_SAVE_DC_FACT_KEY]: save.dc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(conditionOutcomeRules, save.abilityDefinitionId)
+          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
+            conditionOutcomeRules,
+            save.abilityDefinitionId
+          )
         },
         d20RollMode: rollMode,
         d20Roller: 'TARGET',

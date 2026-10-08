@@ -272,3 +272,53 @@ it('cleans the exact concentration state on failure and preserves an independent
     seeded.poisoned.id
   ])
 }, 60_000)
+
+/** A second Creature holds the Concentration (a dependent and an independent effect on its own actor). */
+async function creatureHolderFixture(rolls: FixtureRolls) {
+  const fixture = await setupConcentration(rolls, undefined, 'CREATURE')
+  const seeded = await seedConcentration({ ...fixture, creatureHolder: true })
+  await attachFixtureRoom(fixture.t, fixture.campaign.id)
+  return { fixture, seeded }
+}
+
+it.each([
+  { face: 20, outcome: 'SAVE_SUCCESS' as const, cleanup: false },
+  { face: 1, outcome: 'SAVE_FAILURE' as const, cleanup: true }
+])(
+  'settles a Creature holder’s automatic Concentration check atomically for $outcome',
+  async ({ face, cleanup }) => {
+    const { fixture, seeded } = await creatureHolderFixture('AUTO_ROLL')
+    const root = concentrationAction(fixture)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [face - 1] })
+    const settled = await executeInRoom(fixture.owner.caller, { command: root })
+    expect(settled.occurrence?.status).toBe('COMPLETE')
+    expect(await pendingFor(fixture, fixture.owner)).toBeNull()
+    const after = await records(fixture)
+    expect(after.states.some((state) => state.id === seeded.state.id)).toBe(!cleanup)
+    expect(after.actorEffects.map((effect) => effect.id).sort()).toEqual(
+      (cleanup ? [seeded.independent.id] : [seeded.dependent.id, seeded.independent.id]).sort()
+    )
+    // A retry is answered from the room's held history, without a new write.
+    expect(await executeInRoom(fixture.owner.caller, { command: root })).toEqual(settled)
+    expect(await records(fixture)).toEqual(after)
+  },
+  60_000
+)
+
+it('pauses a Creature holder’s Concentration check for the GM and settles the answer', async () => {
+  const { fixture, seeded } = await creatureHolderFixture('PROMPT')
+  const parent = await executeInRoom(fixture.owner.caller, {
+    command: concentrationAction(fixture)
+  })
+  expect(parent.occurrence?.status).toBe('COMPLETE')
+  expect(await pendingFor(fixture, fixture.player)).toBeNull()
+  const pending = await pendingFor(fixture, fixture.owner)
+  if (!pending || pending.kind !== 'D20_EVIDENCE')
+    throw new Error('Expected the GM to discover the Creature’s concentration check.')
+  expect(pending.rollerActorId).toBe(fixture.target.id)
+  const settled = await executeInRoom(fixture.owner.caller, response(fixture.run.id, pending, 1))
+  expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+  const after = await records(fixture)
+  expect(after.states.map((state) => state.id)).not.toContain(seeded.state.id)
+  expect(after.actorEffects.map((effect) => effect.id)).toEqual([seeded.independent.id])
+}, 60_000)

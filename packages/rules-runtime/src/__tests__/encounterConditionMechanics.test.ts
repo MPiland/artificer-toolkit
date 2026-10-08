@@ -21,7 +21,10 @@ import {
   type EncounterConditionAttack
 } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
-import { currentConditionDefinition, srdConditionDefinitionSource } from './srdConditionDefinitions.js'
+import {
+  currentConditionDefinition,
+  srdConditionDefinitionSource
+} from './srdConditionDefinitions.js'
 
 const ENCOUNTER_ID = '11111111-1111-4111-8111-111111111111'
 const ACTOR_ID = '33333333-3333-4333-8333-333333333331'
@@ -262,9 +265,9 @@ describe('encounter condition mechanics (D94)', () => {
     for (const condition of [PARALYZED, UNCONSCIOUS]) {
       const mechanics = await mechanicsOf([condition])
       expect(encounterConditionHitIsCritical({ target: mechanics, attack: MELEE })).toBe(true)
-      expect(encounterConditionHitIsCritical({ target: mechanics, attack: onScene(false, 1) })).toBe(
-        true
-      )
+      expect(
+        encounterConditionHitIsCritical({ target: mechanics, attack: onScene(false, 1) })
+      ).toBe(true)
       expect(encounterConditionHitIsCritical({ target: mechanics, attack: RANGED })).toBe(false)
       expect(encounterConditionHitIsCritical({ target: mechanics, attack: onScene(true, 4) })).toBe(
         false
