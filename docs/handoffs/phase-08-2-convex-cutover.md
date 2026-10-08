@@ -83,7 +83,7 @@
 - SPELLS-9 slice B (`1ae22a765`): opportunity attacks and spatial contacts that defeat or incapacitate the holder (condition or capability-suppressing effect) end it; later contacts in the move roll nothing. A movement contact scans only its batch target (movement reactions are single-target; recorded in D95).
 - SPELLS-9 slice C (`5ecdb340a`): GM actor edits and Sheet hit point or condition edits end it; the edit's command id is the receipt parent, and the Sheet write, cleanup and receipt share one stream-version bump. Edits are not undoable.
 - SPELLS-9.2 (`36cbc764a`), SPELLS-9 done: Creature holders make the check on every path; `targetCharacter` is nullable. Found and fixed: Creature save proficiency was authored but never compiled, so every Creature save lacked its proficiency bonus; `saveProficiencyBonuses` is now a required pinned rule fact (local Convex reset and reseeded, backup `local-validation/convex-reset/spells92-save-proficiency.before.zip`). Registered SPELLS-10.6: Character Concentration saves ignore condition roll modes.
-- Dead code awaiting the user's OK to delete: `executeEncounterMovementReactionAction` and its helpers in `encounterMovementReactionActionExecution.ts`.
+- Deleted the dead `executeEncounterMovementReactionAction` copy and its helpers from `encounterMovementReactionActionExecution.ts` (the live one is in `encounterMovementReactionExecution.ts`). The user gave standing approval to delete unused code.
 - Ledger 68/126 PBIs, 310/420 ACs. Next: SPELLS-3.2.
 
 **Done 2026-10-07 (parallel session, worktree `claude/spells-2-conditions`):**

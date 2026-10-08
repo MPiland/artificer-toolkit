@@ -11,17 +11,11 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import type {
-  CharacterRuleActionApplication,
-  CharacterRuleActionSystemAdapter
-} from './characterRuleActionSystemAdapter.js'
-import type { RulesRuntimeService } from './rulesRuntimeService.js'
-import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
+import { EncounterValidationError } from './encounterErrors.js'
 import {
-  resolveEncounterD20Answer,
   selectEncounterActionD20Natural,
-  type EncounterD20RollMode,
-  type EncounterEvidenceAnswer
+  type EncounterD20RollMode
 } from './encounterEvidenceAnswer.js'
 
 export interface PreparedEncounterMovementReactionAction {
@@ -61,19 +55,6 @@ export function bindMovementInterruption(input: {
     movementInterruption: input.execution.outputs.movementInterruption ? { kind: 'STOP' } : null
   }
 }
-
-export type EncounterMovementReactionActionExecution =
-  | {
-      kind: 'PENDING'
-      continuation: ServerRuleExecutionContinuationDto
-      d20Policy: ServerRuleExecutionD20PolicyDto
-    }
-  | {
-      kind: 'COMPLETE'
-      execution: ServerCompletedRuleExecutionDto
-      applications: readonly CharacterRuleActionApplication[]
-      d20: ServerRuleExecutionD20EvidenceDto | null
-    }
 
 function requireD20Request(continuation: ServerRuleExecutionContinuationDto): void {
   if (
@@ -141,22 +122,6 @@ export function nestedOutcomeD20Policy(input: {
     modifier: input.d20.modifier,
     dc: input.d20.defenseOrDc
   })
-}
-
-function requireMatchingContinuation(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  occurrenceId: string
-  published: ServerPublishedRuleDefinitionDto
-  facts: Readonly<Record<string, unknown>>
-}): void {
-  if (
-    input.continuation.occurrenceId !== input.occurrenceId ||
-    input.continuation.graph.source.definitionId !== input.published.id ||
-    input.continuation.graph.source.checksum !== input.published.checksum ||
-    checksumRuleDocument(input.continuation.facts) !== checksumRuleDocument(input.facts)
-  ) {
-    throw new EncounterConflictError('The selected reaction action continuation is stale.')
-  }
 }
 
 /**
@@ -248,166 +213,4 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
   )
   if (!rollTrace || !saveTrace)
     throw new EncounterValidationError('The nested save d20 trace is invalid.')
-}
-
-/**
- * Executes only the selected action graph. The Encounter coordinator owns
- * source re-discovery, occurrence persistence, mechanics application, and
- * resource consumption. A paused d20 stage therefore has no side effects.
- */
-export async function executeEncounterMovementReactionAction(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  autoRoll: boolean
-  prepared: PreparedEncounterMovementReactionAction
-  continuation?: ServerRuleExecutionContinuationDto
-  expectedD20Policy?: ServerRuleExecutionD20PolicyDto
-  resolution?: EncounterEvidenceAnswer
-  /** Recorded faces that replay this action's already settled d20. */
-  retainedRoll?: { rawFaces: readonly number[]; rollMode: EncounterD20RollMode }
-  rollD20: () => number
-}): Promise<EncounterMovementReactionActionExecution> {
-  const target = input.prepared.target
-  const bound = input.prepared.adapter.bindFacts({
-    actionMechanic: input.prepared.actionMechanic,
-    published: input.prepared.published,
-    sourceDerivedFacts: input.prepared.sourceDerivedFacts,
-    sourceHitPoints: input.prepared.sourceHitPoints ?? null,
-    targetActorId: target.actorId,
-    targetDerivedFacts: target.derivedFacts,
-    targetConditionIds: target.conditionIds,
-    currentHitPoints: target.currentHitPoints,
-    temporaryHitPoints: target.temporaryHitPoints,
-    maximumHitPoints: target.maximumHitPoints,
-    targetScalarValues: target.scalarValues,
-    defenses: target.defenses,
-    conditionImmunityIds: target.conditionImmunityIds
-  })
-
-  let execution
-  let completedD20: ServerRuleExecutionD20EvidenceDto | null = null
-  if (input.continuation) {
-    if (!input.resolution) {
-      throw new EncounterValidationError('The selected reaction action evidence is required.')
-    }
-    requireMatchingContinuation({
-      continuation: input.continuation,
-      occurrenceId: input.occurrenceId,
-      published: input.prepared.published,
-      facts: bound.facts
-    })
-    const policy = deriveEncounterActionD20Policy({ continuation: input.continuation, bound })
-    if (
-      !input.expectedD20Policy ||
-      checksumRuleDocument(input.expectedD20Policy) !== checksumRuleDocument(policy)
-    ) {
-      throw new EncounterConflictError('The selected reaction action d20 policy is stale.')
-    }
-    if (input.resolution.requestId !== input.continuation.request.requestId) {
-      throw new EncounterConflictError('The selected reaction action evidence request is stale.')
-    }
-    const { faces, rollMode, natural } = resolveEncounterD20Answer({
-      derivedRollMode: policy.rollMode,
-      answer: input.resolution,
-      rollD20: input.rollD20
-    })
-    execution = await input.runtime.resume({
-      continuation: input.continuation,
-      response: { requestId: input.resolution.requestId, value: natural }
-    })
-    if (execution.status === 'PAUSED') {
-      throw new EncounterValidationError(
-        'The selected reaction action requested more than one evidence stage.'
-      )
-    }
-    completedD20 = buildEncounterActionD20Evidence({
-      execution,
-      policy,
-      requestId: input.resolution.requestId,
-      faces,
-      rollMode
-    })
-  } else {
-    if (input.expectedD20Policy) {
-      throw new EncounterConflictError('The selected reaction action has no pending d20 policy.')
-    }
-    if (input.resolution) {
-      throw new EncounterConflictError(
-        'The selected reaction action has no pending evidence request.'
-      )
-    }
-    execution = await input.runtime.executeResolved({
-      command: {
-        definitionId: input.prepared.published.id,
-        occurrenceId: input.occurrenceId,
-        facts: bound.facts
-      },
-      published: input.prepared.published
-    })
-    if (execution.status === 'PAUSED') {
-      const policy = deriveEncounterActionD20Policy({ continuation: execution.continuation, bound })
-      const requestId = execution.continuation.request.requestId
-      const answer: EncounterEvidenceAnswer | null = input.retainedRoll
-        ? {
-            kind: 'ENTER_DICE',
-            requestId,
-            ...input.retainedRoll,
-            rawFaces: [...input.retainedRoll.rawFaces]
-          }
-        : input.autoRoll
-          ? { kind: 'AUTO_ROLL', requestId }
-          : null
-      if (!answer) {
-        return {
-          kind: 'PENDING',
-          continuation: execution.continuation,
-          d20Policy: policy
-        }
-      }
-      const { faces, rollMode, natural } = resolveEncounterD20Answer({
-        derivedRollMode: policy.rollMode,
-        answer,
-        rollD20: input.rollD20
-      })
-      execution = await input.runtime.resume({
-        continuation: execution.continuation,
-        response: { requestId, value: natural }
-      })
-      if (execution.status === 'PAUSED') {
-        throw new EncounterValidationError(
-          'The selected reaction action requested more than one evidence stage.'
-        )
-      }
-      completedD20 = buildEncounterActionD20Evidence({
-        execution,
-        policy,
-        requestId,
-        faces,
-        rollMode
-      })
-    }
-  }
-
-  if (execution.status !== 'COMPLETE') {
-    throw new EncounterValidationError('The selected reaction action did not settle.')
-  }
-  return {
-    kind: 'COMPLETE',
-    execution: bindMovementInterruption({
-      execution,
-      binding: input.prepared.movementInterruption
-    }),
-    applications: input.prepared.adapter.interpret({
-      execution,
-      occurrenceId: input.occurrenceId,
-      published: input.prepared.published,
-      targetActorId: target.actorId,
-      currentHitPoints: target.currentHitPoints,
-      temporaryHitPoints: target.temporaryHitPoints,
-      maximumHitPoints: target.maximumHitPoints,
-      defenses: target.defenses,
-      conditionImmunityIds: target.conditionImmunityIds
-    }),
-    d20: completedD20
-  }
 }
