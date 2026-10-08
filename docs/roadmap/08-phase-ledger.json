@@ -3833,10 +3833,7 @@
           "id": "ATTACK-3",
           "title": "Assisted guidance and GM undo",
           "status": "DONE",
-          "journeyTests": [
-            "apps/apis/convex/liveSessions/encounterJourneys.test.ts",
-            "apps/apis/convex/liveSessions/encounterJourneys.test.ts › a player's \"Do it anyway\" on bendable warnings, the GM's override badge, then a GM undo (ADR 0034)"
-          ],
+          "journeyTests": ["apps/apis/convex/liveSessions/encounterJourneys.test.ts"],
           "journeyStatus": "verified",
           "origin": ["CP-S6f"],
           "acs": [
