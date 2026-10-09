@@ -16,6 +16,7 @@ import {
 } from '../shared/enums.js'
 import { capacityDtoSchema, costDtoSchema, weightDtoSchema } from '../subjects/shared.js'
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
+import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import {
   characterResourceOwnerRefDtoSchema,
@@ -147,6 +148,8 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     currentHitPoints: integerSchema,
     maxHitPoints: integerSchema,
     tempHitPoints: integerSchema,
+    /** Shown and editable at 0 hit points only (D96). */
+    deathSaves: characterDeathSavesDtoSchema,
     maxHitPointsModifier: integerSchema,
     maxHitPointsModifierAdjustmentId: z.nullable(z.guid()),
     maxHitPointsOverride: z.nullable(integerSchema),

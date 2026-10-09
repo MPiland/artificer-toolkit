@@ -1,4 +1,5 @@
 import type { EncounterGmProjectionDto } from '../api/encounters.js'
+import type { CharacterDeathSaves } from '../shared/characterDeathSaves.js'
 import type { EncounterInitiativePolicySnapshotDto } from '../shared/initiativePolicySnapshot.js'
 import type {
   EncounterInitiativeParticipantDto,
@@ -21,9 +22,18 @@ export type EncounterProjectionActorInput = ProjectionActor<EncounterRunActorSta
  * Character ID; the Run keeps no copy of them. `dead` is the Character's death (D96), read from its
  * play state. A Character actor without an entry is not projected.
  */
+export type EncounterProjectionCharacterState = {
+  current: number
+  temporary: number
+  maximum: number
+  conditions: unknown
+  deathSaves: CharacterDeathSaves
+  dead: boolean
+}
+
 export type EncounterProjectionCharacterStates = ReadonlyMap<
   string,
-  { current: number; temporary: number; maximum: number; conditions: unknown; dead: boolean }
+  EncounterProjectionCharacterState
 >
 
 export type EncounterProjectionInitiativeRoundStateInput = {

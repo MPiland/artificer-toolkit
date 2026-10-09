@@ -50,6 +50,7 @@ export const characterSheetFixture = {
     currentHitPoints: 14,
     maxHitPoints: 17,
     tempHitPoints: 4,
+    deathSaves: { successes: 0, failures: 0, stable: false },
     maxHitPointsOverride: null,
     maxHitPointsModifier: 0,
     maxHitPointsModifierAdjustmentId: null,

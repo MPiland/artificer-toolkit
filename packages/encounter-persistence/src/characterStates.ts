@@ -1,6 +1,9 @@
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
-import type { EncounterProjectionCharacterStates } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
+import type {
+  EncounterProjectionCharacterState,
+  EncounterProjectionCharacterStates
+} from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState,
@@ -39,6 +42,7 @@ export function characterProjectionState(
     current: clampCharacterCurrentHitPoints(hitpoints.current, maximumHitPoints),
     temporary: Math.max(hitpoints.temp ?? 0, 0),
     maximum: maximumHitPoints,
+    deathSaves: hitpoints.deathSaves,
     dead: isCharacterDead(hitpoints.deathSaves),
     conditions: conditions.map((condition) => {
       const definition = conditionTypes.find((entry) => entry.id === condition.conditionTypeId)
@@ -103,10 +107,7 @@ export async function readEncounterCharacterStates(
     read(characterId: string): Promise<CampaignCharacterState['conditions']>
   }
 ): Promise<EncounterProjectionCharacterStates> {
-  const states = new Map<
-    string,
-    { current: number; temporary: number; maximum: number; conditions: unknown; dead: boolean }
-  >()
+  const states = new Map<string, EncounterProjectionCharacterState>()
   let conditionTypes: SystemAuthoredDto['conditionTypes'] | null = null
   for (const actor of actors) {
     if (actor.kind !== 'CHARACTER') continue
@@ -118,8 +119,8 @@ export async function readEncounterCharacterStates(
         temporary: actor.frozenState.tempHitPoints,
         maximum: actor.frozenState.maxHitPoints,
         conditions: actor.frozenState.conditions,
-        // A frozen actor no longer reads its Character, so its death is not shown.
-        dead: false
+        deathSaves: actor.frozenState.deathSaves,
+        dead: isCharacterDead(actor.frozenState.deathSaves)
       })
       continue
     }
@@ -231,12 +232,7 @@ export async function freezeEncounterCharacterStates(
 export async function freezeEncounterCharacterActor(
   ctx: EncounterWriteContext,
   actor: EncounterRunCharacterActorState,
-  values: {
-    current: number
-    temporary: number
-    maximum: number
-    conditions: unknown
-  }
+  values: Omit<EncounterProjectionCharacterState, 'dead'>
 ): Promise<void> {
   const frozen = encounterRunActorStateSchema.parse({
     ...actor,
@@ -244,7 +240,8 @@ export async function freezeEncounterCharacterActor(
       currentHitPoints: values.current,
       maxHitPoints: values.maximum,
       tempHitPoints: values.temporary,
-      conditions: values.conditions
+      conditions: values.conditions,
+      deathSaves: values.deathSaves
     }
   })
   if (checksumCanonicalJson(frozen) !== checksumCanonicalJson(actor))

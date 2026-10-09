@@ -4699,14 +4699,15 @@
         {
           "id": "SPELLS-3",
           "title": "Dying and death saves",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/defeat.test.ts",
             "apps/apis/convex/encounters/liveCharacterState.test.ts",
-            "apps/apis/convex/encounters/turnDeathSave.test.ts"
+            "apps/apis/convex/encounters/turnDeathSave.test.ts",
+            "apps/apis/convex/characters/sheetDeathSaves.test.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, the turn-start death save and an ally's Healer's Kit stabilizing it and First Aid (a prompted or auto-rolled DC 10 Medicine check) are proved; no Sheet tracker yet (3.6).",
+          "journeyStatus": "verified",
+          "journeyGap": "",
           "origin": [],
           "acs": [
             {
@@ -4784,10 +4785,16 @@
             },
             {
               "text": "The Character Sheet shows death save successes and failures at 0 HP, lets the Sheet's editors set them, and rolls a death save outside an Encounter.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/sheetDeathSaves.test.ts (the owner at 0 HP sets marks and rolls to stable; a third failure kills; a 20 regains 1 HP; a held Run rolls in the room; a dead Character stays defeated after the Run completes with the frozen deathSaves; a stranger is refused; every roll has one DEATH_SAVE card the GM reads)",
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts › SET_DEATH_SAVES, ROLL_DEATH_SAVE",
+                "apps/web/src/domains/characters/sheet/vitals/CharacterSheetVitals.test.tsx › death saves",
+                "packages/schema/src/__tests__/character-sheet-command-contracts.test.ts",
+                "impl: apps/apis/convex/characters/sheetDeathSaveRoll.ts; apps/session-worker/src/roomCharacterSheetCommands.ts; apps/web/src/domains/characters/sheet/vitals/CharacterSheetDeathSaves.tsx"
+              ],
               "origin": [],
-              "note": "D96. Manual-mode tables track death saves here.",
+              "note": "D96. Manual-mode tables track death saves here. Slice D, 2026-10-08: the frozen actor state carries a required deathSaves, so a departed or completed-Run Character that died shows Dead; the Encounter turn-start save card now also uses the DEATH_SAVE roll source kind.",
               "id": "SPELLS-3.6"
             },
             {

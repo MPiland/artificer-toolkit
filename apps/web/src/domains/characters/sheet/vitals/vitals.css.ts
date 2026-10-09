@@ -256,17 +256,65 @@ export const hpCard = style({
       alignItems: 'center',
       display: 'grid',
       gap: '6px',
-      gridTemplateRows: 'auto auto',
       minWidth: 0,
       padding: '2px 12px 2px 0',
       '@media': {
         '(max-width: 760px)': {
           alignContent: 'center',
           borderInlineEnd: 0,
-          gridTemplateRows: 'auto auto',
           padding: 0
         }
       }
+    }
+  }
+})
+
+export const deathSaves = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
+      columnGap: '12px',
+      display: 'flex',
+      flexWrap: 'wrap',
+      minWidth: 0,
+      paddingBlockStart: '8px',
+      rowGap: '6px'
+    }
+  }
+})
+
+export const deathSaveMarks = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'flex',
+      gap: '6px'
+    }
+  }
+})
+
+export const deathSaveLabel = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.82rem'
+    }
+  }
+})
+
+export const deathSaveSuccessMark = style({
+  '@layer': {
+    [app]: {
+      accentColor: foundationVars.color.status.success
+    }
+  }
+})
+
+export const deathSaveFailureMark = style({
+  '@layer': {
+    [app]: {
+      accentColor: foundationVars.color.status.danger
     }
   }
 })

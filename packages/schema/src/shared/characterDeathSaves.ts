@@ -96,6 +96,20 @@ export function deathSavesAfterRoll(
   }
 }
 
+/**
+ * The death saves a Sheet editor's marks set at 0 hit points: a third failure is death, else a
+ * third success makes the Character stable (counts reset), as a rolled save would.
+ */
+export function deathSavesAfterMarksSet(marks: {
+  successes: number
+  failures: number
+}): CharacterDeathSaves {
+  if (marks.failures >= DEATH_SAVE_LIMIT) return DEAD
+  return marks.successes >= DEATH_SAVE_LIMIT
+    ? { successes: 0, failures: 0, stable: true }
+    : { successes: marks.successes, failures: marks.failures, stable: false }
+}
+
 /** A target that died outright (hit point maximum reduced to 0, or a terminal scalar reduction). */
 export function deathSavesAfterDeath(): CharacterDeathSaves {
   return DEAD

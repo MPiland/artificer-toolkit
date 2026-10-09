@@ -2380,7 +2380,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       let nextStateJson = current.stateJson
       const { result, authorization: committedAuthorization } = await this.#prepareWithRetry(
         authorization,
-        (prepared) =>
+        (prepared, random) =>
           this.#roomStore.transact(
             async (transaction) => {
               const executed = await executeRoomCharacterSheetCommand({
@@ -2391,7 +2391,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                 campaignId: value.campaignId,
                 epoch: value.authorityEpoch,
                 userId: admission.userId,
-                command
+                command,
+                random
               })
               const composition = sceneCache?.uncomposedScene
                 ? await composeRoomSceneVision({
@@ -2482,7 +2483,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
                 sequence: this.#journal.readCurrent()!.sequence
               }
         )
-        // A Concentration end the edit caused tells the whole table, as the encounter route does.
+        // A Concentration end or death save card the command caused tells the whole table, as the
+        // encounter route does.
         for (const entry of result.chatEntries)
           send(recipient, {
             type: 'COMMAND_COMMITTED',
@@ -2490,6 +2492,15 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
             sequence: current.sequence + 1,
             delta: { scope: 'CAMPAIGN_CHAT', entry, privateRoll: null }
           })
+        // A roll retained for the GM reaches that user's sockets alone.
+        for (const { userId, roll } of result.privateRolls)
+          if (userId === member.userId)
+            send(recipient, {
+              type: 'COMMAND_COMMITTED',
+              commandId,
+              sequence: current.sequence + 1,
+              delta: { scope: 'CAMPAIGN_CHAT', entry: null, privateRoll: roll }
+            })
       }
       if (
         result.composition &&

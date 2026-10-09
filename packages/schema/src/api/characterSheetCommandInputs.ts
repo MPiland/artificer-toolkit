@@ -205,6 +205,14 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         die: integerSchema
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
+        type: z.literal('SET_DEATH_SAVES'),
+        successes: integerSchema.check(z.gte(0)).check(z.lte(3)),
+        failures: integerSchema.check(z.gte(0)).check(z.lte(3))
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
+        type: z.literal('ROLL_DEATH_SAVE')
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('COMPLETE_REST'),
         restKind: characterRestKindDtoSchema,
         previewFingerprint: stringSchema.check(z.trim()).check(z.minLength(1)),

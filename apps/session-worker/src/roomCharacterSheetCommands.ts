@@ -1,6 +1,7 @@
 import { endConcentrationAfterEdit } from '@artificer-toolkit/encounter-persistence/concentrationEditEnd'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { recordRuleRollCard } from '@artificer-toolkit/encounter-persistence/ruleRollCards'
 import {
   readCharacterCommandReplay,
   writeCharacterCommandReceipt
@@ -22,6 +23,7 @@ import {
   getProspectiveSheetResourceUsage,
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
+import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -43,6 +45,7 @@ export async function executeRoomCharacterSheetCommand(input: {
   epoch: string
   userId: string
   command: Extract<LiveSessionCommandDto, { scope: 'CHARACTER_SHEET' }>
+  random(maximum: number): number
   /** The caller's write transaction, when this edit is part of its command; its chat entries join it. */
   ctx?: RoomEncounterWriteTransaction
 }) {
@@ -158,7 +161,14 @@ export async function executeRoomCharacterSheetCommand(input: {
         )
         .unique()
   )
-  if (replay) return { acknowledgement: replay, facts: initial, replayed: true, chatEntries: [] }
+  if (replay)
+    return {
+      acknowledgement: replay,
+      facts: initial,
+      replayed: true,
+      chatEntries: [],
+      privateRolls: []
+    }
   if (command.expectedVersion !== initial.active.play.streamVersion)
     throw new CharacterSheetCommandError(
       'Character Sheet changed; refresh before applying this command.'
@@ -176,10 +186,12 @@ export async function executeRoomCharacterSheetCommand(input: {
       Date.parse(initial.active.play.updatedAt) + 1
     )
   ).toISOString()
+  const deathSaveDie = command.type === 'ROLL_DEATH_SAVE' ? input.random(20) + 1 : undefined
   const updated = characterAuthoredDtoSchema.parse(
     applyCharacterSheetCommand(initial.character, command, sheet, {
       now: () => occurredAt,
-      attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit
+      attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit,
+      deathSaveDie
     })
   )
   const nextSheetState = characterSheetStateSchema.parse({
@@ -218,6 +230,26 @@ export async function executeRoomCharacterSheetCommand(input: {
     occurredAt,
     advancedCharacterIds: new Set([characterId])
   })
+  if (deathSaveDie !== undefined) {
+    const system = await ctx.ports.requireSystem(campaign.gameSystemId)
+    const roll = deathSaveRollRecord({
+      occurrenceId: command.commandId,
+      rawDie: deathSaveDie,
+      characterId,
+      rollerLabel: initial.character.label,
+      ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+      createdAt: occurredAt
+    })
+    await recordRuleRollCard(ctx, {
+      campaign,
+      encounterId: null,
+      roller: null,
+      initiatorUserId: userId,
+      visibility: undefined,
+      clientNonce: roll.id,
+      roll
+    })
+  }
   const facts = await prepareRoomLiveCharacterSheet(store, inputs, scope, observed, transaction)
   const acknowledgement = await writeCharacterCommandReceipt(
     {
@@ -234,5 +266,11 @@ export async function executeRoomCharacterSheetCommand(input: {
       await ctx.db.insert('characterCommandReceipts', receipt)
     }
   )
-  return { acknowledgement, facts, replayed: false, chatEntries: ctx.postedChatEntries }
+  return {
+    acknowledgement,
+    facts,
+    replayed: false,
+    chatEntries: ctx.postedChatEntries,
+    privateRolls: ctx.retainedPrivateRolls
+  }
 }

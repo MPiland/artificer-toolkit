@@ -405,7 +405,8 @@ async function characterActorChange(base: Fixture) {
         currentHitPoints: 1,
         maxHitPoints: 1,
         tempHitPoints: 0,
-        conditions: []
+        conditions: [],
+        deathSaves: { successes: 0, failures: 0, stable: false }
       }
     }
     const frozen = decodeCheckpointRecord('encounterRunActors', {

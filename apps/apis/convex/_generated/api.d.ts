@@ -2560,6 +2560,18 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                failures: number;
+                successes: number;
+                type: "SET_DEATH_SAVES";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
+                type: "ROLL_DEATH_SAVE";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
                 healingMode: "AUTOMATIC" | "MANUAL";
                 manualHealingAccepted: boolean;
                 previewFingerprint: string;
@@ -2869,7 +2881,8 @@ export declare const api: {
               | "ATTACK"
               | "DAMAGE"
               | "HEALING"
-              | "HIT_DIE";
+              | "HIT_DIE"
+              | "DEATH_SAVE";
             label: string;
           };
         },
@@ -2923,7 +2936,8 @@ export declare const api: {
               | "ATTACK"
               | "DAMAGE"
               | "HEALING"
-              | "HIT_DIE";
+              | "HIT_DIE"
+              | "DEATH_SAVE";
             label: string;
           };
         }
@@ -3302,6 +3316,11 @@ export declare const api: {
               notes?: string;
             }>;
             currentHitPoints: number;
+            deathSaves: {
+              failures: number;
+              stable: boolean;
+              successes: number;
+            };
             exhaustion: {
               description: string;
               label: string;
@@ -6973,7 +6992,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -7056,7 +7076,8 @@ export declare const api: {
                   | "ATTACK"
                   | "DAMAGE"
                   | "HEALING"
-                  | "HIT_DIE";
+                  | "HIT_DIE"
+                  | "DEATH_SAVE";
                 label: string;
               };
             } | null;
@@ -7144,7 +7165,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -7220,7 +7242,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -9272,7 +9295,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           };
@@ -9341,7 +9365,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -9369,7 +9394,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           };
@@ -9430,7 +9456,8 @@ export declare const api: {
               | "ATTACK"
               | "DAMAGE"
               | "HEALING"
-              | "HIT_DIE";
+              | "HIT_DIE"
+              | "DEATH_SAVE";
             label: string;
           };
         }
@@ -9503,7 +9530,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -17559,6 +17587,11 @@ export declare const api: {
               notes?: string;
             }>;
             currentHitPoints: number;
+            deathSaves: {
+              failures: number;
+              stable: boolean;
+              successes: number;
+            };
             exhaustion: {
               description: string;
               label: string;
@@ -19209,6 +19242,18 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                failures: number;
+                successes: number;
+                type: "SET_DEATH_SAVES";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
+                type: "ROLL_DEATH_SAVE";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
                 healingMode: "AUTOMATIC" | "MANUAL";
                 manualHealingAccepted: boolean;
                 previewFingerprint: string;
@@ -19571,6 +19616,11 @@ export declare const api: {
                   notes?: string;
                 }>;
                 currentHitPoints: number;
+                deathSaves: {
+                  failures: number;
+                  stable: boolean;
+                  successes: number;
+                };
                 exhaustion: {
                   description: string;
                   label: string;
@@ -39413,7 +39463,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -39642,7 +39693,8 @@ export declare const api: {
                 | "ATTACK"
                 | "DAMAGE"
                 | "HEALING"
-                | "HIT_DIE";
+                | "HIT_DIE"
+                | "DEATH_SAVE";
               label: string;
             };
           } | null;
@@ -41800,7 +41852,8 @@ export declare const api: {
             | "ATTACK"
             | "DAMAGE"
             | "HEALING"
-            | "HIT_DIE";
+            | "HIT_DIE"
+            | "DEATH_SAVE";
           label: string;
         };
       },
@@ -41854,7 +41907,8 @@ export declare const api: {
             | "ATTACK"
             | "DAMAGE"
             | "HEALING"
-            | "HIT_DIE";
+            | "HIT_DIE"
+            | "DEATH_SAVE";
           label: string;
         };
       }
@@ -41949,7 +42003,8 @@ export declare const api: {
             | "ATTACK"
             | "DAMAGE"
             | "HEALING"
-            | "HIT_DIE";
+            | "HIT_DIE"
+            | "DEATH_SAVE";
           label: string;
         };
       }>

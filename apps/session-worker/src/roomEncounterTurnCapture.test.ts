@@ -297,7 +297,13 @@ it.each([
   {
     name: 'frozen Character actor that is still assigned',
     assigned: true,
-    frozenState: { currentHitPoints: 7, maxHitPoints: 11, tempHitPoints: 0, conditions: [] }
+    frozenState: {
+      currentHitPoints: 7,
+      maxHitPoints: 11,
+      tempHitPoints: 0,
+      conditions: [],
+      deathSaves: { successes: 0, failures: 0, stable: false }
+    }
   },
   { name: 'unfrozen Character actor without an assignment', assigned: false, frozenState: null }
 ])('refuses actor and effects capture for a departed $name (D74)', async (departed) => {

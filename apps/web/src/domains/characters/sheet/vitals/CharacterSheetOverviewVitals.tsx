@@ -7,6 +7,7 @@ import { formatSigned } from '../core/characterSheet.utils'
 import { formatHitDiceSummary } from '../overview/characterSheetOverview.utils'
 import { CharacterSheetRestControl } from '../rest/CharacterSheetRestControl'
 import * as sheetOverlayStyles from '../shared/sheetOverlay.css'
+import { CharacterSheetDeathSaves } from './CharacterSheetDeathSaves'
 import { CharacterSheetHpEditor } from './CharacterSheetHpEditor'
 import * as coreStyles from '../core/sheetShell.css'
 import * as overviewStyles from '../overview/overview.css'
@@ -180,6 +181,7 @@ export function CharacterSheetOverviewVitals({
               </Text>
             </div>
           </div>
+          <CharacterSheetDeathSaves pending={pending} sheet={sheet} submitCommand={submitCommand} />
           <div className={vitalsStyles.hpActionCluster}>
             {isMobile ? (
               <Button
