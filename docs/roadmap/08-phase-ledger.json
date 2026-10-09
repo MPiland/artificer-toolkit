@@ -1632,7 +1632,7 @@
         {
           "id": "RULES-1",
           "title": "Run authored rules, pause and resume them",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/concentration.test.ts",
             "apps/apis/convex/encounters/actionCommands.test.ts"
@@ -1670,18 +1670,18 @@
             },
             {
               "text": "Mixed dice-plus-modifier healing keeps its roll identity through the kernel.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/rules-runtime/src/__tests__/kernelDiceIdentity.test.ts"],
               "origin": ["P81-CURRENT-MIXED-HEALING"],
-              "note": "Original PARTIAL: likely covered by kernel tests; add an explicit proof.",
+              "note": "SRD Potion of Healing: rolls the authored 2d4, adds the resolved modifier once, refuses a resolved expression with other dice.",
               "id": "RULES-1.5"
             },
             {
               "text": "Multiple damage parts on one path keep their identity through the kernel.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/rules-runtime/src/__tests__/kernelDiceIdentity.test.ts"],
               "origin": ["P81-CURRENT-MULTI-DAMAGE"],
-              "note": "Original PARTIAL: likely covered by kernel tests; add an explicit proof.",
+              "note": "SRD Adult Red Dragon Bite: rolls, totals and types each part separately; refuses swapped and duplicate outcome identities.",
               "id": "RULES-1.6"
             }
           ]
