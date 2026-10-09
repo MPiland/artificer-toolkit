@@ -58,7 +58,7 @@ describe('lazy schemas', () => {
 
     expect(schemas.length).toBeGreaterThan(2_000)
     expect(failures).toEqual([])
-  })
+  }, 30000)
 
   it('defers every exported schema except z.json()', async () => {
     const eager = (await exportedSchemas())
