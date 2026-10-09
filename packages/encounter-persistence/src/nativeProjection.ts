@@ -4,12 +4,15 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { listActiveGrantListings } from '@artificer-toolkit/rules-runtime/activeGrantListings'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   projectCurrentEncounterGm,
   projectCurrentEncounterGmFacts
 } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
+import { listActiveRuleEffects } from './effectStore.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import type { EncounterProjectionTransaction } from './ports.js'
 import type { EncounterReadContext } from './store.js'
@@ -20,6 +23,42 @@ function readCurrentInitiativeRound(ctx: EncounterReadContext, state: EncounterR
     : Promise.resolve(null)
 }
 
+/**
+ * Lists each actor's active grants on its projection (D99). A finished Run lists none: its view
+ * reads only the Run's own documents (ADR 0035 Amendment 30), and the effects an owner holds then
+ * may be later, carried over or unrelated.
+ */
+async function withActiveGrants<Projection extends { actors: readonly { id: string }[] }>(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'>[],
+  projection: Projection
+) {
+  if (state.status === 'COMPLETED')
+    return {
+      ...projection,
+      actors: projection.actors.map((actor) => ({ ...actor, activeGrants: [] }))
+    }
+  const grantsByActorId = new Map(
+    await Promise.all(
+      actors.map(async (actor) => {
+        // The Run's own read of its actors and Characters verified each owner already.
+        const effects = await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id), {
+          ownerVerified: true
+        })
+        return [actor.id, listActiveGrantListings(effects)] as const
+      })
+    )
+  )
+  return {
+    ...projection,
+    actors: projection.actors.map((actor) => ({
+      ...actor,
+      activeGrants: grantsByActorId.get(actor.id) ?? []
+    }))
+  }
+}
+
 /** Projects a Run's actors with rules already evaluated for them. */
 export async function projectNativeGm(
   ctx: EncounterProjectionTransaction,
@@ -27,13 +66,18 @@ export async function projectNativeGm(
   actors: readonly EncounterRunActorState[],
   rules: EncounterActorRuleOutput
 ) {
-  return projectCurrentEncounterGm({
+  return withActiveGrants(
+    ctx,
     state,
     actors,
-    rules,
-    initiativeRoundState: await readCurrentInitiativeRound(ctx, state),
-    characterStates: await readEncounterCharacterStates(ctx, state, actors)
-  })
+    projectCurrentEncounterGm({
+      state,
+      actors,
+      rules,
+      initiativeRoundState: await readCurrentInitiativeRound(ctx, state),
+      characterStates: await readEncounterCharacterStates(ctx, state, actors)
+    })
+  )
 }
 
 /** Projects a Run's stored projection facts with the Character values a reader chose for them. */
@@ -43,12 +87,17 @@ export async function projectEncounterFacts(
   facts: Awaited<ReturnType<typeof readRunProjectionFacts>>,
   characterStates: EncounterProjectionCharacterStates
 ) {
-  return projectCurrentEncounterGmFacts({
+  return withActiveGrants(
+    ctx,
     state,
-    ...facts,
-    initiativeRoundState: await readCurrentInitiativeRound(ctx, state),
-    characterStates
-  })
+    facts.actors,
+    projectCurrentEncounterGmFacts({
+      state,
+      ...facts,
+      initiativeRoundState: await readCurrentInitiativeRound(ctx, state),
+      characterStates
+    })
+  )
 }
 
 /**

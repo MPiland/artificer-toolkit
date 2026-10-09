@@ -14,7 +14,8 @@ export const characterSheetFixture = {
       managePlayState: true,
       managePrivateNotes: true,
       manageInventory: true,
-      openBuilder: true
+      openBuilder: true,
+      endActiveEffects: false
     },
     systemId: characterFixture.systemId,
     status: AUTHORED_RECORD_STATUS.ACTIVE,
@@ -55,6 +56,7 @@ export const characterSheetFixture = {
     maxHitPointsModifier: 0,
     maxHitPointsModifierAdjustmentId: null,
     maxHitPointsReductions: [],
+    activeGrants: [],
     exhaustion: {
       label: 'Exhaustion',
       description: dnd5e2014ExhaustionDescription,

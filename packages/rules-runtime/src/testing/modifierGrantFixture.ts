@@ -60,7 +60,7 @@ export function aidAtSecondLevel(): EffectAuthored {
 
 /**
  * The definition and lifecycle the real planner stores for an authored grant (the SRD Antitoxin's
- * unless `effect` says otherwise), lasting one round and carrying `lifecycle`, applied by
+ * unless `effect` says otherwise), lasting `rounds` (one by default) and carrying `lifecycle`, applied by
  * `sourceActorId` to `holderActorId`. Seed it as an active effect.
  */
 export function plannedModifierGrant(input: {
@@ -71,6 +71,10 @@ export function plannedModifierGrant(input: {
   currentActorId?: string | null
   effect?: EffectAuthored
   sourceLabel?: string
+  sourceHidden?: boolean
+  rounds?: number
+  /** The holder's lifetime scope: a Character's grant outlasts the Encounter (`OWNER`). */
+  lifetimeScope?: 'OWNER' | 'ENCOUNTER'
 }) {
   const authored = input.effect ?? antitoxinVial.effects?.[0]
   if (!authored) throw new Error('The SRD Antitoxin has no effect.')
@@ -87,7 +91,7 @@ export function plannedModifierGrant(input: {
                 duration: path.resultBlock.duration && {
                   ...path.resultBlock.duration,
                   durationKind: 'ROUND' as const,
-                  amount: 1
+                  amount: input.rounds ?? 1
                 },
                 lifecycle: { ...path.resultBlock.lifecycle, ...input.lifecycle }
               }
@@ -122,13 +126,13 @@ export function plannedModifierGrant(input: {
     commandId: testUuid(0xc311),
     sourceActorId: input.sourceActorId,
     sourceLabel: input.sourceLabel ?? antitoxinVial.label,
-    sourceHidden: false,
+    sourceHidden: input.sourceHidden ?? false,
     currentActorId: input.currentActorId ?? null,
     target: {
       actorId: input.holderActorId,
       conditionIds: [],
       effectiveSize: 'MEDIUM',
-      lifetimeScope: 'ENCOUNTER',
+      lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
       activeEffects: []
     },
     activeEffectsByActorId: new Map(),

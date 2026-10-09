@@ -28,6 +28,7 @@ import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
+import { activeGrantListingDtoSchema } from '../shared/activeGrantListing.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -66,7 +67,9 @@ export const characterSheetMetaDtoSchema = lazySchema(() =>
       managePlayState: booleanSchema,
       managePrivateNotes: booleanSchema,
       manageInventory: booleanSchema,
-      openBuilder: booleanSchema
+      openBuilder: booleanSchema,
+      /** True only for the Campaign owner on an ACTIVE Campaign, including on the GM's own Character (D92, D99). */
+      endActiveEffects: booleanSchema
     }),
     systemId: stringSchema,
     status: authoredRecordStatusSchema,
@@ -164,6 +167,8 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         recoveryTags: hitPointMaximumReductionRecoveryTagsSchema
       })
     ),
+    /** Active grants (Antitoxin, Aid) with their source and time left; a hidden source's label is null for players (D99). */
+    activeGrants: z.array(activeGrantListingDtoSchema),
     savingThrows: z.array(
       z.object({
         ability: abilityCodeSchema,

@@ -26,6 +26,9 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { api, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -772,5 +775,107 @@ describe('native Campaign clock and combat', () => {
       expect.objectContaining({ characterId: character.id, boundaryAbsoluteMinute: 1800 })
     ])
     expect(await resourceUsed()).toBe(0)
+  })
+})
+
+describe('native Campaign clock and carried-over grants (D99)', () => {
+  it('ends a grant when the clock reaches its expiry, and waits out a fighting Character', async () => {
+    const base = await setupCharacterRun()
+    const { t, owner, campaign, character, run, actor } = base
+    const seed = (expiresAtCampaignMinute: number) =>
+      t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+          id: crypto.randomUUID(),
+          owner: { kind: 'CHARACTER', characterId: character.id },
+          definition: plannedModifierGrant({
+            encounterId: run.id,
+            sourceActorId: actor.id,
+            holderActorId: actor.id,
+            lifecycle: {},
+            lifetimeScope: 'OWNER'
+          }).definition,
+          lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute }
+        })
+      )
+    const held = () =>
+      t.run(async (ctx) =>
+        (
+          await ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+            .collect()
+        ).map(({ id }) => id)
+      )
+    const early = await seed(610)
+    const late = await seed(640)
+    const initial = await owner.caller.mutation(initialize, {
+      ...command(campaign.id, 0),
+      day: 1,
+      minuteOfDay: 600,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    const before = await owner.caller.mutation(advance, {
+      ...command(campaign.id, initial.version),
+      minutes: 9
+    })
+    expect((await held()).sort()).toEqual([early.id, late.id].sort())
+
+    const reached = await owner.caller.mutation(advance, {
+      ...command(campaign.id, before.version),
+      minutes: 1
+    })
+    expect(await held()).toEqual([late.id])
+
+    // A Character in a live Run is the room's: its grants wait for the first advance after combat.
+    await activateRun(base)
+    const during = await owner.caller.mutation(advance, {
+      ...command(campaign.id, reached.version),
+      minutes: 60
+    })
+    expect(await held()).toEqual([late.id])
+    await setRunStatus(base, 'COMPLETED')
+    await owner.caller.mutation(advance, { ...command(campaign.id, during.version), minutes: 1 })
+    expect(await held()).toEqual([])
+  })
+
+  it("ends a grant on the Campaign owner's own Character without aborting the advance", async () => {
+    const base = await setupCharacterRun({}, undefined, true)
+    const { t, owner, campaign, run, actor } = base
+    const characterId = base.gmCharacterId
+    if (!characterId) throw new Error('Fixture GM Character is unavailable.')
+    const grant = await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId },
+        definition: plannedModifierGrant({
+          encounterId: run.id,
+          sourceActorId: actor.id,
+          holderActorId: actor.id,
+          lifecycle: {},
+          lifetimeScope: 'OWNER'
+        }).definition,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 610 }
+      })
+    )
+    const held = () =>
+      t.run(async (ctx) =>
+        (
+          await ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', characterId))
+            .collect()
+        ).map(({ id }) => id)
+      )
+    const initial = await owner.caller.mutation(initialize, {
+      ...command(campaign.id, 0),
+      day: 1,
+      minuteOfDay: 600,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    expect(await held()).toEqual([grant.id])
+    await owner.caller.mutation(advance, { ...command(campaign.id, initial.version), minutes: 10 })
+    expect(await held()).toEqual([])
   })
 })

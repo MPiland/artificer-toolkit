@@ -84,6 +84,7 @@ export async function prepareLiveCharacterSheetFacts(input: {
   const campaignContext: CharacterSheetCampaignContext = {
     currencyOptions: inputs.campaign.currencyOptions,
     viewer: character.userId === scope.expectedUserId ? 'CHARACTER_OWNER' : 'CAMPAIGN_OWNER',
+    isCampaignOwner: scope.expectedRole === 'OWNER',
     campaignId: inputs.campaign.id,
     campaignStatus: inputs.campaign.status,
     contentMaturity: inputs.campaign.contentMaturity,

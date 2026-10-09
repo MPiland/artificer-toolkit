@@ -21,6 +21,8 @@ import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import {
   attackRollConsumableGrants,
+  expiredCarriedOverGrants,
+  planCarriedOverGrants,
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks
 } from '../encounterGrantLifetimes.js'
@@ -525,5 +527,80 @@ describe('planDepartedSourceGrantRemovals', () => {
       }
     }
     expect(plan([{ actor: holder(TARGET_ID).actor, effects: [foreign] }])).toEqual([])
+  })
+})
+
+describe('planCarriedOverGrants', () => {
+  const grant = (id: number, remainingTicks: number) =>
+    grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks
+    })
+
+  it('expires a timed grant 6 seconds per remaining round after the clock, in whole minutes', () => {
+    const [ten, eleven] = [grant(0xc360, 10), grant(0xc361, 11)]
+    expect(planCarriedOverGrants({ effects: [ten, eleven], clockMinute: 2000 })).toEqual([
+      {
+        effect: ten,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 2001 }
+      },
+      {
+        effect: eleven,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: 2002 }
+      }
+    ])
+  })
+
+  it('stops a timed grant counting without a clock, so it lasts until the GM ends it', () => {
+    const effect = grant(0xc362, 4)
+    expect(planCarriedOverGrants({ effects: [effect], clockMinute: null })).toEqual([
+      {
+        effect,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: null }
+      }
+    ])
+  })
+
+  it('leaves an untimed grant alone', () => {
+    const effect = grant(0xc363, 4)
+    const untimed = { ...effect, lifecycle: { schemaVersion: 1 as const, remainingTicks: null } }
+    expect(planCarriedOverGrants({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+  })
+})
+
+describe('expiredCarriedOverGrants', () => {
+  it('lists the grants whose clock expiry the clock has reached', () => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc364,
+      holderId: TARGET_ID
+    })
+    const expiring = (id: number, expiresAtCampaignMinute?: number) => ({
+      ...effect,
+      id: testUuid(id),
+      lifecycle: {
+        schemaVersion: 1 as const,
+        remainingTicks: null,
+        ...(expiresAtCampaignMinute === undefined ? {} : { expiresAtCampaignMinute })
+      }
+    })
+    const [due, reached, later, untimed, unclocked] = [
+      expiring(0xc365, 1999),
+      expiring(0xc366, 2000),
+      expiring(0xc367, 2001),
+      expiring(0xc368),
+      {
+        ...expiring(0xc369),
+        lifecycle: {
+          schemaVersion: 1 as const,
+          remainingTicks: null,
+          expiresAtCampaignMinute: null
+        }
+      }
+    ]
+    expect(expiredCarriedOverGrants([due, reached, later, untimed, unclocked], 2000)).toEqual([
+      due,
+      reached
+    ])
   })
 })

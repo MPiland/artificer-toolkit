@@ -2562,6 +2562,12 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                effectId: string;
+                expectedVersion: number;
+                type: "END_ACTIVE_EFFECT";
+              }
+            | {
+                commandId: string;
                 expectedVersion: number;
                 inspired: boolean;
                 type: "SET_INSPIRATION";
@@ -3277,6 +3283,7 @@ export declare const api: {
           meta: {
             campaignId?: string | null;
             capabilities: {
+              endActiveEffects: boolean;
               manageInventory: boolean;
               managePlayState: boolean;
               managePrivateNotes: boolean;
@@ -3337,6 +3344,13 @@ export declare const api: {
               modifier: number;
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
               score: number;
+            }>;
+            activeGrants: Array<{
+              effectId: string;
+              expiresAtCampaignMinute: number | null;
+              label: string | null;
+              remainingTicks: number | null;
+              sourceHidden: boolean;
             }>;
             armorClass: number;
             conditions: Array<{
@@ -17608,6 +17622,7 @@ export declare const api: {
           meta: {
             campaignId?: string | null;
             capabilities: {
+              endActiveEffects: boolean;
               manageInventory: boolean;
               managePlayState: boolean;
               managePrivateNotes: boolean;
@@ -17668,6 +17683,13 @@ export declare const api: {
               modifier: number;
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
               score: number;
+            }>;
+            activeGrants: Array<{
+              effectId: string;
+              expiresAtCampaignMinute: number | null;
+              label: string | null;
+              remainingTicks: number | null;
+              sourceHidden: boolean;
             }>;
             armorClass: number;
             conditions: Array<{
@@ -19340,6 +19362,12 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                effectId: string;
+                expectedVersion: number;
+                type: "END_ACTIVE_EFFECT";
+              }
+            | {
+                commandId: string;
                 expectedVersion: number;
                 inspired: boolean;
                 type: "SET_INSPIRATION";
@@ -19705,6 +19733,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -19733,6 +19762,13 @@ export declare const api: {
                   modifier: number;
                   rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   score: number;
+                }>;
+                activeGrants: Array<{
+                  effectId: string;
+                  expiresAtCampaignMinute: number | null;
+                  label: string | null;
+                  remainingTicks: number | null;
+                  sourceHidden: boolean;
                 }>;
                 armorClass: number;
                 conditions: Array<{
@@ -20044,6 +20080,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -20596,6 +20633,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -21134,6 +21172,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -21432,6 +21471,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -21456,6 +21496,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -38647,6 +38688,13 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -38808,6 +38856,13 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -39320,6 +39375,13 @@ export declare const api: {
           projection:
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -39481,6 +39543,13 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -40054,6 +40123,13 @@ export declare const api: {
         { encounterId: string },
         | {
             actors: Array<{
+              activeGrants?: Array<{
+                effectId: string;
+                expiresAtCampaignMinute: number | null;
+                label: string | null;
+                remainingTicks: number | null;
+                sourceHidden: boolean;
+              }>;
               conditions:
                 | string
                 | number
@@ -40209,6 +40285,13 @@ export declare const api: {
           }
         | {
             actors: Array<{
+              activeGrants?: Array<{
+                effectId: string;
+                expiresAtCampaignMinute: number | null;
+                label: string | null;
+                remainingTicks: number | null;
+                sourceHidden: boolean;
+              }>;
               conditions:
                 | string
                 | number
@@ -40307,6 +40390,13 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -40468,6 +40558,13 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -40736,6 +40833,13 @@ export declare const api: {
         { blueprintId: string; campaignId: string; commandId: string },
         {
           actors: Array<{
+            activeGrants?: Array<{
+              effectId: string;
+              expiresAtCampaignMinute: number | null;
+              label: string | null;
+              remainingTicks: number | null;
+              sourceHidden: boolean;
+            }>;
             conditions:
               | string
               | number
@@ -45974,6 +46078,14 @@ export declare const internal: {
     >;
   };
   campaigns: {
+    clockGrantExpiry: {
+      endExpired: FunctionReference<
+        "mutation",
+        "internal",
+        { actorUserId: string; campaignId: string; clockMinute: number },
+        null
+      >;
+    };
     clockRecovery: {
       recover: FunctionReference<
         "mutation",

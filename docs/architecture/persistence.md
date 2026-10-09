@@ -118,7 +118,10 @@ pass `finalSequence`. It applies the records and patches the authority row in th
   ADR 0035 Amendment 30). A Run that completes in the same
   page as its commands writes no index rows at all: `buildRoomCheckpointRecords` folds an insert and its
   later delete in one page to no change. A save before COMPLETE (a backlog, Scene presentation or
-  departure save) still inserts the rows, and COMPLETE then deletes them.
+  departure save) still inserts the rows, and COMPLETE then deletes them. The same checkpoint carries the
+  completed Run's Character grants onto the Campaign clock (`encounters/runGrantCarryOver.ts`, D99): it
+  rewrites their lifecycles after the room released the Characters and leaves those Characters out of the
+  revisions the room may adopt, so the room reloads them instead of adopting a revision it did not write.
 - Scene rows (`sceneLiveStates`, `sceneLiveEntities`, `sceneFogLayers`, `sceneFogSaves`, `sceneFogChunks`)
   are written only by the checkpoint, plus Scene definition, presentation and deletion flows. Scene command
   receipts and geometry saves are not Convex rows: the room keeps them (below).
@@ -253,6 +256,8 @@ store.
   initiative rounds, participants and sides, rule occurrences, pending snapshot parts, replay index,
   turn movements, decision skips, effect and maintained-effect rows, spatial effects, and the command,
   rule receipt and evidence histories (`removeFinishedRunRowsPage` in `packages/encounter-persistence`).
+  It also deletes the Character effects the Run sourced (`endCompletedRunCharacterEffects`, D99); a
+  Character's own timed grants stay and carry over to the Campaign clock.
   A completed Run has no Scene binding, so bind commands on it are refused with `ENCOUNTER_NOT_ACTIVE`
   and lookups by Scene never resolve it. Several PREPARED or ACTIVE Runs may bind one Scene, so the
   binding table has no Scene index and no lookup ranks Runs: the fight played on a Scene is the
@@ -565,6 +570,9 @@ and an explicit GM start or pause clears the flag. The system pause and resume w
 recovery watermark alone. Characters in a fight are not recovered automatically when a boundary passes;
 one `campaignClockRecoveryPrompts` row per Campaign, boundary and Character asks the GM, and prompts are removed
 when the Character leaves or the Campaign is deleted (`campaigns/clockSegments.ts`, `clockRecovery.ts`).
+The same mutation then ends the carried-over grants the new clock minute has reached (D99,
+`campaigns/clockGrantExpiry.ts`) on every assigned Character not in a fight, one GM `END_ACTIVE_EFFECT` Sheet
+command each, inside the clock's transaction; a fighting Character's are checked on the next advance.
 
 ### Campaign notebooks
 

@@ -495,6 +495,27 @@ out-of-initiative) actor's turn still ticks both boundaries in the turn commit t
 Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
 through its skipped turns.
 
+**Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
+(`endCompletedRunCharacterEffects`: Encounter-scoped grants such as Concentration grants), alongside the
+Creature effects ADR 0035 Amendment 30 drops. A Character's own (`OWNER`-scoped) timed grants outlast the
+Run: `planCarriedOverGrants` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
+Campaign clock's absolute minute at completion plus 6 seconds per remaining round rounded up to whole
+minutes, with `remainingTicks: null` so later Runs never tick it. Without a Campaign clock the grant gets no
+expiry and lasts until the GM ends it. `expiredCarriedOverGrants` lists the grants a clock minute has
+reached. The room has no Campaign clock, so Convex converts them (see
+[persistence](persistence.md#encounter-run-storage)). Advancing the Campaign clock ends the carried grants
+it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;
+a fighting Character's are checked on the next advance.
+
+**Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
+whether the source was hidden, rounds left or the carried expiry minute); `hideActiveGrantSources`
+nulls a hidden source's label for everyone but the GM. Encounter actors carry them as `activeGrants`
+(none on a COMPLETED Run, which reads no effects), shown on the token, the turn tracker and the drawer; the
+Sheet overview carries them too. The Campaign owner ends one by hand: a Character's through
+`END_ACTIVE_EFFECT` (gated on Campaign ownership, not on the Sheet viewer, so it works on the GM's own
+Character per D92; a maintained grant is refused, end its Concentration instead) and a Creature's through
+`UPDATE_ACTOR.endActiveEffectId`. Ending a grant has no GM undo.
+
 **Hit grants and reactions (D99).** An attack's `ON_HIT` or `ON_CRIT` `APPLY_GRANT` stays out of the
 two-phase TEST/OUTCOME graphs, like an on-hit relationship: `modifierGrantPlan` makes it the attack's one
 active-effect plan (more than one hit grant, or a grant beside a relationship, is unsupported) and records

@@ -110,7 +110,8 @@ describe('character sheet command contracts', () => {
             managePlayState: true,
             managePrivateNotes: true,
             manageInventory: true,
-            openBuilder: true
+            openBuilder: true,
+            endActiveEffects: false
           },
           systemId: 'system-1',
           status: 'ACTIVE',
@@ -142,6 +143,7 @@ describe('character sheet command contracts', () => {
           maxHitPointsModifier: 0,
           maxHitPointsModifierAdjustmentId: null,
           maxHitPointsReductions: [],
+          activeGrants: [],
           maxHitPointsOverride: null,
           savingThrows: [
             {
@@ -278,7 +280,8 @@ describe('character sheet command contracts', () => {
             managePlayState: true,
             managePrivateNotes: true,
             manageInventory: true,
-            openBuilder: true
+            openBuilder: true,
+            endActiveEffects: false
           },
           systemId: 'system-1',
           status: 'ACTIVE',
@@ -303,6 +306,7 @@ describe('character sheet command contracts', () => {
           maxHitPointsModifier: 0,
           maxHitPointsModifierAdjustmentId: null,
           maxHitPointsReductions: [],
+          activeGrants: [],
           maxHitPointsOverride: null,
           savingThrows: [
             {

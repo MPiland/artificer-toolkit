@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { expect, it } from 'vitest'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { setupConcentration } from '../../tests/fixtures/concentration'
 import {
   attachFixtureRoom,
@@ -147,3 +150,92 @@ it('reads a finished Run after its Character departs the Campaign (D74, D81)', a
   })
   expect(finished).toEqual(completed.projection)
 }, 60_000)
+
+it.each([
+  // Day 2, 08:00 (absolute minute 1440 + 480); 25 rounds left: 150 seconds, rounded up to 3 minutes.
+  { clock: 'a Campaign clock', expiresAtCampaignMinute: 1440 + 480 + 3 },
+  { clock: 'no Campaign clock', expiresAtCampaignMinute: null }
+])(
+  'carries a Character’s timed grants out of the Run with $clock and ends the rest with it (D99)',
+  async ({ expiresAtCampaignMinute }) => {
+    const fixture = await setupConcentration('PROMPT')
+    const { owner, run, actor, target, character, t } = fixture
+    if (expiresAtCampaignMinute !== null)
+      await owner.caller.mutation(api.campaigns.clock.initialize, {
+        campaignId: fixture.campaign.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: 0,
+        day: 2,
+        minuteOfDay: 480,
+        dawnMinute: 360,
+        duskMinute: 1080
+      })
+    const seeded = await t.run(async (ctx) => {
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const grant = (holderActorId: string, lifetimeScope: 'OWNER' | 'ENCOUNTER') =>
+        plannedModifierGrant({
+          encounterId: run.id,
+          sourceActorId: actor.id,
+          holderActorId,
+          lifecycle: {},
+          rounds: 30,
+          lifetimeScope
+        }).definition
+      const characterOwner = { kind: 'CHARACTER', characterId: character.id } as const
+      return {
+        lasting: await store.create({
+          id: crypto.randomUUID(),
+          owner: characterOwner,
+          definition: grant(target.id, 'OWNER'),
+          lifecycle: { schemaVersion: 1, remainingTicks: 25 }
+        }),
+        encounterOnly: await store.create({
+          id: crypto.randomUUID(),
+          owner: characterOwner,
+          definition: grant(target.id, 'ENCOUNTER'),
+          lifecycle: { schemaVersion: 1, remainingTicks: 25 }
+        }),
+        creature: await store.create({
+          id: crypto.randomUUID(),
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId: run.id, targetActorId: actor.id },
+          definition: grant(actor.id, 'ENCOUNTER'),
+          lifecycle: { schemaVersion: 1, remainingTicks: 25 }
+        })
+      }
+    })
+    expect(seeded.lasting.sourceEncounterId).toBeNull()
+    expect(seeded.encounterOnly.sourceEncounterId).toBe(run.id)
+    await attachFixtureRoom(t, fixture.campaign.id)
+    const live = await owner.caller.query(api.encounters.projectionReads.get, {
+      encounterId: run.id
+    })
+    const completed = await executeInRoom(owner.caller, {
+      command: {
+        type: 'COMPLETE',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: live.version
+      }
+    })
+    expect(completed.projection.status).toBe('COMPLETED')
+    await checkpointLiveRoom(fixture.campaign.id)
+
+    const effects = await t.run(async (ctx) => ({
+      character: await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+        .collect(),
+      creature: (await ctx.db.query('encounterActiveRuleEffects').collect()).filter(
+        (row) => row.encounterId === run.id
+      )
+    }))
+    expect(effects.character.map(({ id, lifecycle }) => ({ id, lifecycle }))).toEqual([
+      {
+        id: seeded.lasting.id,
+        lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute }
+      }
+    ])
+    expect(effects.creature).toEqual([])
+  },
+  60_000
+)

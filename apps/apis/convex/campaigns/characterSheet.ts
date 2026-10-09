@@ -20,6 +20,7 @@ import {
   projectCharacterRestForViewer,
   projectCharacterSheetForViewer
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { characterSheetCommandValidator } from '../characters/sheetCommandValidator'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
@@ -160,7 +161,10 @@ export const restPreview = query({
 })
 
 export const execute = mutation({
-  args: zodToConvexFields(campaignCharacterSheetExecuteInputSchema.shape),
+  args: {
+    ...zodToConvexFields(listCampaignAdjustmentsInputSchema.shape),
+    command: characterSheetCommandValidator
+  },
   returns: zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)

@@ -4947,18 +4947,33 @@
             },
             {
               "text": "Active grants are listed on the token, the turn tracker and the Sheet with their source and time left, and the GM can end one by hand; a hidden source's label stays hidden from players.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/activeGrantListings.test.ts",
+                "apps/apis/convex/characters/sheetEndActiveEffect.test.ts",
+                "packages/rules-runtime/src/__tests__/activeGrantListings.test.ts",
+                "packages/rules-runtime/src/__tests__/campaignCharacterSheet.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts",
+                "apps/web/src/components/activeGrants/ActiveGrantList.test.tsx",
+                "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
+              ],
               "origin": [],
-              "note": "D99 (Q2 A).",
+              "note": "D99 (Q2 A). Encounter actors and the Sheet overview carry activeGrants (none on a COMPLETED Run); the Campaign owner ends a Character's grant with END_ACTIVE_EFFECT (gated on Campaign ownership, so it works on the GM's own Character, D92) and a Creature's with UPDATE_ACTOR.endActiveEffectId; the Sheet shows End from capabilities.endActiveEffects. No GM undo for ending a grant. Red-first (2026-10-09): the listing unit test failed before listActiveGrantListings existed; the Sheet status test failed (no \"End Aid\" button) before the strip read the capability; with endActiveEffects forced false, both Campaign-owner cases of campaignCharacterSheet.test.ts failed. The apis listing journey, the END_ACTIVE_EFFECT tests and the drawer/token tests were written alongside the code without a captured red run.",
               "id": "SPELLS-5.8"
             },
             {
               "text": "When a Run completes, a Character's remaining grants carry over and expire on the Campaign clock (or when the GM ends them without a clock); a Creature's grants end with the Run.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/finishedRun.test.ts",
+                "apps/apis/convex/campaigns/clock.test.ts",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts",
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts"
+              ],
               "origin": [],
-              "note": "D99 (Q1 A).",
+              "note": "D99 (Q1 A). The completing checkpoint carries a Character's OWNER-scoped timed grants to expiresAtCampaignMinute (clock minute + ceil(rounds/10)), or null without a clock (until the GM ends it); COMPLETE deletes the Character effects the Run sourced and the Creature effects. Advancing the clock ends reached grants on non-fighting Characters (a fighting Character's on the next advance). Red-first (2026-10-09): planCarriedOverGrants/expiredCarriedOverGrants unit tests failed before the planner; the finishedRun journey failed (grants not converted, the ENCOUNTER grant survived), and its no-clock case failed with STALE_STATE before expiresAtCampaignMinute became nullable; the clock test failed for the GM's own Character before the END_ACTIVE_EFFECT gate moved to Campaign ownership. The clock keep/end and fighting-skip cases were written alongside the code without a captured red run.",
               "id": "SPELLS-5.9"
             },
             {

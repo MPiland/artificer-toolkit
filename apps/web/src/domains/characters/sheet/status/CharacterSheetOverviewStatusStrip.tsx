@@ -3,6 +3,7 @@ import { Collapse, Text } from '@mantine/core'
 import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
+import { ActiveGrantList } from '../../../../components/activeGrants/ActiveGrantList'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { ConditionsEditor } from './ConditionsEditor'
 import { ExhaustionEditor } from './ExhaustionEditor'
@@ -114,6 +115,21 @@ export function CharacterSheetOverviewStatusStrip({
           </div>
         </div>
       </div>
+      <ActiveGrantList
+        disabled={pending}
+        grants={sheet.overview.activeGrants}
+        label='Active grants'
+        onEnd={
+          sheet.meta.capabilities.endActiveEffects
+            ? (effectId) =>
+                submitCommand({
+                  type: 'END_ACTIVE_EFFECT',
+                  effectId,
+                  expectedVersion: sheet.meta.streamVersion
+                })
+            : undefined
+        }
+      />
 
       <Collapse
         className={conditionsOnly ? undefined : statusEditorStyles.statusControlOverlay}

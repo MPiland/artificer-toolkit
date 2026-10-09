@@ -164,4 +164,30 @@ describe('player encounter projection', () => {
     ).toEqual({ level: 'EXACT', current: 3, maximum: 7 })
     expect(projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.health).toBeNull()
   })
+
+  it('lists active grants to a player but never the label of a hidden source', () => {
+    const grants = [
+      {
+        effectId: '00000000-0000-4000-8000-0000000000a1',
+        label: 'Aid',
+        sourceHidden: false,
+        remainingTicks: 5,
+        expiresAtCampaignMinute: null
+      },
+      {
+        effectId: '00000000-0000-4000-8000-0000000000a2',
+        label: 'Hidden trap blessing',
+        sourceHidden: true,
+        remainingTicks: null,
+        expiresAtCampaignMinute: 2001
+      }
+    ]
+    const gm = gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), activeGrants: grants }])
+
+    expect(gm.actors[0]?.activeGrants).toEqual(grants)
+    expect(projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.activeGrants).toEqual([
+      grants[0],
+      { ...grants[1], label: null }
+    ])
+  })
 })

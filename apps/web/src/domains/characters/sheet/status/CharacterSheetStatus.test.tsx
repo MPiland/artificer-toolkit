@@ -285,4 +285,55 @@ describe('Character Sheet status', () => {
       expectedVersion: 4
     })
   })
+
+  it('lists active grants on the Sheet with their source, and hides a hidden source', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.overview.activeGrants = [
+      {
+        effectId: '33333333-3333-4333-8333-333333333301',
+        label: 'Aid',
+        sourceHidden: false,
+        remainingTicks: 4,
+        expiresAtCampaignMinute: null
+      },
+      {
+        effectId: '33333333-3333-4333-8333-333333333302',
+        label: null,
+        sourceHidden: true,
+        remainingTicks: null,
+        expiresAtCampaignMinute: null
+      }
+    ]
+
+    const { rerender } = renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Aid · 4 rounds left',
+      'Hidden source · Until ended'
+    ])
+    expect(screen.queryByRole('button', { name: /^End / })).not.toBeInTheDocument()
+
+    sheet.meta.capabilities.endActiveEffects = true
+    rerender(
+      <CharacterSheetOverviewStatusStrip
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'End Aid' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'END_ACTIVE_EFFECT',
+      effectId: '33333333-3333-4333-8333-333333333301',
+      expectedVersion: sheet.meta.streamVersion
+    })
+  })
 })

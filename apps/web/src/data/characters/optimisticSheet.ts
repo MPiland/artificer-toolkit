@@ -575,7 +575,10 @@ function projectCommon<
       return projectHitPoints(sheet, command)
     case 'SET_DEATH_SAVES':
       return sheet.overview.currentHitPoints === 0
-        ? { ...sheet, overview: { ...sheet.overview, deathSaves: deathSavesAfterMarksSet(command) } }
+        ? {
+            ...sheet,
+            overview: { ...sheet.overview, deathSaves: deathSavesAfterMarksSet(command) }
+          }
         : sheet
     case 'SET_PARTY_VISIBILITY':
       return { ...sheet, meta: { ...sheet.meta, partyVisibility: command.visibility } }
@@ -814,6 +817,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
     case 'SET_PARTY_VISIBILITY':
+    case 'END_ACTIVE_EFFECT':
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'ADD_SHEET_EXTRA':
     case 'UPDATE_SHEET_EXTRA':

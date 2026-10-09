@@ -335,7 +335,9 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
         const remainingTicks = state.lifecycle.remainingTicks
         if (
           (configuredExpiration.kind === 'INDEFINITE' && remainingTicks !== null) ||
-          (configuredExpiration.kind === 'TICKS' && remainingTicks === null)
+          (configuredExpiration.kind === 'TICKS' &&
+            remainingTicks === null &&
+            state.lifecycle.expiresAtCampaignMinute === undefined)
         ) {
           context.addIssue({
             code: 'custom',

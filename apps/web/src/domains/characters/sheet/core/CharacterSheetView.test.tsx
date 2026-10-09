@@ -539,7 +539,8 @@ describe('Character Sheet shell', () => {
       managePlayState: true,
       managePrivateNotes: false,
       manageInventory: false,
-      openBuilder: false
+      openBuilder: false,
+      endActiveEffects: true
     }
 
     renderWithAppProviders(

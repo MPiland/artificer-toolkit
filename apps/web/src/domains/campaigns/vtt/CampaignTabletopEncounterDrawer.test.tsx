@@ -286,4 +286,93 @@ describe('CampaignTabletopEncounterDrawer', () => {
       })
     )
   })
+
+  describe('active grants (D99)', () => {
+    const shown = {
+      effectId: '44444444-4444-4444-8444-444444444401',
+      label: 'Antitoxin (vial)',
+      sourceHidden: false,
+      remainingTicks: 2,
+      expiresAtCampaignMinute: null
+    }
+    const hidden = {
+      effectId: '44444444-4444-4444-8444-444444444402',
+      label: null,
+      sourceHidden: true,
+      remainingTicks: 5,
+      expiresAtCampaignMinute: null
+    }
+
+    it('lists them for a player without a hidden source, and offers no End', async () => {
+      const user = userEvent.setup()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine={false}
+          encounter={{
+            ...tabletopPlayerEncounter,
+            actors: [
+              tabletopPlayerEncounter.actors[0],
+              { ...tabletopPlayerEncounter.actors[1], activeGrants: [shown, hidden] }
+            ]
+          }}
+          memberships={createTabletopCampaign('PLAYER').memberships}
+          pending={false}
+          role='PLAYER'
+          scene={tabletopLiveScene}
+          onCommand={() => undefined}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      const list = screen.getByRole('list', { name: 'Active grants on Vault Warden' })
+      expect(
+        within(list)
+          .getAllByRole('listitem')
+          .map((item) => item.textContent)
+      ).toEqual(['Antitoxin (vial) · 2 rounds left', 'Hidden source · 5 rounds left'])
+      expect(screen.queryByRole('button', { name: /^End / })).not.toBeInTheDocument()
+    })
+
+    it('lets the GM end a Creature grant, but not a Character grant from the tracker', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={{
+            ...tabletopGmEncounter,
+            actors: [
+              { ...tabletopGmEncounter.actors[0], activeGrants: [shown] },
+              {
+                ...tabletopGmEncounter.actors[1],
+                activeGrants: [{ ...hidden, label: 'Trap blessing' }]
+              }
+            ]
+          }}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          onCommand={onCommand}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      expect(screen.queryByRole('button', { name: 'End Antitoxin (vial)' })).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'End Trap blessing' }))
+
+      expect(onCommand).toHaveBeenCalledWith({
+        actorId: tabletopGmEncounter.actors[1]!.id,
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        endActiveEffectId: hidden.effectId,
+        expectedVersion: tabletopGmEncounter.version,
+        type: 'UPDATE_ACTOR'
+      })
+    })
+  })
 })

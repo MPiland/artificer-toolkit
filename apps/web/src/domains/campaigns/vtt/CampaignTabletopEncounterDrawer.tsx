@@ -21,6 +21,7 @@ import type {
   CampaignSceneStateDto,
   EncounterActorTokenBindingCommandInputDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { ActiveGrantList } from '../../../components/activeGrants/ActiveGrantList'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
@@ -164,6 +165,24 @@ export function CampaignTabletopEncounterDrawer({
                           ? 'Current turn'
                           : actor.kind.toLowerCase()}
                     </Text>
+                    <ActiveGrantList
+                      disabled={controlsDisabled}
+                      grants={actor.activeGrants}
+                      label={`Active grants on ${actor.label}`}
+                      onEnd={
+                        role === 'OWNER' && actor.kind !== 'CHARACTER'
+                          ? (effectId) =>
+                              onCommand({
+                                actorId: actor.id,
+                                commandId: crypto.randomUUID(),
+                                encounterId: encounter.id,
+                                endActiveEffectId: effectId,
+                                expectedVersion: encounter.version,
+                                type: 'UPDATE_ACTOR'
+                              })
+                          : undefined
+                      }
+                    />
                   </div>
                   {/* Players see health only at each actor's display level; the GM always sees exact. */}
                   {'health' in actor ? (

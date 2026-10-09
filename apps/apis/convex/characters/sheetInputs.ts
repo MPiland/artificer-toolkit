@@ -142,6 +142,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   const campaignContext: CharacterSheetCampaignContext = {
     currencyOptions: campaign ? await readCampaignCurrencyOptions(ctx, campaign) : [],
     viewer: active.userId === userId ? 'CHARACTER_OWNER' : 'CAMPAIGN_OWNER',
+    isCampaignOwner: campaign?.ownerUserId === userId,
     campaignId: campaign?.id ?? null,
     campaignStatus: campaign?.status ?? null,
     contentMaturity: campaign?.contentMaturity ?? null,

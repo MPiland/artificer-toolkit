@@ -26,10 +26,12 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterActorControllerCandidates } from './actorController.js'
+import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
+import { endEncounterActorGrant } from './grantEndPersistence.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
@@ -349,6 +351,12 @@ async function recordEncounterToolCommand(
       (actor.kind !== 'CHARACTER' || !actor.outOfInitiative)
     )
       throw new Error('Only a Character out of initiative can return to initiative.')
+    if (
+      input.type === 'UPDATE_ACTOR' &&
+      input.endActiveEffectId !== undefined &&
+      actor.kind === 'CHARACTER'
+    )
+      throw new Error("A Character's grant is ended through its Sheet command.")
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
       if (actor.kind !== 'CHARACTER')
         throw new Error('Sheet command does not target this Character actor.')
@@ -427,6 +435,17 @@ async function recordEncounterToolCommand(
           }
     )
     await writeRunActor(ctx, actorRow._id, actor)
+    if (
+      input.type === 'UPDATE_ACTOR' &&
+      input.endActiveEffectId !== undefined &&
+      actor.kind !== 'CHARACTER'
+    )
+      await endEncounterActorGrant(ctx, {
+        state,
+        actor,
+        effectId: input.endActiveEffectId,
+        occurredAt: updatedAt
+      })
     // A GM hit point or condition edit can defeat a Concentration holder or leave it unable to act
     // (D95); a Character's own edit goes through its Sheet command, which ends it there.
     if (
@@ -627,6 +646,7 @@ async function recordEncounterToolCommand(
     currentActorId = null
     // The completed Run keeps each Character's values as the Encounter ended.
     await freezeEncounterCharacterStates(ctx, state)
+    await endCompletedRunCharacterEffects(ctx, { state, occurredAt: updatedAt })
   }
   const nextState = encounterRunStateSchema.parse({
     ...state,

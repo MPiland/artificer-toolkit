@@ -153,6 +153,11 @@ async function advanceDerivedClock(
       kind,
       occurredAt: at
     })
+  await ctx.runMutation(internal.campaigns.clockGrantExpiry.endExpired, {
+    campaignId: clock.campaignId,
+    actorUserId,
+    clockMinute: targetAbsolute
+  })
   return {
     ...clock,
     ...splitAbsoluteMinute(targetAbsolute),

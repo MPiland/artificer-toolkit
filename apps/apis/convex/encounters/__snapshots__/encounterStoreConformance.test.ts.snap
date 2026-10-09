@@ -582,6 +582,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
     "projection": {
       "actors": [
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -666,6 +667,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -693,6 +695,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -777,6 +780,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > corrects 
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 10,
@@ -1143,6 +1147,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
     "projection": {
       "actors": [
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -1227,6 +1232,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -1254,6 +1260,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > removes a
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -1481,6 +1488,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1565,6 +1573,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1592,6 +1601,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1676,6 +1686,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > voids a p
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 10,

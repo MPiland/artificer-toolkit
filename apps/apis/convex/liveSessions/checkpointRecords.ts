@@ -36,6 +36,7 @@ import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createReceiptLedger } from '../lib/receiptLedgers'
 import { removeFinishedRunRows } from '../encounters/campaignDeletion'
+import { carryOverRunGrants } from '../encounters/runGrantCarryOver'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readSceneVisionRevision } from '../scenes/visionFreshness'
 import type { CheckpointIoMeter } from './checkpointIo'
@@ -560,7 +561,12 @@ export async function applyCheckpointRecords(
     await readPendingSnapshot(store, occurrence)
   }
   await io.mark('records')
-  for (const encounterId of completedRuns) await removeFinishedRunRows(ctx, encounterId)
+  const carriedOver = new Set<string>()
+  for (const encounterId of completedRuns) {
+    await removeFinishedRunRows(ctx, encounterId)
+    for (const characterId of await carryOverRunGrants(ctx, frame.campaignId, encounterId))
+      carriedOver.add(characterId)
+  }
   await applyCheckpointScenes(ctx, frame, records.scenes)
   await io.mark('scenes')
   for (const [characterId, entries] of ledgers) {
@@ -595,8 +601,10 @@ export async function applyCheckpointRecords(
     ...(after.play !== null && before.play === known.play && after.play !== before.play
       ? { play: after.play }
       : {}),
+    // Carried-over grants are Convex's own write, so the room reloads those Characters.
     characters: after.characters.filter(
       ({ characterId, revision }) =>
+        !carriedOver.has(characterId) &&
         revision !== beforeCharacters.get(characterId) &&
         knownCharacters.get(characterId) === beforeCharacters.get(characterId)
     )

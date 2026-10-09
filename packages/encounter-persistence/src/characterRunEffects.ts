@@ -1,4 +1,6 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -69,6 +71,44 @@ export async function endCharacterRunEffects(
       ]
     },
     actors: [],
+    occurredAt: input.occurredAt
+  })
+}
+
+/**
+ * A completing Run ends what it put on its Characters for the Encounter only (the effects it
+ * sources, such as Concentration grants); grants that outlast the Encounter stay (D99).
+ */
+export async function endCompletedRunCharacterEffects(
+  ctx: EncounterCharacterWriteTransaction,
+  input: { state: EncounterRunState; occurredAt: string }
+): Promise<void> {
+  const store = createActiveRuleEffectStore(ctx)
+  const actors = await readRunActors(ctx, input.state)
+  const removed: ActiveRuleEffectRecord[] = []
+  const characterVersions: { characterId: string; beforeStreamVersion: number }[] = []
+  for (const actor of actors) {
+    if (actor.kind !== 'CHARACTER') continue
+    const owner = { kind: 'CHARACTER', characterId: actor.sourceId } as const
+    const ended = (await store.list(owner)).filter(
+      ({ sourceEncounterId }) => sourceEncounterId === input.state.id
+    )
+    if (ended.length === 0) continue
+    const row = await ctx.ports.readCharacterRow(actor.sourceId)
+    if (!row) throw new Error('Run Character is unavailable.')
+    characterVersions.push({
+      characterId: actor.sourceId,
+      beforeStreamVersion: row.play.streamVersion
+    })
+    for (const effect of ended)
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+    removed.push(...ended)
+  }
+  if (removed.length === 0) return
+  await reconcileNativeMaintenanceOwners(ctx, {
+    encounterId: input.state.id,
+    maintenance: { removed, characterVersions },
+    actors,
     occurredAt: input.occurredAt
   })
 }

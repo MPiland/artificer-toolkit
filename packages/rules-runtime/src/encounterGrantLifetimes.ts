@@ -107,3 +107,41 @@ export function planEncounterGrantTicks(input: {
       left.effect.id.localeCompare(right.effect.id)
   )
 }
+
+/**
+ * D99: a completed Run hands its Characters' timed grants to the Campaign clock, 6 seconds per
+ * remaining round rounded up to whole minutes from the clock's minute at completion. Without a
+ * clock they stop counting and last until the GM ends them.
+ */
+export function planCarriedOverGrants(input: {
+  effects: readonly ActiveRuleEffectRecord[]
+  clockMinute: number | null
+}) {
+  return input.effects.flatMap((effect) => {
+    const remaining = effect.lifecycle.remainingTicks
+    if (
+      remaining === null ||
+      !isModifierGrant(effect) ||
+      effect.definition.recurrence.expiration.kind !== 'TICKS'
+    )
+      return []
+    const lifecycle: ActiveRuleEffectRecord['lifecycle'] = {
+      schemaVersion: 1,
+      remainingTicks: null,
+      expiresAtCampaignMinute:
+        input.clockMinute === null ? null : input.clockMinute + Math.ceil(remaining / 10)
+    }
+    return [{ effect, lifecycle }]
+  })
+}
+
+/** Carried-over grants whose Campaign-clock expiry the clock has reached. */
+export function expiredCarriedOverGrants<Effect extends ActiveRuleEffectRecord>(
+  effects: readonly Effect[],
+  clockMinute: number
+) {
+  return effects.filter(({ lifecycle }) => {
+    const expiry = lifecycle.expiresAtCampaignMinute
+    return typeof expiry === 'number' && expiry <= clockMinute
+  })
+}

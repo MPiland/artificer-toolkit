@@ -1,3 +1,4 @@
+import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
 import { endConcentrationAfterEdit } from '@artificer-toolkit/encounter-persistence/concentrationEditEnd'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -24,7 +25,11 @@ import {
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
-import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
+import {
+  assertCampaignGmSheetCommandAllowed,
+  assertSheetCommandCallerAllowed
+} from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
+import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
@@ -119,6 +124,7 @@ export async function executeRoomCharacterSheetCommand(input: {
       actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
   )
   if (!holder) throw new Error('Character is not held by this active Encounter.')
+  assertSheetCommandCallerAllowed(command, membership.role === 'OWNER')
   if (assignment.userId !== userId) assertCampaignGmSheetCommandAllowed(command)
 
   const scope = {
@@ -194,6 +200,16 @@ export async function executeRoomCharacterSheetCommand(input: {
       deathSaveDie
     })
   )
+  if (command.type === 'END_ACTIVE_EFFECT') {
+    await endCharacterActiveEffect(ctx, { characterId, effectId: command.effectId })
+    updated.state.hitpoints.current = clampCharacterCurrentHitPoints(
+      updated.state.hitpoints.current,
+      projectRoomCharacterSheet(
+        initial,
+        activeEffects.filter((effect) => effect.id !== command.effectId)
+      ).overview.maxHitPoints
+    )
+  }
   const nextSheetState = characterSheetStateSchema.parse({
     ...initial.sheetState,
     partyVisibility:

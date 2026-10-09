@@ -8,6 +8,8 @@ import {
   type CharacterSheetCommandResponseDto,
   type CharacterSheetExecuteInput
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
+import { characterSheetReadInputSchema } from '@artificer-toolkit/schema/api/characterSheet'
+import { characterSheetCommandValidator } from './sheetCommandValidator'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type {
@@ -47,7 +49,8 @@ import {
   validateSheetAdjustmentTarget,
   validateSpellMechanicCustomization,
   validateSpellSource,
-  assertCampaignGmSheetCommandAllowed
+  assertCampaignGmSheetCommandAllowed,
+  assertSheetCommandCallerAllowed
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -60,6 +63,7 @@ import { writeCharacterRecord } from './characterWrites'
 import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
 import { prepareCharacterRest } from './rest'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { recordSheetDeathSaveRoll } from './sheetDeathSaveRoll'
@@ -105,6 +109,7 @@ function applySupportedCommand(
     case 'RESTORE_RESOURCE':
     case 'USE_SHEET_RESOURCE':
     case 'RECOVER_SHEET_RESOURCE':
+    case 'END_ACTIVE_EFFECT':
     case 'UPSERT_SHEET_ADJUSTMENT':
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
@@ -167,6 +172,10 @@ export async function executeCharacterSheetCommand(
       : []
   )
   if (!initial) throw new Error('Character Sheet is unavailable for the current user.')
+  assertSheetCommandCallerAllowed(
+    input.command,
+    initial.sourceContext.context.sourceAccess.campaign?.ownerUserId === userId
+  )
   if (initial.campaignContext.viewer === 'CAMPAIGN_OWNER') {
     if (initial.campaignContext.campaignStatus !== 'ACTIVE')
       throw new Error('Archived Campaigns are read-only.')
@@ -440,6 +449,12 @@ export async function executeCharacterSheetCommand(
   // One rest spends its roll once, wherever the roll is stored.
   if (rest?.roll) await ctx.db.patch(rest.roll._id, { consumedAt: occurredAt })
 
+  if (command.type === 'END_ACTIVE_EFFECT')
+    await endCharacterActiveEffect(
+      { db: createConvexEncounterStore(ctx) },
+      { characterId: initial.active.id, effectId: command.effectId }
+    )
+
   if (command.type === 'COMPLETE_REST' && completedRest) {
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }
     const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
@@ -475,7 +490,8 @@ export async function executeCharacterSheetCommand(
     (command.type === 'UPSERT_SHEET_ADJUSTMENT' && command.adjustment.family === 'HIT_POINTS') ||
     (command.type === 'REMOVE_SHEET_ADJUSTMENT' && command.family === 'HIT_POINTS') ||
     (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' && command.target.kind === 'HIT_POINTS') ||
-    (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined)
+    (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined) ||
+    command.type === 'END_ACTIVE_EFFECT'
   const clampedHitPoints = clampCharacterCurrentHitPoints(
     updated.state.hitpoints.current,
     current.sheet.overview.maxHitPoints
@@ -552,7 +568,10 @@ export async function executeCharacterSheetCommandAcknowledgement(
 }
 
 export const execute = mutation({
-  args: zodToConvexFields(characterSheetExecuteInputSchema.shape),
+  args: {
+    ...zodToConvexFields(characterSheetReadInputSchema.shape),
+    command: characterSheetCommandValidator
+  },
   returns: zodToConvex(characterSheetCommandResponseDtoSchema),
   handler: async (ctx, args): Promise<CharacterSheetCommandResponseDto> => {
     const { userId } = await requireIdentity(ctx)

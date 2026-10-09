@@ -35,6 +35,7 @@ import type {
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import { listActiveGrantListings } from '../activeGrantListings.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { effectiveHitPointMaximum } from '../encounterActiveGrants.js'
 import {
@@ -795,8 +796,11 @@ interface ProjectCharacterSheetBundleParams {
   creaturesById: ReadonlyMap<string, CreatureAuthored>
   vehiclesById: ReadonlyMap<string, VehicleAuthored>
   ruleEvaluation: Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
-  /** The Character's active effects; their hit point maximum reductions lower `maxHitPoints`. */
-  activeEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[]
+  /** The Character's active effects; their hit point maximum reductions lower `maxHitPoints` and their grants are listed. */
+  activeEffects: readonly Pick<
+    ActiveRuleEffectRecord,
+    'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
+  >[]
 }
 
 interface CharacterSheetProjectionBundle {
@@ -1358,7 +1362,8 @@ export function projectCharacterSheetBundle(
         managePlayState: true,
         managePrivateNotes: true,
         manageInventory: true,
-        openBuilder: true
+        openBuilder: true,
+        endActiveEffects: false
       },
       systemId: character.systemId,
       status: character.status ?? AUTHORED_RECORD_STATUS.ACTIVE,
@@ -1442,6 +1447,7 @@ export function projectCharacterSheetBundle(
         amount: reduction.amount,
         recoveryTags: reduction.recoveryTags
       })),
+      activeGrants: listActiveGrantListings(params.activeEffects),
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
         description: DND5E_2014_EXHAUSTION_PRESENTATION.description,
