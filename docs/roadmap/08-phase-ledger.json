@@ -4880,10 +4880,17 @@
             },
             {
               "text": "A Unicorn's Shimmering Shield grants +2 AC to itself or a creature within 60 ft; attacks against that Character or Creature use the raised AC, and the grant ends at the end of the unicorn's next turn.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomLegendary.test.ts › a unicorn using Shimmering Shield at another creature's turn end (the attack that hit without the shield misses with it; the effect is gone after the unicorn's turn ends)",
+                "apps/apis/convex/encounters/srdLegendaryAction.test.ts › seeded SRD Unicorn Shimmering Shield in the room (SPELLS-5.3) (the Character's stream version advances and one active effect is stored)",
+                "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts (Creature and Character effective AC +2); packages/rules-runtime/src/__tests__/encounterCleaving.test.ts (raised AC in Cleaving)",
+                "packages/rules-runtime/src/__tests__/encounterLegendaryAction.test.ts › offers the unicorn Shimmering Shield on any creature, itself included (D99)",
+                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts (D99 self targeting); packages/source-data/src/srd/excludesSelf.test.ts",
+                "impl: packages/rules-runtime/src/encounterTurnLegendaryAction.ts; packages/encounter-persistence/src/turnResourcesPersistence.ts; packages/rules-runtime/src/encounterActiveGrants.ts"
+              ],
               "origin": [],
-              "note": "D99. Journey through the room and Convex.",
+              "note": "D99. Journey through the room and Convex. The 60 ft range is not enforced in Legendary discovery (no Scene geometry there).",
               "id": "SPELLS-5.3"
             },
             {

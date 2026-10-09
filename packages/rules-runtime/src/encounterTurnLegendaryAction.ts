@@ -1,3 +1,4 @@
+import { v5 as uuidv5 } from 'uuid'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
 import {
@@ -11,6 +12,10 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  activeRuleEffectRecordSchema,
+  type ActiveRuleEffectRecord
+} from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
@@ -20,7 +25,9 @@ import {
 import { turnLegendaryActionEvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
+import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
@@ -290,6 +297,19 @@ export async function prepareTurnLegendaryActions<
       }).length
     )
       throw new Error('Legendary Action requires the complete contextual action coordinator.')
+    // An option that starts a grant or state effect creates it on its target. The owner's window
+    // falls on another creature's turn, so a timed grant is never given an extra tick.
+    const effects = prepareNativeActionEffectsPlan({
+      prepared,
+      execution: result,
+      occurrenceId,
+      commandId: root.rootCommandId,
+      activeEffectsByActorId: new Map(
+        [...prepared.movementTargets].map(([actorId, entry]) => [actorId, entry.activeEffects])
+      )
+    })
+    if (effects.maintenance)
+      throw new Error('Legendary Action effects cannot start a maintained effect.')
     const plan = planNativeEncounterActionMechanics(
       {
         prepared,
@@ -301,10 +321,51 @@ export async function prepareTurnLegendaryActions<
         occurredAt: input.updatedAt,
         applications: result.applications,
         eventPhases: { resource: 'LEGENDARY_ACTION_RESOURCE', outcome: 'LEGENDARY_ACTION_OUTCOME' },
-        ordinal
+        ordinal,
+        forceTargetVersionAdvance:
+          target.kind === 'CHARACTER' && Boolean(effects.stateEffect || effects.recurringEffect)
       },
       userId
     )
+    // A settled window replays its recorded timestamp, so the same evidence is rebuilt exactly.
+    const retainedAt =
+      retained?.resolution.kind === 'EXECUTED'
+        ? retained.resolution.createdEffects
+            .map((effect) => activeRuleEffectRecordSchema.parse(effect))
+            .at(0)?.createdAt
+        : undefined
+    const effectOwner =
+      target.kind === 'CHARACTER'
+        ? {
+            kind: 'CHARACTER' as const,
+            characterId:
+              target.sourceId ??
+              (() => {
+                throw new Error('Legendary Action Character effect owner is unavailable.')
+              })()
+          }
+        : { kind: 'ENCOUNTER_ACTOR' as const, encounterId: state.id, targetActorId: target.id }
+    const targetEffects = [...prepared.targetFacts.activeEffects]
+    const createdEffects: ActiveRuleEffectRecord[] = []
+    const createEffect = (kind: 'STATE' | 'RECURRING', planned: typeof effects.stateEffect) => {
+      if (!planned) return null
+      const record = prepareActiveRuleEffectRecord({
+        id: uuidv5(
+          JSON.stringify(['LEGENDARY_ACTION_EFFECT', occurrenceId, ordinal, target.id, kind]),
+          root.rootCommandId
+        ),
+        owner: effectOwner,
+        definition: planned.definition,
+        lifecycle: planned.lifecycle,
+        currentEffects: targetEffects,
+        occurredAt: retainedAt ?? input.updatedAt
+      })
+      targetEffects.push(record)
+      createdEffects.push(record)
+      return record
+    }
+    const stateEffect = createEffect('STATE', effects.stateEffect)
+    const recurringEffect = createEffect('RECURRING', effects.recurringEffect)
     const stored = buildEncounterActionStoredExecution({
       prepared,
       execution: result,
@@ -312,8 +373,8 @@ export async function prepareTurnLegendaryActions<
       occurrenceVersion: 0,
       settled: plan,
       effects: projectNativeActionEffectTransitions({
-        state: null,
-        recurring: null,
+        state: stateEffect,
+        recurring: recurringEffect,
         targetActorId: target.id
       }),
       maintainedState: null,
@@ -335,6 +396,7 @@ export async function prepareTurnLegendaryActions<
         initialFactsChecksum: result.initialFactsChecksum,
         ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),
         application: stored.applicationOutputs,
+        createdEffects,
         characterTransitions:
           target.kind === 'CHARACTER' && targetCharacter && plan.mechanics.characterStreamVersion
             ? [
@@ -363,7 +425,7 @@ export async function prepareTurnLegendaryActions<
       targets.set(
         settled.id,
         projectEncounterActionTarget({
-          target: current,
+          target: settled.id === target.id ? { ...current, activeEffects: targetEffects } : current,
           actor: settled,
           plan: characterPlan,
           campaignId: state.campaignId,

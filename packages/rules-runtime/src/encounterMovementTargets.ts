@@ -4,7 +4,11 @@ import type { EncounterMovementReactionCharacterSource } from './encounterMoveme
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
-import { withCharacterActiveGrants, withCreatureActiveGrantSaves } from './encounterActiveGrants.js'
+import {
+  withCharacterActiveGrants,
+  withCreatureActiveGrantArmorClass,
+  withCreatureActiveGrantSaves
+} from './encounterActiveGrants.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
@@ -325,6 +329,7 @@ export function buildMovementTarget<
   if (actorRule.targetProtection.status !== 'NORMALIZED')
     throw new Error('Encounter actor spatial protections are not normalized.')
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
+  const creatureStatBlock = snapshotStatBlock(actor)
   return {
     actor,
     activeEffects,
@@ -352,7 +357,10 @@ export function buildMovementTarget<
       ),
       featureResources: actorRule.featureResources,
       targetProtection: actorRule.targetProtection,
-      statBlock: snapshotStatBlock(actor)
+      statBlock: creatureStatBlock && {
+        ...creatureStatBlock,
+        armorClass: withCreatureActiveGrantArmorClass(creatureStatBlock.armorClass, activeEffects)
+      }
     },
     defenses: actorRule.targetProtection.defenses,
     qualifiedDefenses: actorRule.targetProtection.qualifiedDefenses,

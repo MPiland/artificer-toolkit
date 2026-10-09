@@ -24,7 +24,8 @@ const TARGET_ID = testUuid(0xf03)
 
 /** No Scene measures the vial's touch range (D11). */
 const RANGE: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
-const SELF: EncounterRuleWarningCodeDto[] = ['TARGET_DISPOSITION', 'TARGET_RANGE_UNCHECKED']
+// SRD "Targeting Yourself" (D99): a non-attack, non-hostile action may target its own user.
+const SELF: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
 const EXCLUDED: EncounterRuleWarningCodeDto = 'TARGET_CREATURE_TYPE_EXCLUDED'
 
 const creatureTypeId = (code: string) => {

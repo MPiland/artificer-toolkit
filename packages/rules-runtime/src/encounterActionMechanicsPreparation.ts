@@ -342,6 +342,7 @@ export async function prepareEncounterActionMechanics<
     source,
     adapter,
     targetPolicy,
+    makesAttackRoll: attackKind !== null,
     plan,
     characterActionState,
     acceptedWieldConflict,

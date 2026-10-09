@@ -130,7 +130,8 @@ export function readEncounterDisarmSelection(input: {
     actor,
     target,
     targetPolicy: prepared.targetPolicy,
-    sceneContext: input.sceneContext
+    sceneContext: input.sceneContext,
+    makesAttackRoll: prepared.makesAttackRoll
   })
   if (targetWarnings === null || targetWarnings.length)
     throw new Error('The selected action does not permit this target.')

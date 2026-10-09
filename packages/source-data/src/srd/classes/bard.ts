@@ -780,7 +780,8 @@ export const bard: ClassAuthored = {
             },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
+              dispositionKind: 'ANY',
+              excludesSelf: true
             }
           }
         })

@@ -13,7 +13,7 @@ import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPoli
 import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
 import { creatureActor, creatureRuleFacts } from '../testing/dnd5eSrdEncounter.js'
-import { antitoxinEffect } from './antitoxinEffectFixture.js'
+import { antitoxinEffect, shimmeringShieldEffect } from './antitoxinEffectFixture.js'
 import { evaluateSrdCharacter, vocabulary } from './dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
@@ -108,6 +108,14 @@ describe('Creature holder of an active grant', () => {
     expect(select([])).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
   })
 
+  it('raises the armor class by an ARMOR_CLASS grant (Shimmering Shield), only while held', () => {
+    const shield = shimmeringShieldEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    const armorClass = (effects: ReturnType<typeof antitoxin>[]) =>
+      (target(effects).targetDerivedFacts.statBlock as { armorClass?: number }).armorClass
+    expect(armorClass([shield])).toBe(14)
+    expect(armorClass([])).toBe(12)
+  })
+
   it('leaves the saves untouched without a grant', () => {
     expect(target([]).targetDerivedFacts.savingThrowDefinitions).toHaveLength(6)
   })
@@ -139,6 +147,15 @@ describe('Character holder of an active grant', () => {
       { rollMode: 'NORMAL', contributors: [] }
     ])
     expect(saves.some((save) => save.abilityDefinitionId === WISDOM)).toBe(false)
+  })
+
+  it('raises the effective armor class by an ARMOR_CLASS grant', () => {
+    const armorClass = (facts: typeof fighter.facts) =>
+      evaluateDnd5e2014CharacterPolicy(facts).derivedStats.armorClass.effective
+    const shield = shimmeringShieldEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(armorClass(withCharacterActiveGrants(fighter.facts, [shield]))).toBe(
+      armorClass(fighter.facts) + 2
+    )
   })
 
   it('returns the same facts when the holder carries no grant', () => {

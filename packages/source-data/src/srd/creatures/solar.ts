@@ -128,7 +128,8 @@ export const solar: CreatureAuthored = {
             range: { id: S.actionId(256, 209), rangeKind: S.RANGE_KIND.TOUCH },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              excludesSelf: true
             }
           },
           paths: [

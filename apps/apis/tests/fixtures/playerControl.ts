@@ -82,9 +82,11 @@ export function companionCreature(bite: PlayerControlBite) {
                     }
                   : {}),
                 range: { id: effect.invocation.range.id, rangeKind: 'UNLIMITED' as const },
+                // A Bite names another creature, so biting itself stays a warning (D99).
                 targeting: {
                   selectionKind: 'SINGLE_TARGET' as const,
-                  dispositionKind: 'ANY' as const
+                  dispositionKind: 'ANY' as const,
+                  excludesSelf: true
                 }
               },
               paths: effect.paths?.slice(0, 1).map((path) => {

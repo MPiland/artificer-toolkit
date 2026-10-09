@@ -118,6 +118,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
                     },
                     "targeting": {
                       "dispositionKind": "ANY",
+                      "excludesSelf": true,
                       "selectionKind": "SINGLE_TARGET",
                     },
                     "triggerCode": "ACTIVATED",

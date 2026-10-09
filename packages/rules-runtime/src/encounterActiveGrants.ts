@@ -151,3 +151,33 @@ export function withCreatureActiveGrantSaves(
     })
   ]
 }
+
+/**
+ * A Creature holder's armor class with its active fixed armor-class bonuses and penalties
+ * (Shimmering Shield's +2) added to its stat block value. A Character folds the same grants
+ * through its own policy instead.
+ */
+export function withCreatureActiveGrantArmorClass(
+  armorClass: number | null,
+  effects: readonly ActiveRuleEffectRecord[]
+): number | null {
+  if (armorClass === null) return null
+  let adjusted = armorClass
+  for (const { modifiers } of listEncounterActiveGrants(effects)) {
+    for (const modifier of modifiers) {
+      const grant = record(modifier.grant)
+      if (
+        modifier.valueDomainCode !== 'ARMOR_CLASS' ||
+        (modifier.modifierKind !== 'BONUS' && modifier.modifierKind !== 'PENALTY') ||
+        grant?.scope !== 'GLOBAL'
+      )
+        continue
+      const payload = record(grant.payload)
+      if (payload?.valueKind !== 'FIXED' || typeof payload.amount !== 'number')
+        throw new Error('A Creature armor class grant must be a fixed amount.')
+      // A penalty is authored as a positive amount and subtracted once, here.
+      adjusted += modifier.modifierKind === 'PENALTY' ? -payload.amount : payload.amount
+    }
+  }
+  return adjusted
+}

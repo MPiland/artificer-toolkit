@@ -330,7 +330,8 @@ export const unicorn: CreatureAuthored = {
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              excludesSelf: true
             }
           },
           paths: [
@@ -439,7 +440,13 @@ export const unicorn: CreatureAuthored = {
                 kind: 'ACTION',
                 triggerCode: 'ACTIVATED',
                 activation: { code: 'FREE' },
-                range: { id: '00000000-0005-0007-0070-011400000000', rangeKind: 'SPECIAL' },
+                range: {
+                  id: '00000000-0005-0007-0070-011400000000',
+                  rangeKind: 'DISTANCE',
+                  amount: 60,
+                  unit: 'FEET'
+                },
+                targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
                 resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 2 }
               },
               paths: [

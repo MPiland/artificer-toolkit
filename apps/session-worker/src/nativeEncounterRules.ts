@@ -326,6 +326,7 @@ export async function planNativeLiveEncounterAction(
       actor: prepared.actor,
       target: prepared.target,
       targetPolicy: prepared.targetPolicy,
+      makesAttackRoll: prepared.makesAttackRoll,
       sceneContext
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),

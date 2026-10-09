@@ -144,6 +144,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
                     },
                     "targeting": {
                       "dispositionKind": "ANY",
+                      "excludesSelf": true,
                       "selectionKind": "SINGLE_TARGET",
                     },
                     "triggerCode": "ACTIVATED",

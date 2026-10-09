@@ -1,4 +1,5 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import { activeRuleEffectRecordSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState,
@@ -38,6 +39,7 @@ import type {
   EncounterCharacterWriteTransaction,
   EncounterWritePorts
 } from './ports.js'
+import { persistEncounterActionEffects } from './actionEffectPersistence.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -148,8 +150,6 @@ export async function persistEncounterTurnResources(
       application.targetActorId !== targetActorId ||
       application.sourceCharacterStreamVersion !== null ||
       application.resourceConsumption !== null ||
-      application.activeEffectTransitions.length !== 0 ||
-      application.stateEffectTransitions.length !== 0 ||
       application.maintenanceTransition != null ||
       application.targetFeatureResourceConsumption !== null ||
       (application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
@@ -157,6 +157,9 @@ export async function persistEncounterTurnResources(
         : application.spellCastConsumption !== null)
     )
       throw new Error('Live Session Legendary Action application is unavailable.')
+    const createdEffects = evidence.resolution.createdEffects.map((effect) =>
+      activeRuleEffectRecordSchema.parse(effect)
+    )
     const owner = await readActor(ownerId)
     if (owner.kind !== 'CREATURE')
       throw new Error('Live Session Legendary Action owner is unavailable.')
@@ -229,7 +232,7 @@ export async function persistEncounterTurnResources(
       applications: application.applications.map((entry) => ({ ...entry, targetActorId })),
       effectiveMaximumHitPoints: application.targetTransition.before.maximumHitPoints,
       effectiveScalarValues: application.targetTransition.before.scalarValues,
-      forceVersionAdvance: false
+      forceVersionAdvance: target.kind === 'CHARACTER' && createdEffects.length > 0
     })
     if (
       checksumCanonicalJson(mechanics.receiptApplications) !==
@@ -254,7 +257,27 @@ export async function persistEncounterTurnResources(
           evidence.resolution.characterTransitions.length !== 0)
     )
       throw new Error('Live Session Legendary Action mechanics receipt mismatch.')
-    const settled = targetActorId === ownerId ? mechanics.updatedActor : await readActor(ownerId)
+    // Effects the action created (Shimmering Shield) persist exactly as the receipt projected them.
+    const [effectTarget] = await persistEncounterActionEffects(ctx, {
+      state,
+      command: {
+        encounterId: state.id,
+        actorId: ownerId,
+        targetActorId,
+        actionId: option.actionId,
+        commandId: root.rootCommandId
+      },
+      execution: { occurrenceId, applicationOutputs: application },
+      maintainedState: null,
+      createdEffects,
+      authorizedCharacterIds: new Set(target.kind === 'CHARACTER' ? [target.sourceId] : []),
+      maintenance: null,
+      actors: [mechanics.updatedActor],
+      occurredAt: createdEffects[0]?.createdAt ?? occurredAt
+    })
+    if (!effectTarget)
+      throw new Error('Live Session Legendary Action effect target is unavailable.')
+    const settled = targetActorId === ownerId ? effectTarget : await readActor(ownerId)
     if (featureChargeUsed(settled, feature.id) !== resource.beforeUsed)
       throw new Error('Live Session Legendary Action resource changed before settlement.')
     await writeActor(

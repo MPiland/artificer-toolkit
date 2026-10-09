@@ -1941,11 +1941,18 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     invocation.targeting.dispositionKind === 'ANY' &&
     // A grant's excluded creature types stay on the invocation for the room to enforce.
     (grantPlan !== null || !invocation.targeting.excludedCreatureTypeIds?.length)
+  // A Legendary Action option is free; the Feature charge it spends is its cost.
+  const supportedActivation =
+    invocation.kind === 'ACTION' &&
+    (invocation.activation.code === 'FREE'
+      ? invocation.resourceUse !== undefined
+      : (invocation.activation.code === 'ACTION' ||
+          invocation.activation.code === 'BONUS_ACTION') &&
+        invocation.activation.amount === 1)
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== 'ACTIVATED' ||
-    (invocation.activation.code !== 'ACTION' && invocation.activation.code !== 'BONUS_ACTION') ||
-    invocation.activation.amount !== 1 ||
+    !supportedActivation ||
     (!supportsSelf && !supportsSingleTarget) ||
     invocation.shape
   )

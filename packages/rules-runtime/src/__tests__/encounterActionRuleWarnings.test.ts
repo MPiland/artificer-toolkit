@@ -386,6 +386,7 @@ describe('encounter action rule warning gate', () => {
             actor: prepared.actor,
             target: prepared.target,
             targetPolicy: prepared.targetPolicy,
+            makesAttackRoll: prepared.makesAttackRoll,
             sceneContext: farApart
           },
           targetDefeated: false,
@@ -448,6 +449,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: farApart
         },
         targetDefeated: false,
@@ -488,6 +490,7 @@ describe('encounter action rule warning gate', () => {
           actor: prepared.actor,
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
+          makesAttackRoll: false,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
@@ -535,6 +538,7 @@ describe('encounter action rule warning gate', () => {
           actor: prepared.actor,
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
+          makesAttackRoll: false,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
@@ -560,6 +564,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetDefeated: true,
@@ -589,6 +594,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetDefeated: true,
@@ -634,6 +640,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetCreatureTypeId,
@@ -675,7 +682,7 @@ describe('encounter action rule warning gate', () => {
     expect(
       evaluateEncounterActionRuleWarnings({
         preparedWarnings: [],
-        target: { actor, target, targetPolicy, sceneContext: null },
+        target: { actor, target, targetPolicy, makesAttackRoll: false, sceneContext: null },
         targetDefeated: false,
         stabilize: null,
         actionEconomy: null,
@@ -690,6 +697,7 @@ describe('encounter action rule warning gate', () => {
           actor,
           target,
           targetPolicy: { ...targetPolicy, targeting: null },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetDefeated: false,

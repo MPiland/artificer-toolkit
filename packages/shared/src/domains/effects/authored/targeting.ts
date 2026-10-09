@@ -7,6 +7,7 @@ export type TargetingAuthored =
   | {
       selectionKind: Extract<TargetSelectionKind, 'SINGLE_TARGET'>
       dispositionKind?: TargetDispositionKind
+      excludesSelf?: boolean
       excludedCreatureTypeIds?: string[]
     }
   | {

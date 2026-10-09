@@ -182,6 +182,12 @@ through `encounterActionRuleWarnings`:
   eligibility and passage blockers use it, and Run state stores no side relationships. Actor sides remain
   only for initiative grouping, reorder, reinforcement and removal.
 
+**Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
+`TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
+attack roll (`makesAttackRoll`, a required policy input) or the authored targeting sets `excludesSelf`
+("another creature"). SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection author
+`excludesSelf: true`.
+
 `USE_BASIC_ACTION` follows the same rule with `encounterActionEconomyWarnings` and `TARGET_DISPOSITION`.
 Action choices carry the warnings that already apply before a target is chosen.
 
@@ -458,7 +464,13 @@ Feature-owned charge identities. Recharge runs for the incoming actor in the sha
 At each `END_OF_OTHER_ACTOR_TURN` boundary the occurrence freezes a UUID-sorted owner queue; each eligible
 owner gets at most one window, and the turn resumes after the queue is terminal
 (`encounterTurnLegendaryDiscovery`, `discoverTurnLegendaryWindows`). A Feature option may run another
-action Feature of the same Creature through `actionReference: { featureId, chargeCost }`.
+action Feature of the same Creature through `actionReference: { featureId, chargeCost }`. An option may
+also create active effects (a `FREE` activation with a Feature charge, e.g. Unicorn Shimmering Shield, may
+target any creature including its owner under D99). `execute()` prepares the effects plan before the
+mechanics plan, records the created effects on the EXECUTED evidence (`createdEffects`, an opaque record
+array parsed with `activeRuleEffectRecordSchema` at use) and `persistEncounterTurnResources` stores them
+through `persistEncounterActionEffects` in the turn commit. Range is not enforced here: discovery has no
+Scene geometry, so every actor the policy allows is offered.
 
 **Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
 effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
@@ -474,6 +486,9 @@ restores, mirroring Help's ally advantage (`consumedGrantPersistence` in encount
 attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
 their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
 rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
+grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
+An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
+where movement targets and Cleaving facts are built. A
 SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
 applied in `cleanupRemovedActorEffects` and listed in `removedEffects`). A skipped (defeated or
 out-of-initiative) actor's turn still ticks both boundaries in the turn commit that skips it, so a
