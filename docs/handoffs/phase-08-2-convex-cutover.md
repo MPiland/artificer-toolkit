@@ -94,6 +94,15 @@
 - Registered the seven approved 2014 DMG optional-combat variants that had no build work (`08-vtt-optional-combat-coverage.json` lists them as FOUNDATION only): ATTACK-12 Facing, ATTACK-13 Marking, ATTACK-14 Hitting cover, ATTACK-15 Lingering injuries, ATTACK-16 Massive damage (system shock), ENCOUNTER-6 Morale, MOVE-4 Climb onto a larger creature. Each is offered in Campaign settings only once it resolves. Ranked 2026-10-08 (twelfth session); see the variants table below the ranking.
 - Ledger 68/133 PBIs, 312/444 ACs. Next: SPELLS-3 slice B (3.4, the turn-start death save), then C (3.5) and D (3.6, which also shows Dead for frozen actors).
 
+**Done 2026-10-08 (fourteenth session):**
+
+- SPELLS-3.7 DONE (D98, `e07973294`): first aid is the SRD basic action "First Aid" (mechanic `STABILIZE_TARGET`; catalogue entries carry a nullable `check`). The helper spends an Action and a DC 10 Wisdom (Medicine) check pauses as a pending occurrence (`basicActionCheck*` in encounter-persistence, `encounterBasicActionCheck.ts`, worker `nativeBasicActionResponse.ts`), answered by roll prompt or auto-roll; success stabilizes. The command's `allyActorId` is now `targetActorId`. Proofs: five journeys in `turnDeathSave.test.ts`, `basicActions.test.ts`, `nativeRoomFirstAidAction.test.ts`. MANUAL Runs already refused every basic action as `ASSISTED_ONLY`.
+- REACTION-4.1 reworded with the user's approval (Absorb Elements is not SRD 5.1); REACTION-4.2 registered: a user can author a reaction spell such as Absorb Elements.
+- SHEET-7 DONE in a user-run parallel session, merged (`489ae1e96`): Character head checksums are derived at assembly, not stored. Local Convex reset and reseeded after the merge (1120 documents, audit OK).
+- `convex deploy` typechecks test files that the Turbo typecheck skips; `turnDeathSave.test.ts` failed it and is fixed (`652d1d9cb`). Verify Convex test typing with `yarn tsc -p convex/tsconfig.json --noEmit` from `apps/apis`.
+- SPELLS-5 runs in a user-run parallel session (worktree `.claude/worktrees/spells-5`, branch `codex/spells-5-apply-grant`); merge it here once it reports.
+- Ledger 74/136 PBIs, 316/454 ACs. Next: SPELLS-3 slice D (3.6, Sheet death-save tracker and roll, Dead for frozen actors), then AUTHORING-16.
+
 **Done 2026-10-08 (thirteenth session):**
 
 - SPELLS-3.5 DONE (D96, `faceb847b`): a STABILIZE effect application (`deathSavesAfterStabilize`, `isCharacterDying` in `schema/shared/characterDeathSaves.ts`; folded in `encounterCharacterMechanicsBatch.ts`). The real SRD Healer's Kit compiles to it in `effectActionCompiler.ts`. A target that is not dying is the overridable `TARGET_NOT_DYING` warning and changes nothing. Proved by an ally journey in `turnDeathSave.test.ts`: the kit spends one charge, and undo restores the saves and the charge. Room tests (`nativeRoomStabilizeAction.test.ts`) self-target, because the room fixture holds one Character; its new `characterEquipment` option puts real SRD equipment in the room. With no Scene, touch range is the acknowledged `TARGET_RANGE_UNCHECKED` warning.
@@ -127,7 +136,7 @@
 | 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
 | 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
-| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Death saves (D96). A (3.2, 3.3) and B (3.4) done; next C (3.5), D (3.6).                                                                 |
+| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Death saves (D96, D98). A, B, C (3.5, 3.7) done; next D (3.6).                                                                          |
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                             |
 | 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                   |
 | 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
@@ -139,7 +148,7 @@
 | 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                 |
 | 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                       |
 | 23  | PLATFORM-2                              | 2.3  | Journey gap.                                                                                                                             |
-| 24  | SHEET-7                                 | 2.0  |                                                                                                                                          |
+| 24  | SHEET-7                                 | 2.0  | Done (parallel session, fourteenth).                                                                                                     |
 | 25  | AUTHORING-12 (12.4)                     | 1.8  |                                                                                                                                          |
 | 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                |
 | 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                          |
