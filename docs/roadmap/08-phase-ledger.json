@@ -4939,6 +4939,18 @@
               "origin": [],
               "note": "D99 (Q1 A).",
               "id": "SPELLS-5.9"
+            },
+            {
+              "text": "Every attack roll (opportunity attacks, Disarm, Legendary Actions) uses up a one-roll grant; a grant anchored to an actor removed from the Run ends at the removal, and a skipped turn still counts both of its boundaries.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomGrantEnds.test.ts",
+                "apps/session-worker/test/nativeRoomDisarm.test.ts",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts"
+              ],
+              "origin": [],
+              "note": "D99. Undo follows the command: only ordinary actions have GM undo, so consumption by reactions, Disarm and Legendary windows and removal endings stand. Legendary consumption gets its journey with SPELLS-5.3 (Shimmering Shield).",
+              "id": "SPELLS-5.10"
             }
           ]
         },
