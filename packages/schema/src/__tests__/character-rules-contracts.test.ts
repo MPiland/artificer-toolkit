@@ -144,6 +144,7 @@ describe('Character rule contracts', () => {
         classes: [],
         background: null,
         features: [],
+        activeEffects: [],
         equipmentItems: []
       }),
       derivedBaseFacts: {
