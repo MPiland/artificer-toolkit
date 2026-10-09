@@ -179,7 +179,7 @@ async function setupPassageScene(
         expectedVersion: version,
         actorId: helper.id,
         definitionId: help!.id,
-        allyActorId: base.reactor.id
+        targetActorId: base.reactor.id
       }
     })
     version = result.projection.version

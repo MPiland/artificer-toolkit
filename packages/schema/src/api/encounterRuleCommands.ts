@@ -146,15 +146,16 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
 )
 
 /**
- * The current actor takes one of its System's basic actions (Q11). `allyActorId` names the ally an
- * ally-advantage action helps and is null for every other action.
+ * The current actor takes one of its System's basic actions (Q11). `targetActorId` names the ally an
+ * ally-advantage action helps or the creature a stabilizing action treats, and is null for every
+ * other action.
  */
 export const useEncounterBasicActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('USE_BASIC_ACTION'),
     actorId: uuidSchema,
     definitionId: postgresUuidSchema,
-    allyActorId: z.nullable(uuidSchema),
+    targetActorId: z.nullable(uuidSchema),
     /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
     acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
   })

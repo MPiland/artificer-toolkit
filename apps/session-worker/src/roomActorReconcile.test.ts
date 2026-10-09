@@ -3,8 +3,6 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import { liveSessionRoomWriteSetSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import { readCharacterSheetStructure } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
@@ -102,14 +100,15 @@ async function heldRoom({
       characterPageFixtureFor({ characterId, userId: PLAYER_OF[characterId], campaignId: CAMPAIGN })
     )
     if (page.status !== 'ASSIGNED' || !page.inputs) throw new Error('Missing Character fixture.')
-    const owner = {
-      ...page.inputs.owner,
-      systemId: SYSTEM,
-      sheetStateChecksum: checksumRuleDocument(
-        readCharacterSheetStructure(page.inputs.owner.sheetState)
-      )
-    }
-    const { _creationTime, documentJson: _document, sheetState: _sheet, play, ...head } = owner
+    const {
+      _creationTime,
+      documentJson: _document,
+      sheetState: _sheet,
+      checksum: _checksum,
+      sheetStateChecksum: _sheetChecksum,
+      play,
+      ...head
+    } = { ...page.inputs.owner, systemId: SYSTEM }
     const { _id: _playId, _creationTime: playCreationTime, ...playFields } = play
     return [
       {

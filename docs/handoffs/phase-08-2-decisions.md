@@ -527,6 +527,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Carry-over (Q1 A).** When a Run completes, a Character's remaining grants become Character-owned and expire at an absolute Campaign-clock minute (the clock at completion plus 6 seconds per remaining round), processed by clock recovery. Without a Campaign clock they last until the GM ends them. A Creature's grants end with the Run.
   - **Visibility (Q2 A).** Active grants are listed on the token, the turn tracker and the Sheet with their label and time left; the GM can end one by hand. A hidden source's label stays hidden from players.
 
+* **D98** (2026-10-08) First aid, a basic action with a check (SPELLS-3.7, follows D45 and D96). Decided by Claude under the AGENTS.md escalation rules: D96 fixes the behavior; this entry fixes the shape.
+  - **Catalogue:** a new closed mechanic `STABILIZE_TARGET`. A basic-action entry gains a required, nullable `check` `{ checkDefinitionId, dc }`, set exactly when a mechanic needs one. The SRD System authors "First Aid" (Action; Wisdom (Medicine), DC 10). Checks use the System's check definition, so Medicine's total, roll mode and contributors come from the same facts as contest checks.
+  - **Target:** the command's `allyActorId` becomes `targetActorId`, the one target of Help (an ally) and of first aid (a dying Character). Help's stored effect keeps `allyActorId`. A first-aid target that isn't dying is the overridable `TARGET_NOT_DYING` warning and changes nothing, as for the Healer's Kit. Touch range uses the same warnings as the kit.
+  - **The roll:** the helper makes the check through the ADR 0034 roll prompt (its controller rolls in the app or types the result) or auto-rolls by their preference. The roll card is credited to the helper and is never hidden from the GM. Help's ally advantage and condition check modes apply, and a used Help is consumed. A paused first aid has already spent its Action. Reaching the DC makes the target stable; a failure changes nothing.
+  - **Limits:** a custom actor has no check facts and is refused. In a MANUAL Run a basic action that carries a check is refused as `ASSISTED_ONLY` (ENCOUNTER-2), because the table tracks death saves on the Sheet. GM undo restores the Action, a used Help and the target's death saves; the roll itself stays on the record.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

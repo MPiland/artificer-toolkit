@@ -7,12 +7,10 @@ import { persistNativeConcentrationPending } from '@artificer-toolkit/encounter-
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import {
   characterStoredHeadSchema,
   characterStoredRowSchema
 } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { readCharacterSheetStructure } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema
@@ -72,12 +70,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   })
   const { part: page, system } = room
   if (!page.inputs) throw new Error('Missing Character fixture.')
-  const owner = characterStoredRowSchema.parse({
-    ...page.inputs.owner,
-    sheetStateChecksum: checksumRuleDocument(
-      readCharacterSheetStructure(page.inputs.owner.sheetState)
-    )
-  })
+  const owner = characterStoredRowSchema.parse(page.inputs.owner)
   const revisions = page.revisions.map((revision) => ({ ...revision, revision: null }))
   const part = { ...page, revisions, inputs: { ...page.inputs, owner } }
   const campaignId = part.inputs.campaign.id
@@ -224,6 +217,8 @@ it('atomically resolves a failed native Concentration save, retains the private 
     _creationTime,
     documentJson: _documentJson,
     sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
     play: _play,
     ...head
   } = owner
@@ -360,14 +355,14 @@ it('atomically resolves a failed native Concentration save, retains the private 
           temporaryHitPoints: 1,
           maximumHitPoints: 11,
           conditionIds: [],
-          deathSaves: NO_DEATH_SAVES
+          deathSaves: null
         },
         after: {
           currentHitPoints: 11,
           temporaryHitPoints: 0,
           maximumHitPoints: 11,
           conditionIds: [],
-          deathSaves: NO_DEATH_SAVES
+          deathSaves: null
         }
       }
     }

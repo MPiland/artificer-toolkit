@@ -10,7 +10,10 @@ import {
   readRoomEncounterSession,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
+import { characterCollectionSchemas } from '@artificer-toolkit/schema/projections/characterOperationalRecords'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { api } from '../_generated/api'
+import { executeCharacterSheetCommandAcknowledgement } from '../characters/sheetCommands'
 import { readCharacterRecord } from '../characters/stateDocuments'
 
 /**
@@ -201,5 +204,54 @@ describe('Sheet play on a held Character', () => {
       maximumHitPoints: initial.maximumHitPoints,
       currentHitPoints: initial.maximumHitPoints - 1
     })
+  }, 120000)
+
+  it('commits a note through only its note records and reloads it into the next room command', async () => {
+    const base = await heldCharacter()
+    const initial = await base.play()
+    const damaged = await executeSheetInRoom(
+      base.player.caller,
+      base.adjust('DAMAGE', 2, initial.streamVersion)
+    )
+    const play = await base.storage()
+    const totals = createDatabaseIoTotals()
+    await base.player.caller.run((ctx) =>
+      executeCharacterSheetCommandAcknowledgement(
+        { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+        base.player.userId,
+        {
+          id: base.characterId,
+          command: {
+            type: 'CREATE_NOTE',
+            commandId: crypto.randomUUID(),
+            expectedVersion: damaged.streamVersion,
+            title: 'Held note',
+            groupId: 'session-notes'
+          }
+        }
+      )
+    )
+    for (const table of Object.keys(characterCollectionSchemas)) {
+      if (table === 'characterNotes' || table === 'characterNoteGroups') continue
+      expect(totals.reads.byTable[table], table).toBeUndefined()
+      expect(totals.writes.byTable[table], table).toBeUndefined()
+    }
+    // The room keeps play: only the build counts and the head's structure clock are rewritten.
+    expect(totals.writes.byTable.replace?.documents).toBe(1)
+    expect(totals.writes.byTable.patch?.documents).toBe(1)
+    const noted = await base.storage()
+    expect(noted.character!.play).toEqual(play.character!.play)
+    // The built-in Session Notes group is materialized as the one written group row.
+    const groups = readCharacterRecord(noted.character!).state.noteGroups
+    expect(groups).toEqual([expect.objectContaining({ kind: 'SESSION', label: 'Session Notes' })])
+    const note = [expect.objectContaining({ title: 'Held note', groupId: groups![0]!.id })]
+    expect(readCharacterRecord(noted.character!).state.notes).toEqual(note)
+
+    // The next room command reloads the note with the room-set hit points intact.
+    await invalidateRoomInputs(base.campaign.id, ['CHARACTER'])
+    await executeSheetInRoom(base.player.caller, base.adjust('DAMAGE', 1, damaged.streamVersion))
+    const settled = (await base.settled()).character!
+    expect(readCharacterRecord(settled).state.notes).toEqual(note)
+    expect(readCharacterRecord(settled).state.hitpoints.current).toBe(initial.currentHitPoints - 3)
   }, 120000)
 })

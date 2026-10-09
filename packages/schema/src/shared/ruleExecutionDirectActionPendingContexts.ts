@@ -476,6 +476,39 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
   })
 )
 
+/**
+ * A basic action's pending d20 check (first aid). The Action is already spent; the d20 settles the
+ * check against `check.dc`. The target's Character stream is re-read when the answer arrives.
+ */
+export const encounterBasicActionCheckPendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_BASIC_ACTION_CHECK'),
+    schemaVersion: z.literal(1),
+    commandId: uuidSchema,
+    commandFingerprint: checksumSchema,
+    definition: z.strictObject({
+      id: uuidSchema,
+      version: positiveIntegerSchema,
+      checksum: checksumSchema
+    }),
+    actionLabel: identifierSchema,
+    helperActorId: uuidSchema,
+    targetActorId: uuidSchema,
+    targetCharacterId: uuidSchema,
+    check: z.strictObject({
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      label: identifierSchema
+    }),
+    d20: z.strictObject({
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      contributors: canonicalConcentrationContributorsDtoSchema,
+      contributorChecksum: checksumSchema,
+      modifier: integerSchema
+    })
+  })
+)
+
 export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySchema(() =>
   z
     .strictObject({

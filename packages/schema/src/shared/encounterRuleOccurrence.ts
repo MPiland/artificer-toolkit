@@ -115,6 +115,13 @@ export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
       kind: z.literal('DEATH_SAVE'),
       successes: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2)),
       failures: z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))
+    }),
+    /** The check a basic action asks its helper to make, such as First Aid's Wisdom (Medicine). */
+    z.strictObject({
+      kind: z.literal('BASIC_ACTION_CHECK'),
+      actionLabel: triggerLabelSchema,
+      checkLabel: triggerLabelSchema,
+      dc: z.number().check(z.int()).check(z.positive())
     })
   ])
 )

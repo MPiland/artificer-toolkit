@@ -2103,17 +2103,26 @@
         {
           "id": "SHEET-7",
           "title": "Small Sheet edits read only what they change",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/characters/sheetNoteAccess.test.ts",
+            "apps/apis/convex/liveSessions/heldSheetPlay.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A note edit reads only its notes and groups, collection counts, clocks and receipt; Character aggregate hashes are derived at assembly instead of persisted on the head, while typed records, identity, ownership, order and count checks and canonical full-capture hashes remain.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/sheetNoteAccess.test.ts",
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts",
+                "packages/schema/src/__tests__/character-operational-state.test.ts",
+                "apps/session-worker/src/roomCharacterReload.test.ts",
+                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
+              ],
               "origin": [],
-              "note": "User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
+              "note": "Done 2026-10-08: countDatabaseIo meters a note edit outside live play (notes, groups, Build counts, head and play clocks, receipt) and held in a room (play row untouched, reloaded into the next room command); the head drops checksum and sheetStateChecksum, which assembleCharacterStructure derives. Dev data migrated by local reset and reseed (backup local-validation/convex-reset/sheet7.before.zip). User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
               "id": "SHEET-7.1"
             }
           ]
@@ -4697,7 +4706,7 @@
             "apps/apis/convex/encounters/turnDeathSave.test.ts"
           ],
           "journeyStatus": "partial",
-          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, the turn-start death save and an ally's Healer's Kit stabilizing it are proved; no first aid or Sheet tracker yet (3.7, 3.6).",
+          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, the turn-start death save and an ally's Healer's Kit stabilizing it and First Aid (a prompted or auto-rolled DC 10 Medicine check) are proved; no Sheet tracker yet (3.6).",
           "origin": [],
           "acs": [
             {
@@ -4783,10 +4792,18 @@
             },
             {
               "text": "First aid is a System basic action: the helper spends an Action and makes a DC 10 Wisdom (Medicine) check, and success makes a dying target stable.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/turnDeathSave.test.ts › First Aid, a System basic action with a check (D98) (prompted app roll carded once for the GM and credited to the helper, undo restores the Action and the saves and keeps the roll; entered die; auto-roll miss spends the Action; auto success plus undo; non-dying TARGET_NOT_DYING with no roll)",
+                "apps/apis/convex/encounters/basicActions.test.ts › a MANUAL Run refuses First Aid as ASSISTED_ONLY; a custom actor is refused",
+                "apps/session-worker/test/nativeRoomFirstAidAction.test.ts (auto success, auto miss, prompted entered d20, TARGET_NOT_DYING in the room)",
+                "packages/rules-runtime/src/__tests__/encounterBasicActionCheck.test.ts; packages/rules-runtime/src/__tests__/encounterBasicActions.test.ts",
+                "packages/schema/src/__tests__/basic-actions.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.model.test.ts › First Aid: Wisdom (Medicine) DC 10",
+                "impl: packages/rules-runtime/src/encounterBasicActionCheck.ts; packages/encounter-persistence/src/basicActionCheckResponsePersistence.ts; apps/session-worker/src/nativeBasicActionResponse.ts"
+              ],
               "origin": [],
-              "note": "D96. Split from SPELLS-3.5 on 2026-10-08.",
+              "note": "D98. Split from SPELLS-3.5 on 2026-10-08; delivered 2026-10-08.",
               "id": "SPELLS-3.7"
             }
           ]
@@ -5217,12 +5234,20 @@
           "origin": [],
           "acs": [
             {
-              "text": "Shield, Counterspell and Absorb Elements resolve through a trigger model.",
+              "text": "The SRD reaction spells Shield and Counterspell resolve through a trigger model.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 8 (depends on spell casting).",
+              "note": "rul-9-rules-audit.md slice 8 (depends on spell casting). Reworded 2026-10-08 with the user's approval: Absorb Elements is not in SRD 5.1, so it is dropped.",
               "id": "REACTION-4.1"
+            },
+            {
+              "text": "A user can author a reaction spell such as Absorb Elements: triggered when its caster takes damage of chosen types, it applies before that damage (resistance to the triggering type) and grants a follow-up benefit; it resolves through the same trigger model as the SRD reactions.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Added 2026-10-08 at the user's request: non-SRD reactions must be user-authorable. Prove it with a user-authored Absorb Elements in a test fixture, not seeded content.",
+              "id": "REACTION-4.2"
             }
           ]
         }

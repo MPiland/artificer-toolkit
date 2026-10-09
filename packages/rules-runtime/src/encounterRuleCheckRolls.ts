@@ -1,6 +1,9 @@
 import { v5 as uuidv5 } from 'uuid'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import type { concentrationCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type {
+  basicActionCheckApplicationOutputDtoSchema,
+  concentrationCheckApplicationOutputDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
@@ -119,6 +122,44 @@ export function deathSaveRollRecord(input: {
     characterId: null,
     characterLabel: input.rollerLabel,
     source: { kind: 'SAVING_THROW', label: 'Death save' },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
+/**
+ * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine)), from its recorded
+ * faces and the helper's modifier. The card is the helper's own.
+ */
+export function basicActionCheckRollRecord(input: {
+  occurrenceId: string
+  d20: ReturnType<typeof basicActionCheckApplicationOutputDtoSchema.parse>['d20']
+  actionLabel: string
+  checkLabel: string
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const { d20 } = input
+  const faces = [...d20.rawFaces]
+  const modifier =
+    d20.modifier === 0 ? '' : d20.modifier > 0 ? `+${d20.modifier}` : `${d20.modifier}`
+  const evaluated = evaluateRollExpression(
+    parseRollExpression(`1d20${modifier}`),
+    { nextInt: () => faces.shift()! - 1 },
+    d20.rollMode
+  )
+  if (evaluated.evidence.total !== d20.total)
+    throw new Error('The basic action roll record does not match its check.')
+  return rollRecordDtoSchema.parse({
+    id: ruleCheckRollId(input.occurrenceId, 0),
+    ...evaluated,
+    characterId: null,
+    characterLabel: input.rollerLabel,
+    source: {
+      kind: 'SKILL_CHECK',
+      label: `${input.actionLabel}: ${input.checkLabel}`.slice(0, 80)
+    },
     ruleset: input.ruleset,
     createdAt: input.createdAt
   })

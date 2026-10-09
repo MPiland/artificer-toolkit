@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
@@ -16,6 +17,7 @@ import {
   type CommandResult,
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
+import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
@@ -77,10 +79,10 @@ async function dyingCharacter(rolls: FixtureRolls, withAlly = false) {
   return { fixture, bitten }
 }
 
-function pendingSave(result: CommandResult) {
+function pendingRoll(result: CommandResult) {
   const occurrence = result.occurrence
   if (occurrence?.status !== 'PENDING' || occurrence.pending?.kind !== 'D20_EVIDENCE')
-    throw new Error('Expected the death save prompt.')
+    throw new Error('Expected a d20 roll prompt.')
   return { occurrence, pending: occurrence.pending }
 }
 
@@ -88,7 +90,7 @@ describe('a dying Character’s turn-start death save (D96)', () => {
   it('asks the Character’s player for a d20 before its turn starts, and a 10 is a success', async () => {
     const { fixture, bitten } = await dyingCharacter('PROMPT')
     const paused = await advance(fixture, bitten)
-    const { occurrence, pending } = pendingSave(paused)
+    const { occurrence, pending } = pendingRoll(paused)
     // The turn has not advanced: the save is a stage before the Character's turn starts.
     expect(paused.projection.currentActorId).toBe(fixture.enemy.id)
     expect(pending).toMatchObject({
@@ -141,7 +143,7 @@ describe('a dying Character’s turn-start death save (D96)', () => {
     const { fixture, bitten } = await dyingCharacter('PROMPT')
     await queueRoomRolls(fixture.campaign.id, { rolls: [draw(9)] })
     const paused = await advance(fixture, bitten)
-    const { occurrence, pending } = pendingSave(paused)
+    const { occurrence, pending } = pendingRoll(paused)
     const rolled = await executeInRoom(fixture.player.caller, {
       command: {
         type: 'ROLL_RULE_EVIDENCE',
@@ -316,11 +318,12 @@ describe('a stabilize action on a dying Character (D96)', () => {
 
   it('spends one kit charge from the ally, and GM undo restores the hero’s prior death saves', async () => {
     const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    const allySourceId = fixture.ally?.sourceId
+    if (!allySourceId) throw new Error('Missing ally Character source.')
     const usage = async () => {
       await checkpointLiveRoom(fixture.campaign.id)
       return fixture.t.run(async (ctx) => {
-        const sourceId = fixture.ally?.sourceId
-        const row = sourceId ? await readCharacterRow(ctx, sourceId) : null
+        const row = await readCharacterRow(ctx, allySourceId)
         if (!row) throw new Error('Missing ally Character.')
         return readCharacterSheetState(row).resourceUsage
       })
@@ -362,5 +365,208 @@ describe('a stabilize action on a dying Character (D96)', () => {
     const applied = await useKit(fixture, atAlly, ['TARGET_NOT_DYING'])
     expect(applied.occurrence?.status).toBe('COMPLETE')
     expect((await storedCharacter(fixture)).state.hitpoints).toEqual(before)
+  }, 120000)
+})
+
+function allyOf(fixture: Fixture) {
+  const { ally } = fixture
+  if (!ally) throw new Error('The Run has no ally.')
+  return ally
+}
+
+/** The natural d20 a roll card shows: its total less the modifier. */
+function naturalOf(card: { evidence: { total: number; modifier: number } }) {
+  return card.evidence.total - card.evidence.modifier
+}
+
+/**
+ * The ally gives First Aid to the dying hero. The Run has no Scene, so the touch range cannot be
+ * checked, which the GM acknowledges.
+ */
+function useFirstAid(
+  fixture: Fixture,
+  from: CommandResult,
+  acknowledgedWarnings: EncounterRuleWarningCodeDto[] = []
+) {
+  const ally = allyOf(fixture)
+  return execute(fixture, (base) => ({
+    ...base,
+    type: 'USE_BASIC_ACTION',
+    expectedVersion: from.projection.version,
+    actorId: ally.id,
+    definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
+    targetActorId: fixture.hero.id,
+    acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings]
+  }))
+}
+
+/** The GM answers the ally's pending First Aid check with the given resolution. */
+function answerFirstAid(
+  fixture: Fixture,
+  paused: CommandResult,
+  resolution: (requestId: string) => ResolveRuleOccurrenceInputDto['resolution']
+) {
+  const { occurrence, pending } = pendingRoll(paused)
+  return execute(fixture, (base) => ({
+    ...base,
+    type: 'RESOLVE_RULE_OCCURRENCE',
+    expectedVersion: paused.projection.version,
+    occurrenceId: occurrence.occurrenceId,
+    expectedOccurrenceVersion: occurrence.occurrenceVersion,
+    correlationId: null,
+    resolution: resolution(pending.request.requestId)
+  }))
+}
+
+/** The table's First Aid cards: the card the commit posts for an entered or auto-rolled die. */
+async function firstAidCards(fixture: Fixture) {
+  const cards = await readRoomRollCards(fixture.owner.caller, fixture.campaign.id)
+  return cards.filter((card) => card.source.label === 'First Aid: Wisdom (Medicine)')
+}
+
+/** The ally, a GM-controlled Character, rolls by hand or automatically, as its preference says. */
+async function allyRollsAutomatically(fixture: Fixture, automatic: boolean) {
+  await setAutoRollDice(fixture.t, fixture.owner.userId, automatic)
+  await invalidateRoomInputs(fixture.campaign.id, ['PREFERENCES'])
+}
+
+describe('First Aid, a System basic action with a check (D98)', () => {
+  it('asks the helper’s roller for a Wisdom (Medicine) d20, and the roll makes the hero stable', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, false)
+    const ally = allyOf(fixture)
+    const paused = await useFirstAid(fixture, atAlly)
+    const { occurrence, pending } = pendingRoll(paused)
+    // The Action is spent and the helper's turn goes on, while the check waits.
+    expect(paused.projection.currentActorId).toBe(ally.id)
+    expect(pending).toMatchObject({
+      rollerActorId: ally.id,
+      trigger: {
+        kind: 'BASIC_ACTION_CHECK',
+        actionLabel: 'First Aid',
+        checkLabel: 'Wisdom (Medicine)',
+        dc: 10
+      }
+    })
+    expect(await saves(fixture)).toEqual(dying)
+
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    const rolled = await execute(fixture, (base) => ({
+      ...base,
+      type: 'ROLL_RULE_EVIDENCE',
+      expectedVersion: paused.projection.version,
+      occurrenceId: occurrence.occurrenceId,
+      expectedOccurrenceVersion: occurrence.occurrenceVersion,
+      requestId: pending.request.requestId,
+      rollMode: pending.request.rollMode
+    }))
+    if (!rolled.evidenceRoll) throw new Error('Expected a recorded app roll.')
+    const { rollId } = rolled.evidenceRoll
+    const settled = await answerFirstAid(fixture, paused, (requestId) => ({
+      kind: 'SYSTEM_ROLL',
+      requestId,
+      rollId
+    }))
+    expect(settled.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    expect((await storedCharacter(fixture)).state.hitpoints.current).toBe(0)
+
+    // The app attempt's card is the check's one card, credited to the helper and read by the GM.
+    const cards = await readRoomRollCards(fixture.owner.caller, fixture.campaign.id)
+    expect(cards.filter((card) => card.source.kind === 'MANUAL')).toEqual([
+      expect.objectContaining({ characterLabel: ally.label })
+    ])
+    expect(await firstAidCards(fixture)).toEqual([])
+
+    // GM undo gives back the Action and the hero's death saves, and leaves the roll on the record.
+    const reverted = await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: settled.projection.version
+    }))
+    expect(await saves(fixture)).toEqual(dying)
+    // The Action is back: First Aid is offered again without an Action warning.
+    const again = await useFirstAid(fixture, reverted)
+    expect(again.occurrence?.status).toBe('PENDING')
+    expect(
+      (await readRoomRollCards(fixture.owner.caller, fixture.campaign.id)).filter(
+        (card) => card.source.kind === 'MANUAL'
+      )
+    ).toHaveLength(1)
+  }, 180000)
+
+  it('settles with the die the helper’s roller types, posting the helper’s labelled card', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, false)
+    const paused = await useFirstAid(fixture, atAlly)
+    const settled = await answerFirstAid(fixture, paused, (requestId) => ({
+      kind: 'ENTER_DICE',
+      requestId,
+      rawFaces: [14],
+      rollMode: 'NORMAL'
+    }))
+    expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    const cards = await firstAidCards(fixture)
+    expect(cards).toEqual([expect.objectContaining({ characterLabel: allyOf(fixture).label })])
+    expect(naturalOf(cards[0]!)).toBe(14)
+  }, 120000)
+
+  it('auto-rolls for a helper who rolls automatically: a miss changes nothing but spends the Action', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(1)] })
+    const missed = await useFirstAid(fixture, atAlly)
+    expect(missed.occurrence?.status).toBe('COMPLETE')
+    expect(await saves(fixture)).toEqual(dying)
+    const cards = await firstAidCards(fixture)
+    expect(cards).toHaveLength(1)
+    expect(naturalOf(cards[0]!)).toBe(1)
+    // The Action is spent: a second First Aid this turn must be acknowledged as breaking the rule.
+    const second = await useFirstAid(fixture, missed).then(
+      () => null,
+      (caught: unknown) => caught
+    )
+    expect(JSON.stringify(second)).toContain('RULE_WARNINGS')
+  }, 120000)
+
+  it('auto-rolls a success, and GM undo restores the Action and the death saves but keeps the roll', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(20)] })
+    const stabilized = await useFirstAid(fixture, atAlly)
+    expect(stabilized.occurrence?.status).toBe('COMPLETE')
+    expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
+    expect(await firstAidCards(fixture)).toHaveLength(1)
+
+    await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: stabilized.projection.version
+    }))
+    expect(await saves(fixture)).toEqual(dying)
+    expect(await firstAidCards(fixture)).toHaveLength(1)
+  }, 120000)
+
+  it('warns, overridably, for a hero that is not dying, and then rolls nothing', async () => {
+    const { fixture, bitten } = await dyingCharacter('AUTO_ROLL', true)
+    await sheetCommand(fixture, (base) => ({
+      ...base,
+      type: 'ADJUST_HIT_POINTS',
+      mode: 'HEAL',
+      amount: 5
+    }))
+    const atAlly = await toActorTurn(fixture, bitten, allyOf(fixture).id)
+    const before = (await storedCharacter(fixture)).state.hitpoints
+    const refused = await useFirstAid(fixture, atAlly).then(
+      () => null,
+      (caught: unknown) => caught
+    )
+    expect(JSON.stringify(refused)).toContain('TARGET_NOT_DYING')
+
+    const applied = await useFirstAid(fixture, atAlly, ['TARGET_NOT_DYING'])
+    expect(applied.occurrence).toBeNull()
+    expect((await storedCharacter(fixture)).state.hitpoints).toEqual(before)
+    expect(await firstAidCards(fixture)).toEqual([])
   }, 120000)
 })

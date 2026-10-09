@@ -255,8 +255,6 @@ describe('private Character receipt retirement', () => {
             systemId: uuid(4),
             label: 'Retained',
             status: 'ACTIVE',
-            checksum,
-            sheetStateChecksum: checksum,
             createdAt: timestamp,
             updatedAt: timestamp
           })

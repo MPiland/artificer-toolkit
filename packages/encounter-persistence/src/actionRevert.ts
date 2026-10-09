@@ -129,7 +129,15 @@ export async function revertLastEncounterAction(
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
   if (root?.commandType === 'USE_BASIC_ACTION') {
-    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    // A check the helper's roll settled is the one command after its action.
+    const answer = recent[0]
+    if (
+      rootIndex > 1 ||
+      (rootIndex === 1 &&
+        (answer?.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
+          answer.ruleOccurrenceId !== root.receipt.checkOccurrenceId))
+    )
+      throw new Error('Stored Encounter command scan is invalid.')
     return revertBasicAction(ctx, { run, state, campaign, input, fingerprint, userId, root })
   }
   if (!root || root.commandType !== 'RESOLVE_ACTION')
@@ -536,12 +544,78 @@ async function revertBasicAction(
       ...receipt.speedBonusTurn,
       actorId: actor.id
     })
+  // The Help the check used goes back to its helpers.
+  const restoredActors = new Map(actors.map((entry) => [entry.id, entry]))
+  restoredActors.set(actor.id, restored)
+  for (const help of receipt.allyAdvantageUses) {
+    const helper = restoredActors.get(help.helperActorId)
+    if (!helper) unavailable('The helper left the Encounter; adjust manually.')
+    restoredActors.set(
+      helper.id,
+      encounterRunActorStateSchema.parse({
+        ...helper,
+        resources: withEncounterBasicActionEffects(helper, [
+          ...encounterBasicActionEffects(helper),
+          help.effect
+        ]).resources
+      })
+    )
+  }
+  const updatedAt = new Date().toISOString()
+  const stabilized = receipt.checkOccurrenceId
+    ? await readBasicActionCheckStabilize(ctx, {
+        state,
+        root,
+        occurrenceId: receipt.checkOccurrenceId
+      })
+    : null
+  // The roll stays on the record; only the dying target's death saves come back.
+  if (stabilized)
+    await restoreCharacter(ctx, {
+      characterId: stabilized.targetCharacterId,
+      inverse: {
+        hitPoints: stabilized.targetTransition.before,
+        removedConditionIds: new Set(),
+        resource: null,
+        stow: null,
+        expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
+      },
+      userId: input.userId,
+      updatedAt,
+      gameSystemId: state.gameSystemId
+    })
   return commitRevert(ctx, {
     ...input,
     actors,
-    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
-    updatedAt: new Date().toISOString()
+    nextActors: actors.map((entry) => restoredActors.get(entry.id)!),
+    updatedAt
   })
+}
+
+/** The stabilize a settled basic action check applied, if its roll reached the DC. */
+async function readBasicActionCheckStabilize(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: EncounterRunState
+    root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }>
+    occurrenceId: string
+  }
+) {
+  const receipts = await ctx.db
+    .query('encounterRuleReceipts')
+    .withIndex('by_encounterId_encounterVersion', (q) =>
+      q.eq('encounterId', input.state.id).gte('encounterVersion', input.root.version)
+    )
+    .take(RECEIPT_SCAN_LIMIT)
+  const receipt = receipts.find((entry) => entry.occurrenceId === input.occurrenceId)
+  if (!receipt) throw new Error('Stored basic action check receipt is missing.')
+  const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
+  if (checksumRuleDocument(result) !== receipt.resultChecksum)
+    throw new Error('Stored Encounter rule receipt mismatch.')
+  if (result.status !== 'COMPLETE' || result.applicationOutputs.kind !== 'BASIC_ACTION_CHECK')
+    throw new Error('Stored basic action check receipt is invalid.')
+  const { targetTransition, targetCharacterId } = result.applicationOutputs
+  return targetTransition ? { targetCharacterId, targetTransition } : null
 }
 async function restoreCharacter(
   ctx: EncounterCharacterWriteTransaction,

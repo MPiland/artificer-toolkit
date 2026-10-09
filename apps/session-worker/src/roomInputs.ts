@@ -40,8 +40,7 @@ import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/characte
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
   readCharacterPlay,
-  readCharacterSheetState,
-  readCharacterSheetStructure
+  readCharacterSheetState
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterStoredHeadSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { roomSceneDefinitionRecords } from './roomSceneDefinition.js'
@@ -84,7 +83,9 @@ function characterHeadDocument(owner: NonNullable<AssignedPart['inputs']>['owner
     _id,
     _creationTime,
     documentJson: _documentJson,
-    sheetState,
+    sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
     play: _play,
     ...head
   } = owner
@@ -92,11 +93,7 @@ function characterHeadDocument(owner: NonNullable<AssignedPart['inputs']>['owner
     table: 'characters',
     id: _id,
     creationTime: _creationTime,
-    fields: characterStoredHeadSchema.parse({
-      ...head,
-      sheetStateChecksum:
-        head.sheetStateChecksum ?? checksumRuleDocument(readCharacterSheetStructure(sheetState))
-    })
+    fields: characterStoredHeadSchema.parse(head)
   }
 }
 

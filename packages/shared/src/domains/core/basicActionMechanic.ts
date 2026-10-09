@@ -14,7 +14,9 @@ export const BASIC_ACTION_MECHANIC_CODE = {
   /** The chosen ally's next attack roll or ability check has advantage, before the actor's next turn. */
   ALLY_ADVANTAGE: 'ALLY_ADVANTAGE',
   /** The actor's saving throws of the entry's abilities have advantage until its next turn. */
-  SAVE_ADVANTAGE: 'SAVE_ADVANTAGE'
+  SAVE_ADVANTAGE: 'SAVE_ADVANTAGE',
+  /** The chosen dying Character becomes stable when the entry's check reaches its DC. */
+  STABILIZE_TARGET: 'STABILIZE_TARGET'
 } as const
 
 export type BasicActionMechanicCode = keyof typeof BASIC_ACTION_MECHANIC_CODE
@@ -49,5 +51,10 @@ export const BASIC_ACTION_MECHANIC_REGISTRY: Record<
     label: 'Save advantage',
     description:
       "The actor's saving throws of the chosen abilities have advantage until its next turn."
+  },
+  [BASIC_ACTION_MECHANIC_CODE.STABILIZE_TARGET]: {
+    code: BASIC_ACTION_MECHANIC_CODE.STABILIZE_TARGET,
+    label: 'Stabilize a creature',
+    description: "A dying Character becomes stable when the actor's check reaches the entry's DC."
   }
 }

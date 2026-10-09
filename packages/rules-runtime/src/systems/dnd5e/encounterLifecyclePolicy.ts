@@ -29,6 +29,7 @@ import { DND5E_SYSTEM_ID } from './identity.js'
 const DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000e1'
 const DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000ec'
+const DND5E_BASIC_ACTION_CHECK_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000ed'
 const DND5E_RECHARGE_4_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e5'
 const DND5E_RECHARGE_5_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e7'
 const DND5E_RECHARGE_6_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e9'
@@ -263,11 +264,11 @@ export function createDnd5eRechargeDefinition(threshold: 4 | 5 | 6) {
   })
 }
 
-/** A death save is a d20 with no modifiers (SRD 5.1); the die is the graph's one evidence request. */
-export function createDnd5eDeathSaveDefinition() {
+/** A graph whose one evidence request is a d20; its output is the die. */
+function plainD20Definition(id: string) {
   return published({
     schemaVersion: 1,
-    id: DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID,
+    id,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
     nodes: [
@@ -279,6 +280,19 @@ export function createDnd5eDeathSaveDefinition() {
     ],
     outputs: { rawDie: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' } }
   })
+}
+
+/** A death save is a d20 with no modifiers (SRD 5.1); the die is the graph's one evidence request. */
+export function createDnd5eDeathSaveDefinition() {
+  return plainD20Definition(DND5E_DEATH_SAVE_GRAPH_DEFINITION_ID)
+}
+
+/**
+ * A basic action's check is one d20 request; its modifier and DC come from the action's catalogue
+ * entry and the actor's check facts, so the graph carries only the die.
+ */
+export function createDnd5eBasicActionCheckDefinition() {
+  return plainD20Definition(DND5E_BASIC_ACTION_CHECK_GRAPH_DEFINITION_ID)
 }
 
 export function createDnd5eRechargeLifecycleDefinition(threshold: 4 | 5 | 6) {

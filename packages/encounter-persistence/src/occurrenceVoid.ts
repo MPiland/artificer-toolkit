@@ -72,6 +72,8 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
         : answerRequired('Dice during a move')
     case 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK':
       return answerRequired('A Concentration save')
+    case 'ENCOUNTER_BASIC_ACTION_CHECK':
+      return answerRequired('A basic action check')
     case 'ENCOUNTER_INITIATIVE':
     case 'ENCOUNTER_INITIATIVE_DECLARATION':
       return answerRequired('Initiative')

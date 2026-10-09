@@ -5,7 +5,7 @@ import {
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { SRD_ABILITY_DEFINITION_IDS, SRD_SYSTEM_ID } from './vocabulary.js'
+import { SRD_ABILITY_DEFINITION_IDS, SRD_MEDICINE_SKILL_ID, SRD_SYSTEM_ID } from './vocabulary.js'
 
 /** Stable catalogue identities of the SRD basic combat actions (Q11). */
 export const SRD_BASIC_ACTION_IDS = {
@@ -16,7 +16,8 @@ export const SRD_BASIC_ACTION_IDS = {
   HIDE: '00000000-0000-4000-8000-000000000b05',
   READY: '00000000-0000-4000-8000-000000000b06',
   SEARCH: '00000000-0000-4000-8000-000000000b07',
-  USE_AN_OBJECT: '00000000-0000-4000-8000-000000000b08'
+  USE_AN_OBJECT: '00000000-0000-4000-8000-000000000b08',
+  FIRST_AID: '00000000-0000-4000-8000-000000000b09'
 } as const
 
 function defineBasicAction(input: {
@@ -26,6 +27,7 @@ function defineBasicAction(input: {
   mechanics: BasicActionReusableDefinitionDocumentDto['mechanics']
   saveAbilityIds?: string[]
   suspendedWhileUnableToActOrMove?: boolean
+  check?: BasicActionReusableDefinitionDocumentDto['check']
 }) {
   const document = basicActionReusableDefinitionDocumentDtoSchema.parse({
     schemaVersion: 1,
@@ -36,7 +38,8 @@ function defineBasicAction(input: {
     actionCost: 'ACTION',
     mechanics: input.mechanics,
     saveAbilityIds: input.saveAbilityIds ?? [],
-    suspendedWhileUnableToActOrMove: input.suspendedWhileUnableToActOrMove ?? false
+    suspendedWhileUnableToActOrMove: input.suspendedWhileUnableToActOrMove ?? false,
+    check: input.check ?? null
   })
   return {
     id: input.id,
@@ -109,5 +112,13 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     rulesText:
       'You interact with an object that requires your action to use, or with more than one object this turn.',
     mechanics: []
+  }),
+  defineBasicAction({
+    id: SRD_BASIC_ACTION_IDS.FIRST_AID,
+    label: 'First Aid',
+    rulesText:
+      'You tend a dying creature within reach. Make a DC 10 Wisdom (Medicine) check; on a success the creature becomes stable.',
+    mechanics: ['STABILIZE_TARGET'],
+    check: { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
   })
 ]

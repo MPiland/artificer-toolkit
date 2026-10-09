@@ -10,9 +10,11 @@ import {
 import { splitCharacterPlayState } from '../projections/characterPlayState.js'
 import {
   assembleCharacterStructure,
+  encodeCharacterNoteRecords,
   encodeCharacterOperationalStructure,
   readCharacterBuildFields,
-  readCharacterCollectionValues
+  readCharacterCollectionValues,
+  readCharacterNoteState
 } from '../projections/characterOperationalState.js'
 
 const character = characterDocumentSchema.parse({
@@ -105,6 +107,18 @@ function capture(state: typeof character.state) {
   })
 }
 
+/** The persisted head: identity and clocks, without the capture's structure and its hashes. */
+function storedHead(record: ReturnType<typeof capture>) {
+  const {
+    documentJson: _documentJson,
+    sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
+    ...head
+  } = record
+  return characterStoredHeadSchema.parse(head)
+}
+
 it('round-trips complete structures, ordered public IDs, relationships and absent/empty optional collections', () => {
   const {
     classes: _classes,
@@ -132,13 +146,8 @@ it('round-trips complete structures, ordered public IDs, relationships and absen
   ]) {
     const original = capture(state)
     const split = encodeCharacterOperationalStructure(original)
-    const { documentJson: _documentJson, sheetState: _sheetState, ...head } = original
     expect(
-      assembleCharacterStructure(
-        characterStoredHeadSchema.parse(head),
-        split.build,
-        split.collections
-      )
+      assembleCharacterStructure(storedHead(original), split.build, split.collections)
     ).toEqual(original)
     expect(split.build).not.toHaveProperty('documentJson')
     expect(split.collections.characterInventoryItems.map((row) => row.id)).toEqual(['bag', 'wand'])
@@ -147,8 +156,7 @@ it('round-trips complete structures, ordered public IDs, relationships and absen
 
 it('refuses corrupted build, missing/duplicated/reordered rows and foreign Character bindings', () => {
   const original = capture(character.state)
-  const { documentJson: _documentJson, sheetState: _sheetState, ...headFields } = original
-  const head = characterStoredHeadSchema.parse(headFields)
+  const head = storedHead(original)
   const split = encodeCharacterOperationalStructure(original)
   expect(() =>
     assembleCharacterStructure(head, { ...split.build, profile: {} }, split.collections)
@@ -173,6 +181,10 @@ it('refuses corrupted build, missing/duplicated/reordered rows and foreign Chara
       })
     ).toThrow(/integrity|checksum/)
   expect(characterStoredHeadSchema.safeParse({ ...head, documentJson: '{}' }).success).toBe(false)
+  for (const field of ['checksum', 'sheetStateChecksum'] as const)
+    expect(
+      characterStoredHeadSchema.safeParse({ ...head, [field]: original.checksum }).success
+    ).toBe(false)
   const miskeyed = split.collections.characterClassSpellStates.map((row) => {
     const { checksum: _checksum, ...fields } = row
     const altered = { ...fields, id: `wrong:${fields.id}` }
@@ -211,4 +223,49 @@ it('detects missing tail and empty selected collections using checksummed counts
       collectionCounts: { ...split.build.collectionCounts, characterInventoryItems: 0 }
     })
   ).toThrow('build integrity')
+})
+
+it('re-encodes a note edit exactly as the complete split does and leaves every other record alone', () => {
+  const { notes, noteGroups, ...withoutNotes } = character.state
+  const before = encodeCharacterOperationalStructure(capture(withoutNotes))
+  for (const next of [{ notes, noteGroups }, { notes: [], noteGroups: [] }, {}]) {
+    const focused = encodeCharacterNoteRecords(before.build, next)
+    const complete = encodeCharacterOperationalStructure(capture({ ...withoutNotes, ...next }))
+    expect(focused.build).toEqual(complete.build)
+    expect(focused.collections).toEqual({
+      characterNotes: complete.collections.characterNotes,
+      characterNoteGroups: complete.collections.characterNoteGroups
+    })
+    expect(readCharacterNoteState(character.id, focused.build, focused.collections)).toEqual(next)
+  }
+})
+
+it('refuses missing note rows, a foreign Character and rows for an absent note collection', () => {
+  const split = encodeCharacterOperationalStructure(capture(character.state))
+  const records = {
+    characterNotes: split.collections.characterNotes,
+    characterNoteGroups: split.collections.characterNoteGroups
+  }
+  expect(readCharacterNoteState(character.id, split.build, records)).toEqual({
+    notes: character.state.notes,
+    noteGroups: character.state.noteGroups
+  })
+  expect(() =>
+    readCharacterNoteState(character.id, split.build, { ...records, characterNotes: [] })
+  ).toThrow('collection integrity')
+  expect(() => readCharacterNoteState(crypto.randomUUID(), split.build, records)).toThrow(
+    'build integrity'
+  )
+  const { checksum: _checksum, ...fields } = split.build
+  const absent = {
+    ...fields,
+    optionalStateKeys: fields.optionalStateKeys.filter((key) => key !== 'notes')
+  }
+  expect(() =>
+    readCharacterNoteState(
+      character.id,
+      { ...absent, checksum: checksumRuleDocument(absent) },
+      records
+    )
+  ).toThrow('optional collection')
 })

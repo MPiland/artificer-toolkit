@@ -6,6 +6,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import {
   encounterActorRuleActionPendingContextDtoSchema,
   encounterActorSpellCastPendingContextDtoSchema,
+  encounterBasicActionCheckPendingContextDtoSchema,
   encounterCharacterRuleActionPendingContextDtoSchema,
   encounterConcentrationDamageCheckPendingContextDtoSchema,
   encounterCreatureRuleActionPendingContextDtoSchema
@@ -45,6 +46,7 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof encounterActorSpellCastPendingContextDtoSchema>
   | z.infer<typeof encounterCreatureRuleActionPendingContextDtoSchema>
   | z.infer<typeof encounterConcentrationDamageCheckPendingContextDtoSchema>
+  | z.infer<typeof encounterBasicActionCheckPendingContextDtoSchema>
 
 const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<ServerRuleExecutionPendingApplicationContextDto> =
   lazySchema(() =>
@@ -64,7 +66,8 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         encounterActorRuleActionPendingContextDtoSchema,
         encounterActorSpellCastPendingContextDtoSchema,
         encounterCreatureRuleActionPendingContextDtoSchema,
-        encounterConcentrationDamageCheckPendingContextDtoSchema
+        encounterConcentrationDamageCheckPendingContextDtoSchema,
+        encounterBasicActionCheckPendingContextDtoSchema
       ])
       .check(
         z.superRefine((value, context) => {

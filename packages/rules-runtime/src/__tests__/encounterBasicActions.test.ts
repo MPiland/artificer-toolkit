@@ -6,6 +6,7 @@ import {
   type ReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { SRD_MEDICINE_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
@@ -35,8 +36,10 @@ const IDS = {
   disengage: '00000000-0000-4000-8000-000000000b02',
   dodge: '00000000-0000-4000-8000-000000000b03',
   help: '00000000-0000-4000-8000-000000000b04',
-  hide: '00000000-0000-4000-8000-000000000b05'
+  hide: '00000000-0000-4000-8000-000000000b05',
+  firstAid: '00000000-0000-4000-8000-000000000b09'
 }
+const FIRST_AID_CHECK = { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
 
 function actor(id: string, disposition: 'FRIENDLY' | 'HOSTILE' = 'FRIENDLY') {
   return encounterRunActorStateSchema.parse({
@@ -164,7 +167,8 @@ function turn(turnSequence: number, currentActorId: string) {
 function document(
   id: string,
   mechanics: BasicActionReusableDefinitionDocumentDto['mechanics'],
-  gameSystemId = SYSTEM_ID
+  gameSystemId = SYSTEM_ID,
+  check: BasicActionReusableDefinitionDocumentDto['check'] = null
 ): BasicActionReusableDefinitionDocumentDto {
   return {
     schemaVersion: 1,
@@ -174,6 +178,7 @@ function document(
     rulesText: 'Rules text.',
     actionCost: 'ACTION',
     mechanics,
+    check,
     saveAbilityIds: mechanics.includes('SAVE_ADVANTAGE') ? [DEXTERITY_ID] : [],
     suspendedWhileUnableToActOrMove: mechanics.includes('SAVE_ADVANTAGE')
   }
@@ -204,7 +209,7 @@ describe('basic action mechanics (Q11)', () => {
     const planned = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      ally: null,
+      target: null,
       document: document(IDS.dash, ['SPEED_MOVEMENT_BONUS'])
     })
     expect(planned.speedMovementBonus).toBe(true)
@@ -216,7 +221,7 @@ describe('basic action mechanics (Q11)', () => {
     const planned = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      ally: null,
+      target: null,
       document: document(IDS.hide, [])
     })
     expect(planned).toMatchObject({ effects: [], speedMovementBonus: false, warnings: [] })
@@ -227,7 +232,7 @@ describe('basic action mechanics (Q11)', () => {
     const { actor: disengaged } = planEncounterBasicAction({
       state,
       actor: fighter,
-      ally: null,
+      target: null,
       document: document(IDS.disengage, ['NO_OPPORTUNITY_ATTACKS'])
     })
     expect(suppressesEncounterOpportunityAttacks(state, disengaged)).toBe(true)
@@ -241,7 +246,7 @@ describe('basic action mechanics (Q11)', () => {
     const { actor: dodging } = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      ally: null,
+      target: null,
       document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
     })
     const defended = await withEncounterBasicActionDefense({
@@ -281,7 +286,7 @@ describe('basic action mechanics (Q11)', () => {
     const { actor: dodging } = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      ally: null,
+      target: null,
       document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST', 'SAVE_ADVANTAGE'])
     })
     for (const suspended of [
@@ -318,7 +323,7 @@ describe('basic action mechanics (Q11)', () => {
     const { actor: helper, warnings } = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      ally: rogue,
+      target: rogue,
       document: document(IDS.help, ['ALLY_ADVANTAGE'])
     })
     expect(warnings).toEqual([])
@@ -341,29 +346,48 @@ describe('basic action mechanics (Q11)', () => {
     const help = document(IDS.help, ['ALLY_ADVANTAGE'])
     const state = turn(2, fighter.id)
     expect(() =>
-      planEncounterBasicAction({ state, actor: fighter, ally: null, document: help })
+      planEncounterBasicAction({ state, actor: fighter, target: null, document: help })
     ).toThrow('Choose an ally')
     expect(() =>
-      planEncounterBasicAction({ state, actor: fighter, ally: fighter, document: help })
+      planEncounterBasicAction({ state, actor: fighter, target: fighter, document: help })
     ).toThrow()
     expect(() =>
       planEncounterBasicAction({
         state,
         actor: fighter,
-        ally: rogue,
+        target: rogue,
         document: document(IDS.dash, ['SPEED_MOVEMENT_BONUS'])
       })
     ).toThrow('no target')
     expect(
-      planEncounterBasicAction({ state, actor: fighter, ally: ogre, document: help }).warnings
+      planEncounterBasicAction({ state, actor: fighter, target: ogre, document: help }).warnings
     ).toEqual([{ code: 'TARGET_DISPOSITION', message: 'This helps an enemy.' }])
+  })
+
+  it('First Aid needs exactly one other creature and leaves no lasting effect', () => {
+    const firstAid = document(IDS.firstAid, ['STABILIZE_TARGET'], SYSTEM_ID, FIRST_AID_CHECK)
+    const state = turn(2, fighter.id)
+    expect(() =>
+      planEncounterBasicAction({ state, actor: fighter, target: null, document: firstAid })
+    ).toThrow('Choose a creature to stabilize')
+    expect(() =>
+      planEncounterBasicAction({ state, actor: fighter, target: fighter, document: firstAid })
+    ).toThrow()
+    const planned = planEncounterBasicAction({
+      state,
+      actor: fighter,
+      target: rogue,
+      document: firstAid
+    })
+    expect(planned).toMatchObject({ effects: [], speedMovementBonus: false, warnings: [] })
+    expect(planned.actor).toEqual(fighter)
   })
 
   it('clearing an actor keeps no empty entry in its resources', () => {
     const { actor: dodging } = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      ally: null,
+      target: null,
       document: document(IDS.dodge, ['DISADVANTAGE_ON_ATTACKS_AGAINST'])
     })
     expect(withEncounterBasicActionEffects(dodging, []).resources).toEqual({})

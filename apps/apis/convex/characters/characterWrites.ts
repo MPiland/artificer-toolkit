@@ -10,15 +10,24 @@ import {
   splitCharacterPlayState
 } from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { encodeCharacterNoteRecords } from '@artificer-toolkit/schema/projections/characterOperationalState'
+import type {
+  CharacterCollectionRecords,
+  CharacterStoredBuildState
+} from '@artificer-toolkit/schema/projections/characterOperationalRecords'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
-import { writeCharacterOperationalStructure } from './operationalWrites'
+import {
+  writeCharacterOperationalRecords,
+  writeCharacterOperationalStructure
+} from './operationalWrites'
 import {
   readCharacterRecord,
   type CharacterDocument,
@@ -162,7 +171,13 @@ export async function writeCharacterRecord(
     : playChanged
       ? { ...playRecord, updatedAt }
       : playRecord
-  const { documentJson: _documentJson, sheetState: _sheetState, ...headFields } = nextRecord
+  const {
+    documentJson: _documentJson,
+    sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
+    ...headFields
+  } = nextRecord
   const head = characterStoredHeadSchema.parse(headFields)
   // A refresh after a Campaign-owned change rewrites nothing unless a stored value moves.
   if (structureChanged) await writeCharacterOperationalStructure(ctx, current, nextRecord)
@@ -201,4 +216,37 @@ export async function writeCharacterRecord(
   await ctx.db.patch(playId, stats)
   const row = { ...facts.active, play: { ...facts.active.play, ...stats } }
   return { row, facts: { ...facts, active: row } }
+}
+
+/**
+ * A note edit's focused write: changed note and group records, the build's counts, the head's
+ * structure clock and, unless the live table holds the Character, the play version and clock. No
+ * other record is read or rewritten and nothing is evaluated, as notes change no mechanical fact.
+ */
+export async function writeCharacterNoteRecords(
+  ctx: MutationCtx,
+  input: {
+    head: Doc<'characters'>
+    play: Doc<'characterPlayStates'>
+    build: CharacterStoredBuildState
+    records: Pick<CharacterCollectionRecords, 'characterNotes' | 'characterNoteGroups'>
+    next: Parameters<typeof encodeCharacterNoteRecords>[1]
+    streamVersion: number
+    updatedAt: string
+  }
+) {
+  const { head, play, streamVersion, updatedAt } = input
+  const after = encodeCharacterNoteRecords(input.build, input.next)
+  await writeCharacterOperationalRecords(
+    ctx,
+    { build: input.build, collections: input.records },
+    after
+  )
+  await ctx.db.patch(head._id, { updatedAt })
+  if (await readCharacterLiveHold(ctx, head.id)) return
+  const { _id, _creationTime, ...fields } = play
+  await ctx.db.replace(
+    _id,
+    characterStoredPlayStateSchema.parse({ ...fields, streamVersion, updatedAt })
+  )
 }

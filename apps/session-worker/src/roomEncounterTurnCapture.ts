@@ -27,6 +27,7 @@ import type { RoomInputs } from './roomInputs.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { readBasicActionAdmission } from '@artificer-toolkit/encounter-persistence/basicActionAdmission'
+import { readBasicActionCheckResponseAdmission } from '@artificer-toolkit/encounter-persistence/basicActionCheckAdmission'
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterCleavingBindings } from '@artificer-toolkit/encounter-persistence/cleavingSceneInputs'
@@ -283,16 +284,39 @@ export async function readRoomEncounterTurnCapture(
       throw new Error('Room basic action capture scope mismatch.')
     if (input.turnCommand || input.concentrationResponse)
       throw new Error('Room action capture cannot use another command scope.')
-    const admission = await readBasicActionAdmission(ctx, {
-      ...input,
-      command: input.request.command
-    })
+    const { command } = input.request
+    const admission =
+      command.type === 'RESOLVE_RULE_OCCURRENCE'
+        ? await readBasicActionCheckResponseAdmission(ctx, { ...input, response: command })
+        : await readBasicActionAdmission(ctx, { ...input, command })
     const response = {
       kind: 'BASIC_ACTION' as const,
       ready:
-        admission.kind === 'READY'
-          ? { command: admission.command, fingerprint: admission.fingerprint }
-          : null,
+        admission.kind !== 'READY'
+          ? null
+          : 'response' in admission
+            ? {
+                command: admission.response,
+                fingerprint: admission.fingerprint,
+                initiatorUserId: admission.initiatorUserId,
+                autoRollByActorId: {},
+                appRoll: admission.appRoll,
+                snapshot: admission.pending.snapshot,
+                occurrenceVersion: admission.occurrence.version
+              }
+            : {
+                command: admission.command,
+                fingerprint: admission.fingerprint,
+                initiatorUserId: admission.membership.userId,
+                autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+                  campaign: admission.campaign,
+                  initiatorUserId: admission.membership.userId,
+                  actors: await readRunActors(ctx, admission.state)
+                }),
+                appRoll: null,
+                snapshot: null,
+                occurrenceVersion: null
+              },
       result: admission.kind === 'REPLAY' ? admission.result : null
     }
     return liveSessionEncounterRulesResponseSchema.parse({

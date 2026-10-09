@@ -265,8 +265,21 @@ no modifiers, rolled by the actor's controller through the roll prompt (`DEATH_S
 auto-roll preference. 10 or more is a success, 2-9 a failure, a 1 two failures, a 20 regains 1 HP (resets
 the saves and removes the 0-HP condition through the heal rules); three successes stabilize, three
 failures kill. `deathSavesAfterRoll` (schema) owns the rule. The stage runs after Recharge and before
-incoming `START_OF_TURN` effects and is not undoable; a MANUAL Run prompts nothing. Stabilizing by hand
-(Medicine, Spare the Dying) and Sheet tracking of death saves are not built (target).
+incoming `START_OF_TURN` effects and is not undoable; a MANUAL Run prompts nothing.
+
+First Aid (D98, current) is a System basic action whose mechanic is the closed `STABILIZE_TARGET`; a
+basic-action entry carries a required nullable `check` (`{checkDefinitionId, dc}`) and the SRD authors
+First Aid as an Action with Wisdom (Medicine), DC 10. The command's `targetActorId` names the target
+(never the helper; a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`). A target
+that is not dying gives the overridable `TARGET_NOT_DYING` warning and, once overridden, spends the
+Action with no roll. Touch range reuses the Healer's Kit warnings. The root command always commits and
+spends the Action and Help is consumed with it. A prompted roll writes a PENDING occurrence
+(`ENCOUNTER_BASIC_ACTION_CHECK`) answered by a separate `RESOLVE_RULE_OCCURRENCE`; an auto-roll
+settles at once. The roll card is credited to the helper, never hidden from the GM, and de-duplicated
+by the app-roll attempt identity. GM undo restores the Action, the used Help and the target's death
+saves and keeps the roll on the record; it is refused while the check is pending
+(`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
+Spare the Dying and Sheet tracking of death saves are not built (target).
 
 ### Condition mechanics (D94, current)
 

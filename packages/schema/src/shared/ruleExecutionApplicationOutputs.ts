@@ -25,6 +25,7 @@ import {
   validateStateEffectTransitions
 } from './ruleExecutionMechanics.js'
 import {
+  basicActionCheckApplicationOutputDtoSchema,
   characterItemUseStateTransitionDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
@@ -52,6 +53,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
     concentrationCheckApplicationOutputDtoSchema,
     concentrationEndApplicationOutputDtoSchema,
     encounterActorMechanicsBatchApplicationOutputDtoSchema,
+    basicActionCheckApplicationOutputDtoSchema,
     z
       .strictObject({
         kind: z.literal('CHARACTER_MECHANICS_BATCH'),

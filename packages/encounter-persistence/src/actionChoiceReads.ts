@@ -239,7 +239,11 @@ export async function readEncounterActionChoices(
         label: definition.label,
         rulesText: document.rulesText,
         actionCost: document.actionCost,
-        needsAlly: document.mechanics.includes('ALLY_ADVANTAGE'),
+        target: document.mechanics.includes('ALLY_ADVANTAGE')
+          ? ('ALLY' as const)
+          : document.mechanics.includes('STABILIZE_TARGET')
+            ? ('DYING_CHARACTER' as const)
+            : null,
         // A custom actor has no System allowance to spend.
         warnings:
           actor.kind === 'CUSTOM'

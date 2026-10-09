@@ -190,7 +190,7 @@ describe('Platform bootstrap and bounded read journeys (PLATFORM-2)', () => {
 
     const pagedIds: string[] = []
     let cursor: string | null = null
-    for (let isDone = false; !isDone; ) {
+    for (let isDone = false; !isDone;) {
       const page: SourceImportAuditPageDto = await t.query(internal.content.import.readSubjects, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         paginationOpts: { numItems: 1, cursor }

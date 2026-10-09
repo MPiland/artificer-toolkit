@@ -53,7 +53,10 @@ function shape(value: unknown): { depth: number; idNodes: number } {
     return value.reduce<{ depth: number; idNodes: number }>(
       (total, item) => {
         const inner = shape(item)
-        return { depth: Math.max(total.depth, inner.depth + 1), idNodes: total.idNodes + inner.idNodes }
+        return {
+          depth: Math.max(total.depth, inner.depth + 1),
+          idNodes: total.idNodes + inner.idNodes
+        }
       },
       { depth: 0, idNodes: 0 }
     )
@@ -151,7 +154,9 @@ function assertFreshClone(source: unknown, copy: unknown) {
   for (const leaf of idLeaves) {
     expect(leaf.copy, `${leaf.path} must be a fresh id`).not.toBe(leaf.source)
     expect(leaf.copy, `${leaf.path} must be a UUID`).toMatch(UUID)
-    expect(forward.get(leaf.source) ?? leaf.copy, `${leaf.path} maps inconsistently`).toBe(leaf.copy)
+    expect(forward.get(leaf.source) ?? leaf.copy, `${leaf.path} maps inconsistently`).toBe(
+      leaf.copy
+    )
     expect(reverse.get(leaf.copy) ?? leaf.source, `${leaf.path} collides`).toBe(leaf.source)
     forward.set(leaf.source, leaf.copy)
     reverse.set(leaf.copy, leaf.source)

@@ -34,7 +34,7 @@ export function CampaignTabletopBasicActions({
   disabled: boolean
   onUse: (command: UseEncounterBasicActionInputDto) => Promise<EncounterCommandResultDto>
 }) {
-  const [allyByAction, setAllyByAction] = useState<Record<string, string>>({})
+  const [targetByAction, setTargetByAction] = useState<Record<string, string>>({})
   const [submittingId, setSubmittingId] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<{
     definitionId: string
@@ -44,7 +44,7 @@ export function CampaignTabletopBasicActions({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setAllyByAction({})
+    setTargetByAction({})
     setConfirming(null)
     setFeedback(null)
     setError(null)
@@ -66,7 +66,7 @@ export function CampaignTabletopBasicActions({
         expectedVersion: encounterVersion,
         actorId,
         definitionId: choice.definitionId,
-        allyActorId: choice.needsAlly ? (allyByAction[choice.definitionId] ?? null) : null,
+        targetActorId: choice.target ? (targetByAction[choice.definitionId] ?? null) : null,
         acknowledgedWarnings
       })
       setFeedback(`${choice.label} used.`)
@@ -93,7 +93,7 @@ export function CampaignTabletopBasicActions({
       </Title>
       <ul className={styles.list}>
         {basicActions.map((choice) => {
-          const ally = allyByAction[choice.definitionId] ?? null
+          const chosen = targetByAction[choice.definitionId] ?? null
           return (
             <li className={styles.row} key={choice.definitionId}>
               <Stack gap={4}>
@@ -110,18 +110,20 @@ export function CampaignTabletopBasicActions({
                     {choice.warnings.map((warning) => warning.message).join(' ')}
                   </Text>
                 ) : null}
-                {choice.needsAlly ? (
+                {choice.target ? (
                   <Select
-                    aria-label={`Ally to ${choice.label.toLowerCase()}`}
+                    aria-label={`${choice.target === 'ALLY' ? 'Ally to' : 'Target of'} ${choice.label.toLowerCase()}`}
                     comboboxProps={{ withinPortal: false }}
                     data={allies.map((entry) => ({ label: entry.label, value: entry.id }))}
                     disabled={disabled}
-                    placeholder='Choose an ally'
+                    placeholder={
+                      choice.target === 'ALLY' ? 'Choose an ally' : 'Choose a dying Character'
+                    }
                     searchable
                     size='xs'
-                    value={ally}
+                    value={chosen}
                     onChange={(value) =>
-                      setAllyByAction((current) =>
+                      setTargetByAction((current) =>
                         value === null
                           ? Object.fromEntries(
                               Object.entries(current).filter(([id]) => id !== choice.definitionId)
@@ -134,7 +136,7 @@ export function CampaignTabletopBasicActions({
               </Stack>
               <Button
                 aria-label={`Use ${choice.label}`}
-                disabled={disabled || submittingId !== null || (choice.needsAlly && !ally)}
+                disabled={disabled || submittingId !== null || (choice.target !== null && !chosen)}
                 loading={submittingId === choice.definitionId}
                 size='xs'
                 variant='default'

@@ -29,9 +29,18 @@ const sortedUniqueIds = (message: string) =>
       })
     )
 
+/** The ability check a basic action makes, e.g. First Aid's DC 10 Wisdom (Medicine) check. */
+const basicActionCheckDtoSchema = lazySchema(() =>
+  z.strictObject({
+    checkDefinitionId: postgresUuidSchema,
+    dc: z.number().check(z.int()).check(z.positive())
+  })
+)
+
 /**
  * One System-authored basic combat action (Q11): the System names it and writes its rules text;
  * `mechanics` are the closed rule kinds the room executes. An entry without mechanics is logged.
+ * `check` is the check a `STABILIZE_TARGET` action makes.
  * `saveAbilityIds` names the abilities whose saving throws `SAVE_ADVANTAGE` improves, and
  * `suspendedWhileUnableToActOrMove` keeps the actor's own defensive effects (disadvantage on attacks
  * against it, save advantage) from applying while it can't act or its speed is 0.
@@ -58,7 +67,8 @@ export const basicActionReusableDefinitionDocumentDtoSchema = lazySchema(() =>
           })
         ),
       saveAbilityIds: sortedUniqueIds('Save ability IDs must be unique and sorted.'),
-      suspendedWhileUnableToActOrMove: z.boolean()
+      suspendedWhileUnableToActOrMove: z.boolean(),
+      check: z.nullable(basicActionCheckDtoSchema)
     })
     .check(
       z.superRefine((document, context) => {
@@ -67,6 +77,12 @@ export const basicActionReusableDefinitionDocumentDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['saveAbilityIds'],
             message: 'Only a save-advantage action names the abilities it improves.'
+          })
+        if (document.mechanics.includes('STABILIZE_TARGET') !== (document.check !== null))
+          context.addIssue({
+            code: 'custom',
+            path: ['check'],
+            message: 'Only a stabilizing action names the check it makes.'
           })
       })
     )

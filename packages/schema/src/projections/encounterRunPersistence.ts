@@ -253,7 +253,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
             round: z.number().check(z.int()).check(z.positive()),
             turnActorId: postgresUuidSchema
           })
-        )
+        ),
+        /** The Help a check-making action used (a used Help is consumed); undo gives it back. */
+        allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+        /** The action's d20 check occurrence, pending or settled; null for an action with no check. */
+        checkOccurrenceId: z.nullable(postgresUuidSchema)
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {

@@ -5,6 +5,12 @@ import type {
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 
+/** The overridable warning for a stabilize (the Healer's Kit, First Aid) aimed at a creature that is not dying. */
+export const TARGET_NOT_DYING_WARNING: EncounterRuleWarningDto = {
+  code: 'TARGET_NOT_DYING',
+  message: 'The target is not dying.'
+}
+
 /**
  * The one Assisted-mode soft-check gate for RESOLVE_ACTION, shared by the Session DO planner and the
  * Convex fallback (ADR 0034 decision 2). Preparation, targeting and the action allowance each report
@@ -50,7 +56,7 @@ export function evaluateEncounterActionRuleWarnings(input: {
     ...(input.stabilize
       ? input.stabilize.targetDying
         ? []
-        : [{ code: 'TARGET_NOT_DYING' as const, message: 'The target is not dying.' }]
+        : [TARGET_NOT_DYING_WARNING]
       : input.targetDefeated
         ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
         : []),
