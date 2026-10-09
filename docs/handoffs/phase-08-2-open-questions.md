@@ -17,3 +17,13 @@
 Slice D builds A's parts now, since B needs them too. Only the per-mode budget waits on this answer.
 
 **Answer:**
+
+### SPELLS-5.7: does a Concentration grant outlast the Run?
+
+**Context.** Concentration is a maintained state of the Run: it is deleted when the Run completes, so every effect it maintains ends then. D99's carry-over (Q1 A) says a Character's remaining grants carry over to the Campaign clock. A Concentration grant on a Character (Fly, Shield of Faith) can't do both: under the SRD it would last as long as the caster keeps concentrating, but nothing tracks Concentration outside a Run.
+
+**Options.**
+- **A (recommended, built).** A Concentration grant is Encounter-scoped and ends with the Run, together with the Concentration. Concentration that outlasts a Run is registered as a future enhancement (it needs Campaign-level Concentration).
+- **B.** A Concentration grant carries over like any other grant, losing its Concentration link at completion, so it then lasts until its Campaign-clock expiry.
+
+**Answer:**

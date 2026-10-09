@@ -451,6 +451,21 @@ function unsupported(message: string): never {
   throw new CharacterRuleActionUnsupportedCompilationError(message)
 }
 
+/** The source actor's maintained effect (Concentration) an entry's result block names, if any. */
+function maintenancePlan(entry: {
+  maintenanceDefinitionId?: string
+}): CharacterRuleActionActiveEffectPlan['maintenance'] {
+  if (!entry.maintenanceDefinitionId) return null
+  uuid(entry.maintenanceDefinitionId, 'D&D maintenance definition identity')
+  return {
+    definitionId: entry.maintenanceDefinitionId,
+    definitionChecksum: null,
+    owner: 'SOURCE_ACTOR',
+    replacementPolicy: 'REPLACE_SAME_DEFINITION',
+    emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+  }
+}
+
 function supportedRecurringPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
@@ -477,18 +492,7 @@ function supportedRecurringPlan(
     recurringStage !== null &&
     !lifecycle.consumeOnFirstEvent &&
     (lifecycle.endOnEvents?.length ?? 0) === 0
-  if (entry.maintenanceDefinitionId)
-    uuid(entry.maintenanceDefinitionId, 'D&D maintenance definition identity')
-  const maintenance: CharacterRuleActionActiveEffectPlan['maintenance'] =
-    entry.maintenanceDefinitionId
-      ? {
-          definitionId: entry.maintenanceDefinitionId,
-          definitionChecksum: null,
-          owner: 'SOURCE_ACTOR',
-          replacementPolicy: 'REPLACE_SAME_DEFINITION',
-          emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
-        }
-      : null
+  const maintenance = maintenancePlan(entry)
   if (
     invocation.kind === 'ACTION' &&
     invocation.triggerCode === 'SAVING_THROW' &&
@@ -1210,7 +1214,6 @@ function modifierGrantPlan(
     initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     (consumeOnFirstEvent !== undefined && consumeOnFirstEvent !== 'ON_ATTACK_ROLL') ||
-    entry.maintenanceDefinitionId ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -1232,7 +1235,7 @@ function modifierGrantPlan(
     },
     adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
-    maintenance: null
+    maintenance: maintenancePlan(entry)
   }
 }
 
@@ -2014,7 +2017,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     entry.resolutionKind !== 'DIRECT' ||
     entry.groupKind !== 'SINGLE' ||
     entry.pathCode !== 'ON_USE' ||
-    (entry.maintenanceDefinitionId && !supportedRecurringPlan(action)) ||
+    (entry.maintenanceDefinitionId && !supportedRecurringPlan(action) && !grantPlan) ||
     ((entry.duration || entry.lifecycle) && !supportedRecurringPlan(action) && !grantPlan) ||
     entry.rangeOverride ||
     entry.targetingOverride

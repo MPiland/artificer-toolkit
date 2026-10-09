@@ -515,6 +515,14 @@ held grant's hit points survive them. The tabletop movement budget is a readout 
 walking-speed grants. Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
 `modifierGrantPlan` leaves them manual until spell casting (SPELLS-8) supplies it.
 
+**Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
+same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a
+dependent of its source's maintained state and ends with it on a failed check, D95 incapacitation or a
+replacing Concentration, through the generic dependent removal. A maintained grant is Encounter-scoped even
+on a Character holder: its maintained state lives in the Run, so it ends with the Run instead of carrying
+over. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
+maintenance definition.
+
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
 damage source against a maintained state, with the DC from that source's total damage. Assisted mode

@@ -7,11 +7,15 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
+import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
+import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
 import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
+import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
+import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
@@ -34,7 +38,7 @@ import {
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
 import { grantPublishedIdentity } from '../testing/modifierGrantFixture.js'
-import { grantOnly } from './antitoxinEffectFixture.js'
+import { grantOnly, protectionFromEnergyChoice } from './antitoxinEffectFixture.js'
 
 const SOURCE_ID = testUuid(0xc301)
 const TARGET_ID = testUuid(0xc302)
@@ -94,9 +98,14 @@ function storedGrant(input: {
   lifecycle: PathLifecycleAuthored
   currentActorId: string | null
   holderId?: string
+  effect?: AuthoredEffect
+  lifetimeScope?: 'OWNER' | 'ENCOUNTER'
 }) {
   const action = characterActionDescriptor(
-    compileEffect({ ...grantOnly(antitoxin(), input.lifecycle), id: ACTION_EFFECT_ID })
+    compileEffect({
+      ...grantOnly(input.effect ?? antitoxin(), input.lifecycle),
+      id: ACTION_EFFECT_ID
+    })
   )
   const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
   const [activeEffectPlan] =
@@ -114,7 +123,7 @@ function storedGrant(input: {
       actorId: holderId,
       conditionIds: [],
       effectiveSize: 'MEDIUM',
-      lifetimeScope: 'ENCOUNTER',
+      lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
       activeEffects: []
     },
     activeEffectsByActorId: new Map(),
@@ -221,6 +230,25 @@ describe('grant plans', () => {
     ).toBe('ON_ATTACK_ROLL')
   })
 
+  it.each([
+    ['Fly', onlyEffect(fly.effects)],
+    ['Heroism', onlyEffect(heroism.effects)],
+    ['Shield of Faith', onlyEffect(shieldOfFaith.effects)],
+    ['Protection from Energy', protectionFromEnergyChoice('Fire')]
+  ])('makes the real %s grant depend on the caster’s Concentration', (_label, effect) => {
+    expect(srdPlan(effect, {}).maintenance).toEqual({
+      definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+      definitionChecksum: null,
+      owner: 'SOURCE_ACTOR',
+      replacementPolicy: 'REPLACE_SAME_DEFINITION',
+      emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+    })
+  })
+
+  it('leaves a grant without Concentration unmaintained', () => {
+    expect(srdPlan(antitoxin(), {}).maintenance).toBeNull()
+  })
+
   it('compiles the real Unicorn Shimmering Shield once its anchor is authored', () => {
     const effect = onlyEffect(
       unicorn.features
@@ -238,6 +266,14 @@ describe('grant plans', () => {
 })
 
 describe('stored grants', () => {
+  it('outlast the Encounter on a Character unless Concentration maintains them', () => {
+    const lifetime = (effect: AuthoredEffect) =>
+      storedGrant({ lifecycle: {}, currentActorId: null, effect, lifetimeScope: 'OWNER' })
+        .definition.recurrence.lifetimeScope
+    expect(lifetime(antitoxin())).toBe('OWNER')
+    expect(lifetime(onlyEffect(shieldOfFaith.effects))).toBe('ENCOUNTER')
+  })
+
   it('are not selected by the turn-effect kernel at either boundary', () => {
     const { definition, lifecycle } = storedGrant({ lifecycle: {}, currentActorId: SOURCE_ID })
     const record = grantRecord({ definition, lifecycle }, { id: 0xc320, holderId: TARGET_ID })

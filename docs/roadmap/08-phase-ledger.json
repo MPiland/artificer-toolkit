@@ -4934,10 +4934,15 @@
             },
             {
               "text": "A grant that needs Concentration ends with it (failed check, D95 incapacitation, a new Concentration); the SRD Concentration spells link their grants and Protection from Energy needs Concentration.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomConcentrationGrant.test.ts (a homebrew Concentration +2 AC Feature: the self ward depends on the Fighter's SRD Concentration state; warding the Wolf replaces the Concentration and ends the Fighter's grant; a GM Sheet edit that paralyzes the Fighter ends the Concentration and its grant (D95))",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Fly, Heroism, Shield of Faith and Protection from Energy grants plan the SRD Concentration maintenance policy; the Antitoxin grant plans none; a maintained grant on a Character is Encounter-scoped while an unmaintained one outlasts the Encounter)",
+                "regression: the failed-check and D95 end paths are the generic dependent removal proved by nativeRoomConcentration, nativeRoomEditConcentrationEnd and nativeMovementConcentrationEnd (rerun green)",
+                "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/source-data/src/srd/spells/fly.ts; packages/source-data/src/srd/spells/heroism.ts; packages/source-data/src/srd/spells/protection-from-energy.ts; packages/source-data/src/srd/spells/shield-of-faith.ts"
+              ],
               "origin": [],
-              "note": "D99. Journey through a homebrew Concentration feature fixture.",
+              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built.",
               "id": "SPELLS-5.7"
             },
             {
@@ -5042,7 +5047,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions. Aid's maximum hit point bonus scales with the slot level (SPELL_SLOT_LEVEL); modifierGrantPlan leaves slot-scaled grants manual until casting resolves the amount.",
+              "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions. Aid's maximum hit point bonus scales with the slot level (SPELL_SLOT_LEVEL); modifierGrantPlan leaves slot-scaled grants manual until casting resolves the amount. Heroism's per-turn temporary hit point entry is not linked to Concentration yet: link it once one cast carries both Heroism entries under one maintenance policy (prepareEncounterActionMaintenance refuses two).",
               "id": "SPELLS-8.3"
             }
           ]

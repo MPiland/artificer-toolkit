@@ -126,26 +126,31 @@ export function viciousMockeryEffect(input: { id: string; holderActorId: string 
   })
 }
 
+/** The SRD Protection from Energy with one energy chosen: its choice path made a fixed path. */
+export function protectionFromEnergyChoice(energyLabel: string): EffectAuthored {
+  const effect = protectionFromEnergy.effects?.[0]
+  const choice = effect?.paths[0]
+  if (!effect || choice?.selectionKind !== 'CHOICE')
+    throw new Error('Protection from Energy has no energy choice.')
+  const option = choice.options.find(({ label }) => label === energyLabel)
+  if (!option) throw new Error(`No ${energyLabel} option.`)
+  const { options: _options, ...path } = choice
+  return {
+    ...effect,
+    paths: [{ ...path, selectionKind: 'FIXED', resultBlock: option.resultBlock }]
+  }
+}
+
 /** The active effect the real compiler plans for the SRD Protection from Energy, choosing one energy. */
 export function protectionFromEnergyEffect(input: {
   id: string
   holderActorId: string
   energyLabel: string
 }) {
-  const effect = protectionFromEnergy.effects?.[0]
-  const choice = effect?.paths[0]
-  if (!effect || choice?.selectionKind !== 'CHOICE')
-    throw new Error('Protection from Energy has no energy choice.')
-  const option = choice.options.find(({ label }) => label === input.energyLabel)
-  if (!option) throw new Error(`No ${input.energyLabel} option.`)
-  const { options: _options, ...path } = choice
   return plannedGrantEffect({
     id: input.id,
     holderActorId: input.holderActorId,
-    effect: {
-      ...effect,
-      paths: [{ ...path, selectionKind: 'FIXED', resultBlock: option.resultBlock }]
-    },
+    effect: protectionFromEnergyChoice(input.energyLabel),
     sourceLabel: protectionFromEnergy.label
   })
 }
