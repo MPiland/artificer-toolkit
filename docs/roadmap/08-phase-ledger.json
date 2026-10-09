@@ -3844,14 +3844,18 @@
           "id": "ENCOUNTER-7",
           "title": "Every turn-stage roll posts one roll card",
           "status": "TODO",
-          "journeyTests": [],
+          "journeyTests": ["apps/session-worker/test/nativeRoomLegendary.test.ts"],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
               "text": "Recharge and Legendary Action dice, whether auto-rolled, app-rolled or entered, each post exactly one roll card routed like other rule rolls (Table for a player's actor, GM private history for a hidden actor, the GM's preference otherwise), as the turn-start death save does.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "apps/session-worker/test/nativeRoomTurnEffects.test.ts",
+                "apps/session-worker/test/nativeRoomLegendary.test.ts",
+                "apps/apis/convex/encounters/turnDeathSave.test.ts"
+              ],
               "origin": [],
               "note": "Found 2026-10-08 in SPELLS-3 slice B: auto-rolled turn-stage dice post no card, so the GM never sees them. Pattern: persistEncounterTurnDeathSave in turnResourcesPersistence.ts.",
               "id": "ENCOUNTER-7.1"
@@ -3859,7 +3863,10 @@
             {
               "text": "An action d20 rolled by the app posts one card, not an attempt card plus a second card at commit.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "apps/session-worker/test/nativeRoomEvidence.test.ts",
+                "apps/session-worker/test/nativeRoomLegendary.test.ts"
+              ],
               "origin": [],
               "note": "Found 2026-10-08: evidenceRolls.ts cards each app attempt and actionCommitPersistence.ts cards the settled d20 again.",
               "id": "ENCOUNTER-7.2"

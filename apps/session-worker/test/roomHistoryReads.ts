@@ -7,8 +7,10 @@ import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encount
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { liveSessionCheckpointRetainedRollSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 
+import { ROOM_PRIVATE_ROLL } from '../src/roomPrivateRolls.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 
 type RoomStub = DurableObjectStub
@@ -78,6 +80,28 @@ export function readPendingActionDecision(stub: RoomStub) {
       encounterVersion: room.documents('encounterRuns')[0]!.version,
       pending
     }
+  })
+}
+
+/**
+ * Every roll card the room holds: the table's roll entries and the GM's private history, each as
+ * its roll record plus the audience it went to.
+ */
+export function readRoomRollCards(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) => {
+    const room = new RoomEncounterStore(context.storage)
+    const table = room
+      .documents('campaignConversationEntryPayloads')
+      .flatMap((payload) =>
+        payload.kind === 'ROLL' && payload.roll
+          ? [{ audience: 'TABLE' as const, roll: payload.roll }]
+          : []
+      )
+    const privateRolls = room
+      .records(ROOM_PRIVATE_ROLL)
+      .map((record) => liveSessionCheckpointRetainedRollSchema.parse(JSON.parse(record.json)))
+      .map(({ record }) => ({ audience: 'PRIVATE' as const, roll: record }))
+    return [...table, ...privateRolls]
   })
 }
 

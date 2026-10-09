@@ -7,6 +7,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
 import { unicorn as srdUnicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
@@ -21,10 +22,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
+import { parseReceiptExecution, readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
 
 const WOLF_ID = testUuid(0x730)
 const CHARACTER_ACTOR_ID = testUuid(0x736)
@@ -229,7 +231,7 @@ async function respond(
   const held = await readLegendaryChoice(room.base.stub)
   if (!held) throw new Error('No Legendary Action choice is pending.')
   const commandId = crypto.randomUUID()
-  await room.send(commandId, {
+  const answer = await room.send(commandId, {
     scope: 'ENCOUNTER',
     command: {
       type: 'RESOLVE_RULE_OCCURRENCE',
@@ -242,7 +244,7 @@ async function respond(
       resolution
     }
   })
-  return held
+  return { ...held, answer }
 }
 
 describe('a room ADVANCE_TURN with Legendary Action windows', () => {
@@ -519,5 +521,226 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
 
   it('keeps the grant through an action that rolls no attack', async () => {
     expect(await legendaryTurnEnd(dragon)).toHaveLength(1)
+  })
+})
+
+describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', () => {
+  /** The Wolf ends its turn and the attacking dragon strikes it; the d20 card kinds that result. */
+  async function strike(options: { autoRoll?: 'GAME_MASTER'; rolls: number[] }) {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      ...options
+    })
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const choice = await readLegendaryChoice(room.base.stub)
+    const option = choice?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    const { answer } = await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    return { room, answer }
+  }
+
+  async function d20Cards(room: Awaited<ReturnType<typeof movementRoom>>) {
+    return (await readRoomRollCards(room.base.stub))
+      .filter(({ roll }) => roll.source.kind !== 'DAMAGE')
+      .map(({ audience, roll }) => ({ audience, kind: roll.source.kind }))
+  }
+
+  /** The d20 prompt the dragon's strike raised, from the answer that raised it. */
+  function pendingD20(answer: Awaited<ReturnType<typeof strike>>['answer']) {
+    if (
+      answer.type !== 'COMMAND_COMMITTED' ||
+      answer.delta?.scope !== 'ENCOUNTER' ||
+      !('occurrence' in answer.delta.result)
+    )
+      throw new Error('Expected the pending occurrence in the answer.')
+    const decision = answer.delta.result.occurrence?.pending
+    if (!decision || !('request' in decision)) throw new Error('Expected a d20 prompt.')
+    return decision
+  }
+
+  function answerD20(
+    room: Awaited<ReturnType<typeof movementRoom>>,
+    decision: { encounterVersion: number; occurrenceId: string; occurrenceVersion: number },
+    command: Record<string, unknown>
+  ) {
+    const commandId = crypto.randomUUID()
+    return room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: decision.encounterVersion,
+        occurrenceId: decision.occurrenceId,
+        expectedOccurrenceVersion: decision.occurrenceVersion,
+        ...command
+      }
+    })
+  }
+
+  it('cards an auto-rolled d20 once', async () => {
+    const { room } = await strike({ autoRoll: 'GAME_MASTER', rolls: [18] })
+    expect(await d20Cards(room)).toEqual([{ audience: 'TABLE', kind: 'ATTACK' }])
+  })
+
+  it('cards an entered d20 once', async () => {
+    const { room, answer } = await strike({ rolls: [] })
+    const decision = pendingD20(answer)
+    const resolved = await answerD20(room, decision, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      correlationId: null,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: decision.request.requestId,
+        rawFaces: [15],
+        rollMode: 'NORMAL'
+      }
+    })
+    expect(resolved.type).toBe('COMMAND_COMMITTED')
+    expect(await d20Cards(room)).toEqual([{ audience: 'TABLE', kind: 'ATTACK' }])
+  })
+
+  it('cards an app-rolled d20 once, as its attempt', async () => {
+    const { room, answer } = await strike({ rolls: [13] })
+    const decision = pendingD20(answer)
+    const rolled = await answerD20(room, decision, {
+      type: 'ROLL_RULE_EVIDENCE',
+      requestId: decision.request.requestId,
+      rollMode: null
+    })
+    expect(rolled.type).toBe('COMMAND_COMMITTED')
+    const [held] = (await readRoomHistory(room.base.stub)).evidenceRolls
+    const resolved = await answerD20(room, decision, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      correlationId: null,
+      resolution: {
+        kind: 'SYSTEM_ROLL',
+        requestId: decision.request.requestId,
+        rollId: held!.id
+      }
+    })
+    expect(resolved.type).toBe('COMMAND_COMMITTED')
+    expect(await d20Cards(room)).toEqual([{ audience: 'TABLE', kind: 'MANUAL' }])
+  })
+
+  it('cards each die of one turn once: an app-rolled attack, an entered Legendary d20 and an entered Recharge d6', async () => {
+    const attackWolf = biteWolf('ATTACK')
+    const rechargeDragon: CreatureAuthored = {
+      ...attackDragon,
+      id: testUuid(0x73b),
+      features: attackDragon.features?.map((feature) =>
+        feature.label !== 'Bite'
+          ? feature
+          : {
+              ...feature,
+              ruleDefinitionIds: [DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+              charges: {
+                id: testUuid(0x73a),
+                limitKind: 'FIXED_AMOUNT' as const,
+                scalingKind: 'NONE' as const,
+                resetKind: 'MANUAL' as const,
+                amount: 1
+              }
+            }
+      )
+    }
+    const acting = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: attackWolf }),
+        srdCreatureActor({
+          id: FIRST_DRAGON_ID,
+          creature: rechargeDragon,
+          featureCharges: { [creatureFeature(rechargeDragon, 'Bite').id]: 1 }
+        })
+      ],
+      ownerFeatureId: creatureFeature(attackWolf, 'Bite').id,
+      // The app's one die shows 9; every other die is entered.
+      rolls: [8]
+    })
+    // The Wolf's attack: the app rolls its d20 and that roll settles it.
+    expect((await acting.startAction(FIRST_DRAGON_ID)).answer.type).toBe('COMMAND_COMMITTED')
+    const attack = await acting.pendingDecision()
+    if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a d20 roll prompt.')
+    expect((await acting.rollDice(attack)).type).toBe('COMMAND_COMMITTED')
+    const [held] = (await readRoomHistory(acting.room.base.stub)).evidenceRolls
+    expect(
+      (
+        await acting.resolve(attack, {
+          kind: 'SYSTEM_ROLL',
+          requestId: attack.pending.request.requestId,
+          rollId: held!.id
+        })
+      ).type
+    ).toBe('COMMAND_COMMITTED')
+
+    // Ending the Wolf's turn: the dragon strikes (entered d20), then its Bite recharges (entered d6).
+    await acting.advanceTurn()
+    const { room } = acting
+    const choice = await readLegendaryChoice(room.base.stub)
+    const option = choice?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    const struck = await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId: WOLF_ID
+    })
+    const strikeDecision = pendingD20(struck.answer)
+    const entered = await answerD20(room, strikeDecision, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      correlationId: null,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: strikeDecision.request.requestId,
+        rawFaces: [15],
+        rollMode: 'NORMAL'
+      }
+    })
+    if (
+      entered.type !== 'COMMAND_COMMITTED' ||
+      entered.delta?.scope !== 'ENCOUNTER' ||
+      !('occurrence' in entered.delta.result)
+    )
+      throw new Error('Expected the Recharge prompt in the answer.')
+    const rechargeDecision = entered.delta.result.occurrence?.pending
+    if (rechargeDecision?.kind !== 'RECHARGE_EVIDENCE')
+      throw new Error('Expected a Recharge decision.')
+    const recharged = await answerD20(room, rechargeDecision, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      correlationId: null,
+      resolution: {
+        kind: 'ENTER_INTEGER',
+        requestId: rechargeDecision.request.requestId,
+        value: 5
+      }
+    })
+    expect(recharged.type).toBe('COMMAND_COMMITTED')
+
+    expect(
+      (await readRoomRollCards(room.base.stub))
+        .filter(({ roll }) => roll.source.kind !== 'DAMAGE')
+        .map(({ audience, roll }) => ({ audience, kind: roll.source.kind }))
+    ).toEqual([
+      { audience: 'TABLE', kind: 'MANUAL' },
+      { audience: 'TABLE', kind: 'ATTACK' },
+      { audience: 'TABLE', kind: 'RECHARGE' }
+    ])
   })
 })
