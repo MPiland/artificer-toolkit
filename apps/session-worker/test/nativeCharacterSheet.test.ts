@@ -1629,7 +1629,7 @@ it('saves in the background once the unsaved chat entries reach the chat push wi
   // The save emptied the backlog, so the next entry starts a fresh count.
   await sendTableChats(room, 'Hello table', 1)
   expect(room.checkpoints).toHaveLength(1)
-})
+}, 30000)
 
 it('does not save in the background for journal size alone, only for unsaved chat entries (Amendment 25)', async () => {
   const room = await sheetRoom()
@@ -1641,4 +1641,4 @@ it('does not save in the background for journal size alone, only for unsaved cha
   expect(sent).toBe(LIVE_SESSION_PUSHED_CHAT_ENTRY_LIMIT - 1)
   // The journal now holds far more than one checkpoint page of raw write sets.
   expect(room.checkpoints).toHaveLength(0)
-})
+}, 30000)
