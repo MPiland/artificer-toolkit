@@ -470,8 +470,15 @@ never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts
 anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A `consumeOnFirstEvent: 'ON_ATTACK_ROLL'` grant is deleted by its holder's next
 attack-roll action (not a save action) and stored on the command as `consumedGrants`, which GM undo
-restores, mirroring Help's ally advantage. Known limits: a SOURCE-anchored grant whose source leaves the Run
-keeps its count until the Run ends; opportunity attacks and Disarm do not consume grants.
+restores, mirroring Help's ally advantage (`consumedGrantPersistence` in encounter-persistence). Every
+attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
+their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
+rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
+SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
+applied in `cleanupRemovedActorEffects` and listed in `removedEffects`). A skipped (defeated or
+out-of-initiative) actor's turn still ticks both boundaries in the turn commit that skips it, so a
+Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
+through its skipped turns.
 
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per

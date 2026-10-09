@@ -10,7 +10,10 @@ import {
   dnd5eCharacterRuleActionSystemAdapter
 } from '../systems/dnd5e/effectActionCompiler.js'
 import type { CharacterActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
-import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDescriptor.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'

@@ -16,7 +16,11 @@ import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
-import { attackRollConsumableGrants, planEncounterGrantTicks } from '../encounterGrantLifetimes.js'
+import {
+  attackRollConsumableGrants,
+  planDepartedSourceGrantRemovals,
+  planEncounterGrantTicks
+} from '../encounterGrantLifetimes.js'
 import { isTurnEffectEligible } from '../encounterTurnEffectState.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
@@ -26,7 +30,10 @@ import {
   creatureActor,
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
-import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDescriptor.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 
 const SOURCE_ID = testUuid(0xc301)
 const TARGET_ID = testUuid(0xc302)
@@ -426,5 +433,74 @@ describe('attackRollConsumableGrants', () => {
     expect(attackRollConsumableGrants([plain, consumable]).map(({ id }) => id)).toEqual([
       consumable.id
     ])
+  })
+})
+
+describe('planDepartedSourceGrantRemovals', () => {
+  const sourceAnchored = { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } } as const
+  const grant = (input: { id: number; holderId: string; lifecycle?: PathLifecycleAuthored }) =>
+    grantRecord(
+      storedGrant({ lifecycle: input.lifecycle ?? sourceAnchored, currentActorId: null }),
+      { id: input.id, holderId: input.holderId, remainingTicks: 1 }
+    )
+  const plan = (holders: Parameters<typeof planDepartedSourceGrantRemovals>[0]['holders']) =>
+    planDepartedSourceGrantRemovals({
+      encounterId: ENCOUNTER_ID,
+      departedActorId: SOURCE_ID,
+      holders
+    })
+
+  it('ends a grant whose source anchor left the Run, whoever holds it', () => {
+    const held = grant({ id: 0xc350, holderId: TARGET_ID })
+    const alsoHeld = grant({ id: 0xc351, holderId: OTHER_ID })
+    expect(
+      plan([
+        { actor: holder(TARGET_ID).actor, effects: [held] },
+        { actor: holder(OTHER_ID).actor, effects: [alsoHeld] }
+      ]).map(({ id }) => id)
+    ).toEqual([held.id, alsoHeld.id])
+  })
+
+  it('ends a Character-held grant anchored to the departed source', () => {
+    const stored = storedGrant({ lifecycle: sourceAnchored, currentActorId: null })
+    const effect = prepareActiveRuleEffectRecord({
+      id: testUuid(0xc352),
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+      definition: stored.definition,
+      lifecycle: { schemaVersion: 1, remainingTicks: 1 },
+      currentEffects: [],
+      occurredAt: TIMESTAMP
+    })
+    const actor = characterActor({ id: TARGET_ID, characterId: CHARACTER_ID })
+    expect(plan([{ actor, effects: [effect] }]).map(({ id }) => id)).toEqual([effect.id])
+  })
+
+  it('leaves a holder-anchored grant to its own lifetime', () => {
+    const holderAnchored = grant({ id: 0xc353, holderId: TARGET_ID, lifecycle: {} })
+    expect(plan([{ actor: holder(TARGET_ID).actor, effects: [holderAnchored] }])).toEqual([])
+  })
+
+  it('leaves a grant anchored to another source untouched', () => {
+    const effect = grant({ id: 0xc354, holderId: TARGET_ID })
+    const other = {
+      ...effect,
+      definition: {
+        ...effect.definition,
+        origin: { ...effect.definition.origin, sourceActorId: OTHER_ID }
+      }
+    }
+    expect(plan([{ actor: holder(TARGET_ID).actor, effects: [other] }])).toEqual([])
+  })
+
+  it('leaves another Encounter’s grant alone', () => {
+    const effect = grant({ id: 0xc355, holderId: TARGET_ID })
+    const foreign = {
+      ...effect,
+      definition: {
+        ...effect.definition,
+        origin: { ...effect.definition.origin, sourceAggregateId: testUuid(0xc3fe) }
+      }
+    }
+    expect(plan([{ actor: holder(TARGET_ID).actor, effects: [foreign] }])).toEqual([])
   })
 })

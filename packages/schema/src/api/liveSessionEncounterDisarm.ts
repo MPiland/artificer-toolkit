@@ -1,4 +1,6 @@
 import { z, lazySchema } from '../zod.js'
+import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
+import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
 import { serverOptionalCombatContestPendingContextDtoSchema } from '../shared/ruleExecutionOptionalCombatPending.js'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
@@ -59,6 +61,8 @@ export type LiveSessionEncounterDisarmCommitInput = Omit<
   rules: z.infer<typeof encounterActorRuleOutputSchema>
   /** The Helps (basic action, Q11) the contest's rolls used; the commit removes them. */
   allyAdvantageUses: EncounterAllyAdvantageUseDto[]
+  /** The initiator's one-roll grants the contest's attack roll used up; the commit deletes them. */
+  consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
 }
 
 export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSessionEncounterDisarmCommitInput> =
@@ -68,6 +72,9 @@ export const liveSessionEncounterDisarmCommitInputSchema: z.ZodMiniType<LiveSess
       contest: serverOptionalCombatContestPendingContextDtoSchema,
       execution: storedRuleExecutionResultDtoSchema,
       rules: encounterActorRuleOutputSchema,
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
   )

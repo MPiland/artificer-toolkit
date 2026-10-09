@@ -3,7 +3,10 @@ import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/anti
 
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
-import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDescriptor.js'
+import {
+  ACTION_EFFECT_ID,
+  characterActionDescriptor
+} from '../testing/characterActionDescriptor.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
 /** The active effect the real compiler plans for drinking the SRD Antitoxin, held by the actor. */

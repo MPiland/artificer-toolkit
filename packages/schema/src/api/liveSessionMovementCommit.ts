@@ -9,7 +9,10 @@ import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import { liveSessionCharacterResourceConsumptionSchema } from './liveSessionEncounterAction.js'
 import { liveSessionEncounterMaintenanceOwnerRequestSchema } from './liveSessionEncounterRules.js'
-import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '../shared/activeRuleEffects.js'
+import {
+  MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
+  MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+} from '../shared/activeRuleEffects.js'
 import {
   spatialMovementExecutionDtoSchema,
   spatialEffectTransitionEntryDtoSchema
@@ -50,7 +53,11 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
       /** The Help (basic action, Q11) the reactor's attack roll used. */
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+      /** The reactor's one-roll grants the attack roll used up; the commit deletes them. */
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
     z.strictObject({
       kind: z.literal('CONCENTRATION'),

@@ -59,6 +59,7 @@ import {
   encounterAllyAdvantageUses,
   encounterBasicActionAllyAdvantage
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import {
   discoverEncounterMovementPassage,
@@ -253,6 +254,13 @@ export async function prepareNativeLiveMovement(
                 { actorId: prepared.actor.id, contributors: prepared.relationshipContributors }
               ]
             })
+          : [],
+      // The same attack roll uses up the reactor's one-roll grants (Vicious Mockery's disadvantage).
+      consumedGrants:
+        typeof prepared.binding.actionMechanic.attackBonus === 'number'
+          ? attackRollConsumableGrants(
+              prepared.movementTargets.get(prepared.actor.id)?.activeEffects ?? []
+            )
           : [],
       execution: result.reactionExecution,
       resourceConsumption: plan.prepared.prepared.characterActionState?.resourceConsumption ?? null,

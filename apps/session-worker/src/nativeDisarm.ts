@@ -26,6 +26,7 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import {
   resolveEncounterD20Answer,
   withEncounterAppRoll
@@ -368,6 +369,8 @@ export async function planNativeLiveDisarm(
       allyAdvantageUses: [initiatorHelp, defenderHelp].flatMap((help) =>
         help ? [{ helperActorId: help.helperActorId, effect: help.effect }] : []
       ),
+      // The initiator's attack roll uses up its one-roll grants (Vicious Mockery's disadvantage).
+      consumedGrants: attackRollConsumableGrants(activeEffectsByActorId.get(actor.id) ?? []),
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,

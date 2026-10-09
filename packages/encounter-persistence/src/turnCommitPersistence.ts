@@ -6,7 +6,10 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { applyEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
+import {
+  applyEncounterInitiativeAdvance,
+  skippedActorIdsOfAdvance
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
   legendaryActionDamage,
@@ -29,6 +32,7 @@ import { readEncounterInitiativeRound } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
+import { deleteHeldAttackRollGrants } from './consumedGrantPersistence.js'
 import { persistEncounterGrantTicks } from './grantTickPersistence.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import {
@@ -178,6 +182,16 @@ export async function persistEncounterTurnCommit(
     stage: 'END_OF_TURN',
     turnActorId: state.currentActorId
   })
+  // A Legendary Action that rolled an attack uses up its owner's one-roll grants. These windows have
+  // no GM undo, so nothing records what was deleted.
+  await deleteHeldAttackRollGrants(ctx, {
+    state,
+    actorIds: new Set(
+      (root.completedLegendaryActions ?? []).flatMap(({ choice, resolution }) =>
+        resolution.kind === 'EXECUTED' && resolution.attackRoll ? [choice.ownerActorId] : []
+      )
+    )
+  })
   await persistEncounterTurnResources(
     ctx,
     {
@@ -220,6 +234,20 @@ export async function persistEncounterTurnCommit(
       )
     })
   }
+  // A skipped turn still passes in its place in the initiative order, so grants anchored to its
+  // actor count both of its boundaries.
+  const openerId = root.proposedTerminalTransition.currentActorId
+  for (const turnActorId of [
+    ...(advance && original ? skippedActorIdsOfAdvance({ state: original, plan: advance }) : []),
+    ...(root.initiative && openerId !== null
+      ? root.initiative.orderedActorIds.slice(
+          0,
+          Math.max(0, root.initiative.orderedActorIds.indexOf(openerId))
+        )
+      : [])
+  ])
+    for (const stage of ['START_OF_TURN', 'END_OF_TURN'] as const)
+      await persistEncounterGrantTicks(ctx, { state, stage, turnActorId })
   await persistEncounterTurnDeathSave(
     ctx,
     { state, campaign, root, occurrenceId: input.occurrenceId, occurredAt: input.occurredAt },

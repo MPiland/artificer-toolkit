@@ -32,6 +32,41 @@ export function attackRollConsumableGrants(effects: readonly ActiveRuleEffectRec
   )
 }
 
+/** The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied it. */
+function grantAnchorActorId(
+  effect: ActiveRuleEffectRecord,
+  holderActorId: string,
+  encounterId: string
+) {
+  const { expiration } = effect.definition.recurrence
+  if (expiration.kind !== 'TICKS') return null
+  if (expiration.anchor !== 'SOURCE') return holderActorId
+  const { origin } = effect.definition
+  return origin.kind === 'ENCOUNTER' && origin.sourceAggregateId === encounterId
+    ? origin.sourceActorId
+    : null
+}
+
+/**
+ * Timed grants anchored to an actor that left the Run can no longer count down, so they end with
+ * it. Holder-anchored grants keep their own lifetime.
+ */
+export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectRecord>(input: {
+  encounterId: string
+  departedActorId: string
+  holders: readonly { actor: GrantHolder['actor']; effects: readonly Effect[] }[]
+}): Effect[] {
+  return input.holders.flatMap(({ actor, effects }) =>
+    effects.filter(
+      (effect) =>
+        isModifierGrant(effect) &&
+        effect.definition.recurrence.expiration.kind === 'TICKS' &&
+        effect.definition.recurrence.expiration.anchor === 'SOURCE' &&
+        grantAnchorActorId(effect, actor.id, input.encounterId) === input.departedActorId
+    )
+  )
+}
+
 /**
  * Grants count down at the boundary of their anchor actor's turn rather than through the
  * turn-effect kernel (they store no recurrence stage), so the kernel never owns them.
@@ -45,7 +80,7 @@ export function planEncounterGrantTicks(input: {
   const ticks: EncounterGrantTick[] = []
   for (const { actor, effects } of input.holders) {
     for (const effect of effects) {
-      const { recurrence, origin } = effect.definition
+      const { recurrence } = effect.definition
       const expiration = recurrence.expiration
       const remaining = effect.lifecycle.remainingTicks
       if (
@@ -57,13 +92,7 @@ export function planEncounterGrantTicks(input: {
         !isEffectLiveInEncounter(effect, actor, input.encounterId)
       )
         continue
-      const anchorId =
-        expiration.anchor === 'SOURCE'
-          ? origin.kind === 'ENCOUNTER' && origin.sourceAggregateId === input.encounterId
-            ? origin.sourceActorId
-            : null
-          : actor.id
-      if (anchorId !== input.turnActorId) continue
+      if (grantAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId) continue
       const owner = turnEffectOwner(actor, input.encounterId)
       ticks.push(
         remaining <= 1

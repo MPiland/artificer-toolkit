@@ -33,18 +33,22 @@ function shortGrantVial(lifecycle: PathLifecycleAuthored): typeof antitoxinVial 
     ...antitoxinVial,
     effects: antitoxinVial.effects?.map((effect) => ({
       ...effect,
-      paths: effect.paths.map((path) => ({
-        ...path,
-        resultBlock: {
-          ...path.resultBlock,
-          duration: path.resultBlock.duration && {
-            ...path.resultBlock.duration,
-            durationKind: 'ROUND' as const,
-            amount: 1
-          },
-          lifecycle: { ...path.resultBlock.lifecycle, ...lifecycle }
-        }
-      }))
+      paths: effect.paths.map((path) =>
+        path.selectionKind !== 'FIXED'
+          ? path
+          : {
+              ...path,
+              resultBlock: {
+                ...path.resultBlock,
+                duration: path.resultBlock.duration && {
+                  ...path.resultBlock.duration,
+                  durationKind: 'ROUND' as const,
+                  amount: 1
+                },
+                lifecycle: { ...path.resultBlock.lifecycle, ...lifecycle }
+              }
+            }
+      )
     }))
   }
 }

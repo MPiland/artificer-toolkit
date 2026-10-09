@@ -330,6 +330,7 @@ export async function prepareTurnLegendaryActions<
         kind: 'EXECUTED',
         selectedOptionId: selection.optionId,
         targetActorId: target.id,
+        attackRoll: typeof prepared.binding.actionMechanic.attackBonus === 'number',
         execution: result.execution,
         initialFactsChecksum: result.initialFactsChecksum,
         ...(result.phaseReceipts ? { phaseReceipts: result.phaseReceipts } : {}),

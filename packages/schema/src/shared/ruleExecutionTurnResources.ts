@@ -327,6 +327,8 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           kind: z.literal('EXECUTED'),
           selectedOptionId: checksumSchema,
           targetActorId: uuidSchema,
+          /** Whether the owner rolled an attack, which uses up its one-roll grants at commit. */
+          attackRoll: z.boolean(),
           execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
           initialFactsChecksum: checksumSchema,
           phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema)),

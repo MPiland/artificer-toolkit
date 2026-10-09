@@ -1,5 +1,8 @@
 import { maintenanceCompleteRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResults'
 
+import { planDepartedSourceGrantRemovals } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterCharacterRow } from './characterPlay.js'
@@ -62,6 +65,19 @@ export async function cleanupRemovedActorEffects(
     targetActorId: input.actorId
   })
   addEffects(actorOwned)
+  // Timed grants the departing actor applied can no longer count down on its turns, so they end too.
+  addEffects(
+    planDepartedSourceGrantRemovals({
+      encounterId: input.state.id,
+      departedActorId: input.actorId,
+      holders: await Promise.all(
+        (await readRunActors(ctx, input.state)).map(async (actor) => ({
+          actor,
+          effects: await effects.list(turnEffectOwner(actor, input.state.id))
+        }))
+      )
+    })
+  )
   for (const effect of actorOwned) {
     if (!effect.maintainedEffectStateId || states.has(effect.maintainedEffectStateId)) continue
     const state = await effects.findMaintainedStateById({
