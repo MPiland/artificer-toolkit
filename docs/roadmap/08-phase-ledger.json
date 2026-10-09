@@ -5094,6 +5094,40 @@
               "id": "SPELLS-10.6"
             }
           ]
+        },
+        {
+          "id": "SPELLS-11",
+          "title": "Single-use items are used up",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Using a single-use item (a potion, a vial such as Antitoxin) removes one from the holder's equipment, whether the holder drinks it or administers it to another creature.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-08 from SPELLS-5: the SRD Antitoxin (vial) carries no charges or consumption data, so using it leaves it in the holder's equipment.",
+              "id": "SPELLS-11.1"
+            },
+            {
+              "text": "The last one used removes the item from the holder's equipment, and an item the holder no longer carries cannot be used.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered with SPELLS-11.1.",
+              "id": "SPELLS-11.2"
+            },
+            {
+              "text": "GM undo of the use gives the item back to the holder's equipment.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered with SPELLS-11.1; SPELLS-5.2 proves undo returns the Action and removes the grant.",
+              "id": "SPELLS-11.3"
+            }
+          ]
         }
       ]
     },
