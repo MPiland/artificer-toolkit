@@ -407,6 +407,28 @@ describe('VTT scene contracts', () => {
     ).toBe(false)
   })
 
+  it('lets only a voluntary move name a speed type, and none is allowed (SPELLS-5.6)', () => {
+    const move = (movementKind: string, speedId?: string | null) => ({
+      commandId: ids.campaign,
+      correlationId: null,
+      expectedEncounterVersion: null,
+      expectedSceneVersion: 3,
+      movementKind,
+      path: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ],
+      sceneId: ids.scene,
+      tokenId: ids.token,
+      type: 'MOVE_SCENE_TOKEN',
+      ...(speedId !== undefined && { speedId })
+    })
+    expect(sceneCommandInputDtoSchema.safeParse(move('VOLUNTARY')).success).toBe(true)
+    expect(sceneCommandInputDtoSchema.safeParse(move('VOLUNTARY', ids.token)).success).toBe(true)
+    expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', ids.token)).success).toBe(false)
+    expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', null)).success).toBe(true)
+  })
+
   it('validates movement paths, GM undo commands, and exact fog replacement ownership', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({

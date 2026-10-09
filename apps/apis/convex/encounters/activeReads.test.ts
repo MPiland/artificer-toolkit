@@ -60,6 +60,14 @@ const saveSettings = makeFunctionReference<
   SaveCampaignPlaySettingsInput,
   CampaignPlaySettingsDto
 >('campaigns/playSettings:save')
+/** A creature's turn movement entry: one walking allowance, no move yet naming a speed type. */
+const walking = (actorId: string | undefined, used: number, budget: number) => ({
+  actorId,
+  used,
+  speedId: null,
+  allowances: [expect.objectContaining({ code: 'WALK', budget })]
+})
+
 const pending = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -206,6 +214,7 @@ it('reads the active projection and pending decision together with existing visi
       turnActorId: state.currentActorId,
       actorId: hiddenActor.id,
       usedFeet: 15,
+      speedId: null,
       // One Dash this turn adds the walking speed to the budget once (D38).
       speedBonuses: 1
     })
@@ -218,10 +227,7 @@ it('reads the active projection and pending decision together with existing visi
     pending: await base.owner.caller.query(pending, { encounterId: run.id }),
     waitingOn: null,
     // The GM sees every actor's movement this turn against its stat block's walking speed.
-    turnMovement: expect.arrayContaining([
-      { actorId: visible?.id, used: 0, budget: 40 },
-      { actorId: hidden?.id, used: 15, budget: 80 }
-    ])
+    turnMovement: expect.arrayContaining([walking(visible?.id, 0, 40), walking(hidden?.id, 15, 80)])
   })
   expect(ownerState.turnMovement).toHaveLength(2)
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })

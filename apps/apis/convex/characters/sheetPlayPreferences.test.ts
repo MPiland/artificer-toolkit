@@ -59,7 +59,7 @@ describe('Character play preference acknowledgements', () => {
             : { ...before.character!.play.state, partyVisibility: { sheet: true, health: 'BAR' } }
         expect(readCharacterPlay(after.character!.play)).toEqual(expectedState)
         expect(after.character!.play.maximumHitPoints).toBe(before.character!.play.maximumHitPoints)
-        expect(after.character!.play.walkingSpeed).toBe(before.character!.play.walkingSpeed)
+        expect(after.character!.play.speeds).toEqual(before.character!.play.speeds)
         expect(Date.parse(after.character!.play.updatedAt)).toBeGreaterThan(
           Date.parse(before.character!.play.updatedAt)
         )

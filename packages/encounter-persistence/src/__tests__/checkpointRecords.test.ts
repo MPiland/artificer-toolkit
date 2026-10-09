@@ -13,7 +13,7 @@ const play: EncounterStoreDocuments['characterPlayStates'] = {
   userId,
   streamVersion: 7,
   maximumHitPoints: 10,
-  walkingSpeed: 30,
+  speeds: [{ speedId: '00000000-0000-4000-8000-000000000003', amount: 30, unit: 'FEET' as const }],
   state: {
     hitpoints: { current: 10, hitDice: [], deathSaves: NO_DEATH_SAVES },
     equipped: [],
@@ -71,7 +71,11 @@ describe('checkpoint record decoding', () => {
     expect(checksumCanonicalJson(advanced)).not.toBe(checksumCanonicalJson(decoded))
     for (const metadata of [
       { maximumHitPoints: 11 },
-      { walkingSpeed: 35 },
+      {
+        speeds: [
+          { speedId: '00000000-0000-4000-8000-000000000003', amount: 35, unit: 'FEET' as const }
+        ]
+      },
       { checksum: 'b'.repeat(64) },
       { updatedAt: '2026-09-30T00:00:01.000Z' }
     ])

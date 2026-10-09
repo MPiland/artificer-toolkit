@@ -418,7 +418,7 @@ describe('native Character live holds', () => {
           document: { ...document, state: { ...document.state, inspiration: false } },
           stats: {
             maximumHitPoints: current.play.maximumHitPoints,
-            walkingSpeed: current.play.walkingSpeed
+            speeds: current.play.speeds
           }
         })
       })
@@ -460,7 +460,7 @@ describe('native Character live holds', () => {
     expect(after.character!.play.state).not.toHaveProperty('inspiration')
     expect(after.character!.play.checksum).not.toBe(edited.character!.play.checksum)
     expect(after.character!.play.maximumHitPoints).toBe(edited.character!.play.maximumHitPoints)
-    expect(after.character!.play.walkingSpeed).toBe(edited.character!.play.walkingSpeed)
+    expect(after.character!.play.speeds).toEqual(edited.character!.play.speeds)
     expect(after.character!.checksum).toBe(edited.character!.checksum)
   })
 })

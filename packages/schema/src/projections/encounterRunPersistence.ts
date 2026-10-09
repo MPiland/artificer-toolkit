@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { projectionChecksumSchema } from './identity.js'
 import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
@@ -117,7 +118,8 @@ export type EncounterStoredEvidenceRoll = z.infer<typeof encounterStoredEvidence
  * and current actor, so a new turn reads a new key and starts at zero. It sits outside the Run's
  * version and checksum: the budget is displayed, never enforced, so no fence reads it.
  * `speedBonuses` counts the basic actions this turn that each added the actor's speed to its
- * budget (Dash, D38).
+ * budget (Dash, D38). `speedId` is the speed type the actor's latest move this turn named
+ * (SPELLS-5.6); null until a move names one.
  */
 export const encounterStoredTurnMovementSchema = lazySchema(() =>
   z.strictObject({
@@ -126,6 +128,7 @@ export const encounterStoredTurnMovementSchema = lazySchema(() =>
     turnActorId: postgresUuidSchema,
     actorId: postgresUuidSchema,
     usedFeet: z.number().check(z.nonnegative()),
+    speedId: z.nullable(authoredIdentifierSchema),
     speedBonuses: z.number().check(z.int()).check(z.nonnegative())
   })
 )

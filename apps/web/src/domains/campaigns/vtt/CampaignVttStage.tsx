@@ -75,6 +75,7 @@ import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDraw
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReadout'
+import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model'
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import * as styles from './CampaignVttStage.css'
@@ -116,6 +117,11 @@ export function CampaignVttStage({
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
+  // The speed type the member chose for an actor's movement; it applies to that actor only.
+  const [movementSpeedChoice, setMovementSpeedChoice] = useState<{
+    actorId: string
+    speedId: string
+  } | null>(null)
   const fogOwnerUserIdRef = useRef<string | null>(null)
   fogOwnerUserIdRef.current = fogOwnerUserId
   // Each ping replaces the announcement's content, so a repeated ping is announced again.
@@ -714,6 +720,20 @@ export function CampaignVttStage({
     })
   }
 
+  /** The speed type the token's actor moves at: the readout's selection, which a move names. */
+  function movingSpeedId(tokenId: string): string | null {
+    const actorId = actorIdByTokenId.get(tokenId)
+    const movement = encounterSessionState?.turnMovement.find((entry) => entry.actorId === actorId)
+    return movement
+      ? (selectMovementAllowance(
+          movement,
+          movementSpeedChoice && movementSpeedChoice.actorId === actorId
+            ? movementSpeedChoice.speedId
+            : null
+        )?.speedId ?? null)
+      : null
+  }
+
   function commitTokenMove(tokenId: string, path: ScenePoint[]): void {
     const current = sceneRef.current
     if (!current || path.length < 2) return
@@ -736,6 +756,7 @@ export function CampaignVttStage({
       movementKind: 'VOLUNTARY',
       path,
       sceneId: current.id,
+      speedId: mechanicsEncounter ? movingSpeedId(tokenId) : null,
       tokenId,
       type: 'MOVE_SCENE_TOKEN'
     }
@@ -1046,8 +1067,15 @@ export function CampaignVttStage({
           {activeEncounter && currentTurnMovement ? (
             <CampaignTabletopMovementReadout
               automationMode={activeEncounter.automationMode}
-              budget={currentTurnMovement.budget}
-              used={currentTurnMovement.used}
+              chosenSpeedId={
+                movementSpeedChoice?.actorId === currentTurnMovement.actorId
+                  ? movementSpeedChoice.speedId
+                  : null
+              }
+              movement={currentTurnMovement}
+              onChooseSpeed={(speedId) =>
+                setMovementSpeedChoice({ actorId: currentTurnMovement.actorId, speedId })
+              }
             />
           ) : null}
           {currentActorMine &&

@@ -14,10 +14,7 @@ import {
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { withActiveGrantSpeeds } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import {
-  resolveWalkingSpeedFeet,
-  WALK_SPEED_CODE
-} from '@artificer-toolkit/rules-runtime/walkingSpeed'
+import { resolveSpeedsFeet } from '@artificer-toolkit/rules-runtime/walkingSpeed'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { isDepartedCharacterActor } from './characterStates.js'
 import { readEncounterControlledActorIds } from './actorController.js'
@@ -38,7 +35,13 @@ function currentTurn(state: RunTurnState) {
 /** Adds to an actor's record for the current turn, creating it at zero (D38). */
 async function addTurnMovement(
   ctx: EncounterWriteContext,
-  input: { state: RunTurnState; actorId: string; usedFeet: number; speedBonuses: number }
+  input: {
+    state: RunTurnState
+    actorId: string
+    usedFeet: number
+    speedId: string | null
+    speedBonuses: number
+  }
 ) {
   const turn = currentTurn(input.state)
   if (!turn) throw new Error('Turn movement needs a current turn.')
@@ -55,6 +58,7 @@ async function addTurnMovement(
   if (row)
     await ctx.db.patch(row._id, {
       usedFeet: row.usedFeet + input.usedFeet,
+      speedId: input.speedId ?? row.speedId,
       speedBonuses: row.speedBonuses + input.speedBonuses
     })
   else
@@ -64,6 +68,7 @@ async function addTurnMovement(
         ...turn,
         actorId: input.actorId,
         usedFeet: input.usedFeet,
+        speedId: input.speedId,
         speedBonuses: input.speedBonuses
       })
     )
@@ -71,17 +76,19 @@ async function addTurnMovement(
 
 /**
  * Adds an actor's voluntary movement to its record for the current turn (D38). It never writes the
- * Run, so it bumps no version and adds no contention to Encounter commands.
+ * Run, so it bumps no version and adds no contention to Encounter commands. The speed type it names
+ * (null when none) becomes the actor's latest this turn.
  */
 export async function recordTurnMovement(
   ctx: EncounterWriteContext,
-  input: { state: RunTurnState; actorId: string; feet: number }
+  input: { state: RunTurnState; actorId: string; feet: number; speedId: string | null }
 ) {
   if (!currentTurn(input.state) || input.feet <= 0) return
   await addTurnMovement(ctx, {
     state: input.state,
     actorId: input.actorId,
     usedFeet: input.feet,
+    speedId: input.speedId,
     speedBonuses: 0
   })
 }
@@ -91,7 +98,7 @@ export async function recordTurnSpeedBonus(
   ctx: EncounterWriteContext,
   input: { state: RunTurnState; actorId: string }
 ) {
-  await addTurnMovement(ctx, { ...input, usedFeet: 0, speedBonuses: 1 })
+  await addTurnMovement(ctx, { ...input, usedFeet: 0, speedId: null, speedBonuses: 1 })
 }
 
 /** Takes back one recorded speed bonus from an actor's turn record (the GM's undo of a Dash). */
@@ -116,7 +123,9 @@ export async function removeTurnSpeedBonus(
 async function readTurnMovementByActorId(
   ctx: EncounterReadTransaction,
   state: RunTurnState
-): Promise<ReadonlyMap<string, { usedFeet: number; speedBonuses: number }>> {
+): Promise<
+  ReadonlyMap<string, { usedFeet: number; speedId: string | null; speedBonuses: number }>
+> {
   const turn = currentTurn(state)
   if (!turn) return new Map()
   const rows = await ctx.db
@@ -132,12 +141,13 @@ async function readTurnMovementByActorId(
 }
 
 /**
- * The tabletop's movement readout (V07.5): feet spent this turn and the walking-speed budget for
- * each actor the member controls, which for the GM is every actor. Characters read the speed their
- * row stores; creatures read their stat block's walking speed; custom actors have no budget. The
- * actor's active speed grants apply next (Longstrider; a Character's "your speed is X" grant
- * replaces its stored speed, after its features), then its conditions scale the speed (D94), and
- * each speed bonus this turn (Dash) adds the scaled speed once more.
+ * The tabletop's movement readout (V07.5, SPELLS-5.6): feet spent this turn, the speed type of the
+ * latest move and an allowance per speed type for each actor the member controls, which for the GM
+ * is every actor. Characters read the typed speeds their row stores; creatures read their stat
+ * block's; custom actors have no allowances. The actor's active speed grants apply next (Longstrider;
+ * a Character's "your speed is X" grant replaces its stored speed, after its features; Fly adds a
+ * flying speed), then its conditions scale each speed (D94), and each speed bonus this turn (Dash)
+ * adds the scaled speed once more.
  */
 export async function readTurnMovementView(
   ctx: EncounterReadTransaction,
@@ -153,16 +163,16 @@ export async function readTurnMovementView(
   const controlled = await readEncounterControlledActorIds(ctx, { ...input, actors: runActors })
   const actors = runActors.filter((actor) => controlled.has(actor.id))
   const records = await readTurnMovementByActorId(ctx, state)
-  const speeds = actors.some((actor) => actor.kind !== 'CUSTOM')
+  const speedDefinitions = actors.some((actor) => actor.kind !== 'CUSTOM')
     ? (await ctx.ports.requireSystem(input.campaign.gameSystemId)).speeds
     : []
   const withGrants = async (actor: (typeof actors)[number], actorSpeeds: readonly unknown[]) =>
-    resolveWalkingSpeedFeet(
+    resolveSpeedsFeet(
       withActiveGrantSpeeds(
         actorSpeeds,
         await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id))
       ),
-      speeds
+      speedDefinitions
     )
   const { gameSystemId, ownerUserId } = input.campaign
   const definitions = {
@@ -172,7 +182,7 @@ export async function readTurnMovementView(
       return current
     }
   }
-  const readWalkingSpeedAndConditions = async (actor: (typeof actors)[number]) => {
+  const readSpeedsAndConditions = async (actor: (typeof actors)[number]) => {
     if (actor.kind === 'CHARACTER') {
       const play = await readEncounterCharacterPlay(ctx, actor.sourceId)
       if (!play) return null
@@ -181,12 +191,7 @@ export async function readTurnMovementView(
         ? []
         : await ctx.ports.readCampaignCharacterConditions(input.campaign, actor.sourceId)
       return {
-        speed: await withGrants(
-          actor,
-          speeds
-            .filter(({ code }) => code === WALK_SPEED_CODE)
-            .map(({ id }) => ({ speedId: id, amount: play.walkingSpeed, unit: 'FEET' }))
-        ),
+        speeds: await withGrants(actor, play.speeds),
         conditionLevels: encounterConditionLevels({
           conditionIds: [...(sheet.conditions ?? []), ...campaignConditions].map(
             (condition) => condition.conditionTypeId
@@ -200,7 +205,7 @@ export async function readTurnMovementView(
     if (actor.kind !== 'CREATURE') return null
     const conditions = readEncounterActorConditionState(actor.conditions ?? [])
     return {
-      speed: await withGrants(actor, snapshotStatBlock(actor)?.speeds ?? []),
+      speeds: await withGrants(actor, snapshotStatBlock(actor)?.speeds ?? []),
       conditionLevels: encounterConditionLevels({
         conditionIds: conditions.ids,
         conditionRows: conditions.values,
@@ -212,25 +217,37 @@ export async function readTurnMovementView(
   return Promise.all(
     actors.map(async (actor) => {
       const record = records.get(actor.id)
-      const walking = await readWalkingSpeedAndConditions(actor)
-      const speed =
-        walking === null
-          ? null
-          : encounterConditionSpeed({
-              mechanics: activeEncounterConditionMechanics({
-                conditionDefinitions: await pinEncounterConditionDefinitions({
-                  conditionLevels: walking.conditionLevels,
-                  gameSystemId,
-                  definitions
-                }),
-                conditionLevels: walking.conditionLevels
+      const known = await readSpeedsAndConditions(actor)
+      const mechanics =
+        known === null
+          ? []
+          : activeEncounterConditionMechanics({
+              conditionDefinitions: await pinEncounterConditionDefinitions({
+                conditionLevels: known.conditionLevels,
+                gameSystemId,
+                definitions
               }),
-              speed: walking.speed
+              conditionLevels: known.conditionLevels
             })
       return {
         actorId: actor.id,
         used: record?.usedFeet ?? 0,
-        budget: speed === null ? null : speed * (1 + (record?.speedBonuses ?? 0))
+        speedId: record?.speedId ?? null,
+        allowances: (known?.speeds ?? []).flatMap(({ speedId, feet }) => {
+          const definition = speedDefinitions.find(({ id }) => id === speedId)
+          return definition
+            ? [
+                {
+                  speedId,
+                  code: definition.code,
+                  label: definition.label,
+                  budget:
+                    encounterConditionSpeed({ mechanics, speed: feet }) *
+                    (1 + (record?.speedBonuses ?? 0))
+                }
+              ]
+            : []
+        })
       }
     })
   )

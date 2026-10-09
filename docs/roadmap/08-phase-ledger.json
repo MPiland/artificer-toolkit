@@ -3368,7 +3368,7 @@
                 "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › moves an Encounter-bound token for its actor controllers, not its Scene token controllers",
                 "(deleted in A35-S6c2) apps/apis/convex/liveSessions/externalCommit.test.ts › refuses the combined stage exactly as its separate begin, observe and capture calls did, leaving nothing staged (D52) (a player staging a move of a token whose actor they do not control is refused NOT_ACTOR_CONTROLLER with nothing staged; replaces the pre-D52 separate-begin test)",
                 "apps/apis/convex/liveSessions/roomSceneCommands.test.ts › counts voluntary bound movement toward the turn, outside the Run version (D38, V07.5)",
-                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › shows a player their own actor's turn movement against its Character walking speed (V07.5) (the player who controls the current actor reads only their entry, used 5 against the stored Character walkingSpeed; the GM reads every actor)",
+                "apps/apis/convex/scenes/automaticCharacterMovement.test.ts › shows a player their own actor's turn movement against its Character walking speed (V07.5) (the player who controls the current actor reads only their entry, used 5 against the stored Character walking speed allowance; the GM reads every actor)",
                 "apps/apis/convex/encounters/activeReads.test.ts › reads the active projection and pending decision together with existing visibility and membership rules (the GM reads every actor's used/budget; a player who controls no actor reads an empty list)",
                 "apps/apis/convex/encounters/basicActions.test.ts › Dash spends the action and adds the speed to this turn’s budget; a second one warns first (D45: the displayed budget doubles after Dash)",
                 "apps/web/src/domains/campaigns/vtt/CampaignVttStage.model.test.ts › shows a player the readout on their own Character's turn only",
@@ -3843,7 +3843,7 @@
         {
           "id": "ENCOUNTER-7",
           "title": "Every turn-stage roll posts one roll card",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -4370,7 +4370,7 @@
         {
           "id": "ATTACK-10",
           "title": "Attack-roll perception",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -4935,15 +4935,20 @@
             },
             {
               "text": "Speed grants change the movement budget for every speed type; a maximum hit point grant raises the maximum and current hit points clamp when it ends; damage resistance, condition immunity and darkvision grants apply; an attack-disadvantage grant is used up by the next attack.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "apps/session-worker/test/nativeRoomGrantModifiers.test.ts (Longstrider widens the Character's walking budget readout from 30 to 40 feet; Aid at 2nd level holds 16 hit points over the stored 11 until its turn-anchored lifetime ends, then they clamp to 11)",
+                "packages/rules-runtime/src/__tests__/walkingSpeed.test.ts (every typed speed resolves to feet per speed type; an unknown type is dropped; the first entry per type wins)",
+                "apps/session-worker/test/nativeRoomGrantModifiers.test.ts (Fly adds a 60-foot flying allowance beside the Character's 30-foot walking allowance; without the grant there is none)",
+                "apps/apis/convex/liveSessions/roomSceneCommands.test.ts (a voluntary move records the speed type it names, a move naming none keeps it, an unknown type is refused and commits nothing)",
+                "packages/schema/src/__tests__/vtt-scene-contracts.test.ts (only a voluntary move may name a speed type; the default is none)",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopMovementReadout.test.tsx (the readout shows used against the selected speed type's allowance, defaults to the latest-move type, then walking, and warns per chosen type)",
                 "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts (Creature and Character holders: Aid raises the maximum and its end clamps current hit points, not lower ones; Longstrider adds 10 feet of walking speed and leaves fly speed; the Darkvision grant adds a 60-foot darkvision sense; Protection from Energy resistance, Heroism immunity and Vicious Mockery disadvantage apply only while held)",
                 "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Darkvision compiles to a sense grant lasting 4800 ticks; the real Aid stays manual until casting resolves its slot-scaled bonus)",
                 "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterActionMaintenance.ts; packages/schema/src/shared/activeRuleEffects.ts; apps/session-worker/src/roomCharacterRules.ts; apps/session-worker/src/roomSceneVision.ts; apps/session-worker/src/nativeEncounterSettlement.ts; packages/encounter-persistence/src/maintenanceOwnerPersistence.ts; apps/apis/convex/characters/rest.ts"
               ],
               "origin": [],
-              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Per-speed-type budgets: the user chose option B (2026-10-09, phase-08-2-decisions.md Resolved). The turn readout carries an allowance per speed type and a move names its speed type; still to build. Walking-speed grants already apply.",
+              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Per-speed-type budgets: the user chose option B (2026-10-09, phase-08-2-decisions.md Resolved). Built 2026-10-09: the stored speeds list replaces walkingSpeed; the turn readout keeps one total used and an allowance per speed type (after grants, condition scaling and Dash); a voluntary move may name its speedId and an unknown id is refused; still displayed, never enforced. The Fly journey shows a 60 ft FLY allowance beside 30 ft WALK.",
               "id": "SPELLS-5.6"
             },
             {

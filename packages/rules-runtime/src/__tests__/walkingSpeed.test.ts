@@ -1,30 +1,41 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveWalkingSpeedFeet } from '../walkingSpeed.js'
+import { resolveSpeedsFeet, WALK_SPEED_CODE } from '../walkingSpeed.js'
 
-const walk = { id: '00000000-0000-4000-8000-000000000001', code: 'WALK' }
+const walk = { id: '00000000-0000-4000-8000-000000000001', code: WALK_SPEED_CODE }
 const fly = { id: '00000000-0000-4000-8000-000000000002', code: 'FLY' }
 
-describe('resolveWalkingSpeedFeet', () => {
-  it('reads the walking speed through the System speed vocabulary', () => {
+describe('resolveSpeedsFeet', () => {
+  it('reads every typed speed in feet through the System speed vocabulary', () => {
     expect(
-      resolveWalkingSpeedFeet(
+      resolveSpeedsFeet(
         [
           { speedId: fly.id, amount: 60, unit: 'FEET' },
-          { speedId: walk.id, amount: 30, unit: 'FEET' }
+          { speedId: walk.id, amount: 10, unit: 'YARDS' }
         ],
         [walk, fly]
       )
-    ).toBe(30)
-    expect(resolveWalkingSpeedFeet([{ speedId: walk.id, amount: 10, unit: 'YARDS' }], [walk])).toBe(
-      30
-    )
+    ).toEqual([
+      { speedId: fly.id, feet: 60 },
+      { speedId: walk.id, feet: 30 }
+    ])
   })
 
-  it('has no walking speed without a walking entry', () => {
+  it('has no speed for an unknown speed type or a value that is not a speed', () => {
     expect(
-      resolveWalkingSpeedFeet([{ speedId: fly.id, amount: 60, unit: 'FEET' }], [walk, fly])
-    ).toBe(0)
-    expect(resolveWalkingSpeedFeet(['not a speed'], [walk])).toBe(0)
+      resolveSpeedsFeet([{ speedId: fly.id, amount: 60, unit: 'FEET' }, 'not a speed'], [walk])
+    ).toEqual([])
+  })
+
+  it('keeps the first entry of a speed type', () => {
+    expect(
+      resolveSpeedsFeet(
+        [
+          { speedId: walk.id, amount: 30, unit: 'FEET' },
+          { speedId: walk.id, amount: 45, unit: 'FEET' }
+        ],
+        [walk]
+      )
+    ).toEqual([{ speedId: walk.id, feet: 30 }])
   })
 })

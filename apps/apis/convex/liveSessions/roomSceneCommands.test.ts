@@ -1,5 +1,6 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type {
   ResolveRuleOccurrenceInputDto,
   VoidRuleOccurrenceInputDto
@@ -140,7 +141,8 @@ it('settles a bound move, its answer and a GM skip through the room, naming who 
   expect(state.turnMovement).toContainEqual({
     actorId: value.geometry.actorIdByTokenId.get(value.moverTokenId),
     used: 15,
-    budget: 40
+    speedId: null,
+    allowances: [expect.objectContaining({ code: 'WALK', budget: 40 })]
   })
 }, 120_000)
 
@@ -279,7 +281,12 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
     0
   )
   expect(first.occurrence).toBeNull()
-  expect(await moverMovement()).toEqual({ actorId: moverId, used: 10, budget: 40 })
+  expect(await moverMovement()).toEqual({
+    actorId: moverId,
+    used: 10,
+    speedId: null,
+    allowances: [expect.objectContaining({ code: 'WALK', budget: 40 })]
+  })
   // Moves in one turn accumulate.
   const second = await move(
     [
@@ -319,6 +326,38 @@ it('counts voluntary bound movement toward the turn, outside the Run version (D3
   })
   expect(await moverMovement()).toMatchObject({ used: 0 })
 }, 120_000)
+it('records the speed type a voluntary move names and refuses an unknown one (SPELLS-5.6)', async () => {
+  const value = await setupAutomaticSceneMovement({ reactorPositions: [850, 850] })
+  const moverId = value.geometry.actorIdByTokenId.get(value.moverTokenId)!
+  const walk = SRD_SPEEDS.find((speed) => speed.code === 'WALK')!
+  const path = [
+    { x: 150, y: 50 },
+    { x: 250, y: 50 }
+  ]
+  const move = (speedId: string | null, expectedSceneVersion: number, route = path) =>
+    executeSceneInRoom(value.owner.caller, {
+      ...value.rootInput,
+      commandId: crypto.randomUUID(),
+      expectedSceneVersion,
+      speedId,
+      path: route
+    })
+  const moverMovement = async () => {
+    await checkpointLiveRoom(value.base.campaign.id)
+    return (
+      await value.owner.caller.query(activeState, { campaignId: value.base.campaign.id })
+    ).turnMovement.find((entry) => entry.actorId === moverId)
+  }
+  await expect(move(crypto.randomUUID(), 0)).rejects.toThrow()
+  expect(await moverMovement()).toMatchObject({ used: 0, speedId: null })
+
+  const named = await move(walk.id, 0)
+  expect(await moverMovement()).toMatchObject({ used: 5, speedId: walk.id })
+  // A move that names no speed type keeps the latest named one.
+  await move(null, named.result!.version, path.toReversed())
+  expect(await moverMovement()).toMatchObject({ used: 10, speedId: walk.id })
+}, 120_000)
+
 /** A presented, fog-on Scene with a player's seeing token and one door per state (V03.4, V07.4). */
 async function setupPlayerScene() {
   const base = await createSceneDefinitionFixture()

@@ -215,7 +215,7 @@ describe('native Campaign GM state reads', () => {
           updatedAt: current.updatedAt,
           streamVersion: current.play.streamVersion,
           maximumHitPoints: current.play.maximumHitPoints,
-          walkingSpeed: current.play.walkingSpeed
+          speeds: current.play.speeds
         }
       )
       const clone = await readCharacterRow(ctx, id)

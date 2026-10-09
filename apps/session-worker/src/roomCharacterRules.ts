@@ -10,6 +10,7 @@ import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/ch
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterStoredPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
+import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomInputs } from './roomInputs.js'
@@ -105,7 +106,7 @@ export async function prepareRoomLiveCharacterSheet(
     if (
       stateChanged ||
       stats.maximumHitPoints !== play.maximumHitPoints ||
-      stats.walkingSpeed !== play.walkingSpeed
+      canonicalizeJson(stats.speeds) !== canonicalizeJson(play.speeds)
     ) {
       const { _id, _creationTime, ...fields } = play
       await store.store.replace(

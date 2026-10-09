@@ -39125,7 +39125,13 @@ export declare const api: {
             | null;
           turnMovement: Array<{
             actorId: string;
-            budget: number | null;
+            allowances: Array<{
+              budget: number;
+              code: string | null;
+              label: string;
+              speedId: string;
+            }>;
+            speedId: string | null;
             used: number;
           }>;
           waitingOn: "GM" | "PLAYER" | null;

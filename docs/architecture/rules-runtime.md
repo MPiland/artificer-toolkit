@@ -315,7 +315,7 @@ within and ranged beyond without one) and the `conditionOutcomeRules` binding: t
 operations. Single-graph verification recomputes the result path from it, and a two-phase save seals it
 in its TEST-phase bound-facts checksum (`requireNativeTestBoundary`). The d20 is still rolled on an
 automatic failure. Contests (Grapple, Shove escape) and Disarm add the ability-check contributors, Dodge is
-suspended at condition speed 0, and the tabletop movement budget (`readTurnMovementView`) applies the
+suspended at condition speed 0, and the tabletop movement allowances (`readTurnMovementView`, one per speed type) apply the
 speed mechanics before Dash. A condition contributor's derived-mode reason names the condition, and is
 generic for players when the holder is hidden.
 
@@ -532,8 +532,8 @@ them before it draws the Character's senses. A Creature holder's speeds read `wi
 its maximum and every Character's read `effectiveHitPointMaximum`: the stored maximum plus `HIT_POINTS_MAX`
 grants, then D79 reductions. When a grant ends, `planEncounterMaintenanceOwner` clamps current hit points to
 the new maximum, and room Character reconciliation and Sheet rests bound hit points by the same maximum, so a
-held grant's hit points survive them. The tabletop movement budget is a readout of walking speed and follows
-walking-speed grants. Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
+held grant's hit points survive them. The tabletop movement readout gives each speed type its own allowance and follows
+speed grants. The speed type a move names (`MOVE_SCENE_TOKEN.speedId`, stored on the turn movement row) selects the allowance shown; `used` is the single total, so remaining feet at a type is that allowance minus `used` (SRD Using Different Speeds). Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
 `modifierGrantPlan` leaves them manual until spell casting (SPELLS-8) supplies it.
 
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the

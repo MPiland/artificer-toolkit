@@ -3,6 +3,7 @@ import { expect, it } from 'vitest'
 import { joinCharacterPlay, readCharacterRow } from '../characters/stateDocuments'
 import { setupAutomaticCharacterMovement } from '../../tests/fixtures/automaticCharacterMovement'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   checkpointLiveRoom,
   executeInRoom,
@@ -158,10 +159,14 @@ it('replays player movement with the original private projection before and afte
 it("shows a player their own actor's turn movement against its Character walking speed (V07.5)", async () => {
   const value = await setupAutomaticCharacterMovement(['CHOICE'])
   const moverId = value.base.mover.id
+  const walk = SRD_SPEEDS.find((speed) => speed.code === 'WALK')!
   const walkingSpeed = await value.base.t.run(
-    async (ctx) => (await readCharacterRow(ctx, value.base.character.id))?.play.walkingSpeed
+    async (ctx) =>
+      (await readCharacterRow(ctx, value.base.character.id))?.play.speeds.find(
+        (speed) => speed.speedId === walk.id
+      )?.amount
   )
-  // The budget is the Character's stored walking speed.
+  // The allowance is the Character's stored walking speed.
   expect(walkingSpeed).toBeGreaterThan(0)
   // It is the player's Character's turn.
   const turn = await executeInRoom(value.owner.caller, {
@@ -178,6 +183,7 @@ it("shows a player their own actor's turn movement against its Character walking
     ...value.rootInput,
     commandId: crypto.randomUUID(),
     expectedEncounterVersion: turn.projection.version,
+    speedId: walk.id,
     path: [
       { x: 150, y: 50 },
       { x: 150, y: 150 }
@@ -188,8 +194,14 @@ it("shows a player their own actor's turn movement against its Character walking
   await checkpointLiveRoom(value.base.campaign.id)
   const readout = async (member: typeof value.player) =>
     (await member.caller.query(activeState, { campaignId: value.base.campaign.id })).turnMovement
-  // The player sees only the actor they control: one 5 ft cell against its walking speed.
-  const mover = { actorId: moverId, used: 5, budget: walkingSpeed }
+  // The player sees only the actor they control: one 5 ft cell moved at its walking speed, which
+  // is the allowance of its one speed type.
+  const mover = {
+    actorId: moverId,
+    used: 5,
+    speedId: walk.id,
+    allowances: [{ speedId: walk.id, code: 'WALK', label: walk.label, budget: walkingSpeed }]
+  }
   expect(await readout(value.player)).toEqual([mover])
   const gm = await readout(value.owner)
   expect(gm).toContainEqual(mover)

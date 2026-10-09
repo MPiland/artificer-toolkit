@@ -1,4 +1,5 @@
 import type { CharacterDocument } from '@artificer-toolkit/schema/projections/characterStoredState'
+import type { Doc } from '../../convex/_generated/dataModel'
 import type { MutationCtx } from '../../convex/_generated/server'
 import { writeCharacterRecord } from '../../convex/characters/characterWrites'
 
@@ -14,7 +15,7 @@ export async function insertActiveCharacterRecord(
     updatedAt?: string
     streamVersion?: number
     maximumHitPoints?: number
-    walkingSpeed?: number
+    speeds?: Doc<'characterPlayStates'>['speeds']
   }
 ) {
   const { row } = await writeCharacterRecord(ctx, {
@@ -32,7 +33,7 @@ export async function insertActiveCharacterRecord(
     document: character,
     stats: {
       maximumHitPoints: options.maximumHitPoints ?? 0,
-      walkingSpeed: options.walkingSpeed ?? 0
+      speeds: options.speeds ?? []
     }
   })
   return row._id

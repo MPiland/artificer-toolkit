@@ -126,8 +126,18 @@ export const encounterConformanceCorpus: readonly EncounterConformanceScenario[]
       return {
         base,
         operation: async (transaction) => {
-          await recordTurnMovement(transaction, { state, actorId: base.companion.id, feet: 15 })
-          await recordTurnMovement(transaction, { state, actorId: base.companion.id, feet: 10 })
+          await recordTurnMovement(transaction, {
+            state,
+            actorId: base.companion.id,
+            feet: 15,
+            speedId: null
+          })
+          await recordTurnMovement(transaction, {
+            state,
+            actorId: base.companion.id,
+            feet: 10,
+            speedId: null
+          })
         }
       }
     }

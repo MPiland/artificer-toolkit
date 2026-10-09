@@ -342,6 +342,14 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
     // Each published segment of a voluntary move counts toward the actor's turn (D38).
     if (save.input.type === 'MOVE_SCENE_TOKEN' && save.input.movementKind === 'VOLUNTARY') {
       if (input.movementCost === undefined) throw new Error('Bound movement cost is missing.')
+      const speedId = save.input.speedId ?? null
+      if (
+        speedId !== null &&
+        !(await ctx.ports.requireSystem(campaign.gameSystemId)).speeds.some(
+          ({ id }) => id === speedId
+        )
+      )
+        throw new Error('Movement names an unknown speed type.')
       const actorId = geometry.actorIdByTokenId.get(save.input.tokenId)
       // An uncalibrated SQUARES Scene has no feet to count.
       const feet = sceneLengthInFeet(input.movementCost, header.grid)
@@ -349,7 +357,8 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
         await recordTurnMovement(ctx, {
           state: geometry.encounter,
           actorId,
-          feet
+          feet,
+          speedId
         })
     }
   }

@@ -22,7 +22,7 @@ export async function writeCharacterRecord(
     streamVersion?: number
     updatedAt?: string
     maximumHitPoints?: number
-    walkingSpeed?: number
+    speeds?: CharacterRow['play']['speeds']
     status?: 'ACTIVE' | 'DRAFT'
     portraitAssetId?: string
     portraitRevision?: number
@@ -46,7 +46,7 @@ export async function writeCharacterRecord(
     sheetState: next.sheetState,
     stats: {
       maximumHitPoints: next.maximumHitPoints ?? row.play.maximumHitPoints,
-      walkingSpeed: next.walkingSpeed ?? row.play.walkingSpeed
+      speeds: next.speeds ?? row.play.speeds
     }
   })
 }

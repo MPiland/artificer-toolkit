@@ -24,6 +24,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
+import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { spatialMovementKindDtoSchema } from '../shared/spatialFacts.js'
 import {
   combatPerceptionIlluminationDtoSchema,
@@ -791,6 +792,11 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
       expectedEncounterVersion: z.nullable(versionSchema),
       correlationId: z._default(serverRuleExecutionCorrelationIdDtoSchema, null),
       movementKind: spatialMovementKindDtoSchema,
+      /**
+       * The speed type a voluntary move uses (SPELLS-5.6), which an Encounter turn records as the
+       * actor's latest. Absent or null when the move names none; only a voluntary move can name one.
+       */
+      speedId: z.optional(z.nullable(authoredIdentifierSchema)),
       tokenId: uuidSchema,
       path: z
         .array(scenePointDtoSchema)
@@ -799,6 +805,12 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((command, context) => {
+        if (command.speedId && command.movementKind !== 'VOLUNTARY')
+          context.addIssue({
+            code: 'custom',
+            path: ['speedId'],
+            message: 'Only voluntary movement names a speed type.'
+          })
         if (command.movementKind === 'TELEPORT' && command.path.length !== 2)
           context.addIssue({
             code: 'custom',

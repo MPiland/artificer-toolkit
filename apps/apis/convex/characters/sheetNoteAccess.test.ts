@@ -48,7 +48,7 @@ describe('Character note command access', () => {
       const after = await readState()
       expect(after.character!.updatedAt).not.toBe(before.character!.updatedAt)
       expect(after.character!.play.maximumHitPoints).toBe(before.character!.play.maximumHitPoints)
-      expect(after.character!.play.walkingSpeed).toBe(before.character!.play.walkingSpeed)
+      expect(after.character!.play.speeds).toEqual(before.character!.play.speeds)
       expect(after.character!.play.state).toEqual(before.character!.play.state)
       expect(readCharacterRecord(after.character!).state.notes).toContainEqual(
         expect.objectContaining({ title: 'Café encounter', body: 'Private note' })

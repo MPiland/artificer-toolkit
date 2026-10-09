@@ -445,7 +445,10 @@ describe('a unicorn using Shimmering Shield at another creature’s turn end', (
       (action) => action.choice.ownerActorId === FIRST_DRAGON_ID
     )
     if (strike?.resolution.kind !== 'EXECUTED') throw new Error('Expected the dragon’s strike.')
-    return strike.resolution.application.d20?.resultPath
+    const { application } = strike.resolution
+    if (application.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      throw new Error(`Expected an attack application, got ${application.kind}.`)
+    return application.d20?.resultPath
   }
 
   it('hits a unicorn that declined its shield, as the control', async () => {

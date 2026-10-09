@@ -1,8 +1,10 @@
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
 import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
+import { WALK_SPEED_CODE } from '../walkingSpeed.js'
 import {
   emptyCharacter,
   prepareFixtureBuilder,
@@ -143,13 +145,14 @@ describe('Character Builder over an in-memory context', () => {
 })
 
 describe('Character record stats', () => {
-  it('derives the effective maximum hit points and walking speed from the rules evaluation', async () => {
+  it('derives the effective maximum hit points and typed speeds from the rules evaluation', async () => {
     const fixture = readyFighterFixture()
     const { character } = await prepareFixtureBuilder(fixture)
     const { ruleEvaluation } = await prepareFixtureSheet({ ...fixture, character })
+    const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === WALK_SPEED_CODE)?.id
     expect(resolveCharacterRecordStats(ruleEvaluation)).toEqual({
       maximumHitPoints: 11,
-      walkingSpeed: 30
+      speeds: [{ speedId: walkSpeedId, amount: 30, unit: 'FEET' }]
     })
   })
 })

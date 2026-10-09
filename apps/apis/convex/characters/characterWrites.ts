@@ -49,7 +49,7 @@ const encode = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
  * replaces only changed rows in the caller's transaction. The play record takes the caller's stream version; the head's
  * `updatedAt`, the Builder's concurrency clock, advances only when the structure changes. It then
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
- * reductions) and walking speed in the play record in the same transaction. A caller that already
+ * reductions) and typed speeds in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
  * returned facts for its own Sheet response. Callers own authority, replay, receipts and advancing
  * the stream once per transaction.
@@ -151,7 +151,7 @@ export async function writeCharacterRecord(
     userId: record.userId,
     streamVersion,
     maximumHitPoints: input.stats?.maximumHitPoints ?? current?.play.maximumHitPoints ?? 0,
-    walkingSpeed: input.stats?.walkingSpeed ?? current?.play.walkingSpeed ?? 0,
+    speeds: input.stats?.speeds ?? current?.play.speeds ?? [],
     ...(encodedPlay === undefined
       ? { state: current!.play.state, checksum: current!.play.checksum }
       : {
@@ -210,7 +210,7 @@ export async function writeCharacterRecord(
   if (
     held ||
     (stats.maximumHitPoints === nextPlayRecord.maximumHitPoints &&
-      stats.walkingSpeed === nextPlayRecord.walkingSpeed)
+      checksumCanonicalJson(stats.speeds) === checksumCanonicalJson(nextPlayRecord.speeds))
   )
     return { row: facts.active, facts }
   await ctx.db.patch(playId, stats)

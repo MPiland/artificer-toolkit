@@ -8,6 +8,7 @@ import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/c
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 /** A level 1 Character capture; the private transport row below uses the canonical storage codec. */
 const capturedPage = {
@@ -149,6 +150,15 @@ const sheetState = characterSheetStateSchema.parse(capturedPage.inputs.sheetStat
 const updatedAt = capturedPage.inputs.updatedAt
 const capturedRevisions = capturedPage.revisions
 
+/** The level 1 Fighter's stored speeds: walking 30 ft. */
+export const fixtureSpeeds = [
+  {
+    speedId: SRD_SPEEDS.find((speed) => speed.code === 'WALK')!.id,
+    amount: 30,
+    unit: 'FEET' as const
+  }
+]
+
 /** The play state a room's Character starts with, where it differs from the capture. */
 export interface CharacterPlayOverrides {
   /** Equips the first inventory item (the Club). */
@@ -237,7 +247,7 @@ export function characterOwnerRowFor({
           userId: character.userId,
           streamVersion: capturedPage.inputs.streamVersion,
           maximumHitPoints,
-          walkingSpeed: 30,
+          speeds: fixtureSpeeds,
           state: play,
           checksum: checksumRuleDocument(play),
           updatedAt

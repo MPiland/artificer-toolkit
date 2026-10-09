@@ -66,7 +66,8 @@ const movement = (round: number): RoomDocument => ({
     turnActorId: uuid(0x100),
     actorId: uuid(0x100),
     usedFeet: 5,
-    speedBonuses: 0
+    speedBonuses: 0,
+    speedId: null
   }
 })
 const characterPlay = (): RoomDocument => ({
@@ -78,7 +79,7 @@ const characterPlay = (): RoomDocument => ({
     userId: uuid(4),
     streamVersion: 7,
     maximumHitPoints: 10,
-    walkingSpeed: 30,
+    speeds: [{ speedId: uuid(5), amount: 30, unit: 'FEET' }],
     state: {
       hitpoints: { current: 10, hitDice: [], deathSaves: NO_DEATH_SAVES },
       equipped: [],

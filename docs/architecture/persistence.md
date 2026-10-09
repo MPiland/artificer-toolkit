@@ -187,7 +187,7 @@ drift; Convex keeps authorization, receipt-ledger loading and read budgets.
 
 - **Character play state.** A Character is a `characters` row (structure, clocked by `updatedAt`) and a
   `characterPlayStates` row (hit points, resources, slots, conditions, exhaustion, inspiration, item-use state,
-  party visibility, `maximumHitPoints`, `walkingSpeed`, clocked by `streamVersion`). `writeCharacterRecord` is
+  party visibility, `maximumHitPoints`, `speeds`, clocked by `streamVersion`). `writeCharacterRecord` is
   the only writer and rewrites only the record whose checksum changed, so a play change never writes the
   document. See [Character play state](character.md#character-play-state-adr-0035-amendment-12--local-implementation).
 - **No stored projection.** `encounterRuns` holds Run state only. Projections are built on read
@@ -335,7 +335,7 @@ snapshots and capture artifacts may keep validated checksummed JSON; normalizati
 mechanics. Sheet command responses are compact acknowledgements and subscribed queries deliver state. Validation
 lives in `packages/schema`, independent of the full mechanics graph.
 
-### Stored maximum hit points and walking speed
+### Stored maximum hit points and speeds
 
 `characters/characterWrites.ts` owns every Character record write. `writeCharacterRecord` writes a complete
 Character; `writeCharacterNoteRecords` writes a note edit through only the note and note-group rows, the Build
@@ -343,7 +343,7 @@ counts, the structure clock and, outside live play, the play clock (SHEET-7). A 
 inputs, so it keeps the stored stats. In the same transaction `writeCharacterRecord` evaluates the written
 Character (`resolveCharacterRecordStats`, `packages/rules-runtime/src/character/characterRecordStats.ts`) and
 stores on the play record `maximumHitPoints` (the Sheet's effective maximum before Encounter reductions) and
-`walkingSpeed` (effective `WALK` feet, the Encounter movement budget, D38). Callers keep authority, replay, receipts and the one-stream-advance rule. A DRAFT Character keeps
+`speeds` (every typed speed in feet, `{speedId, amount, unit: FEET}`, the Encounter movement allowances, D38 and SPELLS-5.6; the room and Convex compare them structurally). Callers keep authority, replay, receipts and the one-stream-advance rule. A DRAFT Character keeps
 its last stored stats. Campaign-owned inputs (GM adjustments, attunement override, assignment, departure) refresh
 the stats without advancing the stream. Rules never read the stored values; projections display them. A
 published-content change reaches a Character's stored stats on its next write while the Sheet always shows the

@@ -182,8 +182,15 @@ describe('stored Character walking speed (D38)', () => {
   it('is set on creation and follows a Sheet speed override', async () => {
     const fixture = await setup()
     const created = await fixture.read()
-    expect(created.row.play.walkingSpeed).toBeGreaterThan(0)
     const walk = SRD_SPEEDS.find((speed) => speed.code === 'WALK')!
+    expect(created.row.play.speeds).toContainEqual({
+      speedId: walk.id,
+      amount: expect.any(Number),
+      unit: 'FEET'
+    })
+    expect(
+      created.row.play.speeds.find((speed) => speed.speedId === walk.id)!.amount
+    ).toBeGreaterThan(0)
     await fixture.owner.caller.mutation(api.characters.sheetCommands.execute, {
       id: fixture.character.id,
       command: {
@@ -193,6 +200,10 @@ describe('stored Character walking speed (D38)', () => {
         adjustment: { family: 'MOVEMENT', speedId: walk.id, field: 'SPEED_OVERRIDE', value: 45 }
       }
     })
-    expect((await fixture.read()).row.play.walkingSpeed).toBe(45)
+    expect((await fixture.read()).row.play.speeds).toContainEqual({
+      speedId: walk.id,
+      amount: 45,
+      unit: 'FEET'
+    })
   })
 })

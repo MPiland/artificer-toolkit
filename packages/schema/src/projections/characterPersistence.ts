@@ -2,6 +2,7 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import type { CharacterBuilderDraftDto } from '../api/characterBuilder.js'
 import { IMPORT_MAX_ENTRY_BYTES } from '../api/imports.js'
 import { normalizedImageCropSchema } from '../api/media.js'
+import { AUTHORED_LIMITS, authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { projectionChecksumSchema } from './identity.js'
 import { characterPlayStateSchema } from './characterPlayState.js'
@@ -75,8 +76,19 @@ export const characterStoredPlayStateSchema = lazySchema(() =>
      * it on the Character's next write.
      */
     maximumHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-    /** Effective walking speed in feet, stored beside `maximumHitPoints` for the movement budget (D38). */
-    walkingSpeed: z.number().check(z.nonnegative()),
+    /**
+     * The Character's evaluated typed speeds, normalized to feet, stored beside `maximumHitPoints`
+     * for the movement allowances (D38, SPELLS-5.6). Active grants apply when the allowance is read.
+     */
+    speeds: z
+      .array(
+        z.strictObject({
+          speedId: authoredIdentifierSchema,
+          amount: z.number().check(z.nonnegative()),
+          unit: z.literal('FEET')
+        })
+      )
+      .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)),
     state: characterPlayStateSchema,
     checksum: projectionChecksumSchema,
     /** The play clock: it advances only when the play state changes. */

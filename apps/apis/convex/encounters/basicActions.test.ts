@@ -138,7 +138,9 @@ async function setConditions(base: PlayerControlFixture, actorId: string, condit
 async function turnBudget(base: PlayerControlFixture, actorId: string) {
   await checkpointLiveRoom(base.campaign.id)
   const state = await base.owner.caller.query(sessionState, { campaignId: base.campaign.id })
-  return state.turnMovement.find((entry) => entry.actorId === actorId)?.budget
+  return state.turnMovement
+    .find((entry) => entry.actorId === actorId)
+    ?.allowances.find((allowance) => allowance.code === 'WALK')?.budget
 }
 
 async function advanceTurn(base: PlayerControlFixture) {

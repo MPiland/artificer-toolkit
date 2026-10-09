@@ -8,6 +8,7 @@ import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { writeRoomCharacterPlay } from './roomCharacterWrites.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { fixtureSpeeds } from './testing/characterPageFixture.js'
 import { uuid } from './testing/roomAggregateFixture.js'
 import { srdRoomCharacter, srdRoomHydration } from './testing/srdRoomCharacter.js'
 import { roomInputsResponse } from '../test/roomInputsFixture.js'
@@ -188,7 +189,7 @@ it('stages typed play only in the parent transaction, rolls back failed evaluati
       streamVersion: fields.streamVersion,
       updatedAt: fields.updatedAt,
       maximumHitPoints: 11,
-      walkingSpeed: 30,
+      speeds: fixtureSpeeds,
       state: { hitpoints: { current: 6 } }
     })
     expect(store.documents('characters')).toEqual(before.head)

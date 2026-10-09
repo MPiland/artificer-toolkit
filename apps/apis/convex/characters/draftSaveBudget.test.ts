@@ -6,6 +6,7 @@ import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
+import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
@@ -128,7 +129,7 @@ describe('Character draft autosave budget', () => {
       insertActiveCharacterRecord(ctx, active, {
         createdAt: draft.createdAt!,
         maximumHitPoints: 22,
-        walkingSpeed: 30
+        speeds: [{ speedId: SRD_SPEEDS[0]!.id, amount: 30, unit: 'FEET' }]
       })
     )
     const edit = await owner.caller.mutation(api.characters.drafts.create, {

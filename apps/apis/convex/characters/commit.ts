@@ -99,7 +99,7 @@ export async function commitCharacter(
     // The stored stats evaluate the committed Character over the context commit just read.
     sourceContext: { characterId: committed.id, ownerUserId: userId, context: prepared.context }
   })
-  const { maximumHitPoints, walkingSpeed } = written.row.play
+  const { maximumHitPoints, speeds } = written.row.play
   // A lower maximum takes current hit points down with it. Readers clamp anyway, but a stored value
   // above the maximum would swallow the next damage or healing. Only the play record is rewritten.
   const clampsHitPoints =
@@ -120,7 +120,7 @@ export async function commitCharacter(
         current: written.row,
         fields: { streamVersion: streamVersion + (playChanged ? 0 : 1), updatedAt: now },
         document: stored,
-        stats: { maximumHitPoints, walkingSpeed }
+        stats: { maximumHitPoints, speeds }
       })
     : written
   await deleteCharacterDraftPayload(ctx, draftRecord)

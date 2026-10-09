@@ -11,6 +11,7 @@ import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { RoomEncounterStore } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { fixtureSpeeds } from './testing/characterPageFixture.js'
 import { uuid } from './testing/roomAggregateFixture.js'
 import {
   srdCharacterScope,
@@ -164,7 +165,7 @@ it('reconciles native play atomically, recovers after eviction and preserves the
         expect(facts.active.play.state).toEqual(expectedState)
         expect(facts.active.play).toMatchObject({
           maximumHitPoints: 11,
-          walkingSpeed: 30,
+          speeds: fixtureSpeeds,
           streamVersion: play.streamVersion + 1
         })
         expect(store.documents('characters')).toEqual(before.head)

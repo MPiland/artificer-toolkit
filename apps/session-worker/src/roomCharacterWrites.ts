@@ -103,6 +103,9 @@ export async function writeRoomCharacterPlay(input: {
     transaction
   )
   const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
-  if (stats.maximumHitPoints !== play.maximumHitPoints || stats.walkingSpeed !== play.walkingSpeed)
+  if (
+    stats.maximumHitPoints !== play.maximumHitPoints ||
+    canonicalizeJson(stats.speeds) !== canonicalizeJson(play.speeds)
+  )
     await store.store.patch(localPlay._id, stats)
 }

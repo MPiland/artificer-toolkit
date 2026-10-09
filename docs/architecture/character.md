@@ -688,7 +688,7 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
 | ---------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | `characters`           | Builder and structural Sheet writes               | Identity, portrait, complete structure checksums                                                                                                      | `updatedAt`       |
 | `characterBuildStates` | Builder and Sheet adjustments                     | Profile, intent, adjustments, movement preference, optional collection presence                                                                       | Head `updatedAt`  |
-| `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `walkingSpeed`, identity                                                                         | `streamVersion`   |
+| `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `speeds` (feet per speed type), identity                                                         | `streamVersion`   |
 | Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Head `updatedAt`  |
 
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
@@ -746,7 +746,7 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
 4. **Structure changes made by the Sheet** (inventory, currency, Sheet adjustments, spell
    customizations, movement preference) advance `characters.updatedAt`, so a stale Builder draft
    still conflicts with them.
-5. **Stat refresh** (`maximumHitPoints`, `walkingSpeed`) re-evaluates after a Campaign-owned change and
+5. **Stat refresh** (`maximumHitPoints`, `speeds`) re-evaluates after a Campaign-owned change and
    rewrites the play record without advancing `streamVersion`.
 
 Convex retries a transaction whose reads or writes conflict, so a Builder commit and a play command

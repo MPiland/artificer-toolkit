@@ -18,6 +18,7 @@ import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import { RoomEncounterStore, type RoomTransaction } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
+import { fixtureSpeeds } from './testing/characterPageFixture.js'
 import { uuid } from './testing/roomAggregateFixture.js'
 import { srdRoomCharacter, srdRoomHydration } from './testing/srdRoomCharacter.js'
 import { storedRunDocuments } from './testing/storedRunFixture.js'
@@ -315,7 +316,7 @@ it('settles Character and Creature mechanics from native play with private recei
     expect(store.documents('characterPlayStates')[0]).toMatchObject({
       streamVersion: nativePlay.streamVersion + 1,
       maximumHitPoints: 11,
-      walkingSpeed: 30,
+      speeds: fixtureSpeeds,
       updatedAt: characterBatch.occurredAt,
       state: { hitpoints: { current: 7 } }
     })

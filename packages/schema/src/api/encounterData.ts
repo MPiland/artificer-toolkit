@@ -12,7 +12,12 @@ import {
   type EncounterRuleOccurrenceSummaryDto,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '../shared/encounterRuleOccurrence.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import {
+  AUTHORED_LIMITS,
+  MAX_ENCOUNTER_ACTORS,
+  authoredIdentifierSchema,
+  authoredShortTextSchema
+} from '../shared/authoredLimits.js'
 import { activeGrantListingDtoSchema } from '../shared/activeGrantListing.js'
 import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
@@ -474,14 +479,30 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
     waitingOn: z.nullable(z.enum(['GM', 'PLAYER'])),
     /**
      * Movement spent this turn, in feet, for each actor the viewer controls (every actor for the GM).
-     * The budget is the walking speed (null when the actor has none); it is shown, never enforced.
+     * `used` is the one total of feet moved this turn, whatever speed type each move named. Each
+     * allowance is the feet the actor may move this turn at that speed type, after active grants,
+     * conditions and Dash. Switching speed type subtracts the distance already moved (SRD "Using
+     * Different Speeds"), so the feet left at a type are its `budget` minus `used`. `speedId` is the
+     * speed type of the actor's latest move this turn (null before any move named one). A custom
+     * actor has no allowances. Movement is shown, never enforced.
      */
     turnMovement: z
       .array(
         z.strictObject({
           actorId: postgresUuidSchema,
           used: z.number().check(z.nonnegative()),
-          budget: z.nullable(z.number().check(z.nonnegative()))
+          speedId: z.nullable(authoredIdentifierSchema),
+          allowances: z
+            .array(
+              z.strictObject({
+                speedId: authoredIdentifierSchema,
+                /** The System speed vocabulary's code for the type (WALK, FLY, ...), when it has one. */
+                code: z.nullable(authoredShortTextSchema),
+                label: authoredShortTextSchema,
+                budget: z.number().check(z.nonnegative())
+              })
+            )
+            .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
         })
       )
       .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

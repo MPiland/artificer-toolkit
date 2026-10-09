@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { aidAtSecondLevel } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { longstrider } from '@artificer-toolkit/source-data/srd/spells/longstrider.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -69,8 +70,8 @@ const characterHitPoints = (room: Room) =>
     return readCharacterPlay(row).hitpoints.current
   })
 
-/** The mover's walking budget this turn, as the GM's Encounter session shows it. */
-async function moverBudget(room: Room) {
+/** The mover's allowances this turn, as the GM's Encounter session shows them. */
+async function moverAllowances(room: Room) {
   const first = room.base.messages.length
   room.base.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
   const state = await vi.waitFor(() => {
@@ -81,8 +82,11 @@ async function moverBudget(room: Room) {
       throw new Error('The room has not sent the held Encounter session.')
     return message.session.state
   })
-  return state.turnMovement.find(({ actorId }) => actorId === MOVER_ID)?.budget
+  return state.turnMovement.find(({ actorId }) => actorId === MOVER_ID)?.allowances ?? []
 }
+
+const budgetAt = (allowances: Awaited<ReturnType<typeof moverAllowances>>, code: string) =>
+  allowances.find((allowance) => allowance.code === code)?.budget
 
 async function advanceTurn(room: Room) {
   const [run] = (await readRoomHistory(room.base.stub)).runs
@@ -102,10 +106,28 @@ async function advanceTurn(room: Room) {
 describe('a speed grant changes the movement budget (SPELLS-5.6)', () => {
   it('widens a Character’s walking budget by Longstrider’s 10 feet', async () => {
     const withGrant = await grantRoom(longstriderGrant)
-    expect(await moverBudget(withGrant)).toBe(40)
+    expect(budgetAt(await moverAllowances(withGrant), 'WALK')).toBe(40)
 
     const without = await grantRoom(null)
-    expect(await moverBudget(without)).toBe(30)
+    expect(budgetAt(await moverAllowances(without), 'WALK')).toBe(30)
+  })
+})
+
+describe('a Fly grant adds a speed type the Character lacks (SPELLS-5.6)', () => {
+  it('shows a flying allowance of 60 feet beside walking, and none without the grant', async () => {
+    const flying = await grantRoom({
+      sourceActorId: MOVER_ID,
+      holderActorId: MOVER_ID,
+      lifecycle: {},
+      effect: fly.effects?.[0],
+      sourceLabel: fly.label
+    })
+    const allowances = await moverAllowances(flying)
+    expect(budgetAt(allowances, 'FLY')).toBe(60)
+    expect(budgetAt(allowances, 'WALK')).toBe(30)
+
+    const without = await grantRoom(null)
+    expect(budgetAt(await moverAllowances(without), 'FLY')).toBeUndefined()
   })
 })
 

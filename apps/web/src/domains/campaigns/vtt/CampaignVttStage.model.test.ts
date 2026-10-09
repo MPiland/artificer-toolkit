@@ -193,12 +193,24 @@ describe('Campaign VTT accessible scene controls', () => {
   })
 })
 
+const walkSpeedId = 'walk-speed'
+
 describe('Campaign VTT active turn movement readout (V07.5)', () => {
   const [character, creature] = tabletopPlayerEncounter.actors
   const movement = [
-    { actorId: character.id, used: 15, budget: 30 },
-    { actorId: creature.id, used: 5, budget: 40 }
-  ]
+    {
+      actorId: character.id,
+      used: 15,
+      speedId: null,
+      allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 30 }]
+    },
+    {
+      actorId: creature.id,
+      used: 5,
+      speedId: walkSpeedId,
+      allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 40 }]
+    }
+  ] satisfies EncounterSessionStateDto['turnMovement']
   function state(
     encounter: EncounterSessionStateDto['encounter'],
     turnMovement: EncounterSessionStateDto['turnMovement'] = movement
@@ -212,7 +224,7 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       readActiveTurn(player, tabletopCurrentUserId, state(tabletopPlayerEncounter))
     ).toMatchObject({
       currentActorMine: true,
-      turnMovement: { actorId: character.id, used: 15, budget: 30 }
+      turnMovement: movement[0]
     })
     const creatureTurn = { ...tabletopPlayerEncounter, currentActorId: creature.id }
     expect(readActiveTurn(player, tabletopCurrentUserId, state(creatureTurn))).toMatchObject({
@@ -227,7 +239,7 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
     const creatureTurn = { ...tabletopGmEncounter, currentActorId: creature.id }
     expect(readActiveTurn(gm, tabletopCurrentUserId, state(creatureTurn))).toMatchObject({
       currentActorMine: true,
-      turnMovement: { actorId: creature.id, used: 5, budget: 40 }
+      turnMovement: movement[1]
     })
   })
 
