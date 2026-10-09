@@ -22,14 +22,29 @@ export type BiteKind = 'SAVE' | 'ATTACK'
 
 /**
  * The SRD Wolf with its Bite rewritten to `damage` (one point) that needs a roll: on a failed save
- * (DC 10 Dexterity) or on a hit (attack d20 + 4), within `reachFeet` or at any range. The rest of the stat block stays the SRD's.
+ * (DC 10, Dexterity unless `save` says otherwise) or on a hit (attack d20 + 4), within `reachFeet` or at any range. The rest of the stat block stays the SRD's.
  */
 export function biteWolf(
   bite: BiteKind,
-  { damage = 1, reachFeet }: { damage?: number; reachFeet?: number } = {}
+  {
+    damage = 1,
+    reachFeet,
+    save = { ability: 'DEXTERITY' }
+  }: {
+    damage?: number
+    reachFeet?: number
+    /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
+    save?: { ability: 'DEXTERITY' | 'CONSTITUTION'; damageTypeCode?: 'POISON' }
+  } = {}
 ): CreatureAuthored {
-  const dexterityId = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')?.id
-  if (!dexterityId) throw new Error('Missing Dexterity ability fixture.')
+  const saveAbilityId = srdSystemRecord.abilities?.find(
+    (ability) => ability.code === save.ability
+  )?.id
+  if (!saveAbilityId) throw new Error(`Missing ${save.ability} ability fixture.`)
+  const damageTypeId = save.damageTypeCode
+    ? srdSystemRecord.damageTypes?.find((type) => type.code === save.damageTypeCode)?.id
+    : undefined
+  if (save.damageTypeCode && !damageTypeId) throw new Error('Missing damage type fixture.')
   // The real Creature schema checks the rewritten stat block.
   return creatureAuthoredDtoSchema.parse({
     ...plainWolf,
@@ -76,7 +91,7 @@ export function biteWolf(
                       savingThrow: {
                         id: '00000000-0000-4000-8000-000000000c60',
                         dcMethod: 'FIXED_DC' as const,
-                        abilityDefinitionId: dexterityId,
+                        abilityDefinitionId: saveAbilityId,
                         baseDc: 10
                       }
                     }
@@ -94,7 +109,7 @@ export function biteWolf(
                       return {
                         id: outcome.id,
                         effectKind: 'DAMAGE' as const,
-                        damageTypeId: outcome.damageTypeId,
+                        damageTypeId: damageTypeId ?? outcome.damageTypeId,
                         valueKind: 'FIXED' as const,
                         scalingKind: 'NONE' as const,
                         amount: damage
@@ -142,18 +157,20 @@ export interface ActionRoomConfig extends Pick<
 export async function actionRoom(config: ActionRoomConfig) {
   const [source] = config.actors
   if (!source) throw new Error('The room needs an acting actor.')
-  const capability = config.ownerFeatureId
-    ? discoverEncounterFeatureActionCapabilities({
-        actor: source,
-        conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
-        abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-      }).find(
-        (candidate) =>
-          candidate.ownerFeatureId === config.ownerFeatureId &&
-          candidate.grip === (config.grip ?? null)
-      )
-    : null
-  if (config.ownerFeatureId && !capability) throw new Error('The feature has no discovered action.')
+  /** The action `actor`'s Creature feature offers. */
+  const featureActionId = (
+    actor: EncounterRunActorState,
+    ownerFeatureId: string,
+    grip: ActionRoomConfig['grip'] | null = null
+  ) => {
+    const found = discoverEncounterFeatureActionCapabilities({
+      actor,
+      conditionDefinitionIds: srdSystemRecord.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions: (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
+    }).find((candidate) => candidate.ownerFeatureId === ownerFeatureId && candidate.grip === grip)
+    if (!found) throw new Error('The feature has no discovered action.')
+    return found.actionId
+  }
   const room = await movementRoom({
     ...config,
     moverActorId: source.id,
@@ -192,7 +209,8 @@ export async function actionRoom(config: ActionRoomConfig) {
     return choices
   }
   const actionId = await (async () => {
-    if (capability) return capability.actionId
+    if (config.ownerFeatureId)
+      return featureActionId(source, config.ownerFeatureId, config.grip ?? null)
     if (!config.characterAction) throw new Error('The room needs an action source.')
     const choices = await actionChoices()
     const action = choices.actions.find(config.characterAction)
@@ -242,6 +260,8 @@ export async function actionRoom(config: ActionRoomConfig) {
     commit,
     /** The acting actor's discovered action. */
     actionId,
+    /** The action of the Creature feature `ownerFeatureId` on the Run's `actor`, for its own turn. */
+    featureActionId,
     actionChoices,
     /** The Scene context of the acting actor's token and the token of the actor at `targetIndex`. */
     sceneContext(targetIndex = 1) {
@@ -261,7 +281,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       sceneContext: ResolveEncounterActionInputDto['sceneContext'] = null,
       optionalCombatIntent: ResolveEncounterActionInputDto['optionalCombatIntent'] = null,
-      chosenActionId = actionId
+      chosenActionId = actionId,
+      actorId = source.id
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -270,7 +291,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         encounterId: room.encounterId,
         commandId: crypto.randomUUID(),
         expectedVersion: await version(),
-        actorId: source.id,
+        actorId,
         targetActorId,
         actionId: chosenActionId,
         optionalCombatIntent,

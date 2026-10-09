@@ -31,7 +31,7 @@ async function readContributorSource(
   ctx: EncounterReadTransaction,
   contributor: EncounterD20Contributor,
   conditionLabels: ReadonlyMap<string, string>
-): Promise<{ label: string | null; actorIds: readonly string[] }> {
+): Promise<{ label: string | null; actorIds: readonly string[]; hidden?: boolean }> {
   const parts = contributor.sourceId.split(':').map((part) => decodeURIComponent(part))
   if (parts[0] === 'active-effect' || parts[0] === 'active-effect-perception') {
     const effectId = parts[1] ?? ''
@@ -50,6 +50,22 @@ async function readContributorSource(
       : characterRow && readCharacterEffect(characterRow)
     if (!effect) return { label: null, actorIds: [] }
     const origin = effect.definition.origin
+    // A modifier grant froze its granting item's label; the authored effect id has none.
+    const grant =
+      effect.definition.schemaVersion === 2
+        ? effect.definition.stateContributions.find(
+            (contribution) => contribution.kind === 'MODIFIER_GRANT'
+          )
+        : undefined
+    if (grant)
+      return {
+        label: grant.sourceLabel,
+        hidden: grant.sourceHidden,
+        actorIds: [
+          ...(effect.owner.kind === 'ENCOUNTER_ACTOR' ? [effect.owner.targetActorId] : []),
+          ...(origin.kind === 'ENCOUNTER' && origin.sourceActorId ? [origin.sourceActorId] : [])
+        ]
+      }
     return {
       label: await readIdentityLabel(ctx, effect.definition.authoredEffectId, conditionLabels),
       actorIds: [
@@ -111,7 +127,10 @@ export async function withEncounterRollModeReasons<T>(
   for (const contributor of contributors) {
     const source = await readContributorSource(ctx, contributor, conditionLabels)
     if (source.label) labels.set(contributor.sourceId, source.label)
-    if (source.actorIds.some((actorId) => hiddenActorIds.has(actorId)))
+    if (
+      (source.hidden && membership.role !== 'OWNER') ||
+      source.actorIds.some((actorId) => hiddenActorIds.has(actorId))
+    )
       hiddenContributors.add(contributorKey(contributor))
   }
   return build(

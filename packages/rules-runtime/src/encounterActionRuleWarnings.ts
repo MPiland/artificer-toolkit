@@ -17,6 +17,11 @@ export function evaluateEncounterActionRuleWarnings(input: {
   /** A defeated target (D63) is left out of target lists; naming one anyway only warns. */
   targetDefeated: boolean
   /**
+   * The target's creature type when readable (a Creature's snapshot carries one; a Character's
+   * facts do not). An action that excludes the type still proceeds, but only as an override.
+   */
+  targetCreatureTypeId?: string | null
+  /**
    * Set when the action stabilizes (the Healer's Kit): it needs a dying target, so a target that
    * is not dying warns with TARGET_NOT_DYING in place of TARGET_DEFEATED.
    */
@@ -28,7 +33,16 @@ export function evaluateEncounterActionRuleWarnings(input: {
   | { kind: 'UNSUPPORTED_TARGET' }
   | { kind: 'UNACKNOWLEDGED'; warnings: EncounterRuleWarningDto[] }
   | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
-  const targetWarnings = evaluateEncounterActionTargetPolicy(input.target)
+  const { targeting } = input.target.targetPolicy
+  const excludedTypeIds = targeting?.excludedCreatureTypeIds ?? []
+  const targetWarnings = evaluateEncounterActionTargetPolicy({
+    ...input.target,
+    targetPolicy: {
+      ...input.target.targetPolicy,
+      // The exclusion is a warning of its own below, not an unsupported target.
+      targeting: targeting && { ...targeting, excludedCreatureTypeIds: [] }
+    }
+  })
   if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
   const warnings: EncounterRuleWarningDto[] = [
     ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
@@ -40,6 +54,14 @@ export function evaluateEncounterActionRuleWarnings(input: {
       : input.targetDefeated
         ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
         : []),
+    ...(input.targetCreatureTypeId && excludedTypeIds.includes(input.targetCreatureTypeId)
+      ? [
+          {
+            code: 'TARGET_CREATURE_TYPE_EXCLUDED' as const,
+            message: 'This action has no effect on this creature type.'
+          }
+        ]
+      : []),
     ...targetWarnings
   ]
   return warnings.every((warning) => input.acknowledged.includes(warning.code))

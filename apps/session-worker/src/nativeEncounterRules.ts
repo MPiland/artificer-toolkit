@@ -38,6 +38,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   encounterActionSuppressedWarning,
   evaluateEncounterActionRuleWarnings,
@@ -321,6 +322,7 @@ export async function planNativeLiveEncounterAction(
       targetPolicy: prepared.targetPolicy,
       sceneContext
     },
+    targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
     targetDefeated: isEncounterActorDefeated(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
