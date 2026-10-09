@@ -124,7 +124,7 @@
 - Needs-proof gaps closed (`c11ea6c09`): PERF-3.7, PERF-3.11, PLATFORM-13.4, 14.2 and 14.3. Evidence is in `docs/validation/phase-08-2/needs-proof-audit-2026-10-09.md` and `encounter-persistence/src/__tests__/actorSnapshotRows.test.ts`.
 - PERF-3.10 DONE: the stage's stored Run and prepared-decision reads, the player decision list and `useEncounterPendingDecision` skip Convex while the room holds authority. Proofs are in `CampaignVttStage.test.tsx`, `useEncounterPendingDecision.test.tsx` and `CampaignPlayerEncounterDecisions.test.tsx`. The checkpoint-time notice is retired by `live-sessions.md`.
 - AUTHORING-12.4 DONE, which completes AUTHORING-12: Sheet overrides (ability, item weight, HP max) leave every authored root, version, payload chunk and compilation unchanged (`sheetAdjustments.test.ts`). Edit Source and Create New were already proved.
-- Ledger 78/137 PBIs, 337/468 ACs. Next: finish SPELLS-5.6 per-speed-type movement allowances (user chose B, 2026-10-09: the turn readout has an allowance per speed type and a move names its type), then SPELLS-11. Then continue the WSJF ranking: SPELLS-7, ATTACK-10, ATTACK-7. Open needs-proof gaps: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14.
+- Ledger 78/137 PBIs, 337/468 ACs. Next: finish SPELLS-5.6 per-speed-type movement allowances (user chose B, 2026-10-09: the turn readout has an allowance per speed type and a move names its type) and SPELLS-5.7 (a Concentration grant carries over to the clock and ends when its caster starts another Concentration), then SPELLS-11. Then continue the WSJF ranking: SPELLS-7, ATTACK-10, ATTACK-7. Open needs-proof gaps: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14.
 
 **Done 2026-10-08 (thirteenth session):**
 
