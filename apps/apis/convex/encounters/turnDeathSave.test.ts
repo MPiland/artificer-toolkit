@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import {
@@ -403,7 +404,7 @@ function useFirstAid(
 function answerFirstAid(
   fixture: Fixture,
   paused: CommandResult,
-  resolution: (requestId: string) => Record<string, unknown>
+  resolution: (requestId: string) => ResolveRuleOccurrenceInputDto['resolution']
 ) {
   const { occurrence, pending } = pendingRoll(paused)
   return execute(fixture, (base) => ({
