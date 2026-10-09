@@ -1,5 +1,8 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
-import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type {
+  CharacterGrantFoldModifier,
+  CharacterGrantFoldSense
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
@@ -53,6 +56,7 @@ export interface CharacterRuleActionActiveEffectPlan {
   modifierGrantContribution?: null | {
     applyGrantOutcomeId: string
     modifiers: readonly CharacterGrantFoldModifier[]
+    senses: readonly CharacterGrantFoldSense[]
     /** Whose turn boundary counts the grant down: its holder's or its source's. */
     tickAnchor: 'HOLDER' | 'SOURCE'
     /** The first event that uses the grant up. */

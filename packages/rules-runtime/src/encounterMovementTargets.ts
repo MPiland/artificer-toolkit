@@ -5,8 +5,11 @@ import { discoverCharacterActionCapabilities } from './characterActionCapability
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import {
+  effectiveHitPointMaximum,
+  withActiveGrantSpeeds,
   withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
+  withCreatureActiveGrantProtection,
   withCreatureActiveGrantSaves
 } from './encounterActiveGrants.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -19,10 +22,6 @@ import type { CharacterBuilderContext } from './character/builderTypes.js'
 import type { CharacterSheetCampaignContext } from './character/campaignCharacterSheet.js'
 import type { CharacterRuleEvaluationResult } from './character/characterRuleEvaluation.js'
 import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
-import {
-  listHitPointMaximumReductions,
-  reduceHitPointMaximum
-} from './character/hitPointMaximumReductions.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   applyCharacterScalarValuesToFacts,
@@ -111,11 +110,11 @@ function nativeCharacterMaximumHitPoints(
   characterFacts: CharacterMovementFacts,
   activeEffects: ActiveRuleEffectRecord[]
 ) {
-  return reduceHitPointMaximum(
+  return effectiveHitPointMaximum(
     resolveCharacterEffectiveMaximumHitPoints(
       characterFacts.ruleEvaluation.output.derivedStats.maxHitPoints.effective
     ),
-    listHitPointMaximumReductions(activeEffects)
+    activeEffects
   )
 }
 
@@ -328,6 +327,10 @@ export function buildMovementTarget<
   const actorRule = requireEncounterActorRuleResult(rules, actor.id)
   if (actorRule.targetProtection.status !== 'NORMALIZED')
     throw new Error('Encounter actor spatial protections are not normalized.')
+  const targetProtection = withCreatureActiveGrantProtection(
+    actorRule.targetProtection,
+    activeEffects
+  )
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
   return {
@@ -341,7 +344,7 @@ export function buildMovementTarget<
       deathSaves: null
     },
     initialConditionRows: conditions.values,
-    effectiveMaximumHitPoints: actor.maxHitPoints,
+    effectiveMaximumHitPoints: effectiveHitPointMaximum(actor.maxHitPoints, activeEffects),
     baseScalarValues,
     effectiveScalarValues,
     baseRulePolicyOutput: null,
@@ -356,15 +359,16 @@ export function buildMovementTarget<
         activeEffects
       ),
       featureResources: actorRule.featureResources,
-      targetProtection: actorRule.targetProtection,
+      targetProtection,
       statBlock: creatureStatBlock && {
         ...creatureStatBlock,
-        armorClass: withCreatureActiveGrantArmorClass(creatureStatBlock.armorClass, activeEffects)
+        armorClass: withCreatureActiveGrantArmorClass(creatureStatBlock.armorClass, activeEffects),
+        speeds: withActiveGrantSpeeds(creatureStatBlock.speeds ?? [], activeEffects)
       }
     },
-    defenses: actorRule.targetProtection.defenses,
-    qualifiedDefenses: actorRule.targetProtection.qualifiedDefenses,
-    conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds,
+    defenses: targetProtection.defenses,
+    qualifiedDefenses: targetProtection.qualifiedDefenses,
+    conditionImmunityIds: targetProtection.conditionImmunityIds,
     basicActionAttackContributors: [],
     conditionDefinitions: [],
     conditionMechanics: []

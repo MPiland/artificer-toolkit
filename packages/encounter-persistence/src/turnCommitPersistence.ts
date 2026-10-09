@@ -180,7 +180,8 @@ export async function persistEncounterTurnCommit(
   await persistEncounterGrantTicks(ctx, {
     state,
     stage: 'END_OF_TURN',
-    turnActorId: state.currentActorId
+    turnActorId: state.currentActorId,
+    occurredAt: input.occurredAt
   })
   // A Legendary Action that rolled an attack uses up its owner's one-roll grants. These windows have
   // no GM undo, so nothing records what was deleted.
@@ -247,7 +248,12 @@ export async function persistEncounterTurnCommit(
       : [])
   ])
     for (const stage of ['START_OF_TURN', 'END_OF_TURN'] as const)
-      await persistEncounterGrantTicks(ctx, { state, stage, turnActorId })
+      await persistEncounterGrantTicks(ctx, {
+        state,
+        stage,
+        turnActorId,
+        occurredAt: input.occurredAt
+      })
   await persistEncounterTurnDeathSave(
     ctx,
     { state, campaign, root, occurrenceId: input.occurrenceId, occurredAt: input.occurredAt },
@@ -269,7 +275,8 @@ export async function persistEncounterTurnCommit(
   await persistEncounterGrantTicks(ctx, {
     state,
     stage: 'START_OF_TURN',
-    turnActorId: root.proposedTerminalTransition.currentActorId
+    turnActorId: root.proposedTerminalTransition.currentActorId,
+    occurredAt: input.occurredAt
   })
   const nextState = encounterRunStateSchema.parse({
     ...state,

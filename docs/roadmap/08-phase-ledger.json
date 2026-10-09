@@ -4921,10 +4921,15 @@
             },
             {
               "text": "Speed grants change the movement budget for every speed type; a maximum hit point grant raises the maximum and current hit points clamp when it ends; damage resistance, condition immunity and darkvision grants apply; an attack-disadvantage grant is used up by the next attack.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "apps/session-worker/test/nativeRoomGrantModifiers.test.ts (Longstrider widens the Character's walking budget readout from 30 to 40 feet; Aid at 2nd level holds 16 hit points over the stored 11 until its turn-anchored lifetime ends, then they clamp to 11)",
+                "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts (Creature and Character holders: Aid raises the maximum and its end clamps current hit points, not lower ones; Longstrider adds 10 feet of walking speed and leaves fly speed; the Darkvision grant adds a 60-foot darkvision sense; Protection from Energy resistance, Heroism immunity and Vicious Mockery disadvantage apply only while held)",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Darkvision compiles to a sense grant lasting 4800 ticks; the real Aid stays manual until casting resolves its slot-scaled bonus)",
+                "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterActionMaintenance.ts; packages/schema/src/shared/activeRuleEffects.ts; apps/session-worker/src/roomCharacterRules.ts; apps/session-worker/src/roomSceneVision.ts; apps/session-worker/src/nativeEncounterSettlement.ts; packages/encounter-persistence/src/maintenanceOwnerPersistence.ts; apps/apis/convex/characters/rest.ts"
+              ],
               "origin": [],
-              "note": "D99. Unit tests per domain plus one journey.",
+              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Open: per-speed-type budgets wait on the SPELLS-5.6 question in phase-08-2-open-questions.md (option A is built: the tabletop budget follows walking-speed grants).",
               "id": "SPELLS-5.6"
             },
             {
@@ -5037,7 +5042,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions.",
+              "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions. Aid's maximum hit point bonus scales with the slot level (SPELL_SLOT_LEVEL); modifierGrantPlan leaves slot-scaled grants manual until casting resolves the amount.",
               "id": "SPELLS-8.3"
             }
           ]

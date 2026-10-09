@@ -137,7 +137,7 @@ const scalingOperationSchema = lazySchema(() =>
   })
 )
 
-const senseOperationSchema = lazySchema(() =>
+export const senseOperationSchema = lazySchema(() =>
   z.extend(scalingOperationSchema, {
     grantId: identitySchema,
     range: z.nullable(boundedJsonSchema)
@@ -395,3 +395,4 @@ export type CharacterGrantFoldOutput = z.infer<typeof characterGrantFoldOutputSc
 export type CharacterGrantFoldRestriction = z.infer<typeof characterGrantFoldRestrictionSchema>
 export type CharacterGrantFoldSource = z.infer<typeof characterGrantFoldSourceSchema>
 export type CharacterGrantFoldModifier = z.infer<typeof modifierOperationSchema>
+export type CharacterGrantFoldSense = z.infer<typeof senseOperationSchema>

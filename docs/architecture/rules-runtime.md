@@ -504,6 +504,17 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
 
+**Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
+operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
+modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds
+them before it draws the Character's senses. A Creature holder's speeds read `withActiveGrantSpeeds`, and
+its maximum and every Character's read `effectiveHitPointMaximum`: the stored maximum plus `HIT_POINTS_MAX`
+grants, then D79 reductions. When a grant ends, `planEncounterMaintenanceOwner` clamps current hit points to
+the new maximum, and room Character reconciliation and Sheet rests bound hit points by the same maximum, so a
+held grant's hit points survive them. The tabletop movement budget is a readout of walking speed and follows
+walking-speed grants. Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
+`modifierGrantPlan` leaves them manual until spell casting (SPELLS-8) supplies it.
+
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
 damage source against a maintained state, with the DC from that source's total damage. Assisted mode

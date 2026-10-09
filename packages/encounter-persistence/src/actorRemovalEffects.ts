@@ -4,6 +4,7 @@ import { planDepartedSourceGrantRemovals } from '@artificer-toolkit/rules-runtim
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -150,20 +151,27 @@ export async function cleanupRemovedActorEffects(
     })
   }
 
-  const characterOwnerTransitions: MaintenanceCleanupResult['characterOwnerTransitions'] = []
-  for (const characterId of affectedCharacterIds) {
+  const characterOwnerTransitions = affectedCharacterIds.map((characterId) => {
     const character = characterRows.get(characterId)
     if (!character) throw new Error('Maintained-effect Character owner is unavailable.')
-    await ctx.ports.writeCharacterRecord({
-      current: character,
-      fields: { streamVersion: character.play.streamVersion + 1, updatedAt: input.occurredAt }
-    })
-    characterOwnerTransitions.push({
+    return {
       characterId,
       beforeStreamVersion: character.play.streamVersion,
       afterStreamVersion: character.play.streamVersion + 1
-    })
-  }
+    }
+  })
+  // Holders left in the Run settle like any ended effect's (a grant's maximum falling).
+  await reconcileNativeMaintenanceOwners(ctx, {
+    encounterId: input.state.id,
+    maintenance: {
+      removed: orderedEffects.filter(
+        ({ owner }) => owner.kind === 'CHARACTER' || owner.targetActorId !== input.actorId
+      ),
+      characterVersions: characterOwnerTransitions
+    },
+    actors: (await readRunActors(ctx, input.state)).filter(({ id }) => id !== input.actorId),
+    occurredAt: input.occurredAt
+  })
 
   return {
     terminatedStates,

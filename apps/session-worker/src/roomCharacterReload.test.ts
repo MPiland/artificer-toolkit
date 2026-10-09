@@ -14,6 +14,9 @@ import {
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterStoredPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
+import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
@@ -125,18 +128,24 @@ it.each([
     ).ruleEvaluation.output.resources
     if (!pool || pool.ownerKind !== 'AUTHORED_SOURCE' || otherPools.length)
       throw new Error('The SRD Fighter has one authored Resource pool.')
-    const lifecycle = { schemaVersion: 1, remainingTicks: null }
+    // A real held grant: reconciliation reads the Character's effects to bound its hit points.
+    const { definition, lifecycle } = plannedModifierGrant({
+      encounterId: uuid(0x908),
+      sourceActorId: uuid(0x909),
+      holderActorId: uuid(0x909),
+      lifecycle: {}
+    })
     const effect = characterActiveRuleEffectStoredSchema.parse({
       id: uuid(0x907),
       characterId: owner.id,
-      sourceEncounterId: null,
+      sourceEncounterId: sourceEncounterIdForDefinition(definition),
       maintainedEffectStateId: null,
       createdOrdinal: 1,
       version: 1,
-      definitionJson: '{}',
-      definitionChecksum: checksumRuleDocument({}),
+      definitionJson: JSON.stringify(definition),
+      definitionChecksum: checksumCanonicalJson(definition),
       lifecycle,
-      lifecycleChecksum: checksumRuleDocument(lifecycle),
+      lifecycleChecksum: checksumCanonicalJson(lifecycle),
       createdAt: owner.createdAt,
       updatedAt: owner.createdAt
     })

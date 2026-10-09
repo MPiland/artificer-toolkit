@@ -267,13 +267,21 @@ export function projectNativeLiveMaintenanceOwners(input: {
           ? {
               currentStreamVersion: row.play.streamVersion,
               beforeStreamVersion: beforeVersion,
-              conditions: character.state.conditions ?? []
+              state: character.state,
+              maximumHitPoints: row.play.maximumHitPoints
             }
           : null
     })
     const nextCharacter =
       character && planned.character
-        ? { ...character, state: { ...character.state, conditions: planned.character.conditions } }
+        ? {
+            ...character,
+            state: {
+              ...character.state,
+              conditions: planned.character.conditions,
+              hitpoints: planned.character.hitpoints
+            }
+          }
         : null
     owners.push({
       owner,
@@ -306,7 +314,8 @@ export function projectNativeLiveMaintenanceOwners(input: {
                         ...prior.characterFacts.character,
                         state: {
                           ...prior.characterFacts.character.state,
-                          conditions: planned.character.conditions
+                          conditions: planned.character.conditions,
+                          hitpoints: planned.character.hitpoints
                         }
                       },
                       sheetState: null

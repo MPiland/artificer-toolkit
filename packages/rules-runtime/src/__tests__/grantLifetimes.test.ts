@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type {
-  ServerCompletedRuleExecutionDto,
-  ServerPublishedRuleDefinitionDto
-} from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
+import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
+import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { shockingGrasp } from '@artificer-toolkit/source-data/srd/spells/shocking-grasp.js'
@@ -34,6 +33,8 @@ import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
+import { grantPublishedIdentity } from '../testing/modifierGrantFixture.js'
+import { grantOnly } from './antitoxinEffectFixture.js'
 
 const SOURCE_ID = testUuid(0xc301)
 const TARGET_ID = testUuid(0xc302)
@@ -44,27 +45,6 @@ type AuthoredEffect = EffectAuthored
 
 type TurnAnchor = NonNullable<PathLifecycleAuthored['turnAnchor']>
 
-/** The authored effect with its grant path(s) carrying the lifecycle, other paths dropped. */
-function grantOnly(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored): AuthoredEffect {
-  return {
-    ...effect,
-    paths: effect.paths.flatMap((path) =>
-      path.selectionKind === 'FIXED' &&
-      path.resultBlock.outcomes.some((outcome) => outcome.effectKind === 'APPLY_GRANT')
-        ? [
-            {
-              ...path,
-              resultBlock: {
-                ...path.resultBlock,
-                lifecycle: { ...path.resultBlock.lifecycle, ...lifecycle }
-              }
-            }
-          ]
-        : []
-    )
-  }
-}
-
 function onlyEffect(effects: readonly AuthoredEffect[] | undefined): AuthoredEffect {
   const effect = effects?.[0]
   if (!effect) throw new Error('The SRD record has no effect.')
@@ -72,17 +52,13 @@ function onlyEffect(effects: readonly AuthoredEffect[] | undefined): AuthoredEff
 }
 
 /** Grant plans never read the published graph beyond its identity (their graph is their own). */
-function identityOnly(): ServerPublishedRuleDefinitionDto {
-  return { id: ACTION_EFFECT_ID, checksum: 'a'.repeat(64) } as ServerPublishedRuleDefinitionDto
-}
-
 function plansFor(effect: AuthoredEffect, lifecycle: PathLifecycleAuthored) {
   const action = characterActionDescriptor(
     compileEffect({ ...grantOnly(effect, lifecycle), id: ACTION_EFFECT_ID })
   )
   return dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({
     action,
-    published: identityOnly()
+    published: grantPublishedIdentity()
   })
 }
 
@@ -225,6 +201,17 @@ describe('grant plans', () => {
       expect(plan.modifierGrantContribution?.modifiers.length).toBeGreaterThan(0)
     }
   )
+
+  it('compiles the real Darkvision sense grant', () => {
+    expect(srdPlan(onlyEffect(darkvision.effects), {})).toMatchObject({
+      initialRemaining: 4800,
+      modifierGrantContribution: { modifiers: [], senses: [{ range: { amount: 60 } }] }
+    })
+  })
+
+  it('leaves the real Aid manual until casting resolves its slot-scaled bonus', () => {
+    expect(plansFor(onlyEffect(aid.effects), {})).toEqual([])
+  })
 
   it('consumes the real Vicious Mockery grant on the first attack roll', () => {
     expect(

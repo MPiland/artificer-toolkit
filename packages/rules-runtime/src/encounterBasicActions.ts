@@ -22,6 +22,7 @@ import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { encounterConditionSpeed } from './encounterConditionMechanics.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { snapshotStatBlock } from './encounterProjection.js'
+import { withActiveGrantSpeeds } from './encounterActiveGrants.js'
 import {
   resolveRuleCapabilityState,
   type CurrentReusableDefinitionSource
@@ -114,9 +115,9 @@ async function unableToActOrMove(input: {
   const { target } = input
   const speeds =
     target.actor.kind === 'CHARACTER'
-      ? (target.characterFacts?.ruleEvaluation.output.movement.speeds ?? [])
+      ? (target.effectiveRulePolicyOutput?.movement.speeds ?? [])
       : target.actor.kind === 'CREATURE'
-        ? (snapshotStatBlock(target.actor)?.speeds ?? [])
+        ? withActiveGrantSpeeds(snapshotStatBlock(target.actor)?.speeds ?? [], target.activeEffects)
         : []
   const feet = speeds.flatMap((entry: unknown) => {
     const speed = speedDtoSchema.safeParse(entry)

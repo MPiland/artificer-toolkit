@@ -1154,8 +1154,9 @@ function timedImmediateConditionPlan(
  * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
  * turns of its authored anchor down (the holder's end of turn unless the lifecycle says otherwise).
- * The lifecycle may also have the first attack roll use the grant up. Senses, proficiencies and any
- * other lifecycle are not carried, so such a grant stays manual. An attack applies its grant only
+ * The lifecycle may also have the first attack roll use the grant up. Granted senses (Darkvision)
+ * ride along; proficiencies, chosen or scaling senses, slot-scaled amounts and any other lifecycle
+ * are not carried, so such a grant stays manual. An attack applies its grant only
  * on the authored hit path, alongside the hit's other outcomes.
  */
 function modifierGrantPlan(
@@ -1182,9 +1183,27 @@ function modifierGrantPlan(
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
   const { turnAnchor, consumeOnFirstEvent, ...otherLifecycle } = entry.lifecycle ?? {}
+  const senses = grants.senses ?? []
+  const grantedSenses = senses.flatMap((sense) =>
+    sense.selectionKind === 'GRANTED' && sense.scalingKind === 'NONE' && 'senseIds' in sense
+      ? [
+          {
+            grantId: sense.id,
+            scalingKind: 'NONE' as const,
+            targetIds: [...sense.senseIds],
+            levels: [],
+            range: sense.range ? { ...sense.range } : null
+          }
+        ]
+      : []
+  )
   if (
-    !grants.modifiers?.length ||
-    grants.senses?.length ||
+    (grants.modifiers?.length ?? 0) + senses.length === 0 ||
+    grantedSenses.length !== senses.length ||
+    // A slot-scaled amount (Aid) resolves at cast time, which grants do not carry yet.
+    grants.modifiers?.some(
+      ({ payload }) => payload && 'valueKind' in payload && payload.valueKind === 'SPELL_SLOT_LEVEL'
+    ) ||
     grants.proficiencies?.length ||
     initialRemaining === null ||
     // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
@@ -1204,7 +1223,10 @@ function modifierGrantPlan(
     initialRemaining,
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
-      modifiers: buildCharacterGrantFoldModifierFacts(grants.modifiers.map(compileModifierGrant)),
+      modifiers: buildCharacterGrantFoldModifierFacts(
+        (grants.modifiers ?? []).map(compileModifierGrant)
+      ),
+      senses: grantedSenses,
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       consumeOnFirstEvent: consumeOnFirstEvent ?? null
     },

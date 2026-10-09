@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { modifierOperationSchema } from '../api/characterGrantFoldRules.js'
+import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
@@ -184,16 +184,25 @@ const activeRuleEffectActorRelationshipContributionDtoSchema = lazySchema(() =>
 )
 
 const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('MODIFIER_GRANT'),
-    applyGrantOutcomeId: identifierSchema,
-    /** Modifier operations frozen at creation, in the Character grant fold's operation shape. */
-    modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200)),
-    /** The granting action or item label ("Antitoxin (vial)"), frozen when the grant is created. */
-    sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
-    /** Whether the source was hidden from players when the grant was created. */
-    sourceHidden: z.boolean()
-  })
+  z
+    .strictObject({
+      kind: z.literal('MODIFIER_GRANT'),
+      applyGrantOutcomeId: identifierSchema,
+      /** Modifier operations frozen at creation, in the Character grant fold's operation shape. */
+      modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+      /** Sense grants frozen at creation (Darkvision), in the grant fold's sense shape. */
+      senses: z.array(senseOperationSchema).check(z.maxLength(200)),
+      /** The granting action or item label ("Antitoxin (vial)"), frozen when the grant is created. */
+      sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+      /** Whether the source was hidden from players when the grant was created. */
+      sourceHidden: z.boolean()
+    })
+    .check(
+      z.refine(
+        (contribution) => contribution.modifiers.length + contribution.senses.length > 0,
+        'A grant contribution grants a modifier or a sense.'
+      )
+    )
 )
 
 /**

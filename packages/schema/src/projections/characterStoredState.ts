@@ -31,10 +31,19 @@ export type CharacterDocument = z.infer<typeof characterDocumentSchema>
 type StoredRecord = z.infer<typeof characterStoredRecordSchema>
 type StoredPlay = z.infer<typeof characterStoredPlayStateSchema>
 
-/** The play record's fields a reader needs: identity, version and checksummed typed state. */
+/**
+ * The play record's fields a reader needs: identity, version, checksummed typed state and the stored
+ * maximum that bounds hit points before active effects.
+ */
 export type StoredCharacterPlay = Pick<
   StoredPlay,
-  'characterId' | 'userId' | 'streamVersion' | 'state' | 'checksum' | 'updatedAt'
+  | 'characterId'
+  | 'userId'
+  | 'streamVersion'
+  | 'state'
+  | 'checksum'
+  | 'updatedAt'
+  | 'maximumHitPoints'
 >
 
 /** A Character's structure row with its play record joined, as the rules read it. */

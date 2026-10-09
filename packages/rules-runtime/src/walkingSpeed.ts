@@ -3,7 +3,7 @@ import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 import { lengthInFeet } from './character/characterSceneVision.js'
 
 /** The System speed code the rules treat as walking, as in `characterMovementAndSenses`. */
-const WALK_SPEED_CODE = 'WALK'
+export const WALK_SPEED_CODE = 'WALK'
 
 /**
  * The walking speed in feet among typed speeds (a Character's evaluated speeds or a creature stat

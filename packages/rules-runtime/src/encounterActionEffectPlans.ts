@@ -308,6 +308,7 @@ function prepareRecurringActiveEffect(
                     kind: 'MODIFIER_GRANT' as const,
                     applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
                     modifiers: grantContribution.modifiers,
+                    senses: grantContribution.senses,
                     sourceLabel: grantLabel,
                     sourceHidden: input.sourceHidden
                   }

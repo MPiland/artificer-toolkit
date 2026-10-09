@@ -1,14 +1,20 @@
 import type {
   CharacterGrantFoldModifier,
+  CharacterGrantFoldSense,
   CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
+import {
+  listHitPointMaximumReductions,
+  reduceHitPointMaximum
+} from './character/hitPointMaximumReductions.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
@@ -19,6 +25,7 @@ import {
 export type EncounterActiveGrant = {
   effectId: string
   modifiers: readonly CharacterGrantFoldModifier[]
+  senses: readonly CharacterGrantFoldSense[]
 }
 
 export function listEncounterActiveGrants(
@@ -28,7 +35,7 @@ export function listEncounterActiveGrants(
     definition.schemaVersion === 2
       ? definition.stateContributions.flatMap((contribution) =>
           contribution.kind === 'MODIFIER_GRANT'
-            ? [{ effectId: id, modifiers: contribution.modifiers }]
+            ? [{ effectId: id, modifiers: contribution.modifiers, senses: contribution.senses }]
             : []
         )
       : []
@@ -64,7 +71,7 @@ export function encounterActiveGrantCapabilitySuppressions(
 function encounterActiveGrantFoldSources(
   effects: readonly ActiveRuleEffectRecord[]
 ): CharacterGrantFoldSource[] {
-  return listEncounterActiveGrants(effects).map(({ effectId, modifiers }) => {
+  return listEncounterActiveGrants(effects).map(({ effectId, modifiers, senses }) => {
     const mechanicSource = { kind: 'ACTIVE_EFFECT', activeEffectId: effectId } as const
     return {
       sourceId: createCharacterMechanicSourceKey(mechanicSource),
@@ -72,7 +79,7 @@ function encounterActiveGrantFoldSources(
       sourceState: null,
       restrictions: normalizeCharacterGrantRestrictions(undefined),
       proficiencies: [],
-      senses: [],
+      senses: [...senses],
       modifiers: [...modifiers],
       feats: [],
       spells: []
@@ -180,6 +187,127 @@ export function withCreatureActiveGrantSaves(
   ]
 }
 
+const CREATURE_DEFENSE_KIND_BY_DOMAIN: Readonly<
+  Record<string, 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'>
+> = {
+  DAMAGE_RESISTANCE: 'RESISTANCE',
+  DAMAGE_IMMUNITY: 'IMMUNITY',
+  DAMAGE_VULNERABILITY: 'VULNERABILITY'
+}
+
+/**
+ * A Creature holder's damage defenses and condition immunities with its active grants' options
+ * added or removed (Protection from Energy's resistance, Heroism's immunity to Frightened); defenses
+ * keep the stat block's damage-type order. A Character folds the same grants through its own policy
+ * instead.
+ */
+export function withCreatureActiveGrantProtection<
+  TProtection extends {
+    defenses: readonly {
+      kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
+      damageTypeId: string
+    }[]
+    conditionImmunityIds: readonly string[]
+  }
+>(protection: TProtection, effects: readonly ActiveRuleEffectRecord[]): TProtection {
+  const defenses = new Map(
+    protection.defenses.map((defense) => [`${defense.kind}:${defense.damageTypeId}`, defense])
+  )
+  const conditionImmunityIds = new Set(protection.conditionImmunityIds)
+  for (const { modifiers } of listEncounterActiveGrants(effects)) {
+    for (const modifier of modifiers) {
+      const grant = record(modifier.grant)
+      const adding = modifier.modifierKind === 'ADD_OPTION'
+      if ((!adding && modifier.modifierKind !== 'REMOVE_OPTION') || grant?.scope !== 'GLOBAL')
+        continue
+      const payload = record(grant.payload)
+      const kind = CREATURE_DEFENSE_KIND_BY_DOMAIN[modifier.valueDomainCode]
+      const option = kind ? payload?.damageTypeId : payload?.conditionTypeId
+      if (
+        typeof option !== 'string' ||
+        (!kind && modifier.valueDomainCode !== 'CONDITION_IMMUNITY')
+      )
+        continue
+      if (kind) {
+        if (adding) defenses.set(`${kind}:${option}`, { kind, damageTypeId: option })
+        else defenses.delete(`${kind}:${option}`)
+      } else if (adding) conditionImmunityIds.add(option)
+      else conditionImmunityIds.delete(option)
+    }
+  }
+  return {
+    ...protection,
+    defenses: [...defenses.values()].sort((left, right) =>
+      left.damageTypeId === right.damageTypeId
+        ? left.kind.localeCompare(right.kind)
+        : left.damageTypeId.localeCompare(right.damageTypeId)
+    ),
+    conditionImmunityIds: [...conditionImmunityIds]
+  }
+}
+
+/**
+ * A Creature holder's active advantage and disadvantage grants on its own attack rolls of one
+ * attack domain (Vicious Mockery's disadvantage), as roll contributors. A Character folds the same
+ * grants through its own policy instead.
+ */
+export function creatureActiveGrantAttackContributors(
+  holderActorId: string,
+  attackDomain: string,
+  effects: readonly ActiveRuleEffectRecord[]
+): EncounterRelationshipD20Contributor[] {
+  return listEncounterActiveGrants(effects).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) =>
+      (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+      modifier.valueDomainCode === 'ATTACK_ROLL' &&
+      record(modifier.domain)?.attackDomain === attackDomain &&
+      record(modifier.grant)?.scope === 'GLOBAL'
+        ? [
+            {
+              sourceId: createCharacterMechanicSourceKey({
+                kind: 'ACTIVE_EFFECT',
+                activeEffectId: effectId
+              }),
+              grantId: modifier.grantId,
+              domainKey: `active-grant:${holderActorId}`,
+              influence: modifier.modifierKind
+            }
+          ]
+        : []
+    )
+  )
+}
+
+/**
+ * The net of a holder's active fixed bonuses and penalties to one value domain, for the grants
+ * whose domain `applies` accepts.
+ */
+function activeFixedGrantTotal(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  valueDomainCode: string,
+  applies: (domain: Record<string, unknown> | null) => boolean = () => true
+): number {
+  let total = 0
+  for (const { modifiers } of listEncounterActiveGrants(effects)) {
+    for (const modifier of modifiers) {
+      const grant = record(modifier.grant)
+      if (
+        modifier.valueDomainCode !== valueDomainCode ||
+        (modifier.modifierKind !== 'BONUS' && modifier.modifierKind !== 'PENALTY') ||
+        grant?.scope !== 'GLOBAL' ||
+        !applies(record(modifier.domain))
+      )
+        continue
+      const payload = record(grant.payload)
+      if (payload?.valueKind !== 'FIXED' || typeof payload.amount !== 'number')
+        throw new Error(`An active ${valueDomainCode} grant must be a fixed amount.`)
+      // A penalty is authored as a positive amount and subtracted once, here.
+      total += modifier.modifierKind === 'PENALTY' ? -payload.amount : payload.amount
+    }
+  }
+  return total
+}
+
 /**
  * A Creature holder's armor class with its active fixed armor-class bonuses and penalties
  * (Shimmering Shield's +2) added to its stat block value. A Character folds the same grants
@@ -189,23 +317,65 @@ export function withCreatureActiveGrantArmorClass(
   armorClass: number | null,
   effects: readonly ActiveRuleEffectRecord[]
 ): number | null {
-  if (armorClass === null) return null
-  let adjusted = armorClass
+  return armorClass === null ? null : armorClass + activeFixedGrantTotal(effects, 'ARMOR_CLASS')
+}
+
+/**
+ * The effective maximum hit points the Sheet and the Encounter read, for any holder: a maximum
+ * raised or lowered by its active fixed `HIT_POINTS_MAX` grants (Aid), less every active reduction,
+ * never below 0. A Character passes its grant-free policy maximum, so its grants count once.
+ */
+export function effectiveHitPointMaximum(
+  maximum: number,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[]
+): number {
+  return reduceHitPointMaximum(
+    Math.max(0, maximum + activeFixedGrantTotal(effects, 'HIT_POINTS_MAX')),
+    listHitPointMaximumReductions(effects)
+  )
+}
+
+/**
+ * A holder's typed speeds with its active speed grants applied the way the Character policy folds
+ * them: the best "your speed is X" grant replaces a speed's base (adding a speed the holder lacked,
+ * as Fly does), then fixed bonuses and penalties add (Longstrider, Ray of Frost), never below 0.
+ */
+export function withActiveGrantSpeeds(
+  speeds: readonly unknown[],
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): SpeedDto[] {
+  const replacements = new Map<string, number>()
   for (const { modifiers } of listEncounterActiveGrants(effects)) {
     for (const modifier of modifiers) {
+      const speedId = record(modifier.domain)?.speedId
       const grant = record(modifier.grant)
+      const amount = record(grant?.payload)?.amount
       if (
-        modifier.valueDomainCode !== 'ARMOR_CLASS' ||
-        (modifier.modifierKind !== 'BONUS' && modifier.modifierKind !== 'PENALTY') ||
-        grant?.scope !== 'GLOBAL'
+        modifier.valueDomainCode !== 'SPEED' ||
+        modifier.modifierKind !== 'SET_VALUE' ||
+        grant?.scope !== 'GLOBAL' ||
+        typeof speedId !== 'string' ||
+        typeof amount !== 'number'
       )
         continue
-      const payload = record(grant.payload)
-      if (payload?.valueKind !== 'FIXED' || typeof payload.amount !== 'number')
-        throw new Error('A Creature armor class grant must be a fixed amount.')
-      // A penalty is authored as a positive amount and subtracted once, here.
-      adjusted += modifier.modifierKind === 'PENALTY' ? -payload.amount : payload.amount
+      replacements.set(speedId, Math.max(replacements.get(speedId) ?? amount, amount))
     }
   }
-  return adjusted
+  const base = speeds.flatMap((entry) => {
+    const speed = speedDtoSchema.safeParse(entry)
+    return speed.success ? [speed.data] : []
+  })
+  return [
+    ...base,
+    ...[...replacements.keys()]
+      .filter((speedId) => !base.some((speed) => speed.speedId === speedId))
+      .map((speedId) => ({ speedId, amount: 0, unit: 'FEET' as const }))
+  ].map((speed) => ({
+    ...speed,
+    amount: Math.max(
+      0,
+      (replacements.get(speed.speedId) ?? speed.amount) +
+        activeFixedGrantTotal(effects, 'SPEED', (domain) => domain?.speedId === speed.speedId)
+    )
+  }))
 }

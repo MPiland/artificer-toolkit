@@ -13,6 +13,7 @@ import {
   buildCompiledActionCompilerSource,
   buildCompiledActionTargetPolicy
 } from './encounterActionEntryPointCompiler.js'
+import { creatureActiveGrantAttackContributors } from './encounterActiveGrants.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import {
   encounterConditionAttackContributors,
@@ -373,7 +374,14 @@ export async function prepareEncounterActionMechanics<
                     ),
                     contributors
                   )
-                : contributors
+                : mergeCanonicalD20Contributors(
+                    creatureActiveGrantAttackContributors(
+                      actor.id,
+                      attackKind,
+                      sourceFacts.activeEffects
+                    ),
+                    contributors
+                  )
             ])
           )
         }

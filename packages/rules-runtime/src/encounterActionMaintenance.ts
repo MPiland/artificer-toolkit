@@ -13,6 +13,7 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
+import { effectiveHitPointMaximum } from './encounterActiveGrants.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
@@ -100,7 +101,11 @@ export function endedMaintenanceConditions(
   return new Set([...ended].filter((id) => !retained.has(id)))
 }
 
-/** Reconciles the post-mechanics owner once, sharing its preceding Character version increment. */
+/**
+ * Reconciles the post-mechanics owner once, sharing its preceding Character version increment:
+ * conditions only the removed effects held end, and current hit points fall to the maximum the
+ * remaining effects allow (Aid ending).
+ */
 export function planEncounterMaintenanceOwner(input: {
   owner: ActiveRuleEffectOwner
   removed: readonly ActiveRuleEffectRecord[]
@@ -109,13 +114,16 @@ export function planEncounterMaintenanceOwner(input: {
   character: {
     currentStreamVersion: number
     beforeStreamVersion: number
-    conditions: NonNullable<CharacterAuthored['state']['conditions']>
+    state: Pick<CharacterAuthored['state'], 'conditions' | 'hitpoints'>
+    /** The stored maximum, before active effects. */
+    maximumHitPoints: number
   } | null
 }) {
   const { owner } = input
   const ended = endedMaintenanceConditions(input.removed, input.remaining)
   let character: {
     conditions: NonNullable<CharacterAuthored['state']['conditions']>
+    hitpoints: CharacterAuthored['state']['hitpoints']
     changed: boolean
     streamVersion: number
   } | null = null
@@ -128,12 +136,18 @@ export function planEncounterMaintenanceOwner(input: {
         current.currentStreamVersion !== current.beforeStreamVersion + 1)
     )
       throw new Error('Maintained-effect Character version changed during settlement.')
-    const conditions = current.conditions.filter(
-      (condition) => !ended.has(condition.conditionTypeId)
+    const priorConditions = current.state.conditions ?? []
+    const conditions = priorConditions.filter((condition) => !ended.has(condition.conditionTypeId))
+    const { hitpoints } = current.state
+    const currentHitPoints = Math.min(
+      hitpoints.current,
+      effectiveHitPointMaximum(current.maximumHitPoints, input.remaining)
     )
     character = {
       conditions,
-      changed: conditions.length !== current.conditions.length,
+      hitpoints: { ...hitpoints, current: currentHitPoints },
+      changed:
+        conditions.length !== priorConditions.length || currentHitPoints !== hitpoints.current,
       streamVersion: current.beforeStreamVersion + 1
     }
     ownerActors = input.actors.filter(
@@ -147,13 +161,20 @@ export function planEncounterMaintenanceOwner(input: {
   return {
     character,
     actors: ownerActors.map((actor) => {
-      // A Character's conditions live on the Character, which `character` above updates.
-      if (actor.kind === 'CHARACTER' || !ended.size) return { before: actor, after: actor }
+      // A Character's conditions and hit points live on the Character, which `character` updates.
+      if (actor.kind === 'CHARACTER') return { before: actor, after: actor }
+      const currentHitPoints = Math.min(
+        actor.currentHitPoints,
+        effectiveHitPointMaximum(actor.maxHitPoints, input.remaining)
+      )
+      if (!ended.size && currentHitPoints === actor.currentHitPoints)
+        return { before: actor, after: actor }
       const conditions = readEncounterActorConditionState(actor.conditions ?? [])
       return {
         before: actor,
         after: encounterRunActorStateSchema.parse({
           ...actor,
+          currentHitPoints,
           conditions: conditions.values.filter(
             (_value, index) => !ended.has(conditions.ids[index]!)
           )

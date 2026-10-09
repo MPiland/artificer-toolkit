@@ -5,7 +5,7 @@ import {
   characterRulePolicyOutputSchema,
   characterRuleSenseRangeSchema
 } from '../api/characterRules.js'
-import { modifierOperationSchema } from '../api/characterGrantFoldRules.js'
+import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
@@ -145,12 +145,20 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
     ),
     modifierGrantContribution: z._default(
       z.nullable(
-        z.strictObject({
-          applyGrantOutcomeId: serverUuidIdentityDtoSchema,
-          modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200)),
-          tickAnchor: z.enum(['HOLDER', 'SOURCE']),
-          consumeOnFirstEvent: z.nullable(z.literal('ON_ATTACK_ROLL'))
-        })
+        z
+          .strictObject({
+            applyGrantOutcomeId: serverUuidIdentityDtoSchema,
+            modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
+            senses: z.array(senseOperationSchema).check(z.maxLength(200)),
+            tickAnchor: z.enum(['HOLDER', 'SOURCE']),
+            consumeOnFirstEvent: z.nullable(z.literal('ON_ATTACK_ROLL'))
+          })
+          .check(
+            z.refine(
+              (contribution) => contribution.modifiers.length + contribution.senses.length > 0,
+              'A grant contribution grants a modifier or a sense.'
+            )
+          )
       ),
       null
     ),
