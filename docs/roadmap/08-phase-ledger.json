@@ -4956,7 +4956,7 @@
                 "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts"
               ],
               "origin": [],
-              "note": "D99. Undo follows the command: only ordinary actions have GM undo, so consumption by reactions, Disarm and Legendary windows and removal endings stand. Legendary consumption gets its journey with SPELLS-5.3 (Shimmering Shield).",
+              "note": "D99. Undo follows the command: only ordinary actions have GM undo, so consumption by reactions, Disarm and Legendary windows and removal endings stand. Legendary consumption gets its journey with SPELLS-5.3 (Shimmering Shield). Red-first for departure (2026-10-09): with planDepartedSourceGrantRemovals stubbed to end nothing, the nativeRoomGrantEnds removal journey and both grantLifetimes departure unit tests failed; restored, they pass.",
               "id": "SPELLS-5.10"
             }
           ]
