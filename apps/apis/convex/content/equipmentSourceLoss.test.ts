@@ -12,7 +12,7 @@ import type {
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { backpack } from '@artificer-toolkit/source-data/srd/equipment/backpack.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
-import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import * as S from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import {
   SRD_CONTENT_SOURCE,
@@ -95,14 +95,14 @@ describe('native Equipment deletion source-loss cleanup', () => {
         }),
         importedSubject({
           subjectKind: 'EQUIPMENT',
-          ...healersKit10Uses,
-          document: healersKit10Uses
+          ...healersKit,
+          document: healersKit
         })
       ]
     })
     const duplicated = await base.owner.caller.mutation(api.content.drafts.duplicate, {
       subjectKind: 'EQUIPMENT',
-      subjectId: healersKit10Uses.id
+      subjectId: healersKit.id
     })
     const abyssal = SRD_LANGUAGES.find((language) => language.code === 'ABYSSAL')
     if (!abyssal) throw new Error('Missing Abyssal language.')

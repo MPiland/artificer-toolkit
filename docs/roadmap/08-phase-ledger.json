@@ -1586,25 +1586,34 @@
         {
           "id": "AUTHORING-16",
           "title": "Item names carry no use or bundle counts",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "packages/source-data/src/srd/itemCounts.test.ts",
+            "apps/web/src/domains/characters/builder/steps/equipment/characterStartingEquipmentChoices.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The SRD Healer's Kit is named \"Healer's Kit\"; its 10 uses live only in its charges, so the Sheet and Encounter show the remaining uses rather than a fixed count in the name.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/itemCounts.test.ts › names the Healer's Kit without its uses and keeps the 10 uses in its charges"
+              ],
               "origin": [],
               "note": "Raised by the user 2026-10-08 (SPELLS-3.5 review). Rename the label, source file and export; keep the record id. Measurements that never change (Rope (50 ft), Pole (10-foot), Rations (1 day)) keep their names.",
               "id": "AUTHORING-16.1"
             },
             {
               "text": "SRD ammunition and other bundled items (Arrows, Crossbow Bolts, Blowgun Needles, Sling Bullets, Iron Spikes) are named without the bundle count, inventory quantity counts single pieces, and the price is per piece.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/itemCounts.test.ts › each of the five items is one piece with a per-piece cost and weight",
+                "packages/source-data/src/srd/itemCounts.test.ts › grants starting ammunition as single pieces, not one bundle",
+                "apps/web/src/domains/characters/builder/steps/equipment/characterStartingEquipmentChoices.test.ts › does not pluralize items whose label is already plural"
+              ],
               "origin": [],
-              "note": "D97: one item per piece, priced per piece from the SRD bundle price; no sale-unit field (no merchants).",
+              "note": "D97: one item per piece, priced per piece from the SRD bundle price; no sale-unit field (no merchants). Class starting equipment grants Arrows and Crossbow Bolts at quantity 20; the Builder choice label reads \"Light Crossbow and 20 Crossbow Bolts\". No pack, background, fixture or seeded Character grants any of the five items.",
               "id": "AUTHORING-16.2"
             }
           ]
@@ -4699,14 +4708,15 @@
         {
           "id": "SPELLS-3",
           "title": "Dying and death saves",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/apis/convex/encounters/defeat.test.ts",
             "apps/apis/convex/encounters/liveCharacterState.test.ts",
-            "apps/apis/convex/encounters/turnDeathSave.test.ts"
+            "apps/apis/convex/encounters/turnDeathSave.test.ts",
+            "apps/apis/convex/characters/sheetDeathSaves.test.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Creature 0 HP defeat, a Character dying, dead and undone, the turn-start death save and an ally's Healer's Kit stabilizing it and First Aid (a prompted or auto-rolled DC 10 Medicine check) are proved; no Sheet tracker yet (3.6).",
+          "journeyStatus": "verified",
+          "journeyGap": "",
           "origin": [],
           "acs": [
             {
@@ -4784,10 +4794,16 @@
             },
             {
               "text": "The Character Sheet shows death save successes and failures at 0 HP, lets the Sheet's editors set them, and rolls a death save outside an Encounter.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/sheetDeathSaves.test.ts (the owner at 0 HP sets marks and rolls to stable; a third failure kills; a 20 regains 1 HP; a held Run rolls in the room; a dead Character stays defeated after the Run completes with the frozen deathSaves; a stranger is refused; every roll has one DEATH_SAVE card the GM reads)",
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts › SET_DEATH_SAVES, ROLL_DEATH_SAVE",
+                "apps/web/src/domains/characters/sheet/vitals/CharacterSheetVitals.test.tsx › death saves",
+                "packages/schema/src/__tests__/character-sheet-command-contracts.test.ts",
+                "impl: apps/apis/convex/characters/sheetDeathSaveRoll.ts; apps/session-worker/src/roomCharacterSheetCommands.ts; apps/web/src/domains/characters/sheet/vitals/CharacterSheetDeathSaves.tsx"
+              ],
               "origin": [],
-              "note": "D96. Manual-mode tables track death saves here.",
+              "note": "D96. Manual-mode tables track death saves here. Slice D, 2026-10-08: the frozen actor state carries a required deathSaves, so a departed or completed-Run Character that died shows Dead; the Encounter turn-start save card now also uses the DEATH_SAVE roll source kind.",
               "id": "SPELLS-3.6"
             },
             {

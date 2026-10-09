@@ -1,3 +1,4 @@
+import { deathSavesAfterMarksSet } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CharacterSheetSliceResponseDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import {
   createCharacterResourceOwnerKey,
@@ -572,6 +573,10 @@ function projectCommon<
     case 'SET_HIT_POINTS':
     case 'ADJUST_HIT_POINTS':
       return projectHitPoints(sheet, command)
+    case 'SET_DEATH_SAVES':
+      return sheet.overview.currentHitPoints === 0
+        ? { ...sheet, overview: { ...sheet.overview, deathSaves: deathSavesAfterMarksSet(command) } }
+        : sheet
     case 'SET_PARTY_VISIBILITY':
       return { ...sheet, meta: { ...sheet.meta, partyVisibility: command.visibility } }
     default:
@@ -821,6 +826,8 @@ export function projectOptimisticCharacterSheetPanel(
     case 'SET_HIT_POINTS':
     case 'ADJUST_HIT_POINTS':
     case 'USE_HIT_DIE':
+    case 'SET_DEATH_SAVES':
+    case 'ROLL_DEATH_SAVE':
     case 'COMPLETE_REST':
     case 'SET_EXHAUSTION':
     case 'ADD_CONDITION':

@@ -7,6 +7,7 @@ import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterStat
 
 import {
   applyCharacterSheetCommand,
+  CharacterSheetCommandError,
   getNoteGroups,
   summarizeCharacterSheetCommand
 } from '../character/sheetCommandReducer.js'
@@ -70,6 +71,7 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       currentHitPoints: 20,
       maxHitPoints: 20,
       tempHitPoints: 0,
+      deathSaves: { successes: 0, failures: 0, stable: false },
       maxHitPointsModifier: 0,
       maxHitPointsModifierAdjustmentId: null,
       maxHitPointsReductions: [],
@@ -715,5 +717,83 @@ describe('Character Sheet dying and death (D96)', () => {
       apply(character, { ...base, type: 'SET_HIT_POINTS', current }).state.hitpoints
     expect(set(at(0, dead), 6)).toMatchObject({ current: 6, deathSaves: NO_DEATH_SAVES })
     expect(set(at(0, dying), 0).deathSaves).toEqual(dying)
+  })
+
+  describe('SET_DEATH_SAVES', () => {
+    const set = (character: ReturnType<typeof at>, successes: number, failures: number) =>
+      apply(character, { ...base, type: 'SET_DEATH_SAVES', successes, failures }).state.hitpoints
+        .deathSaves
+
+    it('sets the marks at 0 hit points', () => {
+      expect(set(at(0), 2, 1)).toEqual({ successes: 2, failures: 1, stable: false })
+    })
+
+    it('stabilizes at three successes and kills at three failures', () => {
+      expect(set(at(0, dying), 3, 1)).toEqual({ successes: 0, failures: 0, stable: true })
+      expect(set(at(0, dying), 1, 3)).toEqual(dead)
+    })
+
+    it('refuses to set marks above 0 hit points', () => {
+      expect(() =>
+        apply(at(3), { ...base, type: 'SET_DEATH_SAVES', successes: 1, failures: 0 })
+      ).toThrow(CharacterSheetCommandError)
+    })
+  })
+
+  describe('ROLL_DEATH_SAVE', () => {
+    const roll = (character: ReturnType<typeof at>, deathSaveDie?: number) =>
+      applyCharacterSheetCommand(
+        character,
+        { ...base, type: 'ROLL_DEATH_SAVE' },
+        sheet(),
+        { ...context(), deathSaveDie }
+      ).state
+
+    it('adds a success on 10 and a failure on 9', () => {
+      expect(roll(at(0), 10).hitpoints.deathSaves).toEqual({
+        successes: 1,
+        failures: 0,
+        stable: false
+      })
+      expect(roll(at(0), 9).hitpoints.deathSaves).toEqual({
+        successes: 0,
+        failures: 1,
+        stable: false
+      })
+    })
+
+    it('adds two failures on a natural 1', () => {
+      expect(roll(at(0), 1).hitpoints.deathSaves).toEqual({
+        successes: 0,
+        failures: 2,
+        stable: false
+      })
+    })
+
+    it('regains 1 hit point and wakes on a natural 20', () => {
+      const state = roll(at(0, dying), 20)
+      expect(state.hitpoints).toMatchObject({ current: 1, deathSaves: NO_DEATH_SAVES })
+      expect(state.conditions ?? []).toEqual([])
+    })
+
+    it('stabilizes on a third success and dies on a third failure', () => {
+      expect(roll(at(0, { successes: 2, failures: 0, stable: false }), 12).hitpoints.deathSaves)
+        .toEqual({ successes: 0, failures: 0, stable: true })
+      expect(roll(at(0, dying), 1).hitpoints.deathSaves).toEqual(dead)
+    })
+
+    it('refuses a Character that is not dying', () => {
+      const command = { ...base, type: 'ROLL_DEATH_SAVE' } as const
+      const rolling = (character: ReturnType<typeof at>) => () =>
+        applyCharacterSheetCommand(character, command, sheet(), {
+          ...context(),
+          deathSaveDie: 12
+        })
+      expect(rolling(at(4))).toThrow(CharacterSheetCommandError)
+      expect(rolling(at(0, { successes: 0, failures: 0, stable: true }))).toThrow(
+        CharacterSheetCommandError
+      )
+      expect(rolling(at(0, dead))).toThrow(CharacterSheetCommandError)
+    })
   })
 })

@@ -179,7 +179,7 @@ export interface MovementRoomConfig {
   concentrationDependentActorIds?: readonly string[]
   /** Features the mover Character's Class carries (see `concentrationAdvantageFeature`). */
   characterClassFeatures?: readonly ClassFeature[]
-  /** Further SRD Equipment the mover Character carries, equipped (see healersKit10Uses). */
+  /** Further SRD Equipment the mover Character carries, equipped (see healersKit). */
   characterEquipment?: readonly EquipmentAuthored[]
   /** The mover Character's starting play state, where it differs from the capture. */
   characterPlay?: CharacterPlayOverrides

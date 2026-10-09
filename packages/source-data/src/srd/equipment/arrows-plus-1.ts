@@ -1,5 +1,5 @@
 import type { EquipmentVariantAuthored } from '@artificer-toolkit/shared'
-import { arrows20 } from './arrows-20.js'
+import { arrows } from './arrows.js'
 import * as S from './shared.js'
 
 export const arrowsPlus1: EquipmentVariantAuthored = {
@@ -8,7 +8,7 @@ export const arrowsPlus1: EquipmentVariantAuthored = {
   label: 'Arrows +1',
   description: S.MAGIC_AMMUNITION_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
-  parentEquipmentId: arrows20.id,
+  parentEquipmentId: arrows.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   effects: [S.magicAmmunitionExpirationEffect(S.equipId(342))],
   rarityId: S.RARITY_UNCOMMON,

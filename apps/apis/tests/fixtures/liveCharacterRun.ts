@@ -20,7 +20,7 @@ import {
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -137,7 +137,7 @@ const baseCreature = {
  */
 export async function setup({
   withAlly = false,
-  allyItem = healersKit10Uses,
+  allyItem = healersKit,
   heroSave,
   enemyCreatureTypeCode
 }: {

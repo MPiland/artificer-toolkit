@@ -8,6 +8,7 @@ import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
+import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { jsonValueSchema, projectionChecksumSchema } from './identity.js'
 
 const encounterRunActorStateBaseSchema = lazySchema(() =>
@@ -47,7 +48,9 @@ const encounterCharacterFrozenStateSchema = lazySchema(() =>
       currentHitPoints: z.number().check(z.int()).check(z.nonnegative()),
       maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
       tempHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-      conditions: jsonValueSchema
+      conditions: jsonValueSchema,
+      /** A frozen Character at 0 HP with 3 failures stays dead (D96). */
+      deathSaves: characterDeathSavesDtoSchema
     })
   )
 )

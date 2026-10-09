@@ -18,7 +18,7 @@ import {
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
-import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api } from '../_generated/api'
@@ -333,7 +333,7 @@ describe('a stabilize action on a dying Character (D96)', () => {
     const stabilized = await useKit(fixture, atAlly)
     expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
     expect(await usage()).toMatchObject([
-      { owner: { kind: 'ITEM_INSTANCE', chargeId: healersKit10Uses.charges?.id }, used: 1 }
+      { owner: { kind: 'ITEM_INSTANCE', chargeId: healersKit.charges?.id }, used: 1 }
     ])
 
     await execute(fixture, (base) => ({

@@ -7660,7 +7660,7 @@
     {
       "domain": "equipment",
       "id": "00000000-0000-0000-0060-006300000000",
-      "label": "Arrows (20)",
+      "label": "Arrows",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",
@@ -7677,7 +7677,7 @@
     {
       "domain": "equipment",
       "id": "00000000-0000-0000-0060-006400000000",
-      "label": "Blowgun Needles (50)",
+      "label": "Blowgun Needles",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",
@@ -7694,7 +7694,7 @@
     {
       "domain": "equipment",
       "id": "00000000-0000-0000-0060-006500000000",
-      "label": "Crossbow Bolts (20)",
+      "label": "Crossbow Bolts",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",
@@ -7711,7 +7711,7 @@
     {
       "domain": "equipment",
       "id": "00000000-0000-0000-0060-006600000000",
-      "label": "Sling Bullets (20)",
+      "label": "Sling Bullets",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",
@@ -8357,7 +8357,7 @@
     {
       "domain": "equipment",
       "id": "00000000-0000-0000-0060-008c00000000",
-      "label": "Healer's Kit (10 uses)",
+      "label": "Healer's Kit",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",
@@ -8459,7 +8459,7 @@
     {
       "domain": "equipment",
       "id": "00000000-0000-0000-0060-009200000000",
-      "label": "Iron Spikes (10)",
+      "label": "Iron Spikes",
       "sourceReferences": [
         {
           "sourceFile": "SRD_CC_v5.1.txt",

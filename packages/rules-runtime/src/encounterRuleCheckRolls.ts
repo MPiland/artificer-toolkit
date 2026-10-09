@@ -103,10 +103,15 @@ export function actionD20RollRecord(input: {
   })
 }
 
-/** The roll-log record of a dying Character's turn-start death save: one d20, no modifiers (D96). */
+/**
+ * The roll-log record of a dying Character's death save: one d20, no modifiers (D96). The
+ * Encounter turn-start save is the actor's (no Character id); a Sheet save names its Character and
+ * keys the record by its command.
+ */
 export function deathSaveRollRecord(input: {
   occurrenceId: string
   rawDie: number
+  characterId?: string
   rollerLabel: string
   ruleset: RollRecordDto['ruleset']
   createdAt: string
@@ -119,9 +124,9 @@ export function deathSaveRollRecord(input: {
   return rollRecordDtoSchema.parse({
     id: ruleCheckRollId(input.occurrenceId, 0),
     ...evaluated,
-    characterId: null,
+    characterId: input.characterId ?? null,
     characterLabel: input.rollerLabel,
-    source: { kind: 'SAVING_THROW', label: 'Death save' },
+    source: { kind: 'DEATH_SAVE', label: 'Death save' },
     ruleset: input.ruleset,
     createdAt: input.createdAt
   })

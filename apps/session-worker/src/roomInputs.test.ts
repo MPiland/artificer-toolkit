@@ -225,7 +225,13 @@ const document = (
 /** A Run actor: a creature (`null`), a Character, or a Character whose state is frozen in the actor. */
 type ActorSpec = null | string | { sourceId: string; frozen: true }
 
-const frozenState = { currentHitPoints: 7, maxHitPoints: 11, tempHitPoints: 0, conditions: [] }
+const frozenState = {
+  currentHitPoints: 7,
+  maxHitPoints: 11,
+  tempHitPoints: 0,
+  conditions: [],
+  deathSaves: { successes: 0, failures: 0, stable: false }
+}
 
 function actorState(actor: ActorSpec, padding: number) {
   const filler = 'a'.repeat(padding)

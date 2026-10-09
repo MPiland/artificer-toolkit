@@ -130,6 +130,26 @@ describe('CharacterStartingEquipmentChoices utils', () => {
     ).toBe("Explorer's Pack and 4 Javelins")
   })
 
+  it('does not pluralize items whose label is already plural', () => {
+    expect(
+      formatStartingEquipmentItems(
+        [
+          {
+            id: 'bolts',
+            order: 1,
+            startingEquipmentKind: 'EQUIPMENT',
+            selectionKind: 'GRANTED',
+            quantity: 20,
+            authoringModeKind: 'SELECTED',
+            equipmentIds: ['crossbow-bolts']
+          }
+        ],
+        [{ id: 'crossbow-bolts', label: 'Crossbow Bolts' }],
+        []
+      )
+    ).toBe('20 Crossbow Bolts')
+  })
+
   it('defaults single-option starting equipment groups without making the user choose the obvious option', () => {
     const decision = createStartingEquipmentDecision('CLASS')
     const nextDecision = ensureDefaultStartingEquipmentGroupOptions(decision, {

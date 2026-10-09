@@ -120,6 +120,7 @@ export async function executeRoomEncounterCommand(input: {
           epoch,
           userId: caller,
           ctx: written,
+          random: input.random,
           command: {
             scope: 'CHARACTER_SHEET',
             characterId,

@@ -14,7 +14,7 @@ import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDe
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
-import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -549,7 +549,7 @@ describe('native phased action execution', () => {
   })
 
   it('compiles the SRD Healer’s Kit to a stabilize proposal that applies without an amount', async () => {
-    const [kitEffect] = healersKit10Uses.effects ?? []
+    const [kitEffect] = healersKit.effects ?? []
     if (!kitEffect) throw new Error('The SRD Healer’s Kit has no effect.')
     const action = descriptor(compileEffect({ ...kitEffect, id: EFFECT_ID }))
     expect(

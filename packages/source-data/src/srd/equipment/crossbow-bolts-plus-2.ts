@@ -1,5 +1,5 @@
 import type { EquipmentVariantAuthored } from '@artificer-toolkit/shared'
-import { crossbowBolts20 } from './crossbow-bolts-20.js'
+import { crossbowBolts } from './crossbow-bolts.js'
 import * as S from './shared.js'
 
 export const crossbowBoltsPlus2: EquipmentVariantAuthored = {
@@ -8,7 +8,7 @@ export const crossbowBoltsPlus2: EquipmentVariantAuthored = {
   label: 'Crossbow Bolts +2',
   description: S.MAGIC_AMMUNITION_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
-  parentEquipmentId: crossbowBolts20.id,
+  parentEquipmentId: crossbowBolts.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   effects: [S.magicAmmunitionExpirationEffect(S.equipId(349))],
   rarityId: S.RARITY_RARE,

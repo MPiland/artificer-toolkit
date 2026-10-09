@@ -60,7 +60,8 @@ export async function recordRuleRollCard(
   },
   input: {
     campaign: CampaignAuthority['campaign']
-    encounterId: string
+    /** Null for a roll outside an Encounter, such as a Sheet death save. */
+    encounterId: string | null
     roller: RuleRollRoller | null
     initiatorUserId: string
     visibility: RollVisibilityDto | undefined
@@ -85,7 +86,8 @@ export async function recordRuleRollCard(
     }
   await ctx.ports.retainGmRoll(campaign.ownerUserId, roll, {
     campaignId: campaign.id,
-    creature: roller ? { encounterId: input.encounterId, actorId: roller.id } : null,
+    creature:
+      roller && input.encounterId ? { encounterId: input.encounterId, actorId: roller.id } : null,
     revealedAt: null,
     noticedAt: null
   })

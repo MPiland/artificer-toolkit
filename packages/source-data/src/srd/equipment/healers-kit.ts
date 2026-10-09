@@ -1,9 +1,9 @@
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
-export const healersKit10Uses: EquipmentAuthored = {
+export const healersKit: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(140),
-  label: "Healer's Kit (10 uses)",
+  label: "Healer's Kit",
   description:
     'This kit is a leather pouch containing bandages, salves, and splints. The kit has ten uses. As an action, you can expend one use of the kit to stabilize a creature that has 0 hit points, without needing to make a Wisdom (Medicine) check.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,

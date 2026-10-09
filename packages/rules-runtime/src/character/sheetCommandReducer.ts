@@ -22,7 +22,10 @@ import type {
 import type { CharacterSheetResponseDto as ReducerSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import {
   deathSavesAfterDamage,
-  deathSavesAfterSheetEdit
+  deathSavesAfterMarksSet,
+  deathSavesAfterRoll,
+  deathSavesAfterSheetEdit,
+  isCharacterDying
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { characterZeroHitPointsConditionId } from '../characterZeroHitPoints.js'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
@@ -450,6 +453,8 @@ export function applyCharacterSheetCommand(
     attunementSlotLimit?: number
     createId?: () => string
     now?: () => string
+    /** The d20 the host rolled for ROLL_DEATH_SAVE; the reducer stays pure. */
+    deathSaveDie?: number
     preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>
     extraDefaults?: {
       creatures: ReadonlyMap<
@@ -787,6 +792,28 @@ export function applyCharacterSheetCommand(
       next.state.hitpoints.hitDice = next.state.hitpoints.hitDice.map((die) =>
         die.die === command.die ? { ...die, used: clamp(die.used + 1, 0, die.total) } : die
       )
+      return clearEmptyStateArrays(next)
+    }
+
+    case 'SET_DEATH_SAVES': {
+      if (next.state.hitpoints.current !== 0)
+        throw new CharacterSheetCommandError('Death saves can only be set at 0 hit points.')
+      next.state.hitpoints.deathSaves = deathSavesAfterMarksSet(command)
+      return clearEmptyStateArrays(next)
+    }
+
+    case 'ROLL_DEATH_SAVE': {
+      const { deathSaves, current } = next.state.hitpoints
+      if (!isCharacterDying(deathSaves, current))
+        throw new CharacterSheetCommandError('Only a dying Character makes a death save.')
+      if (context.deathSaveDie === undefined)
+        throw new Error('A death save needs the die the host rolled.')
+      const roll = deathSavesAfterRoll(deathSaves, context.deathSaveDie)
+      next.state.hitpoints.deathSaves = roll.deathSaves
+      // The same outcome as the Encounter turn-start save: a natural 20 regains 1 hit point.
+      if (roll.regainsHitPoint)
+        next.state.hitpoints.current = Math.min(1, sheet.overview.maxHitPoints)
+      applyZeroHitPointsCondition(next, current)
       return clearEmptyStateArrays(next)
     }
 
@@ -1360,6 +1387,10 @@ export function summarizeCharacterSheetCommand(
         : `${command.amount} HP restored`
     case 'USE_HIT_DIE':
       return `Used one d${command.die} hit die`
+    case 'SET_DEATH_SAVES':
+      return 'Death saves updated'
+    case 'ROLL_DEATH_SAVE':
+      return 'Death save rolled'
     case 'COMPLETE_REST':
       return command.restKind === 'LONG' ? 'Long rest completed' : 'Short rest completed'
     case 'SET_EXHAUSTION':

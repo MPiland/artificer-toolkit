@@ -248,7 +248,7 @@ export const rogue: ClassAuthored = {
                     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                     equipmentIds: [equipmentId(99)],
-                    quantity: 1
+                    quantity: 20
                   }
                 ]
               },

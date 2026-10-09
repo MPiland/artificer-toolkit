@@ -153,6 +153,96 @@ describe('Character Sheet vitals', () => {
     expect(golem).toHaveTextContent(/^Unknown source\s*·\s*Until restored\s*-2$/)
   })
 
+  describe('death saves', () => {
+    const dyingSheet = (deathSaves = { successes: 1, failures: 0, stable: false }) => {
+      const sheet = createSheet()
+      sheet.overview.currentHitPoints = 0
+      sheet.overview.deathSaves = deathSaves
+      return sheet
+    }
+
+    it('hides the tracker above 0 HP', () => {
+      renderWithAppProviders(
+        <CharacterSheetOverviewVitals
+          pending={false}
+          sheet={createSheet()}
+          submitCommand={vi.fn()}
+        />
+      )
+
+      expect(screen.queryByRole('group', { name: /death saves/i })).not.toBeInTheDocument()
+    })
+
+    it('lets an editor set marks and roll while dying', async () => {
+      const user = userEvent.setup()
+      const submitCommand = vi.fn().mockResolvedValue(true)
+      renderWithAppProviders(
+        <CharacterSheetOverviewVitals
+          pending={false}
+          sheet={dyingSheet()}
+          submitCommand={submitCommand}
+        />
+      )
+
+      expect(screen.getByRole('checkbox', { name: 'Death save success 1' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Death save success 2' })).not.toBeChecked()
+
+      await user.click(screen.getByRole('checkbox', { name: 'Death save failure 2' }))
+      expect(submitCommand).toHaveBeenLastCalledWith({
+        type: 'SET_DEATH_SAVES',
+        successes: 1,
+        failures: 2,
+        expectedVersion: 4
+      })
+
+      await user.click(screen.getByRole('button', { name: /roll death save/i }))
+      expect(submitCommand).toHaveBeenLastCalledWith({
+        type: 'ROLL_DEATH_SAVE',
+        expectedVersion: 4
+      })
+    })
+
+    it('shows Dead instead of the roll button after three failures', () => {
+      renderWithAppProviders(
+        <CharacterSheetOverviewVitals
+          pending={false}
+          sheet={dyingSheet({ successes: 0, failures: 3, stable: false })}
+          submitCommand={vi.fn()}
+        />
+      )
+
+      expect(screen.getByText('Dead')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /roll death save/i })).not.toBeInTheDocument()
+    })
+
+    it('shows Stable instead of the roll button once stable', () => {
+      renderWithAppProviders(
+        <CharacterSheetOverviewVitals
+          pending={false}
+          sheet={dyingSheet({ successes: 0, failures: 0, stable: true })}
+          submitCommand={vi.fn()}
+        />
+      )
+
+      expect(screen.getByText('Stable')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /roll death save/i })).not.toBeInTheDocument()
+    })
+
+    it('is read-only without play-state management', async () => {
+      const user = userEvent.setup()
+      const submitCommand = vi.fn()
+      const sheet = dyingSheet()
+      sheet.meta.capabilities.managePlayState = false
+      renderWithAppProviders(
+        <CharacterSheetOverviewVitals pending={false} sheet={sheet} submitCommand={submitCommand} />
+      )
+
+      await user.click(screen.getByRole('checkbox', { name: 'Death save failure 1' }))
+      expect(submitCommand).not.toHaveBeenCalled()
+      expect(screen.queryByRole('button', { name: /roll death save/i })).not.toBeInTheDocument()
+    })
+  })
+
   it('does not submit no-op hit point adjustments', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

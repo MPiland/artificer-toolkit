@@ -43,6 +43,7 @@ export const characterSheetMulticlassFixture = {
     currentHitPoints: 20,
     maxHitPoints: 26,
     tempHitPoints: 0,
+    deathSaves: { successes: 0, failures: 0, stable: false },
     maxHitPointsModifier: -2,
     maxHitPointsModifierAdjustmentId: '11111111-1111-4111-8111-111111111112',
     maxHitPointsReductions: [],

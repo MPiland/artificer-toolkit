@@ -3,7 +3,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -15,7 +15,7 @@ import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 const FIGHTER_ACTOR_ID = testUuid(0xe00)
 const FIGHTER_ID = testUuid(0xe01)
 const WOLF_ID = testUuid(0xe02)
-const kitCharges = healersKit10Uses.charges
+const kitCharges = healersKit.charges
 if (kitCharges?.limitKind !== 'FIXED_AMOUNT' || kitCharges.scalingKind !== 'NONE')
   throw new Error('The SRD kit has fixed charges.')
 const CHARGES = kitCharges.amount
@@ -39,8 +39,8 @@ function stabilizeRoom(currentHitPoints?: number) {
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
-    characterEquipment: [healersKit10Uses],
-    characterAction: (action) => action.label === healersKit10Uses.label
+    characterEquipment: [healersKit],
+    characterAction: (action) => action.label === healersKit.label
   })
 }
 
@@ -68,7 +68,7 @@ describe('a stabilize action (the Healer’s Kit) in the room', () => {
       kind: 'CHARACTER_MECHANICS_BATCH',
       sourceCharacterId: FIGHTER_ID,
       resourceConsumption: {
-        chargeId: healersKit10Uses.charges?.id,
+        chargeId: healersKit.charges?.id,
         cost: 1,
         beforeUsed: 0,
         afterUsed: 1,

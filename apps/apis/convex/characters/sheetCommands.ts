@@ -62,6 +62,8 @@ import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { prepareCharacterRest } from './rest'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
+import { recordSheetDeathSaveRoll } from './sheetDeathSaveRoll'
+import { nextRollInt } from '../lib/rollRandom'
 import { executeCharacterNoteCommand } from './sheetNoteCommands'
 import { executeCharacterPlayPreferenceCommand } from './sheetPlayPreferences'
 import type { CharacterRecordRow } from './stateDocuments'
@@ -75,7 +77,8 @@ function applySupportedCommand(
   now: string,
   attunementSlotLimit: number,
   preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>,
-  extraDefaults?: NonNullable<Parameters<typeof applyCharacterSheetCommand>[3]>['extraDefaults']
+  extraDefaults?: NonNullable<Parameters<typeof applyCharacterSheetCommand>[3]>['extraDefaults'],
+  deathSaveDie?: number
 ): CharacterAuthored {
   switch (command.type) {
     case 'ADD_SHEET_EXTRA':
@@ -111,6 +114,8 @@ function applySupportedCommand(
     case 'SET_INSPIRATION':
     case 'ADJUST_HIT_POINTS':
     case 'USE_HIT_DIE':
+    case 'SET_DEATH_SAVES':
+    case 'ROLL_DEATH_SAVE':
     case 'SET_EXHAUSTION':
     case 'ADD_CONDITION':
     case 'REMOVE_CONDITION':
@@ -124,6 +129,7 @@ function applySupportedCommand(
         now: () => now,
         attunementSlotLimit,
         extraDefaults,
+        deathSaveDie,
         preparationEligibleSpellIdsByClassId
       })
     default:
@@ -202,6 +208,7 @@ export async function executeCharacterSheetCommand(
     throw new Error('Character Sheet changed; refresh before applying this command.')
 
   const command = input.command
+  const deathSaveDie = command.type === 'ROLL_DEATH_SAVE' ? nextRollInt(20) + 1 : undefined
   const extraDefaults = {
     creatures: new Map<string, Pick<CreatureAuthored, 'hitPoints' | 'hitDice'>>(),
     vehicles: new Map<string, Pick<VehicleAuthored, 'hitPoints'>>()
@@ -351,7 +358,8 @@ export async function executeCharacterSheetCommand(
         command.type === 'SET_PREPARED_SPELLS'
           ? getCharacterSpellPreparationEligibleIdsByClass(spellEligibilityInput)
           : undefined,
-        extraDefaults
+        extraDefaults,
+        deathSaveDie
       )
   )
   if (command.type === 'ADD_INVENTORY_ITEM')
@@ -479,6 +487,20 @@ export async function executeCharacterSheetCommand(
     if (!written.facts) throw new Error('Character Sheet is unavailable after clamping hit points.')
     current = projectCharacterSheetFacts(written.facts)
   }
+
+  if (deathSaveDie !== undefined)
+    await recordSheetDeathSaveRoll(ctx, {
+      userId,
+      campaignId: initial.campaignContext.campaignId,
+      character: {
+        id: initial.active.id,
+        label: initial.character.label,
+        systemId: initial.character.systemId
+      },
+      commandId: command.commandId,
+      rawDie: deathSaveDie,
+      createdAt: occurredAt
+    })
 
   const result = completedRest
     ? { type: 'COMPLETE_REST' as const, rest: completedRest.result }
