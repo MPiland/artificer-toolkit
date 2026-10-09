@@ -1586,25 +1586,34 @@
         {
           "id": "AUTHORING-16",
           "title": "Item names carry no use or bundle counts",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "packages/source-data/src/srd/itemCounts.test.ts",
+            "apps/web/src/domains/characters/builder/steps/equipment/characterStartingEquipmentChoices.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "The SRD Healer's Kit is named \"Healer's Kit\"; its 10 uses live only in its charges, so the Sheet and Encounter show the remaining uses rather than a fixed count in the name.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/itemCounts.test.ts › names the Healer's Kit without its uses and keeps the 10 uses in its charges"
+              ],
               "origin": [],
               "note": "Raised by the user 2026-10-08 (SPELLS-3.5 review). Rename the label, source file and export; keep the record id. Measurements that never change (Rope (50 ft), Pole (10-foot), Rations (1 day)) keep their names.",
               "id": "AUTHORING-16.1"
             },
             {
               "text": "SRD ammunition and other bundled items (Arrows, Crossbow Bolts, Blowgun Needles, Sling Bullets, Iron Spikes) are named without the bundle count, inventory quantity counts single pieces, and the price is per piece.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/itemCounts.test.ts › each of the five items is one piece with a per-piece cost and weight",
+                "packages/source-data/src/srd/itemCounts.test.ts › grants starting ammunition as single pieces, not one bundle",
+                "apps/web/src/domains/characters/builder/steps/equipment/characterStartingEquipmentChoices.test.ts › does not pluralize items whose label is already plural"
+              ],
               "origin": [],
-              "note": "D97: one item per piece, priced per piece from the SRD bundle price; no sale-unit field (no merchants).",
+              "note": "D97: one item per piece, priced per piece from the SRD bundle price; no sale-unit field (no merchants). Class starting equipment grants Arrows and Crossbow Bolts at quantity 20; the Builder choice label reads \"Light Crossbow and 20 Crossbow Bolts\". No pack, background, fixture or seeded Character grants any of the five items.",
               "id": "AUTHORING-16.2"
             }
           ]

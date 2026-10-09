@@ -70,30 +70,18 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  expectRedactedRoomRefusal,
   invalidateRoomInputs,
   queueRoomRolls,
   readRoomRollCards,
   readRoomTimeline,
   type RoomCaller,
-  roomErrorLogs,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-
-/** The room tells a member nothing of why a Cleaving answer failed; its error log names the cause. */
-async function expectStaleCleavingRefusal(command: Promise<unknown>, cause: string) {
-  await expectRedactedRoomRefusal(command, 'The Encounter command could not be completed.')
-  expect(roomErrorLogs().at(-1)).toContain(cause)
-}
-
-/** A command ID reused with another answer, or by another account, is not a replay. */
-function expectReusedCommandRefusal(command: Promise<unknown>) {
-  return expectRedactedRoomRefusal(
-    command,
-    'The command ID was already used for different input.',
-    'INVALID_COMMAND'
-  )
-}
+import {
+  expectOtherMembersCommandRefusal,
+  expectReusedCommandRefusal,
+  expectUnavailableRefusal
+} from '../../tests/fixtures/roomRefusals'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -1005,7 +993,7 @@ describe('native Cleaving action settlement', () => {
         }
       })
     )
-    await expectReusedCommandRefusal(executeInRoom(base.other.caller, { command: input }))
+    await expectOtherMembersCommandRefusal(base.other.caller, base.campaign.id, { command: input })
     await expect(pendingFor(base, base.other.caller)).resolves.toBeNull()
     expect(await records(base)).toEqual(after)
   }, 30000)
@@ -1134,7 +1122,7 @@ describe('native Cleaving action settlement', () => {
       await ctx.db.patch(row._id, { value, checksum: checksumCanonicalJson(value) })
     })
     const before = await records(base)
-    await expectStaleCleavingRefusal(
+    await expectUnavailableRefusal(
       executeInRoom(base.owner.caller, { command: response(base, pending) }),
       'Cleaving policy, target, or Scene is stale'
     )
@@ -1171,7 +1159,7 @@ describe('native Cleaving action settlement', () => {
     // A note is not a live play command: it commits in Convex, and the room reloads the Character.
     await invalidateRoomInputs(base.campaign.id, ['CHARACTER'])
     const before = await records(base)
-    await expectStaleCleavingRefusal(
+    await expectUnavailableRefusal(
       executeInRoom(base.other.caller, { command: response(base, pending) }),
       'Cleaving policy, target, or Scene is stale'
     )
@@ -1227,7 +1215,7 @@ describe('native Cleaving action settlement', () => {
         await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, changed)
       })
       const stale = await records(base)
-      await expectStaleCleavingRefusal(
+      await expectUnavailableRefusal(
         executeInRoom(base.owner.caller, { command: input }),
         'Cleaving policy, target, or Scene is stale'
       )
@@ -1262,7 +1250,7 @@ describe('native Cleaving action settlement', () => {
         })
       })
       const tampered = await records(base)
-      await expectStaleCleavingRefusal(
+      await expectUnavailableRefusal(
         executeInRoom(base.owner.caller, { command: input }),
         tamper === 'damage'
           ? 'Cleaving retained damage is stale'

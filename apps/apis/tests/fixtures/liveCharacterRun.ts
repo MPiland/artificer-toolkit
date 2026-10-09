@@ -17,7 +17,7 @@ import {
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
+import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -135,7 +135,7 @@ export async function setup({ withAlly = false } = {}) {
         }
       ]
     },
-    withAlly ? healersKit10Uses : undefined,
+    withAlly ? healersKit : undefined,
     withAlly
   )
   await attachRoomWorker(base.t)
@@ -228,7 +228,7 @@ export async function setup({ withAlly = false } = {}) {
         )?.ruleEvaluation.facts.actionCandidates.find(
           (candidate) =>
             candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' &&
-            candidate.effectId === healersKit10Uses.effects?.[0]?.id
+            candidate.effectId === healersKit.effects?.[0]?.id
         )
       : undefined
     if (base.gmCharacterId && !kitAction) throw new Error('Missing Healer’s Kit action.')

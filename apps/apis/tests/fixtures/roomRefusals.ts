@@ -1,7 +1,14 @@
 import { ConvexError } from 'convex/values'
 import { expect } from 'vitest'
 import { domainRejectionErrorDataSchema } from '@artificer-toolkit/schema/api/domainRejections'
-import { expectRedactedRoomRefusal, roomErrorLogs } from './localRoomWorker'
+import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
+import {
+  executeInRoom,
+  expectRedactedRoomRefusal,
+  readRoomEncounterSession,
+  roomErrorLogs,
+  type RoomCaller
+} from './localRoomWorker'
 
 /**
  * The domain rejection (reason, user-safe message, warnings) a command refused with. An expected
@@ -29,4 +36,18 @@ export function expectReusedCommandRefusal(command: Promise<unknown>) {
     'The command ID was already used for different input.',
     'INVALID_COMMAND'
   )
+}
+
+/**
+ * Another member's command ID is not a replay. The room sends every member the commit under its
+ * command ID, so this member's socket first completes a round trip: the test client would otherwise
+ * settle the reused command with that commit if it arrived after the send.
+ */
+export async function expectOtherMembersCommandRefusal(
+  caller: RoomCaller,
+  campaignId: string,
+  input: EncounterExecuteInput
+) {
+  await readRoomEncounterSession(caller, campaignId, { timeline: false })
+  await expectReusedCommandRefusal(executeInRoom(caller, input))
 }

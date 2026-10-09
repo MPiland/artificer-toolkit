@@ -367,6 +367,7 @@ function pluralizeLastWord(value: string): string {
 
   const [, prefix, word] = match
   const lowerWord = word.toLowerCase()
+  if (/[^s]s$/.test(lowerWord)) return value
   let plural = `${word}s`
 
   if (/(s|x|z|ch|sh)$/.test(lowerWord)) {

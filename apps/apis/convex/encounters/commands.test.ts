@@ -65,6 +65,7 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import {
+  expectOtherMembersCommandRefusal,
   expectReusedCommandRefusal,
   expectUnavailableRefusal,
   rejection
@@ -1349,7 +1350,7 @@ describe('native Encounter Run commands', () => {
       round: 1
     })
     // A replay by command ID returns only to the user who issued it.
-    await expectReusedCommandRefusal(executeInRoom(other.caller, firstAdvanceInput))
+    await expectOtherMembersCommandRefusal(other.caller, campaign.id, firstAdvanceInput)
     expect(progressed.projection.currentActorId).not.toBe(settled.projection.currentActorId)
     // The receipt's `initiativeAdvance` for this same-round advance (`SAME_ROUND`, no new
     // initiative) is asserted in `apps/session-worker/src/roomEncounterTurns.test.ts:426-442`.
@@ -1448,7 +1449,7 @@ describe('native Encounter Run commands', () => {
     // (`TURN_EFFECTS`, `terminalOccurrenceVersion`, `resolutionCommands`) and START's `commandType`
     // and `resultChecksum` are asserted in `apps/session-worker/src/roomEncounterTurns.test.ts:360-466`.
     await expect(executeInRoom(other.caller, playerAdvanceInput)).resolves.toEqual(playerAdvanced)
-    await expectReusedCommandRefusal(executeInRoom(owner.caller, playerAdvanceInput))
+    await expectOtherMembersCommandRefusal(owner.caller, campaign.id, playerAdvanceInput)
   }, 30000)
 
   it('starts an Automatic Run through native sources, rules, and normalized initiative', async () => {

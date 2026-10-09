@@ -103,10 +103,10 @@ import { druidicFocusYewWand } from './druidic-focus-yew-wand.js'
 import { holySymbolAmulet } from './holy-symbol-amulet.js'
 import { holySymbolEmblem } from './holy-symbol-emblem.js'
 import { holySymbolReliquary } from './holy-symbol-reliquary.js'
-import { arrows20 } from './arrows-20.js'
-import { blowgunNeedles50 } from './blowgun-needles-50.js'
-import { crossbowBolts20 } from './crossbow-bolts-20.js'
-import { slingBullets20 } from './sling-bullets-20.js'
+import { arrows } from './arrows.js'
+import { blowgunNeedles } from './blowgun-needles.js'
+import { crossbowBolts } from './crossbow-bolts.js'
+import { slingBullets } from './sling-bullets.js'
 import { crossbowBoltCase } from './crossbow-bolt-case.js'
 import { quiver } from './quiver.js'
 import { backpack } from './backpack.js'
@@ -144,13 +144,13 @@ import { crowbar } from './crowbar.js'
 import { fishingTackle } from './fishing-tackle.js'
 import { grapplingHook } from './grappling-hook.js'
 import { hammer } from './hammer.js'
-import { healersKit10Uses } from './healers-kit-10-uses.js'
+import { healersKit } from './healers-kit.js'
 import { holyWaterFlask } from './holy-water-flask.js'
 import { hourglass } from './hourglass.js'
 import { huntingTrap } from './hunting-trap.js'
 import { ink1OunceBottle } from './ink-1-ounce-bottle.js'
 import { inkPen } from './ink-pen.js'
-import { ironSpikes10 } from './iron-spikes-10.js'
+import { ironSpikes } from './iron-spikes.js'
 import { ladder10Foot } from './ladder-10-foot.js'
 import { lamp } from './lamp.js'
 import { bullseyeLantern } from './bullseye-lantern.js'
@@ -476,10 +476,10 @@ export const srdEquipment = [
   holySymbolAmulet,
   holySymbolEmblem,
   holySymbolReliquary,
-  arrows20,
-  blowgunNeedles50,
-  crossbowBolts20,
-  slingBullets20,
+  arrows,
+  blowgunNeedles,
+  crossbowBolts,
+  slingBullets,
   crossbowBoltCase,
   quiver,
   backpack,
@@ -517,13 +517,13 @@ export const srdEquipment = [
   fishingTackle,
   grapplingHook,
   hammer,
-  healersKit10Uses,
+  healersKit,
   holyWaterFlask,
   hourglass,
   huntingTrap,
   ink1OunceBottle,
   inkPen,
-  ironSpikes10,
+  ironSpikes,
   ladder10Foot,
   lamp,
   bullseyeLantern,

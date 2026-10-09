@@ -1,5 +1,5 @@
 import type { EquipmentVariantAuthored } from '@artificer-toolkit/shared'
-import { blowgunNeedles50 } from './blowgun-needles-50.js'
+import { blowgunNeedles } from './blowgun-needles.js'
 import * as S from './shared.js'
 
 export const blowgunNeedlesPlus2: EquipmentVariantAuthored = {
@@ -8,7 +8,7 @@ export const blowgunNeedlesPlus2: EquipmentVariantAuthored = {
   label: 'Blowgun Needles +2',
   description: S.MAGIC_AMMUNITION_DESCRIPTION,
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
-  parentEquipmentId: blowgunNeedles50.id,
+  parentEquipmentId: blowgunNeedles.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
   effects: [S.magicAmmunitionExpirationEffect(S.equipId(346))],
   rarityId: S.RARITY_RARE,

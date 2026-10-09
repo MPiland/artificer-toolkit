@@ -176,7 +176,7 @@ test.describe('MVP character Builder to Sheet', () => {
       page,
       'Choose one',
       2,
-      'Light Crossbow and Crossbow Bolts (20)'
+      'Light Crossbow and 20 Crossbow Bolts'
     )
     await selectBuilderOptionAtIndexAndResolve(page, 'Choose one', 3, "Priest's Pack")
     await selectBuilderOptionAndResolve(page, /^Choose 1 shield$/i, 'Shield')
@@ -456,7 +456,7 @@ async function completeFighterAndAcolyteEquipment(page: Page): Promise<void> {
     page,
     'Choose one',
     2,
-    'Light Crossbow and Crossbow Bolts (20)'
+    'Light Crossbow and 20 Crossbow Bolts'
   )
   await selectBuilderOptionAtIndexAndResolve(page, 'Choose one', 3, "Explorer's Pack")
   await selectBuilderOptionAndResolve(page, /^Choose 1 martial weapon$/i, 'Longsword')
@@ -550,7 +550,7 @@ async function assertPersistedClericChoices(page: Page): Promise<void> {
   await expect(equipmentChoices).toHaveCount(4)
   await expect(equipmentChoices.nth(0)).toHaveValue('Mace')
   await expect(equipmentChoices.nth(1)).toHaveValue('Chain Mail')
-  await expect(equipmentChoices.nth(2)).toHaveValue('Light Crossbow and Crossbow Bolts (20)')
+  await expect(equipmentChoices.nth(2)).toHaveValue('Light Crossbow and 20 Crossbow Bolts')
   await expect(equipmentChoices.nth(3)).toHaveValue("Priest's Pack")
   await expect(page.getByRole('combobox', { name: /^Choose 1 shield$/i })).toHaveValue('Shield')
   await expect(page.getByRole('combobox', { name: /^Choose 1 Holy Symbol/ })).toHaveValue(
@@ -650,7 +650,7 @@ async function assertPersistedFighterAndAcolyteEquipment(page: Page): Promise<vo
   await expect(equipmentChoices).toHaveCount(4)
   await expect(equipmentChoices.nth(0)).toHaveValue('Chain Mail')
   await expect(equipmentChoices.nth(1)).toHaveValue('Choose 1 martial weapon and Choose 1 shield')
-  await expect(equipmentChoices.nth(2)).toHaveValue('Light Crossbow and Crossbow Bolts (20)')
+  await expect(equipmentChoices.nth(2)).toHaveValue('Light Crossbow and 20 Crossbow Bolts')
   await expect(equipmentChoices.nth(3)).toHaveValue("Explorer's Pack")
   await expect(page.getByRole('combobox', { name: /^Choose 1 martial weapon$/i })).toHaveValue(
     'Longsword'
