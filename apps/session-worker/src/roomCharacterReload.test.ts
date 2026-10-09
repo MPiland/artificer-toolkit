@@ -252,7 +252,8 @@ it.each([
       expect(document.state.hitpoints).toEqual({
         current: expectedHitPoints,
         temp: 3,
-        hitDice: [{ die: 10, total: level, used: 1 }]
+        hitDice: [{ die: 10, total: level, used: 1 }],
+        deathSaves: NO_DEATH_SAVES
       })
       expect(document.state.conditions).toEqual(localPlay.state.conditions)
       expect(document.state.spellSlots).toEqual(localPlay.state.spellSlots)

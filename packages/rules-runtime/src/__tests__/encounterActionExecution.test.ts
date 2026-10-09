@@ -9,9 +9,11 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   dnd5eCharacterRuleActionSystemAdapter
 } from '../systems/dnd5e/effectActionCompiler.js'
-import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import type { CharacterActionCapabilityDescriptor } from '../characterActionCapabilityDiscovery.js'
+import { ACTION_EFFECT_ID, characterActionDescriptor } from './characterActionDescriptor.js'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
+import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { healersKit10Uses } from '@artificer-toolkit/source-data/srd/equipment/healers-kit-10-uses.js'
 import {
   ACTIVATION_CODE,
@@ -22,34 +24,12 @@ import {
   TRIGGER
 } from '@artificer-toolkit/shared/core'
 
-const EFFECT_ID = '00000000-0000-4000-8000-000000000010'
+const EFFECT_ID = ACTION_EFFECT_ID
+const descriptor = characterActionDescriptor
 const TARGET_ID = '00000000-0000-4000-8000-000000000011'
 const OCCURRENCE_ID = '00000000-0000-4000-8000-000000000012'
 const DAMAGE_TYPE_ID = '00000000-0000-4000-8000-000000000099'
 const DEXTERITY_ID = '00000000-0000-4000-8000-000000000014'
-
-function descriptor(
-  compiledEffect: ReturnType<typeof compileEffect>
-): CharacterActionCapabilityDescriptor {
-  return {
-    kind: 'CHARACTER_ACTION',
-    gameSystemId: DND5E_SYSTEM_ID,
-    authoredRootKind: 'effect',
-    entryPointDefinitionId: EFFECT_ID,
-    effectId: EFFECT_ID,
-    actionId: `source:ACTION:${EFFECT_ID}`,
-    sourceId: 'source',
-    source: {
-      kind: 'AUTHORED',
-      sourceKind: 'FEATURE',
-      definitionId: 'feature',
-      sourceInstanceId: 'source'
-    },
-    mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
-    activationSourceKind: 'ACTIVE_SOURCE',
-    compiledEffect
-  } as CharacterActionCapabilityDescriptor
-}
 
 function attackAction(input: { dice?: boolean; includeMiss?: boolean } = {}) {
   const paths = [
@@ -585,5 +565,45 @@ describe('native phased action execution', () => {
       afterTest: async () => undefined
     })
     expect(result.applications).toMatchObject([{ kind: 'STABILIZE', targetActorId: TARGET_ID }])
+  })
+
+  it('compiles the SRD Antitoxin to a timed grant of poison-scoped save advantage', async () => {
+    const [antitoxinEffect] = antitoxinVial.effects ?? []
+    if (!antitoxinEffect) throw new Error('The SRD Antitoxin has no effect.')
+    const action = descriptor(compileEffect({ ...antitoxinEffect, id: EFFECT_ID }))
+    const { published } = singlePlan(action)
+    expect(published.definition.nodes.map(({ operation }) => operation.key)).toContain(
+      'dnd5e.modifier-grant-proposal'
+    )
+
+    const [activeEffectPlan, ...rest] =
+      dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []
+    expect(rest).toEqual([])
+    expect(activeEffectPlan).toMatchObject({
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining: 600
+    })
+    const modifiers = activeEffectPlan?.modifierGrantContribution?.modifiers ?? []
+    expect(modifiers).toHaveLength(6)
+    expect(modifiers).toSatisfy((all: typeof modifiers) =>
+      all.every(
+        (modifier) =>
+          modifier.modifierKind === 'ADVANTAGE' &&
+          modifier.valueDomainCode === 'SAVING_THROW_MODIFIER' &&
+          (modifier.domain as { conditionTypeId?: string }).conditionTypeId ===
+            POISONED_CONDITION_ID
+      )
+    )
+
+    const result = await executeNativeActionGraphs({
+      runtime: runtime(),
+      adapter: dnd5eCharacterRuleActionSystemAdapter,
+      plan: { kind: 'SINGLE_GRAPH', published },
+      occurrenceId: OCCURRENCE_ID,
+      binding: binding(),
+      afterTest: async () => undefined
+    })
+    // The grant stores no target state: the active effect it creates is the whole result.
+    expect(result.applications).toEqual([])
   })
 })

@@ -319,7 +319,8 @@ describe('a stabilize action on a dying Character (D96)', () => {
     const usage = async () => {
       await checkpointLiveRoom(fixture.campaign.id)
       return fixture.t.run(async (ctx) => {
-        const row = await readCharacterRow(ctx, fixture.ally!.sourceId)
+        const sourceId = fixture.ally?.sourceId
+        const row = sourceId ? await readCharacterRow(ctx, sourceId) : null
         if (!row) throw new Error('Missing ally Character.')
         return readCharacterSheetState(row).resourceUsage
       })

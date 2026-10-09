@@ -70,6 +70,8 @@ function sameSource(
       )
     case 'MANUAL_ADJUSTMENT':
       return right.kind === 'MANUAL_ADJUSTMENT' && left.adjustmentId === right.adjustmentId
+    case 'ACTIVE_EFFECT':
+      return right.kind === 'ACTIVE_EFFECT' && left.activeEffectId === right.activeEffectId
   }
 }
 

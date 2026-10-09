@@ -122,7 +122,12 @@ it('admits native turn scopes and pages the selected actor effects without a bac
       consumeOnFirstEvent: null,
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+      expiration: {
+        kind: 'TICKS',
+        initialRemaining: 3,
+        decrementStage: 'END_OF_TURN',
+        anchor: 'HOLDER'
+      }
     }
   })
   const lifecycle = { schemaVersion: 1, remainingTicks: 3 }

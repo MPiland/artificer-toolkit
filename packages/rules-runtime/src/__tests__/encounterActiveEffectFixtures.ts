@@ -200,7 +200,8 @@ export async function turnSaveDamageEffect(
           : {
               kind: 'TICKS',
               initialRemaining: input.ticks,
-              decrementStage: stage === 'NONE' ? 'START_OF_TURN' : stage
+              decrementStage: stage === 'NONE' ? 'START_OF_TURN' : stage,
+              anchor: 'HOLDER'
             }
     }
   }

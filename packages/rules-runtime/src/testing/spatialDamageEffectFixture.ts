@@ -209,7 +209,12 @@ export async function buildSpatialDamageEffect(input: {
       expiration:
         input.remainingTicks === null
           ? { kind: 'INDEFINITE' }
-          : { kind: 'TICKS', initialRemaining: input.remainingTicks, decrementStage: 'END_OF_TURN' }
+          : {
+              kind: 'TICKS',
+              initialRemaining: input.remainingTicks,
+              decrementStage: 'END_OF_TURN',
+              anchor: 'HOLDER'
+            }
     }
   })
   const lifecycle = { schemaVersion: 1 as const, remainingTicks: input.remainingTicks }

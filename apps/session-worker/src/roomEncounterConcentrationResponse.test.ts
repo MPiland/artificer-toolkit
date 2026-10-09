@@ -7,6 +7,7 @@ import { persistNativeConcentrationPending } from '@artificer-toolkit/encounter-
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import {
   characterStoredHeadSchema,
   characterStoredRowSchema
@@ -319,7 +320,12 @@ it('atomically resolves a failed native Concentration save, retains the private 
         consumeOnFirstEvent: null,
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
-        expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+        expiration: {
+          kind: 'TICKS',
+          initialRemaining: 3,
+          decrementStage: 'END_OF_TURN',
+          anchor: 'HOLDER'
+        }
       }
     })
   })
@@ -353,13 +359,15 @@ it('atomically resolves a failed native Concentration save, retains the private 
           currentHitPoints: 11,
           temporaryHitPoints: 1,
           maximumHitPoints: 11,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: NO_DEATH_SAVES
         },
         after: {
           currentHitPoints: 11,
           temporaryHitPoints: 0,
           maximumHitPoints: 11,
-          conditionIds: []
+          conditionIds: [],
+          deathSaves: NO_DEATH_SAVES
         }
       }
     }

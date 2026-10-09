@@ -4,6 +4,7 @@ import type { EncounterMovementReactionCharacterSource } from './encounterMoveme
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { withCharacterActiveGrants, withCreatureActiveGrantSaves } from './encounterActiveGrants.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
@@ -186,20 +187,28 @@ export function buildMovementTarget<
       baseScalarValues,
       effects: activeEffects
     })
-    const effectiveRulePolicyOutput = scalarValuesDiffer(baseScalarValues, effectiveScalarValues)
-      ? resolveCharacterRulePolicyRollModes(
-          evaluateInstalledCharacterPolicy({
-            gameSystemId,
-            facts: applyCharacterScalarValuesToFacts(
-              characterFacts.ruleEvaluation.facts,
+    const scalarsReduced = scalarValuesDiffer(baseScalarValues, effectiveScalarValues)
+    const factsWithGrants = withCharacterActiveGrants(
+      characterFacts.ruleEvaluation.facts,
+      activeEffects
+    )
+    const effectiveRulePolicyOutput =
+      scalarsReduced || factsWithGrants !== characterFacts.ruleEvaluation.facts
+        ? resolveCharacterRulePolicyRollModes(
+            evaluateInstalledCharacterPolicy({
               gameSystemId,
-              baseScalarValues,
-              effectiveScalarValues
-            )
-          }),
-          characterFacts.prepared.context.vocabularySnapshot
-        )
-      : baseRulePolicyOutput
+              facts: scalarsReduced
+                ? applyCharacterScalarValuesToFacts(
+                    factsWithGrants,
+                    gameSystemId,
+                    baseScalarValues,
+                    effectiveScalarValues
+                  )
+                : factsWithGrants
+            }),
+            characterFacts.prepared.context.vocabularySnapshot
+          )
+        : baseRulePolicyOutput
     const effectiveMaximumHitPoints = nativeCharacterMaximumHitPoints(characterFacts, activeEffects)
     return {
       actor,
@@ -336,7 +345,11 @@ export function buildMovementTarget<
     targetDerivedFacts: {
       actorId: actorRule.actorId,
       initiativeModifier: actorRule.initiativeModifier,
-      savingThrowDefinitions: actorRule.savingThrowDefinitions ?? [],
+      savingThrowDefinitions: withCreatureActiveGrantSaves(
+        actorRule.savingThrowDefinitions ?? [],
+        actor.id,
+        activeEffects
+      ),
       featureResources: actorRule.featureResources,
       targetProtection: actorRule.targetProtection,
       statBlock: snapshotStatBlock(actor)

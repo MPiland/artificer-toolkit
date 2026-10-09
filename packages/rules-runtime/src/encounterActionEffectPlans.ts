@@ -144,6 +144,10 @@ function prepareRecurringActiveEffect(
     throw new EncounterActionEffectPlanError('Encounter Feature recurring-effect plan is stale.')
   const conditionContribution = plan.conditionContribution ?? null
   const relationshipContribution = plan.actorRelationshipContribution ?? null
+  const grantContribution = plan.modifierGrantContribution ?? null
+  const grantLabel = input.sourceLabel?.trim() ?? ''
+  if (grantContribution && !grantLabel)
+    throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
   if (
     relationshipContribution &&
     input.d20?.resultPath !== 'ON_HIT' &&
@@ -236,7 +240,7 @@ function prepareRecurringActiveEffect(
       ].filter((conditionId, index, values) => values.indexOf(conditionId) === index)
     : []
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: conditionContribution || relationshipContribution ? 2 : 1,
+    schemaVersion: conditionContribution || relationshipContribution || grantContribution ? 2 : 1,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -254,19 +258,32 @@ function prepareRecurringActiveEffect(
       recurrenceStage: plan.recurrenceStage,
       consumeOnFirstEvent: null,
       endOnEvents: [],
-      lifetimeScope: 'ENCOUNTER',
+      // A grant outlasts the Encounter only when the target's lifetime scope says so.
+      lifetimeScope: grantContribution ? input.target.lifetimeScope : 'ENCOUNTER',
       expiration:
         plan.initialRemaining === null
           ? { kind: 'INDEFINITE' }
           : {
               kind: 'TICKS',
               initialRemaining: plan.initialRemaining,
-              decrementStage: plan.recurrenceStage
+              decrementStage: plan.recurrenceStage,
+              anchor: 'HOLDER'
             }
     },
-    ...(conditionContribution || relationshipContribution
+    ...(conditionContribution || relationshipContribution || grantContribution
       ? {
           stateContributions: [
+            ...(grantContribution
+              ? [
+                  {
+                    kind: 'MODIFIER_GRANT' as const,
+                    applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
+                    modifiers: grantContribution.modifiers,
+                    sourceLabel: grantLabel,
+                    sourceHidden: input.sourceHidden
+                  }
+                ]
+              : []),
             ...(conditionContribution
               ? [
                   {

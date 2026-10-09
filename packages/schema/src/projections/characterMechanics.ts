@@ -5,6 +5,7 @@ import {
   characterRulePolicyOutputSchema,
   characterRuleSenseRangeSchema
 } from '../api/characterRules.js'
+import { modifierOperationSchema } from '../api/characterGrantFoldRules.js'
 import { characterAuthoredDtoSchema } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
@@ -140,6 +141,15 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     conditionContribution: z._default(
       z.nullable(z.strictObject({ conditionId: serverUuidIdentityDtoSchema })),
+      null
+    ),
+    modifierGrantContribution: z._default(
+      z.nullable(
+        z.strictObject({
+          applyGrantOutcomeId: serverUuidIdentityDtoSchema,
+          modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200))
+        })
+      ),
       null
     ),
     actorRelationshipContribution: z._default(

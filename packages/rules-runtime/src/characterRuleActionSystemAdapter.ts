@@ -1,4 +1,5 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { CharacterGrantFoldModifier } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
@@ -44,6 +45,11 @@ export interface CharacterRuleActionActiveEffectPlan {
    * not infer condition ownership from labels or later mutable state.
    */
   conditionContribution?: null | { conditionId: string }
+  /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
+  modifierGrantContribution?: null | {
+    applyGrantOutcomeId: string
+    modifiers: readonly CharacterGrantFoldModifier[]
+  }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
     relationshipOutcomeId: string

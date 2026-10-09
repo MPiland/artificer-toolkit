@@ -10,11 +10,13 @@ import {
   hitPointMaximumReductionRecoveryTagsSchema,
   type HitPointMaximumReductionRecoveryTag
 } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
-import type {
-  CompiledDamageEffect,
-  CompiledDuration,
-  CompiledEffectGroup
+import {
+  compileModifierGrant,
+  type CompiledDamageEffect,
+  type CompiledDuration,
+  type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
+import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored
@@ -61,6 +63,10 @@ import {
 } from '../../movementReactionChoice.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import {
+  DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
+  DND5E_POISONED_CONDITION_DEFINITION_ID
+} from './identity.js'
 import { dnd5eConcentrationCapabilityContribution } from './concentrationPolicy.js'
 import { dnd5eEncounterLifecycleCapabilityContribution } from './encounterLifecyclePolicy.js'
 import { dnd5eInitiativeCapabilityContribution } from './initiativeFactAdapter.js'
@@ -79,6 +85,7 @@ export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'
 const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY = 'dnd5e.temporary-hit-points-proposal'
 const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
+const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
@@ -188,6 +195,7 @@ type Outcome =
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
+  | { kind: 'MODIFIER_GRANT' }
   | {
       kind: 'SCALAR_REDUCTION'
       amount: number
@@ -1129,12 +1137,51 @@ function timedImmediateConditionPlan(
   }
 }
 
-/** The recurrence graph of a timed condition: one pure node the target's turn ends tick. */
-function conditionDurationPublishedGraph(input: {
+/**
+ * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
+ * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
+ * target's turns down. Senses and proficiencies are not carried, so such a grant stays manual.
+ */
+function modifierGrantPlan(
+  action: Dnd5eCompiledEffectActionSource
+): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
+  const entry = action.compiledEffect.entries[0]
+  if (!entry || !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
+  const { grants } = entry.outcome
+  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
+  if (
+    !grants.modifiers?.length ||
+    grants.senses?.length ||
+    grants.proficiencies?.length ||
+    initialRemaining === null ||
+    entry.lifecycle ||
+    entry.maintenanceDefinitionId ||
+    !UUID.test(entry.entryId)
+  )
+    return null
+  return {
+    authoredEffectId: action.effectId,
+    compiledEntryId: entry.entryId,
+    frozenGraphNodeId: 'modifier-grant',
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    recurrenceStage: 'END_OF_TURN',
+    initialRemaining,
+    modifierGrantContribution: {
+      applyGrantOutcomeId: entry.outcome.id,
+      modifiers: buildCharacterGrantFoldModifierFacts(grants.modifiers.map(compileModifierGrant))
+    },
+    adapterFacts: {},
+    perceptionContributions: [],
+    maintenance: null
+  }
+}
+
+/** The recurrence graph of a timed condition or grant: one pure node the holder's turn ends tick. */
+function durationPublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
-  conditionId: string
 }): ServerPublishedRuleDefinitionDto {
+  const { conditionContribution, modifierGrantContribution } = input.plan
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -1147,7 +1194,16 @@ function conditionDurationPublishedGraph(input: {
         inputs: {}
       }
     ],
-    outputs: { conditionId: { kind: 'LITERAL', value: input.conditionId } },
+    outputs: conditionContribution
+      ? { conditionId: { kind: 'LITERAL', value: conditionContribution.conditionId } }
+      : modifierGrantContribution
+        ? {
+            applyGrantOutcomeId: {
+              kind: 'LITERAL',
+              value: modifierGrantContribution.applyGrantOutcomeId
+            }
+          }
+        : {},
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId }
     ]
@@ -1859,6 +1915,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
 function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome {
   const effect = action.compiledEffect
   const invocation = effect.invocation
+  const grantPlan = modifierGrantPlan(action)
   const supportsSelf =
     invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
   // A DISTANCE or Touch range only warns when the target is out of range (D11).
@@ -1871,7 +1928,8 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
         invocation.range.longAmount === undefined)) &&
     invocation.targeting?.selectionKind === 'SINGLE_TARGET' &&
     invocation.targeting.dispositionKind === 'ANY' &&
-    !invocation.targeting.excludedCreatureTypeIds?.length
+    // A grant's excluded creature types stay on the invocation for the room to enforce.
+    (grantPlan !== null || !invocation.targeting.excludedCreatureTypeIds?.length)
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== 'ACTIVATED' ||
@@ -1889,7 +1947,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     entry.groupKind !== 'SINGLE' ||
     entry.pathCode !== 'ON_USE' ||
     (entry.maintenanceDefinitionId && !supportedRecurringPlan(action)) ||
-    ((entry.duration || entry.lifecycle) && !supportedRecurringPlan(action)) ||
+    ((entry.duration || entry.lifecycle) && !supportedRecurringPlan(action) && !grantPlan) ||
     entry.rangeOverride ||
     entry.targetingOverride
   )
@@ -1912,6 +1970,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
   }
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
+  if (outcome.effectKind === 'APPLY_GRANT' && grantPlan) return { kind: 'MODIFIER_GRANT' }
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
   if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
@@ -1986,30 +2045,41 @@ function simpleOperation(key: string): ProposalRuleOperationContract {
   }
 }
 export const dnd5eHealProposalOperation = simpleOperation(DND5E_HEAL_PROPOSAL_OPERATION_KEY)
-export const dnd5eStabilizeProposalOperation: ProposalRuleOperationContract = {
-  key: DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PROPOSAL',
-  inputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  outputs: {
-    targetActorId: RULE_VALUE_KIND.TEXT,
-    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
-    authorized: RULE_VALUE_KIND.BOOLEAN,
-    targetStateChecksum: RULE_VALUE_KIND.TEXT
-  },
-  execute(inputs) {
-    const targetActorId = inputs.targetActorId
-    const targetStateChecksum = inputs.targetStateChecksum
-    if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
-      throw new Error('D&D stabilize proposal requires a canonical target actor UUID.')
-    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
-      throw new Error('D&D stabilize proposal requires target state checksum.')
-    return { targetActorId, applicationCandidate: true, authorized: true, targetStateChecksum }
+/** A proposal that applies one fixed outcome to the target and carries no amount. */
+function targetOnlyProposalOperation(key: string, label: string): ProposalRuleOperationContract {
+  return {
+    key,
+    contractVersion: 1,
+    executionKind: 'PROPOSAL',
+    inputs: {
+      targetActorId: RULE_VALUE_KIND.TEXT,
+      targetStateChecksum: RULE_VALUE_KIND.TEXT
+    },
+    outputs: {
+      targetActorId: RULE_VALUE_KIND.TEXT,
+      applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
+      authorized: RULE_VALUE_KIND.BOOLEAN,
+      targetStateChecksum: RULE_VALUE_KIND.TEXT
+    },
+    execute(inputs) {
+      const targetActorId = inputs.targetActorId
+      const targetStateChecksum = inputs.targetStateChecksum
+      if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
+        throw new Error(`D&D ${label} proposal requires a canonical target actor UUID.`)
+      if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
+        throw new Error(`D&D ${label} proposal requires target state checksum.`)
+      return { targetActorId, applicationCandidate: true, authorized: true, targetStateChecksum }
+    }
   }
 }
+export const dnd5eStabilizeProposalOperation = targetOnlyProposalOperation(
+  DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+  'stabilize'
+)
+export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
+  DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
+  'modifier grant'
+)
 export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
 )
@@ -2731,6 +2801,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+    DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -2779,6 +2850,8 @@ function testProposalOperationKey(outcome: Outcome): string {
 function proposalNode(pathCode: string, outcome: Outcome) {
   if (outcome.kind === 'STABILIZE')
     unsupported('D&D stabilize outcomes cannot follow an attack or saving throw.')
+  if (outcome.kind === 'MODIFIER_GRANT')
+    unsupported('D&D modifier grants cannot follow an attack or saving throw.')
   const id = `proposal-${pathCode.toLowerCase()}`
   return {
     id,
@@ -3821,7 +3894,9 @@ function fixedOutcomeGraphDefinition(input: {
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
           : input.outcome.kind === 'STABILIZE'
             ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
-            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+            : input.outcome.kind === 'MODIFIER_GRANT'
+              ? DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY
+              : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const inputs = {
     targetActorId: {
       kind: 'FACT' as const,
@@ -3831,32 +3906,32 @@ function fixedOutcomeGraphDefinition(input: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
-    ...(input.outcome.kind === 'STABILIZE'
+    ...(input.outcome.kind === 'STABILIZE' || input.outcome.kind === 'MODIFIER_GRANT'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
-      ? {
-          conditionId: {
-            kind: 'LITERAL' as const,
-            value: input.outcome.conditionId
-          },
-          conditionImmune: {
-            kind: 'FACT' as const,
-            factKey:
-              conditionImmuneFactKey(input.entry.pathCode, input.conditionOrdinal ?? 1) ??
-              unsupported('D&D result path applies too many conditions.')
+        ? {
+            conditionId: {
+              kind: 'LITERAL' as const,
+              value: input.outcome.conditionId
+            },
+            conditionImmune: {
+              kind: 'FACT' as const,
+              factKey:
+                conditionImmuneFactKey(input.entry.pathCode, input.conditionOrdinal ?? 1) ??
+                unsupported('D&D result path applies too many conditions.')
+            }
           }
-        }
-      : {
-          amount: { kind: 'LITERAL' as const, value: input.outcome.amount },
-          ...(input.outcome.kind === 'DAMAGE'
-            ? {
-                damageTypeId: {
-                  kind: 'LITERAL' as const,
-                  value: input.outcome.damageTypeId
+        : {
+            amount: { kind: 'LITERAL' as const, value: input.outcome.amount },
+            ...(input.outcome.kind === 'DAMAGE'
+              ? {
+                  damageTypeId: {
+                    kind: 'LITERAL' as const,
+                    value: input.outcome.damageTypeId
+                  }
                 }
-              }
-            : {})
-        })
+              : {})
+          })
   }
   const outputs = {
     targetActorId: {
@@ -3864,32 +3939,32 @@ function fixedOutcomeGraphDefinition(input: {
       nodeId: proposalId,
       port: 'targetActorId'
     },
-    ...(input.outcome.kind === 'STABILIZE'
+    ...(input.outcome.kind === 'STABILIZE' || input.outcome.kind === 'MODIFIER_GRANT'
       ? {}
       : input.outcome.kind === 'CONDITION_APPLY'
-      ? {
-          conditionId: {
-            kind: 'NODE_OUTPUT' as const,
-            nodeId: proposalId,
-            port: 'conditionId'
+        ? {
+            conditionId: {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: proposalId,
+              port: 'conditionId'
+            }
           }
-        }
-      : {
-          amount: {
-            kind: 'NODE_OUTPUT' as const,
-            nodeId: proposalId,
-            port: 'amount'
-          },
-          ...(input.outcome.kind === 'DAMAGE'
-            ? {
-                damageTypeId: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: proposalId,
-                  port: 'damageTypeId'
+        : {
+            amount: {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: proposalId,
+              port: 'amount'
+            },
+            ...(input.outcome.kind === 'DAMAGE'
+              ? {
+                  damageTypeId: {
+                    kind: 'NODE_OUTPUT' as const,
+                    nodeId: proposalId,
+                    port: 'damageTypeId'
+                  }
                 }
-              }
-            : {})
-        })
+              : {})
+          })
   }
   return {
     schemaVersion: 1,
@@ -4325,7 +4400,9 @@ function compileDnd5eEffectAction({
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
           : outcome.kind === 'STABILIZE'
             ? DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
-            : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
+            : outcome.kind === 'MODIFIER_GRANT'
+              ? DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY
+              : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const nodeId = recurringPlan ? recurringPlan.frozenGraphNodeId : outcome.kind.toLowerCase()
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -4342,7 +4419,7 @@ function compileDnd5eEffectAction({
             kind: 'FACT',
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
-          ...(outcome.kind === 'STABILIZE'
+          ...(outcome.kind === 'STABILIZE' || outcome.kind === 'MODIFIER_GRANT'
             ? {}
             : outcome.kind === 'CONDITION_APPLY'
               ? {
@@ -4368,7 +4445,7 @@ function compileDnd5eEffectAction({
     ],
     outputs: {
       targetActorId: { kind: 'NODE_OUTPUT', nodeId, port: 'targetActorId' },
-      ...(outcome.kind === 'STABILIZE'
+      ...(outcome.kind === 'STABILIZE' || outcome.kind === 'MODIFIER_GRANT'
         ? {}
         : outcome.kind === 'CONDITION_APPLY'
           ? { conditionId: { kind: 'NODE_OUTPUT', nodeId, port: 'conditionId' } }
@@ -4947,6 +5024,8 @@ function interpretDirectProposal(
       input.execution.evidence.facts[DND5E_TARGET_STATE_CHECKSUM_FACT_KEY]
   )
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
+  // A grant changes no stored target state; its active effect owns the modifiers.
+  if (trace.operation.key === DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY) return []
   if (trace.operation.key === DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY) {
     const conditionIdBinding = publishedNode.inputs.conditionId
     const authoredPathBinding = publishedNode.inputs.authoredPath
@@ -5188,6 +5267,7 @@ function interpretDirect(
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
+    DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -5970,18 +6050,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
     const repeatPlan =
       repeatingDirectFollowUpSavePlan(action) ?? repeatingImmediateFollowUpSavePlan(action)
-    const timedPlan = repeatPlan ? null : timedImmediateConditionPlan(action)
+    const timedPlan = repeatPlan
+      ? null
+      : (timedImmediateConditionPlan(action) ?? modifierGrantPlan(action))
     const relationship = relationshipPlan(action)
     const plan = repeatPlan ?? timedPlan ?? relationship ?? supportedRecurringPlan(action)
     if (!plan) return []
     const frozenGraph = repeatPlan
       ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
-      : timedPlan?.conditionContribution
-        ? conditionDurationPublishedGraph({
-            action,
-            plan: timedPlan,
-            conditionId: timedPlan.conditionContribution.conditionId
-          })
+      : timedPlan
+        ? durationPublishedGraph({ action, plan: timedPlan })
         : relationship
           ? relationship.frozenGraph
           : published
@@ -6354,9 +6432,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         abilityDefinitionId: save.abilityDefinitionId,
         conditionIds: Array.isArray(actionOutcomes)
           ? actionOutcomes.flatMap((outcome) => {
-              const row = outcome as { kind?: unknown; conditionId?: unknown } | null
-              return row?.kind === 'CONDITION' && typeof row.conditionId === 'string'
-                ? [row.conditionId]
+              const row = outcome as {
+                kind?: unknown
+                conditionId?: unknown
+                damageTypeId?: unknown
+                pathCode?: unknown
+              } | null
+              if (row?.kind === 'CONDITION' && typeof row.conditionId === 'string')
+                return [row.conditionId]
+              // A save whose failure deals poison damage is a save against poison.
+              return row?.kind === 'DAMAGE' &&
+                row.pathCode === 'ON_SAVE_FAIL' &&
+                row.damageTypeId === DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID
+                ? [DND5E_POISONED_CONDITION_DEFINITION_ID]
                 : []
             })
           : []
@@ -6649,6 +6737,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       graph.source.gameSystemId !== DND5E_SYSTEM_ID
     )
       throw new Dnd5eEffectActionCompilerError('D&D active-effect execution source is invalid.')
+    // A timed grant ends after the holder's last counted turn; it changes no stored target state.
+    if (
+      definition.schemaVersion === 2 &&
+      definition.stateContributions.some((contribution) => contribution.kind === 'MODIFIER_GRANT')
+    )
+      return {
+        applications: [],
+        terminal: lifecycle.remainingTicks === 1,
+        emptyApplicationAllowed: true
+      }
     // A timed condition (D62.2) ends after the target's last counted turn.
     const timedConditionId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]
     if (timedConditionId !== undefined) {

@@ -68,6 +68,10 @@ export const characterMechanicSourceRefDtoSchema = lazySchema(() =>
     z.object({
       kind: z.literal('MANUAL_ADJUSTMENT'),
       adjustmentId: adjustmentUuidSchema
+    }),
+    z.object({
+      kind: z.literal('ACTIVE_EFFECT'),
+      activeEffectId: uuidSchema
     })
   ])
 )

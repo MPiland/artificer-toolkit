@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
+import { modifierOperationSchema } from '../api/characterGrantFoldRules.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
@@ -112,7 +113,9 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
         z.strictObject({
           kind: z.literal('TICKS'),
           initialRemaining: integerSchema.check(z.gte(1)).check(z.lte(10_000)),
-          decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN'])
+          decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
+          /** Whose turn boundary ticks the effect: its holder's, or its Encounter source actor's. */
+          anchor: z.enum(['HOLDER', 'SOURCE'])
         })
       ])
     })
@@ -180,6 +183,19 @@ const activeRuleEffectActorRelationshipContributionDtoSchema = lazySchema(() =>
   })
 )
 
+const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('MODIFIER_GRANT'),
+    applyGrantOutcomeId: identifierSchema,
+    /** Modifier operations frozen at creation, in the Character grant fold's operation shape. */
+    modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200)),
+    /** The granting action or item label ("Antitoxin (vial)"), frozen when the grant is created. */
+    sourceLabel: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+    /** Whether the source was hidden from players when the grant was created. */
+    sourceHidden: z.boolean()
+  })
+)
+
 /**
  * Version one is retained byte-faithfully for existing rows and receipts.
  * Version two adds a bounded, immutable aggregate-state contribution list.
@@ -198,7 +214,8 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
               activeRuleEffectStateContributionDtoSchema,
               activeRuleEffectScalarReductionContributionDtoSchema,
               activeRuleEffectConditionContributionDtoSchema,
-              activeRuleEffectActorRelationshipContributionDtoSchema
+              activeRuleEffectActorRelationshipContributionDtoSchema,
+              activeRuleEffectModifierGrantContributionDtoSchema
             ])
           )
           .check(z.minLength(1))
@@ -236,6 +253,17 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['recurrence', 'lifetimeScope'],
             message: 'Encounter-lifetime effects require an Encounter origin.'
+          })
+        }
+        if (
+          definition.recurrence.expiration.kind === 'TICKS' &&
+          definition.recurrence.expiration.anchor === 'SOURCE' &&
+          (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['recurrence', 'expiration', 'anchor'],
+            message: 'Source-anchored expiration requires an Encounter origin with a source actor.'
           })
         }
         for (const [index, contribution] of definition.perceptionContributions.entries()) {

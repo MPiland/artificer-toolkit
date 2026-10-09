@@ -57,7 +57,7 @@ const { registry } = prepareCharacterRuleSources({
 })
 
 /** The SRD vocabulary slice that saving-throw projection reads. */
-const vocabulary = {
+export const vocabulary = {
   document: { abilities: SRD_ABILITIES.map(({ id, code, label }) => ({ id, code, label })) }
 } as Pick<SystemVocabularySnapshot, 'document'>
 
