@@ -64,9 +64,10 @@ afterEach(() => {
 })
 
 /** Lets a test move the room's clock forward while real time keeps running. */
-function controlClock() {
+/** Moves the room's clock forward on demand; a `frozenAt` clock also stands still between advances. */
+function controlClock(frozenAt?: number) {
   let offset = 0
-  vi.spyOn(Date, 'now').mockImplementation(() => realNow() + offset)
+  vi.spyOn(Date, 'now').mockImplementation(() => (frozenAt ?? realNow()) + offset)
   return (milliseconds: number) => {
     offset += milliseconds
   }
@@ -893,7 +894,8 @@ it('drops a ping outside the map', async () => {
 })
 
 it('rate-limits a ping flood per socket from room memory, with no backend call or storage write', async () => {
-  const advance = controlClock()
+  // A frozen clock refills the ping budget only when the test advances it, however slow the run.
+  const advance = controlClock(Date.now())
   const {
     clients: [owner, player],
     stub
@@ -901,10 +903,15 @@ it('rate-limits a ping flood per socket from room memory, with no backend call o
   const sql = await runInDurableObject(stub, (_instance, state) =>
     vi.spyOn(state.storage.sql, 'exec')
   )
+  // The barrier below is a RESUME, which reads the session authority; pings add no statement to it.
+  await synchronize(player!)
+  const resumeStatements = sql.mock.calls.slice()
+  sql.mockClear()
 
   for (let sequence = 1; sequence <= 20; sequence += 1) sendPreview(player!, ping(sequence))
+  // The room answers the player's RESUME only after every ping that socket sent before it.
+  await synchronize(player!)
   await vi.waitFor(() => expect(transient(owner!.messages)).toHaveLength(1))
-  await new Promise((resolve) => setTimeout(resolve, 75))
   expect(transient(owner!.messages).map((message) => message.message.envelope.sequence)).toEqual([
     1
   ])
@@ -918,7 +925,7 @@ it('rate-limits a ping flood per socket from room memory, with no backend call o
     ])
   )
   expect(backendPaths).toEqual([])
-  expect(sql).not.toHaveBeenCalled()
+  expect(sql.mock.calls).toEqual(resumeStatements)
 })
 
 it.each(['origin', 'recipient'] as const)(
