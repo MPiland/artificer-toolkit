@@ -258,6 +258,15 @@ export async function actionRoom(config: ActionRoomConfig) {
     version,
     send,
     commit,
+    /** Ends the current turn. */
+    async advanceTurn() {
+      await commit({
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await version()
+      })
+    },
     /** The acting actor's discovered action. */
     actionId,
     /** The action of the Creature feature `ownerFeatureId` on the Run's `actor`, for its own turn. */

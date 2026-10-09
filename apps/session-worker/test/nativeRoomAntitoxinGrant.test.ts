@@ -75,16 +75,6 @@ function antitoxinRoom(
 
 type Fixture = Awaited<ReturnType<typeof antitoxinRoom>>
 
-async function advanceTurn(fixture: Fixture) {
-  const answer = await fixture.room.send({
-    type: 'ADVANCE_TURN',
-    encounterId: fixture.room.room.encounterId,
-    commandId: crypto.randomUUID(),
-    expectedVersion: await fixture.room.version()
-  })
-  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-}
-
 /** The biter's Bite at `targetId`, left waiting on the target's saving throw. */
 async function biteAndReadSave(fixture: Fixture, targetId: string) {
   const { answer } = await fixture.room.startAction(
@@ -114,7 +104,7 @@ describe('an Antitoxin used in an Assisted Run (SPELLS-5.1)', () => {
     const { activeEffects } = await readRoomHistory(poison.room.room.base.stub)
     expect(activeEffects).toHaveLength(1)
     expect(activeEffects[0]).toMatchObject({ targetActorId: TARGET_ID })
-    await advanceTurn(poison)
+    await poison.room.advanceTurn()
     expect(await biteAndReadSave(poison, TARGET_ID)).toMatchObject({
       rollerActorId: TARGET_ID,
       request: { rollMode: 'ADVANTAGE' }
@@ -122,7 +112,7 @@ describe('an Antitoxin used in an Assisted Run (SPELLS-5.1)', () => {
 
     const other = await antitoxinRoom(undefined)
     await useAntitoxin(other, TARGET_ID)
-    await advanceTurn(other)
+    await other.room.advanceTurn()
     expect(await biteAndReadSave(other, TARGET_ID)).toMatchObject({
       rollerActorId: TARGET_ID,
       request: { rollMode: 'NORMAL' }
@@ -134,7 +124,7 @@ describe('an Antitoxin used in an Assisted Run (SPELLS-5.1)', () => {
     await useAntitoxin(fixture, FIGHTER_ACTOR_ID, SELF)
     const { characterEffects } = await readRoomHistory(fixture.room.room.base.stub)
     expect(characterEffects).toHaveLength(1)
-    await advanceTurn(fixture)
+    await fixture.room.advanceTurn()
     expect(await biteAndReadSave(fixture, FIGHTER_ACTOR_ID)).toMatchObject({
       rollerActorId: FIGHTER_ACTOR_ID,
       request: { rollMode: 'ADVANTAGE' }
@@ -179,7 +169,7 @@ describe('a GM undo of an Antitoxin use (SPELLS-5.2)', () => {
     // The Action is back: the same use needs no allowance override, and the grant returns.
     await useAntitoxin(fixture, TARGET_ID)
     expect((await readRoomHistory(fixture.room.room.base.stub)).activeEffects).toHaveLength(1)
-    await advanceTurn(fixture)
+    await fixture.room.advanceTurn()
     expect(await biteAndReadSave(fixture, TARGET_ID)).toMatchObject({
       request: { rollMode: 'ADVANTAGE' }
     })

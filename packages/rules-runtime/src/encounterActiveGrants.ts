@@ -10,7 +10,10 @@ import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules
 
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './systems/dnd5e/identity.js'
+import {
+  DND5E_ABILITY_DEFINITION_ID_BY_CODE,
+  DND5E_REACTION_ALLOWANCE_DEFINITION_ID
+} from './systems/dnd5e/identity.js'
 
 /** A grant a holder carries from an Active Effect, in the Character grant fold's modifier shape. */
 export type EncounterActiveGrant = {
@@ -19,7 +22,7 @@ export type EncounterActiveGrant = {
 }
 
 export function listEncounterActiveGrants(
-  effects: readonly ActiveRuleEffectRecord[]
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): EncounterActiveGrant[] {
   return effects.flatMap(({ id, definition }) =>
     definition.schemaVersion === 2
@@ -29,6 +32,31 @@ export function listEncounterActiveGrants(
             : []
         )
       : []
+  )
+}
+
+/**
+ * The capabilities a holder's active grants switch off: a `REACTION_COUNT SET_VALUE 0` grant
+ * (Shocking Grasp's "can't take reactions") suppresses its reaction allowance, so it is offered no
+ * reaction while the grant lasts (D99).
+ */
+export function encounterActiveGrantCapabilitySuppressions(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+) {
+  return listEncounterActiveGrants(effects).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) =>
+      modifier.valueDomainCode === 'REACTION_COUNT' &&
+      modifier.modifierKind === 'SET_VALUE' &&
+      record(record(modifier.grant)?.payload)?.amount === 0
+        ? [
+            {
+              activeEffectId: effectId,
+              contributionId: modifier.grantId,
+              capabilityDefinitionIds: [DND5E_REACTION_ALLOWANCE_DEFINITION_ID]
+            }
+          ]
+        : []
+    )
   )
 }
 

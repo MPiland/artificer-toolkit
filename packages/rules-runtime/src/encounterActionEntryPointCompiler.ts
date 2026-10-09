@@ -196,9 +196,14 @@ export function compileCharacterActionEntryPoints(
             'Character actions support at most one active-effect plan.'
           )
         }
-        if (executionPlan.kind === 'TEST_OUTCOME' && activeEffectPlans.length > 0) {
+        // A grant freezes its own graph and reads only the TEST's hit path, so it alone joins the
+        // two-phase execution.
+        if (
+          executionPlan.kind === 'TEST_OUTCOME' &&
+          activeEffectPlans.some((plan) => !plan.modifierGrantContribution)
+        ) {
           throw new CharacterRuleActionUnsupportedCompilationError(
-            'TEST/OUTCOME actions cannot combine with active-effect plans.'
+            'TEST/OUTCOME actions combine only with grant active-effect plans.'
           )
         }
         return {

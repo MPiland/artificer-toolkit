@@ -495,6 +495,15 @@ out-of-initiative) actor's turn still ticks both boundaries in the turn commit t
 Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
 through its skipped turns.
 
+**Hit grants and reactions (D99).** An attack's `ON_HIT` or `ON_CRIT` `APPLY_GRANT` stays out of the
+two-phase TEST/OUTCOME graphs, like an on-hit relationship: `modifierGrantPlan` makes it the attack's one
+active-effect plan (more than one hit grant, or a grant beside a relationship, is unsupported) and records
+`dnd5e.grant-authored-path`, and `prepareRecurringActiveEffect` applies it only when the TEST's result path
+reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts grant plans only. A
+`REACTION_COUNT SET_VALUE 0` grant suppresses the reaction-allowance capability
+(`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
+relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
+
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
 damage source against a maintained state, with the DC from that source's total damage. Assisted mode

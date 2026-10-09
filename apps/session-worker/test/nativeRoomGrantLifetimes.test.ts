@@ -85,16 +85,6 @@ async function useVial(fixture: Fixture, targetId: string) {
   expect(used.answer.type, JSON.stringify(used.answer)).toBe('COMMAND_COMMITTED')
 }
 
-async function advanceTurn(fixture: Fixture) {
-  const answer = await fixture.room.send({
-    type: 'ADVANCE_TURN',
-    encounterId: fixture.room.room.encounterId,
-    commandId: crypto.randomUUID(),
-    expectedVersion: await fixture.room.version()
-  })
-  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-}
-
 describe('a grant anchored to its source’s turn (SPELLS-5.4)', () => {
   it('lasts until the source’s next start of turn, whoever holds it, and not before', async () => {
     const fixture = await grantRoom(
@@ -104,12 +94,12 @@ describe('a grant anchored to its source’s turn (SPELLS-5.4)', () => {
     expect(await activeEffects(fixture)).toMatchObject([{ targetActorId: TARGET_ID }])
 
     // The biter's turn, then the holder's own turn: the source has not come round yet.
-    await advanceTurn(fixture)
-    await advanceTurn(fixture)
+    await fixture.room.advanceTurn()
+    await fixture.room.advanceTurn()
     expect(await activeEffects(fixture)).toHaveLength(1)
 
     // The round wraps to the source, and the grant ends as its turn starts.
-    await advanceTurn(fixture)
+    await fixture.room.advanceTurn()
     expect(await activeEffects(fixture)).toHaveLength(0)
   })
 })
@@ -120,7 +110,7 @@ describe('a grant used up by the holder’s attack roll (SPELLS-5.4)', () => {
     await useVial(fixture, BITER_ID)
     const [granted] = await activeEffects(fixture)
     expect(granted).toMatchObject({ targetActorId: BITER_ID })
-    await advanceTurn(fixture)
+    await fixture.room.advanceTurn()
 
     const bite = await fixture.room.startAction(
       FIGHTER_ACTOR_ID,

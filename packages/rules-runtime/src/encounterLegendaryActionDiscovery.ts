@@ -27,7 +27,7 @@ import {
 } from './legendaryActionEligibilityRegistry.js'
 import type { LegendaryActionEligibilitySource } from './legendaryActionEligibilityService.js'
 import { resolveEncounterRuleCapabilityStates } from './encounterRuleCapabilityState.js'
-import type { EncounterMovementReactionActiveEffect } from './encounterRuleCapabilityState.js'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
@@ -303,7 +303,7 @@ export async function discoverEncounterLegendaryActionCandidates(input: {
   actorRules: EncounterActorRuleOutput
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionRuleStateCharacterSource>
-  activeEffectsByActorId: ReadonlyMap<string, readonly EncounterMovementReactionActiveEffect[]>
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   definitions: CurrentReusableDefinitionSource
   runtime: RulesRuntimeService
   windowUsed?: boolean

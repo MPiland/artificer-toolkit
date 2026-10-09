@@ -378,6 +378,19 @@ function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind 
   return trigger === 'SAVING_THROW' ? 'SAVE' : null
 }
 
+/**
+ * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs: an
+ * actor relationship, and a grant an attack's hit applies (Shocking Grasp's "can't take reactions").
+ */
+function isActiveEffectPlanOutcome(entry: CompiledEffectGroup['entries'][number]): boolean {
+  if (!('outcome' in entry)) return false
+  return (
+    entry.outcome.effectKind === 'ACTOR_RELATIONSHIP' ||
+    (entry.outcome.effectKind === 'APPLY_GRANT' &&
+      (entry.pathCode === 'ON_HIT' || entry.pathCode === 'ON_CRIT'))
+  )
+}
+
 function isSupportedTestActivation(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
@@ -1142,12 +1155,29 @@ function timedImmediateConditionPlan(
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
  * turns of its authored anchor down (the holder's end of turn unless the lifecycle says otherwise).
  * The lifecycle may also have the first attack roll use the grant up. Senses, proficiencies and any
- * other lifecycle are not carried, so such a grant stays manual.
+ * other lifecycle are not carried, so such a grant stays manual. An attack applies its grant only
+ * on the authored hit path, alongside the hit's other outcomes.
  */
 function modifierGrantPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const entry = action.compiledEffect.entries[0]
+  const { entries } = action.compiledEffect
+  const attack = testPhaseKindOrNull(action) === 'ATTACK'
+  const hitGrants = attack
+    ? entries.filter(
+        (entry) =>
+          isActiveEffectPlanOutcome(entry) &&
+          'outcome' in entry &&
+          entry.outcome.effectKind === 'APPLY_GRANT'
+      )
+    : []
+  if (hitGrants.length > 1) unsupported('D&D attacks apply at most one grant on a hit.')
+  if (
+    hitGrants.length === 1 &&
+    entries.some((entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP')
+  )
+    unsupported('D&D attacks apply one active effect on a hit.')
+  const entry = attack ? hitGrants[0] : entries[0]
   if (!entry || !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
@@ -1178,7 +1208,7 @@ function modifierGrantPlan(
       tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
       consumeOnFirstEvent: consumeOnFirstEvent ?? null
     },
-    adapterFacts: {},
+    adapterFacts: attack ? { 'dnd5e.grant-authored-path': entry.pathCode } : {},
     perceptionContributions: [],
     maintenance: null
   }
@@ -1883,9 +1913,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   const relationshipEntries = entries.filter(
     (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
   )
-  const executableEntries = entries.filter(
-    (entry) => !('outcome' in entry) || entry.outcome.effectKind !== 'ACTOR_RELATIONSHIP'
-  )
+  const executableEntries = entries.filter((entry) => !isActiveEffectPlanOutcome(entry))
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
   const branches = new Map<string, Outcome>()
@@ -3059,7 +3087,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   const paths = new Set<string>()
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
-    if ('outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP') continue
+    if (isActiveEffectPlanOutcome(entry)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
     if (
@@ -4031,9 +4059,7 @@ function authoredOutcomeGroups(
   pathCode: SpecializedPath
 ): readonly (readonly CompiledEffectGroup['entries'][number][])[] {
   const entries = action.compiledEffect.entries.filter(
-    (entry) =>
-      entry.pathCode === pathCode &&
-      (!('outcome' in entry) || entry.outcome.effectKind !== 'ACTOR_RELATIONSHIP')
+    (entry) => entry.pathCode === pathCode && !isActiveEffectPlanOutcome(entry)
   )
   if (entries.length === 0) return []
   if (entries.some((entry) => !('outcome' in entry)))

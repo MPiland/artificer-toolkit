@@ -4909,10 +4909,14 @@
             },
             {
               "text": "A creature under REACTION_COUNT 0 is offered no opportunity attack or other reaction until the grant ends.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomReactionGrant.test.ts (a hit with the homebrew Jolting Gauntlet leaves the Wolf no opportunity attack; a miss applies nothing and the attack is offered; the attack is offered again once the grant ends at the Wolf's start of turn)",
+                "packages/rules-runtime/src/__tests__/hitGrant.test.ts (the hit grant stays out of the TEST/OUTCOME graphs as the attack's one plan; applies on a hit or critical hit, not a miss; an ON_CRIT grant only on a critical; two hit grants refused; REACTION_COUNT 0 suppresses the reaction allowance, 1 does not)",
+                "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/rules-runtime/src/encounterActionEntryPointCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterRuleCapabilityState.ts; fixture packages/rules-runtime/src/testing/joltingGauntlet.ts"
+              ],
               "origin": [],
-              "note": "Closes D15 (D99). Journey through a homebrew on-hit item fixture.",
+              "note": "Closes D15 (D99). Journey through a homebrew on-hit item fixture. Red-first (2026-10-09): with the hit-path gate and the reaction suppression disabled, three hitGrant unit tests and the hit and miss journeys failed; restored, they pass.",
               "id": "SPELLS-5.5"
             },
             {

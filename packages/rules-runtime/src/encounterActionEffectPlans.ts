@@ -129,6 +129,17 @@ export function prepareEncounterActionEffectPlans(input: {
   return { stateEffect, recurringEffect, relationshipConditionApplications }
 }
 
+/** A hit outcome applies on any hit, a critical-hit outcome only on a critical hit. */
+function reachesAuthoredHitPath(
+  authoredPath: unknown,
+  resultPath: string | undefined,
+  outcome: 'grant' | 'relationship'
+): boolean {
+  if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
+    throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
+  return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
+}
+
 function prepareRecurringActiveEffect(
   input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
 ): EffectPlan | null {
@@ -150,19 +161,23 @@ function prepareRecurringActiveEffect(
   const grantLabel = input.sourceLabel?.trim() ?? ''
   if (grantContribution && !grantLabel)
     throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
+  const grantHitPath = grantContribution
+    ? plan.adapterFacts['dnd5e.grant-authored-path']
+    : undefined
   if (
-    relationshipContribution &&
-    input.d20?.resultPath !== 'ON_HIT' &&
-    input.d20?.resultPath !== 'ON_CRIT'
+    grantHitPath !== undefined &&
+    !reachesAuthoredHitPath(grantHitPath, input.d20?.resultPath, 'grant')
   )
     return null
   if (relationshipContribution) {
-    const authoredPath = plan.adapterFacts['dnd5e.relationship-authored-path']
-    if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
-      throw new EncounterActionEffectPlanError(
-        'Encounter relationship authored path is unavailable.'
+    if (
+      !reachesAuthoredHitPath(
+        plan.adapterFacts['dnd5e.relationship-authored-path'],
+        input.d20?.resultPath,
+        'relationship'
       )
-    if (authoredPath === 'ON_CRIT' && input.d20?.resultPath !== 'ON_CRIT') return null
+    )
+      return null
     const maximum = relationshipContribution.modules.find(
       (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
     )

@@ -33,7 +33,7 @@ import {
   type EncounterMovementReactionEncounter,
   type EncounterMovementReactionSource
 } from './encounterMovementReactionSources.js'
-import type { EncounterMovementReactionActiveEffect } from './encounterRuleCapabilityState.js'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 interface EncounterMovementReactionDiscoveryResult {
   reactionTimeline: MovementReactionTimelineDto
@@ -50,7 +50,7 @@ export async function discoverEncounterMovementReactionChoices(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   tokens: readonly Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>[]
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionCharacterSource>
-  activeEffectsByActorId: ReadonlyMap<string, readonly EncounterMovementReactionActiveEffect[]>
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   definitions: CurrentReusableDefinitionSource
   runtime?: RulesRuntimeService
@@ -114,7 +114,7 @@ export async function revalidateEncounterMovementReactionOption(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   tokens: readonly Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>[]
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionCharacterSource>
-  activeEffectsByActorId: ReadonlyMap<string, readonly EncounterMovementReactionActiveEffect[]>
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   definitions: CurrentReusableDefinitionSource
   runtime: RulesRuntimeService

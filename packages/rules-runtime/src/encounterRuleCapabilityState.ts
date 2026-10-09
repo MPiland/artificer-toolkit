@@ -1,5 +1,6 @@
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 import {
   resolveRuleCapabilityState,
@@ -7,6 +8,7 @@ import {
 } from './ruleCapabilityStateService.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { encounterRuleUsageSnapshot } from './encounterActorState.js'
+import { encounterActiveGrantCapabilitySuppressions } from './encounterActiveGrants.js'
 import type {
   EncounterMovementReactionEncounter,
   EncounterMovementReactionRuleStateCharacterSource
@@ -17,15 +19,10 @@ export interface EncounterRuleCapabilityActorState {
   ruleUsage: Readonly<Record<string, number>>
 }
 
-export type EncounterMovementReactionActiveEffect = {
-  id: string
-  definition: { schemaVersion: number; stateContributions?: readonly unknown[] }
-}
-
 export async function resolveEncounterRuleCapabilityStates(input: {
   encounter: EncounterMovementReactionEncounter
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionRuleStateCharacterSource>
-  activeEffectsByActorId: ReadonlyMap<string, readonly EncounterMovementReactionActiveEffect[]>
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   definitions: CurrentReusableDefinitionSource
   capabilityDefinitionIds: readonly string[]
 }): Promise<ReadonlyMap<string, EncounterRuleCapabilityActorState>> {
@@ -57,38 +54,21 @@ export async function resolveEncounterRuleCapabilityStates(input: {
         : readEncounterActorConditionState(actor.conditions).ids
     const activeEffects = input.activeEffectsByActorId.get(actor.id)
     if (!activeEffects) throw new Error('Encounter actor active-effect state was not locked.')
-    const activeEffectSuppressions = activeEffects.flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? (effect.definition.stateContributions ?? []).flatMap((contribution) => {
-            if (!contribution || typeof contribution !== 'object') return []
-            const row = contribution as {
-              kind?: unknown
-              capabilitySuppressions?: readonly {
-                contributionId?: unknown
-                capabilityDefinitionIds?: unknown
-              }[]
-            }
-            if (row.kind !== 'ACTOR_RELATIONSHIP') return []
-            return (row.capabilitySuppressions ?? []).flatMap((suppression) => {
-              const capabilityDefinitionIds = Array.isArray(suppression.capabilityDefinitionIds)
-                ? suppression.capabilityDefinitionIds.filter(
-                    (id): id is string => typeof id === 'string'
-                  )
+    const activeEffectSuppressions = [
+      ...activeEffects.flatMap((effect) =>
+        effect.definition.schemaVersion === 2
+          ? effect.definition.stateContributions.flatMap((contribution) =>
+              contribution.kind === 'ACTOR_RELATIONSHIP'
+                ? contribution.capabilitySuppressions.map((suppression) => ({
+                    activeEffectId: effect.id,
+                    ...suppression
+                  }))
                 : []
-              return capabilityDefinitionIds.length > 0 &&
-                typeof suppression.contributionId === 'string'
-                ? [
-                    {
-                      activeEffectId: effect.id,
-                      contributionId: suppression.contributionId,
-                      capabilityDefinitionIds
-                    }
-                  ]
-                : []
-            })
-          })
-        : []
-    )
+            )
+          : []
+      ),
+      ...encounterActiveGrantCapabilitySuppressions(activeEffects)
+    ]
     resolved.set(actor.id, {
       capabilityState: await resolveRuleCapabilityState({
         definitions,
