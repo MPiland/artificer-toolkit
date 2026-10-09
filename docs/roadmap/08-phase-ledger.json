@@ -1449,7 +1449,7 @@
         {
           "id": "AUTHORING-12",
           "title": "Save, discard and recover drafts",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/apis/convex/content/drafts.test.ts"],
           "journeyStatus": "verified",
           "origin": ["C12"],
@@ -1479,10 +1479,17 @@
             },
             {
               "text": "Override, Edit Source and Create New are separate, explicit authoring intents.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/sheetAdjustments.test.ts › keeps Sheet overrides on the Character and leaves every authored source record unchanged",
+                "apps/apis/convex/characters/context.test.ts › resolves selected Equipment from current parents without adding unowned inventory",
+                "apps/apis/convex/characters/sourceChangeJourney.test.ts › reconciles a Character through a same-source replacement, then repairs it after authored deletion",
+                "apps/apis/convex/content/duplicationJourney.test.ts › duplicates the deepest canonical record of every domain with fresh remapped ids, publishes it, and duplicates the copy again",
+                "apps/web/src/components/AuthoredDetail/AuthoredDetail.test.tsx",
+                "apps/web/src/components/AuthoredDetail/useAuthoredDetailActions.lifecycle.test.tsx"
+              ],
               "origin": ["G1-AUTHORING-INTENT"],
-              "note": "Original PARTIAL: explicit \"Override\" intent separation not found as a criterion (C12, C14, C15 cover the pieces).",
+              "note": "Proved 2026-10-09:\n- Override: ability, item and HP max overrides are stored as Character adjustments, and every authored root, version, payload chunk and compilation is unchanged.\n- Edit Source: the same id gets a new version and checksum, and consumers see the new values.\n- Create New: a copy gets fresh, remapped ids and leaves the source unchanged.\n- The web detail page shows Edit, Duplicate and Create New as separate actions.",
               "id": "AUTHORING-12.4"
             }
           ]
@@ -6073,9 +6080,14 @@
             },
             {
               "text": "Live readers use the room while a table runs",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: built (f13925492, Amendment 28) but no test proves each reader is served by the room while a table runs.",
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttStage.test.tsx",
+                "apps/web/src/domains/campaigns/components/useEncounterPendingDecision.test.tsx",
+                "apps/web/src/domains/campaigns/components/session-workspace/CampaignPlayerEncounterDecisions.test.tsx › Convex reads (ADR 0035 A28)",
+                "f13925492"
+              ],
+              "note": "Built in f13925492 (Amendment 28). Proved 2026-10-09:\n- The stage's stored Run and prepared-decision reads, the player decision list and the pending-decision hook skip Convex while the room holds authority, and read Convex otherwise.\n- The actor-card Sheet reads the room through useLiveCharacterSheet.\n- Party cards take HP from the room.\n- The checkpoint-time notice was retired (live-sessions.md, 'saved at').",
               "origin": ["A35-S11c"],
               "id": "PERF-3.10"
             },

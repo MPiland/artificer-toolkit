@@ -106,7 +106,25 @@
 - Fixed a test-harness race in cross-member command-ID reuse: the room sends every member each commit under its command ID, so the test client could settle another member's reused ID with that broadcast (one full-suite failure in `commands.test.ts`). `expectOtherMembersCommandRefusal` (`tests/fixtures/roomRefusals.ts`) completes a socket round trip first; `cleaving.test.ts` now uses the shared refusal helpers instead of local copies. Product clients never share command IDs, so the room is unaffected.
 - Registered SPELLS-11 from SPELLS-5: using a single-use item (potion, Antitoxin vial) removes one from the holder's equipment, and GM undo gives it back. SRD items carry no consumption data today. SPELLS-5.2 proves undo returns the Action and removes the grant.
 - RULES-1 (1.5, 1.6): explicit kernel proofs in `packages/rules-runtime/src/__tests__/kernelDiceIdentity.test.ts`, on SRD content. The Potion of Healing rolls its authored 2d4 and adds the resolved modifier once; resolved healing with other dice is refused. The Adult Red Dragon Bite rolls, totals and types its piercing and fire parts separately; swapped and duplicate outcome identities are refused. Test-only; no product change.
-- Ledger 77/137 PBIs, 321/457 ACs. Next: merge SPELLS-5 when it reports, then SPELLS-11; meanwhile the WSJF ranking from #16 (BUILDER-3, AUTHORING-2, AUTHORING-13 journey gaps).
+- Ledger 77/137 PBIs, 321/457 ACs at that point.
+
+**Done 2026-10-09 (fifteenth session):**
+
+- SPELLS-5 DONE in a user-run parallel session, merged (`983ce6ad9`). It adds:
+  - active grant listings (`activeGrantListing.ts`) and `activeGrants` on actor DTOs and the Sheet overview;
+  - Sheet `END_ACTIVE_EFFECT`, `UPDATE_ACTOR.endActiveEffectId` and `capabilities.endActiveEffects`;
+  - an optional, nullable `lifecycle.expiresAtCampaignMinute`, with clock expiry in `campaigns/clockGrantExpiry.ts`;
+  - grant carry-over between Runs (`encounters/runGrantCarryOver.ts`);
+  - TICKS `anchor: 'HOLDER' | 'SOURCE'`, where SOURCE needs an Encounter origin with a source actor;
+  - the `MODIFIER_GRANT` contribution.
+- After the merge, local Convex was reset and reseeded (1057 subjects, 60 definitions, audit OK).
+  - The first deploy failed: "Loading the pushed modules … Function execution timed out (maximum duration: 4s)". The container was at 93% of its memory limit and had read 329 GB from disk.
+  - `docker restart phase82-convex-local-linux` took about 7 minutes to serve again. After that the same source deployed cleanly.
+  - If this timeout recurs, check `docker stats` before suspecting the bundle.
+- Needs-proof gaps closed (`c11ea6c09`): PERF-3.7, PERF-3.11, PLATFORM-13.4, 14.2 and 14.3. Evidence is in `docs/validation/phase-08-2/needs-proof-audit-2026-10-09.md` and `encounter-persistence/src/__tests__/actorSnapshotRows.test.ts`.
+- PERF-3.10 DONE: the stage's stored Run and prepared-decision reads, the player decision list and `useEncounterPendingDecision` skip Convex while the room holds authority. Proofs are in `CampaignVttStage.test.tsx`, `useEncounterPendingDecision.test.tsx` and `CampaignPlayerEncounterDecisions.test.tsx`. The checkpoint-time notice is retired by `live-sessions.md`.
+- AUTHORING-12.4 DONE, which completes AUTHORING-12: Sheet overrides (ability, item weight, HP max) leave every authored root, version, payload chunk and compilation unchanged (`sheetAdjustments.test.ts`). Edit Source and Create New were already proved.
+- Ledger 78/137 PBIs, 337/468 ACs. Next: SPELLS-11. Then continue the WSJF ranking: SPELLS-7, ATTACK-10, ATTACK-7. Open needs-proof gaps: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14.
 
 **Done 2026-10-08 (thirteenth session):**
 
@@ -138,11 +156,11 @@
 | 6   | ATTACK-8                                | 4.2  | Done (eighth session). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                                              |
 | 7   | ATTACK-3                                | 4.0  | Done (ninth session).                                                                                                                    |
 | 8   | PLATFORM-5 (5.6)                        | 4.0  | Done (ninth session).                                                                                                                    |
-| 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
+| 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); 13.4, 14.2, 14.3, PERF-3.7, 3.10, 3.11 closed (fifteenth). Open: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14. |
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
 | 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
 | 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Done (D96, D98; fourteenth session).                                                                                                     |
-| 13  | SPELLS-5                                | 3.8  | APPLY_GRANT. SPELLS-11 (single-use items used up) follows it directly.                                                                   |
+| 13  | SPELLS-5                                | 3.8  | Done (parallel session, merged `983ce6ad9`). SPELLS-11 (single-use items used up) follows it directly.                                   |
 | 14  | RULES-1                                 | 3.3  | Done (fourteenth session): `kernelDiceIdentity.test.ts`.                                                                                 |
 | 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
 | 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Done (journeys closed before the fourteenth session).                                                                                    |
@@ -154,7 +172,7 @@
 | 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                       |
 | 23  | PLATFORM-2                              | 2.3  | Done (journey closed).                                                                                                                   |
 | 24  | SHEET-7                                 | 2.0  | Done (parallel session, fourteenth).                                                                                                     |
-| 25  | AUTHORING-12 (12.4)                     | 1.8  |                                                                                                                                          |
+| 25  | AUTHORING-12 (12.4)                     | 1.8  | Done (fifteenth session).                                                                                                                |
 | 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                |
 | 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                          |
 | 28  | REACTION-4                              | 1.5  | After SPELLS-8.                                                                                                                          |

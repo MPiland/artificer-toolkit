@@ -8,6 +8,7 @@ import type {
   EncounterSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import type { HeldEncounterSession } from '../../vtt/useCampaignLiveSession'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   createTabletopCampaign,
@@ -42,7 +43,8 @@ const prepared = {
 const mocks = vi.hoisted(() => ({
   convexQuery: vi.fn(),
   useMutation: vi.fn(),
-  useQuery: vi.fn()
+  useQuery: vi.fn(),
+  encounterSession: null as HeldEncounterSession | null
 }))
 
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
@@ -59,6 +61,14 @@ vi.mock('convex/react', async (importOriginal) => ({
   useConvex: () => ({ action: vi.fn() })
 }))
 
+vi.mock('../../vtt/useCampaignLiveSession', () => ({
+  useCampaignLiveSession: () => ({
+    campaignSummary: null,
+    encounterSession: mocks.encounterSession,
+    readEncounter: () => Promise.reject(new Error('Live play is not connected.'))
+  })
+}))
+
 import { CampaignPlayerEncounterDecisions } from './CampaignPlayerEncounterDecisions'
 
 describe('CampaignPlayerEncounterDecisions', () => {
@@ -67,6 +77,7 @@ describe('CampaignPlayerEncounterDecisions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.encounterSession = null
     listed = []
     pendingPrepared = [{ encounter: prepared, pending }]
     mocks.convexQuery.mockImplementation((reference) => ({
@@ -118,5 +129,41 @@ describe('CampaignPlayerEncounterDecisions', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
     expect(screen.getByRole('button', { name: 'Declare actions' })).toBeDisabled()
+  })
+
+  describe('Convex reads (ADR 0035 A28)', () => {
+    const pendingPreparedName = getFunctionName(
+      convexApi.encounters.projectionReads.pendingPrepared
+    )
+    const pendingPreparedArgs = () =>
+      mocks.convexQuery.mock.calls.find(
+        ([reference]) => getFunctionName(reference) === pendingPreparedName
+      )?.[1]
+
+    it('does not read prepared decisions from Convex while the room holds authority, and shows the room list', () => {
+      mocks.encounterSession = {
+        held: true,
+        version: 4,
+        state: { encounter: null, pending: null, waitingOn: null, turnMovement: [] },
+        preparedPending: [{ encounter: prepared, pending }],
+        actorSides: null,
+        settlement: null,
+        timeline: null
+      }
+      pendingPrepared = []
+      renderWithAppProviders(
+        <CampaignPlayerEncounterDecisions campaign={createTabletopCampaign('PLAYER')} />
+      )
+
+      expect(pendingPreparedArgs()).toBe('skip')
+      expect(screen.getByRole('button', { name: 'Open pending decision' })).toBeVisible()
+    })
+
+    it('reads prepared decisions from Convex when the room does not hold authority', () => {
+      const campaign = createTabletopCampaign('PLAYER')
+      renderWithAppProviders(<CampaignPlayerEncounterDecisions campaign={campaign} />)
+
+      expect(pendingPreparedArgs()).toEqual({ campaignId: campaign.id })
+    })
   })
 })

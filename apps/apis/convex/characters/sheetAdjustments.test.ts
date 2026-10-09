@@ -146,6 +146,58 @@ describe('native Character Sheet adjustment storage', () => {
     expect(readCharacterSheetState((await readState()).character!).adjustments).toEqual([])
   })
 
+  it('keeps Sheet overrides on the Character and leaves every authored source record unchanged', async () => {
+    const { owner, character, readState, t } = await readySheetFixture()
+    const authoredRecords = () =>
+      t.run(async (ctx) => ({
+        roots: await ctx.db.query('authoredRoots').collect(),
+        versions: await ctx.db.query('authoredVersions').collect(),
+        payloadChunks: await ctx.db.query('authoredVersionPayloadChunks').collect(),
+        compilations: await ctx.db.query('authoredVersionCompilations').collect()
+      }))
+    const before = await authoredRecords()
+    const sheet = (await owner.caller.query(getSheet, { id: character.id }))!
+    const item = sheet.inventory.items[0]!
+    const adjustments = [
+      { family: 'ABILITY', ability: 'STRENGTH', field: 'SCORE_OVERRIDE', value: 20 },
+      { family: 'ITEM', itemInstanceId: item.id, field: 'WEIGHT_OVERRIDE', value: 1 }
+    ] as const
+    for (const [index, adjustment] of adjustments.entries()) {
+      await owner.caller.mutation(execute, {
+        id: character.id,
+        command: {
+          type: 'UPSERT_SHEET_ADJUSTMENT',
+          commandId: crypto.randomUUID(),
+          expectedVersion: index + 1,
+          adjustment
+        }
+      })
+    }
+    await owner.caller.mutation(execute, {
+      id: character.id,
+      command: {
+        type: 'SET_HIT_POINTS',
+        commandId: crypto.randomUUID(),
+        expectedVersion: adjustments.length + 1,
+        current: 20,
+        temp: 0,
+        maxOverride: 20
+      }
+    })
+
+    const overridden = (await owner.caller.query(getSheet, { id: character.id }))!
+    expect(
+      overridden.overview.abilities.find((ability) => ability.ability === 'STRENGTH')?.score
+    ).toBe(20)
+    expect(overridden.overview.maxHitPointsOverride).toBe(20)
+    expect(readCharacterSheetState((await readState()).character!).adjustments).toEqual(
+      [...adjustments, { family: 'HIT_POINTS', field: 'MAXIMUM_OVERRIDE', value: 20 }].map(
+        (adjustment) => expect.objectContaining(adjustment)
+      )
+    )
+    expect(await authoredRecords()).toEqual(before)
+  })
+
   it('persists HP clamps against prospective overrides and keeps override separate from the HP modifier panel', async () => {
     const { owner, character, readState } = await readySheetFixture()
     const overridden = await owner.caller.mutation(execute, {
