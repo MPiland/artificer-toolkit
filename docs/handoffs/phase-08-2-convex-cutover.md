@@ -110,7 +110,7 @@
 
 **Done 2026-10-09 (fifteenth session):**
 
-- SPELLS-5 DONE in a user-run parallel session, merged (`983ce6ad9`). It adds:
+- SPELLS-5 slices A–F built in a user-run parallel session, merged (`983ce6ad9`); 5.6 (per-speed-type movement, decided 2026-10-09) and the 5.7 question remain. It adds:
   - active grant listings (`activeGrantListing.ts`) and `activeGrants` on actor DTOs and the Sheet overview;
   - Sheet `END_ACTIVE_EFFECT`, `UPDATE_ACTOR.endActiveEffectId` and `capabilities.endActiveEffects`;
   - an optional, nullable `lifecycle.expiresAtCampaignMinute`, with clock expiry in `campaigns/clockGrantExpiry.ts`;
@@ -124,7 +124,7 @@
 - Needs-proof gaps closed (`c11ea6c09`): PERF-3.7, PERF-3.11, PLATFORM-13.4, 14.2 and 14.3. Evidence is in `docs/validation/phase-08-2/needs-proof-audit-2026-10-09.md` and `encounter-persistence/src/__tests__/actorSnapshotRows.test.ts`.
 - PERF-3.10 DONE: the stage's stored Run and prepared-decision reads, the player decision list and `useEncounterPendingDecision` skip Convex while the room holds authority. Proofs are in `CampaignVttStage.test.tsx`, `useEncounterPendingDecision.test.tsx` and `CampaignPlayerEncounterDecisions.test.tsx`. The checkpoint-time notice is retired by `live-sessions.md`.
 - AUTHORING-12.4 DONE, which completes AUTHORING-12: Sheet overrides (ability, item weight, HP max) leave every authored root, version, payload chunk and compilation unchanged (`sheetAdjustments.test.ts`). Edit Source and Create New were already proved.
-- Ledger 78/137 PBIs, 337/468 ACs. Next: SPELLS-11. Then continue the WSJF ranking: SPELLS-7, ATTACK-10, ATTACK-7. Open needs-proof gaps: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14.
+- Ledger 78/137 PBIs, 337/468 ACs. Next: finish SPELLS-5.6 per-speed-type movement allowances (user chose B, 2026-10-09: the turn readout has an allowance per speed type and a move names its type), then SPELLS-11. Then continue the WSJF ranking: SPELLS-7, ATTACK-10, ATTACK-7. Open needs-proof gaps: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14.
 
 **Done 2026-10-08 (thirteenth session):**
 
@@ -160,7 +160,7 @@
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
 | 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
 | 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Done (D96, D98; fourteenth session).                                                                                                     |
-| 13  | SPELLS-5                                | 3.8  | Done (parallel session, merged `983ce6ad9`). SPELLS-11 (single-use items used up) follows it directly.                                   |
+| 13  | SPELLS-5                                | 3.8  | Merged `983ce6ad9`; 5.6 per-speed-type movement still to build. SPELLS-11 (single-use items used up) follows it directly.              |
 | 14  | RULES-1                                 | 3.3  | Done (fourteenth session): `kernelDiceIdentity.test.ts`.                                                                                 |
 | 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
 | 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Done (journeys closed before the fourteenth session).                                                                                    |

@@ -4943,12 +4943,12 @@
                 "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterActionMaintenance.ts; packages/schema/src/shared/activeRuleEffects.ts; apps/session-worker/src/roomCharacterRules.ts; apps/session-worker/src/roomSceneVision.ts; apps/session-worker/src/nativeEncounterSettlement.ts; packages/encounter-persistence/src/maintenanceOwnerPersistence.ts; apps/apis/convex/characters/rest.ts"
               ],
               "origin": [],
-              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Open: per-speed-type budgets wait on the SPELLS-5.6 question in phase-08-2-open-questions.md (option A is built: the tabletop budget follows walking-speed grants).",
+              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Per-speed-type budgets: the user chose option B (2026-10-09, phase-08-2-decisions.md Resolved). The turn readout carries an allowance per speed type and a move names its speed type; still to build. Walking-speed grants already apply.",
               "id": "SPELLS-5.6"
             },
             {
               "text": "A grant that needs Concentration ends with it (failed check, D95 incapacitation, a new Concentration); the SRD Concentration spells link their grants and Protection from Energy needs Concentration.",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "proof": [
                 "apps/session-worker/test/nativeRoomConcentrationGrant.test.ts (a homebrew Concentration +2 AC Feature: the self ward depends on the Fighter's SRD Concentration state; warding the Wolf replaces the Concentration and ends the Fighter's grant; a GM Sheet edit that paralyzes the Fighter ends the Concentration and its grant (D95))",
                 "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Fly, Heroism, Shield of Faith and Protection from Energy grants plan the SRD Concentration maintenance policy; the Antitoxin grant plans none; a maintained grant on a Character is Encounter-scoped while an unmaintained one outlasts the Encounter)",
@@ -4956,7 +4956,7 @@
                 "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/source-data/src/srd/spells/fly.ts; packages/source-data/src/srd/spells/heroism.ts; packages/source-data/src/srd/spells/protection-from-energy.ts; packages/source-data/src/srd/spells/shield-of-faith.ts"
               ],
               "origin": [],
-              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built.",
+              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built. Reopened 2026-10-09: the user chose option B (phase-08-2-decisions.md Resolved). A Character-held Concentration grant carries over to the Campaign clock when the Run ends and ends when its caster starts another Concentration; to build.",
               "id": "SPELLS-5.7"
             },
             {
