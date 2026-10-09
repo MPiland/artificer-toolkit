@@ -451,9 +451,16 @@
             },
             {
               "text": "Relocate the pure files (about 25) out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: relocation done (0fd4adbd7, about 25 files, not 12); confirm the worker movement tests cover Concentration checks, passage contests and reaction order.",
+              "status": "DONE",
+              "proof": [
+                "0fd4adbd7",
+                "apps/session-worker/test/nativeMovementPlanning.test.ts › orders reactions that fall at the same distance by reactor identity, whatever the capture order",
+                "apps/session-worker/test/nativeMovementPlanning.test.ts › asks each reactor in order as the earlier ones decline",
+                "apps/session-worker/test/nativeMovementPlanning.test.ts › settles the passage contest of the chosen option",
+                "apps/session-worker/test/nativeMovementConcentrationEnd.test.ts",
+                "apps/session-worker/test/nativeMovementEvidence.test.ts"
+              ],
+              "note": "Relocation done (0fd4adbd7, about 25 files, not 12). Needs-proof audit 2026-10-09: the Worker movement tests drive the real planner and SRD rules fixtures (rules-runtime/testing/dnd5eSrdEncounter) through the room for reaction order, passage contests (offers, settlement, sealed blocker, MANUAL) and movement Concentration checks (wait for roll, success, failure cleanup, one check per contact, ends without a check).",
               "origin": ["TST-6"],
               "id": "PLATFORM-13.4"
             },
@@ -485,17 +492,17 @@
             },
             {
               "text": "Renamed apps/web/tests/convex to live-backend; the Convex hook no longer misfires",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: rename done (a7fe02631); the hook misfire fix still to confirm against the hook config.",
+              "status": "DONE",
+              "proof": ["docs/validation/phase-08-2/needs-proof-audit-2026-10-09.md"],
+              "note": "Rename a7fe02631. The Convex plugin hooks match only .ts under a convex/ segment, and no tracked .ts outside apps/apis/convex has one.",
               "origin": ["TST-8"],
               "id": "PLATFORM-14.2"
             },
             {
               "text": "TanStack Start and Storybook upgrade",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: versions current through REL-8 (Start 1.168.60, Storybook 10.6.1); no Storybook or app boot check recorded.",
+              "status": "DONE",
+              "proof": ["docs/validation/phase-08-2/needs-proof-audit-2026-10-09.md"],
+              "note": "Versions current through REL-8 (Start 1.168.60, Storybook 10.6.1). Boot checks 2026-10-09: Storybook ready and serving stories; the app serves SSR and resolves the session against local Convex.",
               "origin": ["A35-S11g"],
               "id": "PLATFORM-14.3"
             }
@@ -5883,9 +5890,13 @@
             },
             {
               "text": "Live Campaign summary feed for pages outside the table; Sheet edits show at once; outside edits reload into the room immediately",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "\"Dirty-only flush at N\" removed: superseded by save points (D90, PERF-3.8). Proof to link: summary feed and eager reload in apps/session-worker/test/nativeCharacterSheet.test.ts (040c3dd53). Approved by the user on 2026-10-07 (needs-proof audit).",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeCharacterSheet.test.ts",
+                "apps/web/src/domains/campaigns/vtt/liveCampaignSummary.test.ts",
+                "apps/web/src/domains/characters/sheet/core/useLiveCharacterSheet.test.tsx"
+              ],
+              "note": "\"Dirty-only flush at N\" removed: superseded by save points (D90, PERF-3.8). Summary feed: the Amendment 19 push, hibernation and unsubscribe tests, and liveCampaignSummary.test.ts. Sheet edits at once: \"shows an edit at once and keeps it until the push at its committed version\". Eager reload: the Amendment 21 GM Feature edit test. Approved by the user on 2026-10-07 (needs-proof audit).",
               "origin": ["A35-S10c"],
               "id": "PERF-3.7"
             },
@@ -5924,9 +5935,14 @@
             },
             {
               "text": "Static actor snapshots in their own rows; whole-journal save pages",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: built (f13925492, Amendment 29); no test asserts the separate static actor-snapshot rows.",
+              "status": "DONE",
+              "proof": [
+                "packages/encounter-persistence/src/__tests__/actorSnapshotRows.test.ts",
+                "apps/session-worker/src/roomCheckpoints.test.ts › folds a multi-command backlog that fits the atomic bound into one checkpoint",
+                "apps/session-worker/src/roomCheckpoints.test.ts › trims a journal page to a fitting records prefix and publishes the remainder",
+                "f13925492"
+              ],
+              "note": "Built in f13925492 (Amendment 29). Needs-proof audit 2026-10-09, against the room's memory store:\n- The snapshot is stored once, apart from the actor row, which names it by checksum.\n- A play-state write patches only the actor row.\n- A changed snapshot gets a new row; the actor is repointed to it and the old row is released.\n- A shared row survives until the last actor that names it is gone.\n- A whole journal is saved as one checkpoint and split into prefixes only above the checkpoint bound.",
               "origin": ["A35-S11e"],
               "id": "PERF-3.11"
             },

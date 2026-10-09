@@ -145,14 +145,14 @@
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT. SPELLS-11 (single-use items used up) follows it directly.                                                                   |
 | 14  | RULES-1                                 | 3.3  | Done (fourteenth session): `kernelDiceIdentity.test.ts`.                                                                                 |
 | 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
-| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Journey gaps.                                                                                                                            |
+| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Done (journeys closed before the fourteenth session).                                                                                    |
 | 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                   |
-| 18  | AUTHORING-14                            | 2.7  | All-domain duplication conformance.                                                                                                      |
+| 18  | AUTHORING-14                            | 2.7  | Done (all-domain duplication conformance).                                                                                               |
 | 19  | ATTACK-7                                | 2.6  | Grapple and shove; 7.2 Engulf (after ATTACK-11).                                                                                         |
 | 20  | VTT_UI-2                                | 2.6  |                                                                                                                                          |
 | 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                 |
 | 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                       |
-| 23  | PLATFORM-2                              | 2.3  | Journey gap.                                                                                                                             |
+| 23  | PLATFORM-2                              | 2.3  | Done (journey closed).                                                                                                                   |
 | 24  | SHEET-7                                 | 2.0  | Done (parallel session, fourteenth).                                                                                                     |
 | 25  | AUTHORING-12 (12.4)                     | 1.8  |                                                                                                                                          |
 | 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                |
