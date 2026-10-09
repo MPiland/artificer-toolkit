@@ -391,7 +391,8 @@ export async function seedTurnSaveEffect(
           expiration: {
             kind: 'TICKS',
             initialRemaining: input.ticks,
-            decrementStage: input.stage
+            decrementStage: input.stage,
+            anchor: 'HOLDER'
           }
         }
       }),

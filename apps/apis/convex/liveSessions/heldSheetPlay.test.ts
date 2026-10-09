@@ -12,7 +12,13 @@ import {
 } from '../../tests/fixtures/localRoomWorker'
 import { characterCollectionSchemas } from '@artificer-toolkit/schema/projections/characterOperationalRecords'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import {
+  aidAtSecondLevel,
+  plannedModifierGrant
+} from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { api } from '../_generated/api'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { executeCharacterSheetCommandAcknowledgement } from '../characters/sheetCommands'
 import { readCharacterRecord } from '../characters/stateDocuments'
 
@@ -28,8 +34,11 @@ const HELD = 'This Character is held by its live table; use the room for play co
 
 type Character = ReturnType<typeof characterAuthoredDtoSchema.parse>
 
-async function heldCharacter() {
+async function heldCharacter(
+  beforeHold?: (base: Awaited<ReturnType<typeof playerControlFixture>>) => Promise<void>
+) {
   const base = await playerControlFixture()
+  await beforeHold?.(base)
   // The GM joining the table makes the room claim authority and hold the Run's Characters.
   await readRoomEncounterSession(base.owner.caller, base.campaign.id, { timeline: false })
   const stored = (await base.readState()).character
@@ -253,5 +262,77 @@ describe('Sheet play on a held Character', () => {
     const settled = (await base.settled()).character!
     expect(readCharacterRecord(settled).state.notes).toEqual(note)
     expect(readCharacterRecord(settled).state.hitpoints.current).toBe(initial.currentHitPoints - 3)
+  }, 120000)
+
+  it('ends a held Character’s active effect for the GM only and lowers current hit points to the new maximum (D99)', async () => {
+    let effectId = ''
+    const base = await heldCharacter(async ({ t, run, character }) => {
+      const characterId = character.sourceId
+      if (!characterId) throw new Error('Missing held Character source.')
+      const effect = await t.run((ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+          id: crypto.randomUUID(),
+          owner: { kind: 'CHARACTER', characterId },
+          definition: plannedModifierGrant({
+            encounterId: run.id,
+            sourceActorId: character.id,
+            holderActorId: character.id,
+            lifecycle: {},
+            effect: aidAtSecondLevel(),
+            rounds: 30,
+            lifetimeScope: 'OWNER'
+          }).definition,
+          lifecycle: { schemaVersion: 1, remainingTicks: 30 }
+        })
+      )
+      effectId = effect.id
+    })
+    const initial = await base.play()
+    const effectIds = () =>
+      base.t.run(async (ctx) =>
+        (
+          await ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', base.characterId))
+            .collect()
+        ).map(({ id }) => id)
+      )
+    const boosted = initial.maximumHitPoints + 5
+    const set = await executeSheetInRoom(base.owner.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: base.characterId,
+      encounterId: base.run.id,
+      command: {
+        type: 'SET_HIT_POINTS',
+        commandId: crypto.randomUUID(),
+        expectedVersion: initial.streamVersion,
+        current: boosted
+      }
+    })
+    expect((await base.play()).currentHitPoints).toBe(boosted)
+    const end = {
+      scope: 'CHARACTER_SHEET' as const,
+      characterId: base.characterId,
+      encounterId: base.run.id,
+      command: {
+        type: 'END_ACTIVE_EFFECT' as const,
+        commandId: crypto.randomUUID(),
+        expectedVersion: set.streamVersion,
+        effectId
+      }
+    }
+
+    await expect(executeSheetInRoom(base.player.caller, end)).rejects.toThrow(
+      'Only the Campaign owner can end an active effect.'
+    )
+    expect(await effectIds()).toEqual([effectId])
+
+    const ended = await executeSheetInRoom(base.owner.caller, end)
+    expect(ended.streamVersion).toBe(set.streamVersion + 1)
+    expect(await base.play()).toMatchObject({
+      currentHitPoints: initial.maximumHitPoints,
+      streamVersion: ended.streamVersion
+    })
+    expect(await effectIds()).toEqual([])
   }, 120000)
 })

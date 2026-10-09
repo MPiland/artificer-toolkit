@@ -442,6 +442,13 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             execution.lifecycle.kind === 'UPDATE' &&
             JSON.stringify(execution.targetTransition.before) ===
               JSON.stringify(execution.targetTransition.after)
+          // A timed condition's or grant's counted turn only moves its tick count.
+          const durationTick =
+            execution.applications.length === 0 &&
+            sourceTraces.length === 1 &&
+            sourceTraces[0]!.operation.key === 'dnd5e.condition-duration' &&
+            JSON.stringify(execution.targetTransition.before) ===
+              JSON.stringify(execution.targetTransition.after)
           const unauthorizedSourceOutcome =
             execution.applications.length === 0 &&
             execution.execution.evidence.trace.filter(
@@ -464,6 +471,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           if (
             (!unauthorizedSourceOutcome &&
               !repeatedSaveContinuation &&
+              !durationTick &&
               execution.applications.length === 0) ||
             JSON.stringify(execution.execution.outputs) !==
               JSON.stringify(execution.execution.evidence.outputs)
@@ -513,6 +521,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           if (
             !unauthorizedSourceOutcome &&
             !repeatedSaveContinuation &&
+            !durationTick &&
             !applicationValidation.success
           )
             context.addIssue({

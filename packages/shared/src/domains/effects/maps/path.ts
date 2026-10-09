@@ -36,6 +36,8 @@ import {
   PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS,
   PATH_LIFECYCLE_END_EVENT_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
+  PATH_LIFECYCLE_TURN_ACTOR_OPTIONS,
+  PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS,
   PATH_CODE_OPTIONS,
   PATH_GROUP_TYPE_OPTIONS,
   PATH_ROLL_TABLE_KIND_OPTIONS,
@@ -199,6 +201,7 @@ const SUMMON_VISIBILITY_OPTIONS = valuesOf(
 )
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
+const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
@@ -270,10 +273,36 @@ const OUTCOME_BREAKPOINT_NODE_MAP: NodeMap<OutcomeBreakpointNode> = outcomeBreak
   }
 )
 
+const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['turnAnchor']>
+> = pathLifecycleTurnAnchor.define('pathLifecycleTurnAnchor', ({ map, nodes }) => {
+  const { selectSingle } = nodes
+
+  map
+    .set(
+      'actor',
+      selectSingle(
+        ['actor'],
+        'Counted On',
+        { kind: 'INLINE_OPTIONS', options: PATH_LIFECYCLE_TURN_ACTOR_OPTIONS },
+        { requiredIf: true }
+      )
+    )
+    .set(
+      'boundary',
+      selectSingle(
+        ['boundary'],
+        'Counted At',
+        { kind: 'INLINE_OPTIONS', options: PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS },
+        { requiredIf: true }
+      )
+    )
+})
+
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes }) => {
-    const { selectSingle, selectMulti } = nodes
+    const { selectSingle, selectMulti, groupObject } = nodes
 
     map
       .set(
@@ -281,6 +310,12 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         selectSingle(['recurringKind'], 'Recurring', {
           kind: 'INLINE_OPTIONS',
           options: PATH_LIFECYCLE_RECURRING_KIND_OPTIONS
+        })
+      )
+      .set(
+        'turnAnchor',
+        groupObject(['turnAnchor'], 'Turn Anchor', () => PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP, {
+          presentation: 'inline'
         })
       )
       .set(

@@ -269,6 +269,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
     classes,
     background,
     features,
+    activeEffects: [],
     equipmentItems
   }
 }

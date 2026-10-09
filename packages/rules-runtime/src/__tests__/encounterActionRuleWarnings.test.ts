@@ -11,7 +11,11 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
-import { SRD_SYSTEM_ID, SRD_USER_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CREATURE_TYPES,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
   evaluateEncounterActionEconomy,
@@ -382,6 +386,7 @@ describe('encounter action rule warning gate', () => {
             actor: prepared.actor,
             target: prepared.target,
             targetPolicy: prepared.targetPolicy,
+            makesAttackRoll: prepared.makesAttackRoll,
             sceneContext: farApart
           },
           targetDefeated: false,
@@ -444,6 +449,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: farApart
         },
         targetDefeated: false,
@@ -484,6 +490,7 @@ describe('encounter action rule warning gate', () => {
           actor: prepared.actor,
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
+          makesAttackRoll: false,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
@@ -531,6 +538,7 @@ describe('encounter action rule warning gate', () => {
           actor: prepared.actor,
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
+          makesAttackRoll: false,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
@@ -556,6 +564,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetDefeated: true,
@@ -585,6 +594,7 @@ describe('encounter action rule warning gate', () => {
             shape: null,
             pathOverrides: []
           },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetDefeated: true,
@@ -605,6 +615,61 @@ describe('encounter action rule warning gate', () => {
     })
   })
 
+  it('warns, overridably, when the target creature type is excluded by the action', () => {
+    const creatureTypeId = (code: string) =>
+      SRD_CREATURE_TYPES.find((type) => type.code === code)!.id
+    const undead = creatureTypeId('UNDEAD')
+    const construct = creatureTypeId('CONSTRUCT')
+    const humanoid = creatureTypeId('HUMANOID')
+    const gate = (
+      targetCreatureTypeId: string | null,
+      acknowledged: EncounterRuleWarningDto['code'][]
+    ) =>
+      evaluateEncounterActionRuleWarnings({
+        preparedWarnings: [],
+        target: {
+          actor: { id: ACTOR_ID, disposition: 'FRIENDLY' },
+          target: { id: TARGET_ID, disposition: 'FRIENDLY' },
+          targetPolicy: {
+            range: { id: 'range', rangeKind: 'TOUCH' },
+            targeting: {
+              selectionKind: 'SINGLE_TARGET',
+              dispositionKind: 'ANY',
+              excludedCreatureTypeIds: [undead, construct]
+            },
+            shape: null,
+            pathOverrides: []
+          },
+          makesAttackRoll: false,
+          sceneContext: null
+        },
+        targetCreatureTypeId,
+        targetDefeated: false,
+        stabilize: null,
+        actionEconomy: null,
+        activationCode: 'ACTION',
+        acknowledged
+      })
+    const excluded = {
+      code: 'TARGET_CREATURE_TYPE_EXCLUDED',
+      message: 'This action has no effect on this creature type.'
+    }
+    expect(gate(undead, [])).toEqual({
+      kind: 'UNACKNOWLEDGED',
+      warnings: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+    })
+    expect(gate(construct, [])).toMatchObject({ kind: 'UNACKNOWLEDGED' })
+    expect(gate(humanoid, ['TARGET_RANGE_UNCHECKED'])).toEqual({
+      kind: 'ACCEPTED',
+      overrides: [expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+    })
+    expect(gate(null, ['TARGET_RANGE_UNCHECKED'])).toMatchObject({ kind: 'ACCEPTED' })
+    expect(gate(undead, ['TARGET_CREATURE_TYPE_EXCLUDED', 'TARGET_RANGE_UNCHECKED'])).toEqual({
+      kind: 'ACCEPTED',
+      overrides: [excluded, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
+    })
+  })
+
   it('accepts a clean action with no overrides and refuses an unsupported target policy', () => {
     const actor = { id: ACTOR_ID, disposition: 'HOSTILE' as const }
     const target = { id: TARGET_ID, disposition: 'FRIENDLY' as const }
@@ -617,7 +682,7 @@ describe('encounter action rule warning gate', () => {
     expect(
       evaluateEncounterActionRuleWarnings({
         preparedWarnings: [],
-        target: { actor, target, targetPolicy, sceneContext: null },
+        target: { actor, target, targetPolicy, makesAttackRoll: false, sceneContext: null },
         targetDefeated: false,
         stabilize: null,
         actionEconomy: null,
@@ -632,6 +697,7 @@ describe('encounter action rule warning gate', () => {
           actor,
           target,
           targetPolicy: { ...targetPolicy, targeting: null },
+          makesAttackRoll: false,
           sceneContext: null
         },
         targetDefeated: false,

@@ -186,6 +186,10 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         trigger: z.enum(['SHORT_REST', 'LONG_REST', 'DAWN', 'DUSK', 'DAILY', 'MANUAL'])
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
+        type: z.literal('END_ACTIVE_EFFECT'),
+        effectId: stringSchema.check(z.uuid())
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('SET_INSPIRATION'),
         inspired: booleanSchema
       }),

@@ -1040,7 +1040,8 @@ describe('rules runtime contracts', () => {
           expiration: {
             kind: 'TICKS',
             initialRemaining: 2,
-            decrementStage: 'END_OF_TURN'
+            decrementStage: 'END_OF_TURN',
+            anchor: 'HOLDER'
           },
           lifetimeScope: 'OWNER'
         }
@@ -1153,6 +1154,31 @@ describe('rules runtime contracts', () => {
         }
       })
     ).toThrow()
+    const sourceAnchored = (origin: unknown) => ({
+      ...activeState,
+      definition: {
+        ...activeState.definition,
+        origin,
+        recurrence: {
+          ...activeState.definition.recurrence,
+          expiration: { ...activeState.definition.recurrence.expiration, anchor: 'SOURCE' }
+        }
+      }
+    })
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse(sourceAnchored(activeState.definition.origin))
+    ).toThrow('Source-anchored expiration requires an Encounter origin with a source actor.')
+    expect(
+      activeRuleEffectStateDtoSchema.parse(
+        sourceAnchored({
+          kind: 'ENCOUNTER',
+          sourceAggregateId: '00000000-0000-4000-8000-000000000013',
+          sourceOccurrenceId: '00000000-0000-4000-8000-000000000014',
+          rootCommandId: '00000000-0000-4000-8000-000000000015',
+          sourceActorId: '00000000-0000-4000-8000-000000000020'
+        })
+      ).definition.recurrence.expiration
+    ).toMatchObject({ kind: 'TICKS', anchor: 'SOURCE' })
   })
   it('accepts a bounded UUID-backed definition and System capability', () => {
     expect(

@@ -114,6 +114,8 @@ export const updateEncounterActorInputDtoSchema = lazySchema(() =>
     healthDisplay: z.optional(z.nullable(healthDisplayLevelDtoSchema)),
     /** GM-only: returns a Character taken out of initiative (D82) to its place in the round. */
     returnToInitiative: z.optional(z.literal(true)),
+    /** GM-only: ends a grant (D99) this Creature or custom actor holds; a Character's ends on its Sheet. */
+    endActiveEffectId: z.optional(uuidSchema),
     characterCommand: z.optional(characterSheetCommandInputDtoSchema)
   })
 )

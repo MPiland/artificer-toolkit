@@ -274,6 +274,7 @@ describe('native Encounter reads', () => {
       initiative: null,
       manualOrder: null,
       conditions: ownerCreature!.conditions,
+      activeGrants: [],
       defeated: false,
       outOfInitiative: false,
       controllerUserIds: [],

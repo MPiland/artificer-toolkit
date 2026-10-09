@@ -1,7 +1,10 @@
 import { isDepartedCharacterActor } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readActiveSceneEncounter } from '@artificer-toolkit/encounter-persistence/sceneBindingReads'
 import { deriveCharacterSceneVision } from '@artificer-toolkit/rules-runtime/character/characterSceneVision'
+import { withCharacterActiveGrants } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformCharacterPolicy'
 import {
   sceneSessionVisionCompositionSchema,
   type SceneSessionVisionComposition
@@ -153,6 +156,18 @@ export async function composeRoomSceneVision(input: {
     )
       throw new Error('Character vision source is stale.')
     const { snapshot, output } = facts.ruleEvaluation
+    // Sense grants the Character holds (the Darkvision spell) fold in like its own features.
+    const grantFacts = withCharacterActiveGrants(
+      facts.ruleEvaluation.facts,
+      await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId }, { ownerVerified: true })
+    )
+    const characterSenses =
+      grantFacts === facts.ruleEvaluation.facts
+        ? output.senses
+        : evaluateInstalledCharacterPolicy({
+            gameSystemId: campaign.gameSystemId,
+            facts: grantFacts
+          }).senses
     const system = facts.prepared.context.registry.system
     if (
       snapshot.characterId !== characterId ||
@@ -165,8 +180,8 @@ export async function composeRoomSceneVision(input: {
     const admittedSenses = new Set(system.senses.map((sense) => sense.id))
     const senses: Parameters<typeof deriveCharacterSceneVision>[1][number][] = []
     const seen = new Set<string>()
-    if (output.senses.length > 100) throw new Error('Character vision Sense limit exceeded.')
-    for (const sense of output.senses) {
+    if (characterSenses.length > 100) throw new Error('Character vision Sense limit exceeded.')
+    for (const sense of characterSenses) {
       if (!admittedSenses.has(sense.senseDefinitionId) || seen.has(sense.senseDefinitionId))
         throw new Error('Character vision Sense is not a unique System vocabulary member.')
       seen.add(sense.senseDefinitionId)

@@ -158,6 +158,32 @@ function mechanicSource(
   }
 }
 
+export function buildCharacterGrantFoldModifierFacts(
+  grants: readonly CompiledModifierGrant[] | undefined,
+  normalizeProficiencyTarget?: (kind: string, targetId: string) => string
+): CharacterGrantFoldSource['modifiers'] {
+  return (grants ?? []).map((grant) => ({
+    grantId: grant.id,
+    valueDomainCode: grant.valueDomainCode,
+    modifierKind: grant.modifierKind,
+    domain: jsonFact(grant.domain),
+    grant: jsonFact(grant),
+    restrictions: normalizeCharacterGrantRestrictions(
+      grant.restrictions,
+      normalizeProficiencyTarget
+    ),
+    scopeSpellIds: (grant.restrictions?.groups ?? [])
+      .flatMap((group) => group.contexts)
+      .flatMap((context) =>
+        context.subject === 'SPELL' &&
+        context.authoringModeKind === 'SELECTED' &&
+        context.spellIds.length > 0
+          ? [...context.spellIds]
+          : []
+      )
+  }))
+}
+
 export function buildCharacterGrantFoldSourceFacts(params: {
   definition: GrantBearingDefinition
   owner: CharacterProvenance
@@ -193,26 +219,10 @@ export function buildCharacterGrantFoldSourceFacts(params: {
       ...scalingTargets(grant, 'senseIds', params.snapshot, params.owner),
       range: grant.range ? jsonFact(grant.range) : null
     })),
-    modifiers: (params.definition.modifiers ?? []).map((grant) => ({
-      grantId: grant.id,
-      valueDomainCode: grant.valueDomainCode,
-      modifierKind: grant.modifierKind,
-      domain: jsonFact(grant.domain),
-      grant: jsonFact(grant),
-      restrictions: normalizeCharacterGrantRestrictions(
-        grant.restrictions,
-        params.normalizeProficiencyTarget
-      ),
-      scopeSpellIds: (grant.restrictions?.groups ?? [])
-        .flatMap((group) => group.contexts)
-        .flatMap((context) =>
-          context.subject === 'SPELL' &&
-          context.authoringModeKind === 'SELECTED' &&
-          context.spellIds.length > 0
-            ? [...context.spellIds]
-            : []
-        )
-    })),
+    modifiers: buildCharacterGrantFoldModifierFacts(
+      params.definition.modifiers,
+      params.normalizeProficiencyTarget
+    ),
     feats: (params.definition.feats ?? []).map((grant) => ({
       grantId: grant.id,
       scalingKind: grant.scalingKind,

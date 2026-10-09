@@ -13,6 +13,7 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '../shared/encounterRuleOccurrence.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { activeGrantListingDtoSchema } from '../shared/activeGrantListing.js'
 import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
@@ -78,6 +79,8 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
     initiative: z.nullable(z.number().check(z.int())),
     manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
     conditions: jsonSchema,
+    /** Active grants with their source and time left; a hidden source's label is null for players (D99). */
+    activeGrants: z._default(z.array(activeGrantListingDtoSchema), []),
     /**
      * A Creature or custom actor reduced to 0 hit points (D63): it keeps its initiative place but takes
      * no turns, actions or reactions until it regains hit points. Always false for a Character, which

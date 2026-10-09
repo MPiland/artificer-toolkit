@@ -11,7 +11,8 @@ import { SRD_ATHLETICS_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocab
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
-import { actionRoom } from './actionRoomFixture.js'
+import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -36,6 +37,7 @@ async function disarmRoom(options: {
   autoRoll?: 'GAME_MASTER'
   rolls?: readonly number[]
   heldItem?: 'GREATCLUB'
+  seed?: ActionRoomConfig['seed']
 }) {
   const ogre = seededSrdCreature('Ogre')
   const holder =
@@ -177,6 +179,23 @@ describe('room Disarm contests', () => {
       )
     }
   )
+
+  it('uses up the initiator’s one-roll grants', async () => {
+    const disarming = await disarmRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [9, 9],
+      seed: seedModifierGrant({
+        sourceActorId: TARGET_ID,
+        holderActorId: SOURCE_ID,
+        lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+      })
+    })
+    expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toHaveLength(1)
+
+    await startDisarm(disarming)
+
+    expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toEqual([])
+  })
 
   it('starts a Disarm of a two-handed holder', async () => {
     const disarming = await disarmRoom({

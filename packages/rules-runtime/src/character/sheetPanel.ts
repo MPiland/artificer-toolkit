@@ -147,6 +147,8 @@ function findSourceLabel(params: {
     }
     case 'COMPANION_INSTANCE':
       return { label: 'Companion' }
+    case 'ACTIVE_EFFECT':
+      return { label: 'Active effect' }
     case 'AUTHORED': {
       const authoredRecords = [
         ...params.resolution.registry.races,

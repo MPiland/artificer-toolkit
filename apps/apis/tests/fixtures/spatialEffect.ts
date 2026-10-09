@@ -100,7 +100,12 @@ export async function seedSpatialEffect(
         consumeOnFirstEvent: null,
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
-        expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+        expiration: {
+          kind: 'TICKS',
+          initialRemaining: 3,
+          decrementStage: 'END_OF_TURN',
+          anchor: 'HOLDER'
+        }
       }
     })
     const scope = await createSpatialRuleEffectStore({ db: createConvexEncounterStore(ctx) }).scope(

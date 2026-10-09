@@ -3,32 +3,6 @@
 > **Status:** proposed enhancements. The Post-launch section holds improvements that are deliberately deferred until after launch; everything needed for a competitive product before closed beta lives in the phase plans, not here.
 > **Scope:** product ideas, model redesigns and interactive behavior that are explicitly out of phase
 
-## Interactive `APPLY_GRANT` lifecycle
-
-> **Moved into scope (2026-09-25):** `APPLY_GRANT` effects (Shield, Aid, Shocking Grasp and others) ship in Phase 8.3 with spell casting, before closed beta. The lifecycle notes below are the starting point for that work.
-
-This was previously labeled in source as a "Phase 8+ interactive runtime" follow-up. The current
-roadmap's Phase 09 is billing and subscriptions, so this backlog is the canonical replacement for
-that older phase note.
-
-`ApplyGrantAuthored` currently represents permanent grants only. When the Encounter and character event pipelines support interactive effect consumption and expiry, add lifecycle metadata local to `APPLY_GRANT` rather than overloading the existing authored `Duration.durationKind` contract.
-
-The deferred authored shape is:
-
-```ts
-lifetime?: {
-  mode: 'PERMANENT' | 'TEMPORARY'
-  lastsUntil?:
-    | 'NEXT_ATTACK'
-    | 'END_OF_ROUND'
-    | 'START_OF_NEXT_TURN'
-    | 'END_OF_NEXT_TURN'
-    | 'NEXT_SAVE'
-}
-```
-
-Permanent remains the default. Temporary consumption and expiry must be explicit, replayable Encounter or Character events; they must not be client-only timers or inferred from mutable current state.
-
 ## Campaign Features (GM-directed)
 
 Campaigns will support a campaign-level **Feature** concept that applies temporary grants to participating characters. This is intentionally separate from encounters, inventory, or core entitlement behavior.

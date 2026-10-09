@@ -21,6 +21,7 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
+import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../concentration.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const heroism: SpellAuthored = {
@@ -66,6 +67,7 @@ export const heroism: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.HEROISM, 0x212, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
+            maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
             duration: {
               id: spellChildId(SPELL_IDS.HEROISM, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,

@@ -475,6 +475,8 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
             ({ trace }) =>
               trace.outputs.applicationCandidate === true &&
               trace.outputs.authorized === true &&
+              // A grant stores nothing on the target, so it has no application.
+              trace.outputs.changesTargetState !== false &&
               // A reduction whose damage dealt nothing (immunity) reduces nothing and has no application.
               (typeof trace.outputs.sourceDamageNodeId !== 'string' ||
                 batch.applications.some(

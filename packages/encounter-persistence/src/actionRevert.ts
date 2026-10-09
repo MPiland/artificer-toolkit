@@ -34,6 +34,7 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { restoreConsumedGrants } from './consumedGrantPersistence.js'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunState, replaceRunActor } from './documents.js'
@@ -417,6 +418,12 @@ export async function revertLastEncounterAction(
       ownerActorId: created.sourceActorId,
       expectedVersion: created.version
     })
+  // The attacker's grants the roll used up come back with their remaining count.
+  await restoreConsumedGrants(ctx, {
+    actor: source,
+    encounterId: state.id,
+    grants: root.consumedGrants
+  })
 
   const updatedAt = new Date().toISOString()
   for (const [characterId, inverse] of characterInverses)

@@ -263,6 +263,7 @@ export async function prepareFixtureSheet(input: {
     sheetState,
     campaignContext: {
       viewer: 'CHARACTER_OWNER',
+      isCampaignOwner: false,
       campaignId: null,
       campaignStatus: null,
       contentMaturity: null,

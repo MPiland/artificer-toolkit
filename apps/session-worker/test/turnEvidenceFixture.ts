@@ -149,7 +149,12 @@ export async function seedTurnSaveEffect(input: {
         consumeOnFirstEvent: null,
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
-        expiration: { kind: 'TICKS', initialRemaining: input.ticks, decrementStage: input.stage }
+        expiration: {
+          kind: 'TICKS',
+          initialRemaining: input.ticks,
+          decrementStage: input.stage,
+          anchor: 'HOLDER'
+        }
       }
     }),
     lifecycle: { schemaVersion: 1, remainingTicks: input.ticks }

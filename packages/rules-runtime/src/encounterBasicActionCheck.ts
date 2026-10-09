@@ -68,7 +68,8 @@ export function encounterBasicActionStabilizeWarnings(input: {
       actor: input.actor,
       target: input.target.actor,
       targetPolicy: touchPolicy,
-      sceneContext: null
+      sceneContext: null,
+      makesAttackRoll: false
     }) ?? [])
   ]
 }

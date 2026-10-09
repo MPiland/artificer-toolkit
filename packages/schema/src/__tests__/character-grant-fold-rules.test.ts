@@ -26,6 +26,7 @@ const emptyInput = {
   classes: [],
   background: null,
   features: [],
+  activeEffects: [],
   equipmentItems: []
 }
 

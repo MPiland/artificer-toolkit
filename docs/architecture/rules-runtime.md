@@ -182,6 +182,12 @@ through `encounterActionRuleWarnings`:
   eligibility and passage blockers use it, and Run state stores no side relationships. Actor sides remain
   only for initiative grouping, reorder, reinforcement and removal.
 
+**Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
+`TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
+attack roll (`makesAttackRoll`, a required policy input) or the authored targeting sets `excludesSelf`
+("another creature"). SRD Bardic Inspiration, Healing Touch, Modify Memory and Protection author
+`excludesSelf: true`.
+
 `USE_BASIC_ACTION` follows the same rule with `encounterActionEconomyWarnings` and `TARGET_DISPOSITION`.
 Action choices carry the warnings that already apply before a target is chosen.
 
@@ -458,7 +464,85 @@ Feature-owned charge identities. Recharge runs for the incoming actor in the sha
 At each `END_OF_OTHER_ACTOR_TURN` boundary the occurrence freezes a UUID-sorted owner queue; each eligible
 owner gets at most one window, and the turn resumes after the queue is terminal
 (`encounterTurnLegendaryDiscovery`, `discoverTurnLegendaryWindows`). A Feature option may run another
-action Feature of the same Creature through `actionReference: { featureId, chargeCost }`.
+action Feature of the same Creature through `actionReference: { featureId, chargeCost }`. An option may
+also create active effects (a `FREE` activation with a Feature charge, e.g. Unicorn Shimmering Shield, may
+target any creature including its owner under D99). `execute()` prepares the effects plan before the
+mechanics plan, records the created effects on the EXECUTED evidence (`createdEffects`, an opaque record
+array parsed with `activeRuleEffectRecordSchema` at use) and `persistEncounterTurnResources` stores them
+through `persistEncounterActionEffects` in the turn commit. Range is not enforced here: discovery has no
+Scene geometry, so every actor the policy allows is offered.
+
+**Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
+effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
+which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as the
+contribution's `tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
+turn" outlasts the current one. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
+never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every grant
+anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
+commit's transaction. A `consumeOnFirstEvent: 'ON_ATTACK_ROLL'` grant is deleted by its holder's next
+attack-roll action (not a save action) and stored on the command as `consumedGrants`, which GM undo
+restores, mirroring Help's ally advantage (`consumedGrantPersistence` in encounter-persistence). Every
+attack path consumes: ordinary actions, movement reaction attacks and Disarm record `consumedGrants` on
+their command, and a Legendary Action window deletes its owner's grants at the turn commit when the option
+rolled an attack (`attackRoll` on the EXECUTED evidence); only ordinary actions have GM undo. A
+grant made at another creature's turn end has no extra tick and ends at the end of the holder's next turn.
+An `ARMOR_CLASS` grant on a Creature raises its AC through `withCreatureActiveGrantArmorClass`, applied
+where movement targets and Cleaving facts are built. A
+SOURCE-anchored grant ends when its source is removed from the Run (`planDepartedSourceGrantRemovals`,
+applied in `cleanupRemovedActorEffects` and listed in `removedEffects`). A skipped (defeated or
+out-of-initiative) actor's turn still ticks both boundaries in the turn commit that skips it, so a
+Character removed from an active Run, which only leaves initiative (D82), has its SOURCE grants end
+through its skipped turns.
+
+**Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
+(`endCompletedRunCharacterEffects`: Encounter-scoped grants such as Concentration grants), alongside the
+Creature effects ADR 0035 Amendment 30 drops. A Character's own (`OWNER`-scoped) timed grants outlast the
+Run: `planCarriedOverGrants` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
+Campaign clock's absolute minute at completion plus 6 seconds per remaining round rounded up to whole
+minutes, with `remainingTicks: null` so later Runs never tick it. Without a Campaign clock the grant gets no
+expiry and lasts until the GM ends it. `expiredCarriedOverGrants` lists the grants a clock minute has
+reached. The room has no Campaign clock, so Convex converts them (see
+[persistence](persistence.md#encounter-run-storage)). Advancing the Campaign clock ends the carried grants
+it reaches on Characters that are not fighting, through the GM-only `END_ACTIVE_EFFECT` Sheet command;
+a fighting Character's are checked on the next advance.
+
+**Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
+whether the source was hidden, rounds left or the carried expiry minute); `hideActiveGrantSources`
+nulls a hidden source's label for everyone but the GM. Encounter actors carry them as `activeGrants`
+(none on a COMPLETED Run, which reads no effects), shown on the token, the turn tracker and the drawer; the
+Sheet overview carries them too. The Campaign owner ends one by hand: a Character's through
+`END_ACTIVE_EFFECT` (gated on Campaign ownership, not on the Sheet viewer, so it works on the GM's own
+Character per D92; a maintained grant is refused, end its Concentration instead) and a Creature's through
+`UPDATE_ACTOR.endActiveEffectId`. Ending a grant has no GM undo.
+
+**Hit grants and reactions (D99).** An attack's `ON_HIT` or `ON_CRIT` `APPLY_GRANT` stays out of the
+two-phase TEST/OUTCOME graphs, like an on-hit relationship: `modifierGrantPlan` makes it the attack's one
+active-effect plan (more than one hit grant, or a grant beside a relationship, is unsupported) and records
+`dnd5e.grant-authored-path`, and `prepareRecurringActiveEffect` applies it only when the TEST's result path
+reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts grant plans only. A
+`REACTION_COUNT SET_VALUE 0` grant suppresses the reaction-allowance capability
+(`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
+relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
+
+**Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
+operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
+modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds
+them before it draws the Character's senses. A Creature holder's speeds read `withActiveGrantSpeeds`, and
+its maximum and every Character's read `effectiveHitPointMaximum`: the stored maximum plus `HIT_POINTS_MAX`
+grants, then D79 reductions. When a grant ends, `planEncounterMaintenanceOwner` clamps current hit points to
+the new maximum, and room Character reconciliation and Sheet rests bound hit points by the same maximum, so a
+held grant's hit points survive them. The tabletop movement budget is a readout of walking speed and follows
+walking-speed grants. Slot-scaled amounts (Aid's `SPELL_SLOT_LEVEL`) need cast-time resolution, so
+`modifierGrantPlan` leaves them manual until spell casting (SPELLS-8) supplies it.
+
+**Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
+same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a
+dependent of its source's maintained state and ends with it on a failed check, D95 incapacitation or a
+replacing Concentration, through the generic dependent removal. A maintained grant is Encounter-scoped even
+on a Character holder: its maintained state lives in the Run, so it ends with the Run instead of carrying
+over. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
+maintenance definition.
 
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per

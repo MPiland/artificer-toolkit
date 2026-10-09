@@ -69,6 +69,13 @@ export const TARGETING_NODE_MAP: NodeMap<TargetingAuthored> = targeting.define(
         )
       )
       .set(
+        'excludesSelf',
+        nodes.toggle(['excludesSelf'], 'Excludes Self', {
+          order: 9,
+          showIf: local.field(['selectionKind']).eq('SINGLE_TARGET')
+        })
+      )
+      .set(
         'maxTargets',
         number(['maxTargets'], 'Max Targets', {
           order: 3,

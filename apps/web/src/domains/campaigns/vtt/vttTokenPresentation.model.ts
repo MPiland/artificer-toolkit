@@ -4,6 +4,10 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import {
+  activeGrantLabel,
+  activeGrantTimeLeft
+} from '../../../components/activeGrants/activeGrantDisplay'
 import type { VttTokenPresentation } from './vttSceneRenderer.model'
 
 const healthColours = {
@@ -37,7 +41,18 @@ export function buildVttTokenPresentations(input: {
   for (const token of input.scene.tokens) {
     const actorId = input.actorIdByTokenId.get(token.id)
     const actor = actorId ? actors.get(actorId) : undefined
-    const statuses = actor ? actorConditionStatuses(actor.conditions) : []
+    const statuses = actor
+      ? [
+          ...actorConditionStatuses(actor.conditions),
+          ...actor.activeGrants.map((grant) =>
+            statusFromValues(
+              `grant:${grant.effectId}`,
+              'EFFECT',
+              `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
+            )
+          )
+        ]
+      : []
     const healthBand = actor ? healthBands.get(actor.id) : undefined
     // Everyone sees a defeated creature fall (D63) and a Character die (D96); the GM also sees how
     // hurt the rest are.

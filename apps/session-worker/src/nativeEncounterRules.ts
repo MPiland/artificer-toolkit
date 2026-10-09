@@ -37,7 +37,9 @@ import {
   mergeCanonicalD20Contributors
 } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
+import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   encounterActionSuppressedWarning,
   evaluateEncounterActionRuleWarnings,
@@ -274,6 +276,11 @@ export async function planNativeLiveEncounterAction(
     allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
       ? [{ helperActorId: allyAdvantage.helperActorId, effect: allyAdvantage.effect }]
       : []
+  // An attack roll also uses up the attacker's one-roll grants (Vicious Mockery's disadvantage).
+  const consumedGrants =
+    typeof prepared.binding.actionMechanic.attackBonus === 'number'
+      ? attackRollConsumableGrants(activeEffectsByActorId.get(prepared.actor.id) ?? [])
+      : []
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const activation =
@@ -319,8 +326,10 @@ export async function planNativeLiveEncounterAction(
       actor: prepared.actor,
       target: prepared.target,
       targetPolicy: prepared.targetPolicy,
+      makesAttackRoll: prepared.makesAttackRoll,
       sceneContext
     },
+    targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
     targetDefeated: isEncounterActorDefeated(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
@@ -443,6 +452,7 @@ export async function planNativeLiveEncounterAction(
     currentnessChecksum,
     activeEffectsByActorId,
     allyAdvantageUses,
+    consumedGrants,
     dependencies,
     revisions
   }
@@ -659,6 +669,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     pendingConcentration: plan.concentration.pending,
     concentrationEnds: plan.concentration.concentrationEnds,
     cleaving: plan.cleaving,
-    allyAdvantageUses: plan.allyAdvantageUses
+    allyAdvantageUses: plan.allyAdvantageUses,
+    consumedGrants: plan.consumedGrants
   })
 }

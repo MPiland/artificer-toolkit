@@ -15,12 +15,28 @@ export type TurnEffectBoundary = {
   actorId: string | null
 }
 
-export function turnEffectOwner(actor: EncounterRunActorState, encounterId: string) {
+export function turnEffectOwner(
+  actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'>,
+  encounterId: string
+) {
   if (actor.kind === 'CHARACTER') {
     if (!actor.sourceId) throw new Error('Encounter Character effect owner is incomplete.')
     return { kind: 'CHARACTER' as const, characterId: actor.sourceId }
   }
   return { kind: 'ENCOUNTER_ACTOR' as const, encounterId, targetActorId: actor.id }
+}
+
+/** Whether the effect lives in this Encounter for the actor holding it. */
+export function isEffectLiveInEncounter(
+  effect: ActiveRuleEffectRecord,
+  actor: Pick<EncounterRunActorState, 'kind'>,
+  encounterId: string
+) {
+  if (effect.definition.recurrence.lifetimeScope === 'OWNER') return true
+  return actor.kind === 'CHARACTER'
+    ? effect.sourceEncounterId === encounterId
+    : effect.definition.origin.kind === 'ENCOUNTER' &&
+        effect.definition.origin.sourceAggregateId === encounterId
 }
 
 export function isTurnEffectEligible(
@@ -29,12 +45,10 @@ export function isTurnEffectEligible(
   state: EncounterRunState,
   stage: TurnEffectBoundary['stage']
 ) {
-  if (effect.definition.recurrence.recurrenceStage !== stage) return false
-  if (effect.definition.recurrence.lifetimeScope === 'OWNER') return true
-  return actor.kind === 'CHARACTER'
-    ? effect.sourceEncounterId === state.id
-    : effect.definition.origin.kind === 'ENCOUNTER' &&
-        effect.definition.origin.sourceAggregateId === state.id
+  return (
+    effect.definition.recurrence.recurrenceStage === stage &&
+    isEffectLiveInEncounter(effect, actor, state.id)
+  )
 }
 
 export function turnEffectRetainedConditions(

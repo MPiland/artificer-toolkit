@@ -23,6 +23,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readNativeDisarmPending } from './actionDisarmPending.js'
@@ -228,6 +229,11 @@ export async function persistEncounterDisarmCommit(
     uses: input.allyAdvantageUses,
     rollerActorIds: [root.actorId, root.targetActorId]
   })
+  await deleteConsumedGrants(ctx, {
+    actor: settled.actor,
+    encounterId: state.id,
+    grants: input.consumedGrants
+  })
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -322,6 +328,7 @@ export async function persistEncounterDisarmCommit(
       // Disarm has no "Do it anyway"; its checks stay hard.
       ruleOverrides: [],
       allyAdvantageUses: input.allyAdvantageUses,
+      consumedGrants: input.consumedGrants,
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,
       version: nextState.version,

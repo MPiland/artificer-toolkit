@@ -38,11 +38,11 @@ useLocalRoomWorker()
  * The seeded SRD Adult Red Dragon and the player's Character in an Assisted Run, at the end of the
  * Character's turn, so the dragon's Legendary Action window opens (D51 option B).
  */
-async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean }) {
+async function setup(input: { gmAutoRoll: boolean; playerAutoRoll: boolean; creature?: string }) {
   const base = await setupCharacterRun()
   await setAutoRollDice(base.t, base.owner.userId, input.gmAutoRoll)
   await setAutoRollDice(base.t, base.player.userId, input.playerAutoRoll)
-  const dragon = seededSrdCreature('Adult Red Dragon')
+  const dragon = seededSrdCreature(input.creature ?? 'Adult Red Dragon')
 
   // The dragon's Legendary Action, Legendary Resistance and Recharge policies, and Concentration.
   for (const definitions of sourceImportBatches([
@@ -348,5 +348,36 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
         dc: 10
       }
     })
+  }, 60000)
+})
+
+describe('seeded SRD Unicorn Shimmering Shield in the room (SPELLS-5.3)', () => {
+  it('puts a +2 AC grant on the Character the GM picks, held on the Character’s Sheet', async () => {
+    const base = await setup({ gmAutoRoll: true, playerAutoRoll: true, creature: 'Unicorn' })
+    const before = await characterAfter(base)
+    const choice = await executeInRoom(base.owner.caller, advance(base))
+    const pending = choice.occurrence?.pending
+    if (pending?.kind !== 'LEGENDARY_ACTION_CHOICE')
+      throw new Error('Expected the unicorn’s Legendary Action choice.')
+    const option = pending.options.find((entry) => entry.label.startsWith('Shimmering Shield'))
+    if (!option) throw new Error('Expected the Shimmering Shield option.')
+    expect(option).toMatchObject({
+      featureCost: 2,
+      targetActorIds: expect.arrayContaining([base.characterActor.id, base.dragonActor.id])
+    })
+    const done = await executeInRoom(
+      base.owner.caller,
+      respond(base, choice, {
+        kind: 'LEGENDARY_OPTION',
+        optionId: option.optionId,
+        targetActorId: base.characterActor.id
+      })
+    )
+    expect(done.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    // The grant lands on the Character's Sheet, which advances once for it.
+    const after = await characterAfter(base)
+    expect(after.streamVersion).toBe(before.streamVersion + 1)
+    const effects = await base.t.run((ctx) => ctx.db.query('characterActiveRuleEffects').collect())
+    expect(effects).toHaveLength(1)
   }, 60000)
 })

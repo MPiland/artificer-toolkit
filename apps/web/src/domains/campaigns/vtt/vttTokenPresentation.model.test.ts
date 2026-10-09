@@ -187,6 +187,46 @@ describe('VTT token presentation model', () => {
     expect(outline(true)).toBe(0x51cf66)
   })
 
+  it('shows active grants on a token with their source and time left, naming a hidden source neutrally', () => {
+    const actor = {
+      ...tabletopGmEncounter.actors[0]!,
+      activeGrants: [
+        {
+          effectId: '55555555-5555-4555-8555-555555555501',
+          label: 'Aid',
+          sourceHidden: false,
+          remainingTicks: 4,
+          expiresAtCampaignMinute: null
+        },
+        {
+          effectId: '55555555-5555-4555-8555-555555555502',
+          label: null,
+          sourceHidden: true,
+          remainingTicks: null,
+          expiresAtCampaignMinute: null
+        }
+      ]
+    }
+    const scene = sceneForActor()
+    const result = buildVttTokenPresentations({
+      boundTokenControl: new Map(),
+      actorIdByTokenId: new Map([[scene.tokens[0]!.id, actor.id]]),
+      currentUserId: scene.tokens[0]!.controlledByUserIds[0]!,
+      encounter: {
+        ...tabletopGmEncounter,
+        actors: [actor, ...tabletopGmEncounter.actors.slice(1)]
+      },
+      pending: null,
+      scene
+    })[scene.tokens[0]!.id]!
+
+    expect(result.statuses.filter((status) => status.kind === 'EFFECT')).toEqual([
+      expect.objectContaining({ label: 'Aid, 4 rounds left' }),
+      expect.objectContaining({ label: 'Hidden source, Until ended' })
+    ])
+    expect(result.accessibleDescription).toContain('Aid, 4 rounds left')
+  })
+
   it('derives fallback colours deterministically', () => {
     expect(deterministicTokenColour('same')).toBe(deterministicTokenColour('same'))
     expect(deterministicTokenColour('same')).not.toBe(deterministicTokenColour('other'))

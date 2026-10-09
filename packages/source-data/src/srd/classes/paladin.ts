@@ -792,7 +792,8 @@ export const paladin: ClassAuthored = {
                 },
                 targeting: {
                   selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
+                  dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+                  excludesSelf: true
                 }
               }
             })

@@ -3,6 +3,7 @@ import {
   encounterRunStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -282,7 +283,11 @@ export function featureActionId(actor: EncounterRunActorState, featureId: string
 /** An Assisted Encounter Run of the given actors and their current movement-target facts. */
 export function creatureEncounter<
   TCharacterFacts extends CharacterMovementFacts = ActionCharacterFacts
->(actors: readonly EncounterRunActorState[], automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED') {
+>(
+  actors: readonly EncounterRunActorState[],
+  automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED',
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]> = new Map()
+) {
   const state = encounterRunStateSchema.parse({
     id: ENCOUNTER_ID,
     campaignId: CAMPAIGN_ID,
@@ -312,7 +317,7 @@ export function creatureEncounter<
       actor.id,
       buildMovementTarget<TCharacterFacts>({
         actor,
-        activeEffects: [],
+        activeEffects: [...(activeEffectsByActorId.get(actor.id) ?? [])],
         gameSystemId: SRD_SYSTEM_ID,
         campaignId: CAMPAIGN_ID,
         characterFacts: null
@@ -331,9 +336,14 @@ export async function prepareCreatureAction(input: {
   target: EncounterRunActorState
   featureId: string
   overridable: boolean
+  targetActiveEffects?: readonly ActiveRuleEffectRecord[]
 }) {
   const actors = input.actor.id === input.target.id ? [input.actor] : [input.actor, input.target]
-  const encounter = creatureEncounter(actors)
+  const encounter = creatureEncounter(
+    actors,
+    'ASSISTED',
+    new Map([[input.target.id, input.targetActiveEffects ?? []]])
+  )
   const { state } = encounter
   const movementTargets = new Map(
     await Promise.all(

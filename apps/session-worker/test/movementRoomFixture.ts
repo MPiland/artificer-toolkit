@@ -120,7 +120,12 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
       consumeOnFirstEvent: null,
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+      expiration: {
+        kind: 'TICKS',
+        initialRemaining: 3,
+        decrementStage: 'END_OF_TURN',
+        anchor: 'HOLDER'
+      }
     }
   })
 }

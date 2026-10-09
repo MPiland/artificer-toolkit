@@ -5,7 +5,9 @@ import {
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import { prepareLiveCharacterSheetFacts } from './nativeCharacterRules.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterStoredPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
@@ -77,9 +79,19 @@ export async function prepareRoomLiveCharacterSheet(
       ...state,
       hitpoints: {
         ...state.hitpoints,
-        // The evaluated maximum already includes Campaign adjustments, so this bound never cuts HP
-        // they grant; active-effect reductions only lower the real maximum further.
-        current: Math.min(state.hitpoints.current, stats.maximumHitPoints),
+        // The evaluated maximum includes Campaign adjustments; held grants (Aid) and reductions
+        // apply on top, so this bound never cuts hit points a live grant allows.
+        current: Math.min(
+          state.hitpoints.current,
+          effectiveHitPointMaximum(
+            stats.maximumHitPoints,
+            await listActiveRuleEffects(
+              { db: store.store },
+              { kind: 'CHARACTER', characterId: initialInput.characterId },
+              { ownerVerified: true }
+            )
+          )
+        ),
         hitDice: facts.prepared.character.state.hitpoints.hitDice
       },
       equipped: state.equipped.filter((itemId) => inventoryIds.has(itemId)),

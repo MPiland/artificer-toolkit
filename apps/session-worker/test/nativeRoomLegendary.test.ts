@@ -9,6 +9,7 @@ import {
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
+import { unicorn as srdUnicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -20,6 +21,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
@@ -29,6 +31,8 @@ const CHARACTER_ACTOR_ID = testUuid(0x736)
 const CHARACTER_ID = testUuid(0x737)
 const FIRST_DRAGON_ID = testUuid(0x731)
 const SECOND_DRAGON_ID = testUuid(0x732)
+// Windows open in actor id order, so the unicorn shields before the dragon strikes.
+const UNICORN_ID = testUuid(0x72f)
 
 const allowanceIds = [
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -163,6 +167,21 @@ const attackDragon: CreatureAuthored = {
   ...plainWolf,
   id: testUuid(0x734),
   features: [...(plainWolf.features ?? []), attackTail, legendary]
+}
+
+const sourceUnicornLegendary = creatureFeature(srdUnicorn, 'Legendary Actions')
+/** The real SRD unicorn Legendary Actions, narrowed to Shimmering Shield (cost 2 of a pool of 3). */
+const shimmeringShield: typeof sourceUnicornLegendary = {
+  ...sourceUnicornLegendary,
+  options: sourceUnicornLegendary.options?.filter((option) =>
+    option.label.startsWith('Shimmering Shield')
+  )
+}
+/** A Medium Creature holding the unicorn's Shimmering Shield, so token facts stay simple. */
+const unicorn: CreatureAuthored = {
+  ...plainWolf,
+  id: testUuid(0x739),
+  features: [...(plainWolf.features ?? []), shimmeringShield]
 }
 
 /** A dragon that already spent one Legendary Action and every action allowance. */
@@ -360,5 +379,145 @@ describe('a room ADVANCE_TURN with Legendary Action windows', () => {
     })
     // The Character's Sheet advances once for the damage.
     expect(action.resolution.characterTransitions).toHaveLength(1)
+  })
+})
+
+describe('a unicorn using Shimmering Shield at another creature’s turn end', () => {
+  /**
+   * The Wolf ends its turn; the unicorn either shields itself or declines, then the dragon's Tail
+   * (+10, natural 3) strikes the unicorn (AC 12). The shield makes the 13 miss.
+   */
+  async function wolfEndsTurn(shield: boolean) {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: UNICORN_ID, creature: unicorn }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: {
+        [WOLF_ID]: { x: 150, y: 150 },
+        [UNICORN_ID]: { x: 250, y: 150 },
+        [FIRST_DRAGON_ID]: { x: 350, y: 150 }
+      },
+      autoRoll: 'GAME_MASTER',
+      rolls: [2]
+    })
+    const advance = async () => {
+      const commandId = crypto.randomUUID()
+      const { runs } = await readRoomHistory(room.base.stub)
+      await room.send(commandId, {
+        scope: 'ENCOUNTER',
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: room.encounterId,
+          commandId,
+          expectedVersion: runs[0]!.version
+        }
+      })
+      return commandId
+    }
+    const advanceId = await advance()
+    for (let held = await readLegendaryChoice(room.base.stub); held;) {
+      const option = held.options[0]
+      if (!option) throw new Error('Expected a Legendary option.')
+      await respond(
+        room,
+        held.ownerActorId === UNICORN_ID && shield
+          ? { kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: UNICORN_ID }
+          : held.ownerActorId === FIRST_DRAGON_ID
+            ? { kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: UNICORN_ID }
+            : { kind: 'DECLINE' }
+      )
+      held = await readLegendaryChoice(room.base.stub)
+    }
+    return { room, advance, advanceId }
+  }
+
+  async function dragonResultPath(room: Awaited<ReturnType<typeof movementRoom>>, id: string) {
+    const { receipts } = await readRoomHistory(room.base.stub)
+    const receipt = receipts.find((candidate) => candidate.commandId === id)
+    if (!receipt) throw new Error('The room holds no ADVANCE_TURN receipt.')
+    const result = parseReceiptExecution(receipt)
+    if (result.status !== 'INITIATIVE_COMPLETE')
+      throw new Error(`Expected an initiative receipt, got ${result.status}.`)
+    const strike = result.legendaryActions?.find(
+      (action) => action.choice.ownerActorId === FIRST_DRAGON_ID
+    )
+    if (strike?.resolution.kind !== 'EXECUTED') throw new Error('Expected the dragon’s strike.')
+    return strike.resolution.application.d20?.resultPath
+  }
+
+  it('hits a unicorn that declined its shield, as the control', async () => {
+    const { room, advanceId } = await wolfEndsTurn(false)
+    expect(await dragonResultPath(room, advanceId)).toBe('ON_HIT')
+    expect((await readRoomHistory(room.base.stub)).activeEffects).toEqual([])
+  })
+
+  it('raises the holder’s AC by 2 so the same attack misses, and lasts to the end of the unicorn’s next turn', async () => {
+    const { room, advance, advanceId } = await wolfEndsTurn(true)
+    expect(await dragonResultPath(room, advanceId)).toBe('ON_MISS')
+    const held = await readRoomHistory(room.base.stub)
+    expect(held.activeEffects).toHaveLength(1)
+    expect(held.activeEffects[0]).toMatchObject({ targetActorId: UNICORN_ID })
+
+    // The unicorn's own turn is under way: the shield holds until that turn ends.
+    expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)
+    await advance()
+    for (let window = await readLegendaryChoice(room.base.stub); window;) {
+      await respond(room, { kind: 'DECLINE' })
+      window = await readLegendaryChoice(room.base.stub)
+    }
+    expect((await readRoomHistory(room.base.stub)).activeEffects).toEqual([])
+  })
+})
+
+describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)', () => {
+  async function legendaryTurnEnd(creature: CreatureAuthored) {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      rolls: [2],
+      seed: seedModifierGrant({
+        sourceActorId: WOLF_ID,
+        holderActorId: FIRST_DRAGON_ID,
+        lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+      })
+    })
+    expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const held = await readLegendaryChoice(room.base.stub)
+    const option = held?.options[0]
+    if (!option) throw new Error('Expected a Legendary option.')
+    await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      // The self Tail targets its owner; the attack Tail strikes the Wolf.
+      targetActorId: creature === dragon ? FIRST_DRAGON_ID : WOLF_ID
+    })
+    return (await readRoomHistory(room.base.stub)).activeEffects
+  }
+
+  it('deletes the grant its attack rolled against', async () => {
+    expect(await legendaryTurnEnd(attackDragon)).toEqual([])
+  })
+
+  it('keeps the grant through an action that rolls no attack', async () => {
+    expect(await legendaryTurnEnd(dragon)).toHaveLength(1)
   })
 })

@@ -125,7 +125,12 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
       consumeOnFirstEvent: null,
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+      expiration: {
+        kind: 'TICKS',
+        initialRemaining: 3,
+        decrementStage: 'END_OF_TURN',
+        anchor: 'HOLDER'
+      }
     }
   })
   const descriptor = encounterMaintainedEffectDescriptorDtoSchema.parse({

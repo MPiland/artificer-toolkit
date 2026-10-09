@@ -1812,6 +1812,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -1848,6 +1852,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -1906,6 +1914,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -2018,6 +2030,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -2054,6 +2070,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -2112,6 +2132,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -2292,7 +2316,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -2325,7 +2350,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -2380,7 +2406,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -2425,7 +2452,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -2458,7 +2486,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -2513,7 +2542,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -2529,6 +2559,12 @@ export declare const api: {
                   | "DAILY"
                   | "MANUAL";
                 type: "RECOVER_SHEET_RESOURCE";
+              }
+            | {
+                commandId: string;
+                effectId: string;
+                expectedVersion: number;
+                type: "END_ACTIVE_EFFECT";
               }
             | {
                 commandId: string;
@@ -3247,6 +3283,7 @@ export declare const api: {
           meta: {
             campaignId?: string | null;
             capabilities: {
+              endActiveEffects: boolean;
               manageInventory: boolean;
               managePlayState: boolean;
               managePrivateNotes: boolean;
@@ -3307,6 +3344,13 @@ export declare const api: {
               modifier: number;
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
               score: number;
+            }>;
+            activeGrants: Array<{
+              effectId: string;
+              expiresAtCampaignMinute: number | null;
+              label: string | null;
+              remainingTicks: number | null;
+              sourceHidden: boolean;
             }>;
             armorClass: number;
             conditions: Array<{
@@ -3624,7 +3668,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -3657,7 +3702,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     kind: "SPELL_SOURCE";
@@ -3712,7 +3758,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -3984,7 +4031,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -4017,7 +4065,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -4072,7 +4121,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -4192,7 +4242,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -4225,7 +4276,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -4280,7 +4332,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -4377,7 +4430,8 @@ export declare const api: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { kind: "SYSTEM"; systemId: string }
-                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                  | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 sourceLabel: string;
                 sourceNote?: string;
                 state: "APPLIED" | "SUPPRESSED";
@@ -4467,7 +4521,8 @@ export declare const api: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { kind: "SYSTEM"; systemId: string }
-                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                  | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 sourceLabel: string;
                 sourceNote?: string;
                 state: "APPLIED" | "SUPPRESSED";
@@ -4598,7 +4653,8 @@ export declare const api: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { kind: "SYSTEM"; systemId: string }
-                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                  | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 sourceLabel: string;
                 sourceNote?: string;
                 state: "APPLIED" | "SUPPRESSED";
@@ -4760,7 +4816,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -4826,7 +4883,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -4936,7 +4994,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -5121,7 +5180,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -5167,7 +5227,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -5213,7 +5274,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -5466,7 +5528,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -5499,7 +5562,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -5554,7 +5618,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -5702,7 +5767,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -5735,7 +5801,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -5790,7 +5857,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -5918,7 +5986,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 }
               | {
                   chargeId: string;
@@ -5951,7 +6020,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 }
               | {
                   kind: "SPELL_SOURCE";
@@ -6006,7 +6076,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 }
               | {
                   chargeId: string;
@@ -6068,7 +6139,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -6101,7 +6173,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     kind: "SPELL_SOURCE";
@@ -6156,7 +6229,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -6329,7 +6403,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -6362,7 +6437,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -6417,7 +6493,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -14478,7 +14555,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -14511,7 +14589,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -14566,7 +14645,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -14663,7 +14743,8 @@ export declare const api: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { kind: "SYSTEM"; systemId: string }
-                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                  | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 sourceLabel: string;
                 sourceNote?: string;
                 state: "APPLIED" | "SUPPRESSED";
@@ -14753,7 +14834,8 @@ export declare const api: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { kind: "SYSTEM"; systemId: string }
-                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                  | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 sourceLabel: string;
                 sourceNote?: string;
                 state: "APPLIED" | "SUPPRESSED";
@@ -14884,7 +14966,8 @@ export declare const api: {
                       kind: "COMPANION_INSTANCE";
                     }
                   | { kind: "SYSTEM"; systemId: string }
-                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                  | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                  | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 sourceLabel: string;
                 sourceNote?: string;
                 state: "APPLIED" | "SUPPRESSED";
@@ -15046,7 +15129,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -15112,7 +15196,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -15222,7 +15307,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -15407,7 +15493,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -15453,7 +15540,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -15499,7 +15587,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   sourceLabel: string;
                   sourceNote?: string;
                   state: "APPLIED" | "SUPPRESSED";
@@ -15752,7 +15841,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -15785,7 +15875,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -15840,7 +15931,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -15988,7 +16080,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -16021,7 +16114,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -16076,7 +16170,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -16204,7 +16299,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 }
               | {
                   chargeId: string;
@@ -16237,7 +16333,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 }
               | {
                   kind: "SPELL_SOURCE";
@@ -16292,7 +16389,8 @@ export declare const api: {
                         kind: "COMPANION_INSTANCE";
                       }
                     | { kind: "SYSTEM"; systemId: string }
-                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                    | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                    | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                 }
               | {
                   chargeId: string;
@@ -16354,7 +16452,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -16387,7 +16486,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     kind: "SPELL_SOURCE";
@@ -16442,7 +16542,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -16615,7 +16716,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -16648,7 +16750,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -16703,7 +16806,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -17518,6 +17622,7 @@ export declare const api: {
           meta: {
             campaignId?: string | null;
             capabilities: {
+              endActiveEffects: boolean;
               manageInventory: boolean;
               managePlayState: boolean;
               managePrivateNotes: boolean;
@@ -17578,6 +17683,13 @@ export declare const api: {
               modifier: number;
               rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
               score: number;
+            }>;
+            activeGrants: Array<{
+              effectId: string;
+              expiresAtCampaignMinute: number | null;
+              label: string | null;
+              remainingTicks: number | null;
+              sourceHidden: boolean;
             }>;
             armorClass: number;
             conditions: Array<{
@@ -17895,7 +18007,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -17928,7 +18041,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     kind: "SPELL_SOURCE";
@@ -17983,7 +18097,8 @@ export declare const api: {
                           kind: "COMPANION_INSTANCE";
                         }
                       | { kind: "SYSTEM"; systemId: string }
-                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                      | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                      | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                   }
                 | {
                     chargeId: string;
@@ -18255,7 +18370,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -18288,7 +18404,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -18343,7 +18460,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -18494,6 +18612,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -18530,6 +18652,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -18588,6 +18714,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -18700,6 +18830,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -18736,6 +18870,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -18794,6 +18932,10 @@ export declare const api: {
                               | {
                                   adjustmentId: string;
                                   kind: "MANUAL_ADJUSTMENT";
+                                }
+                              | {
+                                  activeEffectId: string;
+                                  kind: "ACTIVE_EFFECT";
                                 };
                           }
                         | {
@@ -18974,7 +19116,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -19007,7 +19150,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -19062,7 +19206,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -19107,7 +19252,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -19140,7 +19286,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       kind: "SPELL_SOURCE";
@@ -19195,7 +19342,8 @@ export declare const api: {
                             kind: "COMPANION_INSTANCE";
                           }
                         | { kind: "SYSTEM"; systemId: string }
-                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                        | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                        | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                     }
                   | {
                       chargeId: string;
@@ -19211,6 +19359,12 @@ export declare const api: {
                   | "DAILY"
                   | "MANUAL";
                 type: "RECOVER_SHEET_RESOURCE";
+              }
+            | {
+                commandId: string;
+                effectId: string;
+                expectedVersion: number;
+                type: "END_ACTIVE_EFFECT";
               }
             | {
                 commandId: string;
@@ -19579,6 +19733,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -19607,6 +19762,13 @@ export declare const api: {
                   modifier: number;
                   rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
                   score: number;
+                }>;
+                activeGrants: Array<{
+                  effectId: string;
+                  expiresAtCampaignMinute: number | null;
+                  label: string | null;
+                  remainingTicks: number | null;
+                  sourceHidden: boolean;
                 }>;
                 armorClass: number;
                 conditions: Array<{
@@ -19918,6 +20080,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -19972,7 +20135,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         chargeId: string;
@@ -20005,7 +20169,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         kind: "SPELL_SOURCE";
@@ -20060,7 +20225,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         chargeId: string;
@@ -20338,7 +20504,8 @@ export declare const api: {
                             | {
                                 adjustmentId: string;
                                 kind: "MANUAL_ADJUSTMENT";
-                              };
+                              }
+                            | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                         }
                       | {
                           chargeId: string;
@@ -20374,7 +20541,8 @@ export declare const api: {
                             | {
                                 adjustmentId: string;
                                 kind: "MANUAL_ADJUSTMENT";
-                              };
+                              }
+                            | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                         }
                       | {
                           kind: "SPELL_SOURCE";
@@ -20432,7 +20600,8 @@ export declare const api: {
                             | {
                                 adjustmentId: string;
                                 kind: "MANUAL_ADJUSTMENT";
-                              };
+                              }
+                            | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                         }
                       | {
                           chargeId: string;
@@ -20464,6 +20633,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -20741,7 +20911,8 @@ export declare const api: {
                             | {
                                 adjustmentId: string;
                                 kind: "MANUAL_ADJUSTMENT";
-                              };
+                              }
+                            | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                         }
                       | {
                           chargeId: string;
@@ -20777,7 +20948,8 @@ export declare const api: {
                             | {
                                 adjustmentId: string;
                                 kind: "MANUAL_ADJUSTMENT";
-                              };
+                              }
+                            | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                         }
                       | {
                           kind: "SPELL_SOURCE";
@@ -20835,7 +21007,8 @@ export declare const api: {
                             | {
                                 adjustmentId: string;
                                 kind: "MANUAL_ADJUSTMENT";
-                              };
+                              }
+                            | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                         }
                       | {
                           chargeId: string;
@@ -20999,6 +21172,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -21070,7 +21244,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         chargeId: string;
@@ -21103,7 +21278,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         kind: "SPELL_SOURCE";
@@ -21158,7 +21334,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         chargeId: string;
@@ -21294,6 +21471,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -21318,6 +21496,7 @@ export declare const api: {
               meta: {
                 campaignId?: string | null;
                 capabilities: {
+                  endActiveEffects: boolean;
                   manageInventory: boolean;
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
@@ -21557,7 +21736,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         chargeId: string;
@@ -21590,7 +21770,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         kind: "SPELL_SOURCE";
@@ -21645,7 +21826,8 @@ export declare const api: {
                               kind: "COMPANION_INSTANCE";
                             }
                           | { kind: "SYSTEM"; systemId: string }
-                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" };
+                          | { adjustmentId: string; kind: "MANUAL_ADJUSTMENT" }
+                          | { activeEffectId: string; kind: "ACTIVE_EFFECT" };
                       }
                     | {
                         chargeId: string;
@@ -38416,6 +38598,7 @@ export declare const api: {
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
+                | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
@@ -38441,6 +38624,7 @@ export declare const api: {
                 | "RESOURCE_UNAVAILABLE"
                 | "SOURCE_NOT_EQUIPPED"
                 | "TARGET_DEFEATED"
+                | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_NOT_DYING"
                 | "TARGET_OUT_OF_RANGE"
@@ -38504,6 +38688,13 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -38665,6 +38856,13 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -39177,6 +39375,13 @@ export declare const api: {
           projection:
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -39338,6 +39543,13 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -39911,6 +40123,13 @@ export declare const api: {
         { encounterId: string },
         | {
             actors: Array<{
+              activeGrants?: Array<{
+                effectId: string;
+                expiresAtCampaignMinute: number | null;
+                label: string | null;
+                remainingTicks: number | null;
+                sourceHidden: boolean;
+              }>;
               conditions:
                 | string
                 | number
@@ -40066,6 +40285,13 @@ export declare const api: {
           }
         | {
             actors: Array<{
+              activeGrants?: Array<{
+                effectId: string;
+                expiresAtCampaignMinute: number | null;
+                label: string | null;
+                remainingTicks: number | null;
+                sourceHidden: boolean;
+              }>;
               conditions:
                 | string
                 | number
@@ -40164,6 +40390,13 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -40325,6 +40558,13 @@ export declare const api: {
               }
             | {
                 actors: Array<{
+                  activeGrants?: Array<{
+                    effectId: string;
+                    expiresAtCampaignMinute: number | null;
+                    label: string | null;
+                    remainingTicks: number | null;
+                    sourceHidden: boolean;
+                  }>;
                   conditions:
                     | string
                     | number
@@ -40593,6 +40833,13 @@ export declare const api: {
         { blueprintId: string; campaignId: string; commandId: string },
         {
           actors: Array<{
+            activeGrants?: Array<{
+              effectId: string;
+              expiresAtCampaignMinute: number | null;
+              label: string | null;
+              remainingTicks: number | null;
+              sourceHidden: boolean;
+            }>;
             conditions:
               | string
               | number
@@ -45831,6 +46078,14 @@ export declare const internal: {
     >;
   };
   campaigns: {
+    clockGrantExpiry: {
+      endExpired: FunctionReference<
+        "mutation",
+        "internal",
+        { actorUserId: string; campaignId: string; clockMinute: number },
+        null
+      >;
+    };
     clockRecovery: {
       recover: FunctionReference<
         "mutation",

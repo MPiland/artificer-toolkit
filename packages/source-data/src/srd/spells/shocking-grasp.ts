@@ -117,6 +117,7 @@ export const shockingGrasp: SpellAuthored = {
               durationKind: DURATION_KIND.ROUND,
               amount: 1
             },
+            lifecycle: { turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' } },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SHOCKING_GRASP, 0x213, 1),

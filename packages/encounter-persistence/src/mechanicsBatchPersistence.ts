@@ -1,4 +1,5 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type {
   ReceiptApplications,
@@ -12,6 +13,7 @@ import type {
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { rejectDomain } from './domainRejections.js'
+import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -82,7 +84,17 @@ export async function readEncounterMechanicsBatchTarget<CharacterSources>(
     .unique()
   if (!actorRow) throw new Error('Encounter actor was not found.')
   // Rules evaluate a Character's effective maximum live; only Run-owned maxima are compared.
-  if (actor.kind !== 'CHARACTER' && actor.maxHitPoints !== input.effectiveMaximumHitPoints)
+  if (
+    actor.kind !== 'CHARACTER' &&
+    effectiveHitPointMaximum(
+      actor.maxHitPoints,
+      await listActiveRuleEffects(
+        ctx,
+        { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: actor.id },
+        { ownerVerified: true }
+      )
+    ) !== input.effectiveMaximumHitPoints
+  )
     throw new Error('Encounter actor maximum hit points are stale.')
   return { ctx, input, userId, runRow, state, campaign, actor, actorRow }
 }

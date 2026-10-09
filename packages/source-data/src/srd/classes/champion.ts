@@ -266,7 +266,8 @@ export const championMartialArchetype: ClassAuthored = {
                 },
                 targeting: {
                   selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
+                  dispositionKind: 'ANY',
+                  excludesSelf: true
                 }
               },
               ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_PROTECTION

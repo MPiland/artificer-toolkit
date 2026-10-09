@@ -3,6 +3,7 @@ import type { CampaignConditionDto } from '@artificer-toolkit/schema/api/campaig
 import type { CharacterRestPreviewResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import { hideActiveGrantSources } from '../activeGrantListings.js'
 import { sameCharacterSheetAdjustmentSlot } from './sheetAdjustmentIdentity.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 
@@ -10,6 +11,8 @@ export type CharacterSheetViewer = CharacterSheetResponseDto['meta']['viewer']
 
 export interface CharacterSheetCampaignContext {
   viewer: CharacterSheetViewer
+  /** The caller owns the Campaign; unlike `viewer`, true on the GM's own Character (D92). */
+  isCampaignOwner: boolean
   campaignId: string | null
   campaignStatus: 'ACTIVE' | 'ARCHIVED' | null
   contentMaturity: 'STANDARD' | 'MATURE' | null
@@ -119,6 +122,7 @@ export function projectCharacterSheetForViewer(
   context: CharacterSheetCampaignContext
 ): CharacterSheetResponseDto {
   const { partyVisibility, ...sharedMeta } = sheet.meta
+  const endActiveEffects = context.isCampaignOwner && context.campaignStatus === 'ACTIVE'
   const projected = {
     ...sheet,
     meta: {
@@ -132,20 +136,23 @@ export function projectCharacterSheetForViewer(
               managePlayState: true,
               managePrivateNotes: true,
               manageInventory: true,
-              openBuilder: true
+              openBuilder: true,
+              endActiveEffects
             }
           : context.viewer === 'CAMPAIGN_OWNER'
             ? {
                 managePlayState: context.campaignStatus === 'ACTIVE',
                 managePrivateNotes: false,
                 manageInventory: context.campaignStatus === 'ACTIVE',
-                openBuilder: false
+                openBuilder: false,
+                endActiveEffects
               }
             : {
                 managePlayState: false,
                 managePrivateNotes: false,
                 manageInventory: false,
-                openBuilder: false
+                openBuilder: false,
+                endActiveEffects
               }
     }
   }
@@ -178,7 +185,8 @@ export function projectCharacterSheetForViewer(
       // Only the GM learns what a hidden attacker used (D62).
       maxHitPointsReductions: projected.overview.maxHitPointsReductions.map((reduction) =>
         reduction.sourceHidden ? { ...reduction, label: null } : reduction
-      )
+      ),
+      activeGrants: hideActiveGrantSources(projected.overview.activeGrants)
     }
   }
   return presentCampaignCharacterText(

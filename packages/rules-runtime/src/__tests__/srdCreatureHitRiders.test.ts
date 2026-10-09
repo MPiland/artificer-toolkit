@@ -208,7 +208,12 @@ describe('SRD one-time saves with a timed condition (D62.2)', () => {
       definition: {
         recurrence: {
           recurrenceStage: 'END_OF_TURN',
-          expiration: { kind: 'TICKS', initialRemaining: 10, decrementStage: 'END_OF_TURN' }
+          expiration: {
+            kind: 'TICKS',
+            initialRemaining: 10,
+            decrementStage: 'END_OF_TURN',
+            anchor: 'HOLDER'
+          }
         }
       },
       lifecycle: { remainingTicks: 10 }
@@ -366,7 +371,12 @@ describe('SRD Creature hits that force a saving throw', () => {
       definition: {
         recurrence: {
           recurrenceStage: 'END_OF_TURN',
-          expiration: { kind: 'TICKS', initialRemaining: 10, decrementStage: 'END_OF_TURN' }
+          expiration: {
+            kind: 'TICKS',
+            initialRemaining: 10,
+            decrementStage: 'END_OF_TURN',
+            anchor: 'HOLDER'
+          }
         }
       },
       lifecycle: { remainingTicks: 10 }

@@ -81,6 +81,7 @@ export function prepareNativeActionEffectsPlan<
         ? prepared.source.capability.label
         : (prepared.source.candidate.label ?? null),
     sourceHidden: !prepared.actor.public,
+    currentActorId: prepared.state.currentActorId,
     target: {
       actorId: prepared.target.id,
       conditionIds: target.characterFacts
@@ -121,8 +122,12 @@ export function prepareNativeActionEffectsPlan<
           application.kind === 'DAMAGE' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
+  // A grant applies no stored state, so its effect exists exactly when its plan does.
+  const grant = Boolean(plan?.modifierGrantContribution)
   const recurringEffect =
-    relationship || appliedCondition || appliedRecurringOutcome ? effects.recurringEffect : null
+    relationship || grant || appliedCondition || appliedRecurringOutcome
+      ? effects.recurringEffect
+      : null
   return {
     ...effects,
     recurringEffect,

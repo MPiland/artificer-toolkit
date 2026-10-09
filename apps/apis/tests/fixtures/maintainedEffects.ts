@@ -60,7 +60,8 @@ export function definition(
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN'
+        decrementStage: 'END_OF_TURN',
+        anchor: 'HOLDER'
       }
     }
   }

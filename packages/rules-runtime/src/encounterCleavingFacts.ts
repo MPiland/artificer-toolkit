@@ -8,6 +8,7 @@ import {
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import { withCreatureActiveGrantArmorClass } from './encounterActiveGrants.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import { deadCharacterIdsOfTargets, isEncounterActorDefeated } from './encounterActorDefeat.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -187,7 +188,10 @@ export function buildEncounterCleavingCandidate(input: {
   const armorClass =
     target.actor.kind === 'CHARACTER'
       ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
-      : snapshotStatBlock(target.actor)?.armorClass
+      : withCreatureActiveGrantArmorClass(
+          snapshotStatBlock(target.actor)?.armorClass ?? null,
+          target.activeEffects
+        )
   const targetActorVersion =
     target.actor.kind === 'CHARACTER'
       ? (target.characterFacts?.active.play.streamVersion ?? null)

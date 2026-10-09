@@ -53,6 +53,10 @@ export type CharacterMechanicSourceRef =
       kind: 'MANUAL_ADJUSTMENT'
       adjustmentId: string
     }
+  | {
+      kind: 'ACTIVE_EFFECT'
+      activeEffectId: string
+    }
 
 export function createCharacterMechanicSourceKey(source: CharacterMechanicSourceRef): string {
   switch (source.kind) {
@@ -72,6 +76,8 @@ export function createCharacterMechanicSourceKey(source: CharacterMechanicSource
       return [source.kind, source.systemId].map(encodeURIComponent).join(':')
     case 'MANUAL_ADJUSTMENT':
       return [source.kind, source.adjustmentId].map(encodeURIComponent).join(':')
+    case 'ACTIVE_EFFECT':
+      return [source.kind, source.activeEffectId].map(encodeURIComponent).join(':')
   }
 }
 

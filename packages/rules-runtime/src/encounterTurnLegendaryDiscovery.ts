@@ -11,6 +11,7 @@ import { compileEncounterFeatureActionPlan } from './encounterActionMechanicsPre
 import { buildCompiledActionTargetPolicy } from './encounterActionEntryPointCompiler.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import { legendaryActionChoiceGroupDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
@@ -32,7 +33,7 @@ type LegendaryActionChoiceGroupDto = z.infer<typeof legendaryActionChoiceGroupDt
 /**
  * The option for one candidate: the action it runs, planned exactly as the action runs, and the
  * actors it may target. Null when the System cannot execute its authored shape inside a turn yet
- * (an area, or an action that starts an active effect).
+ * (an area).
  */
 function optionForCandidate(
   candidate: EncounterLegendaryActionCandidate,
@@ -48,23 +49,23 @@ function optionForCandidate(
     if (error instanceof CharacterRuleActionUnsupportedCompilationError) return null
     throw error
   }
-  const published = plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
-  if (adapter.activeEffectPlans?.({ action: candidate.action, published }).length) return null
   const targetPolicy = buildCompiledActionTargetPolicy(candidate.action)
+  const makesAttackRoll = typeof featureActionMechanic(candidate.action).attackKind === 'string'
   const owner = { id: candidate.ownerActorId, disposition: 'NEUTRAL' as const }
-  if (
-    evaluateEncounterActionTargetPolicy({
-      actor: owner,
-      target: owner,
-      targetPolicy,
-      sceneContext: null
-    }) === null
-  )
-    return null
+  const ownerWarnings = evaluateEncounterActionTargetPolicy({
+    actor: owner,
+    target: owner,
+    targetPolicy,
+    makesAttackRoll,
+    sceneContext: null
+  })
+  if (ownerWarnings === null) return null
+  // The owner may target itself unless the action must name another creature (D99).
+  const ownerIsTargetable = !ownerWarnings.some((warning) => warning.code === 'TARGET_DISPOSITION')
   const targetActorIds =
     targetPolicy.range.rangeKind === 'SELF'
       ? [candidate.ownerActorId]
-      : actorIds.filter((actorId) => actorId !== candidate.ownerActorId).sort()
+      : actorIds.filter((actorId) => ownerIsTargetable || actorId !== candidate.ownerActorId).sort()
   if (targetActorIds.length === 0) return null
   const optionWithoutId = {
     ownerActorId: candidate.ownerActorId,

@@ -118,6 +118,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
                     },
                     "targeting": {
                       "dispositionKind": "ANY",
+                      "excludesSelf": true,
                       "selectionKind": "SINGLE_TARGET",
                     },
                     "triggerCode": "ACTIVATED",
@@ -269,6 +270,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -353,6 +355,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -380,6 +383,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 9,
@@ -464,6 +468,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 10,
@@ -516,6 +521,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -533,6 +539,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -550,6 +557,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -567,6 +575,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -607,6 +616,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -624,6 +634,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -645,6 +656,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -662,6 +674,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -709,6 +722,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
     "projection": {
       "actors": [
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -793,6 +807,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -820,6 +835,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -904,6 +920,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 10,
@@ -958,6 +975,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1042,6 +1060,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1069,6 +1088,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1153,6 +1173,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 10,
@@ -1205,6 +1226,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1222,6 +1244,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1239,6 +1262,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1256,6 +1280,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1296,6 +1321,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1313,6 +1339,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1334,6 +1361,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1351,6 +1379,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1399,6 +1428,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1483,6 +1513,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1510,6 +1541,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -1594,6 +1626,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 10,
@@ -1646,6 +1679,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1663,6 +1697,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1680,6 +1715,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1697,6 +1733,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1737,6 +1774,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1754,6 +1792,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1775,6 +1814,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1792,6 +1832,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -1839,6 +1880,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
     "projection": {
       "actors": [
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -1923,6 +1965,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -1950,6 +1993,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
           "tempHitPoints": 0,
         },
         {
+          "activeGrants": [],
           "conditions": [],
           "controllerUserIds": [],
           "currentHitPoints": 11,
@@ -2061,6 +2105,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2145,6 +2190,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2172,6 +2218,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2281,6 +2328,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2298,6 +2346,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2315,6 +2364,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2355,6 +2405,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2372,6 +2423,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2393,6 +2445,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2447,6 +2500,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2531,6 +2585,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2558,6 +2613,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2642,6 +2698,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 10,
@@ -2697,6 +2754,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2781,6 +2839,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2808,6 +2867,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 11,
@@ -2892,6 +2952,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "tempHitPoints": 0,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "currentHitPoints": 10,
@@ -2944,6 +3005,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2961,6 +3023,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2978,6 +3041,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -2995,6 +3059,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -3035,6 +3100,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
       "projection": {
         "actors": [
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -3052,6 +3118,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -3073,6 +3140,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,
@@ -3090,6 +3158,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
             "sourceRevision": null,
           },
           {
+            "activeGrants": [],
             "conditions": [],
             "controllerUserIds": [],
             "defeated": false,

@@ -39,8 +39,8 @@ export function listHitPointMaximumReductions(
 }
 
 /**
- * The effective maximum both the Sheet and the Encounter read: a maximum less every active
- * reduction, never below 0.
+ * A maximum less every active reduction, never below 0. Read maxima through
+ * `effectiveHitPointMaximum`, which also applies grants.
  */
 export function reduceHitPointMaximum(
   maximum: number,

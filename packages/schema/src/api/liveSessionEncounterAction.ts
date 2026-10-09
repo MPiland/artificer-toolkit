@@ -1,5 +1,8 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
-import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from '../shared/activeRuleEffects.js'
+import {
+  MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
+  MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
+} from '../shared/activeRuleEffects.js'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import {
   resolveEncounterActionInputDtoSchema,
@@ -102,6 +105,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
   /** The helpers' ally advantages (Help, Q11) this attack used; its commit removes them. */
   allyAdvantageUses: EncounterAllyAdvantageUseDto[]
+  /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
+  consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
 }
 export const liveSessionEncounterConcentrationFields = lazySchemaParts(() => ({
   concentration: z
@@ -135,6 +140,9 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
       ...liveSessionEncounterConcentrationFields(),
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
   )

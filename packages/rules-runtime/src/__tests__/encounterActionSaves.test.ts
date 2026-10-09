@@ -10,6 +10,9 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+
+import { antitoxinEffect } from './antitoxinEffectFixture.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
@@ -25,6 +28,7 @@ import {
 
 const SOURCE_ID = '00000000-0000-4000-8000-0000000d0001'
 const TARGET_ID = '00000000-0000-4000-8000-0000000d0002'
+const ANTITOXIN_EFFECT_ID = '00000000-0000-4000-8000-0000000d0007'
 const FEATURE_ID = '00000000-0000-4000-8000-0000000d0003'
 const FRIGHTENED = srdConditionId('FRIGHTENED')
 
@@ -39,9 +43,10 @@ type SavePath = {
 
 /** A Creature Feature forcing one fixed-DC save of a single target. */
 function saveFeature(input: {
-  ability: 'DEXTERITY' | 'WISDOM' | 'INTELLIGENCE'
+  ability: 'DEXTERITY' | 'WISDOM' | 'INTELLIGENCE' | 'CONSTITUTION'
   dc: number
   paths: readonly SavePath[]
+  damageType?: string
 }) {
   return {
     id: FEATURE_ID,
@@ -83,7 +88,7 @@ function saveFeature(input: {
                   : {
                       id,
                       effectKind: EFFECT_KIND.DAMAGE,
-                      damageTypeId: srdDamageTypeId('ACID'),
+                      damageTypeId: srdDamageTypeId(input.damageType ?? 'ACID'),
                       scalingKind: 'NONE' as const,
                       ...(outcome.kind === 'DAMAGE'
                         ? { valueKind: 'FIXED' as const, amount: outcome.amount }
@@ -163,8 +168,10 @@ async function resolve(input: {
   conditionIds?: readonly string[]
   savingThrowDefinitions?: readonly unknown[]
   targetStatBlock?: typeof blackDragonWyrmling
+  targetActiveEffects?: readonly ActiveRuleEffectRecord[]
 }) {
   const prepared = await prepareCreatureAction({
+    ...(input.targetActiveEffects ? { targetActiveEffects: input.targetActiveEffects } : {}),
     actor: creatureActor({ id: SOURCE_ID, label: 'Save Caster', features: [input.feature] }),
     target: creatureActor({
       id: TARGET_ID,
@@ -516,5 +523,50 @@ describe('saving throw roll mode derivation', () => {
       'DISADVANTAGE'
     ])
     expect(result.hitPoints).toBe(8)
+  })
+})
+
+describe('saving throws against poison under an active Antitoxin grant', () => {
+  const antitoxin = () => antitoxinEffect({ id: ANTITOXIN_EFFECT_ID, holderActorId: TARGET_ID })
+  const poisonFeature = (damageType: string) =>
+    saveFeature({
+      ability: 'CONSTITUTION',
+      dc: 13,
+      damageType,
+      paths: [{ pathCode: PATH_CODE.ON_SAVE_FAIL, outcome: { kind: 'DAMAGE', amount: 6 } }]
+    })
+
+  it('rolls two dice and keeps the higher for a save whose failure deals poison damage', async () => {
+    // Natural 4 and 15 keep 15: 15 + CON 1 = 16 against DC 13.
+    const result = await resolve({
+      feature: poisonFeature('POISON'),
+      rolls: [3, 14],
+      targetActiveEffects: [antitoxin()]
+    })
+    expect(result.d20).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      rawFaces: [4, 15],
+      selectedNatural: 15,
+      total: 16,
+      resultPath: 'ON_SAVE_SUCCESS',
+      contributors: [{ sourceId: `ACTIVE_EFFECT:${ANTITOXIN_EFFECT_ID}`, influence: 'ADVANTAGE' }]
+    })
+    expect(result.hitPoints).toBe(11)
+  })
+
+  it('rolls the plain die for the same save without the grant', async () => {
+    const result = await resolve({ feature: poisonFeature('POISON'), rolls: [3] })
+    expect(result.d20).toMatchObject({ rollMode: 'NORMAL', rawFaces: [4], total: 5 })
+    expect(result.hitPoints).toBe(5)
+  })
+
+  it('rolls the plain die when the failure deals damage other than poison', async () => {
+    const result = await resolve({
+      feature: poisonFeature('ACID'),
+      rolls: [3],
+      targetActiveEffects: [antitoxin()]
+    })
+    expect(result.d20).toMatchObject({ rollMode: 'NORMAL', rawFaces: [4], contributors: [] })
+    expect(result.hitPoints).toBe(5)
   })
 })

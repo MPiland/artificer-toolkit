@@ -244,6 +244,27 @@ export function planEncounterInitiativeAdvance(input: {
 }
 
 /**
+ * The actors whose turns `plan` passes over, in initiative order: those between the current actor
+ * and the next one, or, on a round wrap, every later actor and the new round's skipped openers.
+ */
+export function skippedActorIdsOfAdvance(input: {
+  state: EncounterInitiativeRoundStateDto
+  plan: EncounterInitiativeAdvancePlanDto
+}): string[] {
+  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
+  const actorIds = ordered.map((participant) => participant.actorId)
+  const { plan } = input
+  return plan.kind === 'SAME_ROUND'
+    ? actorIds.slice(activeIndex + 1, Math.max(activeIndex + 1, actorIds.indexOf(plan.nextActorId)))
+    : [
+        ...actorIds.slice(activeIndex + 1),
+        ...(plan.firstActorId === null
+          ? []
+          : actorIds.slice(0, Math.max(0, actorIds.indexOf(plan.firstActorId))))
+      ]
+}
+
+/**
  * Whether `plan` is the advance past the given defeated actors plus the ones it skips. The room
  * chooses the next turn after the outgoing turn's effects and Legendary Actions settle, which may
  * defeat more actors than were defeated when the turn ended (D63); the commit's
@@ -255,21 +276,8 @@ export function isSettledEncounterInitiativeAdvance(input: {
   defeatedActorIds: ReadonlySet<string>
   plan: EncounterInitiativeAdvancePlanDto
 }): boolean {
-  const { ordered, activeIndex } = orderedInitiativeParticipants(input.state)
-  const actorIds = ordered.map((participant) => participant.actorId)
   const { plan } = input
-  const skipped =
-    plan.kind === 'SAME_ROUND'
-      ? actorIds.slice(
-          activeIndex + 1,
-          Math.max(activeIndex + 1, actorIds.indexOf(plan.nextActorId))
-        )
-      : [
-          ...actorIds.slice(activeIndex + 1),
-          ...(plan.firstActorId === null
-            ? []
-            : actorIds.slice(0, Math.max(0, actorIds.indexOf(plan.firstActorId))))
-        ]
+  const skipped = skippedActorIdsOfAdvance(input)
   const replanned = planEncounterInitiativeAdvance({
     state: input.state,
     currentActorId: input.currentActorId,

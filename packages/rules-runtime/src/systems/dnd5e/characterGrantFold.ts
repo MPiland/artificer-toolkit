@@ -35,7 +35,8 @@ const sourceOrder = [
   'FEATURE',
   'OPTION',
   'EQUIPMENT',
-  'MANUAL'
+  'MANUAL',
+  'ACTIVE_EFFECT'
 ] as const
 
 const proficiencyRank = { HALF: 0, FULL: 1, DOUBLE: 2 } as const
@@ -485,6 +486,8 @@ export function evaluateDnd5e2014CharacterGrantFold(
       }
     })
   }
+  for (const source of parsedInput.activeEffects)
+    schedule('ACTIVE_EFFECT', () => applySource(source, undefined, undefined))
   scheduled.sort((left, right) => left.rank - right.rank || left.position - right.position)
   for (const source of scheduled) source.apply()
   return characterGrantFoldOutputSchema.parse(acc)

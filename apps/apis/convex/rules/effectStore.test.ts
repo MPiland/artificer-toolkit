@@ -108,7 +108,12 @@ function encounterDefinition(encounterId: string, actorId: string): ActiveRuleEf
     recurrence: {
       ...definition.recurrence,
       lifetimeScope: 'ENCOUNTER',
-      expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+      expiration: {
+        kind: 'TICKS',
+        initialRemaining: 3,
+        decrementStage: 'END_OF_TURN',
+        anchor: 'HOLDER'
+      }
     }
   }
 }

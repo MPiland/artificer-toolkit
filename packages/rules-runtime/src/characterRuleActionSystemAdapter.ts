@@ -1,5 +1,9 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
+  CharacterGrantFoldModifier,
+  CharacterGrantFoldSense
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
   RuleGraphSourceIdentityDto,
@@ -35,6 +39,10 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   frozenGraph: ServerPublishedRuleDefinitionDto
   capabilityContractVersion: number
+  /**
+   * The boundary the effect's count decrements at. A modifier grant is counted by the grant tick
+   * planner, so it is stored with no recurrence stage of its own.
+   */
   recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
@@ -44,6 +52,16 @@ export interface CharacterRuleActionActiveEffectPlan {
    * not infer condition ownership from labels or later mutable state.
    */
   conditionContribution?: null | { conditionId: string }
+  /** The timed APPLY_GRANT modifiers this effect owns, folded into the holder while it lasts. */
+  modifierGrantContribution?: null | {
+    applyGrantOutcomeId: string
+    modifiers: readonly CharacterGrantFoldModifier[]
+    senses: readonly CharacterGrantFoldSense[]
+    /** Whose turn boundary counts the grant down: its holder's or its source's. */
+    tickAnchor: 'HOLDER' | 'SOURCE'
+    /** The first event that uses the grant up. */
+    consumeOnFirstEvent: 'ON_ATTACK_ROLL' | null
+  }
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
     relationshipOutcomeId: string

@@ -315,7 +315,12 @@ it('atomically resolves a failed native Concentration save, retains the private 
         consumeOnFirstEvent: null,
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
-        expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+        expiration: {
+          kind: 'TICKS',
+          initialRemaining: 3,
+          decrementStage: 'END_OF_TURN',
+          anchor: 'HOLDER'
+        }
       }
     })
   })

@@ -264,8 +264,8 @@ function useKit(
 ) {
   const expectedVersion = from.projection.version
   const { ally } = fixture
-  if (!ally || !fixture.actionIds.kit) throw new Error('The Run has no ally with a Healer’s Kit.')
-  const actionId = fixture.actionIds.kit
+  if (!ally || !fixture.actionIds.item) throw new Error('The Run has no ally with a Healer’s Kit.')
+  const actionId = fixture.actionIds.item
   return execute(fixture, (base) => ({
     ...base,
     type: 'RESOLVE_ACTION',

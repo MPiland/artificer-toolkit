@@ -15,6 +15,10 @@ import {
   DND5E_SYSTEM_ID,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
+import {
+  assertCampaignGmSheetCommandAllowed,
+  assertSheetCommandCallerAllowed
+} from '../character/sheetCommandValidation.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -54,7 +58,8 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
         managePlayState: true,
         managePrivateNotes: true,
         manageInventory: true,
-        openBuilder: true
+        openBuilder: true,
+        endActiveEffects: false
       },
       systemId: ids.system,
       status: 'DRAFT',
@@ -75,6 +80,7 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       maxHitPointsModifier: 0,
       maxHitPointsModifierAdjustmentId: null,
       maxHitPointsReductions: [],
+      activeGrants: [],
       maxHitPointsOverride: null,
       savingThrows: [],
       skills: [],
@@ -742,12 +748,10 @@ describe('Character Sheet dying and death (D96)', () => {
 
   describe('ROLL_DEATH_SAVE', () => {
     const roll = (character: ReturnType<typeof at>, deathSaveDie?: number) =>
-      applyCharacterSheetCommand(
-        character,
-        { ...base, type: 'ROLL_DEATH_SAVE' },
-        sheet(),
-        { ...context(), deathSaveDie }
-      ).state
+      applyCharacterSheetCommand(character, { ...base, type: 'ROLL_DEATH_SAVE' }, sheet(), {
+        ...context(),
+        deathSaveDie
+      }).state
 
     it('adds a success on 10 and a failure on 9', () => {
       expect(roll(at(0), 10).hitpoints.deathSaves).toEqual({
@@ -777,8 +781,9 @@ describe('Character Sheet dying and death (D96)', () => {
     })
 
     it('stabilizes on a third success and dies on a third failure', () => {
-      expect(roll(at(0, { successes: 2, failures: 0, stable: false }), 12).hitpoints.deathSaves)
-        .toEqual({ successes: 0, failures: 0, stable: true })
+      expect(
+        roll(at(0, { successes: 2, failures: 0, stable: false }), 12).hitpoints.deathSaves
+      ).toEqual({ successes: 0, failures: 0, stable: true })
       expect(roll(at(0, dying), 1).hitpoints.deathSaves).toEqual(dead)
     })
 
@@ -795,5 +800,30 @@ describe('Character Sheet dying and death (D96)', () => {
       )
       expect(rolling(at(0, dead))).toThrow(CharacterSheetCommandError)
     })
+  })
+})
+
+describe('Ending an active effect (D99)', () => {
+  const command = {
+    ...base,
+    type: 'END_ACTIVE_EFFECT',
+    effectId: '50000000-0000-4000-8000-00000000000a'
+  } as const
+
+  const input = { ...command, commandId: '50000000-0000-4000-8000-00000000000b' }
+
+  it('leaves the stored Character as it was, since an active effect is not Character state', () => {
+    const hero = character()
+    expect(apply(hero, command)).toEqual(hero)
+    expect(summarizeCharacterSheetCommand(command)).toBe('Active effect ended')
+  })
+
+  it("is the Campaign owner's command only, whoever owns the Character", () => {
+    expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
+    expect(() => assertSheetCommandCallerAllowed(input, true)).not.toThrow()
+    expect(() => assertSheetCommandCallerAllowed(input, false)).toThrow(CharacterSheetCommandError)
+    expect(() =>
+      assertSheetCommandCallerAllowed({ ...input, type: 'SET_INSPIRATION', inspired: true }, false)
+    ).not.toThrow()
   })
 })

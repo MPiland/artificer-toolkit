@@ -4852,18 +4852,148 @@
         {
           "id": "SPELLS-5",
           "title": "Grants apply through APPLY_GRANT",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
+            "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+          ],
+          "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
-              "text": "APPLY_GRANT executes during play.",
-              "status": "TODO",
-              "proof": [],
+              "text": "In an Assisted Run a Character uses Antitoxin on a creature: for 1 hour that creature's saves against poison (failing applies Poisoned or deals poison damage) have advantage with the item's label (\"Antitoxin (vial)\") as the reason, and its other saves don't; an undead or construct target gives an overridable warning.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts › an Antitoxin used in an Assisted Run (SPELLS-5.1) (Creature advantage on poison saves only; a Character the same; undead TARGET_CREATURE_TYPE_EXCLUDED warning applies nothing until overridden)",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts › an Antitoxin used in an Assisted Run (SPELLS-5.1) (advantage with the item label as the reason; undead warning and override)",
+                "packages/rules-runtime/src/__tests__/encounterActionExecution.test.ts › compiles the SRD Antitoxin to a timed grant of poison-scoped save advantage (600 ticks)",
+                "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts; packages/rules-runtime/src/__tests__/encounterActionSaves.test.ts (poison-scoped saves); packages/rules-runtime/src/__tests__/encounterActionRuleWarnings.test.ts (creature-type exclusion)",
+                "impl: packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/encounter-persistence/src/rollModeReasons.ts"
+              ],
               "origin": [],
-              "note": "Carry-over: moved into the 8.3 scope in future-enhancements.md.",
+              "note": "D99. Journey through the room and Convex. The reason is the granting item's authored label.",
               "id": "SPELLS-5.1"
+            },
+            {
+              "text": "GM undo of the item use removes the grant and gives back the Action; rolls already made stay on the record.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts › a GM undo of an Antitoxin use (SPELLS-5.2) (grant removed, use stays in the history, the Action is back and the grant reapplies)",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts › a GM undo of an Antitoxin use (SPELLS-5.2) (the Action is back; after undo the poison save has no advantage and no reason)"
+              ],
+              "origin": [],
+              "note": "D99. The item's own return on undo is SPELLS-11.3 (single-use items are used up).",
+              "id": "SPELLS-5.2"
+            },
+            {
+              "text": "A Unicorn's Shimmering Shield grants +2 AC to itself or a creature within 60 ft; attacks against that Character or Creature use the raised AC, and the grant ends at the end of the unicorn's next turn.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomLegendary.test.ts › a unicorn using Shimmering Shield at another creature's turn end (the attack that hit without the shield misses with it; the effect is gone after the unicorn's turn ends)",
+                "apps/apis/convex/encounters/srdLegendaryAction.test.ts › seeded SRD Unicorn Shimmering Shield in the room (SPELLS-5.3) (the Character's stream version advances and one active effect is stored)",
+                "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts (Creature and Character effective AC +2); packages/rules-runtime/src/__tests__/encounterCleaving.test.ts (raised AC in Cleaving)",
+                "packages/rules-runtime/src/__tests__/encounterLegendaryAction.test.ts › offers the unicorn Shimmering Shield on any creature, itself included (D99)",
+                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts (D99 self targeting); packages/source-data/src/srd/excludesSelf.test.ts",
+                "impl: packages/rules-runtime/src/encounterTurnLegendaryAction.ts; packages/encounter-persistence/src/turnResourcesPersistence.ts; packages/rules-runtime/src/encounterActiveGrants.ts"
+              ],
+              "origin": [],
+              "note": "D99. Journey through the room and Convex. The 60 ft range is not enforced in Legendary discovery (no Scene geometry there).",
+              "id": "SPELLS-5.3"
+            },
+            {
+              "text": "A grant can end at the start or end of the holder's or the source's next turn, after N rounds, or on the holder's next attack roll; the real SRD data for Shield, Shocking Grasp, Ray of Frost, Vicious Mockery and the Unicorn compiles to those lifetimes.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (four anchor and boundary combinations; N rounds; one more turn when made on the anchor's own turn; tick planner by HOLDER and SOURCE anchor, Character- and Creature-held; kernel never selects grants; ON_ATTACK_ROLL consumption on attack actions only; the real Shield, Shocking Grasp, Ray of Frost, Vicious Mockery and Unicorn records)",
+                "packages/source-data/src/srd/grantAnchors.test.ts › SRD grant turn anchors (D99)",
+                "packages/schema/src/__tests__/path-lifecycle-turn-anchor.test.ts",
+                "apps/session-worker/test/nativeRoomGrantLifetimes.test.ts (a source-anchored grant ends at the source's next start of turn and not before; an attack-roll grant is used up by the holder's attack and restored by GM undo)",
+                "impl: packages/rules-runtime/src/encounterGrantLifetimes.ts; packages/encounter-persistence/src/grantTickPersistence.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts"
+              ],
+              "origin": [],
+              "note": "D99. Unit tests against the SRD corpus. Grants tick outside the turn-effect kernel (rules-runtime.md, Grant lifetimes).",
+              "id": "SPELLS-5.4"
+            },
+            {
+              "text": "A creature under REACTION_COUNT 0 is offered no opportunity attack or other reaction until the grant ends.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomReactionGrant.test.ts (a hit with the homebrew Jolting Gauntlet leaves the Wolf no opportunity attack; a miss applies nothing and the attack is offered; the attack is offered again once the grant ends at the Wolf's start of turn)",
+                "packages/rules-runtime/src/__tests__/hitGrant.test.ts (the hit grant stays out of the TEST/OUTCOME graphs as the attack's one plan; applies on a hit or critical hit, not a miss; an ON_CRIT grant only on a critical; two hit grants refused; REACTION_COUNT 0 suppresses the reaction allowance, 1 does not)",
+                "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/rules-runtime/src/encounterActionEntryPointCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterRuleCapabilityState.ts; fixture packages/rules-runtime/src/testing/joltingGauntlet.ts"
+              ],
+              "origin": [],
+              "note": "Closes D15 (D99). Journey through a homebrew on-hit item fixture. Red-first (2026-10-09): with the hit-path gate and the reaction suppression disabled, three hitGrant unit tests and the hit and miss journeys failed; restored, they pass.",
+              "id": "SPELLS-5.5"
+            },
+            {
+              "text": "Speed grants change the movement budget for every speed type; a maximum hit point grant raises the maximum and current hit points clamp when it ends; damage resistance, condition immunity and darkvision grants apply; an attack-disadvantage grant is used up by the next attack.",
+              "status": "IN_PROGRESS",
+              "proof": [
+                "apps/session-worker/test/nativeRoomGrantModifiers.test.ts (Longstrider widens the Character's walking budget readout from 30 to 40 feet; Aid at 2nd level holds 16 hit points over the stored 11 until its turn-anchored lifetime ends, then they clamp to 11)",
+                "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts (Creature and Character holders: Aid raises the maximum and its end clamps current hit points, not lower ones; Longstrider adds 10 feet of walking speed and leaves fly speed; the Darkvision grant adds a 60-foot darkvision sense; Protection from Energy resistance, Heroism immunity and Vicious Mockery disadvantage apply only while held)",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Darkvision compiles to a sense grant lasting 4800 ticks; the real Aid stays manual until casting resolves its slot-scaled bonus)",
+                "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/encounterActionMaintenance.ts; packages/schema/src/shared/activeRuleEffects.ts; apps/session-worker/src/roomCharacterRules.ts; apps/session-worker/src/roomSceneVision.ts; apps/session-worker/src/nativeEncounterSettlement.ts; packages/encounter-persistence/src/maintenanceOwnerPersistence.ts; apps/apis/convex/characters/rest.ts"
+              ],
+              "origin": [],
+              "note": "D99. Unit tests per domain plus one journey. The attack-disadvantage grant's consumption is proved under SPELLS-5.4. Red-first (2026-10-09): the Aid journey failed (11 hit points, expected 16) because room Character reconciliation clamped to the grant-free maximum; fixed in roomCharacterRules.ts. Open: per-speed-type budgets wait on the SPELLS-5.6 question in phase-08-2-open-questions.md (option A is built: the tabletop budget follows walking-speed grants).",
+              "id": "SPELLS-5.6"
+            },
+            {
+              "text": "A grant that needs Concentration ends with it (failed check, D95 incapacitation, a new Concentration); the SRD Concentration spells link their grants and Protection from Energy needs Concentration.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomConcentrationGrant.test.ts (a homebrew Concentration +2 AC Feature: the self ward depends on the Fighter's SRD Concentration state; warding the Wolf replaces the Concentration and ends the Fighter's grant; a GM Sheet edit that paralyzes the Fighter ends the Concentration and its grant (D95))",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Fly, Heroism, Shield of Faith and Protection from Energy grants plan the SRD Concentration maintenance policy; the Antitoxin grant plans none; a maintained grant on a Character is Encounter-scoped while an unmaintained one outlasts the Encounter)",
+                "regression: the failed-check and D95 end paths are the generic dependent removal proved by nativeRoomConcentration, nativeRoomEditConcentrationEnd and nativeMovementConcentrationEnd (rerun green)",
+                "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/source-data/src/srd/spells/fly.ts; packages/source-data/src/srd/spells/heroism.ts; packages/source-data/src/srd/spells/protection-from-energy.ts; packages/source-data/src/srd/spells/shield-of-faith.ts"
+              ],
+              "origin": [],
+              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built.",
+              "id": "SPELLS-5.7"
+            },
+            {
+              "text": "Active grants are listed on the token, the turn tracker and the Sheet with their source and time left, and the GM can end one by hand; a hidden source's label stays hidden from players.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/activeGrantListings.test.ts",
+                "apps/apis/convex/characters/sheetEndActiveEffect.test.ts",
+                "packages/rules-runtime/src/__tests__/activeGrantListings.test.ts",
+                "packages/rules-runtime/src/__tests__/campaignCharacterSheet.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterPlayerProjection.test.ts",
+                "apps/web/src/components/activeGrants/ActiveGrantList.test.tsx",
+                "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
+              ],
+              "origin": [],
+              "note": "D99 (Q2 A). Encounter actors and the Sheet overview carry activeGrants (none on a COMPLETED Run); the Campaign owner ends a Character's grant with END_ACTIVE_EFFECT (gated on Campaign ownership, so it works on the GM's own Character, D92) and a Creature's with UPDATE_ACTOR.endActiveEffectId; the Sheet shows End from capabilities.endActiveEffects. No GM undo for ending a grant. Red-first (2026-10-09): the listing unit test failed before listActiveGrantListings existed; the Sheet status test failed (no \"End Aid\" button) before the strip read the capability; with endActiveEffects forced false, both Campaign-owner cases of campaignCharacterSheet.test.ts failed. The apis listing journey, the END_ACTIVE_EFFECT tests and the drawer/token tests were written alongside the code without a captured red run.",
+              "id": "SPELLS-5.8"
+            },
+            {
+              "text": "When a Run completes, a Character's remaining grants carry over and expire on the Campaign clock (or when the GM ends them without a clock); a Creature's grants end with the Run.",
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/finishedRun.test.ts",
+                "apps/apis/convex/campaigns/clock.test.ts",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts",
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts"
+              ],
+              "origin": [],
+              "note": "D99 (Q1 A). The completing checkpoint carries a Character's OWNER-scoped timed grants to expiresAtCampaignMinute (clock minute + ceil(rounds/10)), or null without a clock (until the GM ends it); COMPLETE deletes the Character effects the Run sourced and the Creature effects. Advancing the clock ends reached grants on non-fighting Characters (a fighting Character's on the next advance). Red-first (2026-10-09): planCarriedOverGrants/expiredCarriedOverGrants unit tests failed before the planner; the finishedRun journey failed (grants not converted, the ENCOUNTER grant survived), and its no-clock case failed with STALE_STATE before expiresAtCampaignMinute became nullable; the clock test failed for the GM's own Character before the END_ACTIVE_EFFECT gate moved to Campaign ownership. The clock keep/end and fighting-skip cases were written alongside the code without a captured red run.",
+              "id": "SPELLS-5.9"
+            },
+            {
+              "text": "Every attack roll (opportunity attacks, Disarm, Legendary Actions) uses up a one-roll grant; a grant anchored to an actor removed from the Run ends at the removal, and a skipped turn still counts both of its boundaries.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomGrantEnds.test.ts",
+                "apps/session-worker/test/nativeRoomDisarm.test.ts",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts"
+              ],
+              "origin": [],
+              "note": "D99. Undo follows the command: only ordinary actions have GM undo, so consumption by reactions, Disarm and Legendary windows and removal endings stand. Legendary consumption gets its journey with SPELLS-5.3 (Shimmering Shield). Red-first for departure (2026-10-09): with planDepartedSourceGrantRemovals stubbed to end nothing, the nativeRoomGrantEnds removal journey and both grantLifetimes departure unit tests failed; restored, they pass.",
+              "id": "SPELLS-5.10"
             }
           ]
         },
@@ -4899,6 +5029,14 @@
               "origin": [],
               "note": "rul-9-rules-audit.md slice 4.",
               "id": "SPELLS-7.1"
+            },
+            {
+              "text": "Caltrops apply their area speed penalty, which ends when the creature regains hit points.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-5 refinement (D99): an area APPLY_GRANT.",
+              "id": "SPELLS-7.2"
             }
           ]
         },
@@ -4925,6 +5063,14 @@
               "origin": [],
               "note": "Moved from SPELLS-3.5 on 2026-10-08 (D96). The D&D compiler rejects any non-empty excludedCreatureTypeIds today.",
               "id": "SPELLS-8.2"
+            },
+            {
+              "text": "Each SRD APPLY_GRANT spell (Aid, Darkvision, Fly, Heroism, Longstrider, Protection from Energy, Ray of Frost, Shield, Shield of Faith, Shocking Grasp, Vicious Mockery) applies its grant through casting.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions. Aid's maximum hit point bonus scales with the slot level (SPELL_SLOT_LEVEL); modifierGrantPlan leaves slot-scaled grants manual until casting resolves the amount. Heroism's per-turn temporary hit point entry is not linked to Concentration yet: link it once one cast carries both Heroism entries under one maintenance policy (prepareEncounterActionMaintenance refuses two).",
+              "id": "SPELLS-8.3"
             }
           ]
         },

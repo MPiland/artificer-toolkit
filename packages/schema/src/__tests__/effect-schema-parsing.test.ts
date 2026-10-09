@@ -4,6 +4,7 @@ import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import { effectDtoSchema } from '../effects/effect.js'
 import { hitPointMaximumReductionDtoSchema } from '../effects/hitPointMaximumReduction.js'
 import { manifestBehaviorPathDtoSchema, pathDtoSchema } from '../effects/path.js'
+import { targetingDtoSchema } from '../effects/targeting.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 
 type ParsedEffectForAssertions = {
@@ -891,5 +892,18 @@ describe('effect schema parsing', () => {
         ]
       }).success
     ).toBe(false)
+  })
+})
+
+describe('single-target excludesSelf (D99)', () => {
+  it('keeps excludesSelf on a single target and rejects a non-boolean value', () => {
+    const targeting = {
+      selectionKind: 'SINGLE_TARGET',
+      dispositionKind: 'ANY',
+      excludesSelf: true
+    }
+
+    expect(targetingDtoSchema.parse(targeting)).toEqual(targeting)
+    expect(targetingDtoSchema.safeParse({ ...targeting, excludesSelf: 'yes' }).success).toBe(false)
   })
 })

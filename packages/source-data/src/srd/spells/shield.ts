@@ -63,6 +63,7 @@ export const shield: SpellAuthored = {
               durationKind: 'ROUND',
               amount: 1
             },
+            lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SHIELD, 0x212, 1),

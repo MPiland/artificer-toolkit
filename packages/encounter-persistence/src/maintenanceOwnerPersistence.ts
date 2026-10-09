@@ -47,7 +47,8 @@ export async function reconcileNativeMaintenanceOwners(
       characterInput = {
         currentStreamVersion: row.play.streamVersion,
         beforeStreamVersion: before,
-        conditions: character.state.conditions ?? []
+        state: character.state,
+        maximumHitPoints: row.play.maximumHitPoints
       }
     }
     const planned = planEncounterMaintenanceOwner({
@@ -62,7 +63,8 @@ export async function reconcileNativeMaintenanceOwners(
         ...character,
         state: {
           ...character.state,
-          conditions: planned.character.conditions
+          conditions: planned.character.conditions,
+          hitpoints: planned.character.hitpoints
         }
       }
       await ctx.ports.writeCharacterRecord({

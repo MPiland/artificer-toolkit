@@ -108,9 +108,11 @@ const creature = {
                 id: effect.invocation.range.id,
                 rangeKind: 'UNLIMITED' as const
               },
+              // It names another creature, so targeting its own user stays a warning (D99).
               targeting: {
                 selectionKind: 'SINGLE_TARGET' as const,
-                dispositionKind: 'ANY' as const
+                dispositionKind: 'ANY' as const,
+                excludesSelf: true
               }
             },
             paths: effect.paths?.slice(0, 1).map((path) => {

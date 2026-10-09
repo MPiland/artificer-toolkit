@@ -327,10 +327,16 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           kind: z.literal('EXECUTED'),
           selectedOptionId: checksumSchema,
           targetActorId: uuidSchema,
+          /** Whether the owner rolled an attack, which uses up its one-roll grants at commit. */
+          attackRoll: z.boolean(),
           execution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
           initialFactsChecksum: checksumSchema,
           phaseReceipts: z.optional(z.lazy(() => ruleExecutionPhaseReceiptsDtoSchema)),
           application: z.lazy(() => serverRuleExecutionApplicationOutputsDtoSchema),
+          /** The grant or state effect the option started on its target, in receipt order. */
+          // Opaque here: the record type, even named, overflows the pending-state declarations
+          // (TS7056). Persistence parses each with activeRuleEffectRecordSchema.
+          createdEffects: z.array(z.record(z.string(), z.unknown())).check(z.maxLength(2)),
           characterTransitions: z
             .array(legendaryActionCharacterTransitionDtoSchema)
             .check(z.maxLength(2))

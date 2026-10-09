@@ -62,6 +62,8 @@ export function prepareEncounterActionEffectPlans(input: {
   sourceLabel: string | null
   /** Whether the acting actor is hidden from players; frozen with the label. */
   sourceHidden: boolean
+  /** The Run's current actor, whose turn the action is taken in; null before the Run starts. */
+  currentActorId: string | null
   target: {
     actorId: string
     conditionIds: readonly string[]
@@ -127,6 +129,17 @@ export function prepareEncounterActionEffectPlans(input: {
   return { stateEffect, recurringEffect, relationshipConditionApplications }
 }
 
+/** A hit outcome applies on any hit, a critical-hit outcome only on a critical hit. */
+function reachesAuthoredHitPath(
+  authoredPath: unknown,
+  resultPath: string | undefined,
+  outcome: 'grant' | 'relationship'
+): boolean {
+  if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
+    throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
+  return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
+}
+
 function prepareRecurringActiveEffect(
   input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
 ): EffectPlan | null {
@@ -144,19 +157,27 @@ function prepareRecurringActiveEffect(
     throw new EncounterActionEffectPlanError('Encounter Feature recurring-effect plan is stale.')
   const conditionContribution = plan.conditionContribution ?? null
   const relationshipContribution = plan.actorRelationshipContribution ?? null
+  const grantContribution = plan.modifierGrantContribution ?? null
+  const grantLabel = input.sourceLabel?.trim() ?? ''
+  if (grantContribution && !grantLabel)
+    throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
+  const grantHitPath = grantContribution
+    ? plan.adapterFacts['dnd5e.grant-authored-path']
+    : undefined
   if (
-    relationshipContribution &&
-    input.d20?.resultPath !== 'ON_HIT' &&
-    input.d20?.resultPath !== 'ON_CRIT'
+    grantHitPath !== undefined &&
+    !reachesAuthoredHitPath(grantHitPath, input.d20?.resultPath, 'grant')
   )
     return null
   if (relationshipContribution) {
-    const authoredPath = plan.adapterFacts['dnd5e.relationship-authored-path']
-    if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
-      throw new EncounterActionEffectPlanError(
-        'Encounter relationship authored path is unavailable.'
+    if (
+      !reachesAuthoredHitPath(
+        plan.adapterFacts['dnd5e.relationship-authored-path'],
+        input.d20?.resultPath,
+        'relationship'
       )
-    if (authoredPath === 'ON_CRIT' && input.d20?.resultPath !== 'ON_CRIT') return null
+    )
+      return null
     const maximum = relationshipContribution.modules.find(
       (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
     )
@@ -235,8 +256,19 @@ function prepareRecurringActiveEffect(
           : [])
       ].filter((conditionId, index, values) => values.indexOf(conditionId) === index)
     : []
+  const tickAnchor = grantContribution?.tickAnchor ?? 'HOLDER'
+  // A grant made on its anchor actor's own turn would otherwise lose a counted turn to the very
+  // end of turn it was made in, so "until the end of the next turn" counts one more.
+  const initialRemaining =
+    plan.initialRemaining !== null &&
+    grantContribution &&
+    plan.recurrenceStage === 'END_OF_TURN' &&
+    input.currentActorId ===
+      (grantContribution.tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
+      ? plan.initialRemaining + 1
+      : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion: conditionContribution || relationshipContribution ? 2 : 1,
+    schemaVersion: conditionContribution || relationshipContribution || grantContribution ? 2 : 1,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -251,22 +283,39 @@ function prepareRecurringActiveEffect(
     adapterFacts: plan.adapterFacts,
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
-      recurrenceStage: plan.recurrenceStage,
-      consumeOnFirstEvent: null,
+      // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
+      recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
+      consumeOnFirstEvent: grantContribution?.consumeOnFirstEvent ?? null,
       endOnEvents: [],
-      lifetimeScope: 'ENCOUNTER',
+      // A grant outlasts the Encounter only when the target's lifetime scope says so and no
+      // maintained effect (Concentration, which ends with the Encounter) owns it.
+      lifetimeScope:
+        grantContribution && !plan.maintenance ? input.target.lifetimeScope : 'ENCOUNTER',
       expiration:
-        plan.initialRemaining === null
+        initialRemaining === null
           ? { kind: 'INDEFINITE' }
           : {
               kind: 'TICKS',
-              initialRemaining: plan.initialRemaining,
-              decrementStage: plan.recurrenceStage
+              initialRemaining,
+              decrementStage: plan.recurrenceStage,
+              anchor: tickAnchor
             }
     },
-    ...(conditionContribution || relationshipContribution
+    ...(conditionContribution || relationshipContribution || grantContribution
       ? {
           stateContributions: [
+            ...(grantContribution
+              ? [
+                  {
+                    kind: 'MODIFIER_GRANT' as const,
+                    applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
+                    modifiers: grantContribution.modifiers,
+                    senses: grantContribution.senses,
+                    sourceLabel: grantLabel,
+                    sourceHidden: input.sourceHidden
+                  }
+                ]
+              : []),
             ...(conditionContribution
               ? [
                   {
@@ -314,7 +363,7 @@ function prepareRecurringActiveEffect(
     definition,
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
-      remainingTicks: plan.initialRemaining
+      remainingTicks: initialRemaining
     })
   }
 }

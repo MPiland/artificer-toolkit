@@ -416,7 +416,12 @@ describe('prepareEncounterTurnEffects', () => {
         ...ticking.definition,
         recurrence: {
           ...ticking.definition.recurrence,
-          expiration: { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
+          expiration: {
+            kind: 'TICKS',
+            initialRemaining: 3,
+            decrementStage: 'END_OF_TURN',
+            anchor: 'HOLDER'
+          }
         }
       }
     }

@@ -25,6 +25,7 @@ import {
   srdCreatureTarget,
   srdOptionalCombat
 } from '../testing/dnd5eSrdEncounter.js'
+import { shimmeringShieldEffect } from './antitoxinEffectFixture.js'
 import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 
 const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
@@ -217,10 +218,11 @@ function candidate(input: {
   cellX: number
   originalAttack: { total: number; naturalRoll: number }
   action?: CleavingContext['action']
+  activeEffects?: Parameters<typeof srdCreatureTarget>[1]
 }) {
   const targetToken = tokenAt(input.actor.id, input.cellX)
   return buildEncounterCleavingCandidate({
-    target: srdCreatureTarget(input.actor),
+    target: srdCreatureTarget(input.actor, input.activeEffects),
     targetTokenId: targetToken.tokenId,
     action: input.action ?? greataxe,
     scene,
@@ -247,6 +249,17 @@ describe('Cleaving target facts', () => {
       withinAttackerReach: true,
       originalAttackCanHit: true
     })
+  })
+
+  it('reads the armor class a held ARMOR_CLASS grant raises (Shimmering Shield)', () => {
+    const shield = shimmeringShieldEffect({ id: SOURCE_TOKEN_ID, holderActorId: SECOND_ID })
+    const next = candidate({
+      actor: goblinActor,
+      cellX: 1,
+      originalAttack: { total: 15, naturalRoll: 11 },
+      activeEffects: [shield]
+    })
+    expect(next).toMatchObject({ armorClass: 17, originalAttackCanHit: false })
   })
 
   it('judges the next target against the original attack roll, with natural 1 and 20', () => {

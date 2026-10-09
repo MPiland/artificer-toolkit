@@ -43,6 +43,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** A Creature's type from its snapshot; null for Characters, whose type is not in their facts. */
+export function snapshotCreatureTypeId(actor: Pick<ActorRead, 'kind' | 'snapshot'>): string | null {
+  if (actor.kind !== 'CREATURE') return null
+  const snapshot = isRecord(actor.snapshot) ? actor.snapshot : null
+  const payload = isRecord(snapshot?.payload) ? snapshot.payload : null
+  return typeof payload?.creatureTypeId === 'string' ? payload.creatureTypeId : null
+}
+
 export function snapshotFeatureDefinitions(
   actor: Pick<ActorRead, 'kind' | 'snapshot'>
 ): FeatureDto[] {

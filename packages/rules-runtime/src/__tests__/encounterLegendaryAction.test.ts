@@ -49,6 +49,7 @@ import { SRD, srdByLabel } from './dnd5eSrdCharacter.js'
 
 const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
 const wolf = srdByLabel(SRD.creatures, 'Wolf')
+const unicorn = srdByLabel(SRD.creatures, 'Unicorn')
 
 const DRAGON_ID = '00000000-0000-4000-8000-00000000b001'
 const WOLF_ID = '00000000-0000-4000-8000-00000000b002'
@@ -360,6 +361,21 @@ describe('Legendary Action choices offered at the end of a turn', () => {
       }
     ])
   })
+  it('offers the unicorn Shimmering Shield on any creature, itself included (D99)', async () => {
+    const unicornActor = srdCreatureActor({
+      id: DRAGON_ID,
+      creature: unicorn,
+      featureCharges: { [creatureFeature(unicorn, 'Legendary Actions').id]: 0 }
+    })
+    const [choice] = await offered({ actors: [unicornActor, wolfActor], outgoingActorId: WOLF_ID })
+    expect(
+      choice?.options.find((option) => option.label.startsWith('Shimmering Shield'))
+    ).toMatchObject({
+      targetActorIds: [DRAGON_ID, WOLF_ID],
+      featureCost: 2
+    })
+  })
+
   it('offers a defeated owner nothing and never offers a defeated target (D63)', async () => {
     const defeatedDragon = srdCreatureActor({
       id: DRAGON_ID,

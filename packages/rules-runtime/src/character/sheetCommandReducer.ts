@@ -523,6 +523,9 @@ export function applyCharacterSheetCommand(
     case 'RECOVER_SHEET_RESOURCE':
       return clearEmptyStateArrays(next)
 
+    case 'END_ACTIVE_EFFECT':
+      return clearEmptyStateArrays(next)
+
     case 'SET_INSPIRATION':
       next.state.inspiration = command.inspired || undefined
       return clearEmptyStateArrays(next)
@@ -1375,6 +1378,9 @@ export function summarizeCharacterSheetCommand(
       return command.extra.kind === 'VEHICLE' ? 'Vehicle updated' : 'Creature updated'
     case 'REMOVE_SHEET_EXTRA':
       return command.extra.kind === 'VEHICLE' ? 'Vehicle removed' : 'Creature removed'
+
+    case 'END_ACTIVE_EFFECT':
+      return 'Active effect ended'
 
     case 'SET_INSPIRATION':
       return command.inspired ? 'Inspiration granted' : 'Inspiration cleared'

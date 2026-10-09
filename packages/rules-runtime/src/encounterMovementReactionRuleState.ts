@@ -1,9 +1,9 @@
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { requireMovementReactionCapabilityDefinitionIds } from './movementReactionEligibilityRegistry.js'
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
 import {
   resolveEncounterRuleCapabilityStates,
-  type EncounterRuleCapabilityActorState,
-  type EncounterMovementReactionActiveEffect
+  type EncounterRuleCapabilityActorState
 } from './encounterRuleCapabilityState.js'
 import type {
   EncounterMovementReactionEncounter,
@@ -15,7 +15,7 @@ export type EncounterMovementReactionActorRuleState = EncounterRuleCapabilityAct
 export async function resolveEncounterMovementReactionRuleStates(input: {
   encounter: EncounterMovementReactionEncounter
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionRuleStateCharacterSource>
-  activeEffectsByActorId: ReadonlyMap<string, readonly EncounterMovementReactionActiveEffect[]>
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   definitions: CurrentReusableDefinitionSource
 }): Promise<ReadonlyMap<string, EncounterMovementReactionActorRuleState>> {
   return resolveEncounterRuleCapabilityStates({

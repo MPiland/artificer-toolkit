@@ -24,6 +24,7 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       maxHitPoints: true,
       tempHitPoints: true,
       conditions: true,
+      activeGrants: true,
       defeated: true,
       outOfInitiative: true
     }),

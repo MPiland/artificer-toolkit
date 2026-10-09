@@ -52,6 +52,8 @@ export function evaluateEncounterActionTargetPolicy(input: {
   target: DispositionActor
   targetPolicy: CompiledActionTargetPolicy
   sceneContext: EncounterActionSceneContext | null
+  /** The action makes an attack roll; an attack never targets its own user (D99). */
+  makesAttackRoll: boolean
 }): EncounterRuleWarningDto[] | null {
   const policy = input.targetPolicy
   if (policy.shape !== null || policy.pathOverrides.length !== 0) return null
@@ -72,7 +74,12 @@ export function evaluateEncounterActionTargetPolicy(input: {
     return null
   const warnings: EncounterRuleWarningDto[] = []
   const relationship = encounterActorRelationship(input.actor.disposition, input.target.disposition)
-  if (targetsSelf)
+  // SRD "Targeting Yourself": a creature may choose itself unless the effect must be hostile,
+  // makes an attack roll or names another creature (D99).
+  if (
+    targetsSelf &&
+    (targeting.dispositionKind === 'HOSTILE' || input.makesAttackRoll || targeting.excludesSelf)
+  )
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' })
   else if (targeting.dispositionKind === 'WILLING' && relationship === 'HOSTILE')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' })

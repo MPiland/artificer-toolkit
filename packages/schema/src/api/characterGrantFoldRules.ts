@@ -46,7 +46,8 @@ export const characterMechanicSourceSchema = lazySchema(() =>
       creatureId: identitySchema,
       companionInstanceId: identitySchema
     }),
-    z.strictObject({ kind: z.literal('MANUAL_ADJUSTMENT'), adjustmentId: identitySchema })
+    z.strictObject({ kind: z.literal('MANUAL_ADJUSTMENT'), adjustmentId: identitySchema }),
+    z.strictObject({ kind: z.literal('ACTIVE_EFFECT'), activeEffectId: identitySchema })
   ])
 )
 
@@ -136,14 +137,14 @@ const scalingOperationSchema = lazySchema(() =>
   })
 )
 
-const senseOperationSchema = lazySchema(() =>
+export const senseOperationSchema = lazySchema(() =>
   z.extend(scalingOperationSchema, {
     grantId: identitySchema,
     range: z.nullable(boundedJsonSchema)
   })
 )
 
-const modifierOperationSchema = lazySchema(() =>
+export const modifierOperationSchema = lazySchema(() =>
   z.strictObject({
     grantId: identitySchema,
     valueDomainCode: codeSchema,
@@ -284,6 +285,8 @@ export const characterGrantFoldInputSchema = lazySchema(() =>
       classes: z.array(classSourceSchema).check(z.maxLength(20)),
       background: z.nullable(characterGrantFoldSourceSchema),
       features: z.array(featureSourceSchema).check(z.maxLength(500)),
+      /** Active effects held by the Character, folded like unrestricted feature sources. */
+      activeEffects: z.array(characterGrantFoldSourceSchema).check(z.maxLength(64)),
       equipmentItems: z.array(equipmentItemSchema).check(z.maxLength(500))
     })
     .check(
@@ -391,3 +394,5 @@ export type CharacterGrantFoldInput = z.infer<typeof characterGrantFoldInputSche
 export type CharacterGrantFoldOutput = z.infer<typeof characterGrantFoldOutputSchema>
 export type CharacterGrantFoldRestriction = z.infer<typeof characterGrantFoldRestrictionSchema>
 export type CharacterGrantFoldSource = z.infer<typeof characterGrantFoldSourceSchema>
+export type CharacterGrantFoldModifier = z.infer<typeof modifierOperationSchema>
+export type CharacterGrantFoldSense = z.infer<typeof senseOperationSchema>

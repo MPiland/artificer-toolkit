@@ -254,7 +254,8 @@ export async function seedConcentration(fixture: {
         expiration: {
           kind: 'TICKS' as const,
           initialRemaining: 3,
-          decrementStage: 'END_OF_TURN' as const
+          decrementStage: 'END_OF_TURN' as const,
+          anchor: 'HOLDER' as const
         }
       },
       stateContributions: [
