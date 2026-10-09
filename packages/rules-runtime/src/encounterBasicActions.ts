@@ -176,8 +176,9 @@ export function withEncounterD20Contributor(
  * Applies the actor's own defensive basic-action effects (Dodge) to its target facts: attack rolls
  * against it gain a disadvantage contributor, and its saving throws of the effect's abilities an
  * advantage contributor, both labelled by the entry. A suspended effect applies nothing while the
- * actor can't act or its speed is 0. Whether the actor sees its attacker is not checked:
- * no Encounter flow computes that perception fact yet.
+ * actor can't act or its speed is 0. Whether the actor sees its attacker is not checked here:
+ * `prepareEncounterActionMechanics` drops the attack contributors against an attacker the actor
+ * cannot see (`loadAttackPerception`); flows that do not load perception keep them.
  */
 export async function withEncounterBasicActionDefense<T extends MovementTarget>(input: {
   target: T

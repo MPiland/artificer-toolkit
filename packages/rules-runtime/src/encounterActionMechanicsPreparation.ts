@@ -14,6 +14,10 @@ import {
   buildCompiledActionTargetPolicy
 } from './encounterActionEntryPointCompiler.js'
 import { creatureActiveGrantAttackContributors } from './encounterActiveGrants.js'
+import {
+  encounterAttackPerceptionContributors,
+  type EncounterAttackPerception
+} from './encounterAttackPerception.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import {
   encounterConditionAttackContributors,
@@ -126,6 +130,14 @@ export async function prepareEncounterActionMechanics<
   movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
   /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
   sceneContext?: EncounterActionSceneContext | null
+  /**
+   * Whether each side of an attack sees the other (SRD unseen attacker/target). Called only for an
+   * attack roll; omitted by flows that do not read perception, which leave sight out of the roll.
+   */
+  loadAttackPerception?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<EncounterAttackPerception>
   loadSource: (
     input: Omit<EncounterActionSourceInput, 'system'>
   ) => Promise<NativeEncounterActionSource>
@@ -298,12 +310,18 @@ export async function prepareEncounterActionMechanics<
           })
         : { magical: isDnd5eSpellAttackKind(attackKind), silvered: false, adamantine: false }
   // A Dodging target (basic action, Q11, applied to its facts) gives attacks against it
-  // disadvantage, and so does a target beyond a ranged attack's normal range (D62). The attacker's
-  // and the target's condition mechanics add their own contributors (D94).
+  // disadvantage, but only when it can see the attacker, and so does a target beyond a ranged
+  // attack's normal range (D62). The attacker's and the target's condition mechanics add their own
+  // contributors (D94), and so does sight: an unseen attacker has advantage, an unseen target
+  // disadvantage. Sight that cannot be decided (UNKNOWN) adds nothing and keeps Dodge.
   const longRange = encounterActionLongRangeContributor({
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
+  const attackPerception =
+    attackKind !== null && input.loadAttackPerception
+      ? await input.loadAttackPerception({ sourceFacts, targetFacts })
+      : null
   const conditionAttack = {
     melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
     sceneContext: input.sceneContext ?? null
@@ -320,8 +338,11 @@ export async function prepareEncounterActionMechanics<
       actionEffectId:
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
-    targetFacts.basicActionAttackContributors,
+    attackPerception?.targetSeesAttacker === 'UNSEEN'
+      ? []
+      : targetFacts.basicActionAttackContributors,
     longRange ? [longRange] : [],
+    attackPerception ? encounterAttackPerceptionContributors(attackPerception) : [],
     attackKind === null
       ? []
       : encounterConditionAttackContributors({

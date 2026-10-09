@@ -4378,10 +4378,39 @@
             {
               "text": "Invisible, unseen and hidden attackers grant advantage or disadvantage in RESOLVE_ACTION, and Dodge checks sight.",
               "status": "TODO",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
+                "apps/apis/convex/encounters/basicActions.test.ts",
+                "apps/apis/convex/encounters/actionCommands.test.ts",
+                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
+              ],
+              "origin": [],
+              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2.",
+              "id": "ATTACK-10.1"
+            },
+            {
+              "text": "A successful Hide (Dexterity (Stealth) check) makes its actor hidden from the creatures that fail to notice it, an attack from hiding has advantage, and attacking or being noticed ends it.",
+              "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 11.",
-              "id": "ATTACK-10.1"
+              "note": "Split from ATTACK-10.1 (D100); Hide is logged, not automated, today.",
+              "id": "ATTACK-10.2"
+            },
+            {
+              "text": "A Creature's authored Senses are structured Sense definitions, so attack-roll sight is definitive for Creatures (no UNKNOWN).",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D100 UNKNOWN case: Creature senses are free text today.",
+              "id": "ATTACK-10.3"
+            },
+            {
+              "text": "Opportunity attacks and Disarm apply attack-roll sight like RESOLVE_ACTION, and movement-reaction perception applies condition contributions.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D100 not-wired paths; movement-owned code.",
+              "id": "ATTACK-10.4"
             }
           ]
         },

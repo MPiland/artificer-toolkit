@@ -104,7 +104,8 @@ export async function readRoomEncounterTurnCapture(
   if (
     turnRequest &&
     !input.movement &&
-    ((input.expectedRole !== 'OWNER' && !input.turnCommand) || input.concentrationResponse)
+    ((input.expectedRole !== 'OWNER' && !input.turnCommand && !input.action) ||
+      input.concentrationResponse)
   )
     throw new Error('Turn capture requires owner or admitted response scope.')
   const concentrationAdmission = input.concentrationResponse

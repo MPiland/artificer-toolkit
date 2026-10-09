@@ -19,9 +19,17 @@ export type EncounterRollModeReasons = (input: {
 /** A ranged attack beyond its normal range (D62): a rules-owned contributor with no authored source. */
 export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = 'rule:long-range'
 
+/** An attacker its target cannot see (SRD): advantage on the attack roll. */
+export const ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID = 'rule:unseen-attacker'
+
+/** A target its attacker cannot see (SRD): disadvantage on the attack roll. */
+export const ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID = 'rule:unseen-target'
+
 /** The reason labels of rules-owned contributors, which no authored source names. */
 const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
-  [ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID, 'Long range']
+  [ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID, 'Long range'],
+  [ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID, 'Unseen attacker'],
+  [ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID, 'Unseen target']
 ])
 
 /** The reason a viewer reads for a contributor that comes from an actor hidden from them (D62). */

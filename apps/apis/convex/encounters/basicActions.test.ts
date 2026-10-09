@@ -293,6 +293,35 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
   })
 
+  it('an Invisible attacker its Character target cannot see rolls with advantage, named "Unseen attacker"', async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
+    const invisible = srdSystemRecord.conditionTypes.find((value) => value.code === 'INVISIBLE')
+    if (!invisible) throw new Error('Missing Invisible condition fixture.')
+    await setConditions(base, base.companion.id, [invisible.id])
+    await base.gm(await base.bite(base.companion.id, base.character.id))
+    expect((await d20Pending(base)).request).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      derivedRollModeReasons: ['Unseen attacker']
+    })
+  })
+
+  it("Dodge's disadvantage does not apply against an attacker the dodger cannot see", async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
+    const invisible = srdSystemRecord.conditionTypes.find((value) => value.code === 'INVISIBLE')
+    if (!invisible) throw new Error('Missing Invisible condition fixture.')
+    await setCurrentActor(base, base.character.id)
+    await base.gm(
+      await useBasicAction(base, { actorId: base.character.id, definitionId: dodge!.id })
+    )
+    await setConditions(base, base.companion.id, [invisible.id])
+    await setCurrentActor(base, base.companion.id)
+    await base.gm(await base.bite(base.companion.id, base.character.id))
+    expect((await d20Pending(base)).request).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      derivedRollModeReasons: ['Unseen attacker']
+    })
+  })
+
   it("a player's prompt keeps a hidden dodger's disadvantage but not its name", async () => {
     const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)

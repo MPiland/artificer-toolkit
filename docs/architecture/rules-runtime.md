@@ -153,7 +153,8 @@ an `EncounterEvidenceMode` (`AUTO_ROLL | PROMPT | MANUAL`); answers arrive as `E
 and only `resolveEncounterD20Answer` and `resolveEncounterIntegerAnswer` turn one into faces. D20
 evidence records both the chosen and the rules-derived roll mode, and pending summaries name the
 contributors behind the derived mode (`encounterRollModeReasons`, labeled for display by
-`rollModeReasons` in `packages/encounter-persistence`). A player's prompt never names a contributor from an actor hidden from
+`rollModeReasons` in `packages/encounter-persistence`). Attack-perception contributors are `rule:unseen-attacker`
+("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or
 applying state and carries no rules cue (ADR 0034). Actions in a Manual Encounter are refused with the
@@ -320,7 +321,7 @@ speed mechanics before Dash. A condition contributor's derived-mode reason names
 generic for players when the holder is hidden.
 
 Not modeled (registered in the phase ledger): the source of fear (Frightened applies while present),
-Blinded and Invisible attack modes (perception owns them), Unconscious falling Prone, Petrified damage
+Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Prone, Petrified damage
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
@@ -580,6 +581,19 @@ authoritative actor and Scene facts.
 (`pinnedSenseDefinitions` on the Character mechanics projection, `senseDefinitionId` identity), Scene
 illumination and obscurement, line of effect, and typed active-effect contributions. Unknown definitions
 fail closed to Manual/Judgment. Fog and viewer projection are never mechanics inputs.
+
+Attack-roll perception (current, D100): the room's `RESOLVE_ACTION` passes an optional
+`loadAttackPerception` to `prepareEncounterActionMechanics`
+(`packages/rules-runtime/src/encounterAttackPerception.ts`). For attack rolls it resolves requirement SEE both
+ways (`SEES | UNSEEN | UNKNOWN`): a target that can't see the attacker gives advantage, an attacker that can't
+see the target gets disadvantage, and Dodge's disadvantage is dropped only when the dodger definitively can't
+see the attacker. Inputs are the ordinary-sight baseline, pinned senses, active effects, pinned condition
+definitions (Invisible suppresses VISUAL emission unless a perceives-invisible sense such as truesight
+bypasses it; Blinded suppresses VISUAL sensing) and, with a Scene whose id and version match the action's
+lock, tokens, grid, lighting, darkness, barriers and spatial effects; without a Scene the environment is
+neutral (bright, unobscured, line of effect). A Creature observer with authored free-text senses whose
+ordinary sight fails is `UNKNOWN`: no contributor, Dodge stays. Not wired: Convex action preparation, Disarm,
+opportunity attacks (movement-owned; movement reaction perception also omits condition contributions).
 
 ## Target and open scope
 

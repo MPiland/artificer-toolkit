@@ -93,7 +93,8 @@ export type MovementTarget<
   characterCurrentness: { projectionChecksum: string; mechanicalContextChecksum: string } | null
   /**
    * Contributors attack rolls against the actor gain from its basic-action defense (Dodge), set by
-   * `withEncounterBasicActionDefense`; empty until a flow applies it.
+   * `withEncounterBasicActionDefense`; empty until a flow applies it. They hold only while the actor
+   * sees the attacker, which `prepareEncounterActionMechanics` decides per attack.
    */
   basicActionAttackContributors: readonly EncounterRelationshipD20Contributor[]
   /**

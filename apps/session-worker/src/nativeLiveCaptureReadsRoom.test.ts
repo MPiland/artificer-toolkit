@@ -391,6 +391,105 @@ describe('liveEncounterCaptures over the real room', () => {
   })
 })
 
+describe('turn capture scope over the real room', () => {
+  const GUARD = 'Turn capture requires owner or admitted response scope.'
+  const SCENE_ID = testUuid(0x61)
+  const requests: LiveSessionEncounterRulesInput['request'][] = [
+    { kind: 'SCENE_PERCEPTION', observerActorId: CASTER_ID, subjectActorId: TARGET_ID },
+    {
+      kind: 'SCENE_PERCEPTION_ENTITIES',
+      page: {
+        sceneId: SCENE_ID,
+        definitionSaveId: testUuid(0x62),
+        expectedVersion: 0,
+        collection: 'tokens',
+        phase: 'BASE',
+        afterOrdinal: null,
+        numItems: 1
+      }
+    },
+    {
+      kind: 'SCENE_SPATIAL_EFFECTS',
+      sceneId: SCENE_ID,
+      expectedSceneVersion: 0,
+      afterEffectId: null
+    }
+  ]
+  const player = (
+    request: LiveSessionEncounterRulesInput['request'],
+    scope: Partial<LiveSessionEncounterRulesInput> = {}
+  ): LiveSessionEncounterRulesInput => ({
+    campaignId: CAMPAIGN_ID,
+    authorityEpoch: ROOM_EPOCH,
+    expectedUserId: USER_ID,
+    expectedRole: 'PLAYER',
+    encounterId: ENCOUNTER_ID,
+    expectedVersion: state.version,
+    request,
+    ...scope
+  })
+  const action: NonNullable<LiveSessionEncounterRulesInput['action']> = {
+    kind: 'ACTION_COMMAND',
+    command: {
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
+      encounterId: ENCOUNTER_ID,
+      commandId: testUuid(0x71),
+      expectedVersion: state.version,
+      actorId: CASTER_ID,
+      targetActorId: TARGET_ID,
+      actionId: testUuid(0x72),
+      optionalCombatIntent: null,
+      sceneContext: null
+    }
+  }
+  const outcome = (room: RoomCapture, input: LiveSessionEncounterRulesInput) =>
+    room.reads.encounterRules(input).then(
+      () => null,
+      (error: unknown) => (error instanceof Error ? error.message : String(error))
+    )
+
+  it.each(requests)(
+    'lets a player with an admitted action reach the guard-protected %o request',
+    async (request) => {
+      await withRoomCapture({ state, actors }, async (room) => {
+        // The unknown action then fails its own admission; only the scope guard is under test.
+        expect(await outcome(room, player(request, { action }))).not.toBe(GUARD)
+      })
+    }
+  )
+
+  it.each(requests)('refuses a player with no action or turn command for %o', async (request) => {
+    await withRoomCapture({ state, actors }, async (room) => {
+      expect(await outcome(room, player(request))).toBe(GUARD)
+    })
+  })
+
+  it('refuses a Concentration response on a turn-capture request', async () => {
+    await withRoomCapture({ state, actors }, async (room) => {
+      const concentrationResponse: NonNullable<
+        LiveSessionEncounterRulesInput['concentrationResponse']
+      > = {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: ENCOUNTER_ID,
+        commandId: testUuid(0x73),
+        expectedVersion: state.version,
+        correlationId: null,
+        occurrenceId: testUuid(0x74),
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: testUuid(0x75),
+          rawFaces: [10],
+          rollMode: 'NORMAL'
+        }
+      }
+      expect(await outcome(room, player(requests[0]!, { concentrationResponse }))).toBe(GUARD)
+    })
+  })
+})
+
 describe('readNativeLiveActorsAndEffects over the real room', () => {
   const sortedFirst = testUuid(0x41)
   const sortedLast = testUuid(0x42)
