@@ -5,6 +5,10 @@ import type {
   characterStoredRecordSchema
 } from './characterPersistence.js'
 import {
+  characterNoteGroupStateDtoSchema,
+  characterNoteStateDtoSchema
+} from '../subjects/characterState.js'
+import {
   characterStoredBuildStateSchema,
   characterOptionalStateKeySchema,
   type CharacterCollectionRecords,
@@ -169,6 +173,79 @@ export function readCharacterBuildFields(characterId: string, build: CharacterSt
   return fields
 }
 
+type NoteState = {
+  notes?: CharacterCollectionRecords['characterNotes'][number]['value'][]
+  noteGroups?: CharacterCollectionRecords['characterNoteGroups'][number]['value'][]
+}
+type NoteRecords = Pick<CharacterCollectionRecords, 'characterNotes' | 'characterNoteGroups'>
+
+/** A note edit's focused read: the verified build counts and only the note and group records. */
+export function readCharacterNoteState(
+  characterId: string,
+  build: CharacterStoredBuildState,
+  records: NoteRecords
+): NoteState {
+  const fields = readCharacterBuildFields(characterId, build)
+  const notes = readCharacterCollectionValues(
+    characterId,
+    records.characterNotes,
+    fields.collectionCounts.characterNotes
+  )
+  const noteGroups = readCharacterCollectionValues(
+    characterId,
+    records.characterNoteGroups,
+    fields.collectionCounts.characterNoteGroups
+  )
+  const present = (key: 'notes' | 'noteGroups', values: unknown[]) => {
+    if (fields.optionalStateKeys.includes(key)) return true
+    if (values.length) throw new Error('Stored Character optional collection mismatch.')
+    return false
+  }
+  return {
+    ...(present('notes', notes) ? { notes } : {}),
+    ...(present('noteGroups', noteGroups) ? { noteGroups } : {})
+  }
+}
+
+/** The build and note records after a note edit; every other build field and record is untouched. */
+export function encodeCharacterNoteRecords(
+  build: CharacterStoredBuildState,
+  next: NoteState
+): { build: CharacterStoredBuildState; collections: NoteRecords } {
+  const current = readCharacterBuildFields(build.characterId, build)
+  // Values are stored as the complete structure split stores them: canonical JSON, contract-parsed.
+  const collections = {
+    characterNotes: (next.notes ?? []).map((value, position) => {
+      const note = characterNoteStateDtoSchema.parse(JSON.parse(JSON.stringify(value)))
+      return record(build.characterId, note.id, position, note)
+    }),
+    characterNoteGroups: (next.noteGroups ?? []).map((value, position) => {
+      const group = characterNoteGroupStateDtoSchema.parse(JSON.parse(JSON.stringify(value)))
+      return record(build.characterId, group.id, position, group)
+    })
+  }
+  const fields = {
+    ...current,
+    optionalStateKeys: optionalStateKeys.filter((key) =>
+      key === 'notes' || key === 'noteGroups'
+        ? next[key] !== undefined
+        : current.optionalStateKeys.includes(key)
+    ),
+    collectionCounts: {
+      ...current.collectionCounts,
+      characterNotes: collections.characterNotes.length,
+      characterNoteGroups: collections.characterNoteGroups.length
+    }
+  }
+  return {
+    build: characterStoredBuildStateSchema.parse({
+      ...fields,
+      checksum: checksumRuleDocument(fields)
+    }),
+    collections
+  }
+}
+
 /** Central assembly for Builder, rules, import/export and complete room captures. */
 export function assembleCharacterStructure(
   head: CharacterHead,
@@ -264,13 +341,10 @@ export function assembleCharacterStructure(
       fields.collectionCounts.characterSpellCustomizations
     )
   }
-  if (
-    checksumRuleDocument(document) !== head.checksum ||
-    checksumRuleDocument(sheet) !== head.sheetStateChecksum
-  )
-    throw new Error('Stored Character assembled structure checksum mismatch.')
   return {
     ...head,
+    checksum: checksumRuleDocument(document),
+    sheetStateChecksum: checksumRuleDocument(sheet),
     documentJson: canonicalizeRuleDocument(document),
     sheetState: {
       documentJson: canonicalizeRuleDocument(sheet),

@@ -20,9 +20,6 @@ const characterHeadFields = lazySchemaParts(() => ({
   systemId: postgresUuidSchema,
   label: z.string(),
   status: z.enum(['ACTIVE', 'DRAFT']),
-  /** Integrity of the complete structure assembled from the owned records. */
-  checksum: projectionChecksumSchema,
-  sheetStateChecksum: z.optional(projectionChecksumSchema),
   portraitAssetId: z.optional(uuid),
   portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
   /** The portrait's own framing; the same image framed differently elsewhere is unaffected. */
@@ -32,18 +29,19 @@ const characterHeadFields = lazySchemaParts(() => ({
   updatedAt: z.iso.datetime()
 }))
 
-/** Identity and structure clock only; mutable values live in typed operational records. */
-export const characterStoredHeadSchema = lazySchema(() =>
-  z.strictObject({
-    ...characterHeadFields(),
-    sheetStateChecksum: projectionChecksumSchema
-  })
-)
+/**
+ * Identity and structure clock only; mutable values live in typed operational records. Structure
+ * hashes are derived when the records are assembled, so a focused write never recomputes them.
+ */
+export const characterStoredHeadSchema = lazySchema(() => z.strictObject(characterHeadFields()))
 
 /** Complete private structure capture assembled at rules, export and room boundaries. */
 export const characterStoredRecordSchema = lazySchema(() =>
   z.strictObject({
     ...characterHeadFields(),
+    /** Integrity of the complete structure assembled from the owned records. */
+    checksum: projectionChecksumSchema,
+    sheetStateChecksum: z.optional(projectionChecksumSchema),
     documentJson: z.string(),
     sheetState: z.optional(
       z.strictObject({

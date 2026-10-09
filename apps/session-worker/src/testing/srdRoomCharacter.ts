@@ -7,9 +7,7 @@ import {
 import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveRoomInputs'
 import type { LiveSessionCharacterRulesInput } from '@artificer-toolkit/schema/api/liveSessionCharacterRules'
 import { characterStoredRowSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { readCharacterSheetStructure } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -83,15 +81,14 @@ export function srdRoomHydration(
   owner = part.inputs?.owner
 ): Pick<Parameters<RoomEncounterStore['hydrate']>[0], 'documents' | 'records'> {
   if (!owner) throw new Error('Missing Character fixture.')
-  const stored = characterStoredRowSchema.parse({
-    ...owner,
-    sheetStateChecksum: checksumRuleDocument(readCharacterSheetStructure(owner.sheetState))
-  })
+  const stored = characterStoredRowSchema.parse(owner)
   const {
     _id,
     _creationTime,
     documentJson: _documentJson,
     sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
     play,
     ...head
   } = stored

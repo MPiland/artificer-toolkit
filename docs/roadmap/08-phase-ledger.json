@@ -2103,17 +2103,26 @@
         {
           "id": "SHEET-7",
           "title": "Small Sheet edits read only what they change",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/characters/sheetNoteAccess.test.ts",
+            "apps/apis/convex/liveSessions/heldSheetPlay.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "A note edit reads only its notes and groups, collection counts, clocks and receipt; Character aggregate hashes are derived at assembly instead of persisted on the head, while typed records, identity, ownership, order and count checks and canonical full-capture hashes remain.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/characters/sheetNoteAccess.test.ts",
+                "apps/apis/convex/liveSessions/heldSheetPlay.test.ts",
+                "packages/schema/src/__tests__/character-operational-state.test.ts",
+                "apps/session-worker/src/roomCharacterReload.test.ts",
+                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
+              ],
               "origin": [],
-              "note": "User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
+              "note": "Done 2026-10-08: countDatabaseIo meters a note edit outside live play (notes, groups, Build counts, head and play clocks, receipt) and held in a room (play row untouched, reloaded into the next room command); the head drops checksum and sheetStateChecksum, which assembleCharacterStructure derives. Dev data migrated by local reset and reseed (backup local-validation/convex-reset/sheet7.before.zip). User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
               "id": "SHEET-7.1"
             }
           ]

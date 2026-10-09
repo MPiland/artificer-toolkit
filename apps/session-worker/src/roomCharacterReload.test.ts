@@ -265,10 +265,17 @@ it.each([
       expect(store.sequence).toBe(before.sequence + 1)
       expect(store.logRows).toBe(before.logRows + 1)
       expect(store.documents('characters')[0]).toMatchObject({
+        id: fresh.inputs.owner.id,
+        userId: fresh.inputs.owner.userId,
+        systemId: fresh.inputs.owner.systemId,
         label: fresh.inputs.owner.label,
-        checksum: fresh.inputs.owner.checksum,
+        status: fresh.inputs.owner.status,
+        createdAt: fresh.inputs.owner.createdAt,
         updatedAt: fresh.inputs.owner.updatedAt
       })
+      // Aggregate hashes are derived at assembly, so the reloaded head carries none.
+      expect(store.documents('characters')[0]).not.toHaveProperty('checksum')
+      expect(store.documents('characters')[0]).not.toHaveProperty('sheetStateChecksum')
       const row = storage.sql
         .exec('SELECT json FROM room_writeset_log WHERE sequence = ?', store.sequence)
         .toArray()[0]

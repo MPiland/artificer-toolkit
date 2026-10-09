@@ -561,8 +561,6 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
           ...row,
           label: character.label,
           status: 'DRAFT',
-          checksum: written.checksum,
-          sheetStateChecksum: written.sheetStateChecksum,
           updatedAt
         }
   )
