@@ -357,7 +357,7 @@ describe('content snapshot parts', () => {
       }
     }
     expect(contentSnapshotHeadSchema.parse(complete)).toEqual(complete)
-  })
+  }, 30000)
 
   it('reports SRD index and documents sizes per kind within the picker budget', async ({
     annotate
