@@ -101,7 +101,8 @@
 - SHEET-7 DONE in a user-run parallel session, merged (`489ae1e96`): Character head checksums are derived at assembly, not stored. Local Convex reset and reseeded after the merge (1120 documents, audit OK).
 - `convex deploy` typechecks test files that the Turbo typecheck skips; `turnDeathSave.test.ts` failed it and is fixed (`652d1d9cb`). Verify Convex test typing with `yarn tsc -p convex/tsconfig.json --noEmit` from `apps/apis`.
 - SPELLS-5 runs in a user-run parallel session (worktree `.claude/worktrees/spells-5`, branch `codex/spells-5-apply-grant`); merge it here once it reports.
-- Ledger 74/136 PBIs, 316/454 ACs. Next: SPELLS-3 slice D (3.6, Sheet death-save tracker and roll, Dead for frozen actors), then AUTHORING-16.
+- SPELLS-3.6 DONE, SPELLS-3 DONE with a verified journey (`c9b41939c`): Sheet commands `SET_DEATH_SAVES` and `ROLL_DEATH_SAVE` (server d20, outcome and a GM-visible `DEATH_SAVE` roll card in one write, `characters/sheetDeathSaveRoll.ts`; the room handles it inside a held Run), the vitals tracker `CharacterSheetDeathSaves.tsx`, and `deathSaves` in frozen Encounter actor state. Journey `apps/apis/convex/characters/sheetDeathSaves.test.ts`. Full apis suite 2166 passed; local Convex reset and reseeded (1120 documents, audit OK).
+- Ledger 75/136 PBIs, 317/454 ACs. Next: AUTHORING-16, then the WSJF ranking.
 
 **Done 2026-10-08 (thirteenth session):**
 
@@ -136,7 +137,7 @@
 | 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); open gaps PLATFORM-13.2–13.4, 14.1–14.3, PERF-3.4, 3.7, 3.10, 3.11 still to close.                        |
 | 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
 | 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
-| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Death saves (D96, D98). A, B, C (3.5, 3.7) done; next D (3.6).                                                                          |
+| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Done (D96, D98; fourteenth session).                                                                                                     |
 | 13  | SPELLS-5                                | 3.8  | APPLY_GRANT.                                                                                                                             |
 | 14  | RULES-1                                 | 3.3  | Dice identity for mixed healing and multi-part damage.                                                                                   |
 | 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
