@@ -111,7 +111,8 @@ export function planEncounterGrantTicks(input: {
 /**
  * D99: a completed Run hands its Characters' timed grants to the Campaign clock, 6 seconds per
  * remaining round rounded up to whole minutes from the clock's minute at completion. Without a
- * clock they stop counting and last until the GM ends them.
+ * clock they stop counting and last until the GM ends them. A detached Concentration grant keeps its
+ * caster stamp.
  */
 export function planCarriedOverGrants(input: {
   effects: readonly ActiveRuleEffectRecord[]
@@ -125,9 +126,11 @@ export function planCarriedOverGrants(input: {
       effect.definition.recurrence.expiration.kind !== 'TICKS'
     )
       return []
+    const { concentrationCasterCharacterId } = effect.lifecycle
     const lifecycle: ActiveRuleEffectRecord['lifecycle'] = {
       schemaVersion: 1,
       remainingTicks: null,
+      ...(concentrationCasterCharacterId === undefined ? {} : { concentrationCasterCharacterId }),
       expiresAtCampaignMinute:
         input.clockMinute === null ? null : input.clockMinute + Math.ceil(remaining / 10)
     }

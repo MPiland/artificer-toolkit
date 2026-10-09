@@ -69,7 +69,10 @@ export function readCharacterEffect(
     )
   if (checksumCanonicalJson(lifecycle) !== value.lifecycleChecksum)
     throw new Error('Active rule-effect lifecycle checksum does not match its persisted lifecycle.')
-  if (value.sourceEncounterId !== sourceEncounterIdForDefinition(definition))
+  if (
+    value.sourceEncounterId !==
+    sourceEncounterIdForDefinition(definition, value.maintainedEffectStateId)
+  )
     throw new Error(
       'Character active rule-effect source Encounter does not match immutable definition provenance.'
     )
@@ -446,7 +449,10 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
           ? null
           : serverUuidIdentityDtoSchema.parse(input.maintainedEffectStateId)
       if (maintainedEffectStateId !== null) {
-        const sourceEncounterId = sourceEncounterIdForDefinition(definition)
+        const sourceEncounterId = sourceEncounterIdForDefinition(
+          definition,
+          maintainedEffectStateId
+        )
         if (
           sourceEncounterId === null ||
           definition.origin.kind !== 'ENCOUNTER' ||
@@ -582,6 +588,50 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       const updated = await ctx.db.get(row._id)
       if (!updated) throw new Error('Active rule effect changed before lifecycle update.')
       return readEncounterEffect(updated)
+    },
+    /**
+     * Detaches a Character's Concentration grant from the Run's maintained state so it outlasts the
+     * Run (D99, SPELLS-5.7); `lifecycle` stamps the caster.
+     */
+    async detachMaintainedCas(input: {
+      id: string
+      characterId: string
+      expectedVersion: number
+      lifecycle: ActiveRuleEffectLifecycleDto
+    }): Promise<ActiveRuleEffectRecord> {
+      const owner = ownerFor({ kind: 'CHARACTER', characterId: input.characterId })
+      if (owner.kind !== 'CHARACTER') throw new Error('Only a Character grant detaches from a Run.')
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
+      const current = await findEffectById(owner, id)
+      if (
+        !current ||
+        current.version !== expectedVersion ||
+        current.maintainedEffectStateId === null ||
+        current.definition.recurrence.lifetimeScope !== 'OWNER'
+      )
+        throw new Error('Active rule effect changed before detaching from its Run.')
+      const lifecycle = activeRuleEffectStateDtoSchema.parse({
+        definition: current.definition,
+        lifecycle: activeRuleEffectLifecycleDtoSchema.parse(input.lifecycle)
+      }).lifecycle
+      const row = await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_id', (q) => q.eq('characterId', owner.characterId).eq('id', id))
+        .unique()
+      if (!row || row.version !== expectedVersion)
+        throw new Error('Active rule effect changed before detaching from its Run.')
+      await ctx.db.patch(row._id, {
+        maintainedEffectStateId: null,
+        sourceEncounterId: null,
+        lifecycle,
+        lifecycleChecksum: checksumCanonicalJson(lifecycle),
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString()
+      })
+      const updated = await ctx.db.get(row._id)
+      if (!updated) throw new Error('Active rule effect changed before detaching from its Run.')
+      return readCharacterEffect(updated)
     },
     async deleteCas(input: { id: string; owner: ActiveRuleEffectOwner; expectedVersion: number }) {
       const owner = ownerFor(input.owner)

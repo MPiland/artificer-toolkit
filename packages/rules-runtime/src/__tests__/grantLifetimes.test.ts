@@ -268,12 +268,44 @@ describe('grant plans', () => {
 })
 
 describe('stored grants', () => {
-  it('outlast the Encounter on a Character unless Concentration maintains them', () => {
+  it('outlast the Encounter on a Character, Concentration grants included (D99 SPELLS-5.7)', () => {
+    const lifetime = (effect: AuthoredEffect, lifetimeScope: 'OWNER' | 'ENCOUNTER') =>
+      storedGrant({ lifecycle: {}, currentActorId: null, effect, lifetimeScope }).definition
+        .recurrence.lifetimeScope
+    expect(lifetime(antitoxin(), 'OWNER')).toBe('OWNER')
+    expect(lifetime(onlyEffect(shieldOfFaith.effects), 'OWNER')).toBe('OWNER')
+  })
+
+  it('stay Encounter-scoped on a Creature, Concentration or not', () => {
     const lifetime = (effect: AuthoredEffect) =>
-      storedGrant({ lifecycle: {}, currentActorId: null, effect, lifetimeScope: 'OWNER' })
+      storedGrant({ lifecycle: {}, currentActorId: null, effect, lifetimeScope: 'ENCOUNTER' })
         .definition.recurrence.lifetimeScope
-    expect(lifetime(antitoxin())).toBe('OWNER')
+    expect(lifetime(antitoxin())).toBe('ENCOUNTER')
     expect(lifetime(onlyEffect(shieldOfFaith.effects))).toBe('ENCOUNTER')
+  })
+
+  it('keep the Run as their source only while a Concentration state maintains them', () => {
+    const { definition, lifecycle } = storedGrant({
+      lifecycle: {},
+      currentActorId: null,
+      effect: onlyEffect(shieldOfFaith.effects),
+      lifetimeScope: 'OWNER'
+    })
+    const record = (maintainedEffectStateId: string | null) =>
+      prepareActiveRuleEffectRecord({
+        id: testUuid(0xc330),
+        owner: { kind: 'CHARACTER', characterId: testUuid(0xc331) },
+        definition,
+        lifecycle,
+        maintainedEffectStateId,
+        currentEffects: [],
+        occurredAt: TIMESTAMP
+      })
+    expect(record(testUuid(0xc332))).toMatchObject({
+      sourceEncounterId: ENCOUNTER_ID,
+      maintainedEffectStateId: testUuid(0xc332)
+    })
+    expect(record(null)).toMatchObject({ sourceEncounterId: null, maintainedEffectStateId: null })
   })
 
   it('are not selected by the turn-effect kernel at either boundary', () => {
@@ -558,6 +590,38 @@ describe('planCarriedOverGrants', () => {
       {
         effect,
         lifecycle: { schemaVersion: 1, remainingTicks: null, expiresAtCampaignMinute: null }
+      }
+    ])
+  })
+
+  it('keeps the caster stamp of a detached Concentration grant', () => {
+    const stampedGrant = (id: number, caster: string | null) => {
+      const effect = grant(id, 4)
+      return {
+        ...effect,
+        lifecycle: { ...effect.lifecycle, concentrationCasterCharacterId: caster }
+      }
+    }
+    const stamped = stampedGrant(0xc36a, CHARACTER_ID)
+    const creatureCast = stampedGrant(0xc36b, null)
+    expect(planCarriedOverGrants({ effects: [stamped, creatureCast], clockMinute: 2000 })).toEqual([
+      {
+        effect: stamped,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          concentrationCasterCharacterId: CHARACTER_ID,
+          expiresAtCampaignMinute: 2001
+        }
+      },
+      {
+        effect: creatureCast,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          concentrationCasterCharacterId: null,
+          expiresAtCampaignMinute: 2001
+        }
       }
     ])
   })

@@ -4,7 +4,7 @@ import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/act
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
-import { setupConcentration } from '../../tests/fixtures/concentration'
+import { createConcentrationState, setupConcentration } from '../../tests/fixtures/concentration'
 import {
   attachFixtureRoom,
   checkpointLiveRoom,
@@ -236,6 +236,115 @@ it.each([
       }
     ])
     expect(effects.creature).toEqual([])
+  },
+  60_000
+)
+
+it.each([
+  { caster: 'a Character', casterIsCharacter: true },
+  { caster: 'a Creature', casterIsCharacter: false }
+])(
+  'carries a Concentration grant cast by $caster out of the Run for the GM to end (D99, SPELLS-5.7)',
+  async ({ casterIsCharacter }) => {
+    const fixture = await setupConcentration('PROMPT')
+    const { owner, run, actor, target, character, campaign, t } = fixture
+    await owner.caller.mutation(api.campaigns.clock.initialize, {
+      campaignId: campaign.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: 0,
+      day: 2,
+      minuteOfDay: 480,
+      dawnMinute: 360,
+      duskMinute: 1080
+    })
+    const casterActorId = casterIsCharacter ? target.id : actor.id
+    const grant = await t.run(async (ctx) => {
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const state = await createConcentrationState(store, {
+        encounterId: run.id,
+        ownerActorId: casterActorId
+      })
+      return store.create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: plannedModifierGrant({
+          encounterId: run.id,
+          sourceActorId: casterActorId,
+          holderActorId: target.id,
+          lifecycle: {},
+          rounds: 30,
+          lifetimeScope: 'OWNER'
+        }).definition,
+        lifecycle: { schemaVersion: 1, remainingTicks: 25 },
+        maintainedEffectStateId: state.id
+      })
+    })
+    expect(grant.sourceEncounterId).toBe(run.id)
+    await attachFixtureRoom(t, campaign.id)
+    const live = await owner.caller.query(api.encounters.projectionReads.get, {
+      encounterId: run.id
+    })
+    const completed = await executeInRoom(owner.caller, {
+      command: {
+        type: 'COMPLETE',
+        encounterId: run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: live.version
+      }
+    })
+    expect(completed.projection.status).toBe('COMPLETED')
+    await checkpointLiveRoom(campaign.id)
+
+    const stored = () =>
+      t.run(async (ctx) =>
+        (
+          await ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+            .collect()
+        ).map(({ id, maintainedEffectStateId, sourceEncounterId, lifecycle }) => ({
+          id,
+          maintainedEffectStateId,
+          sourceEncounterId,
+          lifecycle
+        }))
+      )
+    expect(await stored()).toEqual([
+      {
+        id: grant.id,
+        maintainedEffectStateId: null,
+        sourceEncounterId: null,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          concentrationCasterCharacterId: casterIsCharacter ? character.id : null,
+          expiresAtCampaignMinute: 1440 + 480 + 3
+        }
+      }
+    ])
+    const sheet = await owner.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: campaign.id,
+      characterId: character.id
+    })
+    expect(sheet.overview.activeGrants).toEqual([
+      expect.objectContaining({
+        effectId: grant.id,
+        remainingTicks: null,
+        expiresAtCampaignMinute: 1440 + 480 + 3
+      })
+    ])
+
+    await owner.caller.mutation(api.campaigns.characterSheet.execute, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      command: {
+        type: 'END_ACTIVE_EFFECT',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion,
+        effectId: grant.id
+      }
+    })
+    expect(await stored()).toEqual([])
   },
   60_000
 )

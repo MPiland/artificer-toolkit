@@ -77,7 +77,9 @@ export async function endCharacterRunEffects(
 
 /**
  * A completing Run ends what it put on its Characters for the Encounter only (the effects it
- * sources, such as Concentration grants); grants that outlast the Encounter stay (D99).
+ * sources); grants that outlast the Encounter stay (D99). A Concentration grant is one of them: it
+ * is detached from the Run's maintained state and stamped with the Character that cast it (null for
+ * a Creature), so the Campaign clock carries it on (SPELLS-5.7).
  */
 export async function endCompletedRunCharacterEffects(
   ctx: EncounterCharacterWriteTransaction,
@@ -90,9 +92,31 @@ export async function endCompletedRunCharacterEffects(
   for (const actor of actors) {
     if (actor.kind !== 'CHARACTER') continue
     const owner = { kind: 'CHARACTER', characterId: actor.sourceId } as const
-    const ended = (await store.list(owner)).filter(
+    const sourced = (await store.list(owner)).filter(
       ({ sourceEncounterId }) => sourceEncounterId === input.state.id
     )
+    const isConcentrationGrant = ({ definition }: ActiveRuleEffectRecord) =>
+      definition.recurrence.lifetimeScope === 'OWNER'
+    for (const effect of sourced.filter(isConcentrationGrant)) {
+      if (!effect.maintainedEffectStateId)
+        throw new Error('A Run-sourced grant that outlasts its Run needs a maintained state.')
+      const maintained = await store.findMaintainedStateById({
+        encounterId: input.state.id,
+        stateId: effect.maintainedEffectStateId
+      })
+      if (!maintained) throw new Error('Maintained effect state is unavailable.')
+      const caster = actors.find(({ id }) => id === maintained.ownerActorId)
+      await store.detachMaintainedCas({
+        id: effect.id,
+        characterId: actor.sourceId,
+        expectedVersion: effect.version,
+        lifecycle: {
+          ...effect.lifecycle,
+          concentrationCasterCharacterId: caster?.kind === 'CHARACTER' ? caster.sourceId : null
+        }
+      })
+    }
+    const ended = sourced.filter((effect) => !isConcentrationGrant(effect))
     if (ended.length === 0) continue
     const row = await ctx.ports.readCharacterRow(actor.sourceId)
     if (!row) throw new Error('Run Character is unavailable.')

@@ -287,10 +287,9 @@ function prepareRecurringActiveEffect(
       recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
       consumeOnFirstEvent: grantContribution?.consumeOnFirstEvent ?? null,
       endOnEvents: [],
-      // A grant outlasts the Encounter only when the target's lifetime scope says so and no
-      // maintained effect (Concentration, which ends with the Encounter) owns it.
-      lifetimeScope:
-        grantContribution && !plan.maintenance ? input.target.lifetimeScope : 'ENCOUNTER',
+      // A grant outlasts the Encounter when the target's lifetime scope says so. A Concentration
+      // grant keeps its maintenance link while the Run lasts and is detached from it at COMPLETE.
+      lifetimeScope: grantContribution ? input.target.lifetimeScope : 'ENCOUNTER',
       expiration:
         initialRemaining === null
           ? { kind: 'INDEFINITE' }

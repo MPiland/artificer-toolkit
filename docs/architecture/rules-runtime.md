@@ -496,9 +496,12 @@ Character removed from an active Run, which only leaves initiative (D82), has it
 through its skipped turns.
 
 **Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
-(`endCompletedRunCharacterEffects`: Encounter-scoped grants such as Concentration grants), alongside the
-Creature effects ADR 0035 Amendment 30 drops. A Character's own (`OWNER`-scoped) timed grants outlast the
-Run: `planCarriedOverGrants` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
+(`endCompletedRunCharacterEffects`: Encounter-scoped grants), alongside the Creature effects ADR 0035
+Amendment 30 drops. A Character's own (`OWNER`-scoped) timed grants outlast the Run, and so does a
+Concentration grant the Character holds (SPELLS-5.7): COMPLETE detaches it from the Run's maintained state
+(`detachMaintainedCas` nulls `maintainedEffectStateId` and `sourceEncounterId`) and stamps
+`lifecycle.concentrationCasterCharacterId` with the caster's Character id (`null` for a Creature caster).
+`planCarriedOverGrants` keeps the stamp. Then: `planCarriedOverGrants` turns each remaining count into `lifecycle.expiresAtCampaignMinute`, the
 Campaign clock's absolute minute at completion plus 6 seconds per remaining round rounded up to whole
 minutes, with `remainingTicks: null` so later Runs never tick it. Without a Campaign clock the grant gets no
 expiry and lasts until the GM ends it. `expiredCarriedOverGrants` lists the grants a clock minute has
@@ -539,9 +542,10 @@ speed grants. The speed type a move names (`MOVE_SCENE_TOKEN.speedId`, stored on
 **Concentration grants (D99).** A grant whose result block names a `maintenanceDefinitionId` plans the
 same `SOURCE_ACTOR` maintenance policy as a maintained recurring effect (`maintenancePlan`), so it is a
 dependent of its source's maintained state and ends with it on a failed check, D95 incapacitation or a
-replacing Concentration, through the generic dependent removal. A maintained grant is Encounter-scoped even
-on a Character holder: its maintained state lives in the Run, so it ends with the Run instead of carrying
-over. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
+replacing Concentration, through the generic dependent removal. A maintained grant on a
+Character holder is `OWNER`-scoped from creation yet keeps its `sourceEncounterId` and
+`maintainedEffectStateId` while the Run lives; a Creature holder's stays Encounter-scoped. When the Run
+completes the link is detached and the grant carries over (see Carry-over). The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
 maintenance definition.
 
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System

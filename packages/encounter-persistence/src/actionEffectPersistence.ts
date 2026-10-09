@@ -1,4 +1,5 @@
 import { buildEncounterMaintenanceTransition } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -191,8 +192,8 @@ export async function persistEncounterActionEffects(
       origin.rootCommandId !== input.command.commandId ||
       effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
       effect.sourceEncounterId !==
-        (owner.kind === 'CHARACTER' && effect.definition.recurrence.lifetimeScope === 'ENCOUNTER'
-          ? input.state.id
+        (owner.kind === 'CHARACTER'
+          ? sourceEncounterIdForDefinition(effect.definition, effect.maintainedEffectStateId)
           : null) ||
       effect.maintainedEffectStateId !==
         (effect.id === recurring?.id ? (input.maintainedState?.id ?? null) : null)

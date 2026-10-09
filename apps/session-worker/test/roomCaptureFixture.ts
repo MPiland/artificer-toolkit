@@ -60,7 +60,10 @@ export function storedEffectDocument(effect: ActiveRuleEffectRecord): RoomDocume
         fields: {
           ...common,
           characterId: effect.owner.characterId,
-          sourceEncounterId: sourceEncounterIdForDefinition(effect.definition)
+          sourceEncounterId: sourceEncounterIdForDefinition(
+            effect.definition,
+            effect.maintainedEffectStateId
+          )
         }
       }
     : {

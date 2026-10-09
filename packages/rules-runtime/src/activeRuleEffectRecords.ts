@@ -32,10 +32,16 @@ export function ownerFor(input: ActiveRuleEffectOwner): ActiveRuleEffectOwner {
   }
 }
 
+/**
+ * The Run a Character-held effect belongs to while it lasts: its own Run for an `ENCOUNTER`-scoped
+ * effect, and for an `OWNER`-scoped one only while a Concentration state in that Run maintains it.
+ */
 export function sourceEncounterIdForDefinition(
-  definition: ActiveRuleEffectDefinitionDto
+  definition: ActiveRuleEffectDefinitionDto,
+  maintainedEffectStateId: string | null
 ): string | null {
-  if (definition.recurrence.lifetimeScope === 'OWNER') return null
+  if (definition.recurrence.lifetimeScope === 'OWNER' && maintainedEffectStateId === null)
+    return null
   if (definition.origin.kind !== 'ENCOUNTER')
     throw new Error('Encounter-lifetime active effects require an Encounter origin.')
   return definition.origin.sourceAggregateId
@@ -105,7 +111,9 @@ export function prepareActiveRuleEffectRecord(input: {
     id,
     owner,
     sourceEncounterId:
-      owner.kind === 'CHARACTER' ? sourceEncounterIdForDefinition(definition) : null,
+      owner.kind === 'CHARACTER'
+        ? sourceEncounterIdForDefinition(definition, maintainedEffectStateId)
+        : null,
     maintainedEffectStateId,
     createdOrdinal: Math.max(0, ...currentEffects.map((effect) => effect.createdOrdinal)) + 1,
     version: 1,

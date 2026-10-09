@@ -138,7 +138,7 @@ it.each([
     const effect = characterActiveRuleEffectStoredSchema.parse({
       id: uuid(0x907),
       characterId: owner.id,
-      sourceEncounterId: sourceEncounterIdForDefinition(definition),
+      sourceEncounterId: sourceEncounterIdForDefinition(definition, null),
       maintainedEffectStateId: null,
       createdOrdinal: 1,
       version: 1,

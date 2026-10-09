@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { postgresUuidSchema } from './postgresUuid.js'
 
 /** Mutable current lifecycle state. It never repeats immutable recurrence configuration. */
 export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
@@ -11,7 +12,12 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
      */
     expiresAtCampaignMinute: z.optional(
       z.nullable(z.number().check(z.int()).check(z.gte(0)).check(z.lte(Number.MAX_SAFE_INTEGER)))
-    )
+    ),
+    /**
+     * Set once a Concentration grant is carried out of its Run (D99, SPELLS-5.7): the Character that
+     * cast it, `null` when a Creature did. Another Concentration of that Character ends the grant.
+     */
+    concentrationCasterCharacterId: z.optional(z.nullable(postgresUuidSchema))
   })
 )
 

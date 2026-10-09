@@ -174,6 +174,33 @@ export function concentrationAction(
   }
 }
 
+/** The SRD Concentration state `ownerActorId` holds in the Run. */
+export function createConcentrationState(
+  store: ReturnType<typeof createActiveRuleEffectStore>,
+  input: { encounterId: string; ownerActorId: string }
+) {
+  const maintenanceDefinition = SRD_CONCENTRATION_DEFINITIONS.find(
+    (definition) => definition.id === SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+  )
+  if (!maintenanceDefinition)
+    throw new Error('Concentration maintenance definition is unavailable.')
+  return store.createMaintainedState({
+    id: crypto.randomUUID(),
+    encounterId: input.encounterId,
+    ownerActorId: input.ownerActorId,
+    descriptor: {
+      schemaVersion: 2,
+      maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+      definitionChecksum: maintenanceDefinition.checksum,
+      sourceActionId: crypto.randomUUID(),
+      sourceOccurrenceId: crypto.randomUUID(),
+      sourceActorId: input.ownerActorId,
+      replacementPolicy: 'REPLACE_SAME_DEFINITION',
+      emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
+    }
+  })
+}
+
 export async function seedConcentration(fixture: {
   t: Awaited<ReturnType<typeof setupCharacterRun>>['t']
   run: { id: string; gameSystemId: string }
@@ -187,27 +214,11 @@ export async function seedConcentration(fixture: {
   const blinded = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'BLINDED')
   const poisoned = srdSystemRecord.conditionTypes.find((condition) => condition.code === 'POISONED')
   if (!blinded || !poisoned) throw new Error('Concentration conditions are unavailable.')
-  const maintenanceDefinition = SRD_CONCENTRATION_DEFINITIONS.find(
-    (definition) => definition.id === SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
-  )
-  if (!maintenanceDefinition)
-    throw new Error('Concentration maintenance definition is unavailable.')
   return fixture.t.run(async (ctx) => {
     const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
-    const state = await store.createMaintainedState({
-      id: crypto.randomUUID(),
+    const state = await createConcentrationState(store, {
       encounterId: fixture.run.id,
-      ownerActorId: fixture.target.id,
-      descriptor: {
-        schemaVersion: 2,
-        maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
-        definitionChecksum: maintenanceDefinition.checksum,
-        sourceActionId: crypto.randomUUID(),
-        sourceOccurrenceId: crypto.randomUUID(),
-        sourceActorId: fixture.target.id,
-        replacementPolicy: 'REPLACE_SAME_DEFINITION',
-        emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY'
-      }
+      ownerActorId: fixture.target.id
     })
     const sourceOccurrenceId = crypto.randomUUID()
     const compiledEntryId = crypto.randomUUID()

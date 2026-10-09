@@ -257,7 +257,9 @@ store.
   turn movements, decision skips, effect and maintained-effect rows, spatial effects, and the command,
   rule receipt and evidence histories (`removeFinishedRunRowsPage` in `packages/encounter-persistence`).
   It also deletes the Character effects the Run sourced (`endCompletedRunCharacterEffects`, D99); a
-  Character's own timed grants stay and carry over to the Campaign clock.
+  Character's own timed grants stay and carry over to the Campaign clock. A Concentration grant a
+  Character holds is detached from the Run's maintained state (both Run links nulled) and stamped with its
+  caster in `lifecycle.concentrationCasterCharacterId` rather than deleted (SPELLS-5.7).
   A completed Run has no Scene binding, so bind commands on it are refused with `ENCOUNTER_NOT_ACTIVE`
   and lookups by Scene never resolve it. Several PREPARED or ACTIVE Runs may bind one Scene, so the
   binding table has no Scene index and no lookup ranks Runs: the fight played on a Scene is the
