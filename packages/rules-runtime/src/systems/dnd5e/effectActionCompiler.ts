@@ -2045,8 +2045,16 @@ function simpleOperation(key: string): ProposalRuleOperationContract {
   }
 }
 export const dnd5eHealProposalOperation = simpleOperation(DND5E_HEAL_PROPOSAL_OPERATION_KEY)
-/** A proposal that applies one fixed outcome to the target and carries no amount. */
-function targetOnlyProposalOperation(key: string, label: string): ProposalRuleOperationContract {
+/**
+ * A proposal that applies one fixed outcome to the target and carries no amount. With
+ * `changesTargetState` false the outcome stores nothing on the target (an Active Effect owns it), so
+ * a stored-state batch needs no application for it.
+ */
+function targetOnlyProposalOperation(
+  key: string,
+  label: string,
+  changesTargetState = true
+): ProposalRuleOperationContract {
   return {
     key,
     contractVersion: 1,
@@ -2059,7 +2067,8 @@ function targetOnlyProposalOperation(key: string, label: string): ProposalRuleOp
       targetActorId: RULE_VALUE_KIND.TEXT,
       applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
       authorized: RULE_VALUE_KIND.BOOLEAN,
-      targetStateChecksum: RULE_VALUE_KIND.TEXT
+      targetStateChecksum: RULE_VALUE_KIND.TEXT,
+      ...(changesTargetState ? {} : { changesTargetState: RULE_VALUE_KIND.BOOLEAN })
     },
     execute(inputs) {
       const targetActorId = inputs.targetActorId
@@ -2068,7 +2077,13 @@ function targetOnlyProposalOperation(key: string, label: string): ProposalRuleOp
         throw new Error(`D&D ${label} proposal requires a canonical target actor UUID.`)
       if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
         throw new Error(`D&D ${label} proposal requires target state checksum.`)
-      return { targetActorId, applicationCandidate: true, authorized: true, targetStateChecksum }
+      return {
+        targetActorId,
+        applicationCandidate: true,
+        authorized: true,
+        targetStateChecksum,
+        ...(changesTargetState ? {} : { changesTargetState: false })
+      }
     }
   }
 }
@@ -2078,7 +2093,8 @@ export const dnd5eStabilizeProposalOperation = targetOnlyProposalOperation(
 )
 export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
-  'modifier grant'
+  'modifier grant',
+  false
 )
 export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY

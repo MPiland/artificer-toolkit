@@ -10,7 +10,10 @@ import type {
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import { isCharacterSheetLivePlayCommand } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CharacterAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -59,21 +62,42 @@ if (!wolfBite || !wolfBiteEffect || wolfBiteEffect.invocation.kind !== 'ACTION')
   throw new Error('Missing Wolf Bite fixture.')
 const biteInvocation = wolfBiteEffect.invocation
 
-/** A one-damage, any-range action so the journey needs no Scene geometry. */
-function oneDamageBite() {
+/**
+ * A one-damage, any-range action so the journey needs no Scene geometry. With `save` the target
+ * rolls a DC 10 save of that ability and takes the damage on a failure, as poison damage when
+ * `poison` is set.
+ */
+function oneDamageBite(save?: { ability: 'CONSTITUTION'; poison: boolean }) {
+  const saveAbilityId = save
+    ? srdSystemRecord.abilities?.find((ability) => ability.code === save.ability)?.id
+    : undefined
+  const poisonId = srdSystemRecord.damageTypes?.find((type) => type.code === 'POISON')?.id
+  if (save && (!saveAbilityId || !poisonId)) throw new Error('Missing save fixture vocabulary.')
+  const anyRange = {
+    range: { id: biteInvocation.range.id, rangeKind: 'UNLIMITED' as const },
+    targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
+  }
+  const invocation: typeof biteInvocation = save
+    ? {
+        ...biteInvocation,
+        ...anyRange,
+        triggerCode: 'SAVING_THROW' as const,
+        savingThrow: {
+          id: crypto.randomUUID(),
+          dcMethod: 'FIXED_DC' as const,
+          abilityDefinitionId: saveAbilityId!,
+          baseDc: 10
+        }
+      }
+    : { ...biteInvocation, ...anyRange, triggerCode: 'ACTIVATED' as const }
   return {
     ...structuredClone(wolfBiteEffect!),
-    invocation: {
-      ...biteInvocation,
-      triggerCode: 'ACTIVATED' as const,
-      range: { id: biteInvocation.range.id, rangeKind: 'UNLIMITED' as const },
-      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
-    },
+    invocation,
     paths: wolfBiteEffect!.paths?.slice(0, 1).map((path) => {
       if (!('resultBlock' in path)) return path
       return {
         ...path,
-        pathCode: 'ON_USE' as const,
+        pathCode: save ? ('ON_SAVE_FAIL' as const) : ('ON_USE' as const),
         resultBlock: {
           ...path.resultBlock,
           outcomes: path.resultBlock.outcomes.map((outcome) => {
@@ -81,7 +105,7 @@ function oneDamageBite() {
             return {
               id: outcome.id,
               effectKind: 'DAMAGE' as const,
-              damageTypeId: outcome.damageTypeId,
+              damageTypeId: save?.poison ? poisonId! : outcome.damageTypeId,
               valueKind: 'FIXED' as const,
               scalingKind: 'NONE' as const,
               amount: 1
@@ -99,7 +123,7 @@ const deafenedCondition = srdSystemRecord.conditionTypes.find(
 if (!deafenedCondition) throw new Error('Missing Deafened condition.')
 export const deafened = deafenedCondition
 
-const creature = {
+const baseCreature = {
   ...wolf,
   id: crypto.randomUUID(),
   features: wolf.features?.map((feature) =>
@@ -111,8 +135,29 @@ const creature = {
  * An Assisted Run of one Character and one Creature that bites for one damage. withAlly also seats
  * the GM's own Character, who carries the SRD Healer's Kit.
  */
-export async function setup({ withAlly = false } = {}) {
-  const characterEffect = oneDamageBite()
+export async function setup({
+  withAlly = false,
+  allyItem = healersKit10Uses,
+  heroSave,
+  enemyCreatureTypeCode
+}: {
+  withAlly?: boolean
+  /** The equipment the GM's Character carries; its first effect is the ally's item action. */
+  allyItem?: EquipmentAuthored
+  /** Makes the hero's action a save the target rolls (see `oneDamageBite`). */
+  heroSave?: Parameters<typeof oneDamageBite>[0]
+  /** Replaces the enemy Creature's type, by its System code. */
+  enemyCreatureTypeCode?: string
+} = {}) {
+  const characterEffect = oneDamageBite(heroSave)
+  const enemyCreatureTypeId = enemyCreatureTypeCode
+    ? srdSystemRecord.creatureTypes?.find((type) => type.code === enemyCreatureTypeCode)?.id
+    : undefined
+  if (enemyCreatureTypeCode && !enemyCreatureTypeId) throw new Error('Missing creature type.')
+  const creature = {
+    ...baseCreature,
+    ...(enemyCreatureTypeId ? { creatureTypeId: enemyCreatureTypeId } : {})
+  }
   const base = await setupCharacterRun(
     {
       spellcasting: {
@@ -135,7 +180,7 @@ export async function setup({ withAlly = false } = {}) {
         }
       ]
     },
-    withAlly ? healersKit10Uses : undefined,
+    withAlly ? allyItem : undefined,
     withAlly
   )
   await attachRoomWorker(base.t)
@@ -228,13 +273,13 @@ export async function setup({ withAlly = false } = {}) {
         )?.ruleEvaluation.facts.actionCandidates.find(
           (candidate) =>
             candidate.activationSourceKind === 'ACTIVE_EQUIPMENT' &&
-            candidate.effectId === healersKit10Uses.effects?.[0]?.id
+            candidate.effectId === allyItem.effects?.[0]?.id
         )
       : undefined
-    if (base.gmCharacterId && !kitAction) throw new Error('Missing Healer’s Kit action.')
+    if (base.gmCharacterId && !kitAction) throw new Error('Missing ally item action.')
     return {
       hero: heroAction.actionId,
-      kit: kitAction?.actionId ?? null,
+      item: kitAction?.actionId ?? null,
       enemy: enemyAction.actionId
     }
   })

@@ -22,7 +22,8 @@ async function readIdentityLabel(
 
 /**
  * A contributor's source label and the Encounter actors it comes from. Source ids name their origin:
- * an active effect (`active-effect:<id>`, owned by and cast by actors), a basic action held by the
+ * an active effect (`active-effect:<id>`, or a grant's Character mechanic key `ACTIVE_EFFECT:<id>`;
+ * owned by and cast by actors), a basic action held by the
  * actor its domain key names (`basic-action:<holderId>`), a condition of the actor its domain key
  * names (`condition:<holderId>`, D94), or a key whose identities are the authored
  * source, item, feature or rule definition, the first of which with a label names it.
@@ -33,7 +34,11 @@ async function readContributorSource(
   conditionLabels: ReadonlyMap<string, string>
 ): Promise<{ label: string | null; actorIds: readonly string[]; hidden?: boolean }> {
   const parts = contributor.sourceId.split(':').map((part) => decodeURIComponent(part))
-  if (parts[0] === 'active-effect' || parts[0] === 'active-effect-perception') {
+  if (
+    parts[0] === 'active-effect' ||
+    parts[0] === 'active-effect-perception' ||
+    parts[0] === 'ACTIVE_EFFECT'
+  ) {
     const effectId = parts[1] ?? ''
     const encounterRow = await ctx.db
       .query('encounterActiveRuleEffects')

@@ -5,7 +5,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
-import { SRD_CREATURE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CREATURE_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -37,8 +40,8 @@ afterEach(() => {
 
 /**
  * The Fighter (who acts first) holds the real SRD Antitoxin; the biter acts second and its Bite
- * makes the Constitution save the Antitoxin is about. The GM answers every roll, so each save waits
- * for the room to show its derived mode.
+ * makes the Constitution save the Antitoxin is about. No roller auto-rolls, so each save waits
+ * as a prompt that shows its derived mode.
  */
 function antitoxinRoom(
   biteDamageType: 'POISON' | undefined,
@@ -49,14 +52,15 @@ function antitoxinRoom(
   })
   const biterActor = srdCreatureActor({ id: BITER_ID, creature: biter })
   const targetActor =
-    target === 'FIGHTER'
-      ? null
-      : srdCreatureActor({ id: TARGET_ID, creature: target.creature })
+    target === 'FIGHTER' ? null : srdCreatureActor({ id: TARGET_ID, creature: target.creature })
   return actionRoom({
-    autoRoll: 'GAME_MASTER',
     rolls: [],
     actors: [
-      characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
+      {
+        ...characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
+        // Initiative reads the Character's frozen identity, which a turn change checks.
+        snapshot: { kind: 'CHARACTER', id: FIGHTER_ID, systemId: srdSystemRecord.id }
+      },
       biterActor,
       ...(targetActor ? [targetActor] : [])
     ],

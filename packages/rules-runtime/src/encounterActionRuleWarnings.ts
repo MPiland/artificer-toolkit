@@ -40,13 +40,17 @@ export function evaluateEncounterActionRuleWarnings(input: {
   | { kind: 'UNACKNOWLEDGED'; warnings: EncounterRuleWarningDto[] }
   | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
   const { targeting } = input.target.targetPolicy
-  const excludedTypeIds = targeting?.excludedCreatureTypeIds ?? []
+  const excludedTypeIds =
+    (targeting?.selectionKind !== 'SELF' && targeting?.excludedCreatureTypeIds) || []
   const targetWarnings = evaluateEncounterActionTargetPolicy({
     ...input.target,
     targetPolicy: {
       ...input.target.targetPolicy,
       // The exclusion is a warning of its own below, not an unsupported target.
-      targeting: targeting && { ...targeting, excludedCreatureTypeIds: [] }
+      targeting:
+        targeting?.selectionKind === 'SELF' || !targeting
+          ? targeting
+          : { ...targeting, excludedCreatureTypeIds: [] }
     }
   })
   if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
