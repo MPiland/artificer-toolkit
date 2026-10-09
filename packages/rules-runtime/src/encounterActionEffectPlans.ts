@@ -62,6 +62,8 @@ export function prepareEncounterActionEffectPlans(input: {
   sourceLabel: string | null
   /** Whether the acting actor is hidden from players; frozen with the label. */
   sourceHidden: boolean
+  /** The Run's current actor, whose turn the action is taken in; null before the Run starts. */
+  currentActorId: string | null
   target: {
     actorId: string
     conditionIds: readonly string[]
@@ -239,6 +241,17 @@ function prepareRecurringActiveEffect(
           : [])
       ].filter((conditionId, index, values) => values.indexOf(conditionId) === index)
     : []
+  const tickAnchor = grantContribution?.tickAnchor ?? 'HOLDER'
+  // A grant made on its anchor actor's own turn would otherwise lose a counted turn to the very
+  // end of turn it was made in, so "until the end of the next turn" counts one more.
+  const initialRemaining =
+    plan.initialRemaining !== null &&
+    grantContribution &&
+    plan.recurrenceStage === 'END_OF_TURN' &&
+    input.currentActorId ===
+      (grantContribution.tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
+      ? plan.initialRemaining + 1
+      : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: conditionContribution || relationshipContribution || grantContribution ? 2 : 1,
     origin: {
@@ -255,19 +268,20 @@ function prepareRecurringActiveEffect(
     adapterFacts: plan.adapterFacts,
     perceptionContributions: plan.perceptionContributions,
     recurrence: {
-      recurrenceStage: plan.recurrenceStage,
-      consumeOnFirstEvent: null,
+      // The grant tick planner counts a grant, so the turn-effect kernel never selects it.
+      recurrenceStage: grantContribution ? 'NONE' : plan.recurrenceStage,
+      consumeOnFirstEvent: grantContribution?.consumeOnFirstEvent ?? null,
       endOnEvents: [],
       // A grant outlasts the Encounter only when the target's lifetime scope says so.
       lifetimeScope: grantContribution ? input.target.lifetimeScope : 'ENCOUNTER',
       expiration:
-        plan.initialRemaining === null
+        initialRemaining === null
           ? { kind: 'INDEFINITE' }
           : {
               kind: 'TICKS',
-              initialRemaining: plan.initialRemaining,
+              initialRemaining,
               decrementStage: plan.recurrenceStage,
-              anchor: 'HOLDER'
+              anchor: tickAnchor
             }
     },
     ...(conditionContribution || relationshipContribution || grantContribution
@@ -331,7 +345,7 @@ function prepareRecurringActiveEffect(
     definition,
     lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
       schemaVersion: 1,
-      remainingTicks: plan.initialRemaining
+      remainingTicks: initialRemaining
     })
   }
 }

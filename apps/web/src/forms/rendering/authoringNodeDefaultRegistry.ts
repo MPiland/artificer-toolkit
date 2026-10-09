@@ -80,6 +80,7 @@ type AuthoringDefaultKind =
   | 'outcomeBonus'
   | 'pathChoiceOption'
   | 'pathLifecycle'
+  | 'pathLifecycleTurnAnchor'
   | 'pathRollTableRow'
   | 'proficiencyGrant'
   | 'raceAncestry'
@@ -203,6 +204,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
   pathLifecycle: ['pathLifecycle'],
+  pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
   proficiencyGrant: ['proficiencyGrant'],
   raceAncestry: ['raceAncestry'],

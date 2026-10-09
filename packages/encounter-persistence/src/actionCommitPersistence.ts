@@ -38,7 +38,9 @@ import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { changedFields, readRunActors, writeRunActor } from './documents.js'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import { insertRunCommand } from './timelineEntries.js'
@@ -318,6 +320,14 @@ export async function persistEncounterActionCommit(
     uses: input.allyAdvantageUses,
     rollerActorIds: [source.id]
   })
+  // The attacker's one-roll grants (Vicious Mockery's disadvantage) end with the roll.
+  const effectStore = createActiveRuleEffectStore(ctx)
+  for (const grant of input.consumedGrants)
+    await effectStore.deleteCas({
+      id: grant.id,
+      owner: turnEffectOwner(source, state.id),
+      expectedVersion: grant.version
+    })
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
     (source.kind === 'CHARACTER' && source.id !== target.id
@@ -480,6 +490,7 @@ export async function persistEncounterActionCommit(
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: input.allyAdvantageUses,
+      consumedGrants: input.consumedGrants,
       commandFingerprint: fingerprint,
       actorUserId: initiatorUserId,
       version: nextState.version,

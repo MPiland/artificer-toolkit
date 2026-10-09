@@ -321,6 +321,10 @@ export const pathRollTableKindSchema = lazySchema(() => z.enum(['RANGE', 'EXACT'
 export const pathLifecycleRecurringKindSchema = lazySchema(() =>
   z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN'])
 )
+export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', 'SOURCE']))
+export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
+  z.enum(['START_OF_TURN', 'END_OF_TURN'])
+)
 export const pathLifecycleConsumeEventSchema = lazySchema(() =>
   z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
 )

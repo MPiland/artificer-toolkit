@@ -1140,7 +1140,9 @@ function timedImmediateConditionPlan(
 /**
  * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
- * target's turns down. Senses and proficiencies are not carried, so such a grant stays manual.
+ * turns of its authored anchor down (the holder's end of turn unless the lifecycle says otherwise).
+ * The lifecycle may also have the first attack roll use the grant up. Senses, proficiencies and any
+ * other lifecycle are not carried, so such a grant stays manual.
  */
 function modifierGrantPlan(
   action: Dnd5eCompiledEffectActionSource
@@ -1149,12 +1151,16 @@ function modifierGrantPlan(
   if (!entry || !('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
+  const { turnAnchor, consumeOnFirstEvent, ...otherLifecycle } = entry.lifecycle ?? {}
   if (
     !grants.modifiers?.length ||
     grants.senses?.length ||
     grants.proficiencies?.length ||
     initialRemaining === null ||
-    entry.lifecycle ||
+    // A grant created on its anchor's own turn is stored one turn longer (see the Encounter planner).
+    initialRemaining >= MAX_ACTIVE_EFFECT_TURNS ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    (consumeOnFirstEvent !== undefined && consumeOnFirstEvent !== 'ON_ATTACK_ROLL') ||
     entry.maintenanceDefinitionId ||
     !UUID.test(entry.entryId)
   )
@@ -1164,11 +1170,13 @@ function modifierGrantPlan(
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'modifier-grant',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'END_OF_TURN',
+    recurrenceStage: turnAnchor?.boundary ?? 'END_OF_TURN',
     initialRemaining,
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
-      modifiers: buildCharacterGrantFoldModifierFacts(grants.modifiers.map(compileModifierGrant))
+      modifiers: buildCharacterGrantFoldModifierFacts(grants.modifiers.map(compileModifierGrant)),
+      tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
+      consumeOnFirstEvent: consumeOnFirstEvent ?? null
     },
     adapterFacts: {},
     perceptionContributions: [],
@@ -1176,7 +1184,10 @@ function modifierGrantPlan(
   }
 }
 
-/** The recurrence graph of a timed condition or grant: one pure node the holder's turn ends tick. */
+/**
+ * The frozen graph of a timed condition or grant: one pure node. A condition's holder turn ends
+ * tick it through the turn-effect kernel; a grant is counted by the grant tick planner instead.
+ */
 function durationPublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
@@ -6753,16 +6764,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       graph.source.gameSystemId !== DND5E_SYSTEM_ID
     )
       throw new Dnd5eEffectActionCompilerError('D&D active-effect execution source is invalid.')
-    // A timed grant ends after the holder's last counted turn; it changes no stored target state.
-    if (
-      definition.schemaVersion === 2 &&
-      definition.stateContributions.some((contribution) => contribution.kind === 'MODIFIER_GRANT')
-    )
-      return {
-        applications: [],
-        terminal: lifecycle.remainingTicks === 1,
-        emptyApplicationAllowed: true
-      }
     // A timed condition (D62.2) ends after the target's last counted turn.
     const timedConditionId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]
     if (timedConditionId !== undefined) {

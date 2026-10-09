@@ -345,6 +345,68 @@ export const PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS = valuesOf(
   PATH_LIFECYCLE_CONSUME_EVENT_REGISTRY
 ) as readonly PathLifecycleConsumeEventOption[]
 
+export const PATH_LIFECYCLE_TURN_ACTOR = {
+  TARGET: 'TARGET',
+  SOURCE: 'SOURCE'
+} as const
+
+export type PathLifecycleTurnActor = keyof typeof PATH_LIFECYCLE_TURN_ACTOR
+
+export type PathLifecycleTurnActorOption = CoreMeta<PathLifecycleTurnActor>
+
+export const PATH_LIFECYCLE_TURN_ACTOR_REGISTRY: Record<
+  PathLifecycleTurnActor,
+  PathLifecycleTurnActorOption
+> = {
+  [PATH_LIFECYCLE_TURN_ACTOR.TARGET]: {
+    code: PATH_LIFECYCLE_TURN_ACTOR.TARGET,
+    label: 'Target',
+    description: 'The duration counts down on the turns of the creature the effect is on.',
+    tooltip: 'Counted on the target’s turns.'
+  },
+  [PATH_LIFECYCLE_TURN_ACTOR.SOURCE]: {
+    code: PATH_LIFECYCLE_TURN_ACTOR.SOURCE,
+    label: 'Source',
+    description: 'The duration counts down on the turns of the creature that created the effect.',
+    tooltip: 'Counted on the source’s turns.'
+  }
+} as const
+
+export const PATH_LIFECYCLE_TURN_ACTOR_OPTIONS = valuesOf(
+  PATH_LIFECYCLE_TURN_ACTOR_REGISTRY
+) as readonly PathLifecycleTurnActorOption[]
+
+export const PATH_LIFECYCLE_TURN_BOUNDARY = {
+  START_OF_TURN: 'START_OF_TURN',
+  END_OF_TURN: 'END_OF_TURN'
+} as const
+
+export type PathLifecycleTurnBoundary = keyof typeof PATH_LIFECYCLE_TURN_BOUNDARY
+
+export type PathLifecycleTurnBoundaryOption = CoreMeta<PathLifecycleTurnBoundary>
+
+export const PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY: Record<
+  PathLifecycleTurnBoundary,
+  PathLifecycleTurnBoundaryOption
+> = {
+  [PATH_LIFECYCLE_TURN_BOUNDARY.START_OF_TURN]: {
+    code: PATH_LIFECYCLE_TURN_BOUNDARY.START_OF_TURN,
+    label: 'Start Of Turn',
+    description: 'One round of the duration passes at the start of that creature’s turn.',
+    tooltip: 'Counted at turn start.'
+  },
+  [PATH_LIFECYCLE_TURN_BOUNDARY.END_OF_TURN]: {
+    code: PATH_LIFECYCLE_TURN_BOUNDARY.END_OF_TURN,
+    label: 'End Of Turn',
+    description: 'One round of the duration passes at the end of that creature’s turn.',
+    tooltip: 'Counted at turn end.'
+  }
+} as const
+
+export const PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS = valuesOf(
+  PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY
+) as readonly PathLifecycleTurnBoundaryOption[]
+
 export const PATH_LIFECYCLE_END_EVENT = {
   ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
   ON_CAST_SPELL: 'ON_CAST_SPELL',

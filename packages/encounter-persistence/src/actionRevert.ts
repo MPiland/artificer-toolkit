@@ -25,6 +25,7 @@ import {
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
 import {
   encounterBasicActionEffects,
@@ -416,6 +417,14 @@ export async function revertLastEncounterAction(
       encounterId: state.id,
       ownerActorId: created.sourceActorId,
       expectedVersion: created.version
+    })
+  // The attacker's grants the roll used up come back with their remaining count.
+  for (const grant of root.consumedGrants)
+    await store.create({
+      id: grant.id,
+      owner: turnEffectOwner(source, state.id),
+      definition: grant.definition,
+      lifecycle: grant.lifecycle
     })
 
   const updatedAt = new Date().toISOString()

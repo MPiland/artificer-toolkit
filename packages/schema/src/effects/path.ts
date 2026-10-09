@@ -31,6 +31,8 @@ import {
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
   pathLifecycleRecurringKindSchema,
+  pathLifecycleTurnActorSchema,
+  pathLifecycleTurnBoundarySchema,
   pathOriginKindSchema,
   pathRollTableKindSchema
 } from '../shared/enums.js'
@@ -107,6 +109,12 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
 export const pathLifecycleDtoSchema = lazySchema(() =>
   z.object({
     recurringKind: z.optional(pathLifecycleRecurringKindSchema),
+    turnAnchor: z.optional(
+      z.strictObject({
+        actor: pathLifecycleTurnActorSchema,
+        boundary: pathLifecycleTurnBoundarySchema
+      })
+    ),
     consumeOnFirstEvent: z.optional(pathLifecycleConsumeEventSchema),
     endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema))
   })

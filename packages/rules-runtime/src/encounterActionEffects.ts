@@ -81,6 +81,7 @@ export function prepareNativeActionEffectsPlan<
         ? prepared.source.capability.label
         : (prepared.source.candidate.label ?? null),
     sourceHidden: !prepared.actor.public,
+    currentActorId: prepared.state.currentActorId,
     target: {
       actorId: prepared.target.id,
       conditionIds: target.characterFacts

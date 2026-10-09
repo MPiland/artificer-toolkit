@@ -10,6 +10,8 @@ import {
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { rollRecordDtoSchema } from '../api/rolls.js'
+import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
+import { activeRuleEffectRecordSchema } from './activeRuleEffectPersistence.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots. Projections are built
 // on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
@@ -235,7 +237,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
       ruleOverrides: encounterRuleWarningsDtoSchema,
       /** The ally advantages (Help) the action's rolls used; its undo gives them back. */
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema
+      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+      /** The attacker's grants this attack roll used up; its undo gives them back. */
+      consumedGrants: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('USE_BASIC_ACTION'),

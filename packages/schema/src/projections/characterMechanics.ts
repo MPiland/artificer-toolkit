@@ -147,7 +147,9 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       z.nullable(
         z.strictObject({
           applyGrantOutcomeId: serverUuidIdentityDtoSchema,
-          modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200))
+          modifiers: z.array(modifierOperationSchema).check(z.minLength(1)).check(z.maxLength(200)),
+          tickAnchor: z.enum(['HOLDER', 'SOURCE']),
+          consumeOnFirstEvent: z.nullable(z.literal('ON_ATTACK_ROLL'))
         })
       ),
       null

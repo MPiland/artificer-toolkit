@@ -29,6 +29,7 @@ import { readEncounterInitiativeRound } from './initiativeStore.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
+import { persistEncounterGrantTicks } from './grantTickPersistence.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import {
   persistEncounterTurnDeathSave,
@@ -172,6 +173,11 @@ export async function persistEncounterTurnCommit(
         callbacks.applyMechanics
       )
     : null
+  await persistEncounterGrantTicks(ctx, {
+    state,
+    stage: 'END_OF_TURN',
+    turnActorId: state.currentActorId
+  })
   await persistEncounterTurnResources(
     ctx,
     {
@@ -232,6 +238,11 @@ export async function persistEncounterTurnCommit(
     },
     callbacks.applyMechanics
   )
+  await persistEncounterGrantTicks(ctx, {
+    state,
+    stage: 'START_OF_TURN',
+    turnActorId: root.proposedTerminalTransition.currentActorId
+  })
   const nextState = encounterRunStateSchema.parse({
     ...state,
     ...root.proposedTerminalTransition,
