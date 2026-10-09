@@ -4845,24 +4845,37 @@
         {
           "id": "SPELLS-5",
           "title": "Grants apply through APPLY_GRANT",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "IN_PROGRESS",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
+            "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+          ],
+          "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
-              "text": "In an Assisted Run a Character uses Antitoxin on a creature: for 1 hour that creature's saves against poison (failing applies Poisoned or deals poison damage) have advantage with \"Antitoxin\" as the reason, and its other saves don't; an undead or construct target gives an overridable warning.",
-              "status": "TODO",
-              "proof": [],
+              "text": "In an Assisted Run a Character uses Antitoxin on a creature: for 1 hour that creature's saves against poison (failing applies Poisoned or deals poison damage) have advantage with the item's label (\"Antitoxin (vial)\") as the reason, and its other saves don't; an undead or construct target gives an overridable warning.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts › an Antitoxin used in an Assisted Run (SPELLS-5.1) (Creature advantage on poison saves only; a Character the same; undead TARGET_CREATURE_TYPE_EXCLUDED warning applies nothing until overridden)",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts › an Antitoxin used in an Assisted Run (SPELLS-5.1) (advantage with the item label as the reason; undead warning and override)",
+                "packages/rules-runtime/src/__tests__/encounterActionExecution.test.ts › compiles the SRD Antitoxin to a timed grant of poison-scoped save advantage (600 ticks)",
+                "packages/rules-runtime/src/__tests__/encounterActiveGrants.test.ts; packages/rules-runtime/src/__tests__/encounterActionSaves.test.ts (poison-scoped saves); packages/rules-runtime/src/__tests__/encounterActionRuleWarnings.test.ts (creature-type exclusion)",
+                "impl: packages/rules-runtime/src/encounterActiveGrants.ts; packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/encounter-persistence/src/rollModeReasons.ts"
+              ],
               "origin": [],
-              "note": "D99. Journey through the room and Convex.",
+              "note": "D99. Journey through the room and Convex. The reason is the granting item's authored label.",
               "id": "SPELLS-5.1"
             },
             {
-              "text": "GM undo of the item use removes the grant and gives back the item use; rolls already made stay on the record.",
-              "status": "TODO",
-              "proof": [],
+              "text": "GM undo of the item use removes the grant and gives back the Action; rolls already made stay on the record.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts › a GM undo of an Antitoxin use (SPELLS-5.2) (grant removed, use stays in the history, the Action is back and the grant reapplies)",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts › a GM undo of an Antitoxin use (SPELLS-5.2) (the Action is back; after undo the poison save has no advantage and no reason)"
+              ],
               "origin": [],
+              "note": "D99. The item's own return on undo is SPELLS-11.3 (single-use items are used up).",
               "id": "SPELLS-5.2"
             },
             {
