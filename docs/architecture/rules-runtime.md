@@ -460,6 +460,19 @@ owner gets at most one window, and the turn resumes after the queue is terminal
 (`encounterTurnLegendaryDiscovery`, `discoverTurnLegendaryWindows`). A Feature option may run another
 action Feature of the same Creature through `actionReference: { featureId, chargeCost }`.
 
+**Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
+effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
+which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as the
+contribution's `tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
+turn" outlasts the current one. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
+never selects them; `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every grant
+anchored to the boundary actor, whoever holds it, and `persistEncounterGrantTicks` writes it in the turn
+commit's transaction. A `consumeOnFirstEvent: 'ON_ATTACK_ROLL'` grant is deleted by its holder's next
+attack-roll action (not a save action) and stored on the command as `consumedGrants`, which GM undo
+restores, mirroring Help's ally advantage. Known limits: a SOURCE-anchored grant whose source leaves the Run
+keeps its count until the Run ends; opportunity attacks and Disarm do not consume grants.
+
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
 damage source against a maintained state, with the DC from that source's total damage. Assisted mode

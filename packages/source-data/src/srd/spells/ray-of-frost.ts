@@ -124,6 +124,7 @@ export const rayOfFrost: SpellAuthored = {
               durationKind: DURATION_KIND.ROUND,
               amount: 1
             },
+            lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RAY_OF_FROST, 0x213, 1),

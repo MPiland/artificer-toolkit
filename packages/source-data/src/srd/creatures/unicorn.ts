@@ -458,6 +458,7 @@ export const unicorn: CreatureAuthored = {
                       durationKind: 'ROUND',
                       amount: 1
                     },
+                    lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
                     outcomes: [
                       {
                         id: '00000000-0005-0008-0070-011400000000',

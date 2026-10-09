@@ -4888,10 +4888,16 @@
             },
             {
               "text": "A grant can end at the start or end of the holder's or the source's next turn, after N rounds, or on the holder's next attack roll; the real SRD data for Shield, Shocking Grasp, Ray of Frost, Vicious Mockery and the Unicorn compiles to those lifetimes.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (four anchor and boundary combinations; N rounds; one more turn when made on the anchor's own turn; tick planner by HOLDER and SOURCE anchor, Character- and Creature-held; kernel never selects grants; ON_ATTACK_ROLL consumption on attack actions only; the real Shield, Shocking Grasp, Ray of Frost, Vicious Mockery and Unicorn records)",
+                "packages/source-data/src/srd/grantAnchors.test.ts › SRD grant turn anchors (D99)",
+                "packages/schema/src/__tests__/path-lifecycle-turn-anchor.test.ts",
+                "apps/session-worker/test/nativeRoomGrantLifetimes.test.ts (a source-anchored grant ends at the source's next start of turn and not before; an attack-roll grant is used up by the holder's attack and restored by GM undo)",
+                "impl: packages/rules-runtime/src/encounterGrantLifetimes.ts; packages/encounter-persistence/src/grantTickPersistence.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts"
+              ],
               "origin": [],
-              "note": "D99. Unit tests against the SRD corpus.",
+              "note": "D99. Unit tests against the SRD corpus. Grants tick outside the turn-effect kernel (rules-runtime.md, Grant lifetimes).",
               "id": "SPELLS-5.4"
             },
             {
