@@ -3843,14 +3843,14 @@
         {
           "id": "ENCOUNTER-7",
           "title": "Every turn-stage roll posts one roll card",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": ["apps/session-worker/test/nativeRoomLegendary.test.ts"],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Recharge and Legendary Action dice, whether auto-rolled, app-rolled or entered, each post exactly one roll card routed like other rule rolls (Table for a player's actor, GM private history for a hidden actor, the GM's preference otherwise), as the turn-start death save does.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "apps/session-worker/test/nativeRoomTurnEffects.test.ts",
                 "apps/session-worker/test/nativeRoomLegendary.test.ts",
@@ -3862,7 +3862,7 @@
             },
             {
               "text": "An action d20 rolled by the app posts one card, not an attempt card plus a second card at commit.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "apps/session-worker/test/nativeRoomEvidence.test.ts",
                 "apps/session-worker/test/nativeRoomLegendary.test.ts"
@@ -4383,7 +4383,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Invisible, unseen and hidden attackers grant advantage or disadvantage in RESOLVE_ACTION, and Dodge checks sight.",
+              "text": "Invisible and unseen attackers and targets grant advantage or disadvantage in RESOLVE_ACTION, and Dodge checks sight.",
               "status": "TODO",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
