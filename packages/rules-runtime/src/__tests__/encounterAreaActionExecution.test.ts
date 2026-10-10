@@ -8,6 +8,7 @@ import {
   TRIGGER
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
@@ -36,6 +37,65 @@ const ALLY_ID = '00000000-0000-4000-8000-0000000f1002'
 const FOE_ID = '00000000-0000-4000-8000-0000000f1003'
 const WARDED_FOE_ID = '00000000-0000-4000-8000-0000000f1004'
 const ACID = srdDamageTypeId('ACID')
+const FIRE = srdDamageTypeId('FIRE')
+
+/**
+ * SRD Fireball as the Creature Feature a monster would carry. Two things differ from the authored
+ * spell, both because a Creature Feature has no spellcaster behind it: a fixed DC of 13 in place of
+ * SOURCE_SAVE_DC, and the damage taken at its base cast level (3rd) from the authored row, since a
+ * Creature Feature has no cast level to scale by, and an authored HALF amount in the multiplier a
+ * Creature Feature states it with. The area, range, save, fire damage and half on a
+ * success are the SRD data.
+ */
+function fireball(): CreatureFeature {
+  const effect = srdSpells.find((spell) => spell.label === 'Fireball')?.effects?.[0]
+  if (effect?.invocation.triggerCode !== 'SAVING_THROW')
+    throw new Error('SRD Fireball is not a saving-throw action.')
+  const { invocation } = effect
+  return {
+    id: FEATURE_ID,
+    label: 'Fireball',
+    description: 'SRD Fireball as a Creature Feature.',
+    order: 1,
+    effects: [
+      {
+        ...effect,
+        invocation: {
+          ...invocation,
+          savingThrow: { ...invocation.savingThrow, dcMethod: 'FIXED_DC' as const, baseDc: 13 }
+        },
+        paths: effect.paths.map((path) => {
+          if (!('resultBlock' in path) || path.resultBlock.resultKind !== 'SINGLE')
+            throw new Error('SRD Fireball paths are single results.')
+          return {
+            ...path,
+            resultBlock: {
+              ...path.resultBlock,
+              outcomes: path.resultBlock.outcomes.map((outcome) => {
+                if (outcome.effectKind !== 'DAMAGE' || !('levels' in outcome)) return outcome
+                const { levels, scalingSource, amountKind, ...rest } = outcome
+                void scalingSource
+                const row = levels.find((level) => level.level === 3)
+                if (!row || !('diceConfig' in row))
+                  throw new Error('SRD Fireball has no base-level dice row.')
+                return {
+                  ...rest,
+                  valueKind: 'DICE' as const,
+                  scalingKind: 'NONE' as const,
+                  diceConfig: row.diceConfig,
+                  ...(amountKind === 'HALF' ? { multiplier: 0.5 } : {})
+                }
+              })
+            }
+          }
+        })
+      }
+    ]
+  }
+}
+
+/** Eight d6 faces (0-based) that total 27: 4 + 5 + 1 + 2 + 6 + 3 + 4 + 2. */
+const EIGHT_D6 = [3, 4, 0, 1, 5, 2, 3, 1]
 
 /**
  * "Acid Cloud": a DC 13 Dexterity save for 2d6 acid damage on a failure and, when `half` is
@@ -121,26 +181,29 @@ const runtime = createPlatformRulesRuntime({
 })
 
 /** The caster stands in its own area, beside an ally, a foe and a foe resistant to acid. */
-function areaActors(feature: ReturnType<typeof acidCloud>) {
+function areaActors(feature: CreatureFeature, resisted: string) {
   const caster = creatureActor({
     id: CASTER_ID,
     label: 'Caster',
     features: [feature],
     disposition: 'FRIENDLY',
-    damageResistanceIds: [ACID]
+    damageResistanceIds: [resisted],
+    hitPoints: 100
   })
   const ally = creatureActor({
     id: ALLY_ID,
     label: 'Ally',
     features: [],
-    disposition: 'FRIENDLY'
+    disposition: 'FRIENDLY',
+    hitPoints: 100
   })
-  const foe = creatureActor({ id: FOE_ID, label: 'Foe', features: [] })
+  const foe = creatureActor({ id: FOE_ID, label: 'Foe', features: [], hitPoints: 100 })
   const wardedFoe = creatureActor({
     id: WARDED_FOE_ID,
     label: 'Warded foe',
     features: [],
-    damageResistanceIds: [ACID]
+    damageResistanceIds: [resisted],
+    hitPoints: 100
   })
   return { caster, ally, foe, wardedFoe }
 }
@@ -231,7 +294,10 @@ function applied(settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>,
  * Each target's settled damage wrapped as the persisted mechanics DTO the Concentration planner
  * reads. The amounts come from the settlement; the receipt shell around them is fixture data.
  */
-function damageBatches(settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>) {
+function damageBatches(
+  settled: Awaited<ReturnType<typeof settleEncounterAreaAction>>,
+  damageTypeId: string
+) {
   return settled.map((entry) => ({
     targetActorId: entry.actorId,
     applications: entry.complete.applications.flatMap((application, ordinal) =>
@@ -248,7 +314,7 @@ function damageBatches(settled: Awaited<ReturnType<typeof settleEncounterAreaAct
               beforeTemporaryHitPoints: 0,
               afterTemporaryHitPoints: 0,
               maximumHitPoints: 40,
-              damageTypeId: ACID,
+              damageTypeId,
               damageDisposition: 'NORMAL',
               critical: false,
               sourceNodeId: application.sourceNodeId,
@@ -297,7 +363,7 @@ describe('catching the creatures in an area', () => {
 
 describe('an area action executed as one occurrence', () => {
   it('asks each caught creature for its own save, to its own roller, without rolling damage', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [caster, ally, foe])
     const dice = scriptedRandom([])
     const tests = await prepareEncounterAreaTests({ ...source, random: dice.random })
@@ -316,7 +382,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('answers the saves in any order and keeps the others waiting', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [caster, ally, foe])
     const pending = await prepareEncounterAreaTests(source)
     const afterFoe = await answerEncounterAreaTest({
@@ -343,7 +409,7 @@ describe('an area action executed as one occurrence', () => {
       settleEncounterAreaAction({
         ...source,
         tests,
-        random: scriptedRandom([3, 4]).random
+        random: scriptedRandom(EIGHT_D6).random
       })
     const [settledForward, settledBackward] = await Promise.all([settle(forward), settle(backward)])
     for (const actorId of [CASTER_ID, ALLY_ID, FOE_ID])
@@ -351,7 +417,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('does not settle while any caught creature has not answered its save', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [caster, ally, foe])
     const pending = await prepareEncounterAreaTests(source)
     await expect(settleEncounterAreaAction({ ...source, tests: pending })).rejects.toThrow(
@@ -360,7 +426,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('rolls damage once for the whole area; a failure takes it all and a success half, after each creature’s own resistance', async () => {
-    const { caster, ally, foe, wardedFoe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe, wardedFoe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [caster, ally, foe, wardedFoe])
     // Natural 10 + DEX 2 = 12 fails DC 13; natural 11 = 13 succeeds.
     const tests = await answerSaves(
@@ -369,24 +435,29 @@ describe('an area action executed as one occurrence', () => {
       [CASTER_ID, ALLY_ID, FOE_ID, WARDED_FOE_ID]
     )
     // One 2d6 roll of 4 and 5, taken from the script exactly once.
-    const dice = scriptedRandom([3, 4])
+    const dice = scriptedRandom(EIGHT_D6)
     const settled = await settleEncounterAreaAction({ ...source, tests, random: dice.random })
 
-    expect(dice.maximums).toEqual([6, 6])
+    expect(dice.maximums).toEqual(EIGHT_D6.map(() => 6))
     expect(dice.remaining()).toBe(0)
-    // 9 damage: the foe fails (9); the ally succeeds (4); the warded foe fails and resists (4);
-    // the caster succeeds (4) and resists (2).
-    expect(applied(settled, FOE_ID)).toEqual([9])
-    expect(applied(settled, ALLY_ID)).toEqual([4])
-    expect(applied(settled, WARDED_FOE_ID)).toEqual([4])
-    expect(applied(settled, CASTER_ID)).toEqual([2])
+    // 8d6 rolled 27: the foe fails (27); the ally succeeds (13, rounded down); the warded foe fails
+    // and resists fire (13); the caster succeeds (13) and resists fire (6).
+    expect(applied(settled, FOE_ID)).toEqual([27])
+    expect(applied(settled, ALLY_ID)).toEqual([13])
+    expect(applied(settled, WARDED_FOE_ID)).toEqual([13])
+    expect(applied(settled, CASTER_ID)).toEqual([6])
+    expect(
+      settled.flatMap((entry) =>
+        entry.complete.applications.flatMap((a) => (a.kind === 'DAMAGE' ? [a.damageTypeId] : []))
+      )
+    ).toEqual([FIRE, FIRE, FIRE, FIRE])
     expect(
       settled.every((entry) => entry.complete.applications.every((a) => 'targetActorId' in a))
     ).toBe(true)
   })
 
   it('refuses a creature whose outcome would roll different dice than the frozen damage', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: true, successDice: '2d8' }))
+    const { caster, ally, foe } = areaActors(acidCloud({ half: true, successDice: '2d8' }), ACID)
     const source = await areaSource(caster, [caster, ally, foe])
     const tests = await answerSaves(source, { [CASTER_ID]: 10, [ALLY_ID]: 11, [FOE_ID]: 10 }, [
       CASTER_ID,
@@ -399,7 +470,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('takes a Legendary Resistance success on one failed save without touching the others or the damage', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [ally, foe])
     const tests = await answerSaves(source, { [ALLY_ID]: 10, [FOE_ID]: 10 }, [ALLY_ID, FOE_ID])
     const allyTest = tests.find((test) => test.actorId === ALLY_ID)
@@ -407,7 +478,7 @@ describe('an area action executed as one occurrence', () => {
     const { boundary } = allyTest
     expect(boundary.execution.outputs.resultPath).toBe('ON_SAVE_FAIL')
 
-    const dice = scriptedRandom([3, 4])
+    const dice = scriptedRandom(EIGHT_D6)
     const settled = await settleEncounterAreaAction({
       ...source,
       tests,
@@ -444,13 +515,13 @@ describe('an area action executed as one occurrence', () => {
       ])
     })
 
-    expect(applied(settled, ALLY_ID)).toEqual([4])
-    expect(applied(settled, FOE_ID)).toEqual([9])
-    expect(dice.maximums).toEqual([6, 6])
+    expect(applied(settled, ALLY_ID)).toEqual([13])
+    expect(applied(settled, FOE_ID)).toEqual([27])
+    expect(dice.maximums).toEqual(EIGHT_D6.map(() => 6))
   })
 
   it('refuses a Legendary Resistance decision sealed against another creature’s save', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [ally, foe])
     const tests = await answerSaves(source, { [ALLY_ID]: 10, [FOE_ID]: 10 }, [ALLY_ID, FOE_ID])
     const foeTest = tests.find((test) => test.actorId === FOE_ID)
@@ -460,7 +531,7 @@ describe('an area action executed as one occurrence', () => {
       settleEncounterAreaAction({
         ...source,
         tests,
-        random: scriptedRandom([3, 4]).random,
+        random: scriptedRandom(EIGHT_D6).random,
         legendaryResistance: new Map([
           [
             ALLY_ID,
@@ -495,7 +566,7 @@ describe('an area action executed as one occurrence', () => {
   })
 
   it('yields one Concentration damage entry for each damaged creature', async () => {
-    const { caster, ally, foe, wardedFoe } = areaActors(acidCloud({ half: true }))
+    const { caster, ally, foe, wardedFoe } = areaActors(fireball(), FIRE)
     const source = await areaSource(caster, [ally, foe, wardedFoe])
     const tests = await answerSaves(source, { [ALLY_ID]: 11, [FOE_ID]: 10, [WARDED_FOE_ID]: 10 }, [
       ALLY_ID,
@@ -505,20 +576,20 @@ describe('an area action executed as one occurrence', () => {
     const settled = await settleEncounterAreaAction({
       ...source,
       tests,
-      random: scriptedRandom([3, 4]).random
+      random: scriptedRandom(EIGHT_D6).random
     })
-    const checks = nativeConcentrationDamageApplications(damageBatches(settled))
+    const checks = nativeConcentrationDamageApplications(damageBatches(settled, FIRE))
     expect(
       checks.map(({ targetActorId, appliedAmount }) => [targetActorId, appliedAmount])
     ).toEqual([
-      [ALLY_ID, 4],
-      [FOE_ID, 9],
-      [WARDED_FOE_ID, 4]
+      [ALLY_ID, 13],
+      [FOE_ID, 27],
+      [WARDED_FOE_ID, 13]
     ])
   })
 
   it('leaves a creature that took no damage out of the Concentration checks', async () => {
-    const { caster, ally, foe } = areaActors(acidCloud({ half: false }))
+    const { caster, ally, foe } = areaActors(acidCloud({ half: false }), ACID)
     const source = await areaSource(caster, [ally, foe])
     const tests = await answerSaves(source, { [ALLY_ID]: 11, [FOE_ID]: 10 }, [ALLY_ID, FOE_ID])
     const settled = await settleEncounterAreaAction({
@@ -528,7 +599,7 @@ describe('an area action executed as one occurrence', () => {
     })
     expect(applied(settled, ALLY_ID)).toEqual([])
     expect(
-      nativeConcentrationDamageApplications(damageBatches(settled)).map(
+      nativeConcentrationDamageApplications(damageBatches(settled, ACID)).map(
         ({ targetActorId }) => targetActorId
       )
     ).toEqual([FOE_ID])

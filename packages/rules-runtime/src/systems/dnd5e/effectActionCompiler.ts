@@ -405,10 +405,59 @@ function isSupportedTestActivation(
   )
 }
 
+/**
+ * An AREA_CONTENTS save action over a sphere, cylinder, circle or cube of fixed size, centered on a
+ * point within a distance (or unlimited). Cones, lines, walls, domes, Self and Touch origins and
+ * breakpoint-scaled sizes stay refused. The area only decides who is caught: each caught creature
+ * runs the same per-creature test plan a single target does.
+ */
+function isSupportedTestArea(
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
+): boolean {
+  if (invocation.kind !== 'ACTION') return false
+  const { shape, targeting, range } = invocation
+  if (
+    !shape ||
+    targeting?.selectionKind !== 'AREA_CONTENTS' ||
+    targeting.dispositionKind !== 'ANY' ||
+    targeting.excludedCreatureTypeIds?.length ||
+    invocation.triggerCode !== 'SAVING_THROW' ||
+    invocation.activation.code !== 'ACTION' ||
+    invocation.activation.amount !== 1
+  )
+    return false
+  if (range.rangeKind !== 'UNLIMITED') {
+    if (
+      range.rangeKind !== 'DISTANCE' ||
+      !Number.isSafeInteger(range.amount) ||
+      range.amount < 1 ||
+      range.longAmount !== undefined
+    )
+      return false
+  }
+  const size =
+    shape.shapeKind === 'CUBE'
+      ? shape.edgeLength
+      : shape.shapeKind === 'SPHERE' ||
+          shape.shapeKind === 'CYLINDER' ||
+          shape.shapeKind === 'CIRCLE'
+        ? shape.radius
+        : null
+  return (
+    size !== null &&
+    size.scaling === undefined &&
+    size.amount > 0 &&
+    !(shape.shapeKind === 'CYLINDER' && shape.height.scaling !== undefined)
+  )
+}
+
 function isSupportedTestTargetPolicy(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
   if (invocation.kind !== 'ACTION') return false
+  if (invocation.targeting?.selectionKind === 'AREA_CONTENTS')
+    return isSupportedTestArea(invocation)
+  if (invocation.shape) return false
   if (
     invocation.targeting?.selectionKind !== 'SINGLE_TARGET' ||
     invocation.targeting.dispositionKind !== 'ANY' ||
@@ -1929,7 +1978,6 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
     !isSupportedTestTargetPolicy(invocation) ||
-    invocation.shape ||
     entries.length < 1
   )
     unsupported(
@@ -3090,7 +3138,6 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     invocation.kind !== 'ACTION' ||
     !isSupportedTestActivation(invocation) ||
     !isSupportedTestTargetPolicy(invocation) ||
-    invocation.shape ||
     action.compiledEffect.entries.length < 1
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')
