@@ -27,6 +27,7 @@ export function aggregate(actorCount: number) {
     stateChecksum: checksum('run'),
     createCommandId: uuid(4),
     createCommandFingerprint: checksum('create'),
+    concentrationCasterCharacterIds: [],
     createdAt: '2026-09-01T00:00:00.000Z',
     updatedAt: '2026-09-01T00:00:00.000Z'
   })

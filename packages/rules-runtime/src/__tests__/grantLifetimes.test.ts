@@ -23,6 +23,7 @@ import {
   attackRollConsumableGrants,
   expiredCarriedOverGrants,
   planCarriedOverGrants,
+  planConcentrationCarriedGrantEnds,
   planDepartedSourceGrantRemovals,
   planEncounterGrantTicks
 } from '../encounterGrantLifetimes.js'
@@ -630,6 +631,56 @@ describe('planCarriedOverGrants', () => {
     const effect = grant(0xc363, 4)
     const untimed = { ...effect, lifecycle: { schemaVersion: 1 as const, remainingTicks: null } }
     expect(planCarriedOverGrants({ effects: [untimed], clockMinute: 2000 })).toEqual([])
+  })
+})
+
+describe('planConcentrationCarriedGrantEnds', () => {
+  const carried = (
+    id: number,
+    caster: string | null,
+    ownerKind: 'CHARACTER' | 'ENCOUNTER_ACTOR'
+  ) => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id,
+      holderId: TARGET_ID,
+      remainingTicks: 4
+    })
+    return {
+      ...effect,
+      owner:
+        ownerKind === 'CHARACTER'
+          ? ({ kind: 'CHARACTER', characterId: CHARACTER_ID } as const)
+          : effect.owner,
+      lifecycle: { ...effect.lifecycle, concentrationCasterCharacterId: caster }
+    }
+  }
+
+  it('picks only the Character grants stamped with the Character who started the Concentration', () => {
+    const mine = carried(0xc380, CHARACTER_ID, 'CHARACTER')
+    const effects = [
+      mine,
+      carried(0xc381, testUuid(0xc3f0), 'CHARACTER'),
+      carried(0xc382, null, 'CHARACTER'),
+      carried(0xc383, CHARACTER_ID, 'ENCOUNTER_ACTOR')
+    ]
+    expect(planConcentrationCarriedGrantEnds({ casterCharacterId: CHARACTER_ID, effects })).toEqual(
+      [mine]
+    )
+  })
+
+  it('never ends an unstamped grant, whichever caster starts a Concentration', () => {
+    const effect = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc384,
+      holderId: TARGET_ID,
+      remainingTicks: 4
+    })
+    const unstamped = {
+      ...effect,
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_ID } as const
+    }
+    expect(
+      planConcentrationCarriedGrantEnds({ casterCharacterId: CHARACTER_ID, effects: [unstamped] })
+    ).toEqual([])
   })
 })
 

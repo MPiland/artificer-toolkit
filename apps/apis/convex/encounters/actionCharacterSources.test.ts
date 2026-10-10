@@ -29,13 +29,19 @@ import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import {
+  SRD_CONCENTRATION_DEFINITIONS,
+  SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+} from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, components, internal } from '../_generated/api'
+import { sourceImportBatches } from '../content/importBatches'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -44,6 +50,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
+  executeSheetInRoom,
   expectRedactedRoomRefusal,
   invalidateRoomInputs,
   roomErrorLogs,
@@ -89,6 +96,8 @@ function input(
 
 type SetupOptions = {
   maintained?: boolean
+  /** The action starts the SRD Concentration instead of the fixture maintenance policy. */
+  concentration?: boolean
   useResource?: boolean
 }
 
@@ -116,10 +125,12 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
       pathCode: 'ON_USE' as const,
       resultBlock: {
         ...path.resultBlock,
-        ...(options.maintained
+        ...(options.maintained || options.concentration
           ? {
               id: crypto.randomUUID(),
-              maintenanceDefinitionId: CHARACTER_ACTION_MAINTENANCE_DEFINITION_ID,
+              maintenanceDefinitionId: options.concentration
+                ? SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+                : CHARACTER_ACTION_MAINTENANCE_DEFINITION_ID,
               duration: {
                 id: crypto.randomUUID(),
                 durationKind: 'ROUND' as const,
@@ -133,7 +144,8 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
           return {
             id: outcome.id,
             scalingKind: 'NONE' as const,
-            ...(rolls === 'PROMPT'
+            // Concentration starts must not damage their caster: its save could lose the Concentration.
+            ...(rolls === 'PROMPT' || options.concentration
               ? { effectKind: 'HEAL' as const, valueKind: 'DICE' as const, diceConfig: '1d6' }
               : {
                   effectKind: 'DAMAGE' as const,
@@ -184,9 +196,20 @@ async function setup(self = true, rolls: FixtureRolls = 'AUTO_ROLL', options: Se
       ...SRD_RULE_STATE_DEFINITIONS.filter(
         (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
       ),
-      maintenanceDefinitionFixture({ id: CHARACTER_ACTION_MAINTENANCE_DEFINITION_ID })
+      ...(options.concentration
+        ? []
+        : [maintenanceDefinitionFixture({ id: CHARACTER_ACTION_MAINTENANCE_DEFINITION_ID })])
     ]
   })
+  if (options.concentration)
+    for (const definitions of sourceImportBatches([
+      ...SRD_RULE_STATE_DEFINITIONS,
+      ...SRD_CONCENTRATION_DEFINITIONS
+    ]))
+      await base.t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions
+      })
   const owner = base.other
   await base.t.run(async (ctx) => {
     for (const [index, userId] of [owner.userId, base.owner.userId].entries()) {
@@ -378,6 +401,55 @@ async function resetActionAllowance(fixture: Awaited<ReturnType<typeof setup>>) 
     })
     await writeRunActor({ db: createConvexEncounterStore(ctx) }, row._id, reset)
   })
+}
+
+/**
+ * A Character assigned to the Campaign but outside the Run, holding two carried Concentration grants:
+ * one stamped with the Run's caster and one stamped with nobody (D99, SPELLS-5.7).
+ */
+async function bystanderWithCarriedGrants(fixture: Awaited<ReturnType<typeof setup>>) {
+  // A Campaign member holds one assigned Character, so the Campaign owner's is the bystander.
+  const { draft, character } = await fixture.createCharacter(undefined, fixture.owner.caller)
+  const bystanderId = (
+    await fixture.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character: { ...character, label: 'Bystander' }
+    })
+  ).character.id
+  await fixture.owner.caller.mutation(api.campaigns.assignments.assign, {
+    campaignId: fixture.campaign.id,
+    characterId: bystanderId
+  })
+  const grants = await fixture.t.run(async (ctx) => {
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+    const carried = (concentrationCasterCharacterId: string | null) =>
+      store.create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId: bystanderId },
+        definition: plannedModifierGrant({
+          encounterId: fixture.run.id,
+          sourceActorId: fixture.actor.id,
+          holderActorId: fixture.actor.id,
+          lifecycle: {},
+          rounds: 30,
+          lifetimeScope: 'OWNER'
+        }).definition,
+        lifecycle: { schemaVersion: 1, remainingTicks: 25, concentrationCasterCharacterId }
+      })
+    return { stamped: await carried(fixture.character.id), unstamped: await carried(null) }
+  })
+  const held = () =>
+    fixture.t.run(async (ctx) => ({
+      effectIds: (
+        await ctx.db
+          .query('characterActiveRuleEffects')
+          .withIndex('by_characterId_id', (q) => q.eq('characterId', bystanderId))
+          .take(8)
+      ).map(({ id }) => id),
+      streamVersion: (await readCharacterRow(ctx, bystanderId))?.play.streamVersion
+    }))
+  return { ...grants, held }
 }
 
 function expectLiveCharacterProjection(
@@ -898,6 +970,110 @@ describe('native Character action sources', () => {
       })
     ).resolves.toEqual(replaced)
     expect(await maintenanceRecords(fixture)).toEqual(replacementComplete)
+  }, 60000)
+
+  it('ends the carried grants a Character’s new Concentration cast on a Character outside the Run, keeping unstamped ones (D99, SPELLS-5.7)', async () => {
+    const fixture = await setup(true, 'AUTO_ROLL', { concentration: true })
+    const grants = await bystanderWithCarriedGrants(fixture)
+    const before = await grants.held()
+    expect(before.effectIds.sort()).toEqual([grants.stamped.id, grants.unstamped.id].sort())
+
+    const started = await executeInRoom(fixture.owner.caller, { command: input(fixture) })
+    expect(started.occurrence?.status).toBe('COMPLETE')
+    await checkpointLiveRoom(fixture.campaign.id)
+
+    const after = await grants.held()
+    expect(after.effectIds).toEqual([grants.unstamped.id])
+    expect(after.streamVersion).toBe(before.streamVersion! + 1)
+    const { run } = await maintenanceRecords(fixture)
+    expect(run?.concentrationCasterCharacterIds).toEqual([fixture.character.id])
+
+    // A later checkpoint finds the caster already handled.
+    await checkpointLiveRoom(fixture.campaign.id)
+    expect(await grants.held()).toEqual(after)
+  }, 60000)
+
+  it('ends them although the Concentration was lost before the first checkpoint (D99, SPELLS-5.7)', async () => {
+    const fixture = await setup(true, 'AUTO_ROLL', { concentration: true })
+    const grants = await bystanderWithCarriedGrants(fixture)
+    const paralyzed = srdSystemRecord.conditionTypes.find(({ code }) => code === 'PARALYZED')
+    if (!paralyzed) throw new Error('The SRD Paralyzed condition is unavailable.')
+    const [character] = await records(fixture)
+    if (!character) throw new Error('Missing Character.')
+
+    await executeInRoom(fixture.owner.caller, { command: input(fixture) })
+    // The cast moved the Character's stream once in the room; Convex has not seen it yet.
+    await executeSheetInRoom(fixture.player.caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: fixture.character.id,
+      encounterId: fixture.run.id,
+      command: {
+        type: 'ADD_CONDITION',
+        conditionTypeId: paralyzed.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: character.play.streamVersion + 1
+      }
+    })
+    await checkpointLiveRoom(fixture.campaign.id)
+
+    const { maintainedStates, run } = await maintenanceRecords(fixture)
+    expect(maintainedStates).toEqual([])
+    expect(run?.concentrationCasterCharacterIds).toEqual([fixture.character.id])
+    expect((await grants.held()).effectIds).toEqual([grants.unstamped.id])
+  }, 60000)
+
+  it('keeps the carried grants of a Concentration the GM undid before any checkpoint (D99, SPELLS-5.7)', async () => {
+    const fixture = await setup(true, 'AUTO_ROLL', { concentration: true })
+    const grants = await bystanderWithCarriedGrants(fixture)
+    const before = await grants.held()
+
+    const started = await executeInRoom(fixture.owner.caller, { command: input(fixture) })
+    expect(started.occurrence?.status).toBe('COMPLETE')
+    const undone = await executeInRoom(fixture.owner.caller, {
+      command: {
+        type: 'REVERT_LAST_ACTION',
+        encounterId: fixture.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: started.projection.version
+      }
+    })
+    expect(undone.projection.version).toBe(started.projection.version + 1)
+    await checkpointLiveRoom(fixture.campaign.id)
+
+    expect(await grants.held()).toEqual(before)
+    const { maintainedStates, run } = await maintenanceRecords(fixture)
+    expect(maintainedStates).toEqual([])
+    expect(run?.concentrationCasterCharacterIds).toEqual([])
+  }, 60000)
+
+  it('keeps a caster an earlier Concentration already recorded when the GM undoes a later one (D99, SPELLS-5.7)', async () => {
+    const fixture = await setup(true, 'AUTO_ROLL', { concentration: true })
+    // An earlier, since-ended Concentration of the Character is already on the Run's record.
+    await closeRoom(fixture.campaign.id)
+    await fixture.t.run(async (ctx) => {
+      const run = await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', fixture.run.id))
+        .unique()
+      if (!run) throw new Error('Run is unavailable.')
+      await ctx.db.patch(run._id, { concentrationCasterCharacterIds: [fixture.character.id] })
+    })
+
+    const started = await executeInRoom(fixture.owner.caller, { command: input(fixture) })
+    expect(started.occurrence?.status).toBe('COMPLETE')
+    await executeInRoom(fixture.owner.caller, {
+      command: {
+        type: 'REVERT_LAST_ACTION',
+        encounterId: fixture.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: started.projection.version
+      }
+    })
+    await checkpointLiveRoom(fixture.campaign.id)
+
+    expect((await maintenanceRecords(fixture)).run?.concentrationCasterCharacterIds).toEqual([
+      fixture.character.id
+    ])
   }, 60000)
 
   it('reads the current Character source after a Sheet edit made after Run creation', async () => {

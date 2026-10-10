@@ -1,4 +1,5 @@
 import { buildEncounterMaintenanceTransition } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -15,6 +16,7 @@ import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/sha
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { readRunActors } from './documents.js'
 
 type CompleteExecution = Extract<StoredRuleExecutionResultDto, { status: 'COMPLETE' }>
 
@@ -33,7 +35,10 @@ type EffectCommitInput = {
 type PreparedMaintenance = {
   prior: EncounterMaintainedEffectStateRecord | null
   removed: ActiveRuleEffectRecord[]
+  carried: ActiveRuleEffectRecord[]
   characterVersions: { characterId: string; beforeStreamVersion: number }[]
+  /** The Character this command newly added to the Run's Concentration casters; its undo removes it. */
+  addedConcentrationCasterId: string | null
 }
 
 function actionOutputs(input: EffectCommitInput) {
@@ -82,6 +87,27 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   return { state, recurring, outputs }
 }
 
+/**
+ * D99, SPELLS-5.7: appends the Character to the Run's set of Concentration casters (only the undo of
+ * the command that added it removes it) and says whether this call added it.
+ */
+async function recordConcentrationCaster(
+  ctx: EncounterCharacterWriteTransaction,
+  encounterId: string,
+  characterId: string
+): Promise<boolean> {
+  const run = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', encounterId))
+    .unique()
+  if (!run) throw new Error('Concentration caster Run is unavailable.')
+  if (run.concentrationCasterCharacterIds.includes(characterId)) return false
+  await ctx.db.patch(run._id, {
+    concentrationCasterCharacterIds: [...run.concentrationCasterCharacterIds, characterId]
+  })
+  return true
+}
+
 /** Reads the exact replaced slot and affected Character versions before mechanics are applied. */
 export async function prepareEncounterActionMaintenance(
   ctx: EncounterCharacterWriteTransaction,
@@ -112,14 +138,40 @@ export async function prepareEncounterActionMaintenance(
     ownerActorId: input.command.actorId,
     maintenanceDefinitionId: created.maintenanceDefinitionId
   })
-  const removed = prior
+  const dependents = prior
     ? await store.listDependentEffects({ encounterId: input.state.id, stateId: prior.id })
     : []
-  removed.sort((left, right) => {
+  const actors = await readRunActors(ctx, input.state)
+  const caster = actors.find((actor) => actor.id === input.command.actorId)
+  // D99: a Character's new Concentration also ends its carried-over grants held in the Run.
+  const carried =
+    caster?.kind === 'CHARACTER'
+      ? planConcentrationCarriedGrantEnds({
+          casterCharacterId: caster.sourceId,
+          effects: (
+            await Promise.all(
+              actors.flatMap((actor) =>
+                actor.kind === 'CHARACTER'
+                  ? [store.list({ kind: 'CHARACTER', characterId: actor.sourceId })]
+                  : []
+              )
+            )
+          ).flat()
+        })
+      : []
+  // The completing checkpoint ends the caster's carried grants outside the Run from this record.
+  const addedConcentrationCasterId =
+    caster?.kind === 'CHARACTER' &&
+    (await recordConcentrationCaster(ctx, input.state.id, caster.sourceId))
+      ? caster.sourceId
+      : null
+  const byOwnerOrder = (left: ActiveRuleEffectRecord, right: ActiveRuleEffectRecord) => {
     const key = (effect: ActiveRuleEffectRecord) =>
       `${effect.owner.kind === 'CHARACTER' ? `0:${effect.owner.characterId}` : `1:${effect.owner.targetActorId}`}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.id}`
     return key(left).localeCompare(key(right))
-  })
+  }
+  const removed = [...dependents, ...carried].sort(byOwnerOrder)
+  carried.sort(byOwnerOrder)
   const characterVersions: PreparedMaintenance['characterVersions'] = []
   const characterIds = [
     ...new Set(
@@ -141,7 +193,7 @@ export async function prepareEncounterActionMaintenance(
     characterVersions.push({ characterId, beforeStreamVersion: row.play.streamVersion })
   }
   characterVersions.sort((left, right) => left.characterId.localeCompare(right.characterId))
-  const maintenance = { prior, removed, characterVersions }
+  const maintenance = { prior, removed, carried, characterVersions, addedConcentrationCasterId }
   const transition = buildEncounterMaintenanceTransition({
     maintenance,
     createdState: created,

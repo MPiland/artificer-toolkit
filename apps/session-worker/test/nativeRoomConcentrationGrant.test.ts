@@ -11,8 +11,9 @@ import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
-import { actionRoom } from './actionRoomFixture.js'
+import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { dependentEffectDefinition } from './movementRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -95,8 +96,9 @@ function wardFeature(input: { seed: number; label: string; self: boolean }): Cla
 const selfWard = wardFeature({ seed: 0xd100, label: 'Self Ward', self: true })
 const targetedWard = wardFeature({ seed: 0xd200, label: 'Targeted Ward', self: false })
 
-function wardRoom() {
+function wardRoom(seed?: ActionRoomConfig['seed']) {
   return actionRoom({
+    seed,
     autoRoll: 'BOTH',
     actors: [
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
@@ -166,6 +168,46 @@ describe('a grant that needs Concentration (SPELLS-5.7)', () => {
     )
     expect(wolfGrants).toHaveLength(1)
     expect(wolfGrants[0]!.maintainedEffectStateId).toBe(replacement!.id)
+  })
+
+  it('ends a carried grant its caster’s new Concentration replaces, keeps others, and refuses undo (SPELLS-5.7)', async () => {
+    const STAMPED_ID = testUuid(0xd300)
+    const UNSTAMPED_ID = testUuid(0xd301)
+    const room = await wardRoom(async ({ effects, encounterId, occurredAt }) => {
+      for (const [id, concentrationCasterCharacterId] of [
+        [STAMPED_ID, FIGHTER_ID],
+        [UNSTAMPED_ID, null]
+      ] as const)
+        await effects.create({
+          id,
+          owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: FIGHTER_ACTOR_ID },
+          lifecycle: { schemaVersion: 1, remainingTicks: 3, concentrationCasterCharacterId },
+          definition: dependentEffectDefinition({ encounterId, sourceActorId: FIGHTER_ACTOR_ID }),
+          occurredAt
+        })
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    expect(before.characterEffects.map(({ id }) => id).sort()).toEqual([STAMPED_ID, UNSTAMPED_ID])
+
+    const cast = await room.startAction(FIGHTER_ACTOR_ID)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(after.characterEffects.map(({ id }) => id)).not.toContain(STAMPED_ID)
+    expect(after.characterEffects.map(({ id }) => id)).toContain(UNSTAMPED_ID)
+    expect(before.runs[0]!.concentrationCasterCharacterIds).toEqual([])
+    expect(after.runs[0]!.concentrationCasterCharacterIds).toEqual([FIGHTER_ID])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'REVERT_UNAVAILABLE',
+      message: expect.stringContaining('a replaced maintained effect')
+    })
   })
 
   it('ends with the Concentration when its caster is incapacitated (D95)', async () => {

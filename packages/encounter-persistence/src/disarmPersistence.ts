@@ -329,6 +329,7 @@ export async function persistEncounterDisarmCommit(
       ruleOverrides: [],
       allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,
+      addedConcentrationCasterId: null,
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,
       version: nextState.version,

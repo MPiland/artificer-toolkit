@@ -545,7 +545,18 @@ dependent of its source's maintained state and ends with it on a failed check, D
 replacing Concentration, through the generic dependent removal. A maintained grant on a
 Character holder is `OWNER`-scoped from creation yet keeps its `sourceEncounterId` and
 `maintainedEffectStateId` while the Run lives; a Creature holder's stays Encounter-scoped. When the Run
-completes the link is detached and the grant carries over (see Carry-over). The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
+completes the link is detached and the grant carries over (see Carry-over). A carried grant ends when its
+stamped caster starts another Concentration: `planConcentrationCarriedGrantEnds` picks the Character-owned
+effects stamped with the caster (a null stamp is never ended); `prepareEncounterActionMaintenance` takes them
+through `readCarried` and adds them to `removed`, and the receipt lists them as `endedCarriedGrants`
+(CHARACTER-only, included in `characterOwnerTransitions` so the hit-point clamp and stream bump still run).
+The room (`loadCarriedHolder`) loads each holder as a fenced target, on both the action and the
+movement-reaction paths. `actionRevert` refuses a receipt with ended carried grants as a replaced
+maintained effect. The same seam records the caster in the Run row's `concentrationCasterCharacterIds`
+(`recordConcentrationCaster`; the stored command keeps `addedConcentrationCasterId` so the GM's undo
+removes only an id that command added), which the checkpoint reads to end the caster's carried grants on Characters
+outside the Run (see [persistence](persistence.md#encounter-run-storage)). The movement-reaction receipt
+accepts an owner transition for a holder whose carried grant ends. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
 maintenance definition.
 
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System

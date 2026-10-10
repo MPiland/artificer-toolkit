@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { projectionChecksumSchema } from './identity.js'
 import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
@@ -28,6 +28,14 @@ export const encounterStoredRunSchema = lazySchema(() =>
     /** The create command that made the Run: a retry finds it here after the history is gone. */
     createCommandId: postgresUuidSchema,
     createCommandFingerprint: projectionChecksumSchema,
+    /**
+     * D99, SPELLS-5.7: the Characters that committed a Concentration start in this Run, appended by
+     * the room and never removed. Each new id lets the completing checkpoint end the carried grants
+     * that Character cast on Characters outside the Run, even when the Concentration later ended.
+     */
+    concentrationCasterCharacterIds: z
+      .array(postgresUuidSchema)
+      .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime()
   })
@@ -244,7 +252,9 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       /** The attacker's grants this attack roll used up; its undo gives them back. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
+      addedConcentrationCasterId: z.nullable(postgresUuidSchema)
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('USE_BASIC_ACTION'),

@@ -4953,16 +4953,21 @@
             },
             {
               "text": "A grant that needs Concentration ends with it (failed check, D95 incapacitation, a new Concentration); the SRD Concentration spells link their grants and Protection from Energy needs Concentration.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "apps/session-worker/test/nativeRoomConcentrationGrant.test.ts (a homebrew Concentration +2 AC Feature: the self ward depends on the Fighter's SRD Concentration state; warding the Wolf replaces the Concentration and ends the Fighter's grant; a GM Sheet edit that paralyzes the Fighter ends the Concentration and its grant (D95))",
                 "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts (the real Fly, Heroism, Shield of Faith and Protection from Energy grants plan the SRD Concentration maintenance policy; the Antitoxin grant plans none; a maintained grant on a Character is OWNER-scoped and keeps its Run link while a Creature holder's stays Encounter-scoped; an unmaintained one outlasts the Encounter; planCarriedOverGrants keeps the caster stamp)",
                 "apps/apis/convex/encounters/finishedRun.test.ts (slice 1, real Session Worker room plus checkpoint: a Concentration grant cast by a Character or a Creature survives COMPLETE detached from the Run, stamped with its caster, expiring on the Campaign clock; the Sheet lists it with clock time left; the GM ends it with END_ACTIVE_EFFECT)",
+                "apps/session-worker/test/nativeRoomConcentrationGrant.test.ts (slice 2 journey: a stamped carried grant on the Fighter ends when the Fighter starts a fresh Concentration, an unstamped one stays, and GM undo is refused as a replaced maintained effect)",
+                "apps/apis/convex/encounters/actionCharacterSources.test.ts (slice 2 rule 3, real room Run plus checkpoint: a Wizard's Concentration ends the stamped grant held by a Character outside the Run, an unstamped grant survives, and a Concentration cast and lost before the first checkpoint still ends it)",
+                "apps/session-worker/test/nativeMovementConcentrationGrant.test.ts (a Fighter's movement reaction starts a Concentration: the stamped grant ends, the unstamped one stays, the caster lands in the Run's concentrationCasterCharacterIds)",
+                "packages/schema/src/__tests__/spatial-movement-rule-contracts.test.ts (a movement reaction retains the owner transition of a Character whose carried grant it ends)",
+                "packages/rules-runtime/src/__tests__/grantLifetimes.test.ts and encounterActionMaintenance.test.ts (planConcentrationCarriedGrantEnds; carried grants join removed and the receipt's endedCarriedGrants); packages/schema/src/__tests__/rules-runtime-contracts.test.ts (each ended carried grant needs a Character owner transition)",
                 "regression: the failed-check and D95 end paths are the generic dependent removal proved by nativeRoomConcentration, nativeRoomEditConcentrationEnd and nativeMovementConcentrationEnd (rerun green)",
                 "impl: packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts; packages/rules-runtime/src/encounterActionEffectPlans.ts; packages/rules-runtime/src/activeRuleEffectRecords.ts; packages/rules-runtime/src/encounterGrantLifetimes.ts; packages/encounter-persistence/src/effectStore.ts; packages/encounter-persistence/src/characterRunEffects.ts; packages/schema/src/shared/activeRuleEffectLifecycle.ts; packages/source-data/src/srd/spells/fly.ts; packages/source-data/src/srd/spells/heroism.ts; packages/source-data/src/srd/spells/protection-from-energy.ts; packages/source-data/src/srd/spells/shield-of-faith.ts"
               ],
               "origin": [],
-              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built. Reopened 2026-10-09: the user chose option B (phase-08-2-decisions.md Resolved). A Character-held Concentration grant carries over to the Campaign clock when the Run ends and ends when its caster starts another Concentration; to build.",
+              "note": "D99. Journey through a homebrew Concentration feature fixture. Red-first (2026-10-09): the journey failed (the Character offered no ward action) because modifierGrantPlan refused a maintained grant; then the room refused the Character-held grant because a maintained effect needs an Encounter source, so a maintained grant is Encounter-scoped (ends with the Run, never carries over; open question in phase-08-2-open-questions.md). The compiler unit tests failed (null maintenance) until the SRD links were built. Reopened 2026-10-09: the user chose option B (phase-08-2-decisions.md Resolved). A Character-held Concentration grant carries over to the Campaign clock when the Run ends and ends when its caster starts another Concentration. Slice 1 built (stamp and carry-over). Slice 2 built for Characters in the Run (room, receipt endedCarriedGrants, undo refused); mid-Run admission deferred (D99). Rule 3 built (2026-10-09): the room appends each Character that starts a Concentration to the Run row's bounded concentrationCasterCharacterIds (action and movement-reaction paths, one seam) and each checkpoint ends the stamped grants of the newly added ids on Characters outside any ACTIVE Run (endOutsideCarriedGrants). Red-first: with the checkpoint hook neutralized, the two real-flow actionCharacterSources tests failed (2 failed, 7 passed); restored, 9 passed. The movement-reaction journey found a receipt-schema bug (the owner transition of a holder whose carried grant ends was rejected as not matching a removed owner); its schema contract test failed first and the validator now accepts it. Known edges are in D99: an undone plain Concentration start leaves its id in the set, a Character in another ACTIVE Run is skipped, mid-Run admission stays deferred.",
               "id": "SPELLS-5.7"
             },
             {
@@ -5237,7 +5242,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's homebrew Ring of the Split Mind (very rare, attuned by a spellcaster): concentrating on a spell of 3rd level or lower, the wearer can cast a second 3rd-level-or-lower Concentration spell without losing the first, once per dawn. Generic capacity, not a ring special case. After SPELLS-5.7, SPELLS-5.11 and SPELLS-8 (spell level comes from casting).",
+              "note": "Registered 2026-10-09 from the user's homebrew Ring of the Split Mind (very rare, attuned by a spellcaster): concentrating on a spell of 3rd level or lower, the wearer can cast a second 3rd-level-or-lower Concentration spell without losing the first, once per dawn. Design (user, 2026-10-09: generic, not built around the ring): Concentration capacity becomes a System stat (dnd5e default 1) held as a set of maintained states per actor; a capacity modifier joins the existing modifier pipeline from any source (equipped/attuned item, Feature, grant) with the existing predicates (WHILE_SOURCE_EQUIPPED etc.); the per-use gate is an authored predicate over the new and held spells (spell level) and the uses ride the existing limited-use/recovery model. No ring-specific code or kinds. After SPELLS-5.7, SPELLS-5.11 and SPELLS-8 (spell level comes from casting).",
               "id": "SPELLS-12.1"
             },
             {
@@ -5245,7 +5250,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered with SPELLS-12.1. The ring's text says '10 + level of spell you are concentrating on'; read as the second spell's level (open question for the user's GM ruling if it matters). D95 incapacitation ends both.",
+              "note": "Registered with SPELLS-12.1. Per-spell saves are core engine behavior once capacity exceeds 1; the advantage/disadvantage are ordinary roll modifiers on Concentration saves with new authored predicates (held Concentration count, which Concentration the save is for, damage amount against a threshold). The ring's '10 + level of spell you are concentrating on' is authored data, so the GM's reading is what gets authored. D95 incapacitation ends both.",
               "id": "SPELLS-12.2"
             },
             {
@@ -5253,7 +5258,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered with SPELLS-12.1. Journey: a Character with the authored ring holds Bless and Fly, takes damage, rolls two saves in order, loses one spell and keeps the other.",
+              "note": "Registered with SPELLS-12.1. The conditional effect is an ordinary modifier (damage vulnerability) gated by the held-Concentration-count predicate, evaluated where modifiers are read, not a timed grant. Journey: a Character with the authored ring holds Bless and Fly, takes damage, rolls two saves in order, loses one spell and keeps the other.",
               "id": "SPELLS-12.3"
             }
           ]

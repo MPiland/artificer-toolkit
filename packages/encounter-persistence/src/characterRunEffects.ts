@@ -1,3 +1,4 @@
+import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActors } from './documents.js'
@@ -73,6 +74,53 @@ export async function endCharacterRunEffects(
     actors: [],
     occurredAt: input.occurredAt
   })
+}
+
+/**
+ * D99, SPELLS-5.7: a Character that started a Concentration ends the carried-over Concentration
+ * grants stamped with it. The room ended them for the Characters it held; this ends them for
+ * `holderCharacterIds`, Characters outside the Run, in the checkpoint that first carries the
+ * caster's id. Their stream moves once and a hit-point maximum the grant raised clamps the current
+ * hit points. A repeat finds nothing to end.
+ */
+export async function endCarriedGrantsOfConcentratingCasters(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    encounterId: string
+    casterCharacterIds: readonly string[]
+    holderCharacterIds: readonly string[]
+    occurredAt: string
+  }
+): Promise<void> {
+  const store = createActiveRuleEffectStore(ctx)
+  const { casterCharacterIds } = input
+  for (const characterId of input.holderCharacterIds) {
+    const owner = { kind: 'CHARACTER', characterId } as const
+    const held = await store.list(owner)
+    const removed = [
+      ...new Map(
+        casterCharacterIds
+          .flatMap((casterCharacterId) =>
+            planConcentrationCarriedGrantEnds({ casterCharacterId, effects: held })
+          )
+          .map((effect) => [effect.id, effect])
+      ).values()
+    ]
+    if (removed.length === 0) continue
+    const row = await ctx.ports.readCharacterRow(characterId)
+    if (!row) throw new Error('Carried-grant Character is unavailable.')
+    for (const effect of removed)
+      await store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version })
+    await reconcileNativeMaintenanceOwners(ctx, {
+      encounterId: input.encounterId,
+      maintenance: {
+        removed,
+        characterVersions: [{ characterId, beforeStreamVersion: row.play.streamVersion }]
+      },
+      actors: [],
+      occurredAt: input.occurredAt
+    })
+  }
 }
 
 /**

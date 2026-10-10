@@ -117,6 +117,7 @@ export async function encounterRunFixture({
       stateChecksum: checksumCanonicalJson(state),
       createCommandId: crypto.randomUUID(),
       createCommandFingerprint: checksumCanonicalJson(state),
+      concentrationCasterCharacterIds: [],
       createdAt: NOW,
       updatedAt: NOW
     })

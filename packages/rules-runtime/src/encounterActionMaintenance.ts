@@ -14,6 +14,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { effectiveHitPointMaximum } from './encounterActiveGrants.js'
+import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
@@ -26,7 +27,12 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     state: EncounterMaintainedEffectStateRecord | null
     dependents: ActiveRuleEffectRecord[]
   }>
-  readOwners: (removed: readonly ActiveRuleEffectRecord[]) => Promise<TOwners>
+  /** D99: the Run Characters' (or stored Characters') carried grants; omitted where not covered. */
+  readCarried?: () => Promise<readonly ActiveRuleEffectRecord[]>
+  readOwners: (
+    removed: readonly ActiveRuleEffectRecord[],
+    carried: readonly ActiveRuleEffectRecord[]
+  ) => Promise<TOwners>
 }) {
   const { prepared } = input
   const published =
@@ -63,18 +69,25 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     throw new Error('The active-effect maintenance policy does not match its published definition.')
   const slot = await input.readSlot(policy.definitionId)
   const prior = slot.state
-  const removed = [...slot.dependents]
-  removed.sort((left, right) => {
+  const casterCharacterId = prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null
+  const carried = planConcentrationCarriedGrantEnds({
+    casterCharacterId: casterCharacterId ?? '',
+    effects: casterCharacterId && input.readCarried ? await input.readCarried() : []
+  })
+  const byOwnerOrder = (left: ActiveRuleEffectRecord, right: ActiveRuleEffectRecord) => {
     const key = (effect: ActiveRuleEffectRecord) =>
       `${effect.owner.kind === 'CHARACTER' ? `0:${effect.owner.characterId}` : `1:${effect.owner.targetActorId}`}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.id}`
     return key(left).localeCompare(key(right))
-  })
+  }
+  const removed = [...slot.dependents, ...carried].sort(byOwnerOrder)
+  const sortedCarried = [...carried].sort(byOwnerOrder)
   return {
     policy,
     definitionChecksum: definition.checksum,
     prior,
     removed,
-    ...(await input.readOwners(removed))
+    carried: sortedCarried,
+    ...(await input.readOwners(removed, sortedCarried))
   }
 }
 
@@ -188,6 +201,8 @@ export function buildEncounterMaintenanceTransition(input: {
   maintenance: {
     prior: EncounterMaintainedEffectStateRecord | null
     removed: readonly ActiveRuleEffectRecord[]
+    /** The part of `removed` that is carried-over grants rather than the replaced state's dependents. */
+    carried: readonly ActiveRuleEffectRecord[]
     characterVersions: readonly { characterId: string; beforeStreamVersion: number }[]
   }
   createdState: EncounterMaintainedEffectStateRecord
@@ -196,6 +211,23 @@ export function buildEncounterMaintenanceTransition(input: {
   const { maintenance } = input
   const prior = maintenance.prior
   const state = input.createdState
+  const carriedIds = new Set(maintenance.carried.map((effect) => effect.id))
+  const removedIdentity = (effect: ActiveRuleEffectRecord) => ({
+    activeEffectId: effect.id,
+    createdOrdinal: effect.createdOrdinal,
+    expectedVersion: effect.version,
+    definitionChecksum: effect.definitionChecksum,
+    lifecycleChecksum: effect.lifecycleChecksum
+  })
+  const removedReceipt = (effect: ActiveRuleEffectRecord) => ({
+    ...(effect.owner.kind === 'CHARACTER'
+      ? { kind: 'CHARACTER', characterId: effect.owner.characterId }
+      : {
+          kind: 'ENCOUNTER_ACTOR',
+          targetActorId: effect.owner.targetActorId
+        }),
+    ...removedIdentity(effect)
+  })
   return maintainedEffectTransitionDtoSchema.parse({
     kind: 'REPLACE_SAME_DEFINITION',
     priorState: prior
@@ -209,19 +241,13 @@ export function buildEncounterMaintenanceTransition(input: {
           sourceActorId: prior.ownerActorId
         }
       : null,
-    removedDependentEffects: maintenance.removed.map((effect) => ({
-      ...(effect.owner.kind === 'CHARACTER'
-        ? { kind: 'CHARACTER', characterId: effect.owner.characterId }
-        : {
-            kind: 'ENCOUNTER_ACTOR',
-            targetActorId: effect.owner.targetActorId
-          }),
-      activeEffectId: effect.id,
-      createdOrdinal: effect.createdOrdinal,
-      expectedVersion: effect.version,
-      definitionChecksum: effect.definitionChecksum,
-      lifecycleChecksum: effect.lifecycleChecksum
-    })),
+    removedDependentEffects: maintenance.removed
+      .filter((effect) => !carriedIds.has(effect.id))
+      .map(removedReceipt),
+    endedCarriedGrants: maintenance.carried.map((effect) => {
+      if (effect.owner.kind !== 'CHARACTER') throw new Error('Only a Character grant is carried.')
+      return { characterId: effect.owner.characterId, ...removedIdentity(effect) }
+    }),
     createdState: {
       id: state.id,
       version: state.version,

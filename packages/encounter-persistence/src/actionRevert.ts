@@ -213,7 +213,12 @@ export async function revertLastEncounterAction(
     )
       unsupported.add('a removed condition')
     const maintenance = action.maintenanceTransition ?? null
-    if (maintenance && (maintenance.priorState || maintenance.removedDependentEffects.length))
+    if (
+      maintenance &&
+      (maintenance.priorState ||
+        maintenance.removedDependentEffects.length ||
+        maintenance.endedCarriedGrants.length)
+    )
       unsupported.add('a replaced maintained effect')
     if (action.spellCastConsumption) unsupported.add('a spell slot')
   }
@@ -417,6 +422,13 @@ export async function revertLastEncounterAction(
       encounterId: state.id,
       ownerActorId: created.sourceActorId,
       expectedVersion: created.version
+    })
+  // D99: only the command that added the Character to the Run's Concentration casters removes it.
+  if (root.addedConcentrationCasterId)
+    await ctx.db.patch(run._id, {
+      concentrationCasterCharacterIds: run.concentrationCasterCharacterIds.filter(
+        (id) => id !== root.addedConcentrationCasterId
+      )
     })
   // The attacker's grants the roll used up come back with their remaining count.
   await restoreConsumedGrants(ctx, {

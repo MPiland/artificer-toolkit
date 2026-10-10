@@ -235,6 +235,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     stateChecksum: checksumCanonicalJson(state),
     createCommandId: crypto.randomUUID(),
     createCommandFingerprint: checksumCanonicalJson(state),
+    concentrationCasterCharacterIds: [],
     createdAt: now,
     updatedAt: now
   })

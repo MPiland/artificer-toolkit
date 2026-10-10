@@ -325,6 +325,56 @@ export function validateStateEffectTransitions(input: {
       })
   }
 }
+
+/** A carried-over Concentration grant the caster's new Concentration ends (D99, SPELLS-5.7). */
+export interface EndedCarriedGrantDto {
+  characterId: string
+  activeEffectId: string
+  createdOrdinal: number
+  expectedVersion: number
+  definitionChecksum: string
+  lifecycleChecksum: string
+}
+
+type RemovedDependentEffectDto = Omit<EndedCarriedGrantDto, 'characterId'> &
+  ({ kind: 'CHARACTER'; characterId: string } | { kind: 'ENCOUNTER_ACTOR'; targetActorId: string })
+
+// Explicitly typed: the inferred shapes, repeated through every pending-state declaration that embeds
+// the receipt, overflow the compiler's declaration size (TS7056).
+const removedDependentEffectSchema: z.ZodMiniType<RemovedDependentEffectDto> = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('CHARACTER'),
+      characterId: uuidSchema,
+      activeEffectId: uuidSchema,
+      createdOrdinal: positiveIntegerSchema,
+      expectedVersion: aggregateVersionSchema,
+      definitionChecksum: checksumSchema,
+      lifecycleChecksum: checksumSchema
+    }),
+    z.strictObject({
+      kind: z.literal('ENCOUNTER_ACTOR'),
+      targetActorId: uuidSchema,
+      activeEffectId: uuidSchema,
+      createdOrdinal: positiveIntegerSchema,
+      expectedVersion: aggregateVersionSchema,
+      definitionChecksum: checksumSchema,
+      lifecycleChecksum: checksumSchema
+    })
+  ])
+)
+
+const endedCarriedGrantSchema: z.ZodMiniType<EndedCarriedGrantDto> = lazySchema(() =>
+  z.strictObject({
+    characterId: uuidSchema,
+    activeEffectId: uuidSchema,
+    createdOrdinal: positiveIntegerSchema,
+    expectedVersion: aggregateVersionSchema,
+    definitionChecksum: checksumSchema,
+    lifecycleChecksum: checksumSchema
+  })
+)
+
 export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -341,28 +391,11 @@ export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
         })
       ),
       removedDependentEffects: z
-        .array(
-          z.discriminatedUnion('kind', [
-            z.strictObject({
-              kind: z.literal('CHARACTER'),
-              characterId: uuidSchema,
-              activeEffectId: uuidSchema,
-              createdOrdinal: positiveIntegerSchema,
-              expectedVersion: aggregateVersionSchema,
-              definitionChecksum: checksumSchema,
-              lifecycleChecksum: checksumSchema
-            }),
-            z.strictObject({
-              kind: z.literal('ENCOUNTER_ACTOR'),
-              targetActorId: uuidSchema,
-              activeEffectId: uuidSchema,
-              createdOrdinal: positiveIntegerSchema,
-              expectedVersion: aggregateVersionSchema,
-              definitionChecksum: checksumSchema,
-              lifecycleChecksum: checksumSchema
-            })
-          ])
-        )
+        .array(removedDependentEffectSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
+      /** D99: carried-over Concentration grants the caster's new Concentration ends (Characters only). */
+      endedCarriedGrants: z
+        .array(endedCarriedGrantSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
       createdState: z.strictObject({
         id: uuidSchema,
@@ -410,6 +443,17 @@ export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
           previousTuple = tuple
           removed.add(effect.activeEffectId)
         }
+        let previousCarried = ''
+        for (const [index, effect] of value.endedCarriedGrants.entries()) {
+          const tuple = `${effect.characterId}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.activeEffectId}`
+          if (tuple <= previousCarried || removed.has(effect.activeEffectId))
+            context.addIssue({
+              code: 'custom',
+              path: ['endedCarriedGrants', index],
+              message: 'Ended carried grants must be unique and use canonical owner order.'
+            })
+          previousCarried = tuple
+        }
         if (
           new Set(value.createdDependentEffectIds).size !== value.createdDependentEffectIds.length
         )
@@ -437,6 +481,7 @@ export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
             value.removedDependentEffects
               .filter((effect) => effect.kind === 'CHARACTER')
               .map((effect) => effect.characterId)
+              .concat(value.endedCarriedGrants.map((effect) => effect.characterId))
           )
         ].sort()
         const transitions = value.characterOwnerTransitions

@@ -138,6 +138,21 @@ export function planCarriedOverGrants(input: {
   })
 }
 
+/**
+ * D99: a Character caster who starts another Concentration ends the carried-over Concentration
+ * grants stamped with them. A grant with no stamp (a Creature caster) is never ended this way.
+ */
+export function planConcentrationCarriedGrantEnds<Effect extends ActiveRuleEffectRecord>(input: {
+  casterCharacterId: string
+  effects: readonly Effect[]
+}) {
+  return input.effects.filter(
+    ({ owner, lifecycle }) =>
+      owner.kind === 'CHARACTER' &&
+      lifecycle.concentrationCasterCharacterId === input.casterCharacterId
+  )
+}
+
 /** Carried-over grants whose Campaign-clock expiry the clock has reached. */
 export function expiredCarriedOverGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[],

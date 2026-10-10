@@ -367,6 +367,7 @@ function maintainedCharacterReceipt() {
     definitionChecksum: string
     lifecycleChecksum: string
   }
+  type EndedCarriedGrant = Omit<RemovedDependentEffect, 'kind' | 'targetActorId'>
   const before = {
     currentHitPoints: 10,
     temporaryHitPoints: 0,
@@ -413,6 +414,7 @@ function maintainedCharacterReceipt() {
       kind: 'REPLACE_SAME_DEFINITION' as const,
       priorState: null as PriorState | null,
       removedDependentEffects: [] as RemovedDependentEffect[],
+      endedCarriedGrants: [] as EndedCarriedGrant[],
       createdState: {
         id: maintainedStateId,
         version: 1,
@@ -2071,6 +2073,35 @@ describe('rules runtime contracts', () => {
     })
   })
 
+  it('requires a Character owner transition for each ended carried grant', () => {
+    const ended = {
+      characterId: turnBatchIds.character,
+      activeEffectId: turnBatchIds.effect,
+      createdOrdinal: 1,
+      expectedVersion: 1,
+      definitionChecksum: 'a'.repeat(64),
+      lifecycleChecksum: 'b'.repeat(64)
+    }
+    const withEnded = structuredClone(maintainedCharacterReceipt())
+    withEnded.maintenanceTransition.endedCarriedGrants.push(ended)
+    withEnded.maintenanceTransition.characterOwnerTransitions.push({
+      characterId: turnBatchIds.character,
+      beforeStreamVersion: 3,
+      afterStreamVersion: 4
+    })
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(withEnded)).toMatchObject({
+      maintenanceTransition: { endedCarriedGrants: [ended] }
+    })
+
+    const withoutTransition = structuredClone(maintainedCharacterReceipt())
+    withoutTransition.maintenanceTransition.endedCarriedGrants.push(ended)
+    expect(() => serverRuleExecutionApplicationOutputsDtoSchema.parse(withoutTransition)).toThrow()
+
+    const duplicated = structuredClone(withEnded)
+    duplicated.maintenanceTransition.endedCarriedGrants.push(ended)
+    expect(() => serverRuleExecutionApplicationOutputsDtoSchema.parse(duplicated)).toThrow()
+  })
+
   it('allows replacement of a retained maintained state with no dependents', () => {
     const receipt = structuredClone(maintainedCharacterReceipt())
     receipt.maintenanceTransition.priorState = {
@@ -2234,6 +2265,7 @@ describe('rules runtime contracts', () => {
         kind: 'REPLACE_SAME_DEFINITION' as const,
         priorState: null,
         removedDependentEffects: [],
+        endedCarriedGrants: [],
         createdState: {
           id: maintainedStateId,
           version: 1,
@@ -2287,6 +2319,7 @@ describe('rules runtime contracts', () => {
             lifecycleChecksum: 'b'.repeat(64)
           }
         ],
+        endedCarriedGrants: [],
         characterOwnerTransitions: [{ characterId, beforeStreamVersion: 3, afterStreamVersion: 4 }]
       }
     })

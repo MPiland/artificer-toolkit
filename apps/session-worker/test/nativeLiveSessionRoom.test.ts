@@ -3916,6 +3916,7 @@ async function localEncounterFixture(
       stateChecksum: checksumCanonicalJson(state),
       createCommandId: crypto.randomUUID(),
       createCommandFingerprint: checksumCanonicalJson(state),
+      concentrationCasterCharacterIds: [],
       createdAt: now,
       updatedAt: now
     })

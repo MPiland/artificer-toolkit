@@ -358,7 +358,8 @@ export async function planNativeLiveEncounterAction(
   const maintenance = await prepareNativeLiveActionMaintenance({
     prepared,
     activeEffectsByActorId,
-    capture
+    capture,
+    loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
   })
   const currentnessChecksum = encounterActionCurrentnessChecksum({
     prepared,

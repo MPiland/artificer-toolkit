@@ -141,7 +141,7 @@ describe('maintained-effect replacement transition', () => {
   it('records a first maintained state with nothing replaced', () => {
     expect(
       buildEncounterMaintenanceTransition({
-        maintenance: { prior: null, removed: [], characterVersions: [] },
+        maintenance: { prior: null, removed: [], carried: [], characterVersions: [] },
         createdState: created,
         createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
       })
@@ -149,6 +149,7 @@ describe('maintained-effect replacement transition', () => {
       kind: 'REPLACE_SAME_DEFINITION',
       priorState: null,
       removedDependentEffects: [],
+      endedCarriedGrants: [],
       createdState: createdSummary,
       characterOwnerTransitions: [],
       createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
@@ -177,6 +178,7 @@ describe('maintained-effect replacement transition', () => {
       maintenance: {
         prior,
         removed,
+        carried: [],
         characterVersions: [
           { characterId: CHARACTER_A, beforeStreamVersion: 8 },
           { characterId: CHARACTER_B, beforeStreamVersion: 2 }
@@ -228,6 +230,7 @@ describe('maintained-effect replacement transition', () => {
           lifecycleChecksum: removed[3]!.lifecycleChecksum
         }
       ],
+      endedCarriedGrants: [],
       createdState: createdSummary,
       characterOwnerTransitions: [
         { characterId: CHARACTER_A, beforeStreamVersion: 8, afterStreamVersion: 9 },
@@ -244,7 +247,7 @@ describe('maintained-effect replacement transition', () => {
     const removedEffect = owning('00000000-0000-4000-8000-00000000f504', { [PARALYZED]: false })
     expect(() =>
       buildEncounterMaintenanceTransition({
-        maintenance: { prior: null, removed: [removedEffect], characterVersions: [] },
+        maintenance: { prior: null, removed: [removedEffect], carried: [], characterVersions: [] },
         createdState: created,
         createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
       })
@@ -259,7 +262,7 @@ describe('maintained-effect replacement transition', () => {
     })
     expect(() =>
       buildEncounterMaintenanceTransition({
-        maintenance: { prior, removed: [characterRemoved], characterVersions: [] },
+        maintenance: { prior, removed: [characterRemoved], carried: [], characterVersions: [] },
         createdState: created,
         createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
       })
@@ -271,10 +274,72 @@ describe('maintained-effect replacement transition', () => {
     const earlier = owning('00000000-0000-4000-8000-00000000f505', { [PARALYZED]: false }, 4)
     expect(() =>
       buildEncounterMaintenanceTransition({
-        maintenance: { prior, removed: [later, earlier], characterVersions: [] },
+        maintenance: { prior, removed: [later, earlier], carried: [], characterVersions: [] },
         createdState: created,
         createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
       })
     ).toThrow('Removed maintained dependent effects must use canonical owner order.')
+  })
+
+  it('records a carried grant a new Concentration ends apart from the replaced dependents', () => {
+    const carriedGrant = activeEffect({
+      id: '00000000-0000-4000-8000-00000000f601',
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_B },
+      createdOrdinal: 3,
+      version: 4,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: PARALYZED, baselinePresent: false }
+      ]
+    })
+    const transition = buildEncounterMaintenanceTransition({
+      maintenance: {
+        prior: null,
+        removed: [carriedGrant],
+        carried: [carriedGrant],
+        characterVersions: [{ characterId: CHARACTER_B, beforeStreamVersion: 6 }]
+      },
+      createdState: created,
+      createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
+    })
+    expect(transition).toMatchObject({
+      priorState: null,
+      removedDependentEffects: [],
+      endedCarriedGrants: [
+        {
+          characterId: CHARACTER_B,
+          activeEffectId: carriedGrant.id,
+          createdOrdinal: 3,
+          expectedVersion: 4,
+          definitionChecksum: carriedGrant.definitionChecksum,
+          lifecycleChecksum: carriedGrant.lifecycleChecksum
+        }
+      ],
+      characterOwnerTransitions: [
+        { characterId: CHARACTER_B, beforeStreamVersion: 6, afterStreamVersion: 7 }
+      ]
+    })
+  })
+
+  it('refuses a carried grant whose Character owner has no version step', () => {
+    const carriedGrant = activeEffect({
+      id: '00000000-0000-4000-8000-00000000f601',
+      owner: { kind: 'CHARACTER', characterId: CHARACTER_B },
+      createdOrdinal: 3,
+      stateContributions: [
+        { kind: 'CONDITION_OWNERSHIP', conditionId: PARALYZED, baselinePresent: false }
+      ]
+    })
+    expect(() =>
+      buildEncounterMaintenanceTransition({
+        maintenance: {
+          prior: null,
+          removed: [carriedGrant],
+          carried: [carriedGrant],
+          characterVersions: []
+        },
+        createdState: created,
+        createdDependentEffectIds: ['00000000-0000-4000-8000-00000000f401']
+      })
+    ).toThrow('Maintained Character owner transitions are invalid.')
   })
 })

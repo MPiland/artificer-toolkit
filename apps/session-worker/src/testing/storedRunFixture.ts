@@ -100,6 +100,7 @@ export async function insertStoredRun(
       stateChecksum: checksumCanonicalJson(run),
       createCommandId: crypto.randomUUID(),
       createCommandFingerprint: checksumCanonicalJson(run),
+      concentrationCasterCharacterIds: [],
       createdAt: run.createdAt,
       updatedAt: run.updatedAt
     })

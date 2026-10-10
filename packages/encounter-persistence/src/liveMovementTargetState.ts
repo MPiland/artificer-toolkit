@@ -3,7 +3,6 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterReadTransaction } from './ports.js'
 import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import { readCharacterMaximumHitPoints } from './characterMaximumHitPoints.js'

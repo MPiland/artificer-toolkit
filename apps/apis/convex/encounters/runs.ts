@@ -234,6 +234,7 @@ export async function createEncounterRun(
       stateChecksum: checksumCanonicalJson(state),
       createCommandId: input.commandId,
       createCommandFingerprint: commandFingerprint,
+      concentrationCasterCharacterIds: [],
       createdAt: now,
       updatedAt: now
     })

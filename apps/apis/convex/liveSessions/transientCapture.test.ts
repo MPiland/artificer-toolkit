@@ -100,6 +100,7 @@ async function bindRun(
       stateChecksum: 'a'.repeat(64),
       createCommandId: crypto.randomUUID(),
       createCommandFingerprint: 'a'.repeat(64),
+      concentrationCasterCharacterIds: [],
       createdAt: now,
       updatedAt: now
     })

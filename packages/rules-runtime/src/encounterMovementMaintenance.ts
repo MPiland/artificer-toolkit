@@ -40,6 +40,7 @@ export type MovementMaintenanceProjection<TRow extends MovementCharacterRow> = {
 type Maintenance<TRow extends MovementCharacterRow> = {
   prior: EncounterMaintainedEffectStateRecord | null
   removed: readonly ActiveRuleEffectRecord[]
+  carried: readonly ActiveRuleEffectRecord[]
   owners: readonly MovementMaintenanceOwner<TRow>[]
   characterVersions: readonly { characterId: string; beforeStreamVersion: number }[]
 }

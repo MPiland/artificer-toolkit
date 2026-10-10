@@ -36,7 +36,7 @@ import type { DataModel, Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { createReceiptLedger } from '../lib/receiptLedgers'
 import { removeFinishedRunRows } from '../encounters/campaignDeletion'
-import { carryOverRunGrants } from '../encounters/runGrantCarryOver'
+import { carryOverRunGrants, endOutsideCarriedGrants } from '../encounters/runGrantCarryOver'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readSceneVisionRevision } from '../scenes/visionFreshness'
 import type { CheckpointIoMeter } from './checkpointIo'
@@ -464,6 +464,7 @@ export async function applyCheckpointRecords(
   await io.mark('records')
   const pendingOccurrences = new Set<string>()
   const completedRuns: string[] = []
+  const newConcentrationCasters: { encounterId: string; casterCharacterIds: string[] }[] = []
   for (const [identity, change] of changes) {
     const previous = currentRows.get(identity)
     if (change.table === 'encounterPendingSnapshotParts' && previous)
@@ -475,6 +476,14 @@ export async function applyCheckpointRecords(
       case 'encounterRuns': {
         const run = row as Doc<'encounterRuns'>
         readRunState(run)
+        const known = new Set(
+          (previous as Doc<'encounterRuns'> | null | undefined)?.concentrationCasterCharacterIds
+        )
+        const casterCharacterIds = run.concentrationCasterCharacterIds.filter(
+          (characterId) => !known.has(characterId)
+        )
+        if (casterCharacterIds.length)
+          newConcentrationCasters.push({ encounterId: run.id, casterCharacterIds })
         // A Campaign has one active Encounter, wherever it started.
         if (
           run.status === 'ACTIVE' &&
@@ -562,6 +571,8 @@ export async function applyCheckpointRecords(
   }
   await io.mark('records')
   const carriedOver = new Set<string>()
+  for (const { encounterId, casterCharacterIds } of newConcentrationCasters)
+    await endOutsideCarriedGrants(ctx, frame.campaignId, encounterId, casterCharacterIds)
   for (const encounterId of completedRuns) {
     await removeFinishedRunRows(ctx, encounterId)
     for (const characterId of await carryOverRunGrants(ctx, frame.campaignId, encounterId))

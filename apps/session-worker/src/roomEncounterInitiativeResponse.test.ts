@@ -70,6 +70,7 @@ it('records the answers to an initiative request in the terminal receipt resolut
     stateChecksum: checksumCanonicalJson(state),
     createCommandId: crypto.randomUUID(),
     createCommandFingerprint: checksumCanonicalJson(state),
+    concentrationCasterCharacterIds: [],
     createdAt: now,
     updatedAt: now
   })

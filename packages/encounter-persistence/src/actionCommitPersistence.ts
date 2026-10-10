@@ -488,6 +488,7 @@ export async function persistEncounterActionCommit(
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,
+      addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       commandFingerprint: fingerprint,
       actorUserId: initiatorUserId,
       version: nextState.version,

@@ -95,7 +95,8 @@ export async function readNativeLiveMaintenanceOwners(input: {
   actors: readonly EncounterRunActorState[]
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   removed: readonly ActiveRuleEffectRecord[]
-  slot: { actorId: string; definitionId: string; stateId: string }
+  /** Null when the caster has no maintained slot to replace and only carried grants end. */
+  slot: { actorId: string; definitionId: string; stateId: string } | null
   capture: Capture
   targets?: ReadonlyMap<string, MovementTarget<ProjectableCharacterFacts>>
   projection?: NativeLiveMovementMaintenanceProjection
@@ -111,15 +112,17 @@ export async function readNativeLiveMaintenanceOwners(input: {
     removed.map((effect) => [checksumCanonicalJson(effect.owner), effect.owner])
   )
   for (const [ownerKey, owner] of uniqueOwners) {
-    const scope = { ...slot, owner }
     const target = [...(input.targets?.values() ?? [])].find((candidate) =>
       owner.kind === 'CHARACTER'
         ? candidate.actor.kind === 'CHARACTER' && candidate.actor.sourceId === owner.characterId
         : candidate.actor.id === owner.targetActorId
     )
     const projected = input.projection?.owners.get(ownerKey)
+    // Without a slot only carried grants end, and their holders are loaded Run Characters.
+    if (!slot && !target && !projected) throw new Error('Maintenance slot is unavailable.')
+    const scope = slot ? { ...slot, owner } : null
     const response =
-      target || projected ? null : await capture({ kind: 'MAINTENANCE_OWNER', ...scope })
+      !scope || target || projected ? null : await capture({ kind: 'MAINTENANCE_OWNER', ...scope })
     if (
       response &&
       (response.kind !== 'MAINTENANCE_OWNER' || checksumCanonicalJson(response.owner) !== ownerKey)
@@ -135,7 +138,7 @@ export async function readNativeLiveMaintenanceOwners(input: {
       projected?.effects ??
       (actor ? activeEffectsByActorId.get(actor.id) : undefined)
     const effects = captured ? [...captured] : []
-    if (!captured) {
+    if (!captured && scope) {
       let afterEffectId: string | null = null
       for (;;) {
         const page = await capture({
@@ -201,8 +204,13 @@ export async function prepareNativeLiveActionMaintenance(input: {
   capture: Capture
   targets?: ReadonlyMap<string, MovementTarget<ProjectableCharacterFacts>>
   projection?: NativeLiveMovementMaintenanceProjection
+  /** D99: given, a Character caster's new Concentration ends carried grants; loads and fences each holder. */
+  loadCarriedHolder?: (
+    actor: EncounterRunActorState
+  ) => Promise<MovementTarget<ProjectableCharacterFacts>>
 }) {
-  const { prepared, capture } = input
+  const { prepared, capture, loadCarriedHolder } = input
+  const carriedHolders = new Map<string, MovementTarget<ProjectableCharacterFacts>>()
   let slot: { definitionId: string; stateId: string } | null = null
   return prepareEncounterActionMaintenance({
     prepared,
@@ -223,19 +231,30 @@ export async function prepareNativeLiveActionMaintenance(input: {
       if (result.state) slot = { definitionId, stateId: result.state.id }
       return result
     },
-    readOwners: async (removed) => {
-      if (!slot) {
-        if (removed.length) throw new Error('Maintenance slot is unavailable.')
-        return { owners: [], characterVersions: [] }
-      }
+    readCarried: loadCarriedHolder
+      ? async () =>
+          prepared.actors.flatMap((actor) =>
+            actor.kind === 'CHARACTER' ? (input.activeEffectsByActorId.get(actor.id) ?? []) : []
+          )
+      : undefined,
+    readOwners: async (removed, carried) => {
+      for (const { owner } of carried)
+        if (owner.kind === 'CHARACTER') {
+          const holder = prepared.actors.find(
+            (actor) => actor.kind === 'CHARACTER' && actor.sourceId === owner.characterId
+          )
+          if (holder && loadCarriedHolder && !carriedHolders.has(holder.id))
+            carriedHolders.set(holder.id, await loadCarriedHolder(holder))
+        }
+      if (!slot && !removed.length) return { owners: [], characterVersions: [] }
       return readNativeLiveMaintenanceOwners({
         gameSystemId: prepared.state.gameSystemId,
         actors: prepared.actors,
         activeEffectsByActorId: input.activeEffectsByActorId,
         removed,
-        slot: { ...slot, actorId: prepared.actor.id },
+        slot: slot ? { ...slot, actorId: prepared.actor.id } : null,
         capture,
-        targets: input.targets,
+        targets: new Map([...(input.targets ?? []), ...carriedHolders]),
         projection: input.projection
       })
     }

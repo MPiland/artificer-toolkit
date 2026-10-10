@@ -381,6 +381,7 @@ it('rejects retained Encounter bindings before removing Scene state', async () =
       stateChecksum: '0'.repeat(64),
       createCommandId: crypto.randomUUID(),
       createCommandFingerprint: '0'.repeat(64),
+      concentrationCasterCharacterIds: [],
       createdAt: base.campaign.createdAt,
       updatedAt: base.campaign.createdAt
     })

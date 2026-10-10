@@ -186,6 +186,7 @@ it('starts and advances a native manual Creature Run atomically, recovers, and r
     stateChecksum: checksumCanonicalJson(state),
     createCommandId: crypto.randomUUID(),
     createCommandFingerprint: checksumCanonicalJson(state),
+    concentrationCasterCharacterIds: [],
     createdAt: now,
     updatedAt: now
   })

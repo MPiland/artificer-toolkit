@@ -26,6 +26,7 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
       stateChecksum: checksum,
       createCommandId: crypto.randomUUID(),
       createCommandFingerprint: checksum,
+      concentrationCasterCharacterIds: [],
       createdAt: now,
       updatedAt: now
     })

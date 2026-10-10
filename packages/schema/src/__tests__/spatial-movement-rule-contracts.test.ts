@@ -692,6 +692,7 @@ function maintainedReactionExecution() {
       definitionChecksum: checksum('e'),
       lifecycleChecksum: checksum('f')
     })),
+    endedCarriedGrants: [],
     createdState: {
       id: maintainedStateId,
       version: 1,
@@ -1067,6 +1068,28 @@ describe('spatial movement rule contracts', () => {
     duplicate.characterTransitions[2] = duplicate.characterTransitions[1]!
     expect(() => movementReactionActionExecutionDtoSchema.parse(duplicate)).toThrow(
       'unique, ordered, and advance exactly once'
+    )
+  })
+
+  it('retains the owner transition of a Character whose carried grant the reaction ends (D99)', () => {
+    const reaction = maintainedReactionExecution()
+    if (reaction.application.kind !== 'CHARACTER_MECHANICS_BATCH')
+      throw new Error('Expected Character reaction application.')
+    const maintenance = reaction.application.maintenanceTransition
+    if (!maintenance) throw new Error('Expected a maintenance transition.')
+    const [carried] = maintenance.removedDependentEffects.splice(-1)
+    if (carried?.kind !== 'CHARACTER') throw new Error('Expected a Character dependent effect.')
+    const { kind: _kind, ...grant } = carried
+    maintenance.endedCarriedGrants = [grant]
+
+    expect(
+      movementReactionActionExecutionDtoSchema.parse(structuredClone(reaction))
+        .maintenanceOwnerTransitions
+    ).toHaveLength(3)
+
+    maintenance.endedCarriedGrants = []
+    expect(() => movementReactionActionExecutionDtoSchema.parse(reaction)).toThrow(
+      'match removed owners'
     )
   })
 

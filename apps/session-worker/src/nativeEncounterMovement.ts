@@ -224,7 +224,12 @@ export async function prepareNativeLiveMovement(
           targets: reaction.targets,
           activeEffectsByActorId: new Map(
             [...reaction.targets].map(([id, target]) => [id, target.activeEffects])
-          )
+          ),
+          loadCarriedHolder: async (actor) => {
+            const holder = reaction.targets.get(actor.id)
+            if (!holder) throw new Error('Carried-grant holder is not in the movement reaction.')
+            return holder
+          }
         })
     }).catch((error: unknown) => {
       if (error instanceof StaleMovementReactionError)

@@ -259,7 +259,16 @@ store.
   It also deletes the Character effects the Run sourced (`endCompletedRunCharacterEffects`, D99); a
   Character's own timed grants stay and carry over to the Campaign clock. A Concentration grant a
   Character holds is detached from the Run's maintained state (both Run links nulled) and stamped with its
-  caster in `lifecycle.concentrationCasterCharacterId` rather than deleted (SPELLS-5.7).
+  caster in `lifecycle.concentrationCasterCharacterId` rather than deleted (SPELLS-5.7). The caster's
+  next Concentration ends such grants on Run Characters in the room (maintenance receipt
+  `endedCarriedGrants`). For Characters outside the Run, the room appends each Character that starts a
+  Concentration to the Run row's `concentrationCasterCharacterIds` (append-only, at most
+  `MAX_ENCOUNTER_ACTORS`; Convex creates it empty and only the room adds to it). The one exception is the
+  GM's undo of the command that added the id: that `RESOLVE_ACTION` row stores
+  `addedConcentrationCasterId` (null when the Character was already in the set), and its undo removes
+  exactly that id, so an undone Concentration never ends outside grants. Every checkpoint
+  (`checkpointRecords`) compares the previous and next Run row and `endOutsideCarriedGrants` ends the
+  stamped grants of the newly added ids on Characters outside any ACTIVE Run (D99).
   A completed Run has no Scene binding, so bind commands on it are refused with `ENCOUNTER_NOT_ACTIVE`
   and lookups by Scene never resolve it. Several PREPARED or ACTIVE Runs may bind one Scene, so the
   binding table has no Scene index and no lookup ranks Runs: the fight played on a Scene is the

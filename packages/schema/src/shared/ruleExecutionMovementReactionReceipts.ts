@@ -205,12 +205,18 @@ export const movementReactionActionExecutionDtoSchema = lazySchema(() =>
             })
           let priorTargetActorId = ''
           for (const [index, transition] of (ownerTransitions ?? []).entries()) {
-            const matchesRemovedOwner = maintenance?.removedDependentEffects.some((effect) =>
-              transition.characterId === null
-                ? effect.kind === 'ENCOUNTER_ACTOR' &&
-                  effect.targetActorId === transition.targetActorId
-                : effect.kind === 'CHARACTER' && effect.characterId === transition.characterId
-            )
+            const matchesRemovedOwner =
+              maintenance?.removedDependentEffects.some((effect) =>
+                transition.characterId === null
+                  ? effect.kind === 'ENCOUNTER_ACTOR' &&
+                    effect.targetActorId === transition.targetActorId
+                  : effect.kind === 'CHARACTER' && effect.characterId === transition.characterId
+              ) ||
+              // D99: a Character whose carried Concentration grant the reaction ends is cleaned up too.
+              (transition.characterId !== null &&
+                maintenance?.endedCarriedGrants.some(
+                  (grant) => grant.characterId === transition.characterId
+                ))
             if (transition.targetActorId <= priorTargetActorId || !matchesRemovedOwner)
               context.addIssue({
                 code: 'custom',
