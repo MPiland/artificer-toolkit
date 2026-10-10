@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-10. Start at "Done 2026-10-10" below for the SPELLS-7 state and next steps (SPELLS-7 is DONE with its web round and browser journey; SPELLS-18 is next).
+**Updated:** 2026-10-10. Start at "Done 2026-10-10" below. SPELLS-18 is DONE (`d70136fd3`); next is ATTACK-7.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -132,6 +132,7 @@
 - Fixed in passing (`f1bbfc4c6`): `amountKind` HALF and DOUBLE were ignored by the test-plan compiler, and a Character-cast HALF spell could not settle. Character DAMAGE mechanics now carry a bare `diceExpression` beside the worded `expression`.
 - The validation helpers `local-validation/codex-batch/vt.ps1` and `gate.ps1` now exit non-zero when any step fails. Before this they could print a failure and still exit 0.
 - Ledger 80/145 PBIs, 345/491 ACs.
+- SPELLS-18 DONE (`d70136fd3`, D104): a Creature's failed single-target save holds the action for its Legendary Resistance choice (existing `DECLINE`/`OPTION` answer and `LEGENDARY_RESISTANCE_CHOICE` summary); USE spends the charge in the action receipt and undo returns it. Ledger 82/147 PBIs, 349/495 ACs.
 
 **SPELLS-7 (Fireball from a point) state, all commits green:**
 
@@ -188,7 +189,7 @@ Area path file map:
 - `packages/encounter-persistence/src/`: `actionAreaPending.ts`, `areaTargetRemoval.ts`, `actionResumeAdmission.ts` and `actionPendingPersistence.ts`.
 - `apps/session-worker/src/`: `nativeEncounterAreaRules.ts`, `roomEncounterCommands.ts`, and `test/nativeRoomAreaAction.test.ts`.
 
-After SPELLS-7, build SPELLS-18 (Legendary Resistance on a single-target action save, which still throws at `nativeEncounterRules.ts` `afterTest`; reuse `encounterLegendaryResistanceChoice.ts`), then continue the WSJF ranking: ATTACK-7, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
+SPELLS-18 is done. Continue the WSJF ranking: ATTACK-7, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
 
 **Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing.
 
@@ -279,6 +280,7 @@ The final `yarn validate:pre-staging:local` runs once, at the end of Phase 8.
 - The `.agents/` deletions stay unstaged and uncommitted.
 - Convex and Session Worker tests resolve `packages/schema` and `packages/encounter-persistence` through `dist`: rebuild them after source changes before running those tests.
 - `gate.ps1`, `vt.ps1` and `nt.ps1` take `local-validation/.validation.lock` themselves; never wrap them in the lock. Format with `yarn format` (oxfmt).
+- `pk.ps1` does not build the `encounter-persistence` dist; run `yarn workspace @artificer-toolkit/encounter-persistence build` (under the lock) before Session Worker or Convex tests after changing it.
 - Authority is the ledger, not the older counts below; see [ADR 0029](../adr/0029-convex-backend-cutover.md), [ADR 0035](../adr/0035-room-authoritative-live-encounters.md), [persistence](../architecture/persistence.md), [live-session coordination](../architecture/live-sessions.md) and the [release runbook](../runbooks/phase-8-2-release.md).
 
 ## Historical checkpoint (2026-09-24, later session)

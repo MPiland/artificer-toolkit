@@ -271,6 +271,17 @@ Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is
 [D103](../handoffs/phase-08-2-decisions.md).
 
+### Legendary Resistance on single-target saves (current, D104)
+
+A failed Creature save on a single-target `RESOLVE_ACTION` TEST that ends `ON_SAVE_FAIL` holds the action
+before its OUTCOME runs. The `ENCOUNTER_ACTION` pending context keeps a sealed `legendaryResistance` offer
+with the creature as roller, and nothing is spent while it waits. The answer is the existing `DECLINE` or
+`OPTION` resolution, read as the `LEGENDARY_RESISTANCE_CHOICE` summary; the room rebuilds the TEST from the
+retained faces without rolling, re-checks the offer against the creature's current pool, and continues the
+OUTCOME on the success branch for USE or the failure branch for DECLINE. On USE the charge is written into the
+action receipt as `targetFeatureResourceConsumption`, and GM undo returns it. Area, movement and single-target
+paths share `decideEncounterLegendaryResistance`. The decision is [D104](../handoffs/phase-08-2-decisions.md).
+
 ### 0 hit points (D63, current)
 
 A Creature or custom Run actor stores `defeated`. `nextEncounterActorDefeated`
