@@ -6,10 +6,11 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   resolveEncounterAttackPerception,
-  resolveEncounterBelievedAttackPerception
+  resolveEncounterBelievedAttackPerception,
+  resolveEncounterPointSight
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
+import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
 
 import {
   readNativeLiveDefinition,
@@ -86,4 +87,51 @@ export async function readNativeLiveAttackPerception(input: {
     })
   ])
   return { actual, believed }
+}
+
+/**
+ * Whether an observer sees a point of the action's locked Scene (an area's origin), by the same
+ * perception rules and live Scene reads as `readNativeLiveAttackPerception`. A stale Scene is the
+ * same refusal as there.
+ */
+export async function readNativeLivePointSight(input: {
+  state: EncounterRunState
+  system: SystemAuthoredDto
+  observer: MovementTarget
+  point: ScenePoint
+  sceneContext: { sceneId: string; sceneVersion: number; grid: SceneGrid }
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const { state, capture, sceneContext } = input
+  if (input.system.id !== state.gameSystemId)
+    throw new Error('Attack perception System binding mismatch.')
+  const loaded = await readNativeLivePerceptionScene({
+    campaignId: state.campaignId,
+    observerActorId: input.observer.actor.id,
+    subjectActorId: input.observer.actor.id,
+    capture
+  })
+  if (!loaded || loaded.id !== sceneContext.sceneId || loaded.version !== sceneContext.sceneVersion)
+    throw new Error('Encounter action facts are stale.')
+  const observerToken = loaded.scene.tokens.find((token) => token.id === loaded.observerTokenId)
+  if (!observerToken) throw new Error('Encounter action facts are stale.')
+  return resolveEncounterPointSight({
+    gameSystemId: state.gameSystemId,
+    loadDefinition: (definitionId) =>
+      readNativeLiveDefinition({ gameSystemId: state.gameSystemId, definitionId, capture }),
+    loadSystem: async () => input.system,
+    observer: input.observer,
+    point: input.point,
+    placement: {
+      scene: loaded.scene,
+      sceneGrid: sceneContext.grid,
+      observerToken,
+      spatialEffects: await readNativeLiveSpatialEffects({
+        encounterId: state.id,
+        sceneId: loaded.id,
+        sceneVersion: loaded.version,
+        capture
+      })
+    }
+  })
 }

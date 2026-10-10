@@ -98,7 +98,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
-import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
+import { readNativeLiveAttackPerception, readNativeLivePointSight } from './nativeAttackPerception.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
@@ -174,7 +174,17 @@ async function prepareAreaScene(input: AreaPlanInput) {
     targetPolicy,
     point: command.target.point,
     grid,
-    sourceToken: scene.sourceToken
+    sourceToken: scene.sourceToken,
+    // An undecided sight (a Creature's unmodeled free-text Senses) counts as seen, as in D100.
+    pointSeen:
+      (await readNativeLivePointSight({
+        state,
+        system: input.system,
+        observer: casterFacts,
+        point: command.target.point,
+        sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
+        capture
+      })) !== 'UNSEEN'
   })
   if (!area) throw new Error('The selected action area is not supported.')
   return { caster, casterFacts, movementTargets, scene, grid, area }

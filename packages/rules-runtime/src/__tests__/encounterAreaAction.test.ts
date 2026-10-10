@@ -182,6 +182,7 @@ describe('area target policy', () => {
       point: at(10),
       grid: FEET_GRID,
       sourceToken: SOURCE_TOKEN,
+      pointSeen: true,
       ...input
     })
 
@@ -194,6 +195,31 @@ describe('area target policy', () => {
     expect(evaluate({ point: at(31) })?.warnings).toEqual([
       { code: 'TARGET_OUT_OF_RANGE', message: 'The area origin is out of range.' }
     ])
+  })
+
+  it('warns that an origin the caster cannot see is out of sight, even within range', () => {
+    expect(evaluate({ pointSeen: false })?.warnings).toEqual([
+      { code: 'TARGET_OUT_OF_SIGHT', message: 'The area origin is out of sight.' }
+    ])
+  })
+
+  it('reports an origin that is both out of range and out of sight with both warnings, range first', () => {
+    expect(evaluate({ point: at(31), pointSeen: false })?.warnings.map(({ code }) => code)).toEqual([
+      'TARGET_OUT_OF_RANGE',
+      'TARGET_OUT_OF_SIGHT'
+    ])
+    expect(
+      evaluate({ sourceToken: null, pointSeen: false })?.warnings.map(({ code }) => code)
+    ).toEqual(['TARGET_RANGE_UNCHECKED', 'TARGET_OUT_OF_SIGHT'])
+  })
+
+  it('still checks sight for an unlimited range', () => {
+    expect(
+      evaluate({
+        targetPolicy: policy({ range: { id: 'range', rangeKind: 'UNLIMITED' } }),
+        pointSeen: false
+      })?.warnings.map(({ code }) => code)
+    ).toEqual(['TARGET_OUT_OF_SIGHT'])
   })
 
   it('warns the range is unchecked without the caster token, and still returns the area', () => {

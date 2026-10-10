@@ -1,5 +1,10 @@
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type { CampaignSceneState, SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
+import type {
+  CampaignSceneState,
+  SceneGrid,
+  ScenePoint,
+  SceneToken
+} from '@artificer-toolkit/shared/vtt'
 
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -141,6 +146,36 @@ export async function resolveEncounterAttackPerception(
     targetSenseLabels: target.senseLabels,
     attackerSenseLabels: attacker.senseLabels
   }
+}
+
+/**
+ * Whether an observer sees a point on the Scene (an area's chosen origin), by the same perception
+ * rules as a creature: the observer's conditions and Senses, and the Scene's lighting, darkness,
+ * barriers and spatial effects at the point. The point is a subject with no conditions, effects or
+ * extent. Without a placement the neutral environment applies (D94), so only the observer's
+ * conditions can stop it seeing.
+ */
+export async function resolveEncounterPointSight(
+  input: AttackPerceptionLoaders & {
+    observer: AttackPerceptionActor
+    point: ScenePoint
+    placement: Omit<EncounterAttackPerceptionPlacement, 'attackerToken' | 'targetToken'> & {
+      observerToken: SceneToken
+    } | null
+  }
+): Promise<EncounterAttackSight> {
+  const { placement } = input
+  return (
+    await resolveAttackSight({
+      ...input,
+      subject: strippedAttackActor(input.observer),
+      placement: placement && {
+        ...placement,
+        subjectToken: { ...placement.observerToken, position: input.point, width: 0, height: 0 }
+      },
+      believed: false
+    })
+  ).sight
 }
 
 /** An actor as a roller who knows nothing of it sees it: no Senses, effects or conditions. */

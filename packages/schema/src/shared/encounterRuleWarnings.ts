@@ -15,6 +15,7 @@ export const encounterRuleWarningCodeDtoSchema = lazySchema(() =>
     'TARGET_DISPOSITION',
     'TARGET_NOT_DYING',
     'TARGET_OUT_OF_RANGE',
+    'TARGET_OUT_OF_SIGHT',
     'TARGET_RANGE_UNCHECKED'
   ])
 )

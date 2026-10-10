@@ -164,6 +164,7 @@ export interface ActionRoomConfig extends Pick<
   | 'automationMode'
   | 'autoRoll'
   | 'playerControlledActorIds'
+  | 'sceneOverrides'
   | 'optionalCombatKinds'
   | 'rolls'
   | 'fallbackRoll'

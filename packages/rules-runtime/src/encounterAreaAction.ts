@@ -19,6 +19,11 @@ const RANGE_UNCHECKED: EncounterRuleWarningDto = {
   message: "Range can't be checked without both tokens on the map."
 }
 
+const OUT_OF_SIGHT: EncounterRuleWarningDto = {
+  code: 'TARGET_OUT_OF_SIGHT',
+  message: 'The area origin is out of sight.'
+}
+
 const POINT_AREA_SHAPE_KINDS: ReadonlySet<string> = new Set([
   'SPHERE',
   'CYLINDER',
@@ -88,7 +93,7 @@ export function compileEncounterPointArea(
 
 /**
  * Resolves a point-origin area action from its policy: the area to catch creatures with, and the
- * overridable range warning for the picked origin. Every creature in the area is caught, so the
+ * overridable range and sight warnings for the picked origin. Every creature in the area is caught, so the
  * single-target self and disposition rules (D99) do not apply. Null is a hard refusal: the policy
  * does not take a point, its area is unsupported, or its range is not a distance or unlimited.
  */
@@ -98,14 +103,29 @@ export function evaluateEncounterAreaTargetPolicy(input: {
   grid: SceneGrid
   /** The caster's token; null when it is not on the map. */
   sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'> | null
+  /** Whether the caster can see the point; an undecided sight counts as seen. */
+  pointSeen: boolean
 }): { shape: SpatialPointAreaShape; warnings: EncounterRuleWarningDto[] } | null {
   const { range } = input.targetPolicy
   const shape = compileEncounterPointArea(input.targetPolicy, input.grid)
   if (shape === null) return null
-  if (range.rangeKind === 'UNLIMITED') return { shape, warnings: [] }
+  const rangeWarnings = evaluateRangeWarnings(input, range)
+  if (rangeWarnings === null) return null
+  return {
+    shape,
+    warnings: input.pointSeen ? rangeWarnings : [...rangeWarnings, OUT_OF_SIGHT]
+  }
+}
+
+/** The range warning for the picked origin; null when the range is not a distance or unlimited. */
+function evaluateRangeWarnings(
+  input: Pick<Parameters<typeof evaluateEncounterAreaTargetPolicy>[0], 'point' | 'grid' | 'sourceToken'>,
+  range: CompiledActionTargetPolicy['range']
+): EncounterRuleWarningDto[] | null {
+  if (range.rangeKind === 'UNLIMITED') return []
   if (range.rangeKind !== 'DISTANCE') return null
   const maximum = measuredLength({ amount: range.amount, unit: range.unit }, input.grid)
-  if (input.sourceToken === null || maximum === null) return { shape, warnings: [RANGE_UNCHECKED] }
+  if (input.sourceToken === null || maximum === null) return [RANGE_UNCHECKED]
   const { position, width, height } = input.sourceToken
   const halfWidth = sceneFootprintMeasureHalfExtent(input.grid, width)
   const halfHeight = sceneFootprintMeasureHalfExtent(input.grid, height)
@@ -113,12 +133,7 @@ export function evaluateEncounterAreaTargetPolicy(input: {
     x: Math.min(Math.max(input.point.x, position.x - halfWidth), position.x + halfWidth),
     y: Math.min(Math.max(input.point.y, position.y - halfHeight), position.y + halfHeight)
   }
-  const measured = measureSceneDistance(input.grid, nearest, input.point)
-  return {
-    shape,
-    warnings:
-      measured > maximum
-        ? [{ code: 'TARGET_OUT_OF_RANGE', message: 'The area origin is out of range.' }]
-        : []
-  }
+  return measureSceneDistance(input.grid, nearest, input.point) > maximum
+    ? [{ code: 'TARGET_OUT_OF_RANGE', message: 'The area origin is out of range.' }]
+    : []
 }

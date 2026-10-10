@@ -173,6 +173,10 @@ export interface MovementRoomConfig {
     condition?: { conditionId: string }
     moving?: { activation: 'ONE_SHOT' | 'REPEATABLE'; hidden: boolean }
   }[]
+  /** Scene lighting and barriers, where the room's open, bright Scene is not what a test needs. */
+  sceneOverrides?: Partial<
+    Pick<CampaignSceneStateDto, 'ambientIllumination' | 'barriers' | 'darknessZones' | 'lights'>
+  >
   /** The mover, a Character, maintains Concentration. */
   concentration?: boolean
   /** The Character who maintains Concentration, when not the mover. */
@@ -229,6 +233,7 @@ export async function movementRoom(config: MovementRoomConfig) {
     name: 'Movement planner scene',
     barriers: [],
     doorStates: {},
+    ...config.sceneOverrides,
     // Encounter control, not exploration, decides these moves.
     fogMode: 'OFF',
     grid: {

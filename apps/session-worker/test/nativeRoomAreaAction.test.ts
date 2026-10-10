@@ -3,6 +3,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
@@ -1329,6 +1330,98 @@ describe('room area action cast by a Character', () => {
   })
 })
 
+describe('room area origin warnings (range and sight)', () => {
+  const NEAR = { x: 350, y: 150 }
+  const BEYOND_RANGE = { x: 4150, y: 150 }
+  const BLINDED_ID = srdSystemRecord.conditionTypes.find(({ code }) => code === 'BLINDED')?.id
+  const wall = {
+    kind: 'WALL' as const,
+    id: testUuid(0x7b0),
+    a: { x: 300, y: -500 },
+    b: { x: 300, y: 500 },
+    blocksLight: true,
+    blocksMovement: true
+  }
+
+  /** A caster with no Senses of its own and two Wolves; `blind` blinds the caster. */
+  function warningRoom(options: { blind?: boolean; walled?: boolean } = {}) {
+    return actionRoom({
+      ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
+      actors: [
+        srdCreatureActor({
+          id: CASTER_ID,
+          creature: { ...fireballWolf(), senses: [] },
+          conditionIds: options.blind && BLINDED_ID ? [BLINDED_ID] : []
+        }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+        srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+  }
+  type Room = Awaited<ReturnType<typeof warningRoom>>
+  const warningCodes = (answer: object) =>
+    (answer as { warnings: { code: string }[] }).warnings.map(({ code }) => code)
+
+  async function expectRefusedThenOpened(
+    room: Room,
+    point: { x: number; y: number },
+    codes: ResolveEncounterActionInputDto['acknowledgedWarnings']
+  ) {
+    const before = await readRoomHistory(room.room.base.stub)
+    const refused = await room.startAreaAction(point)
+    expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+    expect(warningCodes(refused.answer)).toEqual(codes)
+    // The refusal opens nothing and spends nothing.
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
+
+    const opened = await room.startAreaAction(point, codes)
+    expect(opened.answer.type, JSON.stringify(opened.answer)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('opens the area with no warning for a point in range and in sight', async () => {
+    const room = await warningRoom()
+    const { answer } = await room.startAreaAction(NEAR)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await room.pendingDecision()).pending.kind).toBe('AREA_SAVES')
+  })
+
+  it('refuses a point beyond range with the warning, and opens the area once it is acknowledged', async () => {
+    await expectRefusedThenOpened(await warningRoom(), BEYOND_RANGE, ['TARGET_OUT_OF_RANGE'])
+  })
+
+  it('refuses a point a Blinded caster cannot see, and opens the area once it is acknowledged', async () => {
+    const room = await warningRoom({ blind: true })
+    await expectRefusedThenOpened(room, NEAR, ['TARGET_OUT_OF_SIGHT'])
+    expect((await room.pendingDecision()).pending.kind).toBe('AREA_SAVES')
+  })
+
+  it('refuses a point behind a wall that blocks light, and opens the area once it is acknowledged', async () => {
+    const room = await warningRoom({ walled: true })
+    await expectRefusedThenOpened(room, { x: 450, y: 150 }, ['TARGET_OUT_OF_SIGHT'])
+    expect((await room.pendingDecision()).pending.kind).toBe('AREA_SAVES')
+  })
+
+  it('does not warn for a point on the caster’s side of the wall', async () => {
+    const room = await warningRoom({ walled: true })
+    const { answer } = await room.startAreaAction({ x: 250, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('warns of both range and sight, range first, and needs both acknowledged', async () => {
+    const room = await warningRoom({ blind: true })
+    const refused = await room.startAreaAction(BEYOND_RANGE, ['TARGET_OUT_OF_RANGE'])
+    expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+    expect(warningCodes(refused.answer)).toEqual(['TARGET_OUT_OF_RANGE', 'TARGET_OUT_OF_SIGHT'])
+    const opened = await room.startAreaAction(BEYOND_RANGE, [
+      'TARGET_OUT_OF_RANGE',
+      'TARGET_OUT_OF_SIGHT'
+    ])
+    expect(opened.answer.type, JSON.stringify(opened.answer)).toBe('COMMAND_COMMITTED')
+  })
+})
+
 describe('room area visibility by role', () => {
   const SEEN_ID = CAUGHT_IDS[0]!
   const SECOND_ID = CAUGHT_IDS[1]!
@@ -1780,5 +1873,80 @@ describe('room area perception for the caster', () => {
         'Wolf failed its save'
       ])
     })
+  })
+})
+
+describe('room area save prompt of a creature the caster cannot perceive', () => {
+  const SEEN_ID = CAUGHT_IDS[0]!
+  const PHANTOM_ID = testUuid(0x713)
+  const INVISIBLE_ID = srdSystemRecord.conditionTypes.find(
+    (condition) => condition.code === 'INVISIBLE'
+  )?.id
+
+  /**
+   * A senseless caster the GM runs, a Wolf in plain sight, and an Invisible Wolf the caster cannot
+   * perceive whose roller is the room's player.
+   */
+  async function phantomRoom() {
+    const room = await actionRoom({
+      playerControlledActorIds: [PHANTOM_ID],
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: { ...fireballWolf(), senses: [] } }),
+        srdCreatureActor({ id: SEEN_ID, creature: plainWolf }),
+        srdCreatureActor({
+          id: PHANTOM_ID,
+          creature: { ...plainWolf, label: 'Phantom Wolf' },
+          conditionIds: INVISIBLE_ID ? [INVISIBLE_ID] : []
+        })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+    expect((await room.startAreaAction({ x: 250, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    return room
+  }
+  type Room = Awaited<ReturnType<typeof phantomRoom>>
+  const viewAs = (room: Room, controlled: string[], isOwner = false) =>
+    readPendingAreaForViewer(room.room.base.stub, {
+      isOwner,
+      controlledActorIds: new Set(controlled)
+    })
+
+  it('gives the creature’s own roller its save prompt, and the caster’s view nothing of it', async () => {
+    const room = await phantomRoom()
+    const own = await viewAs(room, [PHANTOM_ID])
+    expect(own?.saves.map(({ actorId }) => actorId)).toEqual([PHANTOM_ID])
+
+    const caster = await viewAs(room, [CASTER_ID])
+    expect(caster?.saves.map(({ actorId }) => actorId)).toEqual([CASTER_ID])
+    expect(caster?.caught).not.toContain('Phantom Wolf')
+    expect(JSON.stringify(caster)).not.toContain(PHANTOM_ID)
+    expect(JSON.stringify(caster)).not.toContain('Phantom')
+    expect(
+      (await viewAs(room, [], true))?.saves.map(({ actorId }) => actorId).sort()
+    ).toEqual([CASTER_ID, SEEN_ID, PHANTOM_ID].sort())
+  })
+
+  it('lets that roller answer their own save, which leaves the other saves waiting', async () => {
+    const room = await phantomRoom()
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const save = decision.pending.saves.find((entry) => entry.actorId === PHANTOM_ID)!
+    const answer = await room.sendAsPlayer(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: save.request.requestId,
+        rawFaces: [9],
+        rollMode: save.request.rollMode
+      })
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await room.pendingDecision()
+    if (after.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    expect(after.pending.saves.map(({ actorId }) => actorId).sort()).toEqual(
+      [CASTER_ID, SEEN_ID].sort()
+    )
+    // Having answered, that roller has nothing left in the area to answer.
+    expect(await viewAs(room, [PHANTOM_ID])).toBeNull()
   })
 })

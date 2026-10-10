@@ -11,6 +11,7 @@ import {
   encounterAttackSightContributors,
   resolveEncounterAttackPerception,
   resolveEncounterBelievedAttackPerception,
+  resolveEncounterPointSight,
   type EncounterAttackPerception
 } from '../encounterAttackPerception.js'
 import {
@@ -374,5 +375,91 @@ describe('encounter attack perception: believed perception (ATTACK-10.1)', () =>
     expect((await resolveEncounterBelievedAttackPerception(options)).targetSeesAttacker).toBe(
       'UNSEEN'
     )
+  })
+})
+
+describe('encounter attack perception: sight of a point', () => {
+  const GRID = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  } as const
+  const observerToken = {
+    id: testUuid(0xb1),
+    assetId: null,
+    controlledByUserIds: [],
+    height: 100,
+    width: 100,
+    hidden: false,
+    locked: false,
+    label: 'Quill Beast',
+    rotationDegrees: 0,
+    position: { x: 50, y: 50 },
+    vision: null
+  }
+  const POINT = { x: 850, y: 50 }
+  const wall = (blocksLight: boolean) => ({
+    kind: 'WALL' as const,
+    id: testUuid(0xb2),
+    a: { x: 450, y: -500 },
+    b: { x: 450, y: 500 },
+    blocksLight,
+    blocksMovement: false
+  })
+
+  async function sightOf(input: {
+    conditionIds?: readonly string[]
+    scene?: Partial<{
+      ambientIllumination: 'BRIGHT' | 'DIM' | 'ORDINARY_DARKNESS'
+      barriers: ReturnType<typeof wall>[]
+    }> | null
+  }) {
+    const prepared = await volleyAt({ attackerConditionIds: input.conditionIds ?? [] })
+    return resolveEncounterPointSight({
+      gameSystemId: prepared.state.gameSystemId,
+      observer: prepared.sourceFacts,
+      point: POINT,
+      placement: input.scene
+        ? {
+            scene: {
+              ambientIllumination: 'BRIGHT',
+              barriers: [],
+              darknessZones: [],
+              doorStates: {},
+              grid: GRID,
+              lights: [],
+              tokens: [observerToken],
+              ...input.scene
+            },
+            sceneGrid: GRID,
+            observerToken,
+            spatialEffects: []
+          }
+        : null,
+      loadDefinition: async () => null,
+      loadSystem: async () => srdSystemRecord
+    })
+  }
+
+  it('sees a point in the open on a lit Scene, and any point without a Scene', async () => {
+    expect(await sightOf({ scene: {} })).toBe('SEES')
+    expect(await sightOf({ scene: null })).toBe('SEES')
+  })
+
+  it('does not see a point behind a barrier that blocks light, but sees past one that does not', async () => {
+    expect(await sightOf({ scene: { barriers: [wall(true)] } })).toBe('UNSEEN')
+    expect(await sightOf({ scene: { barriers: [wall(false)] } })).toBe('SEES')
+  })
+
+  it('does not see a point in darkness with no Sense that sees in it', async () => {
+    expect(await sightOf({ scene: { ambientIllumination: 'ORDINARY_DARKNESS' } })).toBe('UNSEEN')
+  })
+
+  it('does not see anything while Blinded, with or without a Scene', async () => {
+    expect(await sightOf({ scene: {}, conditionIds: [BLINDED] })).toBe('UNSEEN')
+    expect(await sightOf({ scene: null, conditionIds: [BLINDED] })).toBe('UNSEEN')
   })
 })
