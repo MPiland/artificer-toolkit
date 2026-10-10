@@ -1,22 +1,28 @@
+import type { RemoveAreaTargetInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionActionCaptureScope } from '@artificer-toolkit/schema/api/liveSessionCommandScopes'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readNativeEncounterActionAdmission } from './actionAdmission.js'
 import { readNativeEncounterActionResponseAdmission } from './actionResumeAdmission.js'
 import { rejectDomain } from './domainRejections.js'
+import { readAreaRemovalCommitAdmission } from './areaTargetRemoval.js'
 import { readCleavingResponseAdmission } from './cleavingResponseAdmission.js'
 import { readDisarmAdmission } from './disarmAdmission.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { readBasicActionCheckResponseAdmission } from './basicActionCheckAdmission.js'
 import type { EncounterReadTransaction } from './ports.js'
 
-/** Shared authorization and replay fences for the pending and terminal action transactions. */
+/**
+ * Shared authorization and replay fences for the pending and terminal action transactions. A
+ * `removal` is the GM's removal of the last creature a pending area waits on: it admits the area's
+ * own root command, resumed, in place of a creature's answer.
+ */
 export async function readLiveEncounterActionAdmission(
   ctx: EncounterReadTransaction,
   input: Omit<
     LiveSessionEncounterActionPendingInput,
     'snapshot' | 'revisions' | 'maintenanceOwners'
-  >
+  > & { removal?: RemoveAreaTargetInputDto | null }
 ) {
   const { userId } = await ctx.ports.requireIdentity()
   if (
@@ -47,18 +53,31 @@ export async function readLiveEncounterActionAdmission(
     )
     if (!responseAdmission) throw new Error('The occurrence is not an ordinary Encounter action.')
   }
+  if (input.removal && input.response)
+    throw new Error('Live Session Encounter command scope mismatch.')
+  const removalAdmission = input.removal
+    ? await readAreaRemovalCommitAdmission(ctx, input.removal, userId)
+    : null
+  const removal = removalAdmission?.removal ?? null
   const admission =
     responseAdmission?.admission ??
+    removalAdmission?.admission ??
     (await readNativeEncounterActionAdmission(ctx, input.command, userId))
   if (
     admission.state.campaignId !== input.campaignId ||
     admission.membership.role !== input.expectedRole ||
-    (responseAdmission && checksumCanonicalJson(input.command) !== admission.fingerprint)
+    ((responseAdmission || removal) &&
+      checksumCanonicalJson(input.command) !== admission.fingerprint)
   )
     throw new Error('Live Session Encounter scope mismatch.')
   // A lost response replays before checking the revisions consumed by its transaction.
   if (responseAdmission?.kind === 'REPLAY')
-    return { ...admission, kind: 'REPLAY' as const, result: responseAdmission.result, resume: null }
+    return {
+      ...admission,
+      kind: 'REPLAY' as const,
+      result: responseAdmission.result,
+      resume: null
+    }
   if (admission.kind === 'REPLAY') return { ...admission, resume: null }
   const resume = responseAdmission?.kind === 'READY' ? responseAdmission : null
   if (
@@ -67,7 +86,7 @@ export async function readLiveEncounterActionAdmission(
     resume.resolution.requestId !== resume.pending.snapshot.request.requestId
   )
     rejectDomain('VERSION_STALE', 'The action evidence request is stale.')
-  return { ...admission, resume }
+  return { ...admission, resume, removal }
 }
 
 /**
@@ -109,7 +128,10 @@ export async function readLiveEncounterActionScope(
             ...input,
             response: input.action.command
           })
-        : await readBasicActionAdmission(ctx, { ...input, command: input.action.command })
+        : await readBasicActionAdmission(ctx, {
+            ...input,
+            command: input.action.command
+          })
     if (basic.kind !== 'READY') throw new Error('The admitted basic action is unavailable.')
     return basic
   }

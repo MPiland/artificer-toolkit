@@ -1,4 +1,5 @@
 import type {
+  RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -57,9 +58,11 @@ import {
 import {
   buildEncounterAreaPendingSnapshot,
   encounterAreaTargetCommandId,
+  encounterAreaSettled,
   encounterAreaTargetOccurrenceId,
   markEncounterAreaLegendaryResistanceDecided,
-  markEncounterAreaSaveTested
+  markEncounterAreaSaveTested,
+  removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
@@ -202,7 +205,10 @@ async function prepareAreaTarget(
       target: actor,
       actors,
       actionId: command.actionId,
-      wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },
+      wieldConflictAcceptance: {
+        kind: 'PROMPTED',
+        accepted: command.acceptedWieldConflict
+      },
       overridable: true,
       movementTargets: base.movementTargets,
       sceneContext,
@@ -214,6 +220,26 @@ async function prepareAreaTarget(
       })
     }).catch(refuseStaleCharacterAction)
   }
+}
+
+/**
+ * The caster's own preparation of the action, which an area that keeps no creature is checked and
+ * spent against: the action's source, plan and economy do not depend on whom the area catches.
+ */
+function prepareAreaCaster(
+  input: AreaPlanInput,
+  base: Awaited<ReturnType<typeof prepareAreaScene>>
+) {
+  return prepareAreaTarget({
+    ...input,
+    base,
+    actor: base.caster,
+    token: base.scene.sourceToken,
+    allyAdvantage: encounterBasicActionAllyAdvantage({
+      actors: input.actors,
+      attackerId: base.caster.id
+    })
+  })
 }
 
 /**
@@ -231,12 +257,6 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     shape: area.shape,
     tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
   })
-  if (caughtActorIds.length === 0)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'The area catches no creature.'
-    })
   const caught = caughtActorIds.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
@@ -246,18 +266,22 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   for (const { actor } of caught)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
 
-  const allyAdvantage = encounterBasicActionAllyAdvantage({ actors, attackerId: caster.id })
+  const allyAdvantage = encounterBasicActionAllyAdvantage({
+    actors,
+    attackerId: caster.id
+  })
   const preparedTargets = []
   for (const { actor, token } of caught)
     preparedTargets.push(await prepareAreaTarget({ ...input, base, actor, token, allyAdvantage }))
-  const [first] = preparedTargets
-  if (!first) throw new Error('The area catches no creature.')
-  refuseLegendaryWindowAction(first.prepared)
-  refuseAreaEffectOutcomes(first.prepared)
+  // An area that catches nobody still spends the action: its checks run against the caster's own
+  // preparation of it.
+  const lead = preparedTargets[0] ?? (await prepareAreaCaster(input, base))
+  refuseLegendaryWindowAction(lead.prepared)
+  refuseAreaEffectOutcomes(lead.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
   const evaluation = await evaluateNativeLiveActionEconomy({
-    prepared: first.prepared,
+    prepared: lead.prepared,
     state,
     actionId: command.actionId,
     sourceTarget: casterFacts,
@@ -265,10 +289,15 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     capture
   })
   const { economy, attackAction } = evaluation
-  const ruleOverrides = areaRuleOverrides({ prepared: first.prepared, area, evaluation, command })
+  const ruleOverrides = areaRuleOverrides({
+    prepared: lead.prepared,
+    area,
+    evaluation,
+    command
+  })
   const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
-    prepared: first.prepared,
+    prepared: lead.prepared,
     activeEffectsByActorId: input.activeEffectsByActorId,
     capture,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? input.loadTarget(actor)
@@ -278,8 +307,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const tests = await prepareEncounterAreaTests({
     runtime: input.runtime,
     random: input.random,
-    adapter: first.prepared.adapter,
-    plan: first.prepared.plan,
+    adapter: lead.prepared.adapter,
+    plan: lead.prepared.plan,
     occurrenceId,
     targets: preparedTargets.map(({ prepared }) => ({
       actorId: prepared.target.id,
@@ -359,8 +388,12 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       })
     )
   }
-  if (areaSettled(snapshot))
-    return planNativeLiveEncounterAreaCommit({ ...input, response: null, areaSnapshot: snapshot })
+  if (encounterAreaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({
+      ...input,
+      response: null,
+      areaSnapshot: snapshot
+    })
   return {
     kind: 'AREA_PENDING' as const,
     command,
@@ -422,8 +455,11 @@ export async function planNativeLiveEncounterAreaAnswer(
     JSON.stringify(resolution),
     offer
   )
-  if (areaSettled(snapshot))
-    return planNativeLiveEncounterAreaCommit({ ...input, areaSnapshot: snapshot })
+  if (encounterAreaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({
+      ...input,
+      areaSnapshot: snapshot
+    })
   return {
     kind: 'AREA_PENDING' as const,
     command,
@@ -504,8 +540,11 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
     decision.actorId,
     legendaryResistance
   )
-  if (areaSettled(snapshot))
-    return planNativeLiveEncounterAreaCommit({ ...input, areaSnapshot: snapshot })
+  if (encounterAreaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({
+      ...input,
+      areaSnapshot: snapshot
+    })
   return {
     kind: 'AREA_PENDING' as const,
     command,
@@ -538,7 +577,10 @@ function discoverAreaLegendaryResistance(
           actorRules: prepared.actorRules,
           definitions: {
             requireCurrent: async (definitionId) => {
-              const response = await input.capture({ kind: 'DEFINITION', definitionId })
+              const response = await input.capture({
+                kind: 'DEFINITION',
+                definitionId
+              })
               if (response.kind !== 'DEFINITION' || !response.definition)
                 throw new Error('Legendary Resistance definition is unavailable.')
               return response.definition
@@ -576,7 +618,10 @@ async function revalidateAreaTarget(
     base,
     actor,
     token,
-    allyAdvantage: encounterBasicActionAllyAdvantage({ actors, attackerId: base.caster.id })
+    allyAdvantage: encounterBasicActionAllyAdvantage({
+      actors,
+      attackerId: base.caster.id
+    })
   })
   refuseLegendaryWindowAction(target.prepared)
   const evaluation = await evaluateNativeLiveActionEconomy({
@@ -634,7 +679,10 @@ async function replayAreaTargetSave(
       {
         actorId: actor.id,
         kind: 'PENDING',
-        pending: { ...restoreEncounterActionPending(sealed.snapshot), roller: 'TARGET' }
+        pending: {
+          ...restoreEncounterActionPending(sealed.snapshot),
+          roller: 'TARGET'
+        }
       }
     ],
     resolution
@@ -734,18 +782,51 @@ function areaRuleOverrides(input: {
   return ruleWarnings.overrides
 }
 
-/** An area settles once every kept creature has answered its save and every offer is decided. */
-function areaSettled(snapshot: ServerAggregateChoicePendingSnapshotDto) {
-  const context = snapshot.applicationContext
-  return (
-    context.kind === 'ENCOUNTER_AREA_ACTION' &&
-    context.targets.every(
-      (target) =>
-        target.testedJson !== undefined &&
-        (target.legendaryResistance === undefined ||
-          target.legendaryResistance.decision !== undefined)
-    )
+/**
+ * The caster's lead for an area that keeps no creature: the action prepared on the caster, checked
+ * and measured against the economy as an area that caught creatures would have been.
+ */
+async function prepareAreaCasterLead(
+  input: AreaPlanInput,
+  base: Awaited<ReturnType<typeof prepareAreaScene>>,
+  removedActorIds: readonly string[]
+) {
+  const target = await prepareAreaCaster(input, base)
+  refuseLegendaryWindowAction(target.prepared)
+  return {
+    target,
+    evaluation: await evaluateNativeLiveActionEconomy({
+      prepared: target.prepared,
+      state: input.state,
+      actionId: input.command.actionId,
+      sourceTarget: base.casterFacts,
+      targetIds: [...removedActorIds],
+      capture: input.capture
+    })
+  }
+}
+
+/**
+ * Plans the area the GM's removal of the last creature it waited on settles: the same commit the
+ * last answer would have made, over the area as the removal leaves it.
+ */
+export async function planNativeLiveEncounterAreaRemoval(
+  input: AreaPlanInput & {
+    removal: RemoveAreaTargetInputDto
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+  }
+) {
+  const removed = removeEncounterAreaTargetFromSnapshot(
+    input.areaSnapshot,
+    input.removal.actorId.toLowerCase()
   )
+  if (removed.kind !== 'REMOVED' || !encounterAreaSettled(removed.snapshot))
+    throw new Error('The area still waits on a creature.')
+  return planNativeLiveEncounterAreaCommit({
+    ...input,
+    response: null,
+    areaSnapshot: removed.snapshot
+  })
 }
 
 /**
@@ -757,6 +838,8 @@ export async function planNativeLiveEncounterAreaCommit(
   input: AreaPlanInput & {
     response: ResolveRuleOccurrenceInputDto | null
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+    /** The GM removal that left nothing to wait on, when it, not an answer, settles the area. */
+    removal?: RemoveAreaTargetInputDto
   }
 ) {
   const { command, state, actors, areaSnapshot } = input
@@ -768,14 +851,13 @@ export async function planNativeLiveEncounterAreaCommit(
   const { caster } = base
   const kept = []
   for (const sealed of context.targets)
-    kept.push({ sealed, ...(await revalidateAreaTarget(input, context, sealed, base)) })
-  const [first] = kept
-  if (!first)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'The area catches no creature.'
+    kept.push({
+      sealed,
+      ...(await revalidateAreaTarget(input, context, sealed, base))
     })
+  // An area that keeps no creature (it caught nobody, or the GM removed everyone it caught) commits
+  // the caster's spend alone, against the caster's own preparation of the action.
+  const first = kept[0] ?? (await prepareAreaCasterLead(input, base, context.removedActorIds))
   const lead = first.target.prepared
   const ruleOverrides = areaRuleOverrides({
     prepared: lead,
@@ -940,9 +1022,10 @@ export async function planNativeLiveEncounterAreaCommit(
     sourceLabel
   }))
   const damage = nativeConcentrationDamageApplications(damageSources, false)
+  const resumed = input.response ?? input.removal
   const execution = buildEncounterAreaStoredExecution({
     occurrenceId: areaOccurrenceId,
-    occurrenceVersion: input.response ? input.response.expectedOccurrenceVersion + 1 : 0,
+    occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
     actorId: caster.id,
     sourceCharacterId: caster.kind === 'CHARACTER' ? caster.sourceId : null,
     caughtChecksum: context.caughtChecksum,
@@ -1003,7 +1086,10 @@ export async function planNativeLiveEncounterAreaCommit(
       return [
         actorId,
         projectEncounterActionTarget({
-          target: { ...target, activeEffects: input.activeEffectsByActorId.get(actorId) ?? [] },
+          target: {
+            ...target,
+            activeEffects: input.activeEffectsByActorId.get(actorId) ?? []
+          },
           actor,
           plan: plans.get(actorId) ?? null,
           campaignId: state.campaignId,
@@ -1038,9 +1124,14 @@ export async function planNativeLiveEncounterAreaCommit(
     runtime: input.runtime,
     random: input.random
   })
-  const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
+  const nextFacts = buildEncounterActorRuleFacts({
+    actors: concentration.actors
+  })
   const rules = reconcileEncounterActorRuleOutput(
-    evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
+    evaluateInstalledEncounterActors({
+      gameSystemId: state.gameSystemId,
+      facts: nextFacts
+    }),
     nextFacts,
     { output: lead.actorRules }
   )
@@ -1048,10 +1139,13 @@ export async function planNativeLiveEncounterAreaCommit(
     kind: 'AREA_COMMIT' as const,
     command,
     response: input.response,
+    removal: input.removal ?? null,
     area: areaSnapshot,
     prepared: { actors },
     occurredAt,
-    initialDefinitionId: children[0]!.complete.initialPublished.id,
+    initialDefinitionId:
+      children[0]?.complete.initialPublished.id ??
+      (lead.plan.kind === 'SINGLE_GRAPH' ? lead.plan.published.id : lead.plan.test.published.id),
     execution,
     targets: children.map(({ actorId, execution: targetExecution }) => ({
       actorId,
@@ -1076,6 +1170,7 @@ export function buildNativeLiveEncounterAreaCommitInput(
     ...scope,
     command: plan.command,
     response: plan.response,
+    removal: plan.removal,
     revisions: plan.revisions,
     occurredAt: plan.occurredAt,
     initialDefinitionId: plan.initialDefinitionId,

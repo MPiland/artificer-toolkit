@@ -162,12 +162,12 @@
   - Sort the target ids in the Attack-action checksum.
   - The last save answered settles in the same way a single-target save settles today. Read that path and match it; the expectation is an automatic commit.
 
-**Known gaps in the committed tree (5d-ii closes them):** removing the last creature the area waits on is refused instead of committing; an area that keeps no creature is refused instead of committing its spend; the commit-time effect refusal and a Character caster's spend are untested; the LR binding accepts either shape instead of discriminating. 5d wrote no GM-only removal history line (no mechanism exists); 5e owns it.
+**5d-ii closed the earlier gaps (uncommitted, awaiting integration):** a GM `REMOVE_AREA_TARGET` that settles the area writes nothing itself and the room then runs the area through the normal commit path as an `AREA_REMOVAL` request (`AREA_COMMIT` plan with `response: null` and `removal` set; persistence resumes the pending root through `readAreaRemovalCommitAdmission`). An area that keeps no creature commits a root receipt with the source spend and no children, posts no damage card, and undo restores the spend (the caster is prepared as the lead). The LR terminal binding in `ruleExecutionResults.ts` binds the TEST phase when present, else the top-level result. Tests cover the commit-time effect refusal and a Character caster's merged spend with undo. No dedicated negative LR-binding unit test exists (every failing mutation throws the same message). 5d wrote no GM-only removal history line; 5e owns it.
 
 **Next, in order (one agent, report after each green slice):**
 
 1. 5c-ii and 5d are done (rows above).
-2. **5d-ii** (agent running): GM removal of the last-waiting creature commits the area; an area that keeps no creature commits its spend with no children and no damage card, and undo restores it; LR binding discriminates by shape; tests for the commit-time effect refusal and a Character caster's spend.
+2. **5d-ii** done (see above): last-creature removal commits the area; spend-only areas commit; LR binding tightened; commit-time refusal and Character-caster tests added.
 3. **5e** Per-role projection tests at the projection seam, including the GM-only "GM removed X from the area" history line (5d recorded only `removedActorIds` on the root).
 4. **5f** A seeded Character wizard: the save DC comes from the spell save DC, and a 4th-level slot rolls 9d6.
 5. **5g** The Fireball room journey in `apps/session-worker/test/`: the caster, an ally the GM removes, saves answered out of order, an unperceived creature, then undo.

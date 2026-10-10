@@ -9,6 +9,7 @@ import { persistEncounterActionChildren } from '@artificer-toolkit/encounter-per
 import { bindEncounterConcentrationApplications } from '@artificer-toolkit/encounter-persistence/concentrationChildrenPersistence'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import type {
+  RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -48,7 +49,7 @@ export async function executeRoomEncounterAction(input: {
   inputs: RoomInputs
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>
   observed: LiveSessionRulesRevisions
-  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
+  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
   runtime: RulesRuntimeService
   random(maximum: number): number
 }) {
@@ -129,7 +130,10 @@ export async function executeRoomEncounterAction(input: {
   if (plan.kind === 'AREA_PENDING')
     return persistEncounterActionPending(
       ctx,
-      { ...buildNativeLiveEncounterAreaActionPendingInput(scope, plan), revisions },
+      {
+        ...buildNativeLiveEncounterAreaActionPendingInput(scope, plan),
+        revisions
+      },
       callbacks
     )
   if (plan.kind === 'AREA_COMMIT')
@@ -146,12 +150,18 @@ export async function executeRoomEncounterAction(input: {
   return plan.kind === 'PENDING'
     ? persistEncounterActionPending(
         ctx,
-        { ...buildNativeLiveEncounterActionPendingInput(scope, plan), revisions },
+        {
+          ...buildNativeLiveEncounterActionPendingInput(scope, plan),
+          revisions
+        },
         callbacks
       )
     : persistEncounterActionCommit(
         ctx,
-        { ...buildNativeLiveEncounterActionCommitInput(scope, plan), revisions },
+        {
+          ...buildNativeLiveEncounterActionCommitInput(scope, plan),
+          revisions
+        },
         callbacks
       )
 }

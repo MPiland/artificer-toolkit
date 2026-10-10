@@ -7,6 +7,7 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import {
   actionTargetActorId,
   resolveEncounterActionInputDtoSchema,
+  type RemoveAreaTargetInputDto,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -72,7 +73,8 @@ import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.j
 import {
   planNativeLiveEncounterAreaAction,
   planNativeLiveEncounterAreaAnswer,
-  planNativeLiveEncounterAreaLegendaryResistance
+  planNativeLiveEncounterAreaLegendaryResistance,
+  planNativeLiveEncounterAreaRemoval
 } from './nativeEncounterAreaRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
@@ -102,7 +104,10 @@ import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-to
 /** Computes the action in the DO; the room commits this plan in its own transaction. */
 export async function planNativeLiveEncounterAction(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  commandInput: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto,
+  commandInput:
+    | ResolveEncounterActionInputDto
+    | ResolveRuleOccurrenceInputDto
+    | RemoveAreaTargetInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
     random?: (maximum: number) => number
@@ -110,13 +115,19 @@ export async function planNativeLiveEncounterAction(
   }
 ) {
   const responseCommand = commandInput.type === 'RESOLVE_RULE_OCCURRENCE' ? commandInput : null
-  const request = responseCommand
-    ? { kind: 'ACTION_RESPONSE' as const, response: responseCommand }
-    : { kind: 'ACTION_COMMAND' as const, command: commandInput }
+  const removalCommand = commandInput.type === 'REMOVE_AREA_TARGET' ? commandInput : null
+  const request = removalCommand
+    ? { kind: 'AREA_REMOVAL' as const, removal: removalCommand }
+    : responseCommand
+      ? { kind: 'ACTION_RESPONSE' as const, response: responseCommand }
+      : { kind: 'ACTION_COMMAND' as const, command: commandInput }
   const initial = liveSessionEncounterRulesInputSchema.parse({
     ...scope,
-    // A player's admitted action scope lets its follow-up captures read the rules inputs.
-    ...(scope.expectedRole === 'PLAYER' ? { action: request } : {}),
+    // A player's admitted action scope lets its follow-up captures read the rules inputs. Only the
+    // GM removes a creature from an area, so that request needs none.
+    ...(scope.expectedRole === 'PLAYER' && request.kind !== 'AREA_REMOVAL'
+      ? { action: request }
+      : {}),
     request
   })
   if (
@@ -127,7 +138,10 @@ export async function planNativeLiveEncounterAction(
   const dependencies: Array<{ request: LiveSessionEncounterRulesRequest }> = []
   let revisions: LiveSessionRulesRevisions = []
   async function capture(request: LiveSessionEncounterRulesRequest) {
-    const input = liveSessionEncounterRulesInputSchema.parse({ ...initial, request })
+    const input = liveSessionEncounterRulesInputSchema.parse({
+      ...initial,
+      request
+    })
     const response = await executionOptions.captures.encounterRules(input)
     if (response.kind !== request.kind) throw new Error('Encounter rules capture kind mismatch.')
     revisions = mergeNativeRulesRevisions(revisions, response.revisions)
@@ -135,13 +149,18 @@ export async function planNativeLiveEncounterAction(
     return response
   }
   const admission = await capture(initial.request)
-  if (admission.kind !== 'ACTION_COMMAND' && admission.kind !== 'ACTION_RESPONSE')
+  if (
+    admission.kind !== 'ACTION_COMMAND' &&
+    admission.kind !== 'ACTION_RESPONSE' &&
+    admission.kind !== 'AREA_REMOVAL'
+  )
     throw new Error('Encounter command is unavailable.')
-  if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
+  if (admission.kind !== 'AREA_REMOVAL' && admission.result)
+    return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
   const command = admission.command
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
-  const areaSnapshot = admission.kind === 'ACTION_RESPONSE' ? admission.areaSnapshot : null
+  const areaSnapshot = admission.kind === 'ACTION_COMMAND' ? null : admission.areaSnapshot
   let evidenceResolution: EncounterEvidenceAnswer | null = null
   let areaDecision: Extract<
     ResolveRuleOccurrenceInputDto['resolution'],
@@ -239,6 +258,18 @@ export async function planNativeLiveEncounterAction(
       requireAutoRoll,
       autoRollByActorId
     }
+    if (removalCommand) {
+      if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
+      return {
+        ...(await planNativeLiveEncounterAreaRemoval({
+          ...areaInput,
+          removal: removalCommand,
+          areaSnapshot
+        })),
+        dependencies,
+        revisions
+      }
+    }
     if (responseCommand) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
       if (areaDecision)
@@ -264,7 +295,11 @@ export async function planNativeLiveEncounterAction(
         revisions
       }
     }
-    return { ...(await planNativeLiveEncounterAreaAction(areaInput)), dependencies, revisions }
+    return {
+      ...(await planNativeLiveEncounterAreaAction(areaInput)),
+      dependencies,
+      revisions
+    }
   }
   const targetActorId = actionTargetActorId(command.target)
   const selectedActors = actors.filter(
@@ -301,14 +336,20 @@ export async function planNativeLiveEncounterAction(
       }
     : null
   // An ally's Help (basic action, Q11) gives this actor's next attack roll advantage.
-  const allyAdvantage = encounterBasicActionAllyAdvantage({ actors, attackerId: command.actorId })
+  const allyAdvantage = encounterBasicActionAllyAdvantage({
+    actors,
+    attackerId: command.actorId
+  })
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor: actors.find((actor) => actor.id === command.actorId)!,
     target: actors.find((actor) => actor.id === targetActorId)!,
     actors,
     actionId: command.actionId,
-    wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },
+    wieldConflictAcceptance: {
+      kind: 'PROMPTED',
+      accepted: command.acceptedWieldConflict
+    },
     overridable: true,
     movementTargets,
     sceneContext,
@@ -322,13 +363,21 @@ export async function planNativeLiveEncounterAction(
         capture
       }),
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
-    loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId, allyAdvantage })
+    loadRelationshipFacts: nativeLiveRelationshipFacts({
+      activeEffectsByActorId,
+      allyAdvantage
+    })
   }).catch(refuseStaleCharacterAction)
   refuseLegendaryWindowAction(prepared)
   // Only an attack roll uses the advantage; a saving-throw action leaves it for the next attack.
   const allyAdvantageUses =
     allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? [{ helperActorId: allyAdvantage.helperActorId, effect: allyAdvantage.effect }]
+      ? [
+          {
+            helperActorId: allyAdvantage.helperActorId,
+            effect: allyAdvantage.effect
+          }
+        ]
       : []
   // An attack roll also uses up the attacker's one-roll grants (Vicious Mockery's disadvantage).
   const consumedGrants =
@@ -366,7 +415,9 @@ export async function planNativeLiveEncounterAction(
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
     ).outcomes.some((outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE')
-      ? { targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id)) }
+      ? {
+          targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id))
+        }
       : null,
     actionEconomy: economy,
     activationCode,
@@ -407,7 +458,10 @@ export async function planNativeLiveEncounterAction(
     responseCommand &&
     evidenceResolution &&
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-      ? { pending: restoreEncounterActionPending(snapshot), resolution: evidenceResolution }
+      ? {
+          pending: restoreEncounterActionPending(snapshot),
+          resolution: evidenceResolution
+        }
       : null
   const execution = await advanceNativeActionGraphs({
     runtime: executionOptions.runtime,
@@ -430,7 +484,10 @@ export async function planNativeLiveEncounterAction(
         actorRules: prepared.actorRules,
         definitions: {
           requireCurrent: async (definitionId) => {
-            const response = await capture({ kind: 'DEFINITION', definitionId })
+            const response = await capture({
+              kind: 'DEFINITION',
+              definitionId
+            })
             if (response.kind !== 'DEFINITION' || !response.definition)
               throw new Error('Legendary Resistance definition is unavailable.')
             return response.definition
@@ -538,9 +595,14 @@ export async function planNativeLiveEncounterAction(
     runtime: executionOptions.runtime,
     random: executionOptions.random
   })
-  const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
+  const nextFacts = buildEncounterActorRuleFacts({
+    actors: concentration.actors
+  })
   const nextRules = reconcileEncounterActorRuleOutput(
-    evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
+    evaluateInstalledEncounterActors({
+      gameSystemId: state.gameSystemId,
+      facts: nextFacts
+    }),
     nextFacts,
     { output: prepared.actorRules }
   )

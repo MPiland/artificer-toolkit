@@ -37,6 +37,7 @@ import {
 } from './roomActionSceneInputs.js'
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
+import { readAreaRemovalCommitAdmission } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
 import { readLiveEncounterActionScope } from '@artificer-toolkit/encounter-persistence/liveActionAdmission'
 import { presentEncounterResultForMember } from '@artificer-toolkit/encounter-persistence/resultPresentation'
@@ -93,6 +94,7 @@ export async function readRoomEncounterTurnCapture(
       'DISARM',
       'ACTION_COMMAND',
       'ACTION_RESPONSE',
+      'AREA_REMOVAL',
       'CLEAVING_RESPONSE',
       'BASIC_ACTION',
       'TURN_COMMAND'
@@ -150,7 +152,10 @@ export async function readRoomEncounterTurnCapture(
       throw new Error('Live Session action scope mismatch.')
     if (input.turnCommand || input.concentrationResponse)
       throw new Error('Room action capture cannot use another command scope.')
-    const admission = await readDisarmAdmission(ctx, { ...input, command: input.request.command })
+    const admission = await readDisarmAdmission(ctx, {
+      ...input,
+      command: input.request.command
+    })
     const response = {
       kind: 'DISARM' as const,
       ready:
@@ -169,6 +174,46 @@ export async function readRoomEncounterTurnCapture(
     }
     return liveSessionEncounterRulesResponseSchema.parse({
       ...response,
+      revisions: observed
+    })
+  }
+  if (input.request.kind === 'AREA_REMOVAL') {
+    if (input.expectedRole !== 'OWNER')
+      throw new Error('Only the GM removes a creature from an area.')
+    if (input.turnCommand || input.concentrationResponse)
+      throw new Error('Room action capture cannot use another command scope.')
+    const { userId } = await ctx.ports.requireIdentity()
+    if (
+      userId !== input.expectedUserId ||
+      input.request.removal.encounterId.toLowerCase() !== input.encounterId ||
+      input.request.removal.expectedVersion !== input.expectedVersion
+    )
+      throw new Error('Live Session Encounter command scope mismatch.')
+    await ctx.ports.requireActiveLiveAuthority({
+      campaignId: input.campaignId,
+      epoch: input.authorityEpoch
+    })
+    const { removal, admission } = await readAreaRemovalCommitAdmission(
+      ctx,
+      input.request.removal,
+      userId
+    )
+    if (
+      admission.kind !== 'READY' ||
+      admission.state.campaignId !== input.campaignId ||
+      admission.membership.role !== input.expectedRole
+    )
+      throw new Error('Live Session Encounter scope or version mismatch.')
+    return liveSessionEncounterRulesResponseSchema.parse({
+      kind: 'AREA_REMOVAL',
+      autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+        campaign: admission.campaign,
+        initiatorUserId: admission.initiatorUserId,
+        actors: await readRunActors(ctx, admission.state)
+      }),
+      command: admission.input,
+      fingerprint: admission.fingerprint,
+      areaSnapshot: removal.snapshot,
       revisions: observed
     })
   }
@@ -292,7 +337,10 @@ export async function readRoomEncounterTurnCapture(
     const { command } = input.request
     const admission =
       command.type === 'RESOLVE_RULE_OCCURRENCE'
-        ? await readBasicActionCheckResponseAdmission(ctx, { ...input, response: command })
+        ? await readBasicActionCheckResponseAdmission(ctx, {
+            ...input,
+            response: command
+          })
         : await readBasicActionAdmission(ctx, { ...input, command })
     const response = {
       kind: 'BASIC_ACTION' as const,
@@ -342,7 +390,10 @@ export async function readRoomEncounterTurnCapture(
     ? await readLiveEncounterTurnAdmission(ctx, input, input.turnCommand)
     : null
   const actionAdmission = input.action
-    ? await readLiveEncounterActionScope(ctx, { ...input, action: input.action })
+    ? await readLiveEncounterActionScope(ctx, {
+        ...input,
+        action: input.action
+      })
     : null
   if (
     turnAdmission &&
@@ -402,7 +453,11 @@ export async function readRoomEncounterTurnCapture(
       bindings: await readEncounterCleavingBindings(ctx, state, movementAdmission.header.id)
     }
   } else if (request.kind === 'INPUTS') {
-    response = { kind: 'INPUTS', state, system: await ctx.ports.requireSystem(state.gameSystemId) }
+    response = {
+      kind: 'INPUTS',
+      state,
+      system: await ctx.ports.requireSystem(state.gameSystemId)
+    }
   } else if (request.kind === 'CLEAVING_BINDINGS') {
     response = {
       kind: 'CLEAVING_BINDINGS',
@@ -445,7 +500,10 @@ export async function readRoomEncounterTurnCapture(
       kind: 'INITIATIVE_ROUND',
       state:
         state.status === 'ACTIVE'
-          ? await readEncounterInitiativeRound(ctx, { encounterId: state.id, round: state.round })
+          ? await readEncounterInitiativeRound(ctx, {
+              encounterId: state.id,
+              round: state.round
+            })
           : null
     }
   } else if (request.kind === 'SYSTEM_VOCABULARY') {

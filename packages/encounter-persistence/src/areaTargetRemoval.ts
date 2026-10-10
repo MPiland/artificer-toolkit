@@ -3,24 +3,29 @@ import {
   removeAreaTargetInputDtoSchema
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { removeEncounterAreaTarget } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
-import { areaActionPendingContext } from './actionAreaPending.js'
+import {
+  encounterAreaSettled,
+  removeEncounterAreaTargetFromSnapshot
+} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { readNativeEncounterActionAdmission } from './actionAdmission.js'
+import { areaActionPendingContext, readNativeAreaActionPending } from './actionAreaPending.js'
 import { rejectDomain } from './domainRejections.js'
 import { changedFields, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
-import type { EncounterPersistenceTransaction } from './ports.js'
+import type { EncounterPersistenceTransaction, EncounterReadTransaction } from './ports.js'
 
 /**
- * The GM takes one creature out of a pending area before its saves are rolled. The area stays
- * pending: the Encounter does not move, the occurrence's version does, so a save answer or removal
- * composed against the earlier caught set is stale. A creature already removed is a retry, answered
- * with the area as it now stands.
+ * Admits the GM's removal of one creature from a pending area, behind the same fences a removal
+ * always has: the GM, an active Campaign, the pending area, and the Encounter, occurrence and caught
+ * set the GM composed it against.
  */
-export async function removeAreaActionTarget(ctx: EncounterPersistenceTransaction, args: unknown) {
-  const { userId } = await ctx.ports.requireIdentity()
+export async function readAreaRemovalAdmission(
+  ctx: EncounterReadTransaction,
+  args: unknown,
+  userId: string
+) {
   const parsed = removeAreaTargetInputDtoSchema.parse(args)
   const input = {
     ...parsed,
@@ -45,7 +50,65 @@ export async function removeAreaActionTarget(ctx: EncounterPersistenceTransactio
   if (occurrence.state !== 'PENDING') rejectDomain('DECISION_NOT_PENDING')
   const snapshot = await readPendingSnapshot(ctx, occurrence)
   const context = snapshot && areaActionPendingContext(snapshot)
-  if (!snapshot || !context) rejectDomain('DECISION_NOT_PENDING')
+  if (!snapshot || snapshot.snapshotKind !== 'AGGREGATE_CHOICE' || !context)
+    rejectDomain('DECISION_NOT_PENDING')
+  if (
+    run.version !== input.expectedVersion ||
+    occurrence.version !== input.expectedOccurrenceVersion ||
+    context.caughtChecksum !== input.expectedCaughtChecksum
+  )
+    rejectDomain('VERSION_STALE')
+  return { input, run, campaign, membership, occurrence, snapshot, context }
+}
+
+/**
+ * Admits the removal that settles its area, and with it the area's own root command, resumed: the
+ * commit it triggers is the one the last creature's answer would have made.
+ */
+export async function readAreaRemovalCommitAdmission(
+  ctx: EncounterReadTransaction,
+  args: unknown,
+  userId: string
+) {
+  const removal = await readAreaRemovalAdmission(ctx, args, userId)
+  const { command } = await readNativeAreaActionPending(ctx, removal.occurrence)
+  const admission = await readNativeEncounterActionAdmission(ctx, command, userId, {
+    occurrence: removal.occurrence,
+    initiatorUserId: removal.context.initiatorUserId
+  })
+  return { removal, admission }
+}
+
+/**
+ * The area as the removal leaves it, which only a removal that is not a retry and names a creature
+ * the area still waits on can produce. Nothing is written.
+ */
+export function applyAreaRemoval(
+  admitted: Pick<Awaited<ReturnType<typeof readAreaRemovalAdmission>>, 'input' | 'snapshot'>
+) {
+  const removal = removeEncounterAreaTargetFromSnapshot(admitted.snapshot, admitted.input.actorId)
+  if (removal.kind !== 'REMOVED')
+    rejectDomain(
+      'TARGET_UNAVAILABLE',
+      removal.kind === 'ANSWERED'
+        ? 'That creature has already rolled its save.'
+        : "That creature isn't caught by this area."
+    )
+  return removal.snapshot
+}
+
+/**
+ * The GM takes one creature out of a pending area before its saves are rolled. While the area still
+ * waits on another creature it stays pending: the Encounter does not move, the occurrence's version
+ * does, so a save answer or removal composed against the earlier caught set is stale. A creature
+ * already removed is a retry, answered with the area as it now stands. A removal that leaves nothing
+ * to wait on writes nothing and returns null: the caller commits the area with it, as the last
+ * answer would have.
+ */
+export async function removeAreaActionTarget(ctx: EncounterPersistenceTransaction, args: unknown) {
+  const { userId } = await ctx.ports.requireIdentity()
+  const admitted = await readAreaRemovalAdmission(ctx, args, userId)
+  const { input, run, campaign, membership, occurrence, context } = admitted
 
   const settled = async () => {
     const pending = await readPendingRunDecision(ctx, run, campaign, membership)
@@ -61,53 +124,16 @@ export async function removeAreaActionTarget(ctx: EncounterPersistenceTransactio
       }
     })
   }
-  if (
-    run.version !== input.expectedVersion ||
-    occurrence.version !== input.expectedOccurrenceVersion ||
-    context.caughtChecksum !== input.expectedCaughtChecksum
-  )
-    rejectDomain('VERSION_STALE')
   // Replay by state, after the fence: a current-version removal of an already removed creature.
   if (context.removedActorIds.includes(input.actorId)) return settled()
-  const removal = removeEncounterAreaTarget(context, input.actorId)
-  if (removal.kind !== 'REMOVED')
-    rejectDomain(
-      'TARGET_UNAVAILABLE',
-      removal.kind === 'ANSWERED'
-        ? 'That creature has already rolled its save.'
-        : "That creature isn't caught by this area."
-    )
-  // Removing the creature the area still waits on would leave nothing to answer, so nothing to commit it.
-  if (
-    removal.targets.every(
-      (target) =>
-        target.testedJson !== undefined &&
-        (target.legendaryResistance === undefined ||
-          target.legendaryResistance.decision !== undefined)
-    )
-  )
-    rejectDomain(
-      'TARGET_UNAVAILABLE',
-      'The area waits on no other creature, so it cannot resolve without this one.'
-    )
+  const removed = applyAreaRemoval(admitted)
+  if (encounterAreaSettled(removed)) return null
 
   const { _id, _creationTime, ...stored } = occurrence
   const next = {
     ...stored,
     version: occurrence.version + 1,
-    pendingSnapshotChecksum: await writePendingSnapshot(
-      ctx,
-      occurrence,
-      serverRuleExecutionPendingSnapshotDtoSchema.parse({
-        ...snapshot,
-        applicationContext: {
-          ...context,
-          targets: removal.targets,
-          removedActorIds: removal.removedActorIds,
-          caughtChecksum: removal.caughtChecksum
-        }
-      })
-    ),
+    pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, removed),
     updatedAt: new Date().toISOString()
   }
   await ctx.db.patch(

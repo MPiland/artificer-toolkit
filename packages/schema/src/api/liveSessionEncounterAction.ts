@@ -5,8 +5,10 @@ import {
 } from '../shared/activeRuleEffects.js'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import {
+  removeAreaTargetInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
-  resolveRuleOccurrenceInputDtoSchema
+  resolveRuleOccurrenceInputDtoSchema,
+  type RemoveAreaTargetInputDto
 } from './encounterRuleCommands.js'
 import {
   liveSessionEncounterRulesInputSchema,
@@ -175,8 +177,13 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'consumedGrants'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
-  targets: { actorId: string; execution: z.infer<typeof storedRuleExecutionResultDtoSchema> }[]
+  targets: {
+    actorId: string
+    execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
+  }[]
   area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>
+  /** The GM removal that left the area settled, when it rather than an answer committed it. */
+  removal: RemoveAreaTargetInputDto | null
 }
 
 export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
@@ -199,6 +206,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         area: serverRuleExecutionPendingSnapshotDtoSchema,
+        removal: z.nullable(removeAreaTargetInputDtoSchema),
         rules: encounterActorRuleOutputSchema,
         resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
         itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),

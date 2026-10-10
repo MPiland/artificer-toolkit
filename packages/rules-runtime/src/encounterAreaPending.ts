@@ -52,7 +52,9 @@ export function removeEncounterAreaTarget<
     testedJson?: string
   }
 >(
-  context: Pick<AreaContext, 'scene' | 'area' | 'removedActorIds'> & { targets: Target[] },
+  context: Pick<AreaContext, 'scene' | 'area' | 'removedActorIds'> & {
+    targets: Target[]
+  },
   actorId: string
 ):
   | { kind: 'NOT_CAUGHT' | 'ANSWERED' }
@@ -86,6 +88,46 @@ function requireAreaContext(snapshot: ServerAggregateChoicePendingSnapshotDto) {
 }
 
 /**
+ * The area snapshot with the creature taken out, or why it cannot be. The caught set is sealed
+ * again, so an answer or removal composed against the earlier set is stale.
+ */
+export function removeEncounterAreaTargetFromSnapshot(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  actorId: string
+):
+  | { kind: 'NOT_CAUGHT' | 'ANSWERED' }
+  | { kind: 'REMOVED'; snapshot: ServerAggregateChoicePendingSnapshotDto } {
+  const applicationContext = requireAreaContext(snapshot)
+  const removal = removeEncounterAreaTarget(applicationContext, actorId)
+  if (removal.kind !== 'REMOVED') return removal
+  return {
+    kind: 'REMOVED',
+    snapshot: serverAggregateChoicePendingSnapshotDtoSchema.parse({
+      ...snapshot,
+      applicationContext: {
+        ...applicationContext,
+        targets: removal.targets,
+        removedActorIds: removal.removedActorIds,
+        caughtChecksum: removal.caughtChecksum
+      }
+    })
+  }
+}
+
+/**
+ * An area settles once every creature it keeps has answered its save and every Legendary Resistance
+ * offer is decided. An area that keeps no creature is settled.
+ */
+export function encounterAreaSettled(snapshot: ServerAggregateChoicePendingSnapshotDto) {
+  return requireAreaContext(snapshot).targets.every(
+    (target) =>
+      target.testedJson !== undefined &&
+      (target.legendaryResistance === undefined ||
+        target.legendaryResistance.decision !== undefined)
+  )
+}
+
+/**
  * Records that the roller of the save with `requestId` answered it, keeping the answer to settle
  * the area with, and the Legendary Resistance offered if the save failed. The other saves, the
  * caught set and its checksum stay exactly as sealed.
@@ -108,7 +150,11 @@ export function markEncounterAreaSaveTested(
       ...applicationContext,
       targets: applicationContext.targets.map((target) =>
         target === answered
-          ? { ...target, testedJson, ...(legendaryResistance ? { legendaryResistance } : {}) }
+          ? {
+              ...target,
+              testedJson,
+              ...(legendaryResistance ? { legendaryResistance } : {})
+            }
           : target
       )
     }
@@ -156,7 +202,10 @@ export function buildEncounterAreaPendingSnapshot(
       ...context,
       kind: 'ENCOUNTER_AREA_ACTION',
       schemaVersion: 1,
-      caughtChecksum: encounterAreaCaughtChecksum({ ...context, caught: context.targets }),
+      caughtChecksum: encounterAreaCaughtChecksum({
+        ...context,
+        caught: context.targets
+      }),
       removedActorIds: []
     }
   })

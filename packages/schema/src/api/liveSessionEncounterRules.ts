@@ -24,6 +24,7 @@ import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
   actionAreaSceneRequestDtoSchema,
   actionSceneRequestDtoSchema,
+  removeAreaTargetInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -107,6 +108,10 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
       response: resolveRuleOccurrenceInputDtoSchema
     }),
     z.strictObject({
+      kind: z.literal('AREA_REMOVAL'),
+      removal: removeAreaTargetInputDtoSchema
+    }),
+    z.strictObject({
       kind: z.literal('CLEAVING_RESPONSE'),
       response: resolveRuleOccurrenceInputDtoSchema
     }),
@@ -134,7 +139,10 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
       command: actionAreaSceneRequestDtoSchema
     }),
     z.strictObject({ kind: z.literal('MAINTENANCE_SLOT'), ...maintenanceSlot }),
-    z.strictObject({ kind: z.literal('MAINTENANCE_STATE'), stateId: postgresUuidSchema }),
+    z.strictObject({
+      kind: z.literal('MAINTENANCE_STATE'),
+      stateId: postgresUuidSchema
+    }),
     z.strictObject({
       kind: z.literal('SCENE_PERCEPTION'),
       observerActorId: postgresUuidSchema,
@@ -172,7 +180,10 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
       actorId: postgresUuidSchema,
       afterEffectId: z.nullable(postgresUuidSchema)
     }),
-    z.strictObject({ kind: z.literal('DEFINITION'), definitionId: postgresUuidSchema })
+    z.strictObject({
+      kind: z.literal('DEFINITION'),
+      definitionId: postgresUuidSchema
+    })
   ])
 )
 
@@ -221,7 +232,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       save: sceneStoredGeometrySaveSchema,
       header: sceneLiveStateHeaderSchema,
       bindings: z
-        .array(z.strictObject({ actorId: postgresUuidSchema, tokenId: postgresUuidSchema }))
+        .array(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            tokenId: postgresUuidSchema
+          })
+        )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     }),
     z.strictObject({
@@ -264,7 +280,12 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       kind: z.literal('CLEAVING_BINDINGS'),
       revisions: liveSessionRulesRevisionsSchema,
       bindings: z
-        .array(z.strictObject({ actorId: postgresUuidSchema, tokenId: postgresUuidSchema }))
+        .array(
+          z.strictObject({
+            actorId: postgresUuidSchema,
+            tokenId: postgresUuidSchema
+          })
+        )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     }),
     z.strictObject({
@@ -375,6 +396,16 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
       /** Set only when the answer belongs to a point-area action: the whole pending area. */
       areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema)
+    }),
+    z.strictObject({
+      kind: z.literal('AREA_REMOVAL'),
+      revisions: liveSessionRulesRevisionsSchema,
+      autoRollByActorId: encounterAutoRollByActorIdSchema,
+      /** The area's root command and its fingerprint, as the removal settles it. */
+      command: resolveEncounterActionInputDtoSchema,
+      fingerprint: projectionChecksumSchema,
+      /** The pending area as stored, before the removal. */
+      areaSnapshot: serverAggregateChoicePendingSnapshotDtoSchema
     }),
     z.strictObject({
       kind: z.literal('CLEAVING_RESPONSE'),

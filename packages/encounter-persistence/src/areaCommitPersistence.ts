@@ -28,7 +28,8 @@ import {
   areaActionPendingContext,
   requireAreaActionAnswer,
   requireAreaActionLegendaryResistance,
-  requireAreaActionPendingRoot
+  requireAreaActionPendingRoot,
+  requireAreaActionRemoval
 } from './actionAreaPending.js'
 import { persistCompletedChild } from './actionChildPersistence.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
@@ -129,10 +130,13 @@ export async function persistEncounterAreaCommit(
       membership,
       result: admission.result
     })
-  const { resume, initiatorUserId } = admission
+  const { resume, removal, initiatorUserId } = admission
   const command = admission.input
   const { target: areaTarget } = command
-  const occurrenceVersion = resume ? resume.occurrence.version + 1 : 0
+  // The pending area this commit settles: a creature's answer resumes it, and so does the GM's
+  // removal of the last creature it waited on.
+  const pendingOccurrence = resume?.occurrence ?? removal?.occurrence ?? null
+  const occurrenceVersion = pendingOccurrence ? pendingOccurrence.version + 1 : 0
   const rootExecution = input.execution
   if (
     command.type !== 'RESOLVE_ACTION' ||
@@ -142,12 +146,21 @@ export async function persistEncounterAreaCommit(
     rootExecution.applicationOutputs.kind !== 'ENCOUNTER_AREA_ACTION' ||
     rootExecution.occurrenceVersion !== occurrenceVersion ||
     rootExecution.occurrenceId !== input.area.occurrenceId ||
-    (resume && rootExecution.occurrenceId !== resume.occurrence.id)
+    (pendingOccurrence && rootExecution.occurrenceId !== pendingOccurrence.id)
   )
     throw new Error('Live Session terminal action is not an ordinary completed area.')
   const root = rootExecution.applicationOutputs
   const areaOccurrenceId = rootExecution.occurrenceId
-  // The area's final snapshot is the stored one with exactly the answer that settled it.
+  // The area's final snapshot is the stored one with exactly the answer or removal that settled it.
+  if (removal) {
+    if (input.removal?.actorId.toLowerCase() !== removal.input.actorId)
+      throw new Error('Live Session pending area removal mismatch.')
+    requireAreaActionRemoval({
+      stored: removal.snapshot,
+      next: input.area,
+      actorId: removal.input.actorId
+    })
+  }
   if (resume) {
     if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
     if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
@@ -237,7 +250,12 @@ export async function persistEncounterAreaCommit(
       initial.phaseReceipts?.some((phase) => phase.template.gameSystemId !== state.gameSystemId)
     )
       throw new Error('Live Session area target result scope mismatch.')
-    return { actor, batch, execution: initial, occurrenceId: execution.occurrenceId }
+    return {
+      actor,
+      batch,
+      execution: initial,
+      occurrenceId: execution.occurrenceId
+    }
   })
   const casterIsCharacter = source.kind === 'CHARACTER'
   const mergedSpend = casterIsCharacter && children.some(({ actor }) => actor.id === source.id)
@@ -256,7 +274,7 @@ export async function persistEncounterAreaCommit(
       .query('encounterRuleOccurrences')
       .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
       .unique()
-    if (collision && collision._id !== resume?.occurrence._id)
+    if (collision && collision._id !== pendingOccurrence?._id)
       throw new Error('Encounter rule occurrence ID was already used.')
   }
 
@@ -389,7 +407,7 @@ export async function persistEncounterAreaCommit(
     occurrenceId: areaOccurrenceId,
     rootCommandId: command.commandId,
     version: occurrenceVersion,
-    resume,
+    resume: pendingOccurrence ? { occurrence: pendingOccurrence } : null,
     occurredAt: input.occurredAt
   })
   for (const { execution, actor, occurrenceId } of children)

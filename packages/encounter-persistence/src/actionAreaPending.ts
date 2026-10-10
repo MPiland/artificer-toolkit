@@ -10,13 +10,15 @@ import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/p
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   EncounterAreaActionPendingContextDto,
+  ServerAggregateChoicePendingSnapshotDto,
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaCaughtChecksum,
   markEncounterAreaLegendaryResistanceDecided,
-  markEncounterAreaSaveTested
+  markEncounterAreaSaveTested,
+  removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
   noEncounterRollModeReasons,
@@ -229,6 +231,23 @@ export function requireAreaActionLegendaryResistance(input: {
 }
 
 /**
+ * Verifies the area snapshot a GM removal that settles the area commits with: it is the stored area
+ * with exactly that creature taken out, and nothing else changed.
+ */
+export function requireAreaActionRemoval(input: {
+  stored: ServerAggregateChoicePendingSnapshotDto
+  next: ServerRuleExecutionPendingSnapshotDto
+  actorId: string
+}) {
+  const removal = removeEncounterAreaTargetFromSnapshot(input.stored, input.actorId)
+  if (
+    removal.kind !== 'REMOVED' ||
+    checksumCanonicalJson(input.next) !== checksumCanonicalJson(removal.snapshot)
+  )
+    throw new Error('Live Session pending area removal mismatch.')
+}
+
+/**
  * What one viewer reads of an area. The GM reads every unanswered save and every undecided Legendary
  * Resistance choice; a player reads only those of the creatures they control, each save with what that
  * creature's own facts imply. Nobody else learns a choice exists. Null when the viewer has neither.
@@ -242,7 +261,12 @@ export function projectNativeAreaActionPending(
   const answers = (actorId: string) => viewer.isOwner || viewer.controlledActorIds.has(actorId)
   const legendaryResistance = pending.targets.flatMap((target) =>
     target.legendaryResistance && !target.legendaryResistance.decision && answers(target.actorId)
-      ? [{ actorId: target.actorId, optionId: target.legendaryResistance.resistance.useOptionId }]
+      ? [
+          {
+            actorId: target.actorId,
+            optionId: target.legendaryResistance.resistance.useOptionId
+          }
+        ]
       : []
   )
   const saves = pending.targets.flatMap((target) => {

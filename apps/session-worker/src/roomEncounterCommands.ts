@@ -49,7 +49,10 @@ import {
   prepareRuleOccurrenceVoid,
   recordRuleOccurrenceVoid
 } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
-import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type {
+  RemoveAreaTargetInputDto,
+  ResolveRuleOccurrenceInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-persistence/actorTokenBindingPersistence'
 import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
@@ -237,7 +240,7 @@ export async function executeRoomEncounterCommand(input: {
           : command.type === 'VOID_RULE_OCCURRENCE'
             ? await executeVoid()
             : command.type === 'REMOVE_AREA_TARGET'
-              ? await removeAreaActionTarget(context, command)
+              ? await executeAreaRemoval(command)
               : command.type === 'USE_BASIC_ACTION'
                 ? await executeBasicAction()
                 : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
@@ -386,6 +389,11 @@ export async function executeRoomEncounterCommand(input: {
         expectedVersion: command.expectedVersion
       }
     })
+  }
+
+  /** A removal that leaves the area nothing to wait on commits it, as the last answer would have. */
+  async function executeAreaRemoval(command: RemoveAreaTargetInputDto) {
+    return (await removeAreaActionTarget(context, command)) ?? executeAction(command)
   }
 
   async function executeResponse(command: ResolveRuleOccurrenceInputDto) {
