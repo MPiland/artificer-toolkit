@@ -27,6 +27,7 @@ import {
 import {
   decideEncounterAreaLegendaryResistance,
   encounterAreaLegendaryResistanceAudits,
+  encounterAreaTargetLegendaryResistance,
   offerEncounterAreaLegendaryResistance
 } from '../encounterAreaLegendaryResistance.js'
 import { findEncounterFeatureResource } from '../encounterActorRuleOutput.js'
@@ -769,6 +770,58 @@ describe('Legendary Resistance on an area save', () => {
     })
     expect(applied(settled, DRAGON_ID)).toEqual([27])
     expect(applied(settled, FOE_ID)).toEqual([27])
+  })
+
+  it.each([
+    { name: 'uses', use: true },
+    { name: 'declines', use: false }
+  ])(
+    'records on the creature’s own outcome what it $name and the charge only a use costs',
+    async ({ use }) => {
+      const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+      const decided = await decideDragon(
+        area,
+        use ? { kind: 'OPTION', optionId: area.offer!.resistance.useOptionId } : NO_RESISTANCE
+      )
+      const test = testedOf(area.tests, DRAGON_ID)
+      const [audit] = [
+        ...encounterAreaLegendaryResistanceAudits(
+          new Map([[DRAGON_ID, decided.legendaryResistance]])
+        ).values()
+      ]
+      const recorded = encounterAreaTargetLegendaryResistance({
+        audit: audit!,
+        candidate: test.legendaryResistance!,
+        boundary: test.boundary,
+        currentFeatureResource: area.currentFeatureResource
+      })
+      expect(recorded.legendaryResistance).toMatchObject({
+        use,
+        originalExecution: test.boundary.execution,
+        originalD20: test.boundary.d20
+      })
+      expect(recorded.charge).toEqual(use ? decided.chargeProposal : null)
+    }
+  )
+
+  it('refuses to record a decision against a creature’s pool that has changed since', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const decided = await decideDragon(area, NO_RESISTANCE)
+    const [audit] = [
+      ...encounterAreaLegendaryResistanceAudits(
+        new Map([[DRAGON_ID, decided.legendaryResistance]])
+      ).values()
+    ]
+    const spent = dragonActor(1)
+    const stale = await discoverFor([spent])(spent)()
+    expect(() =>
+      encounterAreaTargetLegendaryResistance({
+        audit: audit!,
+        candidate: stale!,
+        boundary: testedOf(area.tests, DRAGON_ID).boundary,
+        currentFeatureResource: area.currentFeatureResource
+      })
+    ).toThrow('Legendary Resistance evidence is stale')
   })
 
   it('does not settle while a creature’s Legendary Resistance choice is undecided', async () => {

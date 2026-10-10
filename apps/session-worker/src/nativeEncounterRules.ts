@@ -77,7 +77,8 @@ import {
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
-  refuseLegendaryWindowAction
+  refuseLegendaryWindowAction,
+  refuseSpatialInterpretation
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -235,7 +236,8 @@ export async function planNativeLiveEncounterAction(
       capture,
       runtime: executionOptions.runtime,
       random: executionOptions.random,
-      requireAutoRoll
+      requireAutoRoll,
+      autoRollByActorId
     }
     if (responseCommand) {
       if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
@@ -473,15 +475,12 @@ export async function planNativeLiveEncounterAction(
     commandId: command.commandId,
     activeEffectsByActorId
   })
-  if (
-    prepared.adapter.interpretSpatial?.({
-      execution: execution.execution,
-      occurrenceId,
-      published: execution.published,
-      targetActorId: prepared.target.id
-    }).length
-  )
-    throw new Error('Spatially interpreted actions are not available yet.')
+  refuseSpatialInterpretation(prepared, {
+    execution: execution.execution,
+    occurrenceId,
+    published: execution.published,
+    targetActorId: prepared.target.id
+  })
   const mechanics = planNativeEncounterActionMechanics(
     {
       prepared,

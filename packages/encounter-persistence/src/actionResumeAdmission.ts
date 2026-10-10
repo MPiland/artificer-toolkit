@@ -132,9 +132,10 @@ export async function readNativeEncounterActionResponseAdmission(
       payload.occurrenceId !== occurrence.id ||
       payload.occurrenceVersion !== response.expectedOccurrenceVersion + 1 ||
       payload.occurrenceVersion > occurrence.version ||
-      (payload.status !== 'PAUSED' && payload.status !== 'COMPLETE') ||
-      receipt.encounterVersion !==
-        response.expectedVersion + (payload.status === 'COMPLETE' ? 1 : 0)
+      (payload.status !== 'PAUSED' &&
+        payload.status !== 'COMPLETE' &&
+        payload.status !== 'AGGREGATE_CHOICE_COMPLETE') ||
+      receipt.encounterVersion !== response.expectedVersion + (payload.status === 'PAUSED' ? 0 : 1)
     )
       throw new Error('Stored Encounter action evidence receipt mismatch.')
     const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {

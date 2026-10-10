@@ -18,9 +18,10 @@ type CompleteExecution = Extract<
   { kind: 'COMPLETE' }
 >
 
-function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
+/** The active-effect plan an action's capability carries, selected by the definition that ran. */
+export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
   prepared: PreparedMechanics<TCharacterFacts>,
-  execution: CompleteExecution
+  published: CompleteExecution['published']
 ) {
   if (prepared.source.kind === 'CHARACTER_ACTION')
     return prepared.source.entry.schemaVersion === 1
@@ -29,7 +30,7 @@ function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMoveme
   const plans =
     prepared.adapter.activeEffectPlans?.({
       action: prepared.source.capability,
-      published: execution.published
+      published
     }) ?? []
   if (plans.length > 1) throw new Error('Encounter action selected multiple active-effect plans.')
   return plans[0] ?? null
@@ -67,7 +68,7 @@ export function prepareNativeActionEffectsPlan<
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }) {
   const { prepared, execution } = input
-  const plan = encounterActiveEffectPlan(prepared, execution)
+  const plan = encounterActiveEffectPlan(prepared, execution.published)
   const target = prepared.movementTargets.get(prepared.target.id)
   if (!target || checksumCanonicalJson(target.actor) !== checksumCanonicalJson(prepared.target))
     throw new Error('Encounter action effect target is stale.')

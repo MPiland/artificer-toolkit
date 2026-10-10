@@ -12,6 +12,7 @@ import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
   compareConcentrationDamageApplications,
   concentrationCheckTriggerDtoSchema,
+  concentrationDamageApplicationDtoSchema,
   concentrationMaintainedDamageApplicationDtoSchema
 } from './ruleExecutionConcentration.js'
 
@@ -22,7 +23,7 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
-import { authoredIdentifierSchema } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from './authoredLimits.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
 import {
   characterMechanicsApplicationDtoSchema,
@@ -330,6 +331,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       kind: z.literal('ENCOUNTER_ACTOR_MECHANICS_BATCH'),
       schemaVersion: z.literal(1),
       occurrenceId: uuidSchema,
+      /** The area action this target's settlement belongs to, when it is one creature of an area. */
+      parentOccurrenceId: z.optional(uuidSchema),
       sourceActorId: uuidSchema,
       sourceCharacterId: z.optional(z.nullable(uuidSchema)),
       targetActorId: uuidSchema,
@@ -958,6 +961,135 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
       })
     )
 )
+
+/**
+ * The root of a committed point-area action: the caster's one spend, the creatures the area caught and
+ * the GM removed, and the child settlement of each kept creature. Each child is a mechanics batch
+ * receipt under its own occurrence that names this root as its parent.
+ */
+const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_AREA_ACTION'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      sourceActorId: uuidSchema,
+      sourceCharacterId: z.nullable(uuidSchema),
+      caughtChecksum: checksumSchema,
+      removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      /** The kept creatures' child occurrences, in the order they settled. */
+      targetOccurrenceIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      /** The damage each kept creature took as one envelope, which a Concentration check answers against. */
+      damage: z
+        .array(concentrationDamageApplicationDtoSchema)
+        .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS)),
+      sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
+      resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
+      featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
+      sourceItemUseStateTransition: z.nullable(characterItemUseStateTransitionDtoSchema),
+      sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
+      actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+      attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema)
+    })
+    .check(
+      z.superRefine((value, context) => {
+        const resource = value.resourceConsumption
+        if (
+          resource &&
+          (value.sourceCharacterId === null ||
+            resource.afterUsed !== resource.beforeUsed + resource.cost ||
+            resource.beforeRemaining < resource.cost ||
+            resource.afterRemaining !== resource.beforeRemaining - resource.cost)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['resourceConsumption'],
+            message: 'Resource receipt is invalid.'
+          })
+        const stow = value.sourceItemUseStateTransition
+        const consumption = value.sourceItemConsumption
+        if (
+          (stow &&
+            (stow.characterId !== value.sourceCharacterId ||
+              stow.afterStreamVersion !== value.sourceCharacterStreamVersion)) ||
+          (consumption && consumption.characterId !== value.sourceCharacterId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemUseStateTransition'],
+            message: 'Source item receipts must match the source Character.'
+          })
+        const featureResource = value.featureResourceConsumption
+        if (
+          featureResource &&
+          (resource !== null ||
+            featureResource.ownerActorId !== value.sourceActorId ||
+            featureResource.afterUsed !== featureResource.beforeUsed + featureResource.cost ||
+            featureResource.beforeRemaining < featureResource.cost ||
+            featureResource.afterRemaining !==
+              featureResource.beforeRemaining - featureResource.cost)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['featureResourceConsumption'],
+            message: 'Encounter feature resource receipt is invalid.'
+          })
+        if (
+          (value.sourceCharacterStreamVersion === null) !==
+          !(resource !== null || stow !== null || consumption !== null)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceCharacterStreamVersion'],
+            message: 'Source Character stream version presence is invalid.'
+          })
+        if (new Set(value.targetOccurrenceIds).size !== value.targetOccurrenceIds.length)
+          context.addIssue({
+            code: 'custom',
+            path: ['targetOccurrenceIds'],
+            message: 'Area target occurrences must be unique.'
+          })
+      })
+    )
+)
+
+type AreaActionSpendReceipts = Pick<
+  z.infer<typeof encounterActorMechanicsBatchApplicationOutputDtoSchema>,
+  | 'resourceConsumption'
+  | 'featureResourceConsumption'
+  | 'sourceItemUseStateTransition'
+  | 'sourceItemConsumption'
+  | 'actionEconomyTransition'
+  | 'attackActionTransition'
+>
+
+export type EncounterAreaActionApplicationOutputDto = AreaActionSpendReceipts & {
+  kind: 'ENCOUNTER_AREA_ACTION'
+  schemaVersion: 1
+  occurrenceId: string
+  sourceActorId: string
+  sourceCharacterId: string | null
+  caughtChecksum: string
+  removedActorIds: string[]
+  targetOccurrenceIds: string[]
+  damage: z.infer<typeof concentrationDamageApplicationDtoSchema>[]
+  sourceCharacterStreamVersion: number | null
+}
+
+/**
+ * Named so the application-output union prints this member by name: the union is embedded in several
+ * pending contexts, whose inferred declarations are already near the compiler's serialization limit.
+ */
+export const encounterAreaActionApplicationOutputDtoSchema: z.ZodMiniType<
+  EncounterAreaActionApplicationOutputDto,
+  { kind: 'ENCOUNTER_AREA_ACTION' },
+  z.core.$ZodTypeInternals<
+    EncounterAreaActionApplicationOutputDto,
+    { kind: 'ENCOUNTER_AREA_ACTION' }
+  > & {
+    propValues: z.core.util.PropValues
+  }
+> = encounterAreaActionApplicationOutputImplSchema
 
 export const cleavingDamageApplicationOutputDtoSchema = lazySchema(() =>
   z

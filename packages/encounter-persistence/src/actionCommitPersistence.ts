@@ -1,4 +1,3 @@
-import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
@@ -8,36 +7,21 @@ import {
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import {
-  encounterRunActorStateSchema,
   encounterRunStateSchema,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  encounterStoredRuleOccurrenceSchema,
-  encounterStoredRuleReceiptSchema,
-  encounterStoredRunCommandSchema
-} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
-import {
-  featureChargeUsed,
-  withFeatureChargeUsed
-} from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { changedFields, readRunActors, writeRunActor } from './documents.js'
+import { readRunActors } from './documents.js'
+import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
+import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
 import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { insertRunCommand } from './timelineEntries.js'
-import { encounterReplayReceipt } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type {
@@ -188,44 +172,13 @@ export async function persistEncounterActionCommit(
     authorizedCharacterIds: characterIds
   }
   const maintenance = await callbacks.prepareActionMaintenance(effectInput)
-  const resource = input.resourceConsumption
-  if (resource) {
-    const {
-      owner: _owner,
-      usageId: _usage,
-      characterId,
-      // The mechanics batch checks it against the fenced Character it plans with.
-      expectedStreamVersion: _expectedStreamVersion,
-      ...receipt
-    } = resource
-    if (
-      source.kind !== 'CHARACTER' ||
-      source.sourceId !== characterId ||
-      checksumCanonicalJson(receipt) !== checksumCanonicalJson(batch.resourceConsumption)
-    )
-      throw new Error('Live Session action resource scope mismatch.')
-  } else if (batch.resourceConsumption !== null)
-    throw new Error('Live Session action resource is missing.')
-  const item = input.itemConsumption
-  if (item) {
-    // The mechanics batch checks the version against the fenced Character it plans with.
-    const { expectedStreamVersion: _itemStreamVersion, ...receipt } = item
-    if (
-      source.kind !== 'CHARACTER' ||
-      source.sourceId !== item.characterId ||
-      checksumCanonicalJson(receipt) !== checksumCanonicalJson(batch.sourceItemConsumption)
-    )
-      throw new Error('Live Session action item scope mismatch.')
-  } else if (batch.sourceItemConsumption !== null)
-    throw new Error('Live Session action item is missing.')
-  const stow = command.acceptedWieldConflict
-  if (stow && source.kind !== 'CHARACTER')
-    throw new Error('Live Session shield stow scope mismatch.')
-  const sourceMutation = {
-    ...(resource ? { characterResourceConsumption: resource } : {}),
-    ...(item ? { characterItemConsumption: item } : {}),
-    ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
-  }
+  const { spends, mutation: sourceMutation } = sourceSpendMutation({
+    source,
+    command,
+    resource: input.resourceConsumption,
+    item: input.itemConsumption,
+    receipts: batch
+  })
   const common = {
     encounterId: state.id,
     expectedEncounterVersion: state.version,
@@ -234,7 +187,7 @@ export async function persistEncounterActionCommit(
     occurredAt: input.occurredAt
   }
   const sourceMechanics =
-    (resource || item || stow) && source.id !== target.id && source.kind === 'CHARACTER'
+    spends && source.id !== target.id && source.kind === 'CHARACTER'
       ? await callbacks.applyMechanics({
           ...common,
           targetActorId: source.id,
@@ -282,42 +235,12 @@ export async function persistEncounterActionCommit(
     throw new Error('Live Session mechanics receipt mismatch.')
   const beforeSource =
     sourceMechanics?.updatedActor ?? (source.id === target.id ? mechanics.updatedActor : source)
-  let settledSource = beforeSource
-  const feature = batch.featureResourceConsumption
-  if (feature) {
-    if (
-      source.kind !== 'CREATURE' ||
-      feature.ownerActorId !== source.id ||
-      featureChargeUsed(settledSource, feature.ownerFeatureId) !== feature.beforeUsed ||
-      feature.afterUsed !== feature.beforeUsed + feature.cost ||
-      feature.afterRemaining !== feature.beforeRemaining - feature.cost
-    )
-      throw new Error('Live Session feature resource receipt mismatch.')
-    settledSource = encounterRunActorStateSchema.parse({
-      ...settledSource,
-      resources: withFeatureChargeUsed(settledSource, feature.ownerFeatureId, feature.afterUsed)
-    })
-  }
-  if (batch.actionEconomyTransition)
-    settledSource = consumeEncounterActionEconomy({
-      actor: settledSource,
-      consumption: batch.actionEconomyTransition,
-      overridden: overridesActionEconomy(input.ruleOverrides)
-    })
-  if (batch.attackActionTransition)
-    settledSource = applyEncounterAttackActionTransition(
-      settledSource,
-      batch.attackActionTransition
-    )
-  if (checksumCanonicalJson(settledSource) !== checksumCanonicalJson(beforeSource)) {
-    const row = await ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', state.id).eq('id', source.id))
-      .unique()
-    if (!row || row.stateChecksum !== checksumRunActorPlayState(beforeSource))
-      throw new Error('Encounter action source changed before settlement.')
-    await writeRunActor(ctx, row._id, settledSource)
-  }
+  const settledSource = await settleActionSourceSpend(ctx, {
+    encounterId: state.id,
+    source: beforeSource,
+    spend: batch,
+    economyOverridden: overridesActionEconomy(input.ruleOverrides)
+  })
   let nextActors = actors.map((actor) =>
     actor.id === source.id ? settledSource : actor.id === target.id ? mechanics.updatedActor : actor
   )
@@ -353,27 +276,15 @@ export async function persistEncounterActionCommit(
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
-  // A resumed action settles its own occurrence first, so a child opens as the only pending one.
-  const completedOccurrence = encounterStoredRuleOccurrenceSchema.parse({
-    id: execution.occurrenceId,
-    campaignId: state.campaignId,
-    encounterId: state.id,
+  const completedOccurrence = await completeActionOccurrence(ctx, {
+    state,
+    nextState,
+    occurrenceId: execution.occurrenceId,
     rootCommandId: command.commandId,
-    state: 'COMPLETED',
     version: occurrenceVersion,
-    expectedEncounterVersion: nextState.version,
-    pendingSnapshotChecksum: await writePendingSnapshot(
-      ctx,
-      { id: execution.occurrenceId, encounterId: state.id },
-      null
-    ),
-    completedAt: input.occurredAt,
-    createdAt: resume?.occurrence.createdAt ?? input.occurredAt,
-    updatedAt: input.occurredAt
+    resume,
+    occurredAt: input.occurredAt
   })
-  if (resume)
-    await ctx.db.patch(resume.occurrence._id, changedFields(resume.occurrence, completedOccurrence))
-  else await ctx.db.insert('encounterRuleOccurrences', completedOccurrence)
   nextActors = await callbacks.persistActionChildren({
     input,
     state: nextState,
@@ -417,64 +328,25 @@ export async function persistEncounterActionCommit(
       pending: null
     }
   })
-  const ruleResultChecksum = checksumRuleDocument(execution)
-  await ctx.db.patch(run._id, {
-    version: nextState.version,
-    stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    updatedAt: input.occurredAt
-  })
-  await ctx.db.insert(
-    'encounterRuleReceipts',
-    encounterStoredRuleReceiptSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: state.campaignId,
-      encounterId: state.id,
-      occurrenceId: execution.occurrenceId,
-      commandId: command.commandId,
-      commandType: 'RESOLVE_ACTION',
-      commandFingerprint: fingerprint,
-      encounterVersion: nextState.version,
-      commandMetadataJson: JSON.stringify(
-        serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
-          schemaVersion: 1,
-          transition: 'START',
-          definitionId: input.initialDefinitionId,
-          expectedAggregateVersion: state.version,
-          factsChecksum: execution.initialFactsChecksum,
-          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
-        })
-      ),
-      resultJson: JSON.stringify(execution),
-      resultChecksum: ruleResultChecksum,
-      actorUserId: initiatorUserId,
-      correlationId: null,
-      createdAt: input.occurredAt
-    })
-  )
-  await insertRunCommand(
-    ctx,
-    encounterStoredRunCommandSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: state.campaignId,
-      encounterId: state.id,
-      commandId: command.commandId,
-      commandType: 'RESOLVE_ACTION',
-      ruleOccurrenceId: execution.occurrenceId,
-      ruleResultChecksum,
-      optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+  await recordActionRoot(ctx, {
+    run,
+    state,
+    nextState,
+    command,
+    fingerprint,
+    initiatorUserId,
+    execution,
+    definitionId: input.initialDefinitionId,
+    factsChecksum: execution.initialFactsChecksum,
+    result,
+    commandFields: {
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,
-      addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
-      commandFingerprint: fingerprint,
-      actorUserId: initiatorUserId,
-      version: nextState.version,
-      commandJson: JSON.stringify(command),
-      ...encounterReplayReceipt(result),
-      createdAt: input.occurredAt
-    })
-  )
+      addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null
+    },
+    occurredAt: input.occurredAt
+  })
   if (resume && input.response)
     await insertActionEvidenceReceipt(ctx, {
       occurrence: { ...resume.occurrence, ...completedOccurrence },

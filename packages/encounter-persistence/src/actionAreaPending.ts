@@ -117,7 +117,6 @@ export async function requireAreaActionPendingRoot(
     context.scene.sceneVersion !== command.target.expectedSceneVersion ||
     context.area.origin.x !== command.target.point.x ||
     context.area.origin.y !== command.target.point.y ||
-    context.removedActorIds.length > 0 ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     !state.actorIds.includes(context.casterActorId)
   )
@@ -145,7 +144,8 @@ export async function requireAreaActionPendingRoot(
     shape: context.area.shape,
     tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId }))
   })
-  const sealed = targets.map((target) => target.actorId)
+  // A creature the GM removed is still caught by the Scene; it is simply no longer tested.
+  const sealed = [...targets.map((target) => target.actorId), ...context.removedActorIds]
   const footprintsMatch = targets.every((target) => {
     const token = scene.tokens.find((candidate) => candidate.actorId === target.actorId)
     return (

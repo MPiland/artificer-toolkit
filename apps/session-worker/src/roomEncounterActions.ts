@@ -1,5 +1,6 @@
 import { persistEncounterActionPending } from '@artificer-toolkit/encounter-persistence/actionPendingPersistence'
 import { persistEncounterActionCommit } from '@artificer-toolkit/encounter-persistence/actionCommitPersistence'
+import { persistEncounterAreaCommit } from '@artificer-toolkit/encounter-persistence/areaCommitPersistence'
 import {
   prepareEncounterActionMaintenance,
   persistEncounterActionEffects
@@ -22,7 +23,10 @@ import {
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
-import { buildNativeLiveEncounterAreaActionPendingInput } from './nativeEncounterAreaRules.js'
+import {
+  buildNativeLiveEncounterAreaActionPendingInput,
+  buildNativeLiveEncounterAreaCommitInput
+} from './nativeEncounterAreaRules.js'
 import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs
@@ -73,13 +77,15 @@ export async function executeRoomEncounterAction(input: {
   const captured =
     plan.kind === 'AREA_PENDING'
       ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
-      : plan.kind === 'PENDING'
-        ? buildNativeLiveEncounterActionPendingInput(scope, plan)
-        : buildNativeLiveEncounterActionCommitInput(scope, plan)
+      : plan.kind === 'AREA_COMMIT'
+        ? buildNativeLiveEncounterAreaCommitInput(scope, plan)
+        : plan.kind === 'PENDING'
+          ? buildNativeLiveEncounterActionPendingInput(scope, plan)
+          : buildNativeLiveEncounterActionCommitInput(scope, plan)
   const ids = new Set(
     plan.prepared.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
-  for (const request of captured.maintenanceOwners)
+  for (const request of 'maintenanceOwners' in captured ? captured.maintenanceOwners : [])
     if (request.owner.kind === 'CHARACTER') ids.add(request.owner.characterId)
   const revisions = observed.filter(
     (revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id)
@@ -125,6 +131,17 @@ export async function executeRoomEncounterAction(input: {
       ctx,
       { ...buildNativeLiveEncounterAreaActionPendingInput(scope, plan), revisions },
       callbacks
+    )
+  if (plan.kind === 'AREA_COMMIT')
+    return persistEncounterAreaCommit(
+      ctx,
+      { ...buildNativeLiveEncounterAreaCommitInput(scope, plan), revisions },
+      {
+        ...callbacks,
+        bindConcentrationApplications: (state, applications) =>
+          bindEncounterConcentrationApplications(ctx, state, applications),
+        persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
+      }
     )
   return plan.kind === 'PENDING'
     ? persistEncounterActionPending(

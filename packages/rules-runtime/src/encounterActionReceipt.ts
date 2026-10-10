@@ -4,11 +4,28 @@ import type { maintainedEffectTransitionDtoSchema } from '@artificer-toolkit/sch
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
+import type { nativeConcentrationDamageApplications } from './encounterConcentrationDamage.js'
 import type { advanceNativeActionGraphs } from './encounterActionExecution.js'
 import type {
   finishNativeActionMechanicsSettlement,
-  NativeEncounterActionMechanicsInput
+  NativeEncounterActionMechanicsInput,
+  planNativeEncounterAreaSourceSpend
 } from './encounterActionMechanicsPlan.js'
+import type { encounterAreaTargetLegendaryResistance } from './encounterAreaLegendaryResistance.js'
+
+/** Recorded so a GM undo restores the allowance exactly; an override may exceed the maximum. */
+function actionEconomyReceipt(consumption: EncounterActionEconomyConsumption | null) {
+  return consumption
+    ? {
+        definitionId: consumption.definitionId,
+        definitionVersion: consumption.definitionVersion,
+        definitionChecksum: consumption.definitionChecksum,
+        maximum: consumption.maximum,
+        beforeUsed: consumption.beforeUsed,
+        afterUsed: consumption.afterUsed
+      }
+    : null
+}
 
 /** Builds the stored completed receipt from already-settled action facts. */
 export function buildEncounterActionStoredExecution(input: {
@@ -25,22 +42,18 @@ export function buildEncounterActionStoredExecution(input: {
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
+  /** Set when the batch is one creature's outcome of a point-area action rooted at `parentOccurrenceId`. */
+  area?: {
+    parentOccurrenceId: string
+    resistance: ReturnType<typeof encounterAreaTargetLegendaryResistance> | null
+  }
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
   const { mechanics, resourceReceipt, featureResourceReceipt } = settled
   const { stateEffectTransitions, activeEffectTransitions } = effects
-  // Recorded so a GM undo restores the allowance exactly; an override may exceed the maximum.
-  const actionEconomyTransition = input.actionEconomy
-    ? {
-        definitionId: input.actionEconomy.definitionId,
-        definitionVersion: input.actionEconomy.definitionVersion,
-        definitionChecksum: input.actionEconomy.definitionChecksum,
-        maximum: input.actionEconomy.maximum,
-        beforeUsed: input.actionEconomy.beforeUsed,
-        afterUsed: input.actionEconomy.afterUsed
-      }
-    : null
+  const actionEconomyTransition = actionEconomyReceipt(input.actionEconomy)
+  const parentOccurrenceId = input.area ? { parentOccurrenceId: input.area.parentOccurrenceId } : {}
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
     (source.kind === 'CHARACTER_ACTION' && actor.id !== target.id
@@ -62,6 +75,7 @@ export function buildEncounterActionStoredExecution(input: {
             kind: 'CHARACTER_MECHANICS_BATCH',
             schemaVersion: 1,
             occurrenceId,
+            ...parentOccurrenceId,
             sourceActorId: actor.id,
             sourceCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : null,
             targetActorId: target.id,
@@ -96,6 +110,7 @@ export function buildEncounterActionStoredExecution(input: {
             kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
             schemaVersion: 1,
             occurrenceId,
+            ...parentOccurrenceId,
             sourceActorId: actor.id,
             targetActorId: target.id,
             ...(input.maintenanceTransition ||
@@ -108,6 +123,8 @@ export function buildEncounterActionStoredExecution(input: {
             sourceCharacterStreamVersion,
             resourceConsumption: resourceReceipt,
             featureResourceConsumption: featureResourceReceipt,
+            targetFeatureResourceConsumption: input.area?.resistance?.charge ?? null,
+            legendaryResistance: input.area?.resistance?.legendaryResistance ?? null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,
@@ -122,5 +139,56 @@ export function buildEncounterActionStoredExecution(input: {
             targetTransition: mechanics.targetTransition,
             applications: mechanics.receiptApplications
           }
+  })
+}
+
+/**
+ * Builds the stored root of a committed point-area action. It holds the caster's one spend and
+ * names the creatures settled under it; each creature's outcome is its own child receipt.
+ */
+export function buildEncounterAreaStoredExecution(input: {
+  occurrenceId: string
+  occurrenceVersion: number
+  actorId: string
+  sourceCharacterId: string | null
+  caughtChecksum: string
+  removedActorIds: readonly string[]
+  targetOccurrenceIds: readonly string[]
+  damage: ReturnType<typeof nativeConcentrationDamageApplications>
+  spend: Pick<
+    ReturnType<typeof planNativeEncounterAreaSourceSpend>,
+    | 'sourceCharacterStreamVersion'
+    | 'resourceReceipt'
+    | 'featureResourceReceipt'
+    | 'sourceItemUseStateTransition'
+    | 'itemConsumptionReceipt'
+  >
+  actionEconomy: EncounterActionEconomyConsumption | null
+  attackAction: EncounterAttackActionTransitionDto | null
+}) {
+  const { spend } = input
+  return storedRuleExecutionResultDtoSchema.parse({
+    status: 'AGGREGATE_CHOICE_COMPLETE',
+    schemaVersion: 1,
+    occurrenceId: input.occurrenceId,
+    occurrenceVersion: input.occurrenceVersion,
+    applicationOutputs: {
+      kind: 'ENCOUNTER_AREA_ACTION',
+      schemaVersion: 1,
+      occurrenceId: input.occurrenceId,
+      sourceActorId: input.actorId,
+      sourceCharacterId: input.sourceCharacterId,
+      caughtChecksum: input.caughtChecksum,
+      removedActorIds: input.removedActorIds,
+      targetOccurrenceIds: input.targetOccurrenceIds,
+      damage: input.damage,
+      sourceCharacterStreamVersion: spend.sourceCharacterStreamVersion,
+      resourceConsumption: spend.resourceReceipt,
+      featureResourceConsumption: spend.featureResourceReceipt,
+      sourceItemUseStateTransition: spend.sourceItemUseStateTransition,
+      sourceItemConsumption: spend.itemConsumptionReceipt,
+      actionEconomyTransition: actionEconomyReceipt(input.actionEconomy),
+      ...(input.attackAction ? { attackActionTransition: input.attackAction } : {})
+    }
   })
 }

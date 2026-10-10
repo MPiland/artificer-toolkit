@@ -313,15 +313,25 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
                 trace.outputs.total === d20.total &&
                 trace.outputs.resultPath === d20.resultPath
             ).length === 1
-          if (
-            checksumRuleDocument({
-              outputs: value.outputs,
-              evidence: value.evidence
-            }) !==
+          // A movement reaction's result is the failed save itself; a phased action's is the outcome
+          // after it, with the failed save kept as its TEST phase.
+          const originalChecksum = checksumRuleDocument({
+            outputs: original.outputs,
+            evidence: original.evidence
+          })
+          const testPhase = 'phaseReceipts' in value ? value.phaseReceipts?.[0] : undefined
+          const bindsOriginal = [
+            value,
+            ...(testPhase?.phase === 'TEST' ? [testPhase.execution] : [])
+          ].some(
+            (execution) =>
               checksumRuleDocument({
-                outputs: original.outputs,
-                evidence: original.evidence
-              }) ||
+                outputs: execution.outputs,
+                evidence: execution.evidence
+              }) === originalChecksum
+          )
+          if (
+            !bindsOriginal ||
             value.applicationOutputs.d20 === null ||
             checksumRuleDocument(value.applicationOutputs.d20) !==
               checksumRuleDocument(legendaryResistance.originalD20) ||

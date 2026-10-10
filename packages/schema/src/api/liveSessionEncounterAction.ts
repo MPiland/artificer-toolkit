@@ -158,3 +158,52 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
   )
+
+/**
+ * The terminal outcome of a point-area action: the root with the caster's one spend, one settled
+ * outcome per kept creature, and the area's final snapshot the last answer produced. It creates no
+ * maintained state, cleaving choice or effect, so those fields do not exist here.
+ */
+export type LiveSessionEncounterAreaCommitInput = Omit<
+  LiveSessionEncounterActionCommitInput,
+  | 'execution'
+  | 'maintenanceOwners'
+  | 'createdEffects'
+  | 'maintainedState'
+  | 'cleaving'
+  | 'allyAdvantageUses'
+  | 'consumedGrants'
+> & {
+  execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
+  targets: { actorId: string; execution: z.infer<typeof storedRuleExecutionResultDtoSchema> }[]
+  area: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>
+}
+
+export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
+  lazySchema(() =>
+    z.extend(
+      z.omit(liveSessionEncounterActionPendingInputSchema, {
+        snapshot: true,
+        maintenanceOwners: true
+      }),
+      {
+        occurredAt: z.iso.datetime(),
+        initialDefinitionId: postgresUuidSchema,
+        execution: storedRuleExecutionResultDtoSchema,
+        targets: z
+          .array(
+            z.strictObject({
+              actorId: postgresUuidSchema,
+              execution: storedRuleExecutionResultDtoSchema
+            })
+          )
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        area: serverRuleExecutionPendingSnapshotDtoSchema,
+        rules: encounterActorRuleOutputSchema,
+        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+        itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
+        ruleOverrides: encounterRuleWarningsDtoSchema,
+        ...liveSessionEncounterConcentrationFields()
+      }
+    )
+  )

@@ -8,6 +8,7 @@ import type {
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import {
   encounterLegendaryResistancePin,
+  legendaryResistanceChargeProposal,
   openEncounterLegendaryResistanceChoice,
   requireFailedLegendaryResistanceSave,
   sameEncounterLegendaryResistanceCandidate,
@@ -105,4 +106,39 @@ export function encounterAreaLegendaryResistanceAudits(
     })
   }
   return audits
+}
+
+/**
+ * What a creature's area outcome records of its decided Legendary Resistance: the decision against the
+ * failed save it replaces, and, when it used the resistance, the charge it cost on the creature's
+ * current pool. The creature's pool and the offer must still be the ones the decision was made against.
+ */
+export function encounterAreaTargetLegendaryResistance(input: {
+  audit: EncounterAreaLegendaryResistanceAudit
+  candidate: EncounterLegendaryResistanceCandidate
+  boundary: TestedAreaTest['boundary']
+  currentFeatureResource: EncounterLegendaryResistanceFeatureResource
+}) {
+  const { audit, candidate, boundary } = input
+  if (
+    !sameEncounterLegendaryResistanceCandidate(audit.resistance, candidate) ||
+    checksumRuleDocument(boundary.execution) !== audit.originalExecutionChecksum
+  )
+    throw new Error('Legendary Resistance evidence is stale.')
+  const use = audit.selection === 'USE'
+  return {
+    legendaryResistance: {
+      selectedIndex: use ? (1 as const) : (0 as const),
+      use,
+      lifecycle: candidate.lifecycle,
+      execution: audit.choiceExecution,
+      originalExecution: boundary.execution,
+      originalExecutionChecksum: audit.originalExecutionChecksum,
+      originalD20: boundary.d20,
+      ownerFeatureId: audit.resistance.ownerFeatureId,
+      chargeId: audit.resistance.chargeId,
+      featureCost: audit.resistance.featureCost
+    },
+    charge: use ? legendaryResistanceChargeProposal(candidate, input.currentFeatureResource) : null
+  }
 }

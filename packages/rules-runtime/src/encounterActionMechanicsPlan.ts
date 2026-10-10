@@ -37,17 +37,29 @@ export type NativeEncounterActionMechanicsInput = {
     outcome: EncounterCharacterMechanicsEventPhase
   }
   ordinal?: number
+  /**
+   * Whether this plan settles the source's one spend (resource, item, stow, feature charge) with the
+   * outcome. An area action settles it once on its root, so each creature it catches plans with `NONE`.
+   */
+  sourceSpend?: SourceSpend
 }
 
+type SourceSpend = 'WITH_OUTCOME' | 'NONE'
+
 /** Uses the same event identities and batches for planning and publication. */
-function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechanicsInput) {
+function prepareNativeActionMechanicsBatches(
+  input: NativeEncounterActionMechanicsInput,
+  spend: SourceSpend | 'ONLY' = input.sourceSpend ?? 'WITH_OUTCOME'
+) {
   const { prepared } = input
   const { state, actor, target, source, sourceFacts, targetFacts } = prepared
   if (input.encounterId !== state.id || input.expectedEncounterVersion !== state.version)
     throw new Error('Encounter action settlement is stale.')
-  const resourceConsumption = prepared.characterActionState?.resourceConsumption
-  const itemConsumption = prepared.characterActionState?.itemConsumption
-  const stow = prepared.acceptedWieldConflict
+  const resourceConsumption =
+    spend === 'NONE' ? undefined : prepared.characterActionState?.resourceConsumption
+  const itemConsumption =
+    spend === 'NONE' ? undefined : prepared.characterActionState?.itemConsumption
+  const stow = spend === 'NONE' ? undefined : prepared.acceptedWieldConflict
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
     ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
@@ -56,7 +68,7 @@ function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechani
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
     source.kind === 'CHARACTER_ACTION' &&
     (resourceConsumption || itemConsumption || stow) &&
-    actor.id !== target.id
+    (spend === 'ONLY' || actor.id !== target.id)
       ? {
           encounterId: input.encounterId,
           targetActorId: actor.id,
@@ -101,65 +113,27 @@ function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechani
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
     forceVersionAdvance: input.forceTargetVersionAdvance ?? false,
-    ...(source.kind === 'CHARACTER_ACTION' && actor.id === target.id ? sourceMutation : {})
+    ...(source.kind === 'CHARACTER_ACTION' && actor.id === target.id && spend !== 'ONLY'
+      ? sourceMutation
+      : {})
   }
   return { sourceResourceBatch, targetBatch }
 }
 
-export function finishNativeActionMechanicsSettlement(
-  prepared: NativeEncounterActionMechanicsInput['prepared'],
-  mechanics: Pick<
-    EncounterMechanicsBatchPlan,
-    | 'updatedActor'
-    | 'receiptApplications'
-    | 'targetTransition'
-    | 'characterStreamVersion'
-    | 'itemUseStateTransition'
-  >,
-  sourceResourceMechanics: Pick<
-    EncounterMechanicsBatchPlan,
-    | 'updatedActor'
-    | 'receiptApplications'
-    | 'targetTransition'
-    | 'characterStreamVersion'
-    | 'itemUseStateTransition'
-  > | null
-) {
-  const { actor, target, source, resourceUse, featureResource, featureUsed, featureSpent } =
-    prepared
-  let settledSource =
-    sourceResourceMechanics?.updatedActor ??
-    (mechanics.updatedActor.id === actor.id ? mechanics.updatedActor : actor)
-  if (source.kind === 'CREATURE' && resourceUse && featureSpent > 0) {
-    if (featureChargeUsed(settledSource, source.capability.ownerFeatureId) !== featureUsed)
-      throw new Error('The selected Encounter feature action resource changed before settlement.')
-    const resourceActor = encounterRunActorStateSchema.parse({
-      ...settledSource,
-      resources: withFeatureChargeUsed(
-        settledSource,
-        source.capability.ownerFeatureId,
-        featureUsed + featureSpent
-      )
-    })
-    settledSource = resourceActor
-  }
+type SettledMechanicsPlan = Pick<
+  EncounterMechanicsBatchPlan,
+  | 'updatedActor'
+  | 'receiptApplications'
+  | 'targetTransition'
+  | 'characterStreamVersion'
+  | 'itemUseStateTransition'
+>
+
+/** The receipts of the source's one spend, read from what the action prepared. */
+function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput['prepared']) {
+  const { actor, source, resourceUse, featureResource, featureUsed, featureSpent } = prepared
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
   const itemConsumption = prepared.characterActionState?.itemConsumption
-  const sourceCharacterStreamVersion =
-    source.kind === 'CHARACTER_ACTION' &&
-    (resourceConsumption || itemConsumption || prepared.acceptedWieldConflict) &&
-    actor.id !== target.id
-      ? (sourceResourceMechanics?.characterStreamVersion ??
-        (() => {
-          throw new Error('The selected Character action resource was not committed.')
-        })())
-      : null
-  const sourceItemUseStateTransition = prepared.acceptedWieldConflict
-    ? ((actor.id === target.id ? mechanics : sourceResourceMechanics)?.itemUseStateTransition ??
-      (() => {
-        throw new Error('The accepted shield stow was not committed.')
-      })())
-    : null
   const resourceReceipt = resourceConsumption
     ? {
         poolId: resourceConsumption.poolId,
@@ -198,15 +172,70 @@ export function finishNativeActionMechanicsSettlement(
           afterRemaining: featureResource.remaining - featureSpent
         }
       : null
+  return { resourceReceipt, itemConsumptionReceipt, featureResourceReceipt }
+}
+
+/** A Creature source's feature charge the action spends, applied to the source as settled so far. */
+function spendNativeSourceFeatureCharge(
+  prepared: NativeEncounterActionMechanicsInput['prepared'],
+  settledSource: NativeEncounterActionMechanicsInput['prepared']['actor']
+) {
+  const { source, resourceUse, featureUsed, featureSpent } = prepared
+  if (source.kind !== 'CREATURE' || !resourceUse || featureSpent <= 0) return settledSource
+  if (featureChargeUsed(settledSource, source.capability.ownerFeatureId) !== featureUsed)
+    throw new Error('The selected Encounter feature action resource changed before settlement.')
+  return encounterRunActorStateSchema.parse({
+    ...settledSource,
+    resources: withFeatureChargeUsed(
+      settledSource,
+      source.capability.ownerFeatureId,
+      featureUsed + featureSpent
+    )
+  })
+}
+
+export function finishNativeActionMechanicsSettlement(
+  prepared: NativeEncounterActionMechanicsInput['prepared'],
+  mechanics: SettledMechanicsPlan,
+  sourceResourceMechanics: SettledMechanicsPlan | null,
+  spend: SourceSpend = 'WITH_OUTCOME'
+) {
+  const { actor, target, source } = prepared
+  const spendsSource = spend === 'WITH_OUTCOME'
+  const settledMechanicsSource =
+    sourceResourceMechanics?.updatedActor ??
+    (mechanics.updatedActor.id === actor.id ? mechanics.updatedActor : actor)
+  const settledSource = spendsSource
+    ? spendNativeSourceFeatureCharge(prepared, settledMechanicsSource)
+    : settledMechanicsSource
+  const sourceCharacterStreamVersion =
+    spendsSource &&
+    source.kind === 'CHARACTER_ACTION' &&
+    (prepared.characterActionState?.resourceConsumption ||
+      prepared.characterActionState?.itemConsumption ||
+      prepared.acceptedWieldConflict) &&
+    actor.id !== target.id
+      ? (sourceResourceMechanics?.characterStreamVersion ??
+        (() => {
+          throw new Error('The selected Character action resource was not committed.')
+        })())
+      : null
+  const sourceItemUseStateTransition =
+    spendsSource && prepared.acceptedWieldConflict
+      ? ((actor.id === target.id ? mechanics : sourceResourceMechanics)?.itemUseStateTransition ??
+        (() => {
+          throw new Error('The accepted shield stow was not committed.')
+        })())
+      : null
   return {
     mechanics,
     settledSource,
     sourceResourceMechanics,
     sourceCharacterStreamVersion,
     sourceItemUseStateTransition,
-    resourceReceipt,
-    itemConsumptionReceipt,
-    featureResourceReceipt
+    ...(spendsSource
+      ? nativeSourceSpendReceipts(prepared)
+      : { resourceReceipt: null, itemConsumptionReceipt: null, featureResourceReceipt: null })
   }
 }
 
@@ -236,8 +265,51 @@ export function planNativeEncounterActionMechanics(
       : {})
   })
   return {
-    ...finishNativeActionMechanicsSettlement(prepared, targetPlan, sourceResourcePlan),
+    ...finishNativeActionMechanicsSettlement(
+      prepared,
+      targetPlan,
+      sourceResourcePlan,
+      input.sourceSpend
+    ),
     sourceResourcePlan,
     targetPlan
+  }
+}
+
+/**
+ * The source's one spend of an area action, settled alone: the Character's resource, item or stow
+ * through its own batch, and a Creature's feature charge. Each creature the area catches then plans
+ * its outcome with no spend of its own, so the spend lands exactly once even when the source is caught.
+ */
+export function planNativeEncounterAreaSourceSpend(
+  input: Omit<NativeEncounterActionMechanicsInput, 'applications' | 'sourceSpend'>,
+  userId: string
+) {
+  const { prepared } = input
+  const { sourceResourceBatch } = prepareNativeActionMechanicsBatches(
+    { ...input, applications: [] },
+    'ONLY'
+  )
+  const sourceResourcePlan = sourceResourceBatch
+    ? planEncounterMechanicsBatch({
+        batch: sourceResourceBatch,
+        actor: prepared.actor,
+        userId,
+        ...(prepared.sourceFacts.characterFacts
+          ? { characterFacts: prepared.sourceFacts.characterFacts }
+          : {})
+      })
+    : null
+  if (prepared.acceptedWieldConflict && !sourceResourcePlan?.itemUseStateTransition)
+    throw new Error('The accepted shield stow was not committed.')
+  return {
+    sourceResourcePlan,
+    settledSource: spendNativeSourceFeatureCharge(
+      prepared,
+      sourceResourcePlan?.updatedActor ?? prepared.actor
+    ),
+    sourceCharacterStreamVersion: sourceResourcePlan?.characterStreamVersion ?? null,
+    sourceItemUseStateTransition: sourceResourcePlan?.itemUseStateTransition ?? null,
+    ...nativeSourceSpendReceipts(prepared)
   }
 }

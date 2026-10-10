@@ -6,16 +6,21 @@ import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import {
+  liveSessionEncounterActionPendingInputSchema,
+  liveSessionEncounterAreaCommitInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
   LiveSessionEncounterRulesInput,
   LiveSessionEncounterRulesResponse,
   LiveSessionEncounterRulesRequest
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import type {
-  EncounterRunActorState,
-  EncounterRunState
+import {
+  encounterRunActorStateSchema,
+  encounterRunStateSchema,
+  type EncounterRunActorState,
+  type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
@@ -27,12 +32,14 @@ import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/e
 import {
   encounterActionSuppressedWarning,
   evaluateEncounterAreaRuleWarnings,
+  overridesActionEconomy,
   RULE_WARNINGS_MESSAGE
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
   decideEncounterAreaLegendaryResistance,
+  encounterAreaLegendaryResistanceAudits,
+  encounterAreaTargetLegendaryResistance,
   offerEncounterAreaLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
@@ -40,7 +47,8 @@ import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolki
 import {
   answerEncounterAreaTest,
   catchEncounterAreaActorIds,
-  prepareEncounterAreaTests
+  prepareEncounterAreaTests,
+  settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterActionTargetKind,
@@ -48,6 +56,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import {
   buildEncounterAreaPendingSnapshot,
+  encounterAreaTargetCommandId,
   encounterAreaTargetOccurrenceId,
   markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested
@@ -57,12 +66,42 @@ import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runt
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import {
+  encounterActiveEffectPlan,
+  prepareNativeActionEffectsPlan
+} from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import {
+  planNativeEncounterActionMechanics,
+  planNativeEncounterAreaSourceSpend
+} from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import {
+  buildEncounterActionStoredExecution,
+  buildEncounterAreaStoredExecution
+} from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
+import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
+import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
+import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import { withFeatureChargeUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
+import {
+  findEncounterFeatureResource,
+  reconcileEncounterActorRuleOutput
+} from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import {
+  nativeConcentrationDamageApplications,
+  nativeConcentrationDamageSourceLabels
+} from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
-  refuseLegendaryWindowAction
+  refuseLegendaryWindowAction,
+  refuseSpatialInterpretation
 } from './nativeEncounterActionInputs.js'
+import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -88,6 +127,8 @@ type AreaPlanInput = {
   random?: (maximum: number) => number
   /** Whether the roller who answers this creature's save has "Auto-roll my dice" on. */
   requireAutoRoll: (actorId: string) => boolean
+  /** Each actor's roller preference, for the Concentration checks the area's damage asks for. */
+  autoRollByActorId: Readonly<Record<string, boolean>>
 }
 
 /** What every creature of one area shares: the caster, the Scene the point was picked in, and the area. */
@@ -212,33 +253,19 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   const [first] = preparedTargets
   if (!first) throw new Error('The area catches no creature.')
   refuseLegendaryWindowAction(first.prepared)
+  refuseAreaEffectOutcomes(first.prepared)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
-  const { activationCode, economy, suppressed, attackAction } =
-    await evaluateNativeLiveActionEconomy({
-      prepared: first.prepared,
-      state,
-      actionId: command.actionId,
-      sourceTarget: casterFacts,
-      targetIds: caughtActorIds,
-      capture
-    })
-  const ruleWarnings = evaluateEncounterAreaRuleWarnings({
-    preparedWarnings: suppressed
-      ? [...first.prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
-      : first.prepared.ruleWarnings,
-    areaWarnings: area.warnings,
-    actionEconomy: economy,
-    activationCode,
-    acknowledged: command.acknowledgedWarnings
+  const evaluation = await evaluateNativeLiveActionEconomy({
+    prepared: first.prepared,
+    state,
+    actionId: command.actionId,
+    sourceTarget: casterFacts,
+    targetIds: caughtActorIds,
+    capture
   })
-  if (ruleWarnings.kind === 'UNACKNOWLEDGED')
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'RULE_WARNINGS',
-      message: RULE_WARNINGS_MESSAGE,
-      warnings: ruleWarnings.warnings
-    })
+  const { economy, attackAction } = evaluation
+  const ruleOverrides = areaRuleOverrides({ prepared: first.prepared, area, evaluation, command })
   const actionEconomy = economy?.consumption ?? null
   const maintenance = await prepareNativeLiveActionMaintenance({
     prepared: first.prepared,
@@ -332,13 +359,15 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       })
     )
   }
+  if (areaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({ ...input, response: null, areaSnapshot: snapshot })
   return {
     kind: 'AREA_PENDING' as const,
     command,
     response: null,
     snapshot,
     prepared: { actors },
-    ruleOverrides: ruleWarnings.overrides,
+    ruleOverrides,
     fingerprint: input.fingerprint,
     initiatorUserId,
     occurrenceId
@@ -387,16 +416,19 @@ export async function planNativeLiveEncounterAreaAnswer(
     test: tested,
     targetStateChecksum: checksumRuleDocument(revalidated.target.prepared.target)
   })
+  const snapshot = markEncounterAreaSaveTested(
+    areaSnapshot,
+    resolution.requestId,
+    JSON.stringify(resolution),
+    offer
+  )
+  if (areaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({ ...input, areaSnapshot: snapshot })
   return {
     kind: 'AREA_PENDING' as const,
     command,
     response: input.response,
-    snapshot: markEncounterAreaSaveTested(
-      areaSnapshot,
-      resolution.requestId,
-      JSON.stringify(resolution),
-      offer
-    ),
+    snapshot,
     prepared: { actors },
     fingerprint: input.fingerprint,
     initiatorUserId: context.initiatorUserId,
@@ -467,15 +499,18 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
     selection,
     currentFeatureResource: resource
   })
+  const snapshot = markEncounterAreaLegendaryResistanceDecided(
+    areaSnapshot,
+    decision.actorId,
+    legendaryResistance
+  )
+  if (areaSettled(snapshot))
+    return planNativeLiveEncounterAreaCommit({ ...input, areaSnapshot: snapshot })
   return {
     kind: 'AREA_PENDING' as const,
     command,
     response: input.response,
-    snapshot: markEncounterAreaLegendaryResistanceDecided(
-      areaSnapshot,
-      decision.actorId,
-      legendaryResistance
-    ),
+    snapshot,
     chargeProposal,
     prepared: { actors },
     fingerprint: input.fingerprint,
@@ -520,10 +555,11 @@ function discoverAreaLegendaryResistance(
 async function revalidateAreaTarget(
   input: AreaPlanInput,
   context: AreaContext,
-  sealed: AreaTargetRecord
+  sealed: AreaTargetRecord,
+  scene?: Awaited<ReturnType<typeof prepareAreaScene>>
 ) {
   const { command, state, actors, capture } = input
-  const base = await prepareAreaScene(input)
+  const base = scene ?? (await prepareAreaScene(input))
   if (
     base.scene.sceneVersion !== context.scene.sceneVersion ||
     checksumCanonicalJson(base.area.shape) !== checksumCanonicalJson(context.area.shape)
@@ -543,7 +579,7 @@ async function revalidateAreaTarget(
     allyAdvantage: encounterBasicActionAllyAdvantage({ actors, attackerId: base.caster.id })
   })
   refuseLegendaryWindowAction(target.prepared)
-  const { economy, attackAction } = await evaluateNativeLiveActionEconomy({
+  const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: target.prepared,
     state,
     actionId: command.actionId,
@@ -552,6 +588,7 @@ async function revalidateAreaTarget(
     targetIds: [...context.targets.map(({ actorId }) => actorId), ...context.removedActorIds],
     capture
   })
+  const { economy, attackAction } = evaluation
   const maintenance = await prepareNativeLiveActionMaintenance({
     prepared: target.prepared,
     activeEffectsByActorId: input.activeEffectsByActorId,
@@ -570,13 +607,13 @@ async function revalidateAreaTarget(
     })
   )
     throw new Error('The pending action source or target changed.')
-  return { actor, target }
+  return { actor, target, evaluation }
 }
 
 /** Runs one creature's sealed save with its answer; an area save is always its target's own roll. */
 async function replayAreaTargetSave(
   input: AreaPlanInput,
-  { actor, target }: Awaited<ReturnType<typeof revalidateAreaTarget>>,
+  { actor, target }: Pick<Awaited<ReturnType<typeof revalidateAreaTarget>>, 'actor' | 'target'>,
   sealed: AreaTargetRecord,
   areaOccurrenceId: string,
   resolution: EncounterEvidenceAnswer
@@ -610,9 +647,12 @@ async function replayAreaTargetSave(
 export function buildNativeLiveEncounterAreaActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Pick<
-    | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAction>>
-    | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>
-    | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>,
+    Extract<
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAction>>
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>
+      | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>,
+      { kind: 'AREA_PENDING' }
+    >,
     'command' | 'response' | 'snapshot'
   > & {
     dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]
@@ -628,5 +668,426 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
     snapshot: plan.snapshot
+  })
+}
+
+type AreaPrepared = Awaited<ReturnType<typeof prepareAreaTarget>>['prepared']
+
+/**
+ * Refuses an area outcome that would leave anything behind on a creature: a condition, a lasting or
+ * recurring effect, or a maintained effect. An area commits each creature's damage and nothing else
+ * yet. Without `effects` it checks the action's effect plan (at open); with them, what the settled
+ * outcome actually produced (at commit).
+ */
+function refuseAreaEffectOutcomes(
+  prepared: AreaPrepared,
+  effects?: {
+    stateEffect: unknown
+    recurringEffect: unknown
+    relationshipConditionApplications: readonly unknown[]
+    maintenance: unknown
+  }
+) {
+  const leavesEffect = effects
+    ? effects.stateEffect !== null ||
+      effects.recurringEffect !== null ||
+      effects.relationshipConditionApplications.length > 0 ||
+      effects.maintenance !== null
+    : encounterActiveEffectPlan(
+        prepared,
+        prepared.plan.kind === 'SINGLE_GRAPH'
+          ? prepared.plan.published
+          : prepared.plan.test.published
+      ) !== null
+  if (leavesEffect)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Area actions that apply conditions or lasting effects are not supported yet.'
+    })
+}
+
+/** The warnings an area action raises, refused unless the caster acknowledged them. */
+function areaRuleOverrides(input: {
+  prepared: AreaPrepared
+  area: Awaited<ReturnType<typeof prepareAreaScene>>['area']
+  evaluation: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>
+  command: AreaCommand
+}) {
+  const { activationCode, economy, suppressed } = input.evaluation
+  const ruleWarnings = evaluateEncounterAreaRuleWarnings({
+    preparedWarnings: suppressed
+      ? [...input.prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
+      : input.prepared.ruleWarnings,
+    areaWarnings: input.area.warnings,
+    actionEconomy: economy,
+    activationCode,
+    acknowledged: input.command.acknowledgedWarnings
+  })
+  if (ruleWarnings.kind === 'UNACKNOWLEDGED')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'RULE_WARNINGS',
+      message: RULE_WARNINGS_MESSAGE,
+      warnings: ruleWarnings.warnings
+    })
+  return ruleWarnings.overrides
+}
+
+/** An area settles once every kept creature has answered its save and every offer is decided. */
+function areaSettled(snapshot: ServerAggregateChoicePendingSnapshotDto) {
+  const context = snapshot.applicationContext
+  return (
+    context.kind === 'ENCOUNTER_AREA_ACTION' &&
+    context.targets.every(
+      (target) =>
+        target.testedJson !== undefined &&
+        (target.legendaryResistance === undefined ||
+          target.legendaryResistance.decision !== undefined)
+    )
+  )
+}
+
+/**
+ * Plans the commit of a settled area: every kept creature's save is replayed from the answer kept
+ * with it, damage is rolled once and frozen across them, and each creature's outcome becomes its
+ * own receipt under one root that holds the caster's single spend.
+ */
+export async function planNativeLiveEncounterAreaCommit(
+  input: AreaPlanInput & {
+    response: ResolveRuleOccurrenceInputDto | null
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+  }
+) {
+  const { command, state, actors, areaSnapshot } = input
+  const context = areaSnapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_AREA_ACTION')
+    throw new Error('The pending area action is unavailable.')
+  const areaOccurrenceId = areaSnapshot.occurrenceId
+  const base = await prepareAreaScene(input)
+  const { caster } = base
+  const kept = []
+  for (const sealed of context.targets)
+    kept.push({ sealed, ...(await revalidateAreaTarget(input, context, sealed, base)) })
+  const [first] = kept
+  if (!first)
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'The area catches no creature.'
+    })
+  const lead = first.target.prepared
+  const ruleOverrides = areaRuleOverrides({
+    prepared: lead,
+    area: base.area,
+    evaluation: first.evaluation,
+    command
+  })
+  const { economy, attackAction } = first.evaluation
+  const actionEconomy = economy?.consumption ?? null
+
+  const tests = []
+  for (const entry of kept) {
+    if (entry.sealed.testedJson === undefined) throw new Error('The area save is unanswered.')
+    const resolution: EncounterEvidenceAnswer = JSON.parse(entry.sealed.testedJson)
+    tests.push(await replayAreaTargetSave(input, entry, entry.sealed, areaOccurrenceId, resolution))
+  }
+  const audits = encounterAreaLegendaryResistanceAudits(
+    new Map(
+      context.targets.flatMap(({ actorId, legendaryResistance }) =>
+        legendaryResistance ? [[actorId, legendaryResistance] as const] : []
+      )
+    )
+  )
+  const settled = await settleEncounterAreaAction({
+    runtime: input.runtime,
+    random: input.random,
+    adapter: lead.adapter,
+    plan: lead.plan,
+    occurrenceId: areaOccurrenceId,
+    targets: kept.map(({ target }) => ({
+      actorId: target.prepared.target.id,
+      binding: target.prepared.binding,
+      autoRoll: { SOURCE: false, TARGET: false },
+      discoverLegendaryResistance: discoverAreaLegendaryResistance(input, target.prepared)
+    })),
+    tests,
+    legendaryResistance: audits
+  })
+
+  const occurredAt = new Date().toISOString()
+  const userId = input.initial.expectedUserId
+  const children = []
+  for (const { actor, target } of kept) {
+    const { prepared } = target
+    const complete = settled.find((entry) => entry.actorId === actor.id)?.complete
+    const test = tests.find((entry) => entry.actorId === actor.id)
+    if (!complete || !test) throw new Error('The area outcome is unavailable.')
+    const occurrenceId = encounterAreaTargetOccurrenceId(areaOccurrenceId, actor.id)
+    const commandId = encounterAreaTargetCommandId(occurrenceId)
+    const effects = prepareNativeActionEffectsPlan({
+      prepared,
+      execution: complete,
+      occurrenceId,
+      commandId,
+      activeEffectsByActorId: input.activeEffectsByActorId
+    })
+    refuseAreaEffectOutcomes(prepared, effects)
+    refuseSpatialInterpretation(prepared, {
+      execution: complete.execution,
+      occurrenceId,
+      published: complete.published,
+      targetActorId: actor.id
+    })
+    // A Character caster caught by their own area spends in the same Sheet write as their outcome.
+    const carriesSpend = caster.kind === 'CHARACTER' && actor.id === caster.id
+    const mechanics = planNativeEncounterActionMechanics(
+      {
+        prepared,
+        encounterId: state.id,
+        expectedEncounterVersion: state.version,
+        occurrenceId,
+        sourceCommandId: command.commandId,
+        commandId,
+        occurredAt,
+        applications: complete.applications,
+        sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE'
+      },
+      userId
+    )
+    const audit = audits.get(actor.id)
+    let resistance: ReturnType<typeof encounterAreaTargetLegendaryResistance> | null = null
+    if (audit) {
+      const candidate = await discoverAreaLegendaryResistance(input, prepared)()
+      const resource =
+        candidate &&
+        findEncounterFeatureResource(
+          prepared.actorRules,
+          candidate.targetActorId,
+          candidate.ownerFeatureId
+        )
+      if (!candidate || !resource) throw new Error('Legendary Resistance evidence is stale.')
+      resistance = encounterAreaTargetLegendaryResistance({
+        audit,
+        candidate,
+        boundary: test.boundary,
+        currentFeatureResource: resource
+      })
+    }
+    children.push({
+      actorId: actor.id,
+      occurrenceId,
+      carriesSpend,
+      complete,
+      mechanics,
+      resistance,
+      execution: buildEncounterActionStoredExecution({
+        prepared,
+        execution: complete,
+        occurrenceId,
+        occurrenceVersion: 0,
+        settled: mechanics,
+        effects: projectNativeActionEffectTransitions({
+          state: null,
+          recurring: null,
+          targetActorId: actor.id
+        }),
+        maintainedState: null,
+        maintenanceTransition: null,
+        actionEconomy: null,
+        attackAction: null,
+        area: { parentOccurrenceId: areaOccurrenceId, resistance }
+      })
+    })
+  }
+
+  const merged = children.find((child) => child.carriesSpend)
+  const resourceState = lead.characterActionState
+  const spends = Boolean(
+    resourceState?.resourceConsumption ||
+    resourceState?.itemConsumption ||
+    lead.acceptedWieldConflict
+  )
+  const sourceSpend = merged
+    ? null
+    : planNativeEncounterAreaSourceSpend(
+        {
+          prepared: lead,
+          encounterId: state.id,
+          expectedEncounterVersion: state.version,
+          occurrenceId: areaOccurrenceId,
+          sourceCommandId: command.commandId,
+          commandId: command.commandId,
+          occurredAt
+        },
+        userId
+      )
+  const spend = merged
+    ? {
+        sourceCharacterStreamVersion: spends
+          ? merged.mechanics.mechanics.characterStreamVersion
+          : null,
+        resourceReceipt: merged.mechanics.resourceReceipt,
+        featureResourceReceipt: merged.mechanics.featureResourceReceipt,
+        sourceItemUseStateTransition: merged.mechanics.sourceItemUseStateTransition,
+        itemConsumptionReceipt: merged.mechanics.itemConsumptionReceipt
+      }
+    : sourceSpend!
+  const sourceLabel = encounterActionSourceLabel(lead.source)
+  const damageSources = children.map((child) => ({
+    targetActorId: child.actorId,
+    applications: child.mechanics.mechanics.receiptApplications,
+    sourceLabel
+  }))
+  const damage = nativeConcentrationDamageApplications(damageSources, false)
+  const execution = buildEncounterAreaStoredExecution({
+    occurrenceId: areaOccurrenceId,
+    occurrenceVersion: input.response ? input.response.expectedOccurrenceVersion + 1 : 0,
+    actorId: caster.id,
+    sourceCharacterId: caster.kind === 'CHARACTER' ? caster.sourceId : null,
+    caughtChecksum: context.caughtChecksum,
+    removedActorIds: context.removedActorIds,
+    targetOccurrenceIds: children.map((child) => child.occurrenceId),
+    damage,
+    spend,
+    actionEconomy,
+    attackAction
+  })
+
+  // The actors as persistence leaves them: the caster's resource write, each outcome, each charge a
+  // Legendary Resistance spent, then the caster's feature charge, action economy and Attack action.
+  const settledActors = new Map(actors.map((actor) => [actor.id, actor] as const))
+  if (sourceSpend?.sourceResourcePlan)
+    settledActors.set(caster.id, sourceSpend.sourceResourcePlan.updatedActor)
+  for (const child of children) {
+    const updated = child.mechanics.mechanics.updatedActor
+    const charge = child.resistance?.charge
+    settledActors.set(
+      child.actorId,
+      charge
+        ? encounterRunActorStateSchema.parse({
+            ...updated,
+            resources: withFeatureChargeUsed(updated, charge.ownerFeatureId, charge.afterUsed)
+          })
+        : updated
+    )
+  }
+  let settledCaster = settledActors.get(caster.id)!
+  if (spend.featureResourceReceipt)
+    settledCaster = encounterRunActorStateSchema.parse({
+      ...settledCaster,
+      resources: withFeatureChargeUsed(
+        settledCaster,
+        spend.featureResourceReceipt.ownerFeatureId,
+        spend.featureResourceReceipt.afterUsed
+      )
+    })
+  if (actionEconomy)
+    settledCaster = consumeEncounterActionEconomy({
+      actor: settledCaster,
+      consumption: actionEconomy,
+      overridden: overridesActionEconomy(ruleOverrides)
+    })
+  if (attackAction)
+    settledCaster = applyEncounterAttackActionTransition(settledCaster, attackAction)
+  settledActors.set(caster.id, settledCaster)
+  const plans = new Map<
+    string,
+    ReturnType<typeof planNativeEncounterActionMechanics>['targetPlan'] | null
+  >(children.map((child) => [child.actorId, child.mechanics.targetPlan] as const))
+  if (sourceSpend && !plans.has(caster.id)) plans.set(caster.id, sourceSpend.sourceResourcePlan)
+  const projectedTargets = new Map(
+    [...base.movementTargets].map(([actorId, target]) => {
+      const actor = settledActors.get(actorId)
+      if (!actor) throw new Error('Encounter settlement actor is unavailable.')
+      return [
+        actorId,
+        projectEncounterActionTarget({
+          target: { ...target, activeEffects: input.activeEffectsByActorId.get(actorId) ?? [] },
+          actor,
+          plan: plans.get(actorId) ?? null,
+          campaignId: state.campaignId,
+          gameSystemId: state.gameSystemId,
+          occurredAt
+        })
+      ] as const
+    })
+  )
+  const nextState = encounterRunStateSchema.parse({
+    ...state,
+    version: state.version + 1,
+    updatedAt: occurredAt
+  })
+  const concentration = await planNativeLiveConcentration({
+    state: nextState,
+    autoRollByActorId: input.autoRollByActorId,
+    parentOccurrenceId: areaOccurrenceId,
+    parentCommandFingerprint: input.fingerprint,
+    applications: damage,
+    sourceLabels: nativeConcentrationDamageSourceLabels(damageSources, false),
+    occurredAt,
+    settlement: {
+      actors: actors.map((actor) => settledActors.get(actor.id)!),
+      projectedTargets,
+      activeEffectsByActorId: input.activeEffectsByActorId,
+      maintenanceOwners: [],
+      maintainedState: null,
+      createdEffects: []
+    },
+    capture: input.capture,
+    runtime: input.runtime,
+    random: input.random
+  })
+  const nextFacts = buildEncounterActorRuleFacts({ actors: concentration.actors })
+  const rules = reconcileEncounterActorRuleOutput(
+    evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
+    nextFacts,
+    { output: lead.actorRules }
+  )
+  return {
+    kind: 'AREA_COMMIT' as const,
+    command,
+    response: input.response,
+    area: areaSnapshot,
+    prepared: { actors },
+    occurredAt,
+    initialDefinitionId: children[0]!.complete.initialPublished.id,
+    execution,
+    targets: children.map(({ actorId, execution: targetExecution }) => ({
+      actorId,
+      execution: targetExecution
+    })),
+    rules,
+    resourceConsumption: resourceState?.resourceConsumption ?? null,
+    itemConsumption: resourceState?.itemConsumption ?? null,
+    ruleOverrides,
+    concentration
+  }
+}
+
+/** The completed area and its per-creature child contracts the room persists in one transaction. */
+export function buildNativeLiveEncounterAreaCommitInput(
+  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
+  plan: Awaited<ReturnType<typeof planNativeLiveEncounterAreaCommit>> & {
+    revisions: LiveSessionRulesRevisions
+  }
+) {
+  return liveSessionEncounterAreaCommitInputSchema.parse({
+    ...scope,
+    command: plan.command,
+    response: plan.response,
+    revisions: plan.revisions,
+    occurredAt: plan.occurredAt,
+    initialDefinitionId: plan.initialDefinitionId,
+    execution: plan.execution,
+    targets: plan.targets,
+    area: plan.area,
+    rules: plan.rules,
+    resourceConsumption: plan.resourceConsumption,
+    itemConsumption: plan.itemConsumption,
+    ruleOverrides: plan.ruleOverrides,
+    concentration: plan.concentration.completed,
+    pendingConcentration: plan.concentration.pending,
+    concentrationEnds: plan.concentration.concentrationEnds
   })
 }

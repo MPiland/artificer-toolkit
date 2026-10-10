@@ -144,6 +144,11 @@ export function nativeConcentrationParentDamage(
     return nativeConcentrationDamageApplications([result.applicationOutputs], true)
   if (
     result.status === 'AGGREGATE_CHOICE_COMPLETE' &&
+    result.applicationOutputs.kind === 'ENCOUNTER_AREA_ACTION'
+  )
+    return result.applicationOutputs.damage
+  if (
+    result.status === 'AGGREGATE_CHOICE_COMPLETE' &&
     result.applicationOutputs.kind === 'CLEAVING_DAMAGE' &&
     result.applicationOutputs.outcome === 'APPLIED' &&
     result.applicationOutputs.damage.appliedAmount > 0

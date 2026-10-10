@@ -77,6 +77,19 @@ export async function removeAreaActionTarget(ctx: EncounterPersistenceTransactio
         ? 'That creature has already rolled its save.'
         : "That creature isn't caught by this area."
     )
+  // Removing the creature the area still waits on would leave nothing to answer, so nothing to commit it.
+  if (
+    removal.targets.every(
+      (target) =>
+        target.testedJson !== undefined &&
+        (target.legendaryResistance === undefined ||
+          target.legendaryResistance.decision !== undefined)
+    )
+  )
+    rejectDomain(
+      'TARGET_UNAVAILABLE',
+      'The area waits on no other creature, so it cannot resolve without this one.'
+    )
 
   const { _id, _creationTime, ...stored } = occurrence
   const next = {

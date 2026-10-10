@@ -116,6 +116,31 @@ export function requireFailedLegendaryResistanceSave(input: {
     throw new Error('Legendary Resistance requires sealed failed-save evidence.')
 }
 
+/** The charge a used resistance costs, checked against the creature’s current pool. */
+export function legendaryResistanceChargeProposal(
+  candidate: EncounterLegendaryResistanceCandidate,
+  currentFeatureResource: EncounterLegendaryResistanceFeatureResource
+) {
+  if (
+    currentFeatureResource.maximum === null ||
+    currentFeatureResource.remaining !==
+      currentFeatureResource.maximum - currentFeatureResource.used ||
+    currentFeatureResource.remaining !== candidate.poolBefore ||
+    currentFeatureResource.used + candidate.featureCost > currentFeatureResource.maximum
+  )
+    throw new Error('Legendary Resistance charge is stale.')
+  return {
+    ownerActorId: candidate.targetActorId,
+    ownerFeatureId: candidate.ownerFeatureId,
+    chargeId: candidate.chargeId,
+    cost: candidate.featureCost,
+    beforeUsed: currentFeatureResource.used,
+    afterUsed: currentFeatureResource.used + candidate.featureCost,
+    beforeRemaining: candidate.poolBefore,
+    afterRemaining: candidate.poolRemaining
+  } satisfies EncounterLegendaryResistanceChargeProposal
+}
+
 /** Starts the sealed two-option choice; nothing is published until a decision settles it. */
 export async function openEncounterLegendaryResistanceChoice(input: {
   runtime: RulesRuntimeService
@@ -178,27 +203,7 @@ export async function settleEncounterLegendaryResistanceChoice(input: {
     throw new Error('Legendary Resistance choice did not settle its exact pin.')
 
   const chargeProposal = use
-    ? (() => {
-        const { currentFeatureResource, candidate } = input
-        if (
-          currentFeatureResource.maximum === null ||
-          currentFeatureResource.remaining !==
-            currentFeatureResource.maximum - currentFeatureResource.used ||
-          currentFeatureResource.remaining !== candidate.poolBefore ||
-          currentFeatureResource.used + candidate.featureCost > currentFeatureResource.maximum
-        )
-          throw new Error('Legendary Resistance charge is stale.')
-        return {
-          ownerActorId: candidate.targetActorId,
-          ownerFeatureId: candidate.ownerFeatureId,
-          chargeId: candidate.chargeId,
-          cost: candidate.featureCost,
-          beforeUsed: currentFeatureResource.used,
-          afterUsed: currentFeatureResource.used + candidate.featureCost,
-          beforeRemaining: candidate.poolBefore,
-          afterRemaining: candidate.poolRemaining
-        } satisfies EncounterLegendaryResistanceChargeProposal
-      })()
+    ? legendaryResistanceChargeProposal(input.candidate, input.currentFeatureResource)
     : null
 
   return { use, choice, chargeProposal }

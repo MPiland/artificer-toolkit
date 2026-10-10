@@ -49,6 +49,7 @@ type ActionBatch = Extract<
   ServerRuleExecutionApplicationOutputsDto,
   { kind: 'CHARACTER_MECHANICS_BATCH' | 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
 >
+type AreaRoot = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'ENCOUNTER_AREA_ACTION' }>
 type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CLEAVING_DAMAGE' }>
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
@@ -166,6 +167,8 @@ export async function revertLastEncounterAction(
   if (receipts.length === RECEIPT_SCAN_LIMIT)
     unavailable('This action has too many follow-up results to undo; adjust manually.')
   let batch: ActionBatch | null = null
+  let areaRoot: AreaRoot | null = null
+  const areaTargetBatches = new Map<string, ActionBatch>()
   const cleaving: CleavingDamage[] = []
   const unsupported = new Set<string>()
   const childOccurrenceIds = new Set<string>()
@@ -181,7 +184,18 @@ export async function revertLastEncounterAction(
         outputs?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
       )
         batch = outputs
+      else if (outputs?.kind === 'ENCOUNTER_AREA_ACTION') areaRoot = outputs
       else unsupported.add(outputs?.kind === 'CONTESTED_ACTION' ? 'a Disarm' : 'this action')
+      continue
+    }
+    if (
+      (outputs?.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        outputs?.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH') &&
+      outputs.parentOccurrenceId === root.ruleOccurrenceId
+    ) {
+      // One caught creature's outcome of an area action.
+      childOccurrenceIds.add(receipt.occurrenceId)
+      areaTargetBatches.set(receipt.occurrenceId, outputs)
       continue
     }
     if (
@@ -204,9 +218,21 @@ export async function revertLastEncounterAction(
   }
   if ([...laterOccurrenceIds].some((occurrenceId) => !childOccurrenceIds.has(occurrenceId)))
     unavailable('Another decision changed the Encounter after this action; adjust manually.')
-  if (!batch && !unsupported.size) throw new Error('Stored Encounter action receipt is missing.')
-  const action = batch
-  if (action) {
+  if (!batch && !areaRoot && !unsupported.size)
+    throw new Error('Stored Encounter action receipt is missing.')
+  // An area's creatures undo in reverse of the order they were applied; the root's sealed ids say which.
+  const targetBatches = areaRoot
+    ? areaRoot.targetOccurrenceIds.map((occurrenceId) => {
+        const targetBatch = areaTargetBatches.get(occurrenceId)
+        if (!targetBatch) throw new Error('Stored Encounter area target receipt is missing.')
+        return targetBatch
+      })
+    : batch
+      ? [batch]
+      : []
+  if (areaRoot && areaTargetBatches.size !== targetBatches.length)
+    throw new Error('Stored Encounter area target receipt is invalid.')
+  for (const action of targetBatches) {
     if (
       action.applications.some(
         (application) => application.kind === 'CONDITION_REMOVE' && application.applied
@@ -223,14 +249,28 @@ export async function revertLastEncounterAction(
       unsupported.add('a replaced maintained effect')
     if (action.spellCastConsumption) unsupported.add('a spell slot')
   }
-  if (unsupported.size || !action)
+  const spend =
+    areaRoot ??
+    (batch && {
+      sourceActorId: batch.sourceActorId,
+      resourceConsumption: batch.resourceConsumption,
+      sourceItemUseStateTransition: batch.sourceItemUseStateTransition,
+      sourceItemConsumption: batch.sourceItemConsumption,
+      featureResourceConsumption: batch.featureResourceConsumption,
+      actionEconomyTransition: batch.actionEconomyTransition,
+      attackActionTransition: batch.attackActionTransition,
+      sourceCharacterStreamVersion:
+        batch.kind === 'CHARACTER_MECHANICS_BATCH' && batch.sourceActorId === batch.targetActorId
+          ? batch.targetCharacterStreamVersion
+          : batch.sourceCharacterStreamVersion
+    })
+  if (unsupported.size || !spend)
     unavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
 
   const actors = await readRunActors(ctx, state)
   const actorsById = new Map(actors.map((actor) => [actor.id, actor]))
-  const source = actorsById.get(action.sourceActorId)
-  const target = actorsById.get(action.targetActorId)
-  if (!source || !target) throw new Error('Stored Encounter action actors are unavailable.')
+  const source = actorsById.get(spend.sourceActorId)
+  if (!source) throw new Error('Stored Encounter action actors are unavailable.')
   // Each inverse reads the actor as earlier inverses left it; the schema validates every change.
   const updateActor = (actorId: string, change: Record<string, unknown>) => {
     const next = encounterRunActorStateSchema.parse({ ...actorsById.get(actorId), ...change })
@@ -282,77 +322,124 @@ export async function revertLastEncounterAction(
     characterInverses.set(characterId, next)
     return next
   }
-  const addedConditionIds = new Set(
-    action.applications.flatMap((application) =>
-      application.kind === 'CONDITION_APPLY' && application.applied ? [application.conditionId] : []
+  const store = createActiveRuleEffectStore(ctx)
+
+  /** One creature's outcome: its hit points, conditions, charges, effects and maintenance. */
+  const invertTarget = async (action: ActionBatch) => {
+    const target = actorsById.get(action.targetActorId)
+    if (!target) throw new Error('Stored Encounter action actors are unavailable.')
+    const addedConditionIds = new Set(
+      action.applications.flatMap((application) =>
+        application.kind === 'CONDITION_APPLY' && application.applied
+          ? [application.conditionId]
+          : []
+      )
     )
-  )
+    if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
+      if (target.kind !== 'CHARACTER' || target.sourceId === null)
+        throw new Error('Stored Character action target is invalid.')
+      // A reapplied condition may have moved from Campaign context into the Sheet; that is not recorded.
+      if (
+        action.applications.some(
+          (application) => application.kind === 'CONDITION_APPLY' && !application.applied
+        )
+      )
+        unavailable("Undo can't restore a reapplied condition; adjust manually.")
+      // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
+      const { before, after } = action.targetTransition
+      const zeroHitPointsConditionId = characterZeroHitPointsConditionId(state.gameSystemId)
+      const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
+      if (
+        zeroHitPointsConditionId !== undefined &&
+        before.currentHitPoints === 0 &&
+        after.currentHitPoints > 0 &&
+        before.conditionIds.includes(zeroHitPointsConditionId)
+      )
+        unavailable("Undo can't restore a removed condition; adjust manually.")
+      if (action.targetCharacterStreamVersion !== null) {
+        const inverse = characterInverse(target.sourceId, action.targetCharacterStreamVersion)
+        inverse.hitPoints = before
+        inverse.removedConditionIds = new Set([
+          ...addedConditionIds,
+          ...(zeroHitPointsConditionId !== undefined &&
+          droppedToZero &&
+          !before.conditionIds.includes(zeroHitPointsConditionId)
+            ? [zeroHitPointsConditionId]
+            : [])
+        ])
+      }
+    } else {
+      if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
+      restoreHitPoints(target.id, action.targetTransition)
+      const conditions = readEncounterActorConditionState(target.conditions ?? [])
+      updateActor(target.id, {
+        conditions: conditions.values.filter(
+          (_, index) => !addedConditionIds.has(conditions.ids[index]!)
+        )
+      })
+    }
+    for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
+      characterInverse(owner.characterId, owner.afterStreamVersion)
+    const targetFeature = action.targetFeatureResourceConsumption
+    if (targetFeature) {
+      const owner = actorsById.get(targetFeature.ownerActorId)
+      if (
+        !owner ||
+        featureChargeUsed(owner, targetFeature.ownerFeatureId) !== targetFeature.afterUsed
+      )
+        unavailable("The target's feature charges changed after this action; adjust manually.")
+      updateActor(owner.id, {
+        resources: withFeatureChargeUsed(
+          owner,
+          targetFeature.ownerFeatureId,
+          targetFeature.beforeUsed
+        )
+      })
+    }
+    // Created effects and the maintained state go away; their versions prove nothing touched them.
+    const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
+    for (const effect of action.activeEffectTransitions)
+      await store.deleteCas({
+        id: effect.activeEffectId,
+        owner: characterOwnerId
+          ? { kind: 'CHARACTER', characterId: characterOwnerId }
+          : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: target.id },
+        expectedVersion: effect.afterVersion
+      })
+    for (const effect of action.stateEffectTransitions)
+      await store.deleteCas({
+        id: effect.activeEffectId,
+        owner: effect.owner,
+        expectedVersion: effect.afterVersion
+      })
+    const created = action.maintenanceTransition?.createdState
+    if (created)
+      await store.deleteMaintainedStateCas({
+        id: created.id,
+        encounterId: state.id,
+        ownerActorId: created.sourceActorId,
+        expectedVersion: created.version
+      })
+  }
+  for (const action of targetBatches.toReversed()) await invertTarget(action)
+
+  // The source's one spend: its Character resource, item or stow, feature charge and allowances.
   const sourceCharacterId =
     source.kind === 'CHARACTER' && source.sourceId !== null ? source.sourceId : null
-  if (action.kind === 'CHARACTER_MECHANICS_BATCH') {
-    if (target.kind !== 'CHARACTER' || target.sourceId === null)
-      throw new Error('Stored Character action target is invalid.')
-    // A reapplied condition may have moved from Campaign context into the Sheet; that is not recorded.
-    if (
-      action.applications.some(
-        (application) => application.kind === 'CONDITION_APPLY' && !application.applied
-      )
-    )
-      unavailable("Undo can't restore a reapplied condition; adjust manually.")
-    // D63: dropping to 0 added the System's 0 hit point condition, and healing from 0 removed it.
-    const { before, after } = action.targetTransition
-    const zeroHitPointsConditionId = characterZeroHitPointsConditionId(state.gameSystemId)
-    const droppedToZero = before.currentHitPoints > 0 && after.currentHitPoints === 0
-    if (
-      zeroHitPointsConditionId !== undefined &&
-      before.currentHitPoints === 0 &&
-      after.currentHitPoints > 0 &&
-      before.conditionIds.includes(zeroHitPointsConditionId)
-    )
-      unavailable("Undo can't restore a removed condition; adjust manually.")
-    if (action.targetCharacterStreamVersion !== null) {
-      const inverse = characterInverse(target.sourceId, action.targetCharacterStreamVersion)
-      inverse.hitPoints = before
-      inverse.removedConditionIds = new Set([
-        ...addedConditionIds,
-        ...(zeroHitPointsConditionId !== undefined &&
-        droppedToZero &&
-        !before.conditionIds.includes(zeroHitPointsConditionId)
-          ? [zeroHitPointsConditionId]
-          : [])
-      ])
-    }
-  } else {
-    if (target.kind === 'CHARACTER') throw new Error('Stored Encounter actor target is invalid.')
-    restoreHitPoints(target.id, action.targetTransition)
-    const conditions = readEncounterActorConditionState(target.conditions ?? [])
-    updateActor(target.id, {
-      conditions: conditions.values.filter(
-        (_, index) => !addedConditionIds.has(conditions.ids[index]!)
-      )
-    })
-  }
-  const sourceStreamVersion =
-    action.kind === 'CHARACTER_MECHANICS_BATCH' && action.sourceActorId === action.targetActorId
-      ? action.targetCharacterStreamVersion
-      : action.sourceCharacterStreamVersion
   if (
-    (action.resourceConsumption ||
-      action.sourceItemUseStateTransition ||
-      action.sourceItemConsumption) &&
+    (spend.resourceConsumption ||
+      spend.sourceItemUseStateTransition ||
+      spend.sourceItemConsumption) &&
     sourceCharacterId
   ) {
-    if (sourceStreamVersion === null) throw new Error('Stored source Character version is missing.')
-    const inverse = characterInverse(sourceCharacterId, sourceStreamVersion)
-    inverse.resource = action.resourceConsumption
-    inverse.stow = action.sourceItemUseStateTransition
-    inverse.item = action.sourceItemConsumption
+    if (spend.sourceCharacterStreamVersion === null)
+      throw new Error('Stored source Character version is missing.')
+    const inverse = characterInverse(sourceCharacterId, spend.sourceCharacterStreamVersion)
+    inverse.resource = spend.resourceConsumption
+    inverse.stow = spend.sourceItemUseStateTransition
+    inverse.item = spend.sourceItemConsumption
   }
-  for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
-    characterInverse(owner.characterId, owner.afterStreamVersion)
-
-  // Run-owned source changes: feature charges and the action allowance.
-  const feature = action.featureResourceConsumption
+  const feature = spend.featureResourceConsumption
   if (feature) {
     const owner = actorsById.get(feature.ownerActorId)
     if (!owner || featureChargeUsed(owner, feature.ownerFeatureId) !== feature.afterUsed)
@@ -361,23 +448,7 @@ export async function revertLastEncounterAction(
       resources: withFeatureChargeUsed(owner, feature.ownerFeatureId, feature.beforeUsed)
     })
   }
-  const targetFeature = action.targetFeatureResourceConsumption
-  if (targetFeature) {
-    const owner = actorsById.get(targetFeature.ownerActorId)
-    if (
-      !owner ||
-      featureChargeUsed(owner, targetFeature.ownerFeatureId) !== targetFeature.afterUsed
-    )
-      unavailable("The target's feature charges changed after this action; adjust manually.")
-    updateActor(owner.id, {
-      resources: withFeatureChargeUsed(
-        owner,
-        targetFeature.ownerFeatureId,
-        targetFeature.beforeUsed
-      )
-    })
-  }
-  const economy = action.actionEconomyTransition
+  const economy = spend.actionEconomyTransition
   if (economy) {
     const owner = actorsById.get(source.id)!
     if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
@@ -386,7 +457,7 @@ export async function revertLastEncounterAction(
       resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
     })
   }
-  const attackAction = action.attackActionTransition
+  const attackAction = spend.attackActionTransition
   if (attackAction) {
     const restored = revertEncounterAttackActionTransition(actorsById.get(source.id)!, attackAction)
     if (!restored)
@@ -406,31 +477,6 @@ export async function revertLastEncounterAction(
     })
   }
 
-  // Created effects and the maintained state go away; their versions prove nothing touched them.
-  const store = createActiveRuleEffectStore(ctx)
-  const characterOwnerId = target.kind === 'CHARACTER' ? target.sourceId : null
-  for (const effect of action.activeEffectTransitions)
-    await store.deleteCas({
-      id: effect.activeEffectId,
-      owner: characterOwnerId
-        ? { kind: 'CHARACTER', characterId: characterOwnerId }
-        : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: target.id },
-      expectedVersion: effect.afterVersion
-    })
-  for (const effect of action.stateEffectTransitions)
-    await store.deleteCas({
-      id: effect.activeEffectId,
-      owner: effect.owner,
-      expectedVersion: effect.afterVersion
-    })
-  const created = action.maintenanceTransition?.createdState
-  if (created)
-    await store.deleteMaintainedStateCas({
-      id: created.id,
-      encounterId: state.id,
-      ownerActorId: created.sourceActorId,
-      expectedVersion: created.version
-    })
   // D99: only the command that added the Character to the Run's Concentration casters removes it.
   if (root.addedConcentrationCasterId)
     await ctx.db.patch(run._id, {

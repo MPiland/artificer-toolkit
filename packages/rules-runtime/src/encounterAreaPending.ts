@@ -16,6 +16,11 @@ export function encounterAreaTargetOccurrenceId(areaOccurrenceId: string, actorI
   return uuidv5(`${areaOccurrenceId}:${actorId}:area-save`, encounterAreaNamespace)
 }
 
+/** The command id a settled creature's receipt is stored under; it has no command of its own. */
+export function encounterAreaTargetCommandId(targetOccurrenceId: string) {
+  return uuidv5(`${targetOccurrenceId}:command`, encounterAreaNamespace)
+}
+
 type AreaContext = EncounterAreaActionPendingContextDto
 type AreaTarget = AreaContext['targets'][number]
 

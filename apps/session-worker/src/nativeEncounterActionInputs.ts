@@ -47,3 +47,17 @@ export function refuseLegendaryWindowAction(prepared: Pick<Prepared, 'actor' | '
       message: DOMAIN_REJECTION_MESSAGES.LEGENDARY_WINDOW_ONLY
     })
 }
+
+/** A spatially interpreted outcome (forced movement, terrain) has no live settlement yet. */
+export function refuseSpatialInterpretation(
+  prepared: Pick<Prepared, 'adapter'>,
+  input: {
+    execution: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['execution']
+    occurrenceId: string
+    published: Parameters<NonNullable<Prepared['adapter']['interpretSpatial']>>[0]['published']
+    targetActorId: string
+  }
+) {
+  if (prepared.adapter.interpretSpatial?.(input).length)
+    throw new Error('Spatially interpreted actions are not available yet.')
+}

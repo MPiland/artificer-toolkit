@@ -1,16 +1,27 @@
-import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { runInDurableObject } from 'cloudflare:test'
+import {
+  characterActor,
+  srdCreatureActor
+} from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { legendaryWolf, plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, fireballWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
+  parseReceiptExecution,
   readPendingActionDecision,
   readPendingAreaChoices,
   readPendingAreaForViewer,
+  readRoomChatBodies,
   readRoomHistory,
-  readRoomRollCards
+  readRoomRollCards,
+  type RoomHistory
 } from './roomHistoryReads.js'
 
 const CASTER_ID = testUuid(0x700)
@@ -23,8 +34,11 @@ afterEach(() => {
 })
 
 /** Five Wolves 100 px apart; the first casts. A 20 ft sphere at x = 50 reaches the first four. */
-function areaRoom() {
+function areaRoom(
+  options: Partial<Omit<Parameters<typeof actionRoom>[0], 'actors' | 'ownerFeatureId'>> = {}
+) {
   return actionRoom({
+    ...options,
     actors: [
       srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),
       ...[...CAUGHT_IDS, FAR_ID].map((id) => srdCreatureActor({ id, creature: plainWolf }))
@@ -584,5 +598,431 @@ describe('room area save rolled by the app', () => {
       rollMode: null
     })
     expect(refused).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'DECISION_NOT_PENDING' })
+  })
+})
+
+const CHARACTER_ACTOR_ID = testUuid(0x707)
+const CHARACTER_ID = testUuid(0x708)
+const RESISTER_ID = testUuid(0x709)
+const BITE_ID = fireballWolf().features?.find((feature) => feature.label === 'Bite')?.id
+
+/** The caster, a Character, two Wolves and a Wolf out of the area, 100 px apart. */
+function characterAreaRoom(
+  options: Partial<Omit<Parameters<typeof actionRoom>[0], 'actors' | 'ownerFeatureId'>> = {}
+) {
+  return actionRoom({
+    ...options,
+    actors: [
+      srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),
+      characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+      srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+      srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf }),
+      srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+    ],
+    ownerFeatureId: BITE_ID
+  })
+}
+
+/** The caster, a Legendary Resistance Wolf and two Wolves in the area, and a Wolf out of it. */
+function resisterAreaRoom() {
+  return actionRoom({
+    actors: [
+      srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),
+      srdCreatureActor({ id: RESISTER_ID, creature: legendaryWolf }),
+      srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf }),
+      srdCreatureActor({ id: CAUGHT_IDS[1]!, creature: plainWolf }),
+      srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+    ],
+    ownerFeatureId: BITE_ID
+  })
+}
+
+type AnyAreaRoom = Awaited<ReturnType<typeof areaRoom>>
+
+/** Answers every save the area still waits on with `faces[actorId]` (a failing 1 unless named). */
+async function answerAllSaves(room: AnyAreaRoom, faces: Record<string, number> = {}) {
+  for (;;) {
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'AREA_SAVES') return
+    const [save] = decision.pending.saves
+    if (!save) return
+    const answer = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: save.request.requestId,
+        rawFaces: [faces[save.actorId] ?? 1],
+        rollMode: save.request.rollMode
+      })
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+}
+
+/** The settled receipts of the area root and of each target under it, in commit order. */
+function areaReceipts(history: RoomHistory) {
+  const executions = history.receipts.map((receipt) => ({
+    receipt,
+    execution: parseReceiptExecution(receipt)
+  }))
+  return {
+    roots: executions.flatMap(({ receipt, execution }) =>
+      receipt.commandType === 'RESOLVE_ACTION' &&
+      execution.status === 'AGGREGATE_CHOICE_COMPLETE' &&
+      execution.applicationOutputs.kind === 'ENCOUNTER_AREA_ACTION'
+        ? [{ receipt, outputs: execution.applicationOutputs }]
+        : []
+    ),
+    children: executions.flatMap(({ receipt, execution }) =>
+      execution.status === 'COMPLETE' &&
+      (execution.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
+        execution.applicationOutputs.kind === 'CHARACTER_MECHANICS_BATCH')
+        ? [{ receipt, outputs: execution.applicationOutputs }]
+        : []
+    )
+  }
+}
+
+/** The rows without the stamp a write refreshes, so two reads of the same state compare equal. */
+const unstamped = (rows: readonly object[]) =>
+  rows.map((row) => {
+    const { updatedAt: _updatedAt, _creationTime, ...rest } = row as Record<string, unknown>
+    return rest
+  })
+/** What an area changes of each actor: its hit points, conditions and spent Rule usage. */
+const vitalsOf = (history: RoomHistory) =>
+  history.actors.map((row) => {
+    const state = JSON.parse(row.stateJson) as {
+      currentHitPoints?: number
+      tempHitPoints?: number
+      conditions?: unknown
+      defeated?: boolean
+      resources: { ruleUsage?: Record<string, number> }
+    }
+    return {
+      id: row.id,
+      currentHitPoints: state.currentHitPoints,
+      tempHitPoints: state.tempHitPoints,
+      conditions: state.conditions,
+      defeated: state.defeated,
+      spent: Object.entries(state.resources.ruleUsage ?? {}).filter(([, used]) => used !== 0)
+    }
+  })
+const rowsOf = (history: RoomHistory, id: string) =>
+  unstamped(history.actors.filter((row) => row.id === id))
+
+function readCharacterHitPoints(room: AnyAreaRoom) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === CHARACTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return readCharacterPlay(row).hitpoints.current
+  })
+}
+
+describe('room area commit', () => {
+  it('commits the whole area when the last save is answered, in one transaction', async () => {
+    const room = await areaRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    const { command } = await room.startAreaAction({ x: 50, y: 150 })
+    await answerAllSaves(room)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(history.occurrences.filter((row) => row.state === 'PENDING')).toEqual([])
+    // One RESOLVE_ACTION command for the whole area, under the command that opened it.
+    const added = history.commands.slice(before.commands.length)
+    expect(added.map((entry) => entry.commandType)).toEqual(['RESOLVE_ACTION'])
+    expect(added[0]?.commandId).toBe(command.commandId)
+
+    const { roots, children } = areaReceipts(history)
+    expect(roots).toHaveLength(1)
+    expect(roots[0]?.receipt.commandId).toBe(command.commandId)
+    expect(roots[0]?.outputs).toMatchObject({
+      kind: 'ENCOUNTER_AREA_ACTION',
+      sourceActorId: CASTER_ID,
+      removedActorIds: []
+    })
+    expect(roots[0]?.outputs.targetOccurrenceIds).toHaveLength(4)
+    expect(children).toHaveLength(4)
+    // Every caught creature failed its save and took the 1 damage; the Wolf out of the area did not.
+    expect(rowsOf(history, FAR_ID)).toEqual(rowsOf(before, FAR_ID))
+    for (const id of [CASTER_ID, ...CAUGHT_IDS])
+      expect(rowsOf(history, id)).not.toEqual(rowsOf(before, id))
+  })
+
+  it('commits at open when every save rolls itself, with nothing left pending', async () => {
+    const room = await areaRoom({ autoRoll: 'GAME_MASTER', fallbackRoll: 1 })
+    const { command, answer } = await room.startAreaAction({ x: 50, y: 150 })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(history.occurrences.filter((row) => row.state === 'PENDING')).toEqual([])
+    const { roots, children } = areaReceipts(history)
+    expect(roots.map(({ receipt }) => receipt.commandId)).toEqual([command.commandId])
+    expect(children).toHaveLength(4)
+  })
+
+  it('records the GM removals on the area root and tells the table nothing of them', async () => {
+    const room = await areaRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await room.startAreaAction({ x: 50, y: 150 })
+    const decision = await room.pendingDecision()
+    expect((await room.send(room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    await answerAllSaves(room)
+
+    const history = await readRoomHistory(room.room.base.stub)
+    const { roots, children } = areaReceipts(history)
+    expect(roots[0]?.outputs.removedActorIds).toEqual([CAUGHT_IDS[2]])
+    expect(roots[0]?.outputs.targetOccurrenceIds).toHaveLength(3)
+    expect(children).toHaveLength(3)
+    // The removed creature is untouched, and nothing the table reads names it.
+    expect(rowsOf(history, CAUGHT_IDS[2]!)).toEqual(rowsOf(before, CAUGHT_IDS[2]!))
+    const stub = room.room.base.stub
+    expect(JSON.stringify(await readRoomChatBodies(stub))).not.toContain(CAUGHT_IDS[2])
+    expect(JSON.stringify(await readRoomRollCards(stub))).not.toContain(CAUGHT_IDS[2])
+  })
+
+  it('refuses to remove the creature the area still waits on, which would strand it', async () => {
+    const room = await areaRoom()
+    await room.startAreaAction({ x: 50, y: 150 })
+    for (const id of [CASTER_ID, CAUGHT_IDS[0]!, CAUGHT_IDS[1]!]) {
+      const decision = await room.pendingDecision()
+      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+      const save = decision.pending.saves.find((entry) => entry.actorId === id)!
+      await room.send(
+        room.resolveCommand(decision, {
+          kind: 'ENTER_DICE',
+          requestId: save.request.requestId,
+          rawFaces: [9],
+          rollMode: save.request.rollMode
+        })
+      )
+    }
+    const last = await room.pendingDecision()
+    expect(await room.send(room.removeAreaTargetCommand(last, CAUGHT_IDS[2]!))).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'TARGET_UNAVAILABLE'
+    })
+  })
+
+  it('applies a Character’s damage and raises its Concentration check once the area commits', async () => {
+    const room = await characterAreaRoom({
+      concentration: true,
+      concentrationOwnerActorId: CHARACTER_ACTOR_ID
+    })
+    const hitPointsBefore = await readCharacterHitPoints(room)
+    await room.startAreaAction({ x: 50, y: 150 })
+    await answerAllSaves(room)
+
+    expect(await readCharacterHitPoints(room)).toBe(hitPointsBefore - 1)
+    const { roots, children } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots).toHaveLength(1)
+    expect(children.map(({ outputs }) => outputs.kind).sort()).toEqual([
+      'CHARACTER_MECHANICS_BATCH',
+      'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+      'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+      'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+    ])
+    // The Character's player is asked for the Constitution save; the area is no longer pending.
+    const decision = await room.pendingDecision()
+    expect(decision.pending).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      rollerActorId: CHARACTER_ACTOR_ID
+    })
+    const cards = await readRoomRollCards(room.room.base.stub)
+    // Three Creature saves, the Character save and one shared damage card: the area posts damage once, not once per target.
+    expect(cards).toHaveLength(CAUGHT_IDS.length + 2)
+  })
+
+  it('takes the whole area back with one undo, a Character target included', async () => {
+    const room = await characterAreaRoom()
+    const hitPointsBefore = await readCharacterHitPoints(room)
+    const before = await readRoomHistory(room.room.base.stub)
+    const { command } = await room.startAreaAction({ x: 50, y: 150 })
+    await answerAllSaves(room)
+    expect(await readCharacterHitPoints(room)).toBe(hitPointsBefore - 1)
+
+    const undoCommandId = crypto.randomUUID()
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: undoCommandId,
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(history.commands.find((entry) => entry.commandId === undoCommandId)).toMatchObject({
+      commandType: 'REVERT_LAST_ACTION',
+      revertedCommandId: command.commandId
+    })
+    expect(vitalsOf(history)).toEqual(vitalsOf(before))
+    expect(await readCharacterHitPoints(room)).toBe(hitPointsBefore)
+  })
+})
+
+describe('room area commit with Legendary Resistance', () => {
+  async function decide(room: AnyAreaRoom, kind: 'USE' | 'DECLINE') {
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const offered = decision.pending.legendaryResistance.find(
+      (entry) => entry.actorId === RESISTER_ID
+    )
+    if (!offered) throw new Error('The creature has no pending choice.')
+    return room.send(
+      room.resolveCommand(decision, {
+        kind: 'AREA_LEGENDARY_RESISTANCE',
+        actorId: RESISTER_ID,
+        decision: kind === 'USE' ? { kind: 'USE', optionId: offered.optionId } : { kind: 'DECLINE' }
+      })
+    )
+  }
+  const resisterChild = (history: RoomHistory) => {
+    const child = areaReceipts(history).children.find(
+      ({ outputs }) =>
+        outputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' && outputs.targetActorId === RESISTER_ID
+    )?.outputs
+    if (child?.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      throw new Error('The resisting creature has no batch.')
+    return child
+  }
+
+  it.each([
+    {
+      kind: 'USE' as const,
+      damage: 0,
+      charge: expect.objectContaining({ beforeUsed: 0, afterUsed: 1 })
+    },
+    { kind: 'DECLINE' as const, damage: 1, charge: null }
+  ])(
+    'commits when the last decision is $kind, the charge on that creature’s batch',
+    async ({ kind, damage, charge }) => {
+      const room = await resisterAreaRoom()
+      await room.startAreaAction({ x: 50, y: 150 })
+      await answerAllSaves(room)
+      // Every save failed; only the Legendary Resistance choice keeps the area pending.
+      const waiting = await room.pendingDecision()
+      if (waiting.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+      expect(waiting.pending.saves).toEqual([])
+
+      expect((await decide(room, kind)).type).toBe('COMMAND_COMMITTED')
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      const history = await readRoomHistory(room.room.base.stub)
+      const child = resisterChild(history)
+      expect(child.targetFeatureResourceConsumption).toEqual(charge)
+      const { before, after } = child.targetTransition
+      expect(before.currentHitPoints - after.currentHitPoints).toBe(damage)
+      expect(areaReceipts(history).roots).toHaveLength(1)
+    }
+  )
+
+  it('commits when the last save is answered after the choice was already made', async () => {
+    const room = await resisterAreaRoom()
+    await room.startAreaAction({ x: 50, y: 150 })
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const save = decision.pending.saves.find((entry) => entry.actorId === RESISTER_ID)!
+    await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: save.request.requestId,
+        rawFaces: [1],
+        rollMode: save.request.rollMode
+      })
+    )
+    expect((await decide(room, 'USE')).type).toBe('COMMAND_COMMITTED')
+    expect(areaReceipts(await readRoomHistory(room.room.base.stub)).roots).toEqual([])
+    await answerAllSaves(room)
+
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(resisterChild(history).targetFeatureResourceConsumption).toEqual(
+      expect.objectContaining({ afterUsed: 1 })
+    )
+  })
+})
+
+/** A Fireball whose failed save leaves a Frightened Condition for two rounds instead of damage. */
+function conditionFireballWolf() {
+  const frightened = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')
+  const dexterityId = srdSystemRecord.abilities?.find(({ code }) => code === 'DEXTERITY')?.id
+  if (!frightened || !dexterityId) throw new Error('Missing frightened condition fixture.')
+  const base = fireballWolf()
+  return creatureAuthoredDtoSchema.parse({
+    ...base,
+    features: base.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              paths: effect.paths.slice(0, 1).map((path) => {
+                if (!('resultBlock' in path)) return path
+                return {
+                  id: path.id,
+                  order: path.order,
+                  pathCode: 'ON_SAVE_FAIL' as const,
+                  groupType: 'SEQUENTIAL' as const,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: '00000000-0000-4000-8000-000000000099',
+                    resultKind: 'SEQUENCE' as const,
+                    duration: {
+                      id: '00000000-0000-4000-8000-000000000098',
+                      durationKind: 'ROUND' as const,
+                      amount: 2
+                    },
+                    outcomes: [
+                      {
+                        id: '00000000-0000-4000-8000-0000000000ab',
+                        effectKind: 'CONDITION' as const,
+                        conditionId: frightened.id
+                      },
+                      {
+                        id: '00000000-0000-4000-8000-0000000000ac',
+                        effectKind: 'FOLLOW_UP_SAVE' as const,
+                        timing: 'TARGET_TURN_END' as const,
+                        savingThrow: {
+                          id: '00000000-0000-4000-8000-0000000000ad',
+                          dcMethod: 'FIXED_DC' as const,
+                          abilityDefinitionId: dexterityId,
+                          baseDc: 10
+                        },
+                        attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                        onSuccess: { kind: 'END' as const },
+                        onFailure: { kind: 'CONTINUE' as const },
+                        onDurationComplete: { kind: 'END' as const }
+                      }
+                    ]
+                  }
+                }
+              })
+            }))
+          }
+    )
+  })
+}
+
+describe('room area action that leaves an effect behind', () => {
+  it('is refused whole when it opens, spending and changing nothing', async () => {
+    const creature = conditionFireballWolf()
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature }),
+        srdCreatureActor({ id: CAUGHT_IDS[0]!, creature: plainWolf })
+      ],
+      ownerFeatureId: creature.features?.find((feature) => feature.label === 'Bite')?.id
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 })
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 })

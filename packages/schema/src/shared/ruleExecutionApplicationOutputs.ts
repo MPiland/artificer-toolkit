@@ -33,6 +33,7 @@ import {
   concentrationEndApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
+  encounterAreaActionApplicationOutputDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema
 } from './ruleExecutionEncounterApplications.js'
 import {
@@ -53,6 +54,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
     contestedActionApplicationOutputDtoSchema,
     concentrationCheckApplicationOutputDtoSchema,
     concentrationEndApplicationOutputDtoSchema,
+    encounterAreaActionApplicationOutputDtoSchema,
     encounterActorMechanicsBatchApplicationOutputDtoSchema,
     basicActionCheckApplicationOutputDtoSchema,
     z
@@ -60,6 +62,8 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
         kind: z.literal('CHARACTER_MECHANICS_BATCH'),
         schemaVersion: z.literal(1),
         occurrenceId: uuidSchema,
+        /** The area action this target's settlement belongs to, when it is one creature of an area. */
+        parentOccurrenceId: z.optional(uuidSchema),
         sourceActorId: uuidSchema,
         /** Immutable Character identity for Character-originated receipts; never inferred on replay. */
         sourceCharacterId: z.nullable(uuidSchema),

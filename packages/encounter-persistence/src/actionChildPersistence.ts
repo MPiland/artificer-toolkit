@@ -27,13 +27,14 @@ import { changedFields } from './documents.js'
 import { readPendingSnapshot, writePendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterWritePorts } from './ports.js'
 
-/** Inserts (or completes) a Concentration child's COMPLETED occurrence and its one durable receipt. */
-async function persistCompletedConcentrationChild(
+/** Inserts (or completes) a child's COMPLETED occurrence and its one durable receipt. */
+export async function persistCompletedChild(
   ctx: EncounterWriteContext,
   input: {
     state: EncounterRunState
     result: StoredRuleExecutionResultDto
     occurrence?: EncounterDocument<'encounterRuleOccurrences'>
+    rootCommandId: string
     commandId: string
     commandType: string
     fingerprint: string
@@ -48,7 +49,7 @@ async function persistCompletedConcentrationChild(
     id: result.occurrenceId,
     campaignId: state.campaignId,
     encounterId: state.id,
-    rootCommandId: concentrationCommandId(result.occurrenceId),
+    rootCommandId: input.rootCommandId,
     state: 'COMPLETED',
     version: result.occurrenceVersion,
     expectedEncounterVersion: state.version,
@@ -92,15 +93,16 @@ export async function persistNativeConcentrationResult(
     ports: Pick<EncounterWritePorts, 'recordConcentrationCheckRoll'>
   },
   input: Omit<
-    Parameters<typeof persistCompletedConcentrationChild>[1],
-    'result' | 'commandType'
+    Parameters<typeof persistCompletedChild>[1],
+    'result' | 'commandType' | 'rootCommandId'
   > & {
     result: ReturnType<typeof completeNativeConcentrationResult>
   }
 ) {
   const { result, state } = input
-  await persistCompletedConcentrationChild(ctx, {
+  await persistCompletedChild(ctx, {
     ...input,
+    rootCommandId: concentrationCommandId(result.occurrenceId),
     commandType: input.occurrence ? 'RESOLVE_RULE_OCCURRENCE' : 'CONCENTRATION_CHECK'
   })
   // Every settled check, answered or automatic, gets its own roll-log entry.
@@ -147,9 +149,10 @@ export async function persistNativeConcentrationEnd(
       parentOccurrenceId
     }
   }
-  await persistCompletedConcentrationChild(ctx, {
+  await persistCompletedChild(ctx, {
     state,
     result,
+    rootCommandId: concentrationCommandId(occurrenceId),
     commandId: concentrationCommandId(occurrenceId),
     commandType: 'CONCENTRATION_END',
     fingerprint: checksumRuleDocument({
