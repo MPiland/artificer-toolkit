@@ -8,6 +8,7 @@ export const acidVial: EquipmentAuthored = {
     'As an action, you can splash the contents of this vial onto a creature within 5 feet of you or throw the vial up to 20 feet, shattering it on impact. In either case, make a ranged attack against a creature or object, treating the acid as an improvised weapon. On a hit, the target takes 2d6 acid damage.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.VIAL],
+  attributes: [S.EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE],
   effects: [
     {
       id: S.equipmentChildId(S.equipId(119), 0x210, 1),

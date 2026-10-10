@@ -53,6 +53,13 @@ const resourceUsageSchema = lazySchema(() =>
     used: z.number().check(z.int()).check(z.nonnegative())
   })
 )
+/** Single-use items used up while played: the inventory row's quantity is reduced by `used`. */
+const itemUsageSchema = lazySchema(() =>
+  z.strictObject({
+    itemInstanceId: z.string(),
+    used: z.number().check(z.int()).check(z.positive())
+  })
+)
 const spellCustomizationSchema = lazySchema(() =>
   z.extend(sheetRecordMetadataSchema, {
     source: characterSpellSourceRefDtoSchema,
@@ -69,6 +76,7 @@ export const characterSheetStateSchema = lazySchema(() =>
     movementDisplayPreference: characterMovementDisplayPreferenceDtoSchema,
     partyVisibility: characterPartyVisibilityDtoSchema,
     resourceUsage: z._default(z.array(resourceUsageSchema), []),
+    itemUsage: z._default(z.array(itemUsageSchema), []),
     spellCustomizations: z._default(z.array(spellCustomizationSchema), [])
   })
 )

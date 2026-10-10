@@ -46,13 +46,17 @@ function prepareNativeActionMechanicsBatches(input: NativeEncounterActionMechani
   if (input.encounterId !== state.id || input.expectedEncounterVersion !== state.version)
     throw new Error('Encounter action settlement is stale.')
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
+  const itemConsumption = prepared.characterActionState?.itemConsumption
   const stow = prepared.acceptedWieldConflict
   const sourceMutation = {
     ...(resourceConsumption ? { characterResourceConsumption: resourceConsumption } : {}),
+    ...(itemConsumption ? { characterItemConsumption: itemConsumption } : {}),
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
-    source.kind === 'CHARACTER_ACTION' && (resourceConsumption || stow) && actor.id !== target.id
+    source.kind === 'CHARACTER_ACTION' &&
+    (resourceConsumption || itemConsumption || stow) &&
+    actor.id !== target.id
       ? {
           encounterId: input.encounterId,
           targetActorId: actor.id,
@@ -140,9 +144,10 @@ export function finishNativeActionMechanicsSettlement(
     settledSource = resourceActor
   }
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
+  const itemConsumption = prepared.characterActionState?.itemConsumption
   const sourceCharacterStreamVersion =
     source.kind === 'CHARACTER_ACTION' &&
-    (resourceConsumption || prepared.acceptedWieldConflict) &&
+    (resourceConsumption || itemConsumption || prepared.acceptedWieldConflict) &&
     actor.id !== target.id
       ? (sourceResourceMechanics?.characterStreamVersion ??
         (() => {
@@ -164,6 +169,16 @@ export function finishNativeActionMechanicsSettlement(
         afterUsed: resourceConsumption.afterUsed,
         beforeRemaining: resourceConsumption.beforeRemaining,
         afterRemaining: resourceConsumption.afterRemaining
+      }
+    : null
+  const itemConsumptionReceipt = itemConsumption
+    ? {
+        characterId: itemConsumption.characterId,
+        itemInstanceId: itemConsumption.itemInstanceId,
+        beforeUsed: itemConsumption.beforeUsed,
+        afterUsed: itemConsumption.afterUsed,
+        beforeQuantity: itemConsumption.beforeQuantity,
+        afterQuantity: itemConsumption.afterQuantity
       }
     : null
   const featureResourceReceipt =
@@ -190,6 +205,7 @@ export function finishNativeActionMechanicsSettlement(
     sourceCharacterStreamVersion,
     sourceItemUseStateTransition,
     resourceReceipt,
+    itemConsumptionReceipt,
     featureResourceReceipt
   }
 }

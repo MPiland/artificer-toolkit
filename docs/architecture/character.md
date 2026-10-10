@@ -694,7 +694,7 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
   (`characterPlayStateSchema`): the state's hit points (current, temporary, hit dice), resources,
   spell slots, conditions, exhaustion, inspiration and equipment item-use state, plus the Sheet state's
-  resource usage and party visibility. `splitCharacterPlayState`, `mergeCharacterStatePlay` and
+  resource usage, single-use item usage and party visibility. `splitCharacterPlayState`, `mergeCharacterStatePlay` and
   `mergeCharacterSheetStatePlay` are pure. `characterStoredState.ts` is the one
   reader (`readCharacterRecord`, `readCharacterSheetState`, checksum and identity checks) and pure
   re-encoder (`encodeCharacterRecord`) for a complete Character capture joined with its play record.
@@ -746,7 +746,18 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
 4. **Structure changes made by the Sheet** (inventory, currency, Sheet adjustments, spell
    customizations, movement preference) advance `characters.updatedAt`, so a stale Builder draft
    still conflicts with them.
-5. **Stat refresh** (`maximumHitPoints`, `speeds`) re-evaluates after a Campaign-owned change and
+5. **Single-use items** (D102) are a play record overlay, `itemUsage`, not a structure edit. The
+   effective quantity is the stored quantity minus `used`; `readCharacterRecord` returns it and hides
+   a row at 0, and the writer translates a structural edit back (stored = edited effective +
+   `used`, hidden rows kept in place, usage of deleted rows pruned). Consuming an item therefore
+   moves only `streamVersion`, so it works while a Run holds the Character. A Builder edit commit
+   starts from the active record's current play state, so it never gives back an item used after
+   the draft was read; Sheet inventory commands are fenced by `expectedVersion` and carry
+   `itemUsage` through. A used-up row's equipped and attuned ids stay in storage so an undo
+   restores them, but `readCharacterRecord` (`effectiveItemIds`) never reports a hidden row as
+   equipped or attuned. Folding usage into structure at a quiet point is a documented candidate,
+   not built.
+6. **Stat refresh** (`maximumHitPoints`, `speeds`) re-evaluates after a Campaign-owned change and
    rewrites the play record without advancing `streamVersion`.
 
 Convex retries a transaction whose reads or writes conflict, so a Builder commit and a play command

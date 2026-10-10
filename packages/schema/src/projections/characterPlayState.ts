@@ -15,7 +15,7 @@ import { characterSheetStateSchema } from './characterSheetState.js'
 export const characterPlayStateSchema = lazySchema(() => {
   const { hitpoints, inspiration, resources, spellSlots, conditions, exhaustion, equipment } =
     characterStateDtoSchema.shape
-  const { resourceUsage, partyVisibility } = characterSheetStateSchema.shape
+  const { resourceUsage, itemUsage, partyVisibility } = characterSheetStateSchema.shape
   return z.strictObject({
     hitpoints,
     inspiration,
@@ -26,6 +26,7 @@ export const characterPlayStateSchema = lazySchema(() => {
     equipped: equipment.shape.equipped,
     attuned: equipment.shape.attuned,
     resourceUsage,
+    itemUsage,
     partyVisibility
   })
 })
@@ -50,7 +51,11 @@ export const characterStructureStateSchema = lazySchema(() =>
 
 /** The Sheet state without its play fields. */
 export const characterSheetStructureSchema = lazySchema(() =>
-  z.omit(characterSheetStateSchema, { resourceUsage: true, partyVisibility: true })
+  z.omit(characterSheetStateSchema, {
+    resourceUsage: true,
+    itemUsage: true,
+    partyVisibility: true
+  })
 )
 
 export type CharacterPlayState = z.infer<typeof characterPlayStateSchema>
@@ -72,9 +77,79 @@ interface CharacterSplitState {
 }
 
 /** The play fields that live in the Character `state`. */
-type CharacterStatePlay = Omit<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
+type CharacterStatePlay = Omit<
+  CharacterPlayState,
+  'resourceUsage' | 'itemUsage' | 'partyVisibility'
+>
 /** The play fields that live in the Sheet state. */
-type CharacterSheetStatePlay = Pick<CharacterPlayState, 'resourceUsage' | 'partyVisibility'>
+type CharacterSheetStatePlay = Pick<
+  CharacterPlayState,
+  'resourceUsage' | 'itemUsage' | 'partyVisibility'
+>
+type CharacterInventory = CharacterState['equipment']['inventory']
+type ItemUsage = CharacterPlayState['itemUsage']
+
+const usedById = (itemUsage: ItemUsage) =>
+  new Map(itemUsage.map((usage) => [usage.itemInstanceId, usage.used]))
+
+/**
+ * The inventory a reader sees: each stored row less what play has used up. A row with none left is
+ * hidden from every reader. Pure.
+ */
+export function effectiveInventory(
+  inventory: CharacterInventory,
+  itemUsage: ItemUsage
+): CharacterInventory {
+  const used = usedById(itemUsage)
+  return inventory.flatMap((item) => {
+    const quantity = item.quantity - (used.get(item.id) ?? 0)
+    return quantity > 0 ? [{ ...item, quantity }] : []
+  })
+}
+
+/**
+ * The equipped or attuned ids a reader sees: those of rows `effectiveInventory` still shows. A
+ * used-up row is not worn, wielded or attuned to. Pure.
+ */
+export function effectiveItemIds(ids: readonly string[], effective: CharacterInventory): string[] {
+  const visible = new Set(effective.map((item) => item.id))
+  return ids.filter((id) => visible.has(id))
+}
+
+/**
+ * The inverse of `effectiveInventory` for a structural edit. `edited` is the effective inventory a
+ * structural editor changed; `base` is the stored inventory and usage it was read from. Stored
+ * quantity is the edited quantity plus what was used, rows hidden because none were left are kept
+ * where they were, and usage of rows no longer stored is dropped. Pure.
+ */
+export function storeInventory(
+  edited: CharacterInventory,
+  itemUsage: ItemUsage,
+  base: { inventory: CharacterInventory; itemUsage: ItemUsage } | null
+): { inventory: CharacterInventory; itemUsage: ItemUsage } {
+  const baseUsed = usedById(base?.itemUsage ?? [])
+  const editedIds = new Set(edited.map((item) => item.id))
+  const inventory = edited.map((item) => ({
+    ...item,
+    quantity: item.quantity + (baseUsed.get(item.id) ?? 0)
+  }))
+  const baseInventory = base?.inventory ?? []
+  baseInventory.forEach((item, index) => {
+    if (editedIds.has(item.id) || (baseUsed.get(item.id) ?? 0) < item.quantity) return
+    // Reinsert the hidden row after the nearest earlier base row that is still stored.
+    const stored = new Set(inventory.map((row) => row.id))
+    const anchor = baseInventory
+      .slice(0, index)
+      .reverse()
+      .find((earlier) => stored.has(earlier.id))
+    inventory.splice(anchor ? inventory.findIndex((row) => row.id === anchor.id) + 1 : 0, 0, item)
+  })
+  const storedIds = new Set(inventory.map((item) => item.id))
+  return {
+    inventory,
+    itemUsage: itemUsage.filter((usage) => storedIds.has(usage.itemInstanceId))
+  }
+}
 
 /** Divides a Character `state` into its structure and the play fields it carries. Pure. */
 export function splitCharacterStatePlay(state: CharacterState): {
@@ -141,8 +216,8 @@ function splitCharacterSheetStatePlay(sheetState: CharacterSheetState): {
   structure: CharacterSheetStructure
   play: CharacterSheetStatePlay
 } {
-  const { resourceUsage, partyVisibility, ...structure } = sheetState
-  return { structure, play: { resourceUsage, partyVisibility } }
+  const { resourceUsage, itemUsage, partyVisibility, ...structure } = sheetState
+  return { structure, play: { resourceUsage, itemUsage, partyVisibility } }
 }
 
 /** The inverse of `splitCharacterSheetStatePlay`: the Sheet state from its structure and play. */
@@ -150,18 +225,50 @@ export function mergeCharacterSheetStatePlay(
   structure: CharacterSheetStructure,
   play: CharacterSheetStatePlay
 ): CharacterSheetState {
-  return { ...structure, resourceUsage: play.resourceUsage, partyVisibility: play.partyVisibility }
+  return {
+    ...structure,
+    resourceUsage: play.resourceUsage,
+    itemUsage: play.itemUsage,
+    partyVisibility: play.partyVisibility
+  }
 }
 
-/** Divides a Character's state and Sheet state into structure and play. Pure. */
-export function splitCharacterPlayState({
-  state,
-  sheetState
-}: CharacterPersistedState): CharacterSplitState {
+/**
+ * Divides a Character's state and Sheet state into structure and play. The state's inventory is the
+ * effective one readers see; `base` is the stored inventory and usage it was read from, which turns
+ * it back into stored quantities (see `storeInventory`). Pure.
+ */
+export function splitCharacterPlayState(
+  { state, sheetState }: CharacterPersistedState,
+  base: {
+    inventory: CharacterInventory
+    itemUsage: ItemUsage
+    equipped: readonly string[]
+    attuned: readonly string[]
+  } | null = null
+): CharacterSplitState {
   const statePart = splitCharacterStatePlay(state)
+  if (base) {
+    // Readers never see a used-up row as worn; storage keeps its ids so an undo restores them.
+    const visible = new Set(effectiveInventory(base.inventory, base.itemUsage).map(({ id }) => id))
+    const hidden = new Set(base.inventory.map(({ id }) => id).filter((id) => !visible.has(id)))
+    const keep = (ids: string[], baseIds: readonly string[]) => [
+      ...ids,
+      ...baseIds.filter((id) => hidden.has(id) && !ids.includes(id))
+    ]
+    statePart.play.equipped = keep(statePart.play.equipped, base.equipped)
+    statePart.play.attuned = keep(statePart.play.attuned, base.attuned)
+  }
   const sheetPart = splitCharacterSheetStatePlay(sheetState)
+  const stored = storeInventory(state.equipment.inventory, sheetState.itemUsage, base)
   return {
-    structure: { state: statePart.structure, sheetState: sheetPart.structure },
-    play: { ...statePart.play, ...sheetPart.play }
+    structure: {
+      state: {
+        ...statePart.structure,
+        equipment: { ...statePart.structure.equipment, inventory: stored.inventory }
+      },
+      sheetState: sheetPart.structure
+    },
+    play: { ...statePart.play, ...sheetPart.play, itemUsage: stored.itemUsage }
   }
 }

@@ -5,6 +5,7 @@ import {
   execute,
   setup,
   start,
+  storedCharacter,
   toActorTurn,
   type CommandResult,
   type Fixture
@@ -143,4 +144,49 @@ describe('a GM undo of an Antitoxin use (SPELLS-5.2)', () => {
     expect(request.rollMode).toBe('NORMAL')
     expect(request.derivedRollModeReasons).toEqual([])
   }, 240000)
+})
+
+describe('a single-use item is used up in an Assisted Run (SPELLS-11)', () => {
+  const carriedAntitoxinCount = async (fixture: Fixture) => {
+    const { sourceId } = allyOf(fixture)
+    if (!sourceId) throw new Error('The ally has no Character.')
+    return (await storedCharacter(fixture, sourceId)).state.equipment.inventory
+      .filter((item) => item.equipmentId === antitoxinVial.id)
+      .reduce((total, item) => total + item.quantity, 0)
+  }
+
+  it('takes one Antitoxin from the holder, and a GM undo gives it back (11.1, 11.3)', async () => {
+    const fixture = await antitoxinFixture()
+    const carried = await carriedAntitoxinCount(fixture)
+    expect(carried).toBeGreaterThan(1)
+    const atAlly = await atAllyTurn(fixture)
+    const used = await useAntitoxin(fixture, atAlly)
+    expect(await carriedAntitoxinCount(fixture)).toBe(carried - 1)
+
+    await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: used.projection.version
+    }))
+    expect(await carriedAntitoxinCount(fixture)).toBe(carried)
+  }, 240000)
+
+  it('removes the last one and refuses a request for it afterwards (11.2)', async () => {
+    const fixture = await antitoxinFixture()
+    const carried = await carriedAntitoxinCount(fixture)
+    let latest = await atAllyTurn(fixture)
+    for (let used = 0; used < carried; used += 1) {
+      latest = await useAntitoxin(fixture, latest)
+      // The next round returns the turn to the ally with a fresh Action.
+      latest = await toActorTurn(fixture, latest, allyOf(fixture).id)
+    }
+    expect(await carriedAntitoxinCount(fixture)).toBe(0)
+
+    const refused = await useAntitoxin(fixture, latest).then(
+      () => null,
+      (caught: unknown) => caught
+    )
+    expect(JSON.stringify(refused)).toContain('VERSION_STALE')
+    expect(JSON.stringify(refused)).toContain('That action is no longer available')
+  }, 360000)
 })

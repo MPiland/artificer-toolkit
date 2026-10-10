@@ -9,6 +9,8 @@ import {
   characterPlayStateSchema,
   characterSheetStructureSchema,
   characterStructureStateSchema,
+  effectiveInventory,
+  effectiveItemIds,
   mergeCharacterSheetStatePlay,
   mergeCharacterStatePlay,
   splitCharacterPlayState,
@@ -66,12 +68,34 @@ export function readCharacterPlay(
   return characterPlayStateSchema.parse(raw)
 }
 
-/** The Character document with its play state joined, verified against both checksums. */
-export function readCharacterRecord(row: StoredCharacter): CharacterDocument {
+function readCharacterStructure(row: StoredCharacter) {
   const raw: unknown = JSON.parse(row.documentJson)
   if (checksumRuleDocument(raw) !== row.checksum)
     throw new Error('Stored Character checksum mismatch.')
-  const { state: structure, ...character } = characterStructureDocumentSchema.parse(raw)
+  return characterStructureDocumentSchema.parse(raw)
+}
+
+/**
+ * The inventory a row stores and the usage that reduces it: the base a structural edit of the
+ * effective inventory (`readCharacterRecord`) is translated against on write.
+ */
+export function readCharacterInventoryBase(row: StoredCharacter) {
+  const play = readCharacterPlay(row.play)
+  return {
+    inventory: readCharacterStructure(row).state.equipment.inventory,
+    itemUsage: play.itemUsage,
+    equipped: play.equipped,
+    attuned: play.attuned
+  }
+}
+
+/**
+ * The Character document with its play state joined, verified against both checksums. Its inventory
+ * is the effective one: single-use items used up in play are subtracted and rows with none left are
+ * absent. Every reader of a Character's inventory reads it through here.
+ */
+export function readCharacterRecord(row: StoredCharacter): CharacterDocument {
+  const { state: structure, ...character } = readCharacterStructure(row)
   if (
     character.id !== row.id ||
     character.userId !== row.userId ||
@@ -82,7 +106,21 @@ export function readCharacterRecord(row: StoredCharacter): CharacterDocument {
     row.play.userId !== row.userId
   )
     throw new Error('Stored Character identity mismatch.')
-  return { ...character, state: mergeCharacterStatePlay(structure, readCharacterPlay(row.play)) }
+  const play = readCharacterPlay(row.play)
+  const state = mergeCharacterStatePlay(structure, play)
+  const inventory = effectiveInventory(state.equipment.inventory, play.itemUsage)
+  return {
+    ...character,
+    state: {
+      ...state,
+      equipment: {
+        ...state.equipment,
+        inventory,
+        equipped: effectiveItemIds(state.equipment.equipped, inventory),
+        attuned: effectiveItemIds(state.equipment.attuned, inventory)
+      }
+    }
+  }
 }
 
 /** The Sheet structure a row stores, verified against its checksum; empty when it stores none. */
@@ -125,10 +163,13 @@ export function encodeCharacterRecord<TRow extends StoredCharacter>(
     updatedAt: string
   }
 ): TRow {
-  const split = splitCharacterPlayState({
-    state: next.document.state,
-    sheetState: next.sheetState ?? readCharacterSheetState(row)
-  })
+  const split = splitCharacterPlayState(
+    {
+      state: next.document.state,
+      sheetState: next.sheetState ?? readCharacterSheetState(row)
+    },
+    readCharacterInventoryBase(row)
+  )
   const structure = encode({ ...next.document, state: split.structure.state })
   const sheetStructure = next.sheetState ? encode(split.structure.sheetState) : undefined
   const sheetStructureChanged =

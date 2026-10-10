@@ -89,6 +89,9 @@ export async function prepareEncounterMovementReactionAction<
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     movementTargets: facts.targets
   })
+  // A reaction has no Action to spend a single-use item with (SPELLS-11); the option is stale.
+  if (prepared.characterActionState?.itemConsumption)
+    throw new StaleMovementReactionError('A movement reaction cannot use up a single-use item.')
   if (
     (revalidated.action.kind === 'CHARACTER_ACTION' &&
       (prepared.source.kind !== 'CHARACTER_ACTION' ||

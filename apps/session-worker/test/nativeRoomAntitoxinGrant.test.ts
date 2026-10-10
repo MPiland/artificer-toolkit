@@ -9,6 +9,8 @@ import {
   SRD_CREATURE_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { runInDurableObject } from 'cloudflare:test'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -16,6 +18,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 
 const FIGHTER_ACTOR_ID = testUuid(0xf00)
 const FIGHTER_ID = testUuid(0xf01)
@@ -46,7 +49,8 @@ afterEach(() => {
  */
 function antitoxinRoom(
   biteDamageType: 'POISON' | undefined,
-  target: { creature: typeof plainWolf } | 'FIGHTER' = { creature: plainWolf }
+  target: { creature: typeof plainWolf } | 'FIGHTER' = { creature: plainWolf },
+  options: { quantity?: number } = {}
 ) {
   const biter = biteWolf('SAVE', {
     save: { ability: 'CONSTITUTION', damageTypeCode: biteDamageType }
@@ -66,6 +70,7 @@ function antitoxinRoom(
       ...(targetActor ? [targetActor] : [])
     ],
     characterEquipment: [antitoxinVial],
+    characterPlay: { carriedQuantity: options.quantity ?? 1 },
     characterAction: (action) => action.label === antitoxinVial.label
   }).then((room) => ({
     room,
@@ -173,5 +178,71 @@ describe('a GM undo of an Antitoxin use (SPELLS-5.2)', () => {
     expect(await biteAndReadSave(fixture, TARGET_ID)).toMatchObject({
       request: { rollMode: 'ADVANTAGE' }
     })
+  })
+})
+
+/** The Fighter's play record: how many Antitoxins are used, and the stream version that fences undo. */
+function readFighterItemUsage(fixture: Fixture) {
+  return runInDurableObject(fixture.room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === FIGHTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return readCharacterPlay(row).itemUsage
+  })
+}
+
+const antitoxinOffered = async (fixture: Fixture) =>
+  (await fixture.room.actionChoices()).actions.some(({ label }) => label === antitoxinVial.label)
+
+describe('a single-use item is used up in an Assisted Run (SPELLS-11)', () => {
+  it('records one use of a stack and keeps offering the item (11.1)', async () => {
+    const fixture = await antitoxinRoom('POISON', { creature: plainWolf }, { quantity: 2 })
+    await useAntitoxin(fixture, TARGET_ID)
+    expect(await readFighterItemUsage(fixture)).toEqual([
+      { itemInstanceId: expect.any(String), used: 1 }
+    ])
+    expect(await antitoxinOffered(fixture)).toBe(true)
+  })
+
+  it('removes the last one, stops offering it and refuses a stale request (11.2)', async () => {
+    const fixture = await antitoxinRoom('POISON')
+    await useAntitoxin(fixture, TARGET_ID)
+    expect(await antitoxinOffered(fixture)).toBe(false)
+
+    // Three actors: the turn comes back around to the Fighter.
+    for (let turn = 0; turn < 3; turn += 1) await fixture.room.advanceTurn()
+    const stale = await fixture.room.startAction(TARGET_ID, RANGE)
+    expect(stale.answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      code: 'DOMAIN_REJECTED',
+      reason: 'VERSION_STALE',
+      message: 'That action is no longer available; refresh and choose again.'
+    })
+    expect((await readRoomHistory(fixture.room.room.base.stub)).activeEffects).toHaveLength(1)
+  })
+
+  it('uses the item up even when the GM overrides an Undead target warning', async () => {
+    const fixture = await antitoxinRoom('POISON', {
+      creature: { ...plainWolf, creatureTypeId: creatureTypeId('UNDEAD') }
+    })
+    await useAntitoxin(fixture, TARGET_ID, [...RANGE, EXCLUDED])
+    expect(await readFighterItemUsage(fixture)).toHaveLength(1)
+  })
+
+  it('gives the item back when the GM undoes the use (11.3)', async () => {
+    const fixture = await antitoxinRoom('POISON')
+    await useAntitoxin(fixture, TARGET_ID)
+    expect(await readFighterItemUsage(fixture)).toHaveLength(1)
+    expect(await antitoxinOffered(fixture)).toBe(false)
+    const undone = await fixture.room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: fixture.room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await fixture.room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await readFighterItemUsage(fixture)).toEqual([])
+    expect(await antitoxinOffered(fixture)).toBe(true)
   })
 })

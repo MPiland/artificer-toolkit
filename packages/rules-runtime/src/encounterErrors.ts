@@ -12,6 +12,14 @@ export class EncounterConflictError extends Error {
   }
 }
 
+/** A Character action request no longer matches the Character's current facts, such as a used-up item. */
+export class StaleCharacterActionError extends EncounterConflictError {
+  constructor(message = 'The committed Character action resource is unavailable or stale.') {
+    super(message)
+    this.name = 'StaleCharacterActionError'
+  }
+}
+
 /** An issued movement reaction option no longer matches its source's current facts. */
 export class StaleMovementReactionError extends EncounterConflictError {
   constructor(message: string) {

@@ -202,11 +202,24 @@ export async function persistEncounterActionCommit(
       throw new Error('Live Session action resource scope mismatch.')
   } else if (batch.resourceConsumption !== null)
     throw new Error('Live Session action resource is missing.')
+  const item = input.itemConsumption
+  if (item) {
+    // The mechanics batch checks the version against the fenced Character it plans with.
+    const { expectedStreamVersion: _itemStreamVersion, ...receipt } = item
+    if (
+      source.kind !== 'CHARACTER' ||
+      source.sourceId !== item.characterId ||
+      checksumCanonicalJson(receipt) !== checksumCanonicalJson(batch.sourceItemConsumption)
+    )
+      throw new Error('Live Session action item scope mismatch.')
+  } else if (batch.sourceItemConsumption !== null)
+    throw new Error('Live Session action item is missing.')
   const stow = command.acceptedWieldConflict
   if (stow && source.kind !== 'CHARACTER')
     throw new Error('Live Session shield stow scope mismatch.')
   const sourceMutation = {
     ...(resource ? { characterResourceConsumption: resource } : {}),
+    ...(item ? { characterItemConsumption: item } : {}),
     ...(stow ? { stowEquippedItemInstanceId: stow.shieldItemInstanceId } : {})
   }
   const common = {
@@ -217,7 +230,7 @@ export async function persistEncounterActionCommit(
     occurredAt: input.occurredAt
   }
   const sourceMechanics =
-    (resource || stow) && source.id !== target.id && source.kind === 'CHARACTER'
+    (resource || item || stow) && source.id !== target.id && source.kind === 'CHARACTER'
       ? await callbacks.applyMechanics({
           ...common,
           targetActorId: source.id,

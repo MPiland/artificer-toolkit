@@ -223,7 +223,8 @@ export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
               'Attributes',
               [
                 { value: 'LIMITED_USE', label: 'Limited Use' },
-                { value: 'STACKABLE', label: 'Stackable' }
+                { value: 'STACKABLE', label: 'Stackable' },
+                { value: 'CONSUMED_ON_USE', label: 'Consumed On Use' }
               ],
               false,
               'SELECT_MULTI'

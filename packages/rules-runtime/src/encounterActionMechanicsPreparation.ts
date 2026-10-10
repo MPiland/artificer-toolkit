@@ -14,6 +14,7 @@ import {
   buildCompiledActionTargetPolicy
 } from './encounterActionEntryPointCompiler.js'
 import { creatureActiveGrantAttackContributors } from './encounterActiveGrants.js'
+import { StaleCharacterActionError } from './encounterErrors.js'
 import {
   encounterAttackPerceptionContributors,
   type EncounterAttackPerception
@@ -64,7 +65,7 @@ import {
 } from './encounterWieldConflict.js'
 
 type CharacterActionMovementFacts = CharacterMovementFacts & {
-  sheetState: Pick<CharacterSheetState, 'resourceUsage'>
+  sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage'>
 }
 
 /** Preserves the issued pending-action checksum across native and DO preparation. */
@@ -217,12 +218,14 @@ export async function prepareEncounterActionMechanics<
             characterFacts.active.play.streamVersion !== source.characterStreamVersion ||
             characterFacts.character.systemId !== state.gameSystemId
           )
-            throw new Error('The selected Character action source is stale.')
+            throw new StaleCharacterActionError('The selected Character action source is stale.')
           return prepareNativeCharacterActionState({
             entry: source.entry,
             candidate: source.candidate,
             policyOutput: source.effectivePolicyOutput,
             resourceUsage: characterFacts.sheetState.resourceUsage,
+            inventory: characterFacts.character.state.equipment.inventory,
+            itemUsage: characterFacts.sheetState.itemUsage,
             characterId: source.characterId,
             expectedStreamVersion: source.characterStreamVersion,
             automationMode: state.automationMode,

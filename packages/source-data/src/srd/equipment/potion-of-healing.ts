@@ -8,6 +8,7 @@ export const potionOfHealing: EquipmentAuthored = {
     'A character who drinks the magical red fluid in this vial regains 2d4 + 2 hit points. Drinking or administering a potion takes an action.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.POTION, S.EQUIPMENT_PROPERTY_CODE.VIAL],
+  attributes: [S.EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE],
   effects: [
     {
       id: S.equipmentChildId(S.equipId(164), 0x210, 1),

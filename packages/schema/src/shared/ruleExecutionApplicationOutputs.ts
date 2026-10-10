@@ -26,6 +26,7 @@ import {
 } from './ruleExecutionMechanics.js'
 import {
   basicActionCheckApplicationOutputDtoSchema,
+  characterItemConsumptionReceiptDtoSchema,
   characterItemUseStateTransitionDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
@@ -97,6 +98,10 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
         ),
         sourceItemUseStateTransition: z._default(
           z.nullable(characterItemUseStateTransitionDtoSchema),
+          null
+        ),
+        sourceItemConsumption: z._default(
+          z.nullable(characterItemConsumptionReceiptDtoSchema),
           null
         ),
         actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
@@ -420,7 +425,19 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
             value.targetTransition.before.conditionIds.length !==
               value.targetTransition.after.conditionIds.length
           const stow = value.sourceItemUseStateTransition
-          const hasSourceMutation = value.resourceConsumption !== null || stow !== null
+          const consumption = value.sourceItemConsumption
+          const hasSourceMutation =
+            value.resourceConsumption !== null || stow !== null || consumption !== null
+          if (
+            consumption &&
+            (value.sourceCharacterId === null ||
+              consumption.characterId !== value.sourceCharacterId)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['sourceItemConsumption'],
+              message: 'Item consumption must match the source Character.'
+            })
           const hasActiveEffectCreation = value.activeEffectTransitions.length > 0
           if (
             stow &&

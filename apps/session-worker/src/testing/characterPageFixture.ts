@@ -117,6 +117,7 @@ const capturedPage = {
       movementDisplayPreference: { mode: 'AUTO' },
       partyVisibility: { health: 'HIDDEN', sheet: false },
       resourceUsage: [],
+      itemUsage: [],
       spellCustomizations: []
     },
     streamVersion: 1,
@@ -165,6 +166,8 @@ export interface CharacterPlayOverrides {
   equipped?: boolean
   /** Further SRD Equipment the Character carries, equipped, one of each. */
   carried?: readonly EquipmentAuthored[]
+  /** How many of each carried item (default 1). */
+  carriedQuantity?: number
   currentHitPoints?: number
   /** The Fighter's Class level (default 1); each level after the first adds 7 fixed hit points and a hit die. */
   fighterLevel?: number
@@ -178,14 +181,20 @@ export function characterOwnerRowFor({
   userId = capturedPage.inputs.character.userId,
   play: playOverrides = {}
 }: { characterId?: string; userId?: string; play?: CharacterPlayOverrides } = {}) {
-  const { equipped = false, carried = [], fighterLevel = 1, conditions } = playOverrides
+  const {
+    equipped = false,
+    carried = [],
+    carriedQuantity = 1,
+    fighterLevel = 1,
+    conditions
+  } = playOverrides
   const [capturedLevel] = capturedPage.inputs.character.intent.hitpoints.levels
   const maximumHitPoints = capturedLevel!.value + 7 * (fighterLevel - 1)
   const capturedInventory = capturedPage.inputs.character.state.equipment.inventory
   const carriedInventory = carried.map((item) => ({
     id: crypto.randomUUID(),
     equipmentId: item.id,
-    quantity: 1
+    quantity: carriedQuantity
   }))
   const { currentHitPoints = maximumHitPoints } = playOverrides
   const character = characterDocumentSchema.parse({

@@ -452,7 +452,8 @@ export const PROPERTIES_BY_CATEGORY = {
 
 export const EQUIPMENT_ATTRIBUTE = {
   LIMITED_USE: 'LIMITED_USE',
-  STACKABLE: 'STACKABLE'
+  STACKABLE: 'STACKABLE',
+  CONSUMED_ON_USE: 'CONSUMED_ON_USE'
 } as const
 
 export type EquipmentAttribute = keyof typeof EQUIPMENT_ATTRIBUTE
@@ -472,6 +473,14 @@ export const EQUIPMENT_ATTRIBUTE_REGISTRY: Record<EquipmentAttribute, EquipmentA
     label: 'Stackable',
     tooltip: 'The equipment can be stacked.',
     description: 'The equipment can be stacked.'
+  },
+
+  CONSUMED_ON_USE: {
+    code: EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE,
+    label: 'Consumed On Use',
+    tooltip: 'Using the equipment uses one up.',
+    description:
+      'Using the equipment from an action uses one up. When the last is used, the item is gone.'
   }
 } as const
 

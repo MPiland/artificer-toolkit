@@ -277,6 +277,8 @@ function movementReactionSettlement<
   maintenance: ReturnType<typeof projectEncounterMovementMaintenance<TRow, TFacts>> | null
 ) {
   const { prepared } = input
+  if (prepared.prepared.characterActionState?.itemConsumption)
+    throw new Error('A movement reaction cannot use up a single-use item.')
   const execution = requireCompletedMovementReaction(input)
   const actors = movementReactionActors(input, settled)
   const sourceActor = maintenance?.targets.get(actors.sourceActor.id)?.actor ?? actors.sourceActor

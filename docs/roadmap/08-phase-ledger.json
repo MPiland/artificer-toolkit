@@ -5322,31 +5322,45 @@
         {
           "id": "SPELLS-11",
           "title": "Single-use items are used up",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
-              "text": "Using a single-use item (a potion, a vial such as Antitoxin) removes one from the holder's equipment, whether the holder drinks it or administers it to another creature.",
-              "status": "TODO",
-              "proof": [],
+              "text": "In Assisted play, using a single-use item (a potion, a vial such as Antitoxin) removes one from the holder's equipment, whether the holder drinks it or administers it to another creature, and the holder's Sheet shows the lower count. Manual play leaves the count for the table to adjust.",
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/characterItemUsage.test.ts",
+                "apps/apis/convex/characters/itemUsage.test.ts",
+                "packages/rules-runtime/src/__tests__/characterNativeActionResources.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts",
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+              ],
               "origin": [],
-              "note": "Registered 2026-10-08 from SPELLS-5: the SRD Antitoxin (vial) carries no charges or consumption data, so using it leaves it in the holder's equipment.",
+              "note": "Registered 2026-10-08 from SPELLS-5: the SRD Antitoxin (vial) carries no charges or consumption data, so using it leaves it in the holder's equipment. Ruled 2026-10-09 (user): Assisted only, like resources; always on with no Campaign toggle (a shared counting toggle may come with D4 ammunition); single-use is an authored equipment attribute set only on items whose text makes them single-use (potions, Antitoxin, Acid, Alchemist's Fire, Holy Water, Oil flask, basic Poison), not Caltrops or Ball Bearings; homebrew can set it. Built 2026-10-09 (D102): an `itemUsage` play overlay next to resourceUsage; effective reads hide used-up rows and their equipped/attuned ids, structural edits translate stored = edited + used, and a stale Sheet or Builder edit never gives a used item back. Closed 2026-10-09: red runs in local-validation/spells-11/red-*.log; gate spells11b green; pk 554/727/76, nt 454, wt 51, vt 14, webt 576; reset, seed and audit clean.",
               "id": "SPELLS-11.1"
             },
             {
-              "text": "The last one used removes the item from the holder's equipment, and an item the holder no longer carries cannot be used.",
-              "status": "TODO",
-              "proof": [],
+              "text": "The last one used removes the item from the holder's equipment, and an item the holder no longer carries is not offered as an action; a stale request to use it is refused with a message.",
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/characterNativeActionResources.test.ts",
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+              ],
               "origin": [],
               "note": "Registered with SPELLS-11.1.",
               "id": "SPELLS-11.2"
             },
             {
               "text": "GM undo of the use gives the item back to the holder's equipment.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAntitoxinGrant.test.ts",
+                "apps/apis/convex/encounters/antitoxinGrant.test.ts"
+              ],
               "origin": [],
               "note": "Registered with SPELLS-11.1; SPELLS-5.2 proves undo returns the Action and removes the grant.",
               "id": "SPELLS-11.3"

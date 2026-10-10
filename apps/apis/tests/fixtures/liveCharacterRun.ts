@@ -330,10 +330,10 @@ export async function sheetCommand(
   })
 }
 
-export async function storedCharacter(fixture: Fixture) {
+export async function storedCharacter(fixture: Fixture, characterId = fixture.character.id) {
   await checkpointLiveRoom(fixture.campaign.id)
   return fixture.t.run(async (ctx) => {
-    const row = await readCharacterRow(ctx, fixture.character.id)
+    const row = await readCharacterRow(ctx, characterId)
     if (!row) throw new Error('Missing journey Character.')
     return characterAuthoredDtoSchema.parse(readCharacterRecord(row)) as CharacterAuthored
   })

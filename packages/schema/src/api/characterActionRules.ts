@@ -94,7 +94,9 @@ const actionEquipmentStateSchema = lazySchema(() =>
     /** The grip this action's effect is wielded with; null for non-attack and item-feature actions. */
     grip: z.nullable(equipmentGripSchema),
     /** Another weapon is equipped: attacking with this item is not wielding it alone (Dueling). */
-    otherWeaponEquipped: booleanSchema
+    otherWeaponEquipped: booleanSchema,
+    /** Using this item's action uses one up (the item's `CONSUMED_ON_USE` attribute). */
+    consumedOnUse: booleanSchema
   })
 )
 

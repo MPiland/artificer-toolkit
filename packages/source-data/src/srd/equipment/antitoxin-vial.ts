@@ -8,6 +8,7 @@ export const antitoxinVial: EquipmentAuthored = {
     'A creature that drinks this vial of liquid gains advantage on saving throws against poison for 1 hour. It confers no benefit to undead or constructs.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.VIAL, S.EQUIPMENT_PROPERTY_CODE.DRINK],
+  attributes: [S.EQUIPMENT_ATTRIBUTE.CONSUMED_ON_USE],
   effects: [
     {
       id: S.equipmentChildId(S.equipId(121), 0x210, 1),

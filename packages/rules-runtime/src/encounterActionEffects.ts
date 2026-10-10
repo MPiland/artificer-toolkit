@@ -8,7 +8,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 type CharacterActionMovementFacts = CharacterMovementFacts & {
-  sheetState: Pick<CharacterSheetState, 'resourceUsage'>
+  sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage'>
 }
 type PreparedMechanics<TCharacterFacts extends CharacterActionMovementFacts> = Awaited<
   ReturnType<typeof prepareEncounterActionMechanics<TCharacterFacts>>

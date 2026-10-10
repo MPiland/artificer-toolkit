@@ -72,6 +72,7 @@ export function buildEncounterActionStoredExecution(input: {
             featureResourceConsumption: featureResourceReceipt,
             targetFeatureResourceConsumption: null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions: activeEffectTransitions.map(
@@ -97,7 +98,9 @@ export function buildEncounterActionStoredExecution(input: {
             occurrenceId,
             sourceActorId: actor.id,
             targetActorId: target.id,
-            ...(input.maintenanceTransition || settled.sourceItemUseStateTransition
+            ...(input.maintenanceTransition ||
+            settled.sourceItemUseStateTransition ||
+            settled.itemConsumptionReceipt
               ? {
                   sourceCharacterId: source.kind === 'CHARACTER_ACTION' ? source.characterId : null
                 }
@@ -106,6 +109,7 @@ export function buildEncounterActionStoredExecution(input: {
             resourceConsumption: resourceReceipt,
             featureResourceConsumption: featureResourceReceipt,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
+            sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions,

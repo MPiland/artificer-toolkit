@@ -448,6 +448,7 @@ export function buildCharacterActionRuleFacts(params: {
       equipped: Boolean(item.equippedState),
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
+      consumedOnUse: item.compiledItem.attributes?.includes('CONSUMED_ON_USE') ?? false,
       otherWeaponEquipped: snapshot.equipmentItems.some(
         (other) =>
           other.instanceId !== item.instanceId &&

@@ -9,6 +9,7 @@ import {
   type CharacterResourceOwnerKey,
   type CharacterResourceUsage
 } from '@artificer-toolkit/shared/character'
+import { StaleCharacterActionError } from '../encounterErrors.js'
 
 type CompiledCharacterAction = Extract<
   CompiledActionEntryPoint,
@@ -38,6 +39,16 @@ export type NativeCharacterActionResourceConsumption = {
   beforeRemaining: number
   afterRemaining: number
   characterId: string
+  expectedStreamVersion: number
+}
+
+export type NativeCharacterItemConsumption = {
+  characterId: string
+  itemInstanceId: string
+  beforeUsed: number
+  afterUsed: number
+  beforeQuantity: number
+  afterQuantity: number
   expectedStreamVersion: number
 }
 
@@ -120,7 +131,7 @@ function resourceOwner(
 }
 
 function stale(): never {
-  throw new Error('The committed Character action resource is unavailable or stale.')
+  throw new StaleCharacterActionError()
 }
 
 export function prepareNativeCharacterActionState(input: {
@@ -128,6 +139,9 @@ export function prepareNativeCharacterActionState(input: {
   candidate: CharacterActionCandidate
   policyOutput: CharacterRulePolicyOutput
   resourceUsage: readonly CharacterResourceUsage[]
+  /** The effective inventory: used-up rows are already hidden. */
+  inventory: readonly { id: string; quantity: number }[]
+  itemUsage: readonly { itemInstanceId: string; used: number }[]
   characterId: string
   expectedStreamVersion: number
   automationMode: AutomationModeDto
@@ -136,6 +150,7 @@ export function prepareNativeCharacterActionState(input: {
 }): {
   actionMechanic: NativeCharacterActionMechanic
   resourceConsumption: NativeCharacterActionResourceConsumption | null
+  itemConsumption: NativeCharacterItemConsumption | null
   ruleWarnings: EncounterRuleWarningDto[]
 } {
   if (
@@ -176,6 +191,27 @@ export function prepareNativeCharacterActionState(input: {
           : stale()
   }
 
+  // A single-use item is used up in Assisted play whether or not the GM overrides a warning.
+  const consumedItem =
+    input.automationMode !== 'MANUAL' && input.candidate.equipment?.consumedOnUse
+      ? input.candidate.equipment
+      : null
+  let itemConsumption: NativeCharacterItemConsumption | null = null
+  if (consumedItem) {
+    const row = input.inventory.find((item) => item.id === consumedItem.itemInstanceId)
+    if (!row || !Number.isSafeInteger(row.quantity) || row.quantity < 1) stale()
+    const beforeUsed = input.itemUsage.find((usage) => usage.itemInstanceId === row.id)?.used ?? 0
+    itemConsumption = {
+      characterId: input.characterId,
+      itemInstanceId: row.id,
+      beforeUsed,
+      afterUsed: beforeUsed + 1,
+      beforeQuantity: row.quantity,
+      afterQuantity: row.quantity - 1,
+      expectedStreamVersion: input.expectedStreamVersion
+    }
+  }
+
   const binding =
     input.entry.schemaVersion === 2 ||
     input.entry.schemaVersion === 3 ||
@@ -189,7 +225,7 @@ export function prepareNativeCharacterActionState(input: {
       decision.resourceCost !== null
     )
       stale()
-    return { actionMechanic, resourceConsumption: null, ruleWarnings }
+    return { actionMechanic, resourceConsumption: null, itemConsumption, ruleWarnings }
   }
   if (!Number.isSafeInteger(binding.cost) || binding.cost < 1) stale()
   const resource = input.policyOutput.resources.find((value) => value.poolId === binding.poolId)
@@ -232,7 +268,7 @@ export function prepareNativeCharacterActionState(input: {
   const beforeUsed = existing?.used ?? 0
   if (beforeUsed !== resource.rawUsed) stale()
   if (input.automationMode === 'MANUAL')
-    return { actionMechanic, resourceConsumption: null, ruleWarnings }
+    return { actionMechanic, resourceConsumption: null, itemConsumption, ruleWarnings }
   // "Do it anyway" spends only what remains; the warning records the shortfall.
   const spent = Math.min(binding.cost, resource.remaining)
   if (spent < binding.cost)
@@ -240,13 +276,15 @@ export function prepareNativeCharacterActionState(input: {
       code: 'RESOURCE_UNAVAILABLE',
       message: `Not enough uses left: needs ${binding.cost}, has ${resource.remaining}.`
     })
-  if (spent === 0) return { actionMechanic, resourceConsumption: null, ruleWarnings }
+  if (spent === 0)
+    return { actionMechanic, resourceConsumption: null, itemConsumption, ruleWarnings }
   const afterUsed = beforeUsed + spent
   const afterRemaining = resource.remaining - spent
   if (!Number.isSafeInteger(afterUsed)) stale()
   return {
     actionMechanic,
     ruleWarnings,
+    itemConsumption,
     resourceConsumption: {
       poolId: binding.poolId,
       chargeId: binding.chargeId,

@@ -3,6 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { StaleCharacterActionError } from './encounterErrors.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
@@ -58,7 +59,7 @@ export function resolveEncounterActionSource(
       character.entry.actionId !== input.actionId ||
       character.entry.effectId !== character.candidate.effectId
     )
-      throw new Error('The selected Character action source is stale.')
+      throw new StaleCharacterActionError('The selected Character action source is stale.')
     return {
       kind: 'CHARACTER_ACTION',
       actor,

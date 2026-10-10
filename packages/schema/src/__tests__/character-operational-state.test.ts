@@ -91,6 +91,7 @@ function capture(state: typeof character.state) {
       movementDisplayPreference: { mode: 'AUTO' },
       spellCustomizations: [],
       resourceUsage: [],
+      itemUsage: [],
       partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY
     }
   })

@@ -56,7 +56,8 @@ function evaluate(input: {
         requiresEquipped: false,
         requiresAttuned: false,
         grip: input.grip,
-        otherWeaponEquipped: false
+        otherWeaponEquipped: false,
+        consumedOnUse: false
       }
     },
     ruleFacts: {

@@ -459,7 +459,9 @@ export const equipmentPropertyCodeSchema = lazySchema(() =>
   ])
 )
 
-export const equipmentAttributeCodeSchema = lazySchema(() => z.enum(['LIMITED_USE', 'STACKABLE']))
+export const equipmentAttributeCodeSchema = lazySchema(() =>
+  z.enum(['LIMITED_USE', 'STACKABLE', 'CONSUMED_ON_USE'])
+)
 
 export const equipmentGripSchema = lazySchema(() => z.enum(['ONE_HANDED', 'TWO_HANDED']))
 

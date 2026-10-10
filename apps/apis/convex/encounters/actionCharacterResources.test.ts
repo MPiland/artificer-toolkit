@@ -172,6 +172,8 @@ describe('native Character action resource persistence', () => {
         policyOutput: current.ruleEvaluation.output,
         resourceUsage: current.sheetState.resourceUsage,
         characterId: character.id,
+        inventory: [],
+        itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
         automationMode: 'ASSISTED',
         overridable: false
@@ -192,6 +194,8 @@ describe('native Character action resource persistence', () => {
           policyOutput: current.ruleEvaluation.output,
           resourceUsage: current.sheetState.resourceUsage,
           characterId: character.id,
+          inventory: [],
+          itemUsage: [],
           expectedStreamVersion: current.active.play.streamVersion,
           automationMode: 'ASSISTED',
           overridable: false
@@ -216,6 +220,8 @@ describe('native Character action resource persistence', () => {
             }
           ],
           characterId: character.id,
+          inventory: [],
+          itemUsage: [],
           expectedStreamVersion: current.active.play.streamVersion,
           automationMode: 'ASSISTED',
           overridable: false
@@ -263,6 +269,8 @@ describe('native Character action resource persistence', () => {
           }
         ],
         characterId: character.id,
+        inventory: [],
+        itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
         automationMode: 'ASSISTED' as const
       }
@@ -285,6 +293,8 @@ describe('native Character action resource persistence', () => {
         }),
         resourceUsage: current.sheetState.resourceUsage,
         characterId: character.id,
+        inventory: [],
+        itemUsage: [],
         expectedStreamVersion: current.active.play.streamVersion,
         automationMode: 'ASSISTED',
         overridable: true

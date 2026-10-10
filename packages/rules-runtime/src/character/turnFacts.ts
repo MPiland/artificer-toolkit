@@ -16,7 +16,7 @@ type PreparedSheet = Awaited<ReturnType<typeof prepareCharacterSheetFromContext>
  */
 export type CharacterTurnFacts = CharacterMovementFacts &
   Pick<PreparedSheet, 'adjustments'> & {
-    sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'spellCustomizations'>
+    sheetState: Pick<CharacterSheetState, 'resourceUsage' | 'itemUsage' | 'spellCustomizations'>
     campaignContext: CharacterSheetCampaignContext
     prepared: Pick<PreparedSheet['prepared'], 'character' | 'resolution'> & {
       context: Pick<PreparedSheet['prepared']['context'], 'creaturesById'> & {

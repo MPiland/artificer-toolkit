@@ -26,7 +26,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActionSceneInputs } from './actionSceneInputs.js'
-import { rejectDomain } from './domainRejections.js'
+import { refuseStaleCharacterAction, rejectDomain } from './domainRejections.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { EncounterTurnReadTransaction } from './ports.js'
@@ -212,7 +212,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     movementTargets,
     loadSource: (sourceInput) => loadActionSource(tx, sourceInput),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
-  })
+  }).catch(refuseStaleCharacterAction)
 }
 
 /** The current Disarm choices for the optional-action drawer, from stored facts. */

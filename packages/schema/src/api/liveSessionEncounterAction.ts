@@ -21,7 +21,10 @@ import {
 } from '../projections/activeRuleEffectPersistence.js'
 import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecutionMechanics.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
-import { concentrationEndDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
+import {
+  characterItemConsumptionFieldsSchema,
+  concentrationEndDtoSchema
+} from '../shared/ruleExecutionEncounterApplications.js'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '../shared/ruleExecutionReceiptCommandMetadata.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
@@ -71,6 +74,12 @@ export const liveSessionCharacterResourceConsumptionSchema = lazySchema(() =>
   })
 )
 
+export const liveSessionCharacterItemConsumptionSchema = lazySchema(() =>
+  z.extend(characterItemConsumptionFieldsSchema, {
+    expectedStreamVersion: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+
 /** Bounded domain outcomes from the private DO; no Character or Run document patches. */
 export type LiveSessionEncounterActionCommitInput = Omit<
   LiveSessionEncounterActionPendingInput,
@@ -88,6 +97,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
         expectedStreamVersion: number
       })
     | null
+  /** The single-use item this Assisted action used up, with the Character version it was planned at. */
+  itemConsumption: z.infer<typeof liveSessionCharacterItemConsumptionSchema> | null
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
   ruleOverrides: EncounterRuleWarningDto[]
   createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
@@ -135,6 +146,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       execution: storedRuleExecutionResultDtoSchema,
       rules: encounterActorRuleOutputSchema,
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
+      itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(2)),
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),

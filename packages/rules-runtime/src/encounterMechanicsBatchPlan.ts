@@ -15,7 +15,10 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CharacterItemUseStateTransitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
-import type { NativeCharacterActionResourceConsumption } from './character/characterNativeActionResources.js'
+import type {
+  NativeCharacterActionResourceConsumption,
+  NativeCharacterItemConsumption
+} from './character/characterNativeActionResources.js'
 import { unequipCharacterItem } from './character/sheetCommandReducer.js'
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import { characterZeroHitPointsConditionId } from './characterZeroHitPoints.js'
@@ -45,6 +48,8 @@ export type EncounterMechanicsBatchInput = {
   effectiveScalarValues?: Readonly<Record<string, number>>
   spellSlotUsage?: NonNullable<CharacterAuthored['state']['spellSlots']>
   characterResourceConsumption?: NativeCharacterActionResourceConsumption
+  /** A single-use item this Assisted action used up; recorded as play usage, never as a structure edit. */
+  characterItemConsumption?: NativeCharacterItemConsumption
   /** An accepted wield conflict: unequip this item in the same Character version. */
   stowEquippedItemInstanceId?: string
   /** A dying Character's turn-start death save die (D96); Characters only. */
@@ -84,6 +89,8 @@ export function planEncounterMechanicsBatch(input: {
       throw new Error('Encounter non-Character actors cannot use spell slots.')
     if (batch.characterResourceConsumption !== undefined)
       throw new Error('Encounter non-Character actors cannot use Character resources.')
+    if (batch.characterItemConsumption !== undefined)
+      throw new Error('Encounter non-Character actors cannot use up Character items.')
     if (batch.stowEquippedItemInstanceId !== undefined)
       throw new Error('Encounter non-Character actors cannot stow Character equipment.')
     if (batch.deathSave !== undefined)
@@ -198,6 +205,34 @@ export function planEncounterMechanicsBatch(input: {
     ]
   }
 
+  const itemConsumption = batch.characterItemConsumption
+  let nextItemUsage = loaded.sheetState.itemUsage
+  if (itemConsumption !== undefined) {
+    const row = loaded.character.state.equipment.inventory.find(
+      (item) => item.id === itemConsumption.itemInstanceId
+    )
+    const currentUsed =
+      loaded.sheetState.itemUsage.find(
+        (usage) => usage.itemInstanceId === itemConsumption.itemInstanceId
+      )?.used ?? 0
+    if (
+      itemConsumption.characterId !== loaded.active.id ||
+      itemConsumption.expectedStreamVersion !== loaded.active.play.streamVersion ||
+      itemConsumption.afterUsed !== itemConsumption.beforeUsed + 1 ||
+      itemConsumption.afterQuantity !== itemConsumption.beforeQuantity - 1 ||
+      !row ||
+      row.quantity !== itemConsumption.beforeQuantity ||
+      currentUsed !== itemConsumption.beforeUsed
+    )
+      throw new Error('Encounter Character item consumption is stale.')
+    nextItemUsage = [
+      ...loaded.sheetState.itemUsage.filter(
+        (usage) => usage.itemInstanceId !== itemConsumption.itemInstanceId
+      ),
+      { itemInstanceId: itemConsumption.itemInstanceId, used: itemConsumption.afterUsed }
+    ]
+  }
+
   const stowItemId = batch.stowEquippedItemInstanceId
   if (stowItemId !== undefined && !loaded.character.state.equipment.equipped.includes(stowItemId))
     throw new Error('Encounter Character item to stow is no longer equipped.')
@@ -248,12 +283,12 @@ export function planEncounterMechanicsBatch(input: {
   const spellSlotsChanged =
     batch.spellSlotUsage !== undefined &&
     JSON.stringify(batch.spellSlotUsage) !== JSON.stringify(loaded.character.state.spellSlots ?? [])
-  const resourceUsageChanged = resourceConsumption !== undefined
+  const sheetStateChanged = resourceConsumption !== undefined || itemConsumption !== undefined
   const shouldAdvance =
     folded.stateChanged ||
     conditionStateChanged ||
     spellSlotsChanged ||
-    resourceUsageChanged ||
+    sheetStateChanged ||
     stowItemId !== undefined ||
     batch.forceVersionAdvance
   const character = {
@@ -270,8 +305,12 @@ export function planEncounterMechanicsBatch(input: {
       ...(spellSlotsChanged ? { spellSlots: batch.spellSlotUsage } : {})
     }
   }
-  const nextSheetState = resourceUsageChanged
-    ? characterSheetStateSchema.parse({ ...loaded.sheetState, resourceUsage: nextResourceUsage })
+  const nextSheetState = sheetStateChanged
+    ? characterSheetStateSchema.parse({
+        ...loaded.sheetState,
+        resourceUsage: nextResourceUsage,
+        itemUsage: nextItemUsage
+      })
     : null
   return {
     // A Character actor holds no Character state, so the batch leaves it unchanged.

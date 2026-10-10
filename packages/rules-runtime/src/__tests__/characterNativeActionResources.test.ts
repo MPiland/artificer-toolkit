@@ -70,6 +70,8 @@ function prepare(overrides: Partial<PrepareInput> = {}) {
     candidate,
     policyOutput: fighter.output,
     resourceUsage: [],
+    inventory: [],
+    itemUsage: [],
     characterId: CHARACTER_ID,
     expectedStreamVersion: STREAM_VERSION,
     automationMode: 'ASSISTED',
@@ -83,6 +85,7 @@ describe('native Character action state without a resource', () => {
     expect(prepare()).toEqual({
       actionMechanic: { ...decision.mechanic, save: null },
       resourceConsumption: null,
+      itemConsumption: null,
       ruleWarnings: []
     })
   })
@@ -185,6 +188,7 @@ describe('native Character action state with a bound resource', () => {
     expect(prepareBound({ policyOutput: policy(1), resourceUsage: [usage(1)] })).toEqual({
       actionMechanic: { ...decision.mechanic, save: null },
       ruleWarnings: [],
+      itemConsumption: null,
       resourceConsumption: {
         poolId,
         chargeId: 'battle-focus-charge',
@@ -225,6 +229,7 @@ describe('native Character action state with a bound resource', () => {
       prepareBound({ policyOutput: policy(1), resourceUsage: [usage(1)], automationMode: 'MANUAL' })
     ).toEqual({
       actionMechanic: { ...decision.mechanic, save: null },
+      itemConsumption: null,
       resourceConsumption: null,
       ruleWarnings: []
     })
@@ -236,6 +241,7 @@ describe('native Character action state with a bound resource', () => {
       prepareBound({ policyOutput: exhausted, resourceUsage: [usage(2)], overridable: true })
     ).toEqual({
       actionMechanic: { ...decision.mechanic, save: null },
+      itemConsumption: null,
       resourceConsumption: null,
       ruleWarnings: [
         { code: 'RESOURCE_UNAVAILABLE', message: 'Not enough uses left: needs 1, has 0.' }
@@ -310,5 +316,61 @@ describe('native Character action state with a bound resource', () => {
     { name: 'a pool the policy did not resolve', overrides: { policyOutput: fighter.output } }
   ])('refuses $name', ({ overrides }) => {
     expect(() => prepareBound(overrides)).toThrow(STALE)
+  })
+})
+
+describe('native Character action state with a single-use item', () => {
+  const itemInstanceId = candidate.equipment?.itemInstanceId
+  if (!candidate.equipment || !itemInstanceId)
+    throw new Error('The handaxe is an equipment action.')
+  const singleUse = { ...candidate, equipment: { ...candidate.equipment, consumedOnUse: true } }
+  const carried = (quantity: number) => [{ id: itemInstanceId, quantity }]
+
+  it('uses one up, from the effective quantity and the usage already recorded', () => {
+    expect(
+      prepare({
+        candidate: singleUse,
+        inventory: carried(2),
+        itemUsage: [{ itemInstanceId, used: 3 }]
+      }).itemConsumption
+    ).toEqual({
+      characterId: CHARACTER_ID,
+      itemInstanceId,
+      beforeUsed: 3,
+      afterUsed: 4,
+      beforeQuantity: 2,
+      afterQuantity: 1,
+      expectedStreamVersion: STREAM_VERSION
+    })
+  })
+
+  it('uses the item up even when the action carries an overridable warning', () => {
+    const unequipped = withDecision({ status: 'UNAVAILABLE', reasonCode: 'SOURCE_NOT_EQUIPPED' })
+    expect(
+      prepare({
+        candidate: singleUse,
+        policyOutput: unequipped,
+        overridable: true,
+        inventory: carried(1)
+      })
+    ).toMatchObject({
+      itemConsumption: { afterQuantity: 0 },
+      ruleWarnings: [{ code: 'SOURCE_NOT_EQUIPPED' }]
+    })
+  })
+
+  it('leaves the count for the table in Manual play', () => {
+    expect(
+      prepare({ candidate: singleUse, automationMode: 'MANUAL', inventory: carried(1) })
+        .itemConsumption
+    ).toBeNull()
+  })
+
+  it('refuses an item no longer carried', () => {
+    expect(() => prepare({ candidate: singleUse, inventory: [] })).toThrow(STALE)
+  })
+
+  it('consumes nothing for an item that is not single-use', () => {
+    expect(prepare({ inventory: carried(1) }).itemConsumption).toBeNull()
   })
 })

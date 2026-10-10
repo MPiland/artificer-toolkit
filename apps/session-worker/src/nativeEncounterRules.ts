@@ -31,6 +31,7 @@ import {
   isEncounterActorDefeated,
   isEncounterTargetDying
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   lockedRelationshipActionFacts,
@@ -269,7 +270,7 @@ export async function planNativeLiveEncounterAction(
         }),
         allyAdvantage ? [allyAdvantage.contributor] : []
       )
-  })
+  }).catch(refuseStaleCharacterAction)
   if (
     prepared.source.kind === 'CREATURE' &&
     encounterLegendaryActionFeatureIds(prepared.actor).has(
@@ -673,6 +674,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     execution: plan.storedExecution,
     rules: plan.nextRules,
     resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
+    itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
     ruleOverrides: plan.ruleOverrides,
     createdEffects: plan.settlement.createdEffects,
     maintainedState: plan.settlement.maintainedState,

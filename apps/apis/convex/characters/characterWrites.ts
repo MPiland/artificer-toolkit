@@ -10,6 +10,7 @@ import {
   splitCharacterPlayState
 } from '@artificer-toolkit/schema/projections/characterPlayState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import { readCharacterInventoryBase } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encodeCharacterNoteRecords } from '@artificer-toolkit/schema/projections/characterOperationalState'
 import type {
   CharacterCollectionRecords,
@@ -90,20 +91,25 @@ export async function writeCharacterRecord(
   if (!current && !input.document) throw new Error('A new Character needs its document.')
   const split =
     input.document || input.sheetState
-      ? splitCharacterPlayState({
-          state: (input.document ?? readCharacterRecord(current!)).state,
-          sheetState:
-            input.sheetState ??
-            (current
-              ? readCharacterSheetState(current)
-              : {
-                  adjustments: [],
-                  movementDisplayPreference: { mode: 'AUTO' },
-                  partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
-                  resourceUsage: [],
-                  spellCustomizations: []
-                })
-        })
+      ? splitCharacterPlayState(
+          {
+            state: (input.document ?? readCharacterRecord(current!)).state,
+            sheetState:
+              input.sheetState ??
+              (current
+                ? readCharacterSheetState(current)
+                : {
+                    adjustments: [],
+                    movementDisplayPreference: { mode: 'AUTO' },
+                    partyVisibility: DEFAULT_CHARACTER_PARTY_VISIBILITY,
+                    resourceUsage: [],
+                    itemUsage: [],
+                    spellCustomizations: []
+                  })
+          },
+          // The document's inventory is the effective one; translate edits against what is stored.
+          current ? readCharacterInventoryBase(current) : null
+        )
       : null
   const encodedDocument: unknown =
     input.document && split

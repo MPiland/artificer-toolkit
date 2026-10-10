@@ -19,6 +19,7 @@ const play: EncounterStoreDocuments['characterPlayStates'] = {
     equipped: [],
     attuned: [],
     resourceUsage: [],
+    itemUsage: [],
     partyVisibility: { sheet: false, health: 'HIDDEN' }
   },
   checksum,

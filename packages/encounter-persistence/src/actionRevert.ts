@@ -55,6 +55,7 @@ type CharacterInverse = {
   removedConditionIds: Set<string>
   resource: ActionBatch['resourceConsumption']
   stow: ActionBatch['sourceItemUseStateTransition']
+  item: ActionBatch['sourceItemConsumption']
   expectedStreamVersion: number
 }
 
@@ -275,6 +276,7 @@ export async function revertLastEncounterAction(
           removedConditionIds: new Set(),
           resource: null,
           stow: null,
+          item: null,
           expectedStreamVersion: streamVersion
         }
     characterInverses.set(characterId, next)
@@ -334,11 +336,17 @@ export async function revertLastEncounterAction(
     action.kind === 'CHARACTER_MECHANICS_BATCH' && action.sourceActorId === action.targetActorId
       ? action.targetCharacterStreamVersion
       : action.sourceCharacterStreamVersion
-  if ((action.resourceConsumption || action.sourceItemUseStateTransition) && sourceCharacterId) {
+  if (
+    (action.resourceConsumption ||
+      action.sourceItemUseStateTransition ||
+      action.sourceItemConsumption) &&
+    sourceCharacterId
+  ) {
     if (sourceStreamVersion === null) throw new Error('Stored source Character version is missing.')
     const inverse = characterInverse(sourceCharacterId, sourceStreamVersion)
     inverse.resource = action.resourceConsumption
     inverse.stow = action.sourceItemUseStateTransition
+    inverse.item = action.sourceItemConsumption
   }
   for (const owner of action.maintenanceTransition?.characterOwnerTransitions ?? [])
     characterInverse(owner.characterId, owner.afterStreamVersion)
@@ -597,6 +605,7 @@ async function revertBasicAction(
         removedConditionIds: new Set(),
         resource: null,
         stow: null,
+        item: null,
         expectedStreamVersion: stabilized.targetTransition.afterStreamVersion
       },
       userId: input.userId,
@@ -697,10 +706,30 @@ async function restoreCharacter(
         })
       }
     : null
+  const item = inverse.item
+  let restoredSheetState = nextSheetState
+  if (item) {
+    const base = restoredSheetState ?? sheetState
+    // The item is given back by lowering its usage; the stored row never left the Sheet.
+    if (
+      base.itemUsage.find((usage) => usage.itemInstanceId === item.itemInstanceId)?.used !==
+      item.afterUsed
+    )
+      unavailable(`${row.label}'s items changed after this action; adjust manually.`)
+    restoredSheetState = {
+      ...base,
+      itemUsage: [
+        ...base.itemUsage.filter((usage) => usage.itemInstanceId !== item.itemInstanceId),
+        ...(item.beforeUsed > 0
+          ? [{ itemInstanceId: item.itemInstanceId, used: item.beforeUsed }]
+          : [])
+      ]
+    }
+  }
   await ctx.ports.writeCharacterRecord({
     current: row,
     fields: { streamVersion: row.play.streamVersion + 1, updatedAt: input.updatedAt },
     document: JSON.parse(JSON.stringify({ ...character, state })),
-    ...(nextSheetState ? { sheetState: nextSheetState } : {})
+    ...(restoredSheetState ? { sheetState: restoredSheetState } : {})
   })
 }

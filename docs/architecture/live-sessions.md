@@ -222,7 +222,10 @@ commands) executed by `executeRoomCharacterSheetCommand` inside `RoomEncounterSt
 Membership, assignment, ownership, ACTIVE Run and unfrozen-actor checks precede replay and version
 refusal; replay reads the stored Character receipt through `readCharacterCommandReplay`. Maximum
 overrides, rests, notes, structural edits and customizations stay outside this lane: the Builder owns
-structure and Convex owns rests, notes and overrides. Only the initiator receives private Character
+structure and Convex owns rests, notes and overrides. A single-use item an Assisted action uses up
+(D102) is play: the room increments the Character's `itemUsage` in the same Character version as the
+action, the effective inventory (stored quantity minus usage) hides the used-up row, and the commit
+input's `itemConsumption` lets Convex check it against the receipt. Only the initiator receives private Character
 history; other admitted members receive the same room sequence with `delta: null`.
 
 `SUBSCRIBE_CHARACTER_SHEET { characterId }` (one per socket) is admitted only for the Character's owner

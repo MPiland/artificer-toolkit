@@ -8,7 +8,10 @@ import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
-import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import {
+  readCharacterInventoryBase,
+  readCharacterPlay
+} from '@artificer-toolkit/schema/projections/characterStoredState'
 import { characterStoredPlayStateSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
@@ -73,8 +76,10 @@ export async function prepareRoomLiveCharacterSheet(
     const resourcePools = new Set(
       facts.ruleEvaluation.output.resources.map((resource) => resource.poolId)
     )
+    // A used-up item is hidden, not deleted: its equipped state and usage outlive its visibility so
+    // an undo gives it back as it was. Only a row the structure no longer stores drops them.
     const inventoryIds = new Set(
-      facts.prepared.character.state.equipment.inventory.map((item) => item.id)
+      readCharacterInventoryBase(facts.active).inventory.map((item) => item.id)
     )
     const nextState = {
       ...state,
@@ -99,7 +104,8 @@ export async function prepareRoomLiveCharacterSheet(
       attuned: state.attuned.filter((itemId) => inventoryIds.has(itemId)),
       resourceUsage: state.resourceUsage.filter((usage) =>
         resourcePools.has(createCharacterResourceOwnerKey(usage.owner))
-      )
+      ),
+      itemUsage: state.itemUsage.filter((usage) => inventoryIds.has(usage.itemInstanceId))
     }
     const checksum = checksumRuleDocument(nextState)
     const stateChanged = checksum !== play.checksum

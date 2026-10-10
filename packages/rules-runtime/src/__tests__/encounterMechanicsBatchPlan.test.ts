@@ -557,6 +557,67 @@ describe('Character mechanics batch plan', () => {
       })
     ).toThrow('Encounter Character changed after the outcome was planned.')
   })
+
+  describe('a single-use item used up', () => {
+    const ITEM_ID = '00000000-0000-4000-8000-00000000e109'
+    const withItem = (quantity: number, used: number) => ({
+      ...characterFacts,
+      character: {
+        ...document,
+        state: {
+          ...document.state,
+          equipment: {
+            ...document.state.equipment,
+            inventory: [{ id: ITEM_ID, equipmentId: 'antitoxin', quantity }]
+          }
+        }
+      },
+      sheetState: {
+        ...characterFacts.sheetState,
+        itemUsage: used > 0 ? [{ itemInstanceId: ITEM_ID, used }] : []
+      }
+    })
+    const consumption = (beforeQuantity: number, beforeUsed: number) => ({
+      characterId: CHARACTER_ID,
+      itemInstanceId: ITEM_ID,
+      beforeUsed,
+      afterUsed: beforeUsed + 1,
+      beforeQuantity,
+      afterQuantity: beforeQuantity - 1,
+      expectedStreamVersion: STREAM_VERSION
+    })
+    const plan = (facts: ReturnType<typeof withItem>, item: ReturnType<typeof consumption>) =>
+      planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: 12,
+          characterItemConsumption: item
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts
+      })
+
+    it('advances the Character and records one more use, leaving the inventory document alone', () => {
+      const planned = plan(withItem(2, 3), consumption(2, 3))
+      expect(planned.characterStreamVersion).toBe(STREAM_VERSION + 1)
+      expect(planned.characterUpdate?.sheetState?.itemUsage).toEqual([
+        { itemInstanceId: ITEM_ID, used: 4 }
+      ])
+      expect(planned.characterUpdate?.character.state.equipment.inventory).toEqual(
+        withItem(2, 3).character.state.equipment.inventory
+      )
+    })
+
+    it('refuses a consumption planned against another quantity or usage', () => {
+      expect(() => plan(withItem(2, 3), consumption(3, 3))).toThrow(
+        'Encounter Character item consumption is stale.'
+      )
+      expect(() => plan(withItem(2, 3), consumption(2, 2))).toThrow(
+        'Encounter Character item consumption is stale.'
+      )
+    })
+  })
 })
 
 describe('0 hit points (D63)', () => {

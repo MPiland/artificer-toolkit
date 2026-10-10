@@ -265,6 +265,42 @@ export type CharacterItemUseStateTransitionDto = z.infer<
   typeof characterItemUseStateTransitionDtoSchema
 >
 
+/** One single-use item used up by an Assisted action: the holder's quantity falls by one. */
+export type CharacterItemConsumptionReceiptDto = {
+  characterId: string
+  itemInstanceId: string
+  beforeUsed: number
+  afterUsed: number
+  beforeQuantity: number
+  afterQuantity: number
+}
+export const characterItemConsumptionFieldsSchema = lazySchema(() =>
+  z.strictObject({
+    characterId: uuidSchema,
+    itemInstanceId: uuidSchema,
+    beforeUsed: nonNegativeIntegerSchema,
+    afterUsed: positiveIntegerSchema,
+    beforeQuantity: positiveIntegerSchema,
+    afterQuantity: nonNegativeIntegerSchema
+  })
+)
+// Named so the receipt unions that embed it stay under the compiler's declaration size limit.
+export const characterItemConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterItemConsumptionReceiptDto> =
+  lazySchema(() =>
+    characterItemConsumptionFieldsSchema.check(
+      z.superRefine((value, context) => {
+        if (
+          value.afterUsed !== value.beforeUsed + 1 ||
+          value.afterQuantity !== value.beforeQuantity - 1
+        )
+          context.addIssue({
+            code: 'custom',
+            message: 'An item consumption uses exactly one item.'
+          })
+      })
+    )
+  )
+
 /** One action-economy allowance use. An overridden ("Do it anyway") use may exceed the maximum. */
 export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
   z
@@ -328,6 +364,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         z.nullable(characterItemUseStateTransitionDtoSchema),
         null
       ),
+      sourceItemConsumption: z._default(z.nullable(characterItemConsumptionReceiptDtoSchema), null),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
@@ -633,6 +670,16 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             path: ['sourceItemUseStateTransition'],
             message: 'Source item state transition must match the source Character version.'
           })
+        const consumption = value.sourceItemConsumption
+        if (
+          consumption &&
+          (value.sourceCharacterId == null || consumption.characterId !== value.sourceCharacterId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceItemConsumption'],
+            message: 'Item consumption must match the source Character.'
+          })
         const sourceMaintenanceMutation =
           value.sourceCharacterId != null &&
           (maintenance?.characterOwnerTransitions.some(
@@ -641,7 +688,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             false)
         if (
           (value.sourceCharacterStreamVersion === null) !==
-          !(resource !== null || stow !== null || sourceMaintenanceMutation)
+          !(resource !== null || stow !== null || consumption !== null || sourceMaintenanceMutation)
         )
           context.addIssue({
             code: 'custom',
