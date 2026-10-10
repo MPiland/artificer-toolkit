@@ -11,6 +11,18 @@ type RuleRollRoller = Pick<
 >
 
 /**
+ * `roller` as its card is routed when the roll's caster perceives it or not. A creature an area's
+ * caster cannot perceive rolls as a hidden one does (D62): its card is the GM's alone and never
+ * reaches a table that includes the caster.
+ */
+export function rollerAsPerceivedByCaster<Roller extends RuleRollRoller>(
+  roller: Roller,
+  perceivedByCaster: boolean
+): Roller {
+  return perceivedByCaster ? roller : { ...roller, public: false }
+}
+
+/**
  * Where a rule roll's card goes and who authors it (Q14, D83). A hidden actor's roll is always
  * private (D62), so a table never learns it exists. Otherwise a player-controlled actor's roll is
  * the table's, and a GM-controlled actor's roll follows the Public/Private choice the owner's

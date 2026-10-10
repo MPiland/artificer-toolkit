@@ -67,6 +67,25 @@ function areaTargets(context: EncounterAreaActionPendingContextDto) {
   })
 }
 
+/**
+ * Whether the caster of the pending area `occurrenceId` perceives `actorId`, as sealed when the area
+ * opened. True for anything that is not a creature of a pending area.
+ */
+export async function readAreaTargetPerceivedByCaster(
+  ctx: EncounterReadContext,
+  occurrenceId: string,
+  actorId: string
+) {
+  const occurrence = await ctx.db
+    .query('encounterRuleOccurrences')
+    .withIndex('by_publicId', (q) => q.eq('id', occurrenceId))
+    .unique()
+  const snapshot =
+    occurrence?.state === 'PENDING' ? await readPendingSnapshot(ctx, occurrence) : null
+  const context = snapshot && areaActionPendingContext(snapshot)
+  return context?.targets.find((target) => target.actorId === actorId)?.perceivedByCaster ?? true
+}
+
 /** Reads the sealed area root and checks it against its occurrence and root command. */
 export async function readNativeAreaActionPending(
   ctx: EncounterReadContext,

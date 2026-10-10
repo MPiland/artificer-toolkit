@@ -171,7 +171,7 @@
 2. **5d-ii** done (`a5e97b3d1`): last-creature removal commits the area; spend-only areas commit; LR binding tightened; commit-time refusal and Character-caster tests added.
 3. **5e** done (`977392a4b`). The web UI does not render `caught`, `issuerLines` or `gmLines` yet (web round). 5h must document the `ISSUER` timeline audience in `docs/architecture/live-sessions.md` and D103.
 4. **5f** moved to SPELLS-8.4: no Character spell reaches `RESOLVE_ACTION` yet (see its ledger note). SPELLS-7 proves areas with Creature casters.
-5. **5g** The Fireball room journey in `apps/session-worker/test/`: the caster, an ally the GM removes, saves answered out of order, an unperceived creature, then undo.
+5. **5g** done: `apps/session-worker/test/nativeRoomAreaJourney.test.ts` (Creature caster). An area save card of a creature the caster cannot perceive is GM-private (`rollerAsPerceivedByCaster` in `ruleRollCards.ts`); the player who rolled it gets no card yet (ATTACK-17.5).
 6. **5h**
    - Record D103 in `phase-08-2-decisions.md`, covering:
      - the atomic occurrence and the frozen damage;

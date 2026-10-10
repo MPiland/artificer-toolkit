@@ -36,6 +36,7 @@ import { completeActionOccurrence, recordActionRoot } from './actionCommitRecord
 import { settleActionSourceSpend, sourceSpendMutation } from './actionSourceSpend.js'
 import { actionSystemRollAnswers, readAppCardedDice } from './appCardedDice.js'
 import { recordActionRollCards, settledD20s } from './actionRollCards.js'
+import { rollerAsPerceivedByCaster } from './ruleRollCards.js'
 import type {
   bindEncounterConcentrationApplications,
   persistEncounterConcentrationChildren
@@ -476,7 +477,10 @@ export async function persistEncounterAreaCommit(
       batch: index === 0 ? batch : { ...batch, applications: [] },
       actionLabel,
       source,
-      target: actor,
+      target: rollerAsPerceivedByCaster(
+        actor,
+        context.targets.find((target) => target.actorId === actor.id)?.perceivedByCaster ?? true
+      ),
       initiatorUserId,
       visibility: command.visibility,
       createdAt: input.occurredAt,

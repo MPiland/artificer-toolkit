@@ -24,7 +24,8 @@ import { readRunActor, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingRunDecision } from './pendingReads.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
-import { recordRuleRollCard } from './ruleRollCards.js'
+import { readAreaTargetPerceivedByCaster } from './actionAreaPending.js'
+import { recordRuleRollCard, rollerAsPerceivedByCaster } from './ruleRollCards.js'
 import { requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type {
@@ -258,7 +259,12 @@ export async function rollEncounterRuleEvidence(
     const card = await recordRuleRollCard(ctx, {
       campaign,
       encounterId: run.id,
-      roller,
+      roller:
+        roller &&
+        rollerAsPerceivedByCaster(
+          roller,
+          await readAreaTargetPerceivedByCaster(ctx, input.occurrenceId, roller.id)
+        ),
       initiatorUserId: userId,
       visibility: input.visibility,
       clientNonce: input.commandId,

@@ -4681,6 +4681,14 @@
               "origin": [],
               "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
               "id": "ATTACK-17.4"
+            },
+            {
+              "text": "A player who rolls for a creature whose roll card is kept from the table (a hidden actor, or an area save of a creature the caster cannot perceive) still sees their own roll card; the table and the caster do not.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-10 in SPELLS-7 slice 5g: roll cards are TABLE or GM-private only (D62; evidenceRolls.ts never returns a private card to a player), so the player who presses Roll dice for such a creature gets no card. Needs a per-user roll-card audience, like the ISSUER timeline audience from SPELLS-7 slice 5e (rollerAsPerceivedByCaster in packages/encounter-persistence/src/ruleRollCards.ts is the area rule's one routing point).",
+              "id": "ATTACK-17.5"
             }
           ]
         }

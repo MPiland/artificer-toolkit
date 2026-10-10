@@ -16,9 +16,9 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { legendaryWolf, plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, fireballWolf } from './actionRoomFixture.js'
+import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
-  parseReceiptExecution,
   readPendingActionDecision,
   readPendingAreaChoices,
   readPendingAreaForViewer,
@@ -744,54 +744,11 @@ async function answerAllSaves(room: AnyAreaRoom, faces: Record<string, number> =
   }
 }
 
-/** The settled receipts of the area root and of each target under it, in commit order. */
-function areaReceipts(history: RoomHistory) {
-  const executions = history.receipts.map((receipt) => ({
-    receipt,
-    execution: parseReceiptExecution(receipt)
-  }))
-  return {
-    roots: executions.flatMap(({ receipt, execution }) =>
-      receipt.commandType === 'RESOLVE_ACTION' &&
-      execution.status === 'AGGREGATE_CHOICE_COMPLETE' &&
-      execution.applicationOutputs.kind === 'ENCOUNTER_AREA_ACTION'
-        ? [{ receipt, outputs: execution.applicationOutputs }]
-        : []
-    ),
-    children: executions.flatMap(({ receipt, execution }) =>
-      execution.status === 'COMPLETE' &&
-      (execution.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
-        execution.applicationOutputs.kind === 'CHARACTER_MECHANICS_BATCH')
-        ? [{ receipt, outputs: execution.applicationOutputs }]
-        : []
-    )
-  }
-}
-
 /** The rows without the stamp a write refreshes, so two reads of the same state compare equal. */
 const unstamped = (rows: readonly object[]) =>
   rows.map((row) => {
     const { updatedAt: _updatedAt, _creationTime, ...rest } = row as Record<string, unknown>
     return rest
-  })
-/** What an area changes of each actor: its hit points, conditions and spent Rule usage. */
-const vitalsOf = (history: RoomHistory) =>
-  history.actors.map((row) => {
-    const state = JSON.parse(row.stateJson) as {
-      currentHitPoints?: number
-      tempHitPoints?: number
-      conditions?: unknown
-      defeated?: boolean
-      resources: { ruleUsage?: Record<string, number> }
-    }
-    return {
-      id: row.id,
-      currentHitPoints: state.currentHitPoints,
-      tempHitPoints: state.tempHitPoints,
-      conditions: state.conditions,
-      defeated: state.defeated,
-      spent: Object.entries(state.resources.ruleUsage ?? {}).filter(([, used]) => used !== 0)
-    }
   })
 const rowsOf = (history: RoomHistory, id: string) =>
   unstamped(history.actors.filter((row) => row.id === id))
@@ -1673,6 +1630,41 @@ describe('room area perception for the caster', () => {
     )
     expect(removed.type, JSON.stringify(removed)).toBe('COMMAND_COMMITTED')
     expect((await playerView(room, [CASTER_ID]))?.caught).toEqual(['Wolf', 'Wolf'])
+  })
+
+  describe('the roll cards', () => {
+    const tableCards = async (room: Room) =>
+      (await readRoomRollCards(room.room.base.stub)).filter((card) => card.audience === 'TABLE')
+    const privateCards = async (room: Room) =>
+      (await readRoomRollCards(room.room.base.stub)).filter((card) => card.audience === 'PRIVATE')
+
+    it('keeps an unperceived creature’s save card off the table and in the GM’s private history', async () => {
+      const room = await perceptionRoom()
+      await answerAllSaves(room)
+      expect(JSON.stringify(await tableCards(room))).not.toContain('Phantom')
+      expect(JSON.stringify(await tableCards(room))).toContain('Wolf')
+      expect(JSON.stringify(await privateCards(room))).toContain('Phantom Wolf')
+    })
+
+    it('keeps the card of an unperceived creature’s save rolled by the app off the table', async () => {
+      const room = await perceptionRoom()
+      const decision = await room.pendingDecision()
+      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+      const save = decision.pending.saves.find((entry) => entry.actorId === PHANTOM_ID)!
+      const rolled = await room.send({
+        type: 'ROLL_RULE_EVIDENCE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: decision.encounterVersion,
+        occurrenceId: decision.occurrence.id,
+        expectedOccurrenceVersion: decision.occurrence.version,
+        requestId: save.request.requestId,
+        rollMode: null
+      })
+      expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+      expect(JSON.stringify(await tableCards(room))).not.toContain('Phantom')
+      expect(JSON.stringify(await privateCards(room))).toContain('Phantom Wolf')
+    })
   })
 
   describe('the results the caster keeps', () => {
