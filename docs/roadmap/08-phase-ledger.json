@@ -4402,15 +4402,22 @@
           "acs": [
             {
               "text": "Invisible and unseen attackers and targets grant advantage or disadvantage in RESOLVE_ACTION, and Dodge checks sight.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
                 "apps/apis/convex/encounters/basicActions.test.ts",
                 "apps/apis/convex/encounters/actionCommands.test.ts",
-                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
+                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackBelief.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterActionAttackBelief.test.ts",
+                "packages/schema/src/__tests__/attack-d20-belief-contracts.test.ts",
+                "apps/web/src/components/dice/dice.utils.test.ts",
+                "apps/web/src/components/dice/DiceRollPresentation.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignChatHistory.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx"
               ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2. User ruling 2026-10-09 (no metagaming): room-side Scene perception is approved, but a player never learns facts their Character wouldn't know. Final ruling (same day): before commit the prompt shows only the believed mode (facts the Character knows) and the player rolls for it; on commit the true mode applies (a cancelled die is marked, and a missing die is rolled by the app or asked for in manual), and the player card says generically why ('Advantage cancelled: the target can sense you'), never naming the Sense; the GM sees the specific reason. The animated cancel/new-die treatment is ENCOUNTER-8. Not proved yet, so this AC stays open.",
+              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2. User ruling 2026-10-09 (no metagaming): room-side Scene perception is approved, but a player never learns facts their Character wouldn't know. Final ruling (same day): before commit the prompt shows only the believed mode (facts the Character knows) and the player rolls for it; on commit the true mode applies (a cancelled die is marked, and a missing die is rolled by the app or asked for in manual), and the player card says generically why ('Advantage cancelled: the target can sense you'), never naming the Sense; the GM sees the specific reason. The animated cancel/new-die treatment is ENCOUNTER-8. Built 2026-10-09 on claude/priceless-carson-0bbcd9 (01ea0db46): a chosen mode can no longer beat the true mode when sight decides the roll, at commit and on replay. Closed 2026-10-10 on the merged tree: gate green, pk 560/755/76, nt 454, wt 322, Convex encounters 505/505 (stale snapshots updated for SPELLS fields; command-result projections fixed to include Concentration and active grants).",
               "id": "ATTACK-10.1"
             },
             {
@@ -4438,11 +4445,11 @@
               "id": "ATTACK-10.4"
             },
             {
-              "text": "Saving throws a player makes against effects from creatures they can't see follow the ATTACK-10.1 reason rule: the mode and dice show as usual, but a player-visible reason never names a hidden fact, and the GM sees the full reason.",
+              "text": "Saving throws follow the ATTACK-10.1 rule: the roller's prompt shows only what their Character knows, the save settles in the true mode, a player-visible reason never names a hidden fact, and the GM sees the full reason.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-09: the user chose attacks first, saves as a follow-up.",
+              "note": "Registered 2026-10-09 (D100 believed vs true mode): the user chose attacks first, saves as a follow-up.",
               "id": "ATTACK-10.5"
             }
           ]

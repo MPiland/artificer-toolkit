@@ -14,15 +14,12 @@ import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/proje
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/concentrationIdentity'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { readEncounterCharacterStates } from './characterStates.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
-import { readEncounterGmProjection } from './nativeProjection.js'
+import { projectNativeGm, readEncounterGmProjection } from './nativeProjection.js'
 import {
   persistNativeConcentrationResult,
   insertNativeCleavingChoice
@@ -291,16 +288,7 @@ export async function persistEncounterConcentrationResponse(
     throw new Error('Live Session concentration projection scope mismatch.')
   const projection =
     commitFailed && rules
-      ? projectCurrentEncounterGm({
-          state: nextState,
-          actors,
-          rules,
-          initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-            encounterId: state.id,
-            round: state.round
-          }),
-          characterStates: await readEncounterCharacterStates(ctx, nextState, actors)
-        })
+      ? await projectNativeGm(ctx, nextState, actors, rules)
       : await readEncounterGmProjection(ctx, nextState)
   const result = encounterCommandResultDtoSchema.parse({
     projection,

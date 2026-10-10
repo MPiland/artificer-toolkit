@@ -23,13 +23,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterCleavingFacts'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readCleavingResponseAdmission } from './cleavingResponseAdmission.js'
 import { insertNativeCleavingChoice } from './actionChildPersistence.js'
-import { readEncounterCharacterStates } from './characterStates.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
+import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -209,16 +207,7 @@ export async function persistEncounterCleavingResponse(
     concentrationEnds: input.concentrationEnds,
     pendingConcentration: input.pendingConcentration
   })
-  const projection = projectCurrentEncounterGm({
-    state: nextState,
-    actors: nextActors,
-    rules: input.rules,
-    initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-      encounterId: state.id,
-      round: state.round
-    }),
-    characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
-  })
+  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

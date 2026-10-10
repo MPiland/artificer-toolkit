@@ -22,18 +22,16 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readNativeDisarmPending } from './actionDisarmPending.js'
 import { settleDisarm } from './disarmSettlement.js'
 import { nativeActionPendingResult } from './actionPending.js'
-import { readEncounterCharacterStates } from './characterStates.js'
 import { readDisarmAdmission } from './disarmAdmission.js'
 import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { changedFields, readRunActors } from './documents.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
+import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -239,16 +237,7 @@ export async function persistEncounterDisarmCommit(
     version: state.version + 1,
     updatedAt: occurredAt
   })
-  const projection = projectCurrentEncounterGm({
-    state: nextState,
-    actors: nextActors,
-    rules: input.rules,
-    initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-      encounterId: state.id,
-      round: state.round
-    }),
-    characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
-  })
+  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

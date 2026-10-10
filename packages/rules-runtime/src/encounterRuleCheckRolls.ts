@@ -10,8 +10,8 @@ import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/
 const ruleCheckRollNamespace = '6b1f0c7e-3d2a-4f5b-9c8e-1a2b3c4d5e6f'
 
 /** One settled rule check's log identity: its occurrence plus the check's index within it. */
-function ruleCheckRollId(occurrenceId: string, checkIndex: number) {
-  return uuidv5(`${occurrenceId}:${checkIndex}:rule-check-roll`, ruleCheckRollNamespace)
+function ruleCheckRollId(occurrenceId: string, checkIndex: number, scope = 'rule-check-roll') {
+  return uuidv5(`${occurrenceId}:${checkIndex}:${scope}`, ruleCheckRollNamespace)
 }
 
 /**
@@ -67,6 +67,10 @@ export function concentrationCheckRollRecord(input: {
  * The roll-log record of one d20 an action rolled, from its recorded faces. An attack rolls for the
  * source; a save (`ON_SAVE_*`) rolls for the target. Damage has its own total-only record
  * ({@link actionDamageRollRecord}).
+ *
+ * A d20 the server settled in another mode than it was rolled for (ATTACK-10.1) lists every die,
+ * rolled then added, with the cancelled ones marked and the kept one indexed. `reader` picks the
+ * caption: the player's generic one, or the GM's specific reason, which is a distinct card.
  */
 export function actionD20RollRecord(input: {
   occurrenceId: string
@@ -76,6 +80,7 @@ export function actionD20RollRecord(input: {
   rollerLabel: string
   ruleset: RollRecordDto['ruleset']
   createdAt: string
+  reader: 'PLAYER' | 'GM'
 }): RollRecordDto {
   const { d20 } = input
   const faces = [...d20.rawFaces]
@@ -89,9 +94,34 @@ export function actionD20RollRecord(input: {
   if (evaluated.evidence.total !== d20.total)
     throw new Error('The action roll record does not match its evidence.')
   const isSave = d20.resultPath.startsWith('ON_SAVE_')
+  const adjustment = d20.modeAdjustment
+  const dice = adjustment ? [...adjustment.rolledFaces, ...adjustment.addedFaces] : []
+  const standing = dice.flatMap((_, index) =>
+    adjustment?.cancelledRollIndexes.includes(index) ? [] : [index]
+  )
+  const term = evaluated.evidence.terms[0]!
   return rollRecordDtoSchema.parse({
-    id: ruleCheckRollId(input.occurrenceId, input.checkIndex),
+    id: ruleCheckRollId(
+      input.occurrenceId,
+      input.checkIndex,
+      adjustment && input.reader === 'GM' ? 'rule-check-roll-gm' : undefined
+    ),
     ...evaluated,
+    ...(adjustment
+      ? {
+          evidence: {
+            ...evaluated.evidence,
+            terms: [
+              {
+                ...term,
+                count: dice.length,
+                rolls: dice,
+                keptRollIndex: standing[term.keptRollIndex ?? 0]
+              }
+            ]
+          }
+        }
+      : {}),
     characterId: null,
     characterLabel: input.rollerLabel,
     source: {
@@ -99,7 +129,19 @@ export function actionD20RollRecord(input: {
       label: (isSave ? `${input.actionLabel} save` : input.actionLabel).slice(0, 80)
     },
     ruleset: input.ruleset,
-    createdAt: input.createdAt
+    createdAt: input.createdAt,
+    ...(adjustment
+      ? {
+          ruleCheck: {
+            kind: 'D20_MODE_ADJUSTED',
+            rolledMode: adjustment.rolledMode,
+            appliedMode: d20.rollMode,
+            cancelledRollIndexes: adjustment.cancelledRollIndexes,
+            addedRollIndexes: adjustment.addedRollIndexes,
+            caption: input.reader === 'GM' ? adjustment.gmReason : adjustment.playerCaption
+          }
+        }
+      : {})
   })
 }
 

@@ -11,6 +11,18 @@ export function CampaignRuleCheckRoll({
   evidence: RollRecordDto['evidence']
   ruleCheck: RollRuleCheckDto
 }) {
+  if (ruleCheck.kind === 'D20_MODE_ADJUSTED') {
+    return (
+      <div>
+        <Text>
+          Rolled <strong>{evidence.total}</strong>
+        </Text>
+        <Text c='dimmed' size='xs'>
+          {formatRollEvidence(evidence, ruleCheck)}
+        </Text>
+      </div>
+    )
+  }
   return (
     <div aria-label={`Concentration check for ${ruleCheck.actorLabel}`}>
       <Text size='sm'>Concentration check: {concentrationTriggerText(ruleCheck)}</Text>

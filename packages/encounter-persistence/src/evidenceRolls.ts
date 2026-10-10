@@ -140,6 +140,9 @@ async function admitEvidenceRoll(
   if (!derivedRollMode && input.rollMode !== null)
     throw new Error('Only a d20 roll takes a roll mode.')
   const rollMode = derivedRollMode ? (input.rollMode ?? derivedRollMode) : null
+  // A held d20 is completed by exactly one more die; the server settles the true mode from it.
+  if ('heldD20' in request && request.heldD20 && rollMode !== 'NORMAL')
+    throw new Error('A held d20 takes one Normal die.')
   return {
     kind: 'ROLL' as const,
     input,

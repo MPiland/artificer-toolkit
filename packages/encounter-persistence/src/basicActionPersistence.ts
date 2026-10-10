@@ -25,14 +25,12 @@ import {
   requireEncounterBasicActionDefinition,
   withEncounterBasicActionEffects
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { readBasicActionAdmission } from './basicActionAdmission.js'
 import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
-import { readEncounterCharacterStates } from './characterStates.js'
 import { readRunActors, replaceRunActor } from './documents.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
+import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -173,16 +171,7 @@ export async function persistEncounterBasicAction(
         occurredAt: input.occurredAt
       })
     : null
-  const projection = projectCurrentEncounterGm({
-    state: nextState,
-    actors: nextActors,
-    rules: input.rules,
-    initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-      encounterId: state.id,
-      round: state.round
-    }),
-    characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
-  })
+  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

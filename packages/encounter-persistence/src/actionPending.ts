@@ -71,9 +71,15 @@ export async function canAnswerNativeActionEvidence(
 
 type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
+/**
+ * The pending summary one viewer reads. The campaign owner sees the d20's true mode and reasons;
+ * everyone else sees what the roller's own facts imply, and a held die with its player caption
+ * (ATTACK-10.1). Nothing a player reads carries a GM reason.
+ */
 export function projectNativeActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   { snapshot, context }: Pick<NativeActionPending, 'snapshot' | 'context'>,
+  isOwner: boolean,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto {
   const common = {
@@ -91,7 +97,25 @@ export function projectNativeActionPending(
     : context.d20Policy
   if (context.contest && (!d20Policy || snapshot.request.min !== 1 || snapshot.request.max !== 20))
     throw new Error('Stored Disarm evidence request is invalid.')
-  return d20Policy
+  if (d20Policy && context.heldD20)
+    return {
+      ...common,
+      kind: 'D20_EVIDENCE',
+      request: {
+        requestId: snapshot.request.requestId,
+        min: 1,
+        max: 20,
+        rollMode: 'NORMAL',
+        derivedRollModeReasons: [],
+        heldD20: {
+          faces: context.heldD20.faces,
+          caption: isOwner ? context.heldD20.gmReason : context.heldD20.playerCaption
+        }
+      },
+      allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+    }
+  const shown = d20Policy && !isOwner && context.d20Belief ? context.d20Belief : d20Policy
+  return shown
     ? {
         ...common,
         kind: 'D20_EVIDENCE',
@@ -99,10 +123,10 @@ export function projectNativeActionPending(
           requestId: snapshot.request.requestId,
           min: 1,
           max: 20,
-          rollMode: d20Policy.rollMode,
+          rollMode: shown.rollMode,
           derivedRollModeReasons: reasons({
-            rollMode: d20Policy.rollMode,
-            contributors: d20Policy.contributors
+            rollMode: shown.rollMode,
+            contributors: shown.contributors
           })
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
@@ -139,7 +163,8 @@ export async function nativeActionPendingResult(
       status: 'PENDING',
       pending: projectNativeActionPending(
         occurrence,
-        await readNativeActionPending(ctx, occurrence)
+        await readNativeActionPending(ctx, occurrence),
+        true
       )
     }
   })

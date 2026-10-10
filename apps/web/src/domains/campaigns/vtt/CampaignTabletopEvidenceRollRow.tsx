@@ -39,6 +39,8 @@ export function CampaignTabletopEvidenceRollRow({
 }) {
   const { request } = pending
   const derivedMode = pending.kind === 'D20_EVIDENCE' ? pending.request.rollMode : null
+  // The d20 already entered while the server waits for one more; the request then rolls Normal.
+  const heldD20 = pending.kind === 'D20_EVIDENCE' ? pending.request.heldD20 : undefined
   // Why the rules recommend the mode, e.g. "Flanking"; empty for a normal roll.
   const derivedReasons =
     pending.kind === 'D20_EVIDENCE' ? pending.request.derivedRollModeReasons : []
@@ -94,7 +96,19 @@ export function CampaignTabletopEvidenceRollRow({
 
   return (
     <Stack gap='sm'>
-      {derivedMode && rollMode ? (
+      {heldD20 ? (
+        <div>
+          <Text fw={600} size='sm'>
+            Die 1: {heldD20.faces[0]}
+          </Text>
+          {heldD20.caption ? (
+            <Text c='dimmed' size='xs'>
+              {heldD20.caption}
+            </Text>
+          ) : null}
+        </div>
+      ) : null}
+      {derivedMode && rollMode && !heldD20 ? (
         <div>
           <SegmentedControl
             aria-label='Roll mode'
@@ -129,7 +143,7 @@ export function CampaignTabletopEvidenceRollRow({
             disabled={disabled}
             flex={1}
             key={index}
-            label={rollMode === null ? 'Result' : `Die ${index + 1}`}
+            label={heldD20 ? 'One more d20' : rollMode === null ? 'Result' : `Die ${index + 1}`}
             max={request.max}
             min={request.min}
             value={value}

@@ -14,9 +14,10 @@ import {
   buildCompiledActionTargetPolicy
 } from './encounterActionEntryPointCompiler.js'
 import { creatureActiveGrantAttackContributors } from './encounterActiveGrants.js'
+import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import { StaleCharacterActionError } from './encounterErrors.js'
 import {
-  encounterAttackPerceptionContributors,
+  encounterAttackSightContributors,
   type EncounterAttackPerception
 } from './encounterAttackPerception.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
@@ -138,7 +139,7 @@ export async function prepareEncounterActionMechanics<
   loadAttackPerception?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
     targetFacts: MovementTarget<TCharacterFacts>
-  }) => Promise<EncounterAttackPerception>
+  }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
   loadSource: (
     input: Omit<EncounterActionSourceInput, 'system'>
   ) => Promise<NativeEncounterActionSource>
@@ -321,10 +322,23 @@ export async function prepareEncounterActionMechanics<
     targetPolicy,
     sceneContext: input.sceneContext ?? null
   })
-  const attackPerception =
+  const perception =
     attackKind !== null && input.loadAttackPerception
       ? await input.loadAttackPerception({ sourceFacts, targetFacts })
       : null
+  const attackSight: EncounterPreparedAttackSight | null = perception && {
+    ...perception,
+    trueSight: encounterAttackSightContributors({
+      perception: perception.actual,
+      dodgeContributors: targetFacts.basicActionAttackContributors
+    }),
+    believedSight: encounterAttackSightContributors({
+      perception: perception.believed,
+      dodgeContributors: targetFacts.basicActionAttackContributors
+    }),
+    attackerLabel: actor.label,
+    targetLabel: target.label
+  }
   const conditionAttack = {
     melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
     sceneContext: input.sceneContext ?? null
@@ -341,11 +355,8 @@ export async function prepareEncounterActionMechanics<
       actionEffectId:
         source.kind === 'CHARACTER_ACTION' ? source.candidate.effectId : source.capability.effectId
     }),
-    attackPerception?.targetSeesAttacker === 'UNSEEN'
-      ? []
-      : targetFacts.basicActionAttackContributors,
+    attackSight ? attackSight.trueSight : targetFacts.basicActionAttackContributors,
     longRange ? [longRange] : [],
-    attackPerception ? encounterAttackPerceptionContributors(attackPerception) : [],
     attackKind === null
       ? []
       : encounterConditionAttackContributors({
@@ -368,6 +379,7 @@ export async function prepareEncounterActionMechanics<
     adapter,
     targetPolicy,
     makesAttackRoll: attackKind !== null,
+    attackSight,
     plan,
     characterActionState,
     acceptedWieldConflict,

@@ -126,7 +126,8 @@ export function nestedOutcomeD20Policy(input: {
 
 /**
  * Binds raw d20 faces to the completed kernel trace without exposing client arithmetic. `rollMode`
- * is the mode the faces were rolled with; the policy keeps the rules-derived one.
+ * is the mode the faces were settled with (the applied mode when `modeAdjustment` is set); the
+ * policy keeps the rules-derived one.
  */
 export function buildEncounterActionD20Evidence(input: {
   execution: ServerCompletedRuleExecutionDto
@@ -134,6 +135,7 @@ export function buildEncounterActionD20Evidence(input: {
   requestId: string
   faces: readonly number[]
   rollMode: EncounterD20RollMode
+  modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
 }): ServerRuleExecutionD20EvidenceDto {
   const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
   const trace = input.execution.evidence.trace.find(
@@ -154,7 +156,8 @@ export function buildEncounterActionD20Evidence(input: {
     modifier: input.policy.modifier,
     total: natural + input.policy.modifier,
     defenseOrDc: input.policy.dc,
-    resultPath
+    resultPath,
+    ...(input.modeAdjustment ? { modeAdjustment: input.modeAdjustment } : {})
   })
 }
 

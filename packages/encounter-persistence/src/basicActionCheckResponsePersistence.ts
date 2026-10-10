@@ -17,12 +17,10 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { readBasicActionCheckResponseAdmission } from './basicActionCheckAdmission.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
-import { readEncounterCharacterStates } from './characterStates.js'
 import { changedFields, readRunActors } from './documents.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
+import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -100,16 +98,7 @@ export async function persistEncounterBasicActionResponse(
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
-  const projection = projectCurrentEncounterGm({
-    state: nextState,
-    actors: settled.actors,
-    rules: input.rules,
-    initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-      encounterId: state.id,
-      round: state.round
-    }),
-    characterStates: await readEncounterCharacterStates(ctx, nextState, settled.actors)
-  })
+  const projection = await projectNativeGm(ctx, nextState, settled.actors, input.rules)
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,

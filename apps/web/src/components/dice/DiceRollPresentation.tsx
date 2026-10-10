@@ -1,40 +1,64 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
-import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
-import { formatRollEvidence, getVisualDiceCount, MAX_3D_DICE, supportsWebGL } from './dice.utils'
+import {
+  formatRollEvidence,
+  getVisualDiceCount,
+  MAX_3D_DICE,
+  supportsWebGL,
+  type DicePresentationRoll
+} from './dice.utils'
 import { DiceCanvasErrorBoundary } from './DiceCanvasErrorBoundary'
 import * as diceStyles from './dice.css'
 
 const DiceCanvas = lazy(() => import('./DiceCanvas'))
 const DICE_LOAD_TIMEOUT_MS = 10_000
 
-function StaticDiceResult({ roll }: { roll: RollResultDto }) {
+function StaticDiceResult({ roll }: { roll: DicePresentationRoll }) {
+  const adjustment = roll.ruleCheck?.kind === 'D20_MODE_ADJUSTED' ? roll.ruleCheck : undefined
   return (
     <div className={diceStyles.staticDiceOverlay} aria-live='polite'>
       <div className={diceStyles.staticDiceList}>
         {roll.evidence.terms.flatMap((term, termIndex) =>
           term.rolls.map((value, rollIndex) => {
+            const cancelled = Boolean(adjustment?.cancelledRollIndexes.includes(rollIndex))
+            const added = Boolean(adjustment?.addedRollIndexes.includes(rollIndex))
             const kept = term.keptRollIndexes
               ? term.keptRollIndexes.includes(rollIndex)
               : term.keptRollIndex == null || term.keptRollIndex === rollIndex
             return (
               <span
                 className={diceStyles.staticDie}
-                data-kept={kept ? 'true' : undefined}
+                data-cancelled={cancelled ? 'true' : undefined}
+                data-kept={kept && !cancelled ? 'true' : undefined}
                 key={`${termIndex}:${rollIndex}`}
               >
                 <small>
                   d{term.die}
-                  {term.keptRollIndex == null ? '' : kept ? ' · kept' : ' · dropped'}
+                  {cancelled
+                    ? ''
+                    : term.keptRollIndex == null
+                      ? ''
+                      : kept
+                        ? ' · kept'
+                        : ' · dropped'}
                   {term.keptRollIndexes ? (kept ? ' · kept' : ' · dropped') : ''}
                 </small>
                 <strong>{value}</strong>
+                {added ? <small>added</small> : null}
+                {cancelled ? (
+                  <span aria-label='cancelled' className={diceStyles.cancelledMark} role='img'>
+                    ✕
+                  </span>
+                ) : null}
               </span>
             )
           })
         )}
       </div>
+      {adjustment?.caption ? (
+        <span className={diceStyles.staticDiceCaption}>{adjustment.caption}</span>
+      ) : null}
       <div className={diceStyles.staticRollSummary}>
         <strong>Rolled {roll.evidence.total}</strong>
         <span>{formatRollEvidence(roll.evidence)}</span>
@@ -50,7 +74,7 @@ export function DiceRollPresentation({
 }: {
   onRollRevealed: (rollId: string) => void
   pending?: boolean
-  roll?: RollResultDto
+  roll?: DicePresentationRoll
 }) {
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)

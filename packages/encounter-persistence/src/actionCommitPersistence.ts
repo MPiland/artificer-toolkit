@@ -28,7 +28,6 @@ import {
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
@@ -36,8 +35,7 @@ import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { changedFields, readRunActors, writeRunActor } from './documents.js'
 import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
-import { readEncounterCharacterStates } from './characterStates.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
+import { projectNativeGm } from './nativeProjection.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -379,16 +377,7 @@ export async function persistEncounterActionCommit(
     userId,
     authorizedCharacterIds: characterIds
   })
-  const projection = projectCurrentEncounterGm({
-    state: nextState,
-    actors: nextActors,
-    rules: input.rules,
-    initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-      encounterId: state.id,
-      round: state.round
-    }),
-    characterStates: await readEncounterCharacterStates(ctx, nextState, nextActors)
-  })
+  const projection = await projectNativeGm(ctx, nextState, nextActors, input.rules)
   // Each d20 the action rolled gets a chat card: an attack is the source's, a save the target's.
   await recordActionRollCards(ctx, {
     campaign,

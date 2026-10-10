@@ -14,6 +14,7 @@ import { rangeDtoSchema } from './range.js'
 import {
   canonicalConcentrationContributorsDtoSchema,
   serverRuleExecutionD20EvidenceDtoSchema,
+  serverRuleExecutionD20ModeAdjustmentDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema,
   serverRuleExecutionNestedD20EvidenceDtoSchema
 } from './ruleExecutionEvidence.js'
@@ -100,7 +101,9 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
             rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
             derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
             rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
-            selectedNatural: pendingD20FaceSchema
+            selectedNatural: pendingD20FaceSchema,
+            /** Set when the server settled the TEST d20 in a mode other than the one rolled (ATTACK-10.1). */
+            modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema)
           })
           .check(
             z.superRefine((value, context) => {

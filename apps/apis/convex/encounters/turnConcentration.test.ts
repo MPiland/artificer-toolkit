@@ -79,14 +79,18 @@ async function ruleCheckRolls(base: Fixture) {
   await checkpointLiveRoom(base.campaign.id)
   return base.t.run(async (ctx) => ({
     table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap((payload) =>
-      payload.roll?.ruleCheck ? [payload.roll] : []
+      payload.roll?.ruleCheck?.kind === 'CONCENTRATION'
+        ? [{ ...payload.roll, ruleCheck: payload.roll.ruleCheck }]
+        : []
     ),
     gm: (
       await ctx.db
         .query('userRollHistory')
         .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', base.owner.userId))
         .collect()
-    ).filter((roll) => roll.ruleCheck)
+    ).flatMap((roll) =>
+      roll.ruleCheck?.kind === 'CONCENTRATION' ? [{ ...roll, ruleCheck: roll.ruleCheck }] : []
+    )
   }))
 }
 

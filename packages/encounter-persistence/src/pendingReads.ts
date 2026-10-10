@@ -197,7 +197,7 @@ export async function readPendingRunDecision(
       return null
     const pending = await readNativeActionPending(ctx, occurrence)
     return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
-      projectNativeActionPending(occurrence, pending, reasons)
+      projectNativeActionPending(occurrence, pending, membership.role === 'OWNER', reasons)
     )
   }
   if (

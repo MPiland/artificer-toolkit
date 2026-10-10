@@ -15,7 +15,6 @@ import {
   legendaryActionDamage,
   nativeConcentrationDamageApplications
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import { projectCurrentEncounterGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -25,10 +24,10 @@ import type {
   concentrationMaintainedDamageApplicationDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { presentEncounterResultForMember } from './resultPresentation.js'
-import { readDeadCharacterIds, readEncounterCharacterStates } from './characterStates.js'
+import { readDeadCharacterIds } from './characterStates.js'
 import { readRunActors } from './documents.js'
 import { readNativeTurnSettlement } from './turnSettlement.js'
-import { readEncounterInitiativeRound } from './initiativeStore.js'
+import { projectNativeGm } from './nativeProjection.js'
 import { correctInitiativeCursor } from './initiativeCorrection.js'
 import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompletion.js'
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
@@ -309,16 +308,7 @@ export async function persistEncounterTurnCommit(
     concentrationEnds: input.concentrationEnds,
     pendingConcentration: input.pendingConcentration
   })
-  const nextProjection = projectCurrentEncounterGm({
-    state: nextState,
-    actors,
-    rules: input.rules,
-    initiativeRoundState: await readEncounterInitiativeRound(ctx, {
-      encounterId: state.id,
-      round: nextState.round
-    }),
-    characterStates: await readEncounterCharacterStates(ctx, nextState, actors)
-  })
+  const nextProjection = await projectNativeGm(ctx, nextState, actors, input.rules)
   const occurrenceId =
     admission.pending?.occurrence._id ??
     (await ctx.db.insert(

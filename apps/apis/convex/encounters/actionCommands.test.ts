@@ -2030,6 +2030,160 @@ describe('Assisted soft enforcement', () => {
     })
   }, 60000)
 
+  it('a player rolls the believed mode against a Blinded target; the server holds the die, settles the true Advantage, and cards it for the table and the GM (ATTACK-10.1)', async () => {
+    const base = await distanceSetup({ rolls: 'PROMPT' })
+    const blinded = srdSystemRecord.conditionTypes.find((value) => value.code === 'BLINDED')
+    if (!blinded) throw new Error('Missing Blinded condition fixture.')
+    await base.t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
+        campaignId: base.campaign.id,
+        userId: base.other.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: base.campaign.createdAt,
+        joinedAt: base.campaign.createdAt,
+        leftAt: null
+      })
+    )
+    await setAutoRollDice(base.t, base.other.userId, false)
+    const conditioned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        actorId: base.target.id,
+        conditions: [blinded.id]
+      }
+    })
+    const granted = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: conditioned.projection.version,
+        actorId: base.actor.id,
+        controllerUserIds: [base.other.userId]
+      }
+    })
+    const issued = await executeInRoom(base.other.caller, {
+      command: command({
+        encounterId: base.run.id,
+        expectedVersion: granted.projection.version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        sceneContext: {
+          sceneId: base.sceneId,
+          expectedSceneVersion: 0,
+          sourceTokenId: base.tokens[0]!.id,
+          targetTokenId: base.tokens[1]!.id
+        }
+      })
+    })
+    const prompt = issued.occurrence?.pending
+    if (!issued.occurrence || prompt?.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected the attack roll prompt.')
+    // The player is shown what their own facts imply; the GM is shown the truth.
+    expect(prompt.request).toMatchObject({ rollMode: 'NORMAL', derivedRollModeReasons: [] })
+    expect(await pendingFor(base, base.other.caller)).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: { rollMode: 'NORMAL', derivedRollModeReasons: [] }
+    })
+    expect(await pendingFor(base, base.owner.caller)).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Unseen attacker'] }
+    })
+
+    const answer = (
+      pending: { encounterVersion: number; occurrenceId: string; occurrenceVersion: number },
+      resolution: ResolveRuleOccurrenceInputDto['resolution']
+    ) =>
+      executeInRoom(base.other.caller, {
+        command: {
+          type: 'RESOLVE_RULE_OCCURRENCE',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: pending.encounterVersion,
+          correlationId: null,
+          occurrenceId: pending.occurrenceId,
+          expectedOccurrenceVersion: pending.occurrenceVersion,
+          resolution
+        }
+      })
+    // One Normal die is not enough for the true Advantage: the die is held and one more is asked.
+    const held = await answer(prompt, {
+      kind: 'ENTER_DICE',
+      requestId: prompt.request.requestId,
+      rawFaces: [9],
+      rollMode: 'NORMAL'
+    })
+    const heldPending = held.occurrence?.pending
+    if (heldPending?.kind !== 'D20_EVIDENCE') throw new Error('Expected the held d20.')
+    expect(heldPending.request).toMatchObject({
+      requestId: prompt.request.requestId,
+      rollMode: 'NORMAL',
+      heldD20: { faces: [9], caption: "Advantage: the target can't see you" }
+    })
+    expect(heldPending.occurrenceVersion).toBe(prompt.occurrenceVersion + 1)
+    const gmHeld = await pendingFor(base, base.owner.caller)
+    if (gmHeld?.kind !== 'D20_EVIDENCE') throw new Error('Expected the GM to see the held d20.')
+    const gmReason = gmHeld.request.heldD20?.caption
+    expect(gmReason).toEqual(expect.stringContaining("can't see"))
+    expect(gmReason).not.toBe(heldPending.request.heldD20?.caption)
+    expect(JSON.stringify(heldPending)).not.toContain(gmReason!)
+
+    let step = await answer(heldPending, {
+      kind: 'ENTER_DICE',
+      requestId: prompt.request.requestId,
+      rawFaces: [15],
+      rollMode: 'NORMAL'
+    })
+    for (let pending = step.occurrence?.pending; pending?.kind === 'ACTION_OUTCOME_EVIDENCE';) {
+      step = await answer(pending, {
+        kind: 'ENTER_INTEGER',
+        requestId: pending.request.requestId,
+        value: 1
+      })
+      pending = step.occurrence?.pending
+    }
+    expect(step.occurrence?.status).toBe('COMPLETE')
+
+    await checkpointLiveRoom(base.campaign.id)
+    const cards = await base.t.run(async (ctx) => ({
+      table: (await ctx.db.query('campaignConversationEntryPayloads').collect()).flatMap(
+        (payload) => (payload.roll?.ruleCheck?.kind === 'D20_MODE_ADJUSTED' ? [payload.roll] : [])
+      ),
+      gm: (
+        await ctx.db
+          .query('userRollHistory')
+          .withIndex('by_userId_createdAt_id', (q) => q.eq('userId', base.owner.userId))
+          .collect()
+      ).filter((roll) => roll.ruleCheck?.kind === 'D20_MODE_ADJUSTED')
+    }))
+    expect(cards.table).toHaveLength(1)
+    const [table] = cards.table
+    expect(table!.evidence).toMatchObject({
+      mode: 'ADVANTAGE',
+      terms: [{ rolls: [9, 15], keptRollIndex: 1 }]
+    })
+    expect(table!.ruleCheck).toEqual({
+      kind: 'D20_MODE_ADJUSTED',
+      rolledMode: 'NORMAL',
+      appliedMode: 'ADVANTAGE',
+      cancelledRollIndexes: [],
+      addedRollIndexes: [1],
+      caption: "Advantage: the target can't see you"
+    })
+    expect(cards.gm).toHaveLength(1)
+    const [gm] = cards.gm
+    expect(gm!.id).not.toBe(table!.id)
+    expect(gm!.evidence).toEqual(table!.evidence)
+    expect(gm!.ruleCheck).toMatchObject({ kind: 'D20_MODE_ADJUSTED', caption: gmReason })
+    expect(gm!.gmCampaignRoll?.revealedAt).toEqual(expect.any(String))
+    expect(JSON.stringify(table)).not.toContain(gmReason!)
+  }, 90000)
+
   it('a Paralyzed target makes an adjacent Bite roll with advantage and hit critically (D94)', async () => {
     // The seeded Wolf's Bite (+4, 2d4 + 2) at the adjacent seeded Wolf (AC 13).
     const base = await distanceSetup({ rolls: 'PROMPT' })

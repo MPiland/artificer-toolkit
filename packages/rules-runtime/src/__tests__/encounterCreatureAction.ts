@@ -17,8 +17,10 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import {
   SRD_ABILITIES,
+  SRD_BLINDSIGHT_SENSE_ID,
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES,
   SRD_SYSTEM_ID,
@@ -36,12 +38,18 @@ import {
 } from '../encounterActionMechanicsPlan.js'
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
-import { resolveEncounterAttackPerception } from '../encounterAttackPerception.js'
+import {
+  resolveEncounterAttackPerception,
+  resolveEncounterBelievedAttackPerception
+} from '../encounterAttackPerception.js'
 import type { EncounterRelationshipD20Contributor } from '../encounterRelationshipActionFacts.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
 import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionCompiler.js'
-import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
+import {
+  currentConditionDefinition,
+  srdConditionDefinitionSource
+} from './srdConditionDefinitions.js'
 
 export type CreatureFeature = NonNullable<CreatureAuthored['features']>[number]
 type ActionCharacterFacts = NonNullable<
@@ -329,6 +337,28 @@ export function creatureEncounter<
   return { state, movementTargets }
 }
 
+/** The real perception loaders over the SRD System and its Sense definitions. */
+export function srdAttackPerceptionLoaders() {
+  return {
+    gameSystemId: SRD_SYSTEM_ID,
+    loadDefinition: async (id: string) => {
+      const sense = SRD_SENSE_DEFINITIONS.find((value) => value.id === id)
+      if (!sense) throw new Error(`Unexpected definition ${id}.`)
+      return {
+        definitionFamilyKey: 'sense',
+        gameSystemId: SRD_SYSTEM_ID,
+        current: currentConditionDefinition({
+          id: sense.id,
+          definitionFamilyKey: 'sense',
+          label: sense.label,
+          document: sense.document
+        })
+      }
+    },
+    loadSystem: async () => srdSystemRecord
+  }
+}
+
 /**
  * Prepares a Creature-to-Creature action through the real preparation path; no persistence. Like
  * the room, it pins each actor's SRD condition definitions first (D94).
@@ -341,6 +371,8 @@ export async function prepareCreatureAction(input: {
   targetActiveEffects?: readonly ActiveRuleEffectRecord[]
   /** Resolves sight between the actors on the real perception rules (no Scene), as the room does. */
   attackPerception?: boolean
+  /** Gives the target unlimited Blindsight, so it senses an unseen attacker. */
+  targetBlindsight?: boolean
   /** What a Dodge on the target would give attacks against it, as the room's defense sets it. */
   targetAttackContributors?: readonly EncounterRelationshipD20Contributor[]
 }) {
@@ -382,17 +414,26 @@ export async function prepareCreatureAction(input: {
     movementTargets,
     ...(input.attackPerception
       ? {
-          loadAttackPerception: ({ sourceFacts, targetFacts }) =>
-            resolveEncounterAttackPerception({
-              gameSystemId: SRD_SYSTEM_ID,
+          loadAttackPerception: async ({ sourceFacts, targetFacts }) => ({
+            actual: await resolveEncounterAttackPerception({
+              ...srdAttackPerceptionLoaders(),
               attacker: sourceFacts,
-              target: targetFacts,
-              placement: null,
-              loadDefinition: async () => {
-                throw new Error('No Sense definitions are read.')
-              },
-              loadSystem: async () => srdSystemRecord
+              target: input.targetBlindsight
+                ? {
+                    ...targetFacts,
+                    baseRulePolicyOutput: {
+                      senses: [{ senseDefinitionId: SRD_BLINDSIGHT_SENSE_ID, range: null }]
+                    }
+                  }
+                : targetFacts,
+              placement: null
+            }),
+            believed: await resolveEncounterBelievedAttackPerception({
+              ...srdAttackPerceptionLoaders(),
+              attacker: sourceFacts,
+              target: targetFacts
             })
+          })
         }
       : {}),
     loadSource: async (source) =>
