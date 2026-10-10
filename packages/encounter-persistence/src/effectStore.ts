@@ -56,6 +56,11 @@ function parseLifecycle(definition: ActiveRuleEffectDefinitionDto, value: unknow
   return activeRuleEffectStateDtoSchema.parse({ definition, lifecycle }).lifecycle
 }
 
+/** The indexed copy of a lifecycle's Concentration caster stamp. */
+function concentrationCasterColumn(lifecycle: ActiveRuleEffectLifecycleDto) {
+  return lifecycle.concentrationCasterCharacterId ?? null
+}
+
 export function readCharacterEffect(
   row: EncounterDocument<'characterActiveRuleEffects'>
 ): ActiveRuleEffectRecord {
@@ -76,6 +81,8 @@ export function readCharacterEffect(
     throw new Error(
       'Character active rule-effect source Encounter does not match immutable definition provenance.'
     )
+  if (value.concentrationCasterCharacterId !== concentrationCasterColumn(lifecycle))
+    throw new Error('Character active rule-effect caster index does not match its lifecycle.')
   return activeRuleEffectRecordSchema.parse({
     id: value.id,
     owner: { kind: 'CHARACTER', characterId: value.characterId },
@@ -208,6 +215,74 @@ export async function listActiveRuleEffects(
   return effects
 }
 
+/** Every Character-held grant carried over from a Concentration the given Character cast (D99). */
+export async function listCarriedActiveRuleEffects(
+  ctx: EncounterReadContext,
+  casterCharacterId: string
+): Promise<ActiveRuleEffectRecord[]> {
+  const caster = serverUuidIdentityDtoSchema.parse(casterCharacterId)
+  // A caster concentrates on one thing at a time, and a new Concentration ends the grants carried
+  // from the last, so what they carry cannot outgrow what one Concentration keeps alive.
+  const rows = await ctx.db
+    .query('characterActiveRuleEffects')
+    .withIndex('by_concentrationCaster', (q) => q.eq('concentrationCasterCharacterId', caster))
+    .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
+  if (rows.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
+    throw new Error('Carried Concentration grants exceed the supported bound.')
+  return rows.map(readCharacterEffect)
+}
+
+/** The effects a maintained state keeps alive, on Characters and on Encounter actors. */
+export async function readDependentEffects(
+  ctx: EncounterReadContext,
+  encounterId: string,
+  stateId: string
+) {
+  const characters = (
+    await ctx.db
+      .query('characterActiveRuleEffects')
+      .withIndex('by_state_source_owner_order', (q) =>
+        q.eq('maintainedEffectStateId', stateId).eq('sourceEncounterId', encounterId)
+      )
+      .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
+  ).map(readCharacterEffect)
+  const actors = (
+    await ctx.db
+      .query('encounterActiveRuleEffects')
+      .withIndex('by_state_encounter_owner_order', (q) =>
+        q.eq('maintainedEffectStateId', stateId).eq('encounterId', encounterId)
+      )
+      .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
+  ).map(readEncounterEffect)
+  if (characters.length + actors.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
+    throw new Error('Maintained effect dependents exceed the supported bound.')
+  for (const effect of [...characters, ...actors]) await requireOwner(ctx, effect.owner)
+  return { characters, actors }
+}
+
+/** The maintained state an Encounter actor owns for one maintenance definition, if any. */
+export async function readMaintainedStateByDefinition(
+  ctx: EncounterReadContext,
+  input: { encounterId: string; ownerActorId: string; maintenanceDefinitionId: string }
+) {
+  const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
+  const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
+  const maintenanceDefinitionId = serverUuidIdentityDtoSchema.parse(input.maintenanceDefinitionId)
+  const row = await ctx.db
+    .query('encounterMaintainedEffectStates')
+    .withIndex('by_encounter_owner_definition', (q) =>
+      q
+        .eq('encounterId', encounterId)
+        .eq('ownerActorId', ownerActorId)
+        .eq('maintenanceDefinitionId', maintenanceDefinitionId)
+    )
+    .unique()
+  if (!row) return null
+  const state = readMaintainedState(row)
+  await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
+  return state
+}
+
 /** Internal mutation helper. Callers authorize the aggregate and compose all writes in this mutation. */
 export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
   async function findEffectById(owner: ActiveRuleEffectOwner, id: string) {
@@ -238,28 +313,8 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     return state
   }
 
-  async function dependentEffects(encounterId: string, stateId: string) {
-    const characters = (
-      await ctx.db
-        .query('characterActiveRuleEffects')
-        .withIndex('by_state_source_owner_order', (q) =>
-          q.eq('maintainedEffectStateId', stateId).eq('sourceEncounterId', encounterId)
-        )
-        .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
-    ).map(readCharacterEffect)
-    const actors = (
-      await ctx.db
-        .query('encounterActiveRuleEffects')
-        .withIndex('by_state_encounter_owner_order', (q) =>
-          q.eq('maintainedEffectStateId', stateId).eq('encounterId', encounterId)
-        )
-        .take(MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR + 1)
-    ).map(readEncounterEffect)
-    if (characters.length + actors.length > MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR)
-      throw new Error('Maintained effect dependents exceed the supported bound.')
-    for (const effect of [...characters, ...actors]) await requireOwner(ctx, effect.owner)
-    return { characters, actors }
-  }
+  const dependentEffects = (encounterId: string, stateId: string) =>
+    readDependentEffects(ctx, encounterId, stateId)
 
   async function listStates(encounterId: string, ownerActorId: string) {
     const rows = await ctx.db
@@ -292,6 +347,9 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     async list(inputOwner: ActiveRuleEffectOwner): Promise<ActiveRuleEffectRecord[]> {
       return listActiveRuleEffects(ctx, inputOwner)
     },
+    async listCarriedByCaster(casterCharacterId: string): Promise<ActiveRuleEffectRecord[]> {
+      return listCarriedActiveRuleEffects(ctx, casterCharacterId)
+    },
     async findById(inputOwner: ActiveRuleEffectOwner, inputId: string) {
       const owner = ownerFor(inputOwner)
       const id = serverUuidIdentityDtoSchema.parse(inputId)
@@ -303,24 +361,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       ownerActorId: string
       maintenanceDefinitionId: string
     }) {
-      const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
-      const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
-      const maintenanceDefinitionId = serverUuidIdentityDtoSchema.parse(
-        input.maintenanceDefinitionId
-      )
-      const row = await ctx.db
-        .query('encounterMaintainedEffectStates')
-        .withIndex('by_encounter_owner_definition', (q) =>
-          q
-            .eq('encounterId', encounterId)
-            .eq('ownerActorId', ownerActorId)
-            .eq('maintenanceDefinitionId', maintenanceDefinitionId)
-        )
-        .unique()
-      if (!row) return null
-      const state = readMaintainedState(row)
-      await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
-      return state
+      return readMaintainedStateByDefinition(ctx, input)
     },
     async findMaintainedStateById(input: { encounterId: string; stateId: string }) {
       const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
@@ -513,7 +554,8 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
           characterActiveRuleEffectStoredSchema.parse({
             ...common,
             characterId: owner.characterId,
-            sourceEncounterId: effect.sourceEncounterId
+            sourceEncounterId: effect.sourceEncounterId,
+            concentrationCasterCharacterId: concentrationCasterColumn(effect.lifecycle)
           })
         )
         const row = await ctx.db.get(rowId)
@@ -559,6 +601,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
         if (!row || row.version !== expectedVersion)
           throw new Error('Active rule effect changed before lifecycle update.')
         await ctx.db.patch(row._id, {
+          concentrationCasterCharacterId: concentrationCasterColumn(lifecycle),
           lifecycle,
           lifecycleChecksum: checksumCanonicalJson(lifecycle),
           version: expectedVersion + 1,
@@ -624,6 +667,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       await ctx.db.patch(row._id, {
         maintainedEffectStateId: null,
         sourceEncounterId: null,
+        concentrationCasterCharacterId: concentrationCasterColumn(lifecycle),
         lifecycle,
         lifecycleChecksum: checksumCanonicalJson(lifecycle),
         version: expectedVersion + 1,

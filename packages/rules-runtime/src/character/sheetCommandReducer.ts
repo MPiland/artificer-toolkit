@@ -524,6 +524,7 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
 
     case 'END_ACTIVE_EFFECT':
+    case 'END_CONCENTRATION':
       return clearEmptyStateArrays(next)
 
     case 'SET_INSPIRATION':
@@ -1381,6 +1382,9 @@ export function summarizeCharacterSheetCommand(
 
     case 'END_ACTIVE_EFFECT':
       return 'Active effect ended'
+
+    case 'END_CONCENTRATION':
+      return 'Concentration ended'
 
     case 'SET_INSPIRATION':
       return command.inspired ? 'Inspiration granted' : 'Inspiration cleared'

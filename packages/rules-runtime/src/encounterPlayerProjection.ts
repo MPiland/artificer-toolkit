@@ -9,7 +9,7 @@ import {
   type HealthDisplayLevelDto,
   type PlayerActorHealthDto
 } from '@artificer-toolkit/schema/api/healthDisplay'
-import { hideActiveGrantSources } from './activeGrantListings.js'
+import { hideActiveGrantSources, hideConcentrationSource } from './activeGrantListings.js'
 
 /** A coarse GM band; being defeated at 0 hit points is the actor's own `defeated` state (D63). */
 export function healthBand(current: number, maximum: number) {
@@ -117,6 +117,8 @@ export function projectPlayerEncounterProjection(
           manualOrder: actor.manualOrder,
           conditions: actor.conditions,
           activeGrants: hideActiveGrantSources(actor.activeGrants),
+          // Only an actor's controllers end its Concentration (SPELLS-5.11).
+          concentration: controlled ? hideConcentrationSource(actor.concentration) : null,
           defeated: actor.defeated,
           outOfInitiative: actor.outOfInitiative,
           health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints)

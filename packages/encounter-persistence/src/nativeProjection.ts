@@ -12,6 +12,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
+import { readActorConcentration } from './concentrationListing.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import type { EncounterProjectionTransaction } from './ports.js'
@@ -24,7 +25,8 @@ function readCurrentInitiativeRound(ctx: EncounterReadContext, state: EncounterR
 }
 
 /**
- * Lists each actor's active grants on its projection (D99). A finished Run lists none: its view
+ * Lists each actor's active grants and the Concentration it maintains on its projection (D99,
+ * SPELLS-5.11). A finished Run lists none: its view
  * reads only the Run's own documents (ADR 0035 Amendment 30), and the effects an owner holds then
  * may be later, carried over or unrelated.
  */
@@ -37,16 +39,26 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
   if (state.status === 'COMPLETED')
     return {
       ...projection,
-      actors: projection.actors.map((actor) => ({ ...actor, activeGrants: [] }))
+      actors: projection.actors.map((actor) => ({
+        ...actor,
+        activeGrants: [],
+        concentration: null
+      }))
     }
-  const grantsByActorId = new Map(
+  const listingsByActorId = new Map(
     await Promise.all(
       actors.map(async (actor) => {
         // The Run's own read of its actors and Characters verified each owner already.
         const effects = await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id), {
           ownerVerified: true
         })
-        return [actor.id, listActiveGrantListings(effects)] as const
+        return [
+          actor.id,
+          {
+            activeGrants: listActiveGrantListings(effects),
+            concentration: await readActorConcentration(ctx, { encounterId: state.id, actor })
+          }
+        ] as const
       })
     )
   )
@@ -54,7 +66,8 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
     ...projection,
     actors: projection.actors.map((actor) => ({
       ...actor,
-      activeGrants: grantsByActorId.get(actor.id) ?? []
+      activeGrants: listingsByActorId.get(actor.id)?.activeGrants ?? [],
+      concentration: listingsByActorId.get(actor.id)?.concentration ?? null
     }))
   }
 }

@@ -1275,6 +1275,7 @@ describe('live room inputs (ADR 0035 S2)', () => {
           characterId: base.character.id,
           createdOrdinal: index,
           version: 1,
+          concentrationCasterCharacterId: null,
           maintainedEffectStateId: null,
           sourceEncounterId: null,
           definitionJson: '{}',

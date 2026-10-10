@@ -20,3 +20,16 @@ export const activeGrantListingDtoSchema = lazySchema(() =>
 )
 
 export type ActiveGrantListingDto = z.infer<typeof activeGrantListingDtoSchema>
+
+/**
+ * The Concentration a caster maintains, named by a grant that depends on it (SPELLS-5.11). The label
+ * is null for a hidden source or when nothing depends on it; the caster ends it with END_CONCENTRATION.
+ */
+export const concentrationListingDtoSchema = lazySchema(() =>
+  z.strictObject({
+    label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
+    sourceHidden: z.boolean()
+  })
+)
+
+export type ConcentrationListingDto = z.infer<typeof concentrationListingDtoSchema>

@@ -37,7 +37,8 @@ export function CampaignTabletopEncounterDrawer({
   pending,
   role,
   scene,
-  onCommand
+  onCommand,
+  onEndCharacterConcentration
 }: {
   actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
@@ -49,6 +50,8 @@ export function CampaignTabletopEncounterDrawer({
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto | null
   onCommand: (command: LiveEncounterCommand) => void
+  /** A Character ends its Concentration with its Sheet command, not an Encounter command. */
+  onEndCharacterConcentration: (characterId: string) => void
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   const controlsDisabled = !connected || pending
@@ -183,6 +186,35 @@ export function CampaignTabletopEncounterDrawer({
                           : undefined
                       }
                     />
+                    {actor.concentration && (actor.kind === 'CHARACTER' || role === 'OWNER') ? (
+                      <Group gap='xs'>
+                        <Text size='xs'>
+                          {actor.concentration.label
+                            ? `Concentrating on ${actor.concentration.label}`
+                            : 'Concentrating'}
+                        </Text>
+                        <Button
+                          aria-label={`End Concentration for ${actor.label}`}
+                          disabled={controlsDisabled}
+                          size='compact-xs'
+                          variant='default'
+                          onClick={() =>
+                            actor.kind === 'CHARACTER' && actor.sourceId
+                              ? onEndCharacterConcentration(actor.sourceId)
+                              : onCommand({
+                                  actorId: actor.id,
+                                  commandId: crypto.randomUUID(),
+                                  encounterId: encounter.id,
+                                  endConcentration: true,
+                                  expectedVersion: encounter.version,
+                                  type: 'UPDATE_ACTOR'
+                                })
+                          }
+                        >
+                          End Concentration
+                        </Button>
+                      </Group>
+                    ) : null}
                   </div>
                   {/* Players see health only at each actor's display level; the GM always sees exact. */}
                   {'health' in actor ? (

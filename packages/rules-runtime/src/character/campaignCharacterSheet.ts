@@ -3,7 +3,7 @@ import type { CampaignConditionDto } from '@artificer-toolkit/schema/api/campaig
 import type { CharacterRestPreviewResponseDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
-import { hideActiveGrantSources } from '../activeGrantListings.js'
+import { hideActiveGrantSources, hideConcentrationSource } from '../activeGrantListings.js'
 import { sameCharacterSheetAdjustmentSlot } from './sheetAdjustmentIdentity.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 
@@ -186,7 +186,12 @@ export function projectCharacterSheetForViewer(
       maxHitPointsReductions: projected.overview.maxHitPointsReductions.map((reduction) =>
         reduction.sourceHidden ? { ...reduction, label: null } : reduction
       ),
-      activeGrants: hideActiveGrantSources(projected.overview.activeGrants)
+      activeGrants: hideActiveGrantSources(projected.overview.activeGrants),
+      // Only the caster and the GM end a Concentration (SPELLS-5.11); a hidden source stays unnamed.
+      concentration:
+        context.viewer === 'PARTY_MEMBER'
+          ? null
+          : hideConcentrationSource(projected.overview.concentration)
     }
   }
   return presentCampaignCharacterText(

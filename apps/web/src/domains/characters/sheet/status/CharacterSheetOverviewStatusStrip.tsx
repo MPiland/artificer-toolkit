@@ -1,5 +1,5 @@
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
-import { Collapse, Text } from '@mantine/core'
+import { Button, Collapse, Group, Text } from '@mantine/core'
 import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
@@ -130,6 +130,28 @@ export function CharacterSheetOverviewStatusStrip({
             : undefined
         }
       />
+      {sheet.overview.concentration && sheet.meta.capabilities.managePlayState ? (
+        <Group gap='xs'>
+          <Text size='xs'>
+            {sheet.overview.concentration.label
+              ? `Concentrating on ${sheet.overview.concentration.label}`
+              : 'Concentrating'}
+          </Text>
+          <Button
+            disabled={pending}
+            size='compact-xs'
+            variant='default'
+            onClick={() =>
+              submitCommand({
+                type: 'END_CONCENTRATION',
+                expectedVersion: sheet.meta.streamVersion
+              })
+            }
+          >
+            End Concentration
+          </Button>
+        </Group>
+      ) : null}
 
       <Collapse
         className={conditionsOnly ? undefined : statusEditorStyles.statusControlOverlay}

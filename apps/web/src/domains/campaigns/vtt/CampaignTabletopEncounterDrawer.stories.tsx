@@ -32,7 +32,8 @@ export const Gm: Story = {
     pending: false,
     role: 'OWNER',
     scene: tabletopLiveScene,
-    onCommand: onGmCommand
+    onCommand: onGmCommand,
+    onEndCharacterConcentration: () => undefined
   }
 }
 
@@ -66,7 +67,8 @@ export const Player: Story = {
     pending: false,
     role: 'PLAYER',
     scene: tabletopLiveScene,
-    onCommand: () => undefined
+    onCommand: () => undefined,
+    onEndCharacterConcentration: () => undefined
   }
 }
 

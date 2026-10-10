@@ -190,6 +190,9 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         effectId: stringSchema.check(z.uuid())
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
+        type: z.literal('END_CONCENTRATION')
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('SET_INSPIRATION'),
         inspired: booleanSchema
       }),

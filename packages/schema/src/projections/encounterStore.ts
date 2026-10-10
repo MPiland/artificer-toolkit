@@ -177,7 +177,8 @@ export const encounterStoreIndexes = {
       'characterId',
       'createdOrdinal',
       'id'
-    ]
+    ],
+    by_concentrationCaster: ['concentrationCasterCharacterId', 'characterId', 'id']
   },
   encounterActiveRuleEffects: {
     by_publicId: ['id'],

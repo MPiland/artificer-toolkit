@@ -378,6 +378,54 @@ describe('native character sheet mutations', () => {
     }
   })
 
+  it('ends a Concentration on Convex first and then in the room, with the same command', async () => {
+    const { client, queryClient, wrapper } = setup()
+    const campaignId = '00000000-0000-4000-8000-000000000123'
+    const calls: string[] = []
+    const mutation = vi.spyOn(client, 'mutation').mockImplementation(async () => {
+      calls.push('convex')
+      return { characterId: 'character-1', streamVersion: 5 }
+    })
+    const room = vi.fn(async () => {
+      calls.push('room')
+      return { characterId: 'character-1', streamVersion: 4 }
+    })
+    const end = {
+      commandId: command.commandId,
+      expectedVersion: 4,
+      type: 'END_CONCENTRATION' as const
+    }
+    const hook = renderHook(
+      () => useCharacterSheetCommandMutation('character-1', campaignId, null, room),
+      { wrapper }
+    )
+    try {
+      let response: unknown
+      await act(async () => {
+        response = await hook.result.current.mutateAsync(end)
+      })
+      expect(calls).toEqual(['convex', 'room'])
+      expect(room).toHaveBeenCalledWith(end)
+      expect(mutation).toHaveBeenCalledWith(
+        convexApi.campaigns.characterSheet.execute,
+        { campaignId, characterId: 'character-1', command: end },
+        expect.anything()
+      )
+      expect(response).toEqual({ characterId: 'character-1', streamVersion: 5 })
+
+      calls.length = 0
+      mutation.mockRejectedValueOnce(new Error('This Character is not concentrating.'))
+      await act(async () => {
+        await expect(hook.result.current.mutateAsync(end)).rejects.toThrow('not concentrating')
+      })
+      expect(calls).toEqual([])
+    } finally {
+      hook.unmount()
+      queryClient.clear()
+      await client.close()
+    }
+  })
+
   it('forwards native rest preview query errors through TanStack mutation', async () => {
     const { client, queryClient, wrapper } = setup()
     const error = new Error('preview failed')

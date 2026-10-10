@@ -253,6 +253,7 @@ export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetComma
   switch (command.type) {
     case 'SET_INSPIRATION':
     case 'END_ACTIVE_EFFECT':
+    case 'END_CONCENTRATION':
     case 'ADJUST_HIT_POINTS':
     case 'USE_HIT_DIE':
     case 'SET_DEATH_SAVES':

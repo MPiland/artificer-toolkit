@@ -14,7 +14,9 @@ import type { EncounterReadTransaction } from './ports.js'
 type StoredReplayReceipt = { replayReceiptJson: string; replayReceiptChecksum: string }
 
 /** The replay receipt a command stores for its result: everything but the projection. */
-export function encounterReplayReceipt(result: EncounterCommandResultDto): StoredReplayReceipt {
+export function encounterReplayReceipt(
+  result: Pick<EncounterCommandResultDto, 'roll' | 'occurrence'>
+): StoredReplayReceipt {
   const receipt = encounterStoredReplayReceiptSchema.parse({
     roll: result.roll,
     occurrence: result.occurrence

@@ -284,6 +284,7 @@ const effect = (characterId: string, ordinal: number) =>
     createdAt: '2026-09-01T00:00:00.000Z',
     updatedAt: '2026-09-01T00:00:00.000Z',
     characterId,
+    concentrationCasterCharacterId: null,
     sourceEncounterId: null
   })
 

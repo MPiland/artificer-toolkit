@@ -31,10 +31,14 @@ import {
 } from './stateDocuments'
 import { loadCharacterSheet } from './sheetPreparation'
 import {
+  characterConcentrationRoomRouteDtoSchema,
   characterSheetLiveAuthorityReadInputSchema,
   characterSheetLiveAuthorityDtoSchema
 } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
-import { readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
+import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { readCharacterLiveHold, readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
 
 /** Private notes require current ownership, assignment and route authority, without source reads. */
 export async function loadCharacterSheetNotes(
@@ -126,23 +130,62 @@ export const get = query({
   }
 })
 
+/** The Character the caller may route live play for: its owner, or the Campaign GM in a Campaign. */
+async function readLiveRoutedCharacterHead(
+  ctx: QueryCtx,
+  input: { id: string; campaignId?: string }
+) {
+  const { userId } = await requireIdentity(ctx)
+  const id = await resolveCharacterId(ctx, input.id)
+  const head = id ? await readCharacterHead(ctx, id) : null
+  if (!head) return null
+  const { campaignId } = input
+  if (campaignId) {
+    const reader = await readCampaignCharacterReader(ctx, campaignId, head.id, userId)
+    if (reader.party) return null
+    const authority = await requireCampaignCharacterAuthority(ctx, campaignId, head.id, userId)
+    if (authority.assignment.userId !== head.userId)
+      throw new Error('Stored Campaign Character assignment mismatch.')
+  } else if (head.userId !== userId) return null
+  return head
+}
+
+/**
+ * SPELLS-5.11 (Q1): the live Encounter whose room ends this caster's Concentration, when a
+ * Character that Encounter holds still carries a grant the caster's Concentration keeps alive.
+ * Null otherwise: Convex settles the end itself.
+ */
+export const concentrationRoomRoute = query({
+  args: zodToConvexFields(characterSheetLiveAuthorityReadInputSchema.shape),
+  returns: v.union(v.null(), zodToConvex(characterConcentrationRoomRouteDtoSchema)),
+  handler: async (ctx, args) => {
+    const head = await readLiveRoutedCharacterHead(
+      ctx,
+      characterSheetLiveAuthorityReadInputSchema.parse(args)
+    )
+    if (!head) return null
+    const carried = planConcentrationCarriedGrantEnds({
+      casterCharacterId: head.id,
+      effects: await listCarriedActiveRuleEffects(encounterReadTransaction(ctx), head.id)
+    })
+    for (const effect of carried) {
+      if (effect.owner.kind !== 'CHARACTER') continue
+      const hold = await readCharacterLiveHold(ctx, effect.owner.characterId)
+      if (hold) return { campaignId: hold.campaignId, encounterId: hold.encounterId }
+    }
+    return null
+  }
+})
+
 /** The Character owner or Campaign GM can route play without loading mechanics or owned collections. */
 export const liveAuthority = query({
   args: zodToConvexFields(characterSheetLiveAuthorityReadInputSchema.shape),
   returns: v.union(v.null(), zodToConvex(characterSheetLiveAuthorityDtoSchema)),
   handler: async (ctx, args) => {
-    const { userId } = await requireIdentity(ctx)
-    const { id: lookupId, campaignId } = characterSheetLiveAuthorityReadInputSchema.parse(args)
-    const id = await resolveCharacterId(ctx, lookupId)
-    const head = id ? await readCharacterHead(ctx, id) : null
+    const input = characterSheetLiveAuthorityReadInputSchema.parse(args)
+    const head = await readLiveRoutedCharacterHead(ctx, input)
     if (!head) return null
-    if (campaignId) {
-      const reader = await readCampaignCharacterReader(ctx, campaignId, head.id, userId)
-      if (reader.party) return null
-      const authority = await requireCampaignCharacterAuthority(ctx, campaignId, head.id, userId)
-      if (authority.assignment.userId !== head.userId)
-        throw new Error('Stored Campaign Character assignment mismatch.')
-    } else if (head.userId !== userId) return null
+    const { campaignId } = input
     const holds = await ctx.db
       .query('liveCharacterHolds')
       .withIndex('by_characterId', (query) => query.eq('characterId', head.id))

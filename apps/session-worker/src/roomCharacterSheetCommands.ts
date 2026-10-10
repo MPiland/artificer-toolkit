@@ -1,4 +1,8 @@
 import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
+import {
+  endChosenConcentration,
+  endOutsideCasterConcentration
+} from '@artificer-toolkit/encounter-persistence/concentrationChosenEnd'
 import { endConcentrationAfterEdit } from '@artificer-toolkit/encounter-persistence/concentrationEditEnd'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -123,9 +127,42 @@ export async function executeRoomCharacterSheetCommand(input: {
     (actor) =>
       actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
   )
-  if (!holder) throw new Error('Character is not held by this active Encounter.')
   assertSheetCommandCallerAllowed(command, membership.role === 'OWNER')
   if (assignment.userId !== userId) assertCampaignGmSheetCommandAllowed(command)
+  if (!holder) {
+    // The caster is outside this Run, so Convex owns their play. Only ending a Concentration whose
+    // carried grants a Character the Run holds still carries reaches the room (SPELLS-5.11, Q1).
+    if (command.type !== 'END_CONCENTRATION')
+      throw new Error('Character is not held by this active Encounter.')
+    const occurredAt = new Date().toISOString()
+    await endOutsideCasterConcentration(ctx, {
+      state,
+      actors: runActors,
+      casterCharacterId: characterId,
+      commandId: command.commandId.toLowerCase(),
+      userId,
+      occurredAt
+    })
+    return {
+      acknowledgement: await writeCharacterCommandReceipt(
+        {
+          characterId,
+          streamVersion: command.expectedVersion,
+          userId,
+          command,
+          occurredAt,
+          summary: summarizeCharacterSheetCommand(command),
+          contentMaturity: campaign.contentMaturity,
+          viewer: membership.role === 'OWNER' ? 'CAMPAIGN_OWNER' : 'CHARACTER_OWNER'
+        },
+        async () => undefined
+      ),
+      facts: null,
+      replayed: false,
+      chatEntries: ctx.postedChatEntries,
+      privateRolls: ctx.retainedPrivateRolls
+    }
+  }
 
   const scope = {
     campaignId,
@@ -235,8 +272,18 @@ export async function executeRoomCharacterSheetCommand(input: {
     document: updated,
     ...(sheetStateChanged ? { sheetState: nextSheetState } : {})
   })
-  // The edit may leave the Character's Concentration without a holder able to act (D95); the end
-  // shares the Sheet write's stream-version increment.
+  // The end shares the Sheet write's stream-version increment.
+  if (command.type === 'END_CONCENTRATION')
+    await endChosenConcentration(ctx, {
+      state,
+      actors: runActors,
+      holder,
+      commandId: command.commandId.toLowerCase(),
+      userId,
+      occurredAt,
+      advancedCharacterIds: new Set([characterId])
+    })
+  // The edit may leave the Character's Concentration without a holder able to act (D95).
   await endConcentrationAfterEdit(ctx, {
     state,
     actors: runActors,

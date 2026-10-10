@@ -570,6 +570,21 @@ outside the Run (see [persistence](persistence.md#encounter-run-storage)). The m
 accepts an owner transition for a holder whose carried grant ends. The SRD Fly, Heroism (its grant), Protection from Energy and Shield of Faith link the SRD Concentration
 maintenance definition.
 
+**Chosen end (D101, SPELLS-5.11).** The caster ends their own Concentration at any time with no action
+and no check. A Character uses the Sheet command `END_CONCENTRATION`: in a live table the room runs it
+(`endChosenConcentration` in `packages/encounter-persistence`, a `CONCENTRATION_END` child receipt with
+reason `CHOSEN`, keyed on the command id, plus a chat line); otherwise Convex ends the grants a finished
+Run carried (`apps/apis/convex/characters/sheetConcentration.ts`, found through the
+`by_concentrationCaster` index). When a holder of the caster's carried grant is in an ACTIVE Run, the web
+asks `characters.sheetSlices.concentrationRoomRoute` and sends the command to Convex (the caster's own
+and every outside holder; a holder an ACTIVE Run holds is skipped) and then through the room under the
+same command id, even though the caster is not held; the room authorizes the caller, runs
+`endOutsideCasterConcentration`, ends the held holders' grants at once, records the caster and writes the
+GM-only history entry `CONCENTRATION_DROPPED_OUTSIDE`; the checkpoint stays the safety net. A Creature
+or custom actor uses Encounter `UPDATE_ACTOR { endConcentration: true }` (GM only). The Sheet reads
+`overview.concentration` (caster and GM only; label null for a hidden source); the Encounter actor
+projection carries it for the actor's controllers and the GM.
+
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
 damage source against a maintained state, with the DC from that source's total damage. Assisted mode

@@ -25,6 +25,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
       />
     )
 
@@ -63,6 +64,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -97,6 +99,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -121,6 +124,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
       />
     )
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -142,6 +146,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
       />
     )
 
@@ -170,6 +175,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
       />
     )
 
@@ -203,6 +209,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={() => undefined}
+        onEndCharacterConcentration={() => undefined}
       />
     )
 
@@ -226,6 +233,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='PLAYER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
       />
     )
 
@@ -255,6 +263,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         role='OWNER'
         scene={tabletopLiveScene}
         onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
       />
     )
 
@@ -322,6 +331,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           role='PLAYER'
           scene={tabletopLiveScene}
           onCommand={() => undefined}
+          onEndCharacterConcentration={() => undefined}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -358,6 +368,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           role='OWNER'
           scene={tabletopLiveScene}
           onCommand={onCommand}
+          onEndCharacterConcentration={() => undefined}
         />
       )
       await user.click(screen.getByRole('button', { name: 'Open turn order' }))
@@ -373,6 +384,139 @@ describe('CampaignTabletopEncounterDrawer', () => {
         expectedVersion: tabletopGmEncounter.version,
         type: 'UPDATE_ACTOR'
       })
+    })
+  })
+
+  describe('Concentration (SPELLS-5.11)', () => {
+    const concentration = { label: 'Bless', sourceHidden: false }
+
+    it('names the Concentration on the viewer-controlled Character and ends it through the Sheet', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      const onEndCharacterConcentration = vi.fn()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={{
+            ...tabletopPlayerEncounter,
+            actors: [
+              { ...tabletopPlayerEncounter.actors[0], concentration },
+              tabletopPlayerEncounter.actors[1]
+            ]
+          }}
+          memberships={createTabletopCampaign('PLAYER').memberships}
+          pending={false}
+          role='PLAYER'
+          scene={tabletopLiveScene}
+          onCommand={onCommand}
+          onEndCharacterConcentration={onEndCharacterConcentration}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      expect(screen.getByText('Concentrating on Bless')).toBeVisible()
+      await user.click(screen.getByRole('button', { name: "End Concentration for Ember's Wake" }))
+
+      expect(onEndCharacterConcentration).toHaveBeenCalledWith(
+        tabletopPlayerEncounter.actors[0]!.sourceId
+      )
+      expect(onCommand).not.toHaveBeenCalled()
+    })
+
+    it('shows no Concentration or End control when the actor is not concentrating', async () => {
+      const user = userEvent.setup()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={tabletopGmEncounter}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          onCommand={() => undefined}
+          onEndCharacterConcentration={() => undefined}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      expect(screen.queryByText(/Concentrating/)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /End Concentration/ })).not.toBeInTheDocument()
+    })
+
+    it('lets the GM end a Creature Concentration with an actor update, not a Sheet command', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      const onEndCharacterConcentration = vi.fn()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={{
+            ...tabletopGmEncounter,
+            actors: [
+              tabletopGmEncounter.actors[0],
+              { ...tabletopGmEncounter.actors[1], concentration }
+            ]
+          }}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          onCommand={onCommand}
+          onEndCharacterConcentration={onEndCharacterConcentration}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      await user.click(screen.getByRole('button', { name: 'End Concentration for Vault Warden' }))
+
+      expect(onCommand).toHaveBeenCalledWith({
+        actorId: tabletopGmEncounter.actors[1]!.id,
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        endConcentration: true,
+        expectedVersion: tabletopGmEncounter.version,
+        type: 'UPDATE_ACTOR'
+      })
+      expect(onEndCharacterConcentration).not.toHaveBeenCalled()
+    })
+
+    it('offers a player no End for a Creature, and no label when the source is hidden', async () => {
+      const user = userEvent.setup()
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine={false}
+          encounter={{
+            ...tabletopPlayerEncounter,
+            actors: [
+              {
+                ...tabletopPlayerEncounter.actors[0],
+                concentration: { label: null, sourceHidden: true }
+              },
+              { ...tabletopPlayerEncounter.actors[1], concentration }
+            ]
+          }}
+          memberships={createTabletopCampaign('PLAYER').memberships}
+          pending={false}
+          role='PLAYER'
+          scene={tabletopLiveScene}
+          onCommand={() => undefined}
+          onEndCharacterConcentration={() => undefined}
+        />
+      )
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+
+      expect(screen.getByText('Concentrating')).toBeVisible()
+      expect(screen.queryByText(/Concentrating on/)).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'End Concentration for Vault Warden' })
+      ).not.toBeInTheDocument()
     })
   })
 })

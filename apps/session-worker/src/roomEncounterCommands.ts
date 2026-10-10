@@ -128,6 +128,8 @@ export async function executeRoomEncounterCommand(input: {
             command: sheetCommand
           }
         })
+        // An actor of the Run is a Character the Run holds, so its Sheet always settles here.
+        if (!executed.facts) throw new Error('The Run does not hold this Character.')
         const { streamVersion } = executed.acknowledgement
         const { overview } = projectRoomCharacterSheet(
           executed.facts,

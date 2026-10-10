@@ -43,6 +43,7 @@ export const encounterRunCommandHeaderSchema = lazySchema(() =>
         'RESOLVE_RULE_OCCURRENCE',
         'RESOLVE_ACTION',
         'USE_BASIC_ACTION',
+        'CONCENTRATION_DROPPED_OUTSIDE',
         'VOID_RULE_OCCURRENCE',
         'REVERT_LAST_ACTION',
         'UPDATE_ACTOR',

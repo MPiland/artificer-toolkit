@@ -12,7 +12,8 @@ import { createActiveRuleEffectStore } from './effectStore.js'
 export async function reconcileNativeMaintenanceOwners(
   ctx: EncounterCharacterWriteTransaction,
   input: {
-    encounterId: string
+    /** Null when no Run is involved (Campaign-clock work): there are no Run actors to mirror. */
+    encounterId: string | null
     maintenance: {
       removed: readonly ActiveRuleEffectRecord[]
       characterVersions: { characterId: string; beforeStreamVersion: number }[]
@@ -74,11 +75,12 @@ export async function reconcileNativeMaintenanceOwners(
       })
     }
     for (const { before: actor, after: updated } of planned.actors) {
+      if (input.encounterId === null)
+        throw new Error('Maintained-effect Encounter actors need their Encounter.')
+      const encounterId = input.encounterId
       const row = await ctx.db
         .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) =>
-          q.eq('encounterId', input.encounterId).eq('id', actor.id)
-        )
+        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', actor.id))
         .unique()
       if (!row || row.stateChecksum !== checksumRunActorPlayState(actor))
         throw new Error('Maintained-effect Encounter mirror changed during settlement.')

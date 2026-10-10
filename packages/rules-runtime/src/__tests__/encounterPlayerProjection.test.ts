@@ -190,4 +190,16 @@ describe('player encounter projection', () => {
       { ...grants[1], label: null }
     ])
   })
+
+  it('shows a Concentration to its controllers and the GM only, hiding a hidden source label (SPELLS-5.11)', () => {
+    const concentration = { label: 'Hidden trap blessing', sourceHidden: true }
+    const gm = gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), concentration }])
+
+    expect(gm.actors[0]?.concentration).toEqual(concentration)
+    expect(
+      projectPlayerEncounterProjection(gm, { userId: PLAYER_ID, characters: new Map() }).actors[0]
+        ?.concentration
+    ).toEqual({ label: null, sourceHidden: true })
+    expect(projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.concentration).toBeNull()
+  })
 })

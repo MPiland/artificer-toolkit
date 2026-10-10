@@ -83,6 +83,7 @@ it('refreshes only the owning Character or Campaign play revision for Rule Effec
     ctx.db.insert('characterActiveRuleEffects', {
       ...effect,
       characterId,
+      concentrationCasterCharacterId: null,
       maintainedEffectStateId: null,
       sourceEncounterId: null
     })

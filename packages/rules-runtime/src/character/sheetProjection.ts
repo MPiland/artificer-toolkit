@@ -35,6 +35,7 @@ import type {
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { effectiveHitPointMaximum } from '../encounterActiveGrants.js'
@@ -801,6 +802,8 @@ interface ProjectCharacterSheetBundleParams {
     ActiveRuleEffectRecord,
     'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
   >[]
+  /** The Concentration this Character maintains, live in a Run or carried over from one (SPELLS-5.11). */
+  concentration: ConcentrationListingDto | null
 }
 
 interface CharacterSheetProjectionBundle {
@@ -1448,6 +1451,7 @@ export function projectCharacterSheetBundle(
         recoveryTags: reduction.recoveryTags
       })),
       activeGrants: listActiveGrantListings(params.activeEffects),
+      concentration: params.concentration,
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
         description: DND5E_2014_EXHAUSTION_PRESENTATION.description,

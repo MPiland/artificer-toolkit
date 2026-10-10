@@ -8,19 +8,12 @@ import type { MutationCtx } from '../_generated/server'
 import { readFightingCharacters } from '../liveSessions/characterHolds'
 import { encounterWriteTransaction } from './encounterPorts'
 
-/**
- * D99, SPELLS-5.7: Characters that started a Concentration in a Run end the carried grants they cast
- * earlier on the Campaign's Characters outside it. `casterCharacterIds` are the ids this checkpoint
- * first adds to the Run's `concentrationCasterCharacterIds`. The Run's own Characters are the room's
- * to settle, and a Character in another ACTIVE Run belongs to that room, so both are skipped.
- */
-export async function endOutsideCarriedGrants(
+/** The Campaign's Characters that an ACTIVE Run's room holds. */
+export async function readFightingCharacterIds(
   ctx: MutationCtx,
-  campaignId: string,
-  encounterId: string,
-  casterCharacterIds: readonly string[]
-): Promise<void> {
-  const fighting = new Set(
+  campaignId: string
+): Promise<Set<string>> {
+  return new Set(
     (
       await readFightingCharacters(
         ctx,
@@ -34,10 +27,21 @@ export async function endOutsideCarriedGrants(
       )
     ).map((entry) => entry.characterId)
   )
-  const assignments = await ctx.db
-    .query('campaignCharacterAssignments')
-    .withIndex('by_campaignId', (q) => q.eq('campaignId', campaignId))
-    .collect()
+}
+
+/**
+ * D99, SPELLS-5.7: Characters that started a Concentration in a Run end the carried grants they cast
+ * earlier on the Campaign's Characters outside it. `casterCharacterIds` are the ids this checkpoint
+ * first adds to the Run's `concentrationCasterCharacterIds`. The Run's own Characters are the room's
+ * to settle, and a Character in another ACTIVE Run belongs to that room, so both are skipped.
+ */
+export async function endOutsideCarriedGrants(
+  ctx: MutationCtx,
+  campaignId: string,
+  encounterId: string,
+  casterCharacterIds: readonly string[]
+): Promise<void> {
+  const fighting = await readFightingCharacterIds(ctx, campaignId)
   for (const row of await ctx.db
     .query('encounterRunActors')
     .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId))
@@ -48,10 +52,7 @@ export async function endOutsideCarriedGrants(
   await endCarriedGrantsOfConcentratingCasters(encounterWriteTransaction(ctx), {
     encounterId,
     casterCharacterIds,
-    holderCharacterIds: assignments
-      .map(({ characterId }) => characterId)
-      .filter((characterId) => !fighting.has(characterId))
-      .sort(),
+    includesHolder: (characterId) => !fighting.has(characterId),
     occurredAt: new Date().toISOString()
   })
 }

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createFunctionHandle } from 'convex/server'
 import { expect, it } from 'vitest'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -11,7 +12,8 @@ import {
   executeInRoom,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-import { api } from '../_generated/api'
+import { api, components, internal } from '../_generated/api'
+import { endCarriedConcentration } from '../characters/sheetConcentration'
 
 useLocalRoomWorker()
 
@@ -240,75 +242,82 @@ it.each([
   60_000
 )
 
+/** Completes a Run whose Concentration grant sits on the Character, carrying it to the Campaign clock. */
+async function carryConcentrationGrantOut(casterIsCharacter: boolean) {
+  const fixture = await setupConcentration('PROMPT')
+  const { owner, run, actor, target, character, campaign, t } = fixture
+  await owner.caller.mutation(api.campaigns.clock.initialize, {
+    campaignId: campaign.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: 0,
+    day: 2,
+    minuteOfDay: 480,
+    dawnMinute: 360,
+    duskMinute: 1080
+  })
+  const casterActorId = casterIsCharacter ? target.id : actor.id
+  const grant = await t.run(async (ctx) => {
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+    const state = await createConcentrationState(store, {
+      encounterId: run.id,
+      ownerActorId: casterActorId
+    })
+    return store.create({
+      id: crypto.randomUUID(),
+      owner: { kind: 'CHARACTER', characterId: character.id },
+      definition: plannedModifierGrant({
+        encounterId: run.id,
+        sourceActorId: casterActorId,
+        holderActorId: target.id,
+        lifecycle: {},
+        rounds: 30,
+        lifetimeScope: 'OWNER'
+      }).definition,
+      lifecycle: { schemaVersion: 1, remainingTicks: 25 },
+      maintainedEffectStateId: state.id
+    })
+  })
+  expect(grant.sourceEncounterId).toBe(run.id)
+  await attachFixtureRoom(t, campaign.id)
+  const live = await owner.caller.query(api.encounters.projectionReads.get, {
+    encounterId: run.id
+  })
+  const completed = await executeInRoom(owner.caller, {
+    command: {
+      type: 'COMPLETE',
+      encounterId: run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: live.version
+    }
+  })
+  expect(completed.projection.status).toBe('COMPLETED')
+  await checkpointLiveRoom(campaign.id)
+
+  const stored = () =>
+    t.run(async (ctx) =>
+      (
+        await ctx.db
+          .query('characterActiveRuleEffects')
+          .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+          .collect()
+      ).map(({ id, maintainedEffectStateId, sourceEncounterId, lifecycle }) => ({
+        id,
+        maintainedEffectStateId,
+        sourceEncounterId,
+        lifecycle
+      }))
+    )
+  return { ...fixture, grant, stored }
+}
+
 it.each([
   { caster: 'a Character', casterIsCharacter: true },
   { caster: 'a Creature', casterIsCharacter: false }
 ])(
   'carries a Concentration grant cast by $caster out of the Run for the GM to end (D99, SPELLS-5.7)',
   async ({ casterIsCharacter }) => {
-    const fixture = await setupConcentration('PROMPT')
-    const { owner, run, actor, target, character, campaign, t } = fixture
-    await owner.caller.mutation(api.campaigns.clock.initialize, {
-      campaignId: campaign.id,
-      commandId: crypto.randomUUID(),
-      expectedVersion: 0,
-      day: 2,
-      minuteOfDay: 480,
-      dawnMinute: 360,
-      duskMinute: 1080
-    })
-    const casterActorId = casterIsCharacter ? target.id : actor.id
-    const grant = await t.run(async (ctx) => {
-      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
-      const state = await createConcentrationState(store, {
-        encounterId: run.id,
-        ownerActorId: casterActorId
-      })
-      return store.create({
-        id: crypto.randomUUID(),
-        owner: { kind: 'CHARACTER', characterId: character.id },
-        definition: plannedModifierGrant({
-          encounterId: run.id,
-          sourceActorId: casterActorId,
-          holderActorId: target.id,
-          lifecycle: {},
-          rounds: 30,
-          lifetimeScope: 'OWNER'
-        }).definition,
-        lifecycle: { schemaVersion: 1, remainingTicks: 25 },
-        maintainedEffectStateId: state.id
-      })
-    })
-    expect(grant.sourceEncounterId).toBe(run.id)
-    await attachFixtureRoom(t, campaign.id)
-    const live = await owner.caller.query(api.encounters.projectionReads.get, {
-      encounterId: run.id
-    })
-    const completed = await executeInRoom(owner.caller, {
-      command: {
-        type: 'COMPLETE',
-        encounterId: run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: live.version
-      }
-    })
-    expect(completed.projection.status).toBe('COMPLETED')
-    await checkpointLiveRoom(campaign.id)
-
-    const stored = () =>
-      t.run(async (ctx) =>
-        (
-          await ctx.db
-            .query('characterActiveRuleEffects')
-            .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
-            .collect()
-        ).map(({ id, maintainedEffectStateId, sourceEncounterId, lifecycle }) => ({
-          id,
-          maintainedEffectStateId,
-          sourceEncounterId,
-          lifecycle
-        }))
-      )
+    const { owner, character, campaign, grant, stored } =
+      await carryConcentrationGrantOut(casterIsCharacter)
     expect(await stored()).toEqual([
       {
         id: grant.id,
@@ -348,3 +357,208 @@ it.each([
   },
   60_000
 )
+
+it('lets the caster end a carried Concentration with no action, ending every grant it carries (SPELLS-5.11)', async () => {
+  const { player, character, campaign, stored } = await carryConcentrationGrantOut(true)
+  const read = () =>
+    player.caller.query(api.campaigns.characterSheet.get, {
+      campaignId: campaign.id,
+      characterId: character.id
+    })
+  const sheet = await read()
+  expect(sheet.overview.concentration).not.toBeNull()
+
+  await player.caller.mutation(api.campaigns.characterSheet.execute, {
+    campaignId: campaign.id,
+    characterId: character.id,
+    command: {
+      type: 'END_CONCENTRATION',
+      commandId: crypto.randomUUID(),
+      expectedVersion: sheet.meta.streamVersion
+    }
+  })
+
+  expect(await stored()).toEqual([])
+  const ended = await read()
+  expect(ended.overview.activeGrants).toEqual([])
+  expect(ended.overview.concentration).toBeNull()
+  await expect(
+    player.caller.mutation(api.campaigns.characterSheet.execute, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      command: {
+        type: 'END_CONCENTRATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: ended.meta.streamVersion
+      }
+    })
+  ).rejects.toThrow()
+}, 60_000)
+
+async function addForeignPlayer(fixture: Awaited<ReturnType<typeof carryConcentrationGrantOut>>) {
+  const { t, campaign } = fixture
+  const user = await t.run(async (ctx) =>
+    ctx.runMutation(components.betterAuth.adapter.create, {
+      input: {
+        model: 'user',
+        data: {
+          name: 'Foreign player',
+          email: 'foreign@example.invalid',
+          emailVerified: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+      },
+      onCreateHandle: await createFunctionHandle(internal.auth.onCreate)
+    })
+  )
+  const session = await t.run((ctx) =>
+    ctx.runMutation(components.betterAuth.adapter.create, {
+      input: {
+        model: 'session',
+        data: {
+          userId: user._id,
+          token: crypto.randomUUID(),
+          expiresAt: Date.now() + 60000,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+      }
+    })
+  )
+  const caller = t.withIdentity({ subject: user._id, sessionId: session._id })
+  const identity = await caller.query(api.account.identity, {})
+  if (!identity) throw new Error('Missing foreign player identity.')
+  await t.run((ctx) =>
+    ctx.db.insert('campaignMemberships', {
+      campaignId: campaign.id,
+      userId: identity.userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: campaign.createdAt,
+      joinedAt: campaign.createdAt,
+      leftAt: null
+    })
+  )
+  return caller
+}
+
+it('refuses a foreign player and lets the GM end a carried Concentration (SPELLS-5.11)', async () => {
+  const fixture = await carryConcentrationGrantOut(true)
+  const { owner, character, campaign, stored } = fixture
+  const foreign = await addForeignPlayer(fixture)
+  const sheet = await owner.caller.query(api.campaigns.characterSheet.get, {
+    campaignId: campaign.id,
+    characterId: character.id
+  })
+  const end = (caller: typeof foreign) =>
+    caller.mutation(api.campaigns.characterSheet.execute, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      command: {
+        type: 'END_CONCENTRATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion
+      }
+    })
+
+  await expect(end(foreign)).rejects.toThrow()
+  expect(await stored()).toHaveLength(1)
+  await end(owner.caller)
+  expect(await stored()).toEqual([])
+}, 60_000)
+
+it('routes a caster to no room while no live Run holds a carried grant, and shows a foreign player nothing (SPELLS-5.11)', async () => {
+  const fixture = await carryConcentrationGrantOut(true)
+  const { player, character, campaign } = fixture
+  const foreign = await addForeignPlayer(fixture)
+  const input = { id: character.id, campaignId: campaign.id }
+  expect(
+    await player.caller.query(api.characters.sheetSlices.concentrationRoomRoute, input)
+  ).toBeNull()
+  // A party member who is not the caster's player learns nothing about the route.
+  expect(await foreign.query(api.characters.sheetSlices.concentrationRoomRoute, input)).toBeNull()
+}, 60_000)
+
+it('refuses to end a Concentration the Character does not hold (SPELLS-5.11)', async () => {
+  const { player, character, campaign, stored } = await carryConcentrationGrantOut(false)
+  const sheet = await player.caller.query(api.campaigns.characterSheet.get, {
+    campaignId: campaign.id,
+    characterId: character.id
+  })
+  await expect(
+    player.caller.mutation(api.campaigns.characterSheet.execute, {
+      campaignId: campaign.id,
+      characterId: character.id,
+      command: {
+        type: 'END_CONCENTRATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: sheet.meta.streamVersion
+      }
+    })
+  ).rejects.toThrow()
+  expect(await stored()).toHaveLength(1)
+}, 60_000)
+
+it('skips a holder an ACTIVE Run holds instead of refusing, leaving it to the room (SPELLS-5.11)', async () => {
+  const fixture = await setupConcentration('PROMPT')
+  const { run, actor, target, character, campaign, t } = fixture
+  const casterId = crypto.randomUUID()
+  await t.run(async (ctx) => {
+    const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+    await store.create({
+      id: crypto.randomUUID(),
+      owner: { kind: 'CHARACTER', characterId: character.id },
+      definition: plannedModifierGrant({
+        encounterId: run.id,
+        sourceActorId: actor.id,
+        holderActorId: target.id,
+        lifecycle: {},
+        rounds: 30,
+        lifetimeScope: 'OWNER'
+      }).definition,
+      lifecycle: {
+        schemaVersion: 1,
+        remainingTicks: null,
+        concentrationCasterCharacterId: casterId,
+        expiresAtCampaignMinute: 1440 + 480 + 3
+      }
+    })
+  })
+  const carried = () =>
+    t.run(async (ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).listCarriedByCaster(
+        casterId
+      )
+    )
+  expect(await carried()).toHaveLength(1)
+  // The Run is ACTIVE and holds the Character: Convex leaves its grant to the room.
+  await t.run((ctx) =>
+    endCarriedConcentration(ctx, {
+      characterId: casterId,
+      campaignId: campaign.id,
+      occurredAt: new Date().toISOString()
+    })
+  )
+  expect(await carried()).toHaveLength(1)
+}, 60_000)
+
+it('refuses a carried grant whose caster column disagrees with its lifecycle (SPELLS-5.11)', async () => {
+  const { character, t } = await carryConcentrationGrantOut(true)
+  const otherCasterId = crypto.randomUUID()
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query('characterActiveRuleEffects')
+      .withIndex('by_characterId_id', (q) => q.eq('characterId', character.id))
+      .first()
+    if (!row) throw new Error('Missing carried grant.')
+    await ctx.db.patch(row._id, { concentrationCasterCharacterId: otherCasterId })
+  })
+  await expect(
+    t.run(async (ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).listCarriedByCaster(
+        otherCasterId
+      )
+    )
+  ).rejects.toThrow()
+}, 60_000)

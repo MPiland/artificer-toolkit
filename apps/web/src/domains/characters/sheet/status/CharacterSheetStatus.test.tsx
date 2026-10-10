@@ -336,4 +336,39 @@ describe('Character Sheet status', () => {
       expectedVersion: sheet.meta.streamVersion
     })
   })
+
+  it('lets the caster end a carried Concentration with no other input (SPELLS-5.11)', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.overview.concentration = { label: 'Bless', sourceHidden: false }
+    sheet.meta.capabilities.managePlayState = true
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    expect(screen.getByText('Concentrating on Bless')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'End Concentration' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'END_CONCENTRATION',
+      expectedVersion: sheet.meta.streamVersion
+    })
+  })
+
+  it('offers no Concentration control to a viewer who cannot manage play state', () => {
+    const sheet = createSheet()
+    sheet.overview.concentration = { label: 'Bless', sourceHidden: false }
+    sheet.meta.capabilities.managePlayState = false
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    expect(screen.queryByRole('button', { name: 'End Concentration' })).not.toBeInTheDocument()
+  })
 })

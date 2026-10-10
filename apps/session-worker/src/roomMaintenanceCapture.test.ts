@@ -209,6 +209,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
               fields: characterActiveRuleEffectStoredSchema.parse({
                 ...common,
                 characterId: uuid(0xd60 + (index % 2)),
+                concentrationCasterCharacterId: null,
                 sourceEncounterId: encounterId
               })
             }

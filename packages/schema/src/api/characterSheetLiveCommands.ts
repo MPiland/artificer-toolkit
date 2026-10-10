@@ -26,6 +26,15 @@ export const characterSheetLiveAuthorityDtoSchema = lazySchema(() =>
 
 export type CharacterSheetLiveAuthorityDto = z.infer<typeof characterSheetLiveAuthorityDtoSchema>
 
+/** The live Encounter whose room ends a caster's Concentration that Characters it holds still carry. */
+export const characterConcentrationRoomRouteDtoSchema = lazySchema(() =>
+  z.strictObject({ campaignId: postgresUuidSchema, encounterId: postgresUuidSchema })
+)
+
+export type CharacterConcentrationRoomRouteDto = z.infer<
+  typeof characterConcentrationRoomRouteDtoSchema
+>
+
 /** Exactly the typed CharacterPlayState commands held by a live Run (ADR 0035). */
 export const ROOM_CHARACTER_PLAY_COMMAND_TYPES = [
   'SET_INSPIRATION',
@@ -43,6 +52,7 @@ export const ROOM_CHARACTER_PLAY_COMMAND_TYPES = [
   'USE_SHEET_RESOURCE',
   'RECOVER_SHEET_RESOURCE',
   'END_ACTIVE_EFFECT',
+  'END_CONCENTRATION',
   'USE_SPELL_SLOT',
   'RESTORE_SPELL_SLOT',
   'CAST_SPELL',

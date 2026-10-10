@@ -134,8 +134,12 @@ export function CampaignVttStage({
   const announcePingRef = useRef(announcePing)
   announcePingRef.current = announcePing
 
+  // A Character ends its Concentration with its Sheet command, which needs its stream version, so the
+  // Sheet is subscribed only while that one command waits for it.
+  const [endingConcentrationOf, setEndingConcentrationOf] = useState<string | null>(null)
   const live = useCampaignLiveSession({
     campaignId: campaign.id,
+    characterSheetId: endingConcentrationOf,
     enabled: true,
     encounterSession: { timeline: false },
     onTransient: (message) => {
@@ -505,6 +509,27 @@ export function CampaignVttStage({
         : live.sendCommand({ command, scope: 'SCENE' })
   })
   const encounterCommand = useMutation({ mutationFn: live.sendEncounterCommand })
+  const sheetCommand = useMutation({ mutationFn: live.sendCharacterSheetCommand })
+  const { mutate: sendSheetCommand } = sheetCommand
+  const pushedSheet = live.characterSheet
+  useEffect(() => {
+    if (
+      !endingConcentrationOf ||
+      !activeEncounter ||
+      pushedSheet?.characterId !== endingConcentrationOf
+    )
+      return
+    setEndingConcentrationOf(null)
+    sendSheetCommand({
+      characterId: endingConcentrationOf,
+      encounterId: activeEncounter.id,
+      command: {
+        type: 'END_CONCENTRATION',
+        commandId: crypto.randomUUID(),
+        expectedVersion: pushedSheet.streamVersion
+      }
+    })
+  }, [activeEncounter, endingConcentrationOf, pushedSheet, sendSheetCommand])
   // The room owns the presented Scene, so the GM binds through it (D47).
   const bindEncounter = useMutation({
     mutationFn: async (command: BindEncounterToPresentedSceneInputDto) => {
@@ -1056,12 +1081,14 @@ export function CampaignVttStage({
               memberships={campaign.memberships}
               pending={
                 encounterCommand.isPending ||
+                sheetCommand.isPending ||
                 sceneBindingPending ||
                 Boolean(activeEncounterSceneBinding && actorTokenBindings.isPending)
               }
               role={campaign.role}
               scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
               onCommand={(command) => encounterCommand.mutate(command)}
+              onEndCharacterConcentration={setEndingConcentrationOf}
             />
           ) : null}
           {activeEncounter && currentTurnMovement ? (

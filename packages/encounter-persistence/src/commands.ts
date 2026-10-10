@@ -30,6 +30,7 @@ import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { endChosenConcentration } from './concentrationChosenEnd.js'
 import { endConcentrationAfterEdit } from './concentrationEditEnd.js'
 import { endEncounterActorGrant } from './grantEndPersistence.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
@@ -357,6 +358,8 @@ async function recordEncounterToolCommand(
       actor.kind === 'CHARACTER'
     )
       throw new Error("A Character's grant is ended through its Sheet command.")
+    if (input.type === 'UPDATE_ACTOR' && input.endConcentration && actor.kind === 'CHARACTER')
+      throw new Error("A Character's Concentration is ended through its Sheet command.")
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
       if (actor.kind !== 'CHARACTER')
         throw new Error('Sheet command does not target this Character actor.')
@@ -444,6 +447,15 @@ async function recordEncounterToolCommand(
         state,
         actor,
         effectId: input.endActiveEffectId,
+        occurredAt: updatedAt
+      })
+    if (input.type === 'UPDATE_ACTOR' && input.endConcentration)
+      await endChosenConcentration(ctx, {
+        state: { ...state, version },
+        actors: await readRunActors(ctx, state),
+        holder: actor,
+        commandId: input.commandId,
+        userId,
         occurredAt: updatedAt
       })
     // A GM hit point or condition edit can defeat a Concentration holder or leave it unable to act

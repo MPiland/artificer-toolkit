@@ -11,6 +11,9 @@ import { listActiveRuleEffects } from './effectStore.js'
 import type { EncounterPersistenceTransaction, EncounterWritePorts } from './ports.js'
 import { readRuleRollRouting } from './ruleRollCards.js'
 
+/** Why a Concentration ended: involuntarily (D95) or by its holder's choice (SPELLS-5.11). */
+export type ConcentrationEndReason = 'INCAPACITATED' | 'DEFEATED' | 'CHOSEN'
+
 /**
  * Why the committed state ends the actor's Concentration without a check (D95): a defeated
  * Creature or custom actor, or one whose System actor-action capability is unavailable. Null when
@@ -68,6 +71,17 @@ export async function readConcentrationEndReason(
   })
 }
 
+function concentrationEndMessage(label: string, reason: ConcentrationEndReason) {
+  switch (reason) {
+    case 'CHOSEN':
+      return `${label} ends Concentration.`
+    case 'DEFEATED':
+      return `${label} is defeated and loses Concentration.`
+    case 'INCAPACITATED':
+      return `${label} can't act and loses Concentration.`
+  }
+}
+
 /**
  * Tells the table a Concentration ended without a check. The entry routes like the actor's
  * Concentration check card: a hidden or private GM actor's end posts nothing (there are no dice
@@ -80,7 +94,7 @@ export async function postConcentrationEndMessage(
   input: {
     state: EncounterRunState
     actor: EncounterRunActorState
-    reason: 'INCAPACITATED' | 'DEFEATED'
+    reason: ConcentrationEndReason
     occurrenceId: string
     userId: string
   }
@@ -101,7 +115,7 @@ export async function postConcentrationEndMessage(
     {
       authorUserId,
       clientNonce: input.occurrenceId,
-      body: `${input.actor.label} ${input.reason === 'DEFEATED' ? 'is defeated' : "can't act"} and loses Concentration.`
+      body: concentrationEndMessage(input.actor.label, input.reason)
     }
   )
 }

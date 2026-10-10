@@ -55,6 +55,20 @@ export const encounterStoredReplayReceiptSchema = lazySchema(() =>
 export type EncounterStoredReplayReceipt = z.infer<typeof encounterStoredReplayReceiptSchema>
 
 /**
+ * The stored input of a Run command the room writes when a caster outside the Run drops a
+ * Concentration the Run's Characters carry grants of (SPELLS-5.11). Never sent by a client, so it
+ * stays outside the Encounter command union.
+ */
+export const encounterConcentrationDroppedOutsideInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
+    commandId: postgresUuidSchema,
+    encounterId: postgresUuidSchema,
+    casterCharacterId: postgresUuidSchema
+  })
+)
+
+/**
  * One actor's stored state (`encounterStoredRunActorStateSchema` JSON) with the checksum of its
  * play state: the actor without its source snapshot and without the facts derived from it (ADR 0035
  * Amendment 29). `snapshotChecksum` and `sourceFactsChecksum` repeat the stored state's references
@@ -278,6 +292,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         /** The action's d20 check occurrence, pending or settled; null for an action with no check. */
         checkOccurrenceId: z.nullable(postgresUuidSchema)
       })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
+      /** The GM-only notice: "<caster> dropped Concentration: <label> ends on <holders>". */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('VOID_RULE_OCCURRENCE'),

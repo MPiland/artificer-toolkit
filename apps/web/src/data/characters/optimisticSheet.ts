@@ -818,6 +818,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
     case 'SET_PARTY_VISIBILITY':
     case 'END_ACTIVE_EFFECT':
+    case 'END_CONCENTRATION':
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'ADD_SHEET_EXTRA':
     case 'UPDATE_SHEET_EXTRA':

@@ -64,6 +64,7 @@ import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { endCharacterActiveEffect } from '@artificer-toolkit/encounter-persistence/characterActiveEffects'
+import { endCarriedConcentration } from './sheetConcentration'
 import { prepareCharacterRest } from './rest'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { recordSheetDeathSaveRoll } from './sheetDeathSaveRoll'
@@ -110,6 +111,7 @@ function applySupportedCommand(
     case 'USE_SHEET_RESOURCE':
     case 'RECOVER_SHEET_RESOURCE':
     case 'END_ACTIVE_EFFECT':
+    case 'END_CONCENTRATION':
     case 'UPSERT_SHEET_ADJUSTMENT':
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
@@ -455,6 +457,13 @@ export async function executeCharacterSheetCommand(
       { characterId: initial.active.id, effectId: command.effectId }
     )
 
+  if (command.type === 'END_CONCENTRATION')
+    await endCarriedConcentration(ctx, {
+      characterId: initial.active.id,
+      campaignId: initial.campaignContext.campaignId,
+      occurredAt
+    })
+
   if (command.type === 'COMPLETE_REST' && completedRest) {
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }
     const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
@@ -491,7 +500,8 @@ export async function executeCharacterSheetCommand(
     (command.type === 'REMOVE_SHEET_ADJUSTMENT' && command.family === 'HIT_POINTS') ||
     (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS' && command.target.kind === 'HIT_POINTS') ||
     (command.type === 'SET_HIT_POINTS' && command.maxOverride !== undefined) ||
-    command.type === 'END_ACTIVE_EFFECT'
+    command.type === 'END_ACTIVE_EFFECT' ||
+    command.type === 'END_CONCENTRATION'
   const clampedHitPoints = clampCharacterCurrentHitPoints(
     updated.state.hitpoints.current,
     current.sheet.overview.maxHitPoints

@@ -2310,17 +2310,21 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           .unique()
         if (!run) throw new CharacterSheetCommandError('Encounter is unavailable.')
         const state = readRunState(run)
-        if (
-          state.status !== 'ACTIVE' ||
-          state.campaignId !== value.campaignId ||
-          !(await readRunActors({ db: this.#roomStore.store }, state)).some(
-            (actor) =>
-              actor.kind === 'CHARACTER' &&
-              actor.sourceId === character.characterId &&
-              actor.frozenState === null
-          )
-        )
+        if (state.status !== 'ACTIVE' || state.campaignId !== value.campaignId)
           throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
+        const held = (await readRunActors({ db: this.#roomStore.store }, state)).some(
+          (actor) =>
+            actor.kind === 'CHARACTER' &&
+            actor.sourceId === character.characterId &&
+            actor.frozenState === null
+        )
+        if (!held) {
+          // A caster outside the Run holds no play here: the stored acknowledgement is the replay.
+          if (command.command.type !== 'END_CONCENTRATION')
+            throw new CharacterSheetCommandError('Character is not held by this active Encounter.')
+          send(socket, receipt)
+          return
+        }
         // Member admission above already requires an ACTIVE Campaign: archived Campaigns have no members.
         const [play, campaignPlay] = await Promise.all([
           this.#roomStore.store
@@ -2456,7 +2460,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
           entry.characterId === character.characterId
             ? {
                 ...entry,
-                partyVisibility: result.facts.sheetState.partyVisibility
+                partyVisibility: result.facts?.sheetState.partyVisibility ?? entry.partyVisibility
               }
             : entry
         )

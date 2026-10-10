@@ -2569,6 +2569,11 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                type: "END_CONCENTRATION";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
                 inspired: boolean;
                 type: "SET_INSPIRATION";
               }
@@ -2918,7 +2923,8 @@ export declare const api: {
               | "DAMAGE"
               | "HEALING"
               | "HIT_DIE"
-              | "DEATH_SAVE";
+              | "DEATH_SAVE"
+              | "RECHARGE";
             label: string;
           };
         },
@@ -2973,7 +2979,8 @@ export declare const api: {
               | "DAMAGE"
               | "HEALING"
               | "HIT_DIE"
-              | "DEATH_SAVE";
+              | "DEATH_SAVE"
+              | "RECHARGE";
             label: string;
           };
         }
@@ -3353,6 +3360,10 @@ export declare const api: {
               sourceHidden: boolean;
             }>;
             armorClass: number;
+            concentration: {
+              label: string | null;
+              sourceHidden: boolean;
+            } | null;
             conditions: Array<{
               conditionTypeId: string;
               description?: string;
@@ -7070,7 +7081,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -7154,7 +7166,8 @@ export declare const api: {
                   | "DAMAGE"
                   | "HEALING"
                   | "HIT_DIE"
-                  | "DEATH_SAVE";
+                  | "DEATH_SAVE"
+                  | "RECHARGE";
                 label: string;
               };
             } | null;
@@ -7243,7 +7256,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -7320,7 +7334,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -9373,7 +9388,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           };
@@ -9443,7 +9459,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -9472,7 +9489,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           };
@@ -9534,7 +9552,8 @@ export declare const api: {
               | "DAMAGE"
               | "HEALING"
               | "HIT_DIE"
-              | "DEATH_SAVE";
+              | "DEATH_SAVE"
+              | "RECHARGE";
             label: string;
           };
         }
@@ -9608,7 +9627,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -17692,6 +17712,10 @@ export declare const api: {
               sourceHidden: boolean;
             }>;
             armorClass: number;
+            concentration: {
+              label: string | null;
+              sourceHidden: boolean;
+            } | null;
             conditions: Array<{
               conditionTypeId: string;
               description?: string;
@@ -19369,6 +19393,11 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                type: "END_CONCENTRATION";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
                 inspired: boolean;
                 type: "SET_INSPIRATION";
               }
@@ -19702,6 +19731,12 @@ export declare const api: {
       >;
     };
     sheetSlices: {
+      concentrationRoomRoute: FunctionReference<
+        "query",
+        "public",
+        { campaignId?: string; id: string },
+        null | { campaignId: string; encounterId: string }
+      >;
       get: FunctionReference<
         "query",
         "public",
@@ -19771,6 +19806,10 @@ export declare const api: {
                   sourceHidden: boolean;
                 }>;
                 armorClass: number;
+                concentration: {
+                  label: string | null;
+                  sourceHidden: boolean;
+                } | null;
                 conditions: Array<{
                   conditionTypeId: string;
                   description?: string;
@@ -38695,6 +38734,10 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concentration?: {
+                    label: string | null;
+                    sourceHidden: boolean;
+                  } | null;
                   conditions:
                     | string
                     | number
@@ -38863,6 +38906,10 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concentration?: {
+                    label: string | null;
+                    sourceHidden: boolean;
+                  } | null;
                   conditions:
                     | string
                     | number
@@ -39388,6 +39435,10 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concentration?: {
+                    label: string | null;
+                    sourceHidden: boolean;
+                  } | null;
                   conditions:
                     | string
                     | number
@@ -39556,6 +39607,10 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concentration?: {
+                    label: string | null;
+                    sourceHidden: boolean;
+                  } | null;
                   conditions:
                     | string
                     | number
@@ -39682,7 +39737,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -39912,7 +39968,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -40136,6 +40193,10 @@ export declare const api: {
                 remainingTicks: number | null;
                 sourceHidden: boolean;
               }>;
+              concentration?: {
+                label: string | null;
+                sourceHidden: boolean;
+              } | null;
               conditions:
                 | string
                 | number
@@ -40298,6 +40359,10 @@ export declare const api: {
                 remainingTicks: number | null;
                 sourceHidden: boolean;
               }>;
+              concentration?: {
+                label: string | null;
+                sourceHidden: boolean;
+              } | null;
               conditions:
                 | string
                 | number
@@ -40403,6 +40468,10 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concentration?: {
+                    label: string | null;
+                    sourceHidden: boolean;
+                  } | null;
                   conditions:
                     | string
                     | number
@@ -40571,6 +40640,10 @@ export declare const api: {
                     remainingTicks: number | null;
                     sourceHidden: boolean;
                   }>;
+                  concentration?: {
+                    label: string | null;
+                    sourceHidden: boolean;
+                  } | null;
                   conditions:
                     | string
                     | number
@@ -40846,6 +40919,10 @@ export declare const api: {
               remainingTicks: number | null;
               sourceHidden: boolean;
             }>;
+            concentration?: {
+              label: string | null;
+              sourceHidden: boolean;
+            } | null;
             conditions:
               | string
               | number
@@ -42106,7 +42183,8 @@ export declare const api: {
             | "DAMAGE"
             | "HEALING"
             | "HIT_DIE"
-            | "DEATH_SAVE";
+            | "DEATH_SAVE"
+            | "RECHARGE";
           label: string;
         };
       },
@@ -42161,7 +42239,8 @@ export declare const api: {
             | "DAMAGE"
             | "HEALING"
             | "HIT_DIE"
-            | "DEATH_SAVE";
+            | "DEATH_SAVE"
+            | "RECHARGE";
           label: string;
         };
       }
@@ -42257,7 +42336,8 @@ export declare const api: {
             | "DAMAGE"
             | "HEALING"
             | "HIT_DIE"
-            | "DEATH_SAVE";
+            | "DEATH_SAVE"
+            | "RECHARGE";
           label: string;
         };
       }>

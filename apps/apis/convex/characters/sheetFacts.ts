@@ -1,6 +1,10 @@
+import { carriedConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import type { QueryCtx } from '../_generated/server'
-import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
+import {
+  listActiveRuleEffects,
+  listCarriedActiveRuleEffects
+} from '@artificer-toolkit/encounter-persistence/effectStore'
 import { loadCharacterSheetInputs, type CharacterSheetSourceContext } from './sheetInputs'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
@@ -48,6 +52,12 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
       { db: createConvexEncounterStoreReader(ctx) },
       { kind: 'CHARACTER', characterId: loaded.active.id },
       { ownerVerified: true }
+    ),
+    concentration: carriedConcentration(
+      await listCarriedActiveRuleEffects(
+        { db: createConvexEncounterStoreReader(ctx) },
+        loaded.active.id
+      )
     ),
     sourceContext: {
       ...loaded.sourceContext,

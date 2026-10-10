@@ -138,6 +138,7 @@ it.each([
     const effect = characterActiveRuleEffectStoredSchema.parse({
       id: uuid(0x907),
       characterId: owner.id,
+      concentrationCasterCharacterId: null,
       sourceEncounterId: sourceEncounterIdForDefinition(definition, null),
       maintainedEffectStateId: null,
       createdOrdinal: 1,

@@ -81,6 +81,7 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       maxHitPointsModifierAdjustmentId: null,
       maxHitPointsReductions: [],
       activeGrants: [],
+      concentration: null,
       maxHitPointsOverride: null,
       savingThrows: [],
       skills: [],
@@ -825,5 +826,22 @@ describe('Ending an active effect (D99)', () => {
     expect(() =>
       assertSheetCommandCallerAllowed({ ...input, type: 'SET_INSPIRATION', inspired: true }, false)
     ).not.toThrow()
+  })
+})
+
+describe('Ending Concentration (SPELLS-5.11)', () => {
+  const command = { ...base, type: 'END_CONCENTRATION' } as const
+  const input = { ...command, commandId: '50000000-0000-4000-8000-00000000000c' }
+
+  it('leaves the stored Character as it was, since Concentration is not Character state', () => {
+    const hero = character()
+    expect(apply(hero, command)).toEqual(hero)
+    expect(summarizeCharacterSheetCommand(command)).toBe('Concentration ended')
+  })
+
+  it("is the caster's command and the Campaign owner's, so an assigned player and the GM both pass", () => {
+    expect(() => assertSheetCommandCallerAllowed(input, false)).not.toThrow()
+    expect(() => assertSheetCommandCallerAllowed(input, true)).not.toThrow()
+    expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
   })
 })

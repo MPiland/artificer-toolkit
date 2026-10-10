@@ -91,7 +91,7 @@ function classifyCreatedEffects(input: EffectCommitInput) {
  * D99, SPELLS-5.7: appends the Character to the Run's set of Concentration casters (only the undo of
  * the command that added it removes it) and says whether this call added it.
  */
-async function recordConcentrationCaster(
+export async function recordConcentrationCaster(
   ctx: EncounterCharacterWriteTransaction,
   encounterId: string,
   characterId: string

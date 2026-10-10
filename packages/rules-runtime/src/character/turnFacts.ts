@@ -42,6 +42,7 @@ export function projectCharacterTurnActions(
     vehiclesById: facts.prepared.context.vehiclesById,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: { ...facts.ruleEvaluation, output: rulePolicyOutput },
-    activeEffects: facts.activeEffects
+    activeEffects: facts.activeEffects,
+    concentration: null
   }).sheet.actions.items
 }

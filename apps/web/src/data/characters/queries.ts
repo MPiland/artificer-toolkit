@@ -103,6 +103,20 @@ export function getCharacterSheetLiveAuthority(id: string, campaignId: string | 
   }
 }
 
+/** Non-null while a live room must end this Character's Concentration for the Characters it holds. */
+export function getCharacterConcentrationRoomRoute(
+  id: string,
+  campaignId: string | null | undefined
+) {
+  return {
+    ...convexQuery(
+      convexApi.characters.sheetSlices.concentrationRoomRoute,
+      campaignId ? { id, campaignId } : 'skip'
+    ),
+    gcTime: 0
+  }
+}
+
 export function getCharacterSheetEquipmentOptions(
   id: string | undefined,
   campaignId?: string | null

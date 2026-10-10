@@ -27,6 +27,7 @@ import { CharacterSheetOverviewStatusStrip } from '../status/CharacterSheetOverv
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 import * as coreStyles from './sheetShell.css'
 import { CharacterSheetPanelContent } from './CharacterSheetPanelContent'
+import { useConcentrationRoomRoute } from './useConcentrationRoomRoute'
 import { useLiveCharacterSheet } from './useLiveCharacterSheet'
 import {
   CHARACTER_SHEET_DESKTOP_TABS,
@@ -64,6 +65,10 @@ export function CharacterSheetView({
     committedSheet.meta.characterId,
     committedSheet.meta.campaignId
   )
+  const endConcentrationInRoom = useConcentrationRoomRoute(
+    committedSheet.meta.characterId,
+    committedSheet.meta.campaignId
+  )
   const sheet = live?.common ?? committedSheet
   const isMobile = useMediaQuery('(max-width: 760px)')
   const mounted = useMounted()
@@ -84,7 +89,8 @@ export function CharacterSheetView({
     live && {
       checkpointVersion: committedSheet.meta.streamVersion,
       sendPlayCommand: live.sendPlayCommand
-    }
+    },
+    endConcentrationInRoom
   )
   const rollController = useCharacterSheetRollController(
     sheet.meta.characterId,

@@ -20,7 +20,8 @@ export const ruleEffectTables = {
       'characterId',
       'createdOrdinal',
       'id'
-    ]),
+    ])
+    .index('by_concentrationCaster', ['concentrationCasterCharacterId', 'characterId', 'id']),
   encounterActiveRuleEffects: defineTable(
     zodToConvexFields(encounterActiveRuleEffectStoredSchema.shape)
   )

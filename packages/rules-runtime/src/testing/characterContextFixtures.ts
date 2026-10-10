@@ -281,7 +281,8 @@ export async function prepareFixtureSheet(input: {
     creaturesById: prepared.prepared.context.creaturesById,
     vehiclesById: prepared.prepared.context.vehiclesById,
     ruleEvaluation: prepared.ruleEvaluation,
-    activeEffects: []
+    activeEffects: [],
+    concentration: null
   })
   return { ...prepared, sheet, ruleProjection, sheetState }
 }

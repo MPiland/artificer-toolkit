@@ -83,7 +83,13 @@ export function useCharacterSheetCommandMutation(
     sendPlayCommand: (
       command: CharacterSheetLivePlayCommand
     ) => Promise<CharacterSheetCommandResponseDto>
-  } | null
+  } | null,
+  /** Also ends the Concentration's carried grants on the Characters a live room holds. */
+  endConcentrationInRoom?:
+    | ((
+        command: Extract<CharacterSheetCommandInputDto, { type: 'END_CONCENTRATION' }>
+      ) => Promise<CharacterSheetCommandResponseDto>)
+    | null
 ) {
   const execute = useConvexMutation(
     convexApi.characters.sheetCommands.execute
@@ -148,7 +154,16 @@ export function useCharacterSheetCommandMutation(
       : ['characters', 'sheet', 'command', characterId],
     mutationFn: async (command: CharacterSheetCommandInputDto) => {
       if (!campaignId) return execute({ id: characterId, command })
-      if (!live) return executeCampaign({ campaignId, characterId, command })
+      if (!live) {
+        if (command.type === 'END_CONCENTRATION' && endConcentrationInRoom) {
+          // Convex ends the caster's own and every outside holder's grants and skips the Run's
+          // Characters; the room, under the same command id, ends those. Both replay by command id.
+          const response = await executeCampaign({ campaignId, characterId, command })
+          await endConcentrationInRoom(command)
+          return response
+        }
+        return executeCampaign({ campaignId, characterId, command })
+      }
       if (isCharacterSheetLivePlayCommand(command)) return live.sendPlayCommand(command)
       // Everything else stays on Convex, whose checkpointed version the room's push does not track.
       return executeCampaign({

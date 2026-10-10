@@ -18,7 +18,10 @@ import {
   authoredIdentifierSchema,
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
-import { activeGrantListingDtoSchema } from '../shared/activeGrantListing.js'
+import {
+  activeGrantListingDtoSchema,
+  concentrationListingDtoSchema
+} from '../shared/activeGrantListing.js'
 import { jsonValueSchema } from '../projections/identity.js'
 import { encounterBlueprintMetadataDtoSchema } from '../shared/encounterBlueprint.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
@@ -86,6 +89,11 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
     conditions: jsonSchema,
     /** Active grants with their source and time left; a hidden source's label is null for players (D99). */
     activeGrants: z._default(z.array(activeGrantListingDtoSchema), []),
+    /**
+     * The Concentration this actor maintains, for its controllers and the GM (SPELLS-5.11); null for
+     * everyone else and for an actor not concentrating. A hidden source's label is null for players.
+     */
+    concentration: z._default(z.nullable(concentrationListingDtoSchema), null),
     /**
      * A Creature or custom actor reduced to 0 hit points (D63): it keeps its initiative place but takes
      * no turns, actions or reactions until it regains hit points. Always false for a Character, which

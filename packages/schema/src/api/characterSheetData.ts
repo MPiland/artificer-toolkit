@@ -28,7 +28,10 @@ import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
-import { activeGrantListingDtoSchema } from '../shared/activeGrantListing.js'
+import {
+  activeGrantListingDtoSchema,
+  concentrationListingDtoSchema
+} from '../shared/activeGrantListing.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -169,6 +172,12 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     ),
     /** Active grants (Antitoxin, Aid) with their source and time left; a hidden source's label is null for players (D99). */
     activeGrants: z.array(activeGrantListingDtoSchema),
+    /**
+     * A Concentration this Character cast whose grants a finished Run carried onto the Campaign clock
+     * (SPELLS-5.11); the caster ends it with END_CONCENTRATION. Null for a viewer who does not control
+     * the Character; the label is null for a hidden source.
+     */
+    concentration: z.nullable(concentrationListingDtoSchema),
     savingThrows: z.array(
       z.object({
         ability: abilityCodeSchema,

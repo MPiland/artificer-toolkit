@@ -7,7 +7,10 @@ import {
   encounterActorTokenBindingCommandInputDtoSchema,
   sceneTokenMovementCommandInputDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
-import type { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import {
+  encounterConcentrationDroppedOutsideInputSchema,
+  type encounterStoredRunCommandSchema
+} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { rejectDomain } from './domainRejections.js'
@@ -24,7 +27,9 @@ function commandTimelineMetadata(command: StoredCommand) {
         : command.commandType === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
             command.commandType === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
           ? encounterActorTokenBindingCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
-          : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
+          : command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
+            ? encounterConcentrationDroppedOutsideInputSchema.parse(JSON.parse(command.commandJson))
+            : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
   if (
     input !== null &&
     (input.type !== command.commandType ||
@@ -96,7 +101,11 @@ export function presentTimelineEntry(
     actorUserId: command.actorUserId,
     createdAt: command.createdAt,
     roll: receipt?.roll ?? null,
-    label: command.commandType === 'USE_BASIC_ACTION' ? command.label : null,
+    label:
+      command.commandType === 'USE_BASIC_ACTION' ||
+      command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
+        ? command.label
+        : null,
     ruleOverrides:
       command.commandType === 'RESOLVE_ACTION' || command.commandType === 'USE_BASIC_ACTION'
         ? command.ruleOverrides

@@ -3872,6 +3872,24 @@
               "id": "ENCOUNTER-7.2"
             }
           ]
+        },
+        {
+          "id": "ENCOUNTER-8",
+          "title": "Roll cards show a roll mode that changed at commit",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A roll card whose mode changed at commit animates the change, with an ✕ over a cancelled die and a newly added die rolling in, and shows the same result statically when reduced motion is on.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-09 from the user's ATTACK-10.1 ruling; needs a design pass. Depends on ATTACK-10.1, which supplies the cancelled and added die data and a static rendering.",
+              "id": "ENCOUNTER-8.1"
+            }
+          ]
         }
       ]
     },
@@ -4392,7 +4410,7 @@
                 "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
               ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2.",
+              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2. User ruling 2026-10-09 (no metagaming): room-side Scene perception is approved, but a player never learns facts their Character wouldn't know. Final ruling (same day): before commit the prompt shows only the believed mode (facts the Character knows) and the player rolls for it; on commit the true mode applies (a cancelled die is marked, and a missing die is rolled by the app or asked for in manual), and the player card says generically why ('Advantage cancelled: the target can sense you'), never naming the Sense; the GM sees the specific reason. The animated cancel/new-die treatment is ENCOUNTER-8. Not proved yet, so this AC stays open.",
               "id": "ATTACK-10.1"
             },
             {
@@ -4418,6 +4436,14 @@
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
               "id": "ATTACK-10.4"
+            },
+            {
+              "text": "Saving throws a player makes against effects from creatures they can't see follow the ATTACK-10.1 reason rule: the mode and dice show as usual, but a player-visible reason never names a hidden fact, and the GM sees the full reason.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-09: the user chose attacks first, saves as a follow-up.",
+              "id": "ATTACK-10.5"
             }
           ]
         },
@@ -4606,6 +4632,48 @@
               "proof": [],
               "origin": ["G2-OPTIONAL-COMBAT"],
               "id": "ATTACK-16.2"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-17",
+          "title": "Target creatures from the map or the Encounter list",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Choosing an attack or spell enters targeting mode on the map: a range ring around the actor's token, targetable tokens highlighted, a hover readout of distance and roll modifiers, a click on a token targets it, and Esc cancels.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-09 from the user's targeting review. Today the target is only a dropdown of non-defeated public actors (CampaignTabletopActionDrawer.tsx), with no map targeting. Needs a design pass first.",
+              "id": "ATTACK-17.1"
+            },
+            {
+              "text": "In targeting mode the Encounter drawer's actor list becomes the target list: sorted by distance with range shown, out-of-range entries marked, and returning to initiative order when targeting ends; the map and the list share one selection.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User decision 2026-10-09: one persistent, collapsible list (the existing Encounter drawer list), not a second pane. The list is the keyboard, screen-reader and no-map path.",
+              "id": "ATTACK-17.2"
+            },
+            {
+              "text": "A player's map and target list show only creatures that player can see; an unseen or hidden creature is neither drawn nor listed unless the GM reveals it to players (as an unnamed unseen creature or by name), and a creature the GM keeps hidden is never listed even when it is public in initiative.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User decision 2026-10-09: unseen creatures are not shown unless the GM marks them shown, so the list never gives away the encounter. Fixes today's leak where a public actor with a hidden or fogged token is still in the target dropdown.",
+              "id": "ATTACK-17.3"
+            },
+            {
+              "text": "A player can attack an empty square in range; the GM sees which creature, if any, is there and resolves it, a wrong square is a miss, and the player learns only the outcome.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "SRD: attacking an unseen creature means guessing its location. Depends on ATTACK-10 (attack-roll sight) and ATTACK-10.2 (Hide).",
+              "id": "ATTACK-17.4"
             }
           ]
         }
@@ -5051,11 +5119,31 @@
             },
             {
               "text": "A caster can end their own Concentration at any time with no action, in an Encounter and after its grants carry over to the Campaign clock; every grant that depends on it ends, and the player controls this for their own Character.",
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomChosenConcentrationEnd.test.ts",
+                "apps/apis/convex/encounters/finishedRun.test.ts",
+                "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx"
+              ],
+              "origin": [],
+              "note": "Registered 2026-10-09 from the user's SPELLS-5.7 review: no command lets a caster end their own Concentration today (rules-runtime.md says to end a maintained grant through its Concentration, but nothing does that voluntarily). SRD: a creature can end concentration at any time (no action required). Casting a non-Concentration spell does not end Concentration; a new Concentration does (SPELLS-5.7). Builds after SPELLS-5.7 slice 2. Implemented 2026-10-09 (D101): Sheet END_CONCENTRATION (room and Convex), Encounter UPDATE_ACTOR endConcentration for the GM, caster-stamp index. Red first: the room journey failed 3/3 before the fix (local-validation/spells511/red-room.log); the Convex journey was written with the fix in place, so it has no separate red. Q1 resolved: a caster outside the ACTIVE Run ends through the room (web asks concentrationRoomRoute; the room authorizes the owner player or GM, ends held holders' grants at once and records the caster for the checkpoint). The Encounter actor projection now carries concentration for controllers and the GM, and the tabletop drawer has an End control. Red first, round 2: with the Convex deleteCas loop neutralized the finishedRun journey failed 2 tests (local-validation/codex-batch/vt/s511d-red-convex.log); with the room's outside-caster branch neutralized the outside-caster room journey failed 2 tests (local-validation/codex-batch/vt/s511d-red-room.log); both restored. Round 3 (2026-10-09, ruled): the outside-caster end is one user action sending Convex END_CONCENTRATION (caster's own and outside holders; Convex skips a holder an ACTIVE Run holds) and then the room, under one command id, so every holder ends at once; the room writes the GM-only Encounter history entry CONCENTRATION_DROPPED_OUTSIDE (D101) and an exact retry replays the journal's stored acknowledgement. Room-level foreign-player refusal is not tested in the room (the fixture admits one player; refusal is proved by assertSheetCommandCallerAllowed, the room's assignment check and the Convex foreign-player test). Closed 2026-10-09: gate spells511f green (build, local codegen, typecheck), pk 547/720/76, nt 450, wt 322, vt 81, webt 26; seed and audit clean.",
+              "id": "SPELLS-5.11"
+            },
+            {
+              "text": "A caster whose Concentration carried over to the Campaign clock is still concentrating in a later Encounter: damage stages a Concentration check, and losing it ends every carried grant that depends on it.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's SPELLS-5.7 review: no command lets a caster end their own Concentration today (rules-runtime.md says to end a maintained grant through its Concentration, but nothing does that voluntarily). SRD: a creature can end concentration at any time (no action required). Casting a non-Concentration spell does not end Concentration; a new Concentration does (SPELLS-5.7). Builds after SPELLS-5.7 slice 2.",
-              "id": "SPELLS-5.11"
+              "note": "Found 2026-10-09 while planning SPELLS-5.11: a carried-only caster holds no Run slot, so damage in a new Run stages no check. Builds after SPELLS-5.11 and reuses its by-caster grant index.",
+              "id": "SPELLS-5.12"
+            },
+            {
+              "text": "A grant carried over to the Campaign clock counts down in rounds while its holder is in a later Encounter and ends there when its time runs out, and completing an Encounter offers the GM to advance the Campaign clock by the Encounter's elapsed rounds.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-09 from the user's review: planCarriedOverGrants sets remainingTicks null, so a later Run never ticks a carried grant (a 1-minute Fly lasts a 20-round fight), and nothing advances the manual Campaign clock by a Run's elapsed time (rules-runtime.md Encounter-scoped grants paragraph).",
+              "id": "SPELLS-5.13"
             }
           ]
         },

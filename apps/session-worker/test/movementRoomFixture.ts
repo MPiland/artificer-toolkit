@@ -183,6 +183,8 @@ export interface MovementRoomConfig {
   characterEquipment?: readonly EquipmentAuthored[]
   /** The mover Character's starting play state, where it differs from the capture. */
   characterPlay?: CharacterPlayOverrides
+  /** An assigned Character the Run does not hold, owned by the room's player (SPELLS-5.11, Q1). */
+  outsideCasterCharacterId?: string
   /** The next dice results (see `rigDice`); `fallbackRoll` serves every roll after them. */
   rolls?: readonly number[]
   fallbackRoll?: number
@@ -266,7 +268,19 @@ export async function movementRoom(config: MovementRoomConfig) {
         play: config.characterPlay
       })
     : null
-  const assignments = characterId ? [{ characterId, userId: base.playerId }] : []
+  const outsideCasterPage = config.outsideCasterCharacterId
+    ? await characterRoomInputs({
+        campaignId,
+        characterId: config.outsideCasterCharacterId,
+        ownerUserId: base.playerId
+      })
+    : null
+  const assignments = [
+    ...(characterId ? [{ characterId, userId: base.playerId }] : []),
+    ...(config.outsideCasterCharacterId
+      ? [{ characterId: config.outsideCasterCharacterId, userId: base.playerId }]
+      : [])
+  ]
 
   const memory = createMemoryEncounterStore({ idPrefix: 'movement-room' })
   await insertStoredRun(memory, state, actors)
@@ -372,19 +386,47 @@ export async function movementRoom(config: MovementRoomConfig) {
     continueCursor: null
   }
   const characterInputs = {
-    parts: (characterPage?.parts ?? []).map((part) => {
+    parts: [
+      ...(characterPage?.parts ?? []).map((part) => ({ part, holdsDependents: true })),
+      // The page fixture gives every Character the same row ids; the second one needs its own.
+      ...(outsideCasterPage?.parts ?? []).map((part) => ({
+        part:
+          part.status === 'ASSIGNED' && part.inputs
+            ? {
+                ...part,
+                inputs: {
+                  ...part.inputs,
+                  owner: {
+                    ...part.inputs.owner,
+                    _id: `${part.inputs.owner._id}:outside`,
+                    play: {
+                      ...part.inputs.owner.play,
+                      _id: `${part.inputs.owner.play._id}:outside`
+                    }
+                  }
+                },
+                documents: part.documents.map((document) => ({
+                  ...document,
+                  id: `${document.id}:outside`
+                }))
+              }
+            : part,
+        holdsDependents: false
+      }))
+    ].map(({ part, holdsDependents }) => {
       if (part.status !== 'ASSIGNED') throw new Error('The Character fixture part is not assigned.')
       return {
         ...part,
         documents: [
           ...part.documents,
-          ...characterDependents.map((row) => ({
+          ...(holdsDependents ? characterDependents : []).map((row) => ({
             table: 'characterActiveRuleEffects' as const,
             id: row._id,
             creationTime: row._creationTime,
             fields: characterActiveRuleEffectStoredSchema.parse({
               id: row.id,
               characterId: characterOfActor.get(row.targetActorId),
+              concentrationCasterCharacterId: row.lifecycle.concentrationCasterCharacterId ?? null,
               sourceEncounterId: encounterId,
               maintainedEffectStateId: row.maintainedEffectStateId,
               createdOrdinal: row.createdOrdinal,
@@ -424,9 +466,19 @@ export async function movementRoom(config: MovementRoomConfig) {
         roomAuthorizationResponse({
           members: base.authorization.members,
           assignments,
-          characterRevisions: characterPage
-            ? [{ characterId: characterId!, revision: characterPage.characterRevision }]
-            : [],
+          characterRevisions: [
+            ...(characterPage
+              ? [{ characterId: characterId!, revision: characterPage.characterRevision }]
+              : []),
+            ...(outsideCasterPage
+              ? [
+                  {
+                    characterId: config.outsideCasterCharacterId!,
+                    revision: outsideCasterPage.characterRevision
+                  }
+                ]
+              : [])
+          ],
           autoRollUserIds,
           play: {
             encounter: {

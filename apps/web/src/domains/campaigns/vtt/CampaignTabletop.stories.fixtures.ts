@@ -221,6 +221,7 @@ export const tabletopMapDelivery = {
 const actorBases = [
   {
     activeGrants: [],
+    concentration: null,
     conditions: [],
     controllerUserIds: [],
     defeated: false,
@@ -238,6 +239,7 @@ const actorBases = [
   },
   {
     activeGrants: [],
+    concentration: null,
     conditions: [],
     controllerUserIds: [],
     defeated: false,

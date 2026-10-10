@@ -269,6 +269,19 @@ store.
   exactly that id, so an undone Concentration never ends outside grants. Every checkpoint
   (`checkpointRecords`) compares the previous and next Run row and `endOutsideCarriedGrants` ends the
   stamped grants of the newly added ids on Characters outside any ACTIVE Run (D99).
+  The caster stamp is also a top-level column of `characterActiveRuleEffects`
+  (`concentrationCasterCharacterId`, index `by_concentrationCaster`), written with the lifecycle and
+  checked against it on read, so a caster's carried grants are found without scanning Characters
+  (SPELLS-5.11, D101). `endCarriedGrantsOfConcentratingCasters` is the one ending path for both the
+  checkpoint and the caster's own `END_CONCENTRATION`; `listCarriedActiveRuleEffects` is bounded by
+  `.take(64 + 1)` and throws beyond it. A caster outside an ACTIVE Run ends in one user action that
+  sends Convex `END_CONCENTRATION` (the caster's own and every holder outside an ACTIVE Run; a held
+  holder is skipped) and then the room's `endOutsideCasterConcentration` (the held holders; same
+  command id, both idempotent). The room end also writes the Run command row
+  `CONCENTRATION_DROPPED_OUTSIDE` (stored input `encounterConcentrationDroppedOutsideInputSchema`,
+  `label` the GM notice "<caster> dropped Concentration: <label> ends on <holders>", Run version +1).
+  Like every Run command except a public enemy roll it is `PRIVATE`, so `readEncounterTimelinePage`
+  gives it to the GM only. The checkpoint remains the safety net for the caster set.
   A completed Run has no Scene binding, so bind commands on it are refused with `ENCOUNTER_NOT_ACTIVE`
   and lookups by Scene never resolve it. Several PREPARED or ACTIVE Runs may bind one Scene, so the
   binding table has no Scene index and no lookup ranks Runs: the fight played on a Scene is the

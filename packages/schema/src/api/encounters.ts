@@ -116,6 +116,8 @@ export const updateEncounterActorInputDtoSchema = lazySchema(() =>
     returnToInitiative: z.optional(z.literal(true)),
     /** GM-only: ends a grant (D99) this Creature or custom actor holds; a Character's ends on its Sheet. */
     endActiveEffectId: z.optional(uuidSchema),
+    /** GM-only: ends the Concentration this Creature or custom actor maintains; a Character's ends on its Sheet. */
+    endConcentration: z.optional(z.literal(true)),
     characterCommand: z.optional(characterSheetCommandInputDtoSchema)
   })
 )

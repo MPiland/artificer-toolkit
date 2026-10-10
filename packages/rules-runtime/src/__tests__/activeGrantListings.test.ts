@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
-import { hideActiveGrantSources, listActiveGrantListings } from '../activeGrantListings.js'
+import {
+  carriedConcentration,
+  heldConcentration,
+  hideActiveGrantSources,
+  hideConcentrationSource,
+  listActiveGrantListings
+} from '../activeGrantListings.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 
@@ -106,6 +112,44 @@ describe('listActiveGrantListings', () => {
       lifecycle: { schemaVersion: 1, remainingTicks: 3 }
     })
     expect(listActiveGrantListings([nonGrant(grant)])).toEqual([])
+  })
+})
+
+describe('Concentration listings (SPELLS-5.11)', () => {
+  const aid = grantEffect({
+    id: 0xd041,
+    createdOrdinal: 1,
+    sourceLabel: 'Aid',
+    lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+  })
+  const hidden = grantEffect({
+    id: 0xd042,
+    createdOrdinal: 1,
+    sourceLabel: 'Hidden trap blessing',
+    sourceHidden: true,
+    lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+  })
+
+  it('names a held Concentration by its first dependent grant', () => {
+    expect(heldConcentration([aid])).toEqual({ label: 'Aid', sourceHidden: false })
+    expect(heldConcentration([])).toEqual({ label: null, sourceHidden: false })
+  })
+
+  it('reads a carried Concentration only when the caster carries a grant', () => {
+    expect(carriedConcentration([])).toBeNull()
+    expect(carriedConcentration([aid])).toEqual({ label: 'Aid', sourceHidden: false })
+  })
+
+  it('withholds a hidden source label from players and keeps the rest', () => {
+    expect(hideConcentrationSource(null)).toBeNull()
+    expect(hideConcentrationSource(heldConcentration([aid]))).toEqual({
+      label: 'Aid',
+      sourceHidden: false
+    })
+    expect(hideConcentrationSource(heldConcentration([hidden]))).toEqual({
+      label: null,
+      sourceHidden: true
+    })
   })
 })
 

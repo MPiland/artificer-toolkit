@@ -59,6 +59,7 @@ export function storedEffectDocument(effect: ActiveRuleEffectRecord): RoomDocume
         creationTime: effect.createdOrdinal,
         fields: {
           ...common,
+          concentrationCasterCharacterId: effect.lifecycle.concentrationCasterCharacterId ?? null,
           characterId: effect.owner.characterId,
           sourceEncounterId: sourceEncounterIdForDefinition(
             effect.definition,

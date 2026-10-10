@@ -47,7 +47,8 @@ export function projectCharacterSheetFacts(
     vehiclesById: facts.prepared.context.vehiclesById,
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: facts.ruleEvaluation,
-    activeEffects: facts.activeEffects
+    activeEffects: facts.activeEffects,
+    concentration: facts.concentration
   })
   return {
     active: facts.active,

@@ -78,35 +78,41 @@ export async function endCharacterRunEffects(
 
 /**
  * D99, SPELLS-5.7: a Character that started a Concentration ends the carried-over Concentration
- * grants stamped with it. The room ended them for the Characters it held; this ends them for
- * `holderCharacterIds`, Characters outside the Run, in the checkpoint that first carries the
- * caster's id. Their stream moves once and a hit-point maximum the grant raised clamps the current
- * hit points. A repeat finds nothing to end.
+ * grants stamped with it. The room ended them for the Characters it held; this ends them on every
+ * other Character (the caster's index finds them; `includesHolder` picks the holders this call
+ * settles), in the checkpoint that first carries the caster's id, or when the caster ends the
+ * Concentration by choice. A holder's stream moves once and a hit-point maximum the grant raised
+ * clamps the current hit points. A repeat finds nothing to end. Returns the ended effects.
  */
 export async function endCarriedGrantsOfConcentratingCasters(
   ctx: EncounterCharacterWriteTransaction,
   input: {
-    encounterId: string
+    encounterId: string | null
     casterCharacterIds: readonly string[]
-    holderCharacterIds: readonly string[]
+    /** The holders this call settles; a room settles its own Characters, a checkpoint the rest. */
+    includesHolder: (characterId: string) => boolean
+    /** Characters whose stream this transaction already moved once (the command's own Character). */
+    advancedCharacterIds?: ReadonlySet<string>
     occurredAt: string
   }
-): Promise<void> {
+): Promise<ActiveRuleEffectRecord[]> {
   const store = createActiveRuleEffectStore(ctx)
-  const { casterCharacterIds } = input
-  for (const characterId of input.holderCharacterIds) {
+  const carried = new Map<string, ActiveRuleEffectRecord>()
+  for (const casterCharacterId of input.casterCharacterIds)
+    for (const effect of planConcentrationCarriedGrantEnds({
+      casterCharacterId,
+      effects: await store.listCarriedByCaster(casterCharacterId)
+    }))
+      if (effect.owner.kind === 'CHARACTER' && input.includesHolder(effect.owner.characterId))
+        carried.set(effect.id, effect)
+  const byHolder = new Map<string, ActiveRuleEffectRecord[]>()
+  for (const effect of carried.values()) {
+    const holderId = effect.owner.kind === 'CHARACTER' ? effect.owner.characterId : ''
+    byHolder.set(holderId, [...(byHolder.get(holderId) ?? []), effect])
+  }
+  const ended: ActiveRuleEffectRecord[] = []
+  for (const [characterId, removed] of [...byHolder].sort(([a], [b]) => a.localeCompare(b))) {
     const owner = { kind: 'CHARACTER', characterId } as const
-    const held = await store.list(owner)
-    const removed = [
-      ...new Map(
-        casterCharacterIds
-          .flatMap((casterCharacterId) =>
-            planConcentrationCarriedGrantEnds({ casterCharacterId, effects: held })
-          )
-          .map((effect) => [effect.id, effect])
-      ).values()
-    ]
-    if (removed.length === 0) continue
     const row = await ctx.ports.readCharacterRow(characterId)
     if (!row) throw new Error('Carried-grant Character is unavailable.')
     for (const effect of removed)
@@ -115,12 +121,20 @@ export async function endCarriedGrantsOfConcentratingCasters(
       encounterId: input.encounterId,
       maintenance: {
         removed,
-        characterVersions: [{ characterId, beforeStreamVersion: row.play.streamVersion }]
+        characterVersions: [
+          {
+            characterId,
+            beforeStreamVersion:
+              row.play.streamVersion - (input.advancedCharacterIds?.has(characterId) ? 1 : 0)
+          }
+        ]
       },
       actors: [],
       occurredAt: input.occurredAt
     })
+    ended.push(...removed)
   }
+  return ended
 }
 
 /**

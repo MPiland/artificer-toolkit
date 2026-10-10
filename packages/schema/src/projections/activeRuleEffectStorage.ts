@@ -26,7 +26,9 @@ const activeRuleEffectStoredBaseSchema = lazySchema(() =>
 export const characterActiveRuleEffectStoredSchema = lazySchema(() =>
   z.extend(activeRuleEffectStoredBaseSchema, {
     characterId: postgresUuidSchema,
-    sourceEncounterId: z.nullable(postgresUuidSchema)
+    sourceEncounterId: z.nullable(postgresUuidSchema),
+    /** Mirrors `lifecycle.concentrationCasterCharacterId` so the caster's carried grants are indexed. */
+    concentrationCasterCharacterId: z.nullable(postgresUuidSchema)
   })
 )
 
