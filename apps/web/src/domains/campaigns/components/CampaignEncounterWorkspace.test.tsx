@@ -250,4 +250,54 @@ describe('CampaignEncounterWorkspace controls', () => {
     expect(screen.queryByRole('button', { name: 'Add enemy' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Move .* earlier/ })).not.toBeInTheDocument()
   })
+
+  describe('area history lines', () => {
+    function holdTimeline(gmLines: string[]) {
+      const roomEncounter = encounterWithThirdActor()
+      mocks.encounterSession = {
+        held: true,
+        version: roomEncounter.version,
+        state: { encounter: roomEncounter, pending: null, waitingOn: null, turnMovement: [] },
+        preparedPending: [],
+        actorSides: null,
+        settlement: null,
+        timeline: {
+          entries: [
+            {
+              id: '99999999-9999-4999-8999-999999999a01',
+              version: roomEncounter.version,
+              commandType: 'RESOLVE_ACTION',
+              visibility: 'ISSUER',
+              actorUserId: '22222222-2222-4222-8222-222222222222',
+              createdAt: '2026-10-10T12:00:00.000Z',
+              roll: null,
+              label: 'Fireball',
+              ruleOverrides: [],
+              issuerLines: ['Goblin failed its save', 'An unperceived creature failed its save'],
+              gmLines
+            }
+          ],
+          nextCursor: null
+        }
+      }
+    }
+
+    it('shows a GM read of an area entry with its issuer lines and GM-only lines marked', () => {
+      holdTimeline(['GM removed Ogre from the area'])
+      renderWorkspace()
+
+      expect(screen.getByText('Goblin failed its save')).toBeInTheDocument()
+      expect(screen.getByText('An unperceived creature failed its save')).toBeInTheDocument()
+      expect(screen.getByText('GM removed Ogre from the area')).toBeInTheDocument()
+      expect(screen.getAllByText('GM only')).toHaveLength(1)
+    })
+
+    it('shows a player read of an area entry with issuer lines and no GM-only marker', () => {
+      holdTimeline([])
+      renderWorkspace(encounterWithThirdActor(), 'PLAYER')
+
+      expect(screen.getByText('Goblin failed its save')).toBeInTheDocument()
+      expect(screen.queryByText('GM only')).not.toBeInTheDocument()
+    })
+  })
 })

@@ -510,16 +510,31 @@ export function CampaignEncounterWorkspace({
                       justify='space-between'
                       key={entry.id}
                     >
-                      <Group gap='xs'>
-                        <Text fw={600} size='sm'>
-                          {entry.label ?? encounterCommandLabel(entry.commandType)}
-                        </Text>
-                        {entry.ruleOverrides.map((override) => (
-                          <Badge color='orange' key={override.code} variant='light'>
-                            Rule override: {override.message}
-                          </Badge>
+                      <Stack gap={2}>
+                        <Group gap='xs'>
+                          <Text fw={600} size='sm'>
+                            {entry.label ?? encounterCommandLabel(entry.commandType)}
+                          </Text>
+                          {entry.ruleOverrides.map((override) => (
+                            <Badge color='orange' key={override.code} variant='light'>
+                              Rule override: {override.message}
+                            </Badge>
+                          ))}
+                        </Group>
+                        {entry.issuerLines.map((line, index) => (
+                          <Text key={`issuer-${index}`} size='sm'>
+                            {line}
+                          </Text>
                         ))}
-                      </Group>
+                        {entry.gmLines.map((line, index) => (
+                          <Group gap='xs' key={`gm-${index}`}>
+                            <Badge color='gray' variant='light'>
+                              GM only
+                            </Badge>
+                            <Text size='sm'>{line}</Text>
+                          </Group>
+                        ))}
+                      </Stack>
                       <Text c='dimmed' size='xs'>
                         {new Date(entry.createdAt).toLocaleTimeString([], {
                           hour: '2-digit',
