@@ -10,6 +10,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { z } from 'zod'
 
 import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
+import { isEncounterSightGovernedD20 } from './encounterAttackBelief.js'
 import {
   selectEncounterActionD20Natural,
   type EncounterEvidenceAnswer
@@ -117,7 +118,13 @@ export function resolutionForRetainedEvidence(input: {
       !evidence ||
       evidence.derivedRollMode !== input.pending.d20Policy.rollMode ||
       selectEncounterActionD20Natural(evidence.rollMode, evidence.rawFaces) !==
-        evidence.selectedNatural
+        evidence.selectedNatural ||
+      // A roll sight decides is settled in the rules-derived mode; a chosen mode never replaces it.
+      (isEncounterSightGovernedD20({
+        policy: input.pending.d20Policy,
+        belief: input.pending.d20Belief ?? null
+      }) &&
+        evidence.rollMode !== input.pending.d20Policy.rollMode)
     )
       throw new Error('The retained action d20 evidence is stale.')
     input.used.add(request.requestId)

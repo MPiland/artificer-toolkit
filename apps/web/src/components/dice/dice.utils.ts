@@ -1,4 +1,8 @@
-import type { RollEvidenceDto, RollResultDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  RollEvidenceDto,
+  RollResultDto,
+  RollRuleCheckDto
+} from '@artificer-toolkit/schema/api/rolls'
 
 export const MAX_3D_DICE = 20
 
@@ -18,7 +22,12 @@ export function supportsWebGL() {
   }
 }
 
-export function formatRollEvidence(evidence: RollEvidenceDto) {
+/** A roll the card can show; a rule-settled roll also carries the check that explains its dice. */
+export type DicePresentationRoll = RollResultDto & { ruleCheck?: RollRuleCheckDto }
+
+export type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_ADJUSTED' }>
+
+export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20ModeAdjustmentDto) {
   const termModifierTotal = evidence.terms.reduce((total, term) => total + (term.modifier ?? 0), 0)
   const dice = evidence.terms
     .map((term) => {
@@ -26,12 +35,19 @@ export function formatRollEvidence(evidence: RollEvidenceDto) {
         .map((roll, index) => {
           const sequence = term.rollSequences?.[index]
           const value = sequence && sequence.length > 1 ? sequence.join(' → ') : String(roll)
+          if (adjustment?.cancelledRollIndexes.includes(index)) return `${value} cancelled`
           const kept = term.keptRollIndexes
             ? term.keptRollIndexes.includes(index)
             : term.keptRollIndex == null || index === term.keptRollIndex
-          return term.keptRollIndexes == null && term.keptRollIndex == null
-            ? value
-            : `${value} ${kept ? 'kept' : 'dropped'}`
+          const status =
+            term.keptRollIndexes == null && term.keptRollIndex == null
+              ? ''
+              : kept
+                ? 'kept'
+                : 'dropped'
+          const added = adjustment?.addedRollIndexes.includes(index) ? 'added' : ''
+          const labels = [added, status].filter(Boolean).join(', ')
+          return labels ? `${value} ${labels}` : value
         })
         .join(', ')
       const modifier = term.modifier ?? 0
@@ -56,5 +72,7 @@ export function formatRollEvidence(evidence: RollEvidenceDto) {
       ? ''
       : ` · ${evidence.mode === 'ADVANTAGE' ? 'advantage' : 'disadvantage'}`
 
-  return `${dice}${modifier}${mode}${transform}`
+  const caption = adjustment?.caption ? ` · ${adjustment.caption}` : ''
+
+  return `${dice}${modifier}${mode}${transform}${caption}`
 }

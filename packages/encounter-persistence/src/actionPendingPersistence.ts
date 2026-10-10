@@ -138,7 +138,11 @@ export async function persistEncounterActionPending(
           ? {
               pending: {
                 kind: 'D20_EVIDENCE',
-                rollMode: snapshot.applicationContext.d20Policy.rollMode
+                // The receipt is a recipient-visible record, so it keeps what the roller was shown.
+                rollMode: snapshot.applicationContext.heldD20
+                  ? 'NORMAL'
+                  : (snapshot.applicationContext.d20Belief ?? snapshot.applicationContext.d20Policy)
+                      .rollMode
               }
             }
           : {})

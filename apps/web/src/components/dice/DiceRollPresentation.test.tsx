@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import { addedAdvantageRoll, cancelledAdvantageRoll } from './adjustedRoll.fixtures'
 import { DiceRollPresentation } from './DiceRollPresentation'
 
 const testState = vi.hoisted(() => ({
@@ -186,6 +187,31 @@ describe('DiceRollPresentation', () => {
 
     expect(await screen.findByText('Rolled 210')).toBeInTheDocument()
     expect(screen.queryByTestId('dice-canvas')).not.toBeInTheDocument()
+  })
+
+  it('shows every die of a cancelled advantage with a cancelled mark and the caption', async () => {
+    testState.animate3d = false
+    const roll = cancelledAdvantageRoll()
+
+    render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+
+    expect(await screen.findByText('Rolled 10')).toBeInTheDocument()
+    expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.getByText('16')).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: 'cancelled' })).toHaveLength(1)
+    expect(screen.getByText('Advantage cancelled: the target can sense you')).toBeInTheDocument()
+    expect(screen.queryByText('added')).not.toBeInTheDocument()
+  })
+
+  it('marks an added die as added and keeps the kept die', async () => {
+    testState.animate3d = false
+
+    render(<DiceRollPresentation onRollRevealed={rollRevealed} roll={addedAdvantageRoll()} />)
+
+    expect(await screen.findByText('Rolled 20')).toBeInTheDocument()
+    expect(screen.getByText('added')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'cancelled' })).not.toBeInTheDocument()
+    expect(screen.getByText("Advantage: the target can't see you")).toBeInTheDocument()
   })
 
   it('keeps an existing canvas idle when a later roll needs the static fallback', async () => {

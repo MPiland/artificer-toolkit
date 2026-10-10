@@ -1,5 +1,6 @@
 import { InterleavedBuffer, InterleavedBufferAttribute } from 'three'
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
+import { addedAdvantageRoll, cancelledAdvantageRoll } from './adjustedRoll.fixtures'
 import { formatRollEvidence } from './dice.utils'
 import {
   getScaledColliderVertices,
@@ -38,6 +39,19 @@ describe('dice presentation utilities', () => {
         total: 19
       })
     ).toContain('7 dropped, 16 kept')
+  })
+
+  it('marks cancelled and added d20s and appends the caption of an adjusted roll', () => {
+    for (const [roll, dice] of [
+      [cancelledAdvantageRoll(), '7 kept, 16 cancelled'],
+      [addedAdvantageRoll(), '12 dropped, 17 added, kept']
+    ] as const) {
+      if (roll.ruleCheck?.kind !== 'D20_MODE_ADJUSTED') throw new Error('expected an adjusted roll')
+      const text = formatRollEvidence(roll.evidence, roll.ruleCheck)
+
+      expect(text).toContain(dice)
+      expect(text).toContain(roll.ruleCheck.caption)
+    }
   })
 
   it('stages rerolled dice before revealing the dropped result', () => {

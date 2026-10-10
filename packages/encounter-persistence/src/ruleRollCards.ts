@@ -53,6 +53,10 @@ export async function readRuleRollRouting(
 /**
  * Records one rule roll's chat card: a TABLE card, or a roll retained in the GM's private history
  * with the rolling creature referenced for a later reveal. Returns the posted table entry.
+ *
+ * A roll the server adjusted for sight (ATTACK-10.1) carries `gmRoll`, the same dice with the GM's
+ * specific reason. The table card keeps the generic `roll`; the GM's history holds `gmRoll`, already
+ * revealed when the table has `roll`, and the only card when the roll is private.
  */
 export async function recordRuleRollCard(
   ctx: EncounterReadTransaction & {
@@ -67,6 +71,7 @@ export async function recordRuleRollCard(
     visibility: RollVisibilityDto | undefined
     clientNonce: string
     roll: RollRecordDto
+    gmRoll?: RollRecordDto
   }
 ): Promise<{
   audience: 'TABLE' | 'PRIVATE'
@@ -74,20 +79,27 @@ export async function recordRuleRollCard(
 }> {
   const { campaign, roller, roll } = input
   const { audience, authorUserId } = await readRuleRollRouting(ctx, input)
-  if (audience === 'TABLE')
-    return {
-      audience,
-      entry: await ctx.ports.insertTableRoll(
-        await ctx.ports.requireCampaignAuthority(campaign.id, authorUserId),
-        authorUserId,
-        input.clientNonce,
-        roll
-      )
-    }
-  await ctx.ports.retainGmRoll(campaign.ownerUserId, roll, {
+  const creature =
+    roller && input.encounterId ? { encounterId: input.encounterId, actorId: roller.id } : null
+  if (audience === 'TABLE') {
+    const entry = await ctx.ports.insertTableRoll(
+      await ctx.ports.requireCampaignAuthority(campaign.id, authorUserId),
+      authorUserId,
+      input.clientNonce,
+      roll
+    )
+    if (input.gmRoll)
+      await ctx.ports.retainGmRoll(campaign.ownerUserId, input.gmRoll, {
+        campaignId: campaign.id,
+        creature,
+        revealedAt: input.gmRoll.createdAt,
+        noticedAt: null
+      })
+    return { audience, entry }
+  }
+  await ctx.ports.retainGmRoll(campaign.ownerUserId, input.gmRoll ?? roll, {
     campaignId: campaign.id,
-    creature:
-      roller && input.encounterId ? { encounterId: input.encounterId, actorId: roller.id } : null,
+    creature,
     revealedAt: null,
     noticedAt: null
   })

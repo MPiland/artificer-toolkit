@@ -13,11 +13,20 @@ import {
   requireEncounterSaveD20EvidenceTrace
 } from './encounterMovementReactionActionExecution.js'
 import {
+  encounterAttackD20Belief,
+  encounterAttackSightCaptions,
+  isEncounterSightGovernedD20,
+  reconcileEncounterD20Faces,
+  type EncounterAttackD20Belief,
+  type EncounterPreparedAttackSight
+} from './encounterAttackBelief.js'
+import {
   resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
+import { EncounterValidationError } from './encounterErrors.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
   type ServerCompletedRuleExecutionDto,
@@ -29,6 +38,7 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { directActionTwoPhaseDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type { z } from 'zod'
 import { nextRollInt } from './random.js'
 
@@ -223,6 +233,10 @@ export type PendingNativeActionGraphs = {
   /** The actor whose controllers answer this request (ADR 0034 decision 3). */
   roller: EncounterActionRoller
   phaseReceipts?: NativePhaseReceipts
+  /** The mode the roller's own facts imply for the d20 prompt, when it differs from the true one. */
+  d20Belief?: EncounterAttackD20Belief
+  /** The d20 already entered while one more is needed to settle the true mode. */
+  heldD20?: EncounterActionHeldD20Dto
 }
 
 type NativeActionTestBoundary = {
@@ -335,28 +349,112 @@ function actionRequestRoller(input: {
   return input.bound.d20Roller
 }
 
-function actionResponse(input: {
+/** A stage d20 that sight decides: the server settles it in the true mode (ATTACK-10.1). */
+type SightGovernedD20 = {
+  held: EncounterActionHeldD20Dto | null
+  captions: { playerCaption: string; gmReason: string } | null
+}
+
+/** The one die that completes a held d20: entered, from an app roll, or rolled for an auto-roller. */
+function heldD20Completion(resolution: EncounterEvidenceAnswer, rollD20: () => number): number {
+  const face =
+    resolution.kind === 'AUTO_ROLL'
+      ? rollD20()
+      : resolution.kind === 'ENTER_DICE'
+        ? resolution.rollMode === 'NORMAL'
+          ? resolution.rawFaces[0]
+          : undefined
+        : resolution.kind === 'SYSTEM_ROLL' &&
+            resolution.rollMode === 'NORMAL' &&
+            resolution.faces.length === 1
+          ? resolution.faces[0]
+          : undefined
+  if (face === undefined) throw new EncounterValidationError('One more d20 completes the roll.')
+  return face
+}
+
+type SettledActionResponse = {
+  kind: 'SETTLED'
+  value: number
+  faces: number[] | null
+  rollMode: EncounterD20RollMode | null
+  modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
+}
+
+type ActionResponse = SettledActionResponse | { kind: 'NEEDS_EXTRA_D20'; heldFace: number }
+
+type ActionResponseInput = {
   continuation: ServerRuleExecutionContinuationDto
   policy: ServerRuleExecutionD20PolicyDto | null
   resolution: EncounterEvidenceAnswer
   random: (maximum: number) => number
-}) {
+}
+
+function actionResponse(
+  input: ActionResponseInput & { sightGoverned?: null }
+): SettledActionResponse
+function actionResponse(
+  input: ActionResponseInput & { sightGoverned: SightGovernedD20 | null }
+): ActionResponse
+function actionResponse(
+  input: ActionResponseInput & { sightGoverned?: SightGovernedD20 | null }
+): ActionResponse {
   if (input.resolution.requestId !== input.continuation.request.requestId)
     throw new Error('The action evidence request is stale.')
-  if (input.policy !== null) {
-    const d20 = resolveEncounterD20Answer({
-      derivedRollMode: input.policy.rollMode,
-      answer: input.resolution,
-      rollD20: () => input.random(20) + 1
+  const rollD20 = () => input.random(20) + 1
+  const { policy, resolution, sightGoverned } = input
+  if (policy !== null && sightGoverned) {
+    // The roller's dice settle in the true mode: dice are kept, cancelled, or added to fit it.
+    const { held } = sightGoverned
+    const rolled = held
+      ? { faces: [...held.faces], rollMode: held.rolledMode }
+      : resolveEncounterD20Answer({ derivedRollMode: policy.rollMode, answer: resolution, rollD20 })
+    // The app rolls a missing die for an app roll or an auto-roll; entered dice supply their own.
+    const completion = held ? heldD20Completion(resolution, rollD20) : null
+    const settled = reconcileEncounterD20Faces({
+      appliedMode: policy.rollMode,
+      rolledMode: rolled.rollMode,
+      rolledFaces: rolled.faces,
+      extraFace:
+        completion !== null ? () => completion : resolution.kind === 'ENTER_DICE' ? null : rollD20
     })
-    return { value: d20.natural, faces: d20.faces, rollMode: d20.rollMode }
+    if (settled.kind === 'NEEDS_EXTRA_D20')
+      return { kind: 'NEEDS_EXTRA_D20', heldFace: rolled.faces[0]! }
+    return {
+      kind: 'SETTLED',
+      value: settled.natural,
+      faces: settled.faces,
+      rollMode: policy.rollMode,
+      ...(settled.adjustment
+        ? {
+            modeAdjustment: {
+              rolledMode: settled.adjustment.rolledMode,
+              rolledFaces: [...settled.adjustment.rolledFaces],
+              addedFaces: [...settled.adjustment.addedFaces],
+              cancelledRollIndexes: [...settled.adjustment.cancelledRollIndexes],
+              addedRollIndexes: [...settled.adjustment.addedRollIndexes],
+              playerCaption: sightGoverned.captions?.playerCaption ?? null,
+              gmReason: sightGoverned.captions?.gmReason ?? null
+            }
+          }
+        : {})
+    }
+  }
+  if (policy !== null) {
+    const d20 = resolveEncounterD20Answer({
+      derivedRollMode: policy.rollMode,
+      answer: resolution,
+      rollD20
+    })
+    return { kind: 'SETTLED', value: d20.natural, faces: d20.faces, rollMode: d20.rollMode }
   }
   const { request } = input.continuation
   return {
+    kind: 'SETTLED',
     value: resolveEncounterIntegerAnswer({
       min: request.min,
       max: request.max,
-      answer: input.resolution,
+      answer: resolution,
       random: input.random
     }),
     faces: null,
@@ -841,9 +939,15 @@ export async function advanceNativeActionGraphs(input: {
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(execution: ServerCompletedRuleExecutionDto): Promise<void>
   resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+  /**
+   * The true and believed sight of an attack roll. Only the room's RESOLVE_ACTION passes it: the
+   * attack d20 is then prompted in the believed mode and settled in the true one (ATTACK-10.1).
+   */
+  attackSight?: EncounterPreparedAttackSight | null
   random?: (maximum: number) => number
 }): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
   const random = input.random ?? nextRollInt
+  const attackSight = input.attackSight ?? null
   const initialPublished =
     input.plan.kind === 'SINGLE_GRAPH' ? input.plan.published : input.plan.test.published
   const initialBound = input.adapter.bindFacts({ ...input.binding, published: initialPublished })
@@ -871,17 +975,67 @@ export async function advanceNativeActionGraphs(input: {
       policy: ServerRuleExecutionD20PolicyDto
       faces: number[]
       rollMode: EncounterD20RollMode
+      modeAdjustment: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
     } | null
   } = { d20: null }
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
 
-  /** Resumes one request and records its d20 as the stage roll or the OUTCOME nested save. */
+  /** Whether this paused request is the TEST or single-stage d20 rather than the OUTCOME save. */
+  const isStageD20 = (policy: ServerRuleExecutionD20PolicyDto | null) =>
+    policy !== null && phase !== 'OUTCOME'
+
+  /**
+   * Resumes one request and records its d20 as the stage roll or the OUTCOME nested save. A
+   * sight-governed d20 the roller entered with too few dice returns the same request, pending with
+   * the held die, instead of resuming it.
+   */
   async function answer(
     continuation: ServerRuleExecutionContinuationDto,
     policy: ServerRuleExecutionD20PolicyDto | null,
-    resolution: EncounterEvidenceAnswer
+    resolution: EncounterEvidenceAnswer,
+    stored: {
+      d20Belief: EncounterAttackD20Belief | null
+      heldD20: EncounterActionHeldD20Dto | null
+    }
   ) {
-    const response = actionResponse({ continuation, policy, resolution, random })
+    const governed =
+      policy !== null &&
+      isStageD20(policy) &&
+      isEncounterSightGovernedD20({ policy, belief: stored.d20Belief })
+    if (stored.d20Belief && !attackSight) throw new Error('The action d20 belief is stale.')
+    const captions =
+      governed && stored.d20Belief && attackSight
+        ? encounterAttackSightCaptions({
+            believed: attackSight.believed,
+            actual: attackSight.actual,
+            attackerLabel: attackSight.attackerLabel,
+            targetLabel: attackSight.targetLabel
+          })
+        : null
+    const response = actionResponse({
+      continuation,
+      policy,
+      resolution,
+      random,
+      sightGoverned: governed ? { held: stored.heldD20, captions } : null
+    })
+    if (response.kind === 'NEEDS_EXTRA_D20') {
+      const roller = actionRequestRoller({ continuation, policy, bound, twoPhase })
+      return {
+        kind: 'PENDING' as const,
+        continuation,
+        d20Policy: policy,
+        twoPhase,
+        roller,
+        ...(stored.d20Belief ? { d20Belief: stored.d20Belief } : {}),
+        heldD20: {
+          rolledMode: 'NORMAL' as const,
+          faces: [response.heldFace] as [number],
+          playerCaption: captions?.playerCaption ?? null,
+          gmReason: captions?.gmReason ?? null
+        }
+      }
+    }
     const resumed = await input.runtime.resume({
       continuation,
       response: { requestId: continuation.request.requestId, value: response.value }
@@ -898,7 +1052,13 @@ export async function advanceNativeActionGraphs(input: {
         twoPhase = { ...twoPhase, nestedOutcomeD20Evidence: nestedD20 }
       } else {
         if (stage.d20) throw new Error('The action requested more than one d20 stage.')
-        stage.d20 = { continuation, policy, faces: response.faces, rollMode: response.rollMode }
+        stage.d20 = {
+          continuation,
+          policy,
+          faces: response.faces,
+          rollMode: response.rollMode,
+          modeAdjustment: response.modeAdjustment
+        }
       }
     }
     return resumed
@@ -910,19 +1070,34 @@ export async function advanceNativeActionGraphs(input: {
       const { continuation } = result
       const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
       const roller = actionRequestRoller({ continuation, policy, bound, twoPhase })
-      if (!input.autoRoll[roller])
+      if (!input.autoRoll[roller]) {
+        const d20Belief =
+          policy && isStageD20(policy) && attackSight
+            ? encounterAttackD20Belief({
+                policy,
+                trueSight: attackSight.trueSight,
+                believedSight: attackSight.believedSight
+              })
+            : null
         return {
           kind: 'PENDING',
           continuation,
           d20Policy: policy,
           twoPhase,
           roller,
-          ...(phaseReceipts.length ? { phaseReceipts } : {})
+          ...(phaseReceipts.length ? { phaseReceipts } : {}),
+          ...(d20Belief ? { d20Belief } : {})
         }
-      result = await answer(continuation, policy, {
-        kind: 'AUTO_ROLL',
-        requestId: continuation.request.requestId
-      })
+      }
+      const next = await answer(
+        continuation,
+        policy,
+        { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
+        { d20Belief: null, heldD20: null }
+      )
+      // An auto-roller's dice are rolled in the true mode, so no die is ever held for it.
+      if ('kind' in next) return next
+      result = next
     }
     return null
   }
@@ -1008,7 +1183,8 @@ export async function advanceNativeActionGraphs(input: {
         },
         requestId: roll.requestId,
         faces: roll.rawFaces,
-        rollMode: roll.rollMode
+        rollMode: roll.rollMode,
+        modeAdjustment: roll.modeAdjustment
       })
       const nestedPolicy = nestedOutcomeD20Policy({
         published,
@@ -1030,7 +1206,12 @@ export async function advanceNativeActionGraphs(input: {
     const policy = actionD20Policy({ phase, continuation: pending.continuation, bound, twoPhase })
     if (checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
       throw new Error('The action evidence policy is stale.')
-    result = await answer(pending.continuation, policy, input.resume.resolution)
+    const answered = await answer(pending.continuation, policy, input.resume.resolution, {
+      d20Belief: pending.d20Belief ?? null,
+      heldD20: pending.heldD20 ?? null
+    })
+    if ('kind' in answered) return answered
+    result = answered
   }
 
   const prompt = await rollUntilPrompt()
@@ -1053,7 +1234,8 @@ export async function advanceNativeActionGraphs(input: {
             policy: stage.d20.policy,
             requestId: stage.d20.continuation.request.requestId,
             faces: stage.d20.faces,
-            rollMode: stage.d20.rollMode
+            rollMode: stage.d20.rollMode,
+            modeAdjustment: stage.d20.modeAdjustment
           })
         : null,
       nestedD20: null
@@ -1070,7 +1252,8 @@ export async function advanceNativeActionGraphs(input: {
       }),
       requestId: stage.d20.continuation.request.requestId,
       faces: stage.d20.faces,
-      rollMode: stage.d20.rollMode
+      rollMode: stage.d20.rollMode,
+      modeAdjustment: stage.d20.modeAdjustment
     })
     phaseReceipts = [
       {
@@ -1131,7 +1314,8 @@ export async function advanceNativeActionGraphs(input: {
         rollMode: testD20.rollMode,
         derivedRollMode: testD20.derivedRollMode,
         rawFaces: testD20.rawFaces,
-        selectedNatural: testD20.selectedNatural
+        selectedNatural: testD20.selectedNatural,
+        ...(testD20.modeAdjustment ? { modeAdjustment: testD20.modeAdjustment } : {})
       }
     }
     result = await input.runtime.executeResolved({

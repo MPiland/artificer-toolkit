@@ -550,6 +550,22 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Never inputs:** fog and viewer projection (an actor public or hidden from players). The "Unseen source" redaction of player roll prompts is viewer redaction and unrelated to this rule.
   - **Not automated:** "hidden" through the Hide action (a Stealth check, with the hidden state ending on attack) stays unautomated.
   - **Not wired (current):** Convex action preparation, Disarm, and opportunity attacks (movement-owned; the movement reaction's perception also doesn't pass condition contributions).
+  - **Believed vs true mode (user ruling 2026-10-09; the interpretation below is Claude's):** a roller is never told sight facts their Character can't know.
+    - **Prompt:** the player's roll prompt shows the *believed* mode. The GM (Campaign owner) sees the true mode.
+    - **Believed sight (`encounterAttackBelief.ts`, `resolveEncounterBelievedAttackPerception`):** uses only the attacker's own facts on the neutral environment.
+      - Does the target see the attacker? Modeled as a stripped target (System baseline sight only) looking at the attacker as it is, so the attacker's own Invisible counts.
+      - Does the attacker see the target? Modeled as the attacker as it is (its own Senses, Blinded) looking at a stripped target.
+      - The target's Senses and conditions and the Scene's lighting are never inputs.
+    - **Believed contributors:** the true contributors with the sight-decided ones (Dodge and the unseen contributors) swapped for the believed ones. The belief is stored in the pending action context.
+    - **On commit:** a *sight-governed* d20 always settles in the true mode, whatever mode was chosen (the GM changes sight by changing facts). A d20 is sight-governed when the belief differs or an unseen contributor is present. Other overrides are unchanged.
+    - **Settling the dice:**
+      - Two dice rolled, true mode normal: the first die is kept and the second is cancelled.
+      - Two dice rolled, mode flipped (advantage to disadvantage or the reverse): the kept die changes.
+      - One die rolled, true mode needs two: the app rolls the second for an app roll. For entered dice, the action goes back to pending on the same request, keeping the face, and asks for one more d20.
+    - **Cards:** a d20 whose mode changed carries `modeAdjustment` (all dice, cancelled and added indexes, captions). It is always carded at commit, with `ruleCheck` `D20_MODE_ADJUSTED`.
+      - **Table card:** a generic player caption that never names a Sense, e.g. "Advantage cancelled: the target can sense you".
+      - **GM copy:** the GM's history gets a copy, already revealed, with the specific reason, e.g. "Gorgon senses Mira with Blindsight". A private card carries only the reason.
+    - **Not covered here:** saves (ATTACK-10.5). The cancelled-die animation is the user's to register.
 
 ## Approved implementation decisions
 

@@ -59,17 +59,22 @@ export async function recordActionRollCards(
   const system = await ctx.ports.requireSystem(input.gameSystemId)
   const ruleset = { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion }
   for (const [checkIndex, d20] of [batch.d20, batch.nestedD20].entries()) {
-    if (!d20 || input.appCardedD20s.has(checkIndex)) continue
+    // A d20 the server adjusted for sight is always carded here: the app attempt's card showed
+    // only the dice as rolled.
+    if (!d20 || (input.appCardedD20s.has(checkIndex) && !d20.modeAdjustment)) continue
     const roller = d20.resultPath.startsWith('ON_SAVE_') ? target : source
-    const roll = actionD20RollRecord({
-      occurrenceId: input.rollScope,
-      checkIndex,
-      d20,
-      actionLabel: input.actionLabel,
-      rollerLabel: roller.label,
-      ruleset,
-      createdAt: input.createdAt
-    })
+    const record = (reader: 'PLAYER' | 'GM') =>
+      actionD20RollRecord({
+        occurrenceId: input.rollScope,
+        checkIndex,
+        d20,
+        actionLabel: input.actionLabel,
+        rollerLabel: roller.label,
+        ruleset,
+        createdAt: input.createdAt,
+        reader
+      })
+    const roll = record('PLAYER')
     await recordRuleRollCard(ctx, {
       campaign: input.campaign,
       encounterId: input.encounterId,
@@ -77,7 +82,8 @@ export async function recordActionRollCards(
       initiatorUserId: input.initiatorUserId,
       visibility: input.visibility,
       clientNonce: roll.id,
-      roll
+      roll,
+      ...(d20.modeAdjustment ? { gmRoll: record('GM') } : {})
     })
   }
   for (const application of batch.applications) {

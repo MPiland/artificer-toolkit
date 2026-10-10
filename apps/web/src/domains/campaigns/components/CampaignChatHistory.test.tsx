@@ -6,6 +6,7 @@ import {
   type CampaignChatEntryDto
 } from '@artificer-toolkit/schema/api/campaignCommunication'
 
+import { cancelledAdvantageRoll } from '#app/components/dice/adjustedRoll.fixtures'
 import { CampaignChatHistory } from './CampaignChatHistory'
 
 const entry: CampaignChatEntryDto = {
@@ -125,6 +126,42 @@ describe('CampaignChatHistory', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Concentration lost')).toBeInTheDocument()
     expect(screen.getByText(/vs DC 10/)).toBeInTheDocument()
+  })
+
+  it('shows every die of a mode-adjusted d20 with the cancelled die and the caption', () => {
+    const roll: CampaignChatEntryDto = {
+      ...entry,
+      kind: 'ROLL',
+      mode: null,
+      body: null,
+      roll: cancelledAdvantageRoll()
+    }
+    render(
+      <MantineProvider>
+        <CampaignChatHistory
+          chatLog={{ current: null }}
+          conversationLabel='Table'
+          currentUserId='different-user'
+          directUserId={undefined}
+          encounterEntries={undefined}
+          entries={[roll]}
+          hasNextPage={false}
+          isHistoryLoading={false}
+          isLoadingOlderMessages={false}
+          isPrivateRollsError={false}
+          isPrivateRollsPending={false}
+          privateRolls={undefined}
+          rollView={null}
+          room='TABLE'
+          onEntryAction={vi.fn()}
+          onLoadOlderMessages={vi.fn()}
+          onRevealRoll={vi.fn()}
+        />
+      </MantineProvider>
+    )
+
+    expect(screen.getByText(/7 kept, 16 cancelled/)).toBeInTheDocument()
+    expect(screen.getByText(/Advantage cancelled: the target can sense you/)).toBeInTheDocument()
   })
 
   it('shows a ROLL_NOTICE as a notice with no result, naming the creature when present', () => {

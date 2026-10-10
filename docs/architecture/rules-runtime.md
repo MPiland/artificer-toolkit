@@ -620,6 +620,16 @@ neutral (bright, unobscured, line of effect). A Creature observer with authored 
 ordinary sight fails is `UNKNOWN`: no contributor, Dodge stays. Not wired: Convex action preparation, Disarm,
 opportunity attacks (movement-owned; movement reaction perception also omits condition contributions).
 
+Believed vs true attack mode (current, D100): `encounterAttackBelief.ts` derives the roller's *believed*
+contributors. These come from the attacker's own facts only, on the neutral environment
+(`resolveEncounterBelievedAttackPerception`), with the true sight contributors swapped for the believed ones.
+The pending action context stores the belief, and players' prompts show it; the GM sees the true mode. At
+commit, a sight-governed d20 settles in the true mode whatever mode was chosen. `reconcileEncounterD20Faces`
+cancels a die, changes which die is kept, or adds one: the app rolls it for an app roll, and the action
+re-pends with `heldD20` for entered dice. The evidence's `modeAdjustment` carries the dice and the captions.
+The card's `D20_MODE_ADJUSTED` rule check shows the generic player caption on the table, and the GM's history
+copy shows the specific reason.
+
 ## Target and open scope
 
 These are not current behavior:

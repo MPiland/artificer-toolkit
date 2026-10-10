@@ -1,6 +1,4 @@
-import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import type { ReusableDefinitionRootRecord } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { CampaignSceneState, SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
 
 import { snapshotStatBlock } from './encounterProjection.js'
@@ -9,7 +7,10 @@ import {
   ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID
 } from './encounterRollModeReasons.js'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import {
+  mergeCanonicalD20Contributors,
+  type EncounterRelationshipD20Contributor
+} from './encounterRelationshipActionFacts.js'
 import {
   resolveEncounterActorPairPerception,
   type EncounterPerceptionActor
@@ -25,9 +26,18 @@ export type EncounterAttackSight = 'SEES' | 'UNSEEN' | 'UNKNOWN'
 export type EncounterAttackPerception = {
   targetSeesAttacker: EncounterAttackSight
   attackerSeesTarget: EncounterAttackSight
+  /** The System labels of the Senses that let the target see the attacker; empty unless it SEES. */
+  targetSenseLabels: readonly string[]
+  /** The System labels of the Senses that let the attacker see the target; empty unless it SEES. */
+  attackerSenseLabels: readonly string[]
 }
 
 type AttackPerceptionActor = EncounterPerceptionActor & Pick<MovementTarget, 'conditionDefinitions'>
+
+type AttackPerceptionLoaders = Pick<
+  Parameters<typeof resolveEncounterActorPairPerception>[0],
+  'gameSystemId' | 'loadDefinition' | 'loadSystem'
+>
 
 /** The perception Scene of an attack: its tokens, effective grid, and spatial effects. */
 export type EncounterAttackPerceptionPlacement = {
@@ -47,54 +57,135 @@ export type EncounterAttackPerceptionPlacement = {
   spatialEffects: readonly EncounterSpatialRuleEffectRecord[]
 }
 
-/** Resolves both directions of sight between an attacker and its target (SRD unseen attacker/target). */
-export async function resolveEncounterAttackPerception(input: {
-  gameSystemId: string
-  attacker: AttackPerceptionActor
-  target: AttackPerceptionActor
-  /** Null outside a Scene: conditions and Senses still decide on the neutral environment. */
-  placement: EncounterAttackPerceptionPlacement | null
-  loadDefinition: (
-    id: string
-  ) => Promise<Pick<
-    ReusableDefinitionRootRecord,
-    'definitionFamilyKey' | 'gameSystemId' | 'current'
-  > | null>
-  loadSystem: () => Promise<SystemAuthoredDto>
-}): Promise<EncounterAttackPerception> {
-  const { placement } = input
-  const sight = async (
-    observer: AttackPerceptionActor,
-    subject: AttackPerceptionActor,
-    tokens: { observerToken: SceneToken; subjectToken: SceneToken } | null
-  ): Promise<EncounterAttackSight> => {
-    const result = await resolveEncounterActorPairPerception({
-      gameSystemId: input.gameSystemId,
-      requirement: 'SEE',
-      observer,
-      subject,
-      observerConditionDefinitions: observer.conditionDefinitions,
-      subjectConditionDefinitions: subject.conditionDefinitions,
-      placement: placement && tokens ? { ...placement, ...tokens } : null,
-      loadDefinition: input.loadDefinition,
-      loadSystem: input.loadSystem
-    })
-    if (result.satisfied) return 'SEES'
-    return (snapshotStatBlock(observer.actor)?.senses.length ?? 0) > 0 ? 'UNKNOWN' : 'UNSEEN'
+/**
+ * Whether one observer sees one subject, and by which System Senses. `believed` decides only on the
+ * facts the observer's roller knows: a Creature's unmodeled authored Senses are never undecided.
+ */
+async function resolveAttackSight(
+  input: AttackPerceptionLoaders & {
+    observer: AttackPerceptionActor
+    subject: AttackPerceptionActor
+    placement: Parameters<typeof resolveEncounterActorPairPerception>[0]['placement']
+    believed: boolean
   }
-  const [targetSeesAttacker, attackerSeesTarget] = await Promise.all([
-    sight(
-      input.target,
-      input.attacker,
-      placement && { observerToken: placement.targetToken, subjectToken: placement.attackerToken }
-    ),
-    sight(
-      input.attacker,
-      input.target,
-      placement && { observerToken: placement.attackerToken, subjectToken: placement.targetToken }
-    )
+): Promise<{ sight: EncounterAttackSight; senseLabels: readonly string[] }> {
+  const { observer, subject } = input
+  const result = await resolveEncounterActorPairPerception({
+    gameSystemId: input.gameSystemId,
+    requirement: 'SEE',
+    observer,
+    subject,
+    observerConditionDefinitions: observer.conditionDefinitions,
+    subjectConditionDefinitions: subject.conditionDefinitions,
+    placement: input.placement,
+    loadDefinition: input.loadDefinition,
+    loadSystem: input.loadSystem
+  })
+  if (!result.satisfied)
+    return {
+      sight:
+        !input.believed && (snapshotStatBlock(observer.actor)?.senses.length ?? 0) > 0
+          ? 'UNKNOWN'
+          : 'UNSEEN',
+      senseLabels: []
+    }
+  if (input.believed || result.qualifying.length === 0) return { sight: 'SEES', senseLabels: [] }
+  const { senses } = await input.loadSystem()
+  const qualifying = new Set(result.qualifying.map((identity) => identity.definitionId))
+  return {
+    sight: 'SEES',
+    senseLabels: senses
+      .filter((sense) => qualifying.has(sense.id))
+      .map((sense) => sense.label)
+      .sort((left, right) => left.localeCompare(right))
+  }
+}
+
+/** Resolves both directions of sight between an attacker and its target (SRD unseen attacker/target). */
+export async function resolveEncounterAttackPerception(
+  input: AttackPerceptionLoaders & {
+    attacker: AttackPerceptionActor
+    target: AttackPerceptionActor
+    /** Null outside a Scene: conditions and Senses still decide on the neutral environment. */
+    placement: EncounterAttackPerceptionPlacement | null
+  }
+): Promise<EncounterAttackPerception> {
+  const { placement } = input
+  const [target, attacker] = await Promise.all([
+    resolveAttackSight({
+      ...input,
+      observer: input.target,
+      subject: input.attacker,
+      placement: placement && {
+        ...placement,
+        observerToken: placement.targetToken,
+        subjectToken: placement.attackerToken
+      },
+      believed: false
+    }),
+    resolveAttackSight({
+      ...input,
+      observer: input.attacker,
+      subject: input.target,
+      placement: placement && {
+        ...placement,
+        observerToken: placement.attackerToken,
+        subjectToken: placement.targetToken
+      },
+      believed: false
+    })
   ])
-  return { targetSeesAttacker, attackerSeesTarget }
+  return {
+    targetSeesAttacker: target.sight,
+    attackerSeesTarget: attacker.sight,
+    targetSenseLabels: target.senseLabels,
+    attackerSenseLabels: attacker.senseLabels
+  }
+}
+
+/** An actor as a roller who knows nothing of it sees it: no Senses, effects or conditions. */
+const strippedAttackActor = (actor: AttackPerceptionActor): AttackPerceptionActor => ({
+  ...actor,
+  activeEffects: [],
+  baseRulePolicyOutput: null,
+  conditionDefinitions: []
+})
+
+/**
+ * The sight the roller of an attack believes before the server applies the true mode (ATTACK-10.1):
+ * the attacker as it is, the target as a stranger, on the neutral environment. The target sees the
+ * attacker through System baseline sight alone; the attacker sees the target through its own Senses,
+ * conditions and effects. Scene lighting, the target's Senses and the target's conditions are not
+ * inputs, and the answer is never undecided.
+ */
+export async function resolveEncounterBelievedAttackPerception(
+  input: AttackPerceptionLoaders & {
+    attacker: AttackPerceptionActor
+    target: AttackPerceptionActor
+  }
+): Promise<EncounterAttackPerception> {
+  const [target, attacker] = await Promise.all([
+    resolveAttackSight({
+      ...input,
+      observer: strippedAttackActor(input.target),
+      subject: input.attacker,
+      placement: null,
+      believed: true
+    }),
+    resolveAttackSight({
+      ...input,
+      observer: input.attacker,
+      subject: strippedAttackActor(input.target),
+      placement: null,
+      believed: true
+    })
+  ])
+  return {
+    targetSeesAttacker: target.sight,
+    attackerSeesTarget: attacker.sight,
+    targetSenseLabels: [],
+    attackerSenseLabels: []
+  }
 }
 
 /** The attack-roll contributors the SRD gives unseen attackers (advantage) and unseen targets (disadvantage). */
@@ -123,4 +214,19 @@ export function encounterAttackPerceptionContributors(
         ]
       : [])
   ]
+}
+
+/**
+ * Every attack-roll contributor that sight decides: the target's Dodge, which holds only while the
+ * target can see the attacker, and the unseen attacker/target contributors. True and believed
+ * perception build theirs with this one rule.
+ */
+export function encounterAttackSightContributors(input: {
+  perception: EncounterAttackPerception
+  dodgeContributors: readonly EncounterRelationshipD20Contributor[]
+}): readonly EncounterRelationshipD20Contributor[] {
+  return mergeCanonicalD20Contributors(
+    input.perception.targetSeesAttacker === 'UNSEEN' ? [] : input.dodgeContributors,
+    encounterAttackPerceptionContributors(input.perception)
+  )
 }

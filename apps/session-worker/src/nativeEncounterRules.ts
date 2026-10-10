@@ -405,6 +405,12 @@ export async function planNativeLiveEncounterAction(
             })(),
             d20Policy: snapshot.applicationContext.d20Policy,
             twoPhase: snapshot.applicationContext.twoPhase,
+            ...(snapshot.applicationContext.d20Belief
+              ? { d20Belief: snapshot.applicationContext.d20Belief }
+              : {}),
+            ...(snapshot.applicationContext.heldD20
+              ? { heldD20: snapshot.applicationContext.heldD20 }
+              : {}),
             ...(snapshot.phaseReceipts ? { phaseReceipts: snapshot.phaseReceipts } : {})
           },
           resolution: evidenceResolution
@@ -421,6 +427,7 @@ export async function planNativeLiveEncounterAction(
       TARGET: requireAutoRoll(prepared.target.id)
     },
     binding: prepared.binding,
+    attackSight: prepared.attackSight,
     ...(resume ? { resume } : {}),
     afterTest: async (test) => {
       if (test.outputs.resultPath !== 'ON_SAVE_FAIL' || prepared.target.kind !== 'CREATURE') return
@@ -643,7 +650,9 @@ export function buildNativeLiveEncounterActionPendingInput(
           plan.execution.roller === 'SOURCE' ? plan.prepared.actor.id : plan.prepared.target.id,
         currentnessChecksum: plan.currentnessChecksum,
         d20Policy: plan.execution.d20Policy,
-        twoPhase: plan.execution.twoPhase
+        twoPhase: plan.execution.twoPhase,
+        ...(plan.execution.d20Belief ? { d20Belief: plan.execution.d20Belief } : {}),
+        ...(plan.execution.heldD20 ? { heldD20: plan.execution.heldD20 } : {})
       },
       ...(plan.execution.phaseReceipts ? { phaseReceipts: plan.execution.phaseReceipts } : {})
     }

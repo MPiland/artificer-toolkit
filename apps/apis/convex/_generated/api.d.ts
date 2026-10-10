@@ -2918,7 +2918,8 @@ export declare const api: {
               | "DAMAGE"
               | "HEALING"
               | "HIT_DIE"
-              | "DEATH_SAVE";
+              | "DEATH_SAVE"
+              | "RECHARGE";
             label: string;
           };
         },
@@ -2949,18 +2950,27 @@ export declare const api: {
           };
           id: string;
           normalizedExpression: string;
-          ruleCheck?: {
-            actorId: string;
-            actorLabel: string;
-            damage: { amount: number; typeLabel: string | null };
-            dc: number;
-            faces: Array<number>;
-            kind: "CONCENTRATION";
-            modifier: number;
-            outcome: "KEPT" | "LOST";
-            sourceLabel: string | null;
-            total: number;
-          };
+          ruleCheck?:
+            | {
+                actorId: string;
+                actorLabel: string;
+                damage: { amount: number; typeLabel: string | null };
+                dc: number;
+                faces: Array<number>;
+                kind: "CONCENTRATION";
+                modifier: number;
+                outcome: "KEPT" | "LOST";
+                sourceLabel: string | null;
+                total: number;
+              }
+            | {
+                addedRollIndexes: Array<number>;
+                appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                cancelledRollIndexes: Array<number>;
+                caption: string | null;
+                kind: "D20_MODE_ADJUSTED";
+                rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -2973,7 +2983,8 @@ export declare const api: {
               | "DAMAGE"
               | "HEALING"
               | "HIT_DIE"
-              | "DEATH_SAVE";
+              | "DEATH_SAVE"
+              | "RECHARGE";
             label: string;
           };
         }
@@ -7046,18 +7057,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -7070,7 +7090,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -7130,18 +7151,27 @@ export declare const api: {
               };
               id: string;
               normalizedExpression: string;
-              ruleCheck?: {
-                actorId: string;
-                actorLabel: string;
-                damage: { amount: number; typeLabel: string | null };
-                dc: number;
-                faces: Array<number>;
-                kind: "CONCENTRATION";
-                modifier: number;
-                outcome: "KEPT" | "LOST";
-                sourceLabel: string | null;
-                total: number;
-              };
+              ruleCheck?:
+                | {
+                    actorId: string;
+                    actorLabel: string;
+                    damage: { amount: number; typeLabel: string | null };
+                    dc: number;
+                    faces: Array<number>;
+                    kind: "CONCENTRATION";
+                    modifier: number;
+                    outcome: "KEPT" | "LOST";
+                    sourceLabel: string | null;
+                    total: number;
+                  }
+                | {
+                    addedRollIndexes: Array<number>;
+                    appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    cancelledRollIndexes: Array<number>;
+                    caption: string | null;
+                    kind: "D20_MODE_ADJUSTED";
+                    rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  };
               ruleset: { code: string; systemId: string; version: string };
               source: {
                 kind:
@@ -7154,7 +7184,8 @@ export declare const api: {
                   | "DAMAGE"
                   | "HEALING"
                   | "HIT_DIE"
-                  | "DEATH_SAVE";
+                  | "DEATH_SAVE"
+                  | "RECHARGE";
                 label: string;
               };
             } | null;
@@ -7219,18 +7250,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -7243,7 +7283,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -7296,18 +7337,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -7320,7 +7370,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -9373,7 +9424,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           };
@@ -9419,18 +9471,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -9443,7 +9504,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -9472,7 +9534,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           };
@@ -9510,18 +9573,27 @@ export declare const api: {
           } | null;
           id: string;
           normalizedExpression: string;
-          ruleCheck?: {
-            actorId: string;
-            actorLabel: string;
-            damage: { amount: number; typeLabel: string | null };
-            dc: number;
-            faces: Array<number>;
-            kind: "CONCENTRATION";
-            modifier: number;
-            outcome: "KEPT" | "LOST";
-            sourceLabel: string | null;
-            total: number;
-          };
+          ruleCheck?:
+            | {
+                actorId: string;
+                actorLabel: string;
+                damage: { amount: number; typeLabel: string | null };
+                dc: number;
+                faces: Array<number>;
+                kind: "CONCENTRATION";
+                modifier: number;
+                outcome: "KEPT" | "LOST";
+                sourceLabel: string | null;
+                total: number;
+              }
+            | {
+                addedRollIndexes: Array<number>;
+                appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                cancelledRollIndexes: Array<number>;
+                caption: string | null;
+                kind: "D20_MODE_ADJUSTED";
+                rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -9534,7 +9606,8 @@ export declare const api: {
               | "DAMAGE"
               | "HEALING"
               | "HIT_DIE"
-              | "DEATH_SAVE";
+              | "DEATH_SAVE"
+              | "RECHARGE";
             label: string;
           };
         }
@@ -9584,18 +9657,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -9608,7 +9690,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -38948,6 +39031,7 @@ export declare const api: {
                 occurrenceVersion: number;
                 request: {
                   derivedRollModeReasons: Array<string>;
+                  heldD20?: { caption: string | null; faces: Array<number> };
                   max: 20;
                   min: 1;
                   requestId: string;
@@ -39196,6 +39280,7 @@ export declare const api: {
                   occurrenceVersion: number;
                   request: {
                     derivedRollModeReasons: Array<string>;
+                    heldD20?: { caption: string | null; faces: Array<number> };
                     max: 20;
                     min: 1;
                     requestId: string;
@@ -39658,18 +39743,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -39682,7 +39776,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -39888,18 +39983,27 @@ export declare const api: {
             };
             id: string;
             normalizedExpression: string;
-            ruleCheck?: {
-              actorId: string;
-              actorLabel: string;
-              damage: { amount: number; typeLabel: string | null };
-              dc: number;
-              faces: Array<number>;
-              kind: "CONCENTRATION";
-              modifier: number;
-              outcome: "KEPT" | "LOST";
-              sourceLabel: string | null;
-              total: number;
-            };
+            ruleCheck?:
+              | {
+                  actorId: string;
+                  actorLabel: string;
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  faces: Array<number>;
+                  kind: "CONCENTRATION";
+                  modifier: number;
+                  outcome: "KEPT" | "LOST";
+                  sourceLabel: string | null;
+                  total: number;
+                }
+              | {
+                  addedRollIndexes: Array<number>;
+                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  cancelledRollIndexes: Array<number>;
+                  caption: string | null;
+                  kind: "D20_MODE_ADJUSTED";
+                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -39912,7 +40016,8 @@ export declare const api: {
                 | "DAMAGE"
                 | "HEALING"
                 | "HIT_DIE"
-                | "DEATH_SAVE";
+                | "DEATH_SAVE"
+                | "RECHARGE";
               label: string;
             };
           } | null;
@@ -39934,6 +40039,7 @@ export declare const api: {
             occurrenceVersion: number;
             request: {
               derivedRollModeReasons: Array<string>;
+              heldD20?: { caption: string | null; faces: Array<number> };
               max: 20;
               min: 1;
               requestId: string;
@@ -40655,6 +40761,7 @@ export declare const api: {
                 occurrenceVersion: number;
                 request: {
                   derivedRollModeReasons: Array<string>;
+                  heldD20?: { caption: string | null; faces: Array<number> };
                   max: 20;
                   min: 1;
                   requestId: string;
@@ -42106,7 +42213,8 @@ export declare const api: {
             | "DAMAGE"
             | "HEALING"
             | "HIT_DIE"
-            | "DEATH_SAVE";
+            | "DEATH_SAVE"
+            | "RECHARGE";
           label: string;
         };
       },
@@ -42137,18 +42245,27 @@ export declare const api: {
         };
         id: string;
         normalizedExpression: string;
-        ruleCheck?: {
-          actorId: string;
-          actorLabel: string;
-          damage: { amount: number; typeLabel: string | null };
-          dc: number;
-          faces: Array<number>;
-          kind: "CONCENTRATION";
-          modifier: number;
-          outcome: "KEPT" | "LOST";
-          sourceLabel: string | null;
-          total: number;
-        };
+        ruleCheck?:
+          | {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            }
+          | {
+              addedRollIndexes: Array<number>;
+              appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              cancelledRollIndexes: Array<number>;
+              caption: string | null;
+              kind: "D20_MODE_ADJUSTED";
+              rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -42161,7 +42278,8 @@ export declare const api: {
             | "DAMAGE"
             | "HEALING"
             | "HIT_DIE"
-            | "DEATH_SAVE";
+            | "DEATH_SAVE"
+            | "RECHARGE";
           label: string;
         };
       }
@@ -42233,18 +42351,27 @@ export declare const api: {
         } | null;
         id: string;
         normalizedExpression: string;
-        ruleCheck?: {
-          actorId: string;
-          actorLabel: string;
-          damage: { amount: number; typeLabel: string | null };
-          dc: number;
-          faces: Array<number>;
-          kind: "CONCENTRATION";
-          modifier: number;
-          outcome: "KEPT" | "LOST";
-          sourceLabel: string | null;
-          total: number;
-        };
+        ruleCheck?:
+          | {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            }
+          | {
+              addedRollIndexes: Array<number>;
+              appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              cancelledRollIndexes: Array<number>;
+              caption: string | null;
+              kind: "D20_MODE_ADJUSTED";
+              rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -42257,7 +42384,8 @@ export declare const api: {
             | "DAMAGE"
             | "HEALING"
             | "HIT_DIE"
-            | "DEATH_SAVE";
+            | "DEATH_SAVE"
+            | "RECHARGE";
           label: string;
         };
       }>

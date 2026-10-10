@@ -61,13 +61,46 @@ export const staticDie = style({
       justifyItems: 'center',
       opacity: 0.46,
       padding: '5px',
+      position: 'relative',
       width: '58px',
       selectors: {
         '&[data-kept="true"]': {
           borderColor: foundationVars.color.accent.solid,
           opacity: 1
+        },
+        '&[data-cancelled="true"]': {
+          borderStyle: 'dashed'
         }
       }
+    }
+  }
+})
+
+/** Static strike-through over a cancelled die; it never animates, so reduced motion is unaffected. */
+export const cancelledMark = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      color: foundationVars.color.text.primary,
+      display: 'flex',
+      fontSize: '2.4rem',
+      fontWeight: 700,
+      inset: 0,
+      justifyContent: 'center',
+      lineHeight: 1,
+      pointerEvents: 'none',
+      position: 'absolute'
+    }
+  }
+})
+
+export const staticDiceCaption = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.8rem',
+      maxWidth: 'min(680px, 92%)',
+      textAlign: 'center'
     }
   }
 })

@@ -5,7 +5,10 @@ import type {
   EncounterCommandResultDto,
   EncounterEvidenceRollDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import {
+  pendingEncounterRuleOccurrenceSummaryDtoSchema,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
@@ -798,6 +801,50 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
           kind: 'ENTER_DICE',
           requestId: 'attack-roll',
           rawFaces: [19],
+          rollMode: 'NORMAL'
+        }
+      })
+    )
+  })
+
+  it('asks for one more d20 beside the held die and submits only the new face', async () => {
+    const user = userEvent.setup()
+    const onResolve = rollingResolver([])
+    const heldPending = pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
+      ...d20Pending,
+      request: {
+        ...d20Pending.request,
+        heldD20: { faces: [12], caption: "Advantage: the target can't see you" }
+      }
+    })
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={heldPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Die 1: 12')).toBeVisible()
+    expect(screen.getByText("Advantage: the target can't see you")).toBeVisible()
+    expect(screen.queryByRole('radio', { name: 'Advantage' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Die 1')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+
+    await user.type(screen.getByLabelText('One more d20'), '5')
+    await user.click(screen.getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'attack-roll',
+          rawFaces: [5],
           rollMode: 'NORMAL'
         }
       })

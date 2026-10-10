@@ -47,7 +47,7 @@ export function presentChatEntries(
                 ...payload.roll.source,
                 label: presentCampaignPlainText(payload.roll.source.label, maturity).slice(0, 80)
               },
-              ...(payload.roll.ruleCheck
+              ...(payload.roll.ruleCheck?.kind === 'CONCENTRATION'
                 ? {
                     ruleCheck: {
                       ...payload.roll.ruleCheck,
@@ -64,7 +64,20 @@ export function presentChatEntries(
                             ).slice(0, 160)
                     }
                   }
-                : {})
+                : payload.roll.ruleCheck?.kind === 'D20_MODE_ADJUSTED'
+                  ? {
+                      ruleCheck: {
+                        ...payload.roll.ruleCheck,
+                        caption:
+                          payload.roll.ruleCheck.caption === null
+                            ? null
+                            : presentCampaignPlainText(
+                                payload.roll.ruleCheck.caption,
+                                maturity
+                              ).slice(0, 160)
+                      }
+                    }
+                  : {})
             },
       revealedByGm: payload.revealedByGm,
       authorUserId: entry.authorUserId,

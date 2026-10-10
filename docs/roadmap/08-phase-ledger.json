@@ -4389,10 +4389,17 @@
                 "packages/rules-runtime/src/__tests__/encounterAttackPerception.test.ts",
                 "apps/apis/convex/encounters/basicActions.test.ts",
                 "apps/apis/convex/encounters/actionCommands.test.ts",
-                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts"
+                "apps/session-worker/src/nativeLiveCaptureReadsRoom.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAttackBelief.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterActionAttackBelief.test.ts",
+                "packages/schema/src/__tests__/attack-d20-belief-contracts.test.ts",
+                "apps/web/src/components/dice/dice.utils.test.ts",
+                "apps/web/src/components/dice/DiceRollPresentation.test.tsx",
+                "apps/web/src/domains/campaigns/components/CampaignChatHistory.test.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx"
               ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2.",
+              "note": "rul-9-rules-audit.md slice 11. D100: room attack rolls; Hide's hidden state is ATTACK-10.2. User wording (2026-10-09): \"Invisible and unseen attackers and targets grant advantage or disadvantage in RESOLVE_ACTION, and Dodge checks sight.\" User ruling: the player's prompt shows the believed mode from facts their Character knows; commit applies the true mode, cancelling or adding a die, with a generic player caption and the specific reason for the GM only.",
               "id": "ATTACK-10.1"
             },
             {
@@ -4418,6 +4425,14 @@
               "origin": [],
               "note": "D100 not-wired paths; movement-owned code.",
               "id": "ATTACK-10.4"
+            },
+            {
+              "text": "Saving throws apply the believed-vs-true roll mode like attack rolls: the roller's prompt shows only what their Character knows, and the save settles in the true mode.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-09 (D100 believed vs true mode): saves are a follow-up to ATTACK-10.1.",
+              "id": "ATTACK-10.5"
             }
           ]
         },

@@ -152,6 +152,18 @@ export const rollRuleCheckDtoSchema = lazySchema(() =>
       modifier: z.number().check(z.int()),
       total: z.number().check(z.int()),
       outcome: z.enum(['KEPT', 'LOST'])
+    }),
+    /**
+     * A d20 the server settled in another mode than the one rolled for (ATTACK-10.1). The record's
+     * d20 term lists every die, rolled then added; the indexes point into that list.
+     */
+    z.strictObject({
+      kind: z.literal('D20_MODE_ADJUSTED'),
+      rolledMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      appliedMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      cancelledRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
+      addedRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
+      caption: z.nullable(ruleCheckLabelSchema)
     })
   ])
 )
