@@ -5,14 +5,20 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { pinnedSenseDefinitionSchema } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
-import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
+import {
+  senseReusableDefinitionDocumentDtoSchema,
+  type CombatPerceptionRequirementDto
+} from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ReusableDefinitionRootRecord } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   effectiveSpatialGeometry,
   spatialGeometryIntersectsTokenFootprint,
-  type CampaignSceneState
+  type CampaignSceneState,
+  type SceneGrid,
+  type SceneToken
 } from '@artificer-toolkit/shared/vtt'
 
 import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
@@ -26,6 +32,144 @@ type PerceptionScene = Pick<
   CampaignSceneState,
   'ambientIllumination' | 'barriers' | 'darknessZones' | 'doorStates' | 'grid' | 'lights' | 'tokens'
 >
+
+type LoadPerceptionDefinition = (
+  id: string
+) => Promise<Pick<
+  ReusableDefinitionRootRecord,
+  'definitionFamilyKey' | 'gameSystemId' | 'current'
+> | null>
+
+/** Where an observer and a subject stand; without it the neutral Scene-free environment applies. */
+export type EncounterActorPairPlacement = {
+  scene: PerceptionScene
+  sceneGrid: SceneGrid
+  observerToken: SceneToken
+  subjectToken: SceneToken
+  /** Every spatial effect of the Scene; only those touching either footprint apply. */
+  spatialEffects: readonly EncounterSpatialRuleEffectRecord[]
+}
+
+/** What perception reads of an actor: its effects, and for an observer its pinned Senses. */
+export type EncounterPerceptionActor = Pick<MovementTarget, 'actor' | 'activeEffects'> & {
+  baseRulePolicyOutput: Pick<NonNullable<MovementTarget['baseRulePolicyOutput']>, 'senses'> | null
+}
+
+/** A gridless footing that only converts typed ranges; nothing is measured on it. */
+const NEUTRAL_PERCEPTION_GRID: SceneGrid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
+
+/**
+ * Resolves one perception requirement between two Encounter actors from already-authorized reads:
+ * the observer's pinned Senses, both actors' pinned conditions and active effects, and the Scene
+ * placement when there is one. Without a placement the explicit neutral environment applies, so
+ * conditions and Senses still decide (D94).
+ */
+export async function resolveEncounterActorPairPerception(input: {
+  gameSystemId: string
+  requirement: CombatPerceptionRequirementDto
+  observer: EncounterPerceptionActor
+  subject: EncounterPerceptionActor
+  observerConditionDefinitions: readonly PinnedConditionRuleStateDefinitionDto[]
+  subjectConditionDefinitions: readonly PinnedConditionRuleStateDefinitionDto[]
+  placement: EncounterActorPairPlacement | null
+  loadDefinition: LoadPerceptionDefinition
+  loadSystem: () => Promise<SystemAuthoredDto>
+}) {
+  const adapter = characterRuleActionSystemAdapterRegistry.get(input.gameSystemId)
+  const observerActorId = input.observer.actor.id
+  const { placement } = input
+  const sceneGrid = placement?.sceneGrid ?? NEUTRAL_PERCEPTION_GRID
+  const senses = input.observer.baseRulePolicyOutput?.senses ?? []
+  if (senses.length > 100) throw new Error('Encounter perception Sense limit exceeded.')
+  const pins = []
+  if (senses.length) {
+    const system = await input.loadSystem()
+    const seen = new Set<string>()
+    for (const sense of senses) {
+      if (
+        seen.has(sense.senseDefinitionId) ||
+        !system.senses.some((value) => value.id === sense.senseDefinitionId)
+      )
+        throw new Error('Encounter perception Sense is not a unique System member.')
+      seen.add(sense.senseDefinitionId)
+      const root = await input.loadDefinition(sense.senseDefinitionId)
+      if (
+        !root?.current ||
+        root.definitionFamilyKey !== 'sense' ||
+        root.gameSystemId !== input.gameSystemId
+      )
+        throw new Error('Encounter perception Sense is unavailable.')
+      const document = senseReusableDefinitionDocumentDtoSchema.parse(root.current.document)
+      if (
+        document.id !== sense.senseDefinitionId ||
+        document.gameSystemId !== input.gameSystemId ||
+        checksumRuleDocument(document) !== root.current.checksum
+      )
+        throw new Error('Encounter perception Sense is stale.')
+      pins.push(
+        pinnedSenseDefinitionSchema.parse({
+          senseDefinitionId: sense.senseDefinitionId,
+          definitionVersion: root.current.version,
+          definitionContractVersion: root.current.contractVersion,
+          definitionChecksum: root.current.checksum,
+          document,
+          range: sense.range
+        })
+      )
+    }
+  }
+  const localAreaEffects = placement
+    ? placement.spatialEffects.filter((effect) => {
+        const geometry = effectiveSpatialGeometry(effect.placement, placement.scene.tokens)
+        return (
+          geometry !== null &&
+          (spatialGeometryIntersectsTokenFootprint({ geometry, token: placement.observerToken }) ||
+            spatialGeometryIntersectsTokenFootprint({ geometry, token: placement.subjectToken }))
+        )
+      })
+    : []
+  return resolveEncounterCombatPerception({
+    requirement: input.requirement,
+    observerActorId,
+    sceneGrid,
+    ...(placement
+      ? {
+          scene: placement.scene,
+          observerToken: placement.observerToken,
+          subjectToken: placement.subjectToken,
+          sharedSurface: true,
+          invisibleChannels: [],
+          suppressedChannels: []
+        }
+      : {
+          environment: {
+            distance: 0,
+            lineOfEffect: true,
+            sharedSurface: true,
+            illumination: 'BRIGHT' as const,
+            obscurement: 'NONE' as const,
+            invisibleChannels: [],
+            suppressedChannels: []
+          }
+        }),
+    baselineCapabilities:
+      adapter?.combatPerceptionBaselineCapabilities?.({ observerActorId }) ?? [],
+    pinnedSenseDefinitions: pins,
+    observerEffects: input.observer.activeEffects,
+    subjectEffects: input.subject.activeEffects,
+    localAreaEffects,
+    observerConditionContributions: deriveConditionCombatPerceptionContributions({
+      conditionDefinitions: input.observerConditionDefinitions,
+      relation: 'OBSERVER',
+      sceneGrid
+    }),
+    subjectConditionContributions: deriveConditionCombatPerceptionContributions({
+      conditionDefinitions: input.subjectConditionDefinitions,
+      relation: 'SUBJECT',
+      sceneGrid
+    })
+  })
+}
 
 /** Evaluates current turn-effect perception from already-authorized domain reads. */
 export async function resolveEncounterTurnEffectPerception(input: {
@@ -42,12 +186,7 @@ export async function resolveEncounterTurnEffectPerception(input: {
     subjectTokenId: string
   } | null>
   loadTarget: (actorId: string) => Promise<MovementTarget | undefined>
-  loadDefinition: (
-    id: string
-  ) => Promise<Pick<
-    ReusableDefinitionRootRecord,
-    'definitionFamilyKey' | 'gameSystemId' | 'current'
-  > | null>
+  loadDefinition: LoadPerceptionDefinition
   loadSystem: () => Promise<SystemAuthoredDto>
   loadSpatialEffects: (sceneId: string) => Promise<readonly EncounterSpatialRuleEffectRecord[]>
 }) {
@@ -113,80 +252,22 @@ export async function resolveEncounterTurnEffectPerception(input: {
     conditionState(input.target),
     conditionState(subject)
   ])
-  const senses = input.target.baseRulePolicyOutput?.senses ?? []
-  if (senses.length > 100) throw new Error('Turn effect perception Sense limit exceeded.')
-  const pins = []
-  if (senses.length) {
-    const system = await input.loadSystem()
-    const seen = new Set<string>()
-    for (const sense of senses) {
-      if (
-        seen.has(sense.senseDefinitionId) ||
-        !system.senses.some((value) => value.id === sense.senseDefinitionId)
-      )
-        throw new Error('Turn effect perception Sense is not a unique System member.')
-      seen.add(sense.senseDefinitionId)
-      const root = await input.loadDefinition(sense.senseDefinitionId)
-      if (
-        !root?.current ||
-        root.definitionFamilyKey !== 'sense' ||
-        root.gameSystemId !== input.state.gameSystemId
-      )
-        throw new Error('Turn effect perception Sense is unavailable.')
-      const document = senseReusableDefinitionDocumentDtoSchema.parse(root.current.document)
-      if (
-        document.id !== sense.senseDefinitionId ||
-        document.gameSystemId !== input.state.gameSystemId ||
-        checksumRuleDocument(document) !== root.current.checksum
-      )
-        throw new Error('Turn effect perception Sense is stale.')
-      pins.push(
-        pinnedSenseDefinitionSchema.parse({
-          senseDefinitionId: sense.senseDefinitionId,
-          definitionVersion: root.current.version,
-          definitionContractVersion: root.current.contractVersion,
-          definitionChecksum: root.current.checksum,
-          document,
-          range: sense.range
-        })
-      )
-    }
-  }
-  const localAreaEffects = (await input.loadSpatialEffects(loadedScene.id)).filter((effect) => {
-    const geometry = effectiveSpatialGeometry(effect.placement, scene.tokens)
-    return (
-      geometry !== null &&
-      (spatialGeometryIntersectsTokenFootprint({ geometry, token: observerToken }) ||
-        spatialGeometryIntersectsTokenFootprint({ geometry, token: subjectToken }))
-    )
-  })
-  const result = resolveEncounterCombatPerception({
+  const result = await resolveEncounterActorPairPerception({
+    gameSystemId: input.state.gameSystemId,
     requirement: dependency.requirement,
-    observerActorId: input.target.actor.id,
-    scene,
-    sceneGrid: grid,
-    observerToken,
-    subjectToken,
-    sharedSurface: true,
-    invisibleChannels: [],
-    suppressedChannels: [],
-    baselineCapabilities:
-      adapter?.combatPerceptionBaselineCapabilities?.({ observerActorId: input.target.actor.id }) ??
-      [],
-    pinnedSenseDefinitions: pins,
-    observerEffects: input.target.activeEffects,
-    subjectEffects: subject.activeEffects,
-    localAreaEffects,
-    observerConditionContributions: deriveConditionCombatPerceptionContributions({
-      conditionDefinitions: observerConditions.conditionDefinitions,
-      relation: 'OBSERVER',
-      sceneGrid: grid
-    }),
-    subjectConditionContributions: deriveConditionCombatPerceptionContributions({
-      conditionDefinitions: subjectConditions.conditionDefinitions,
-      relation: 'SUBJECT',
-      sceneGrid: grid
-    })
+    observer: input.target,
+    subject,
+    observerConditionDefinitions: observerConditions.conditionDefinitions,
+    subjectConditionDefinitions: subjectConditions.conditionDefinitions,
+    placement: {
+      scene,
+      sceneGrid: grid,
+      observerToken,
+      subjectToken,
+      spatialEffects: await input.loadSpatialEffects(loadedScene.id)
+    },
+    loadDefinition: input.loadDefinition,
+    loadSystem: input.loadSystem
   })
   return {
     requirement: dependency.requirement,

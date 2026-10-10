@@ -51,20 +51,12 @@ export async function resolveNativeLiveTurnEffectPerception(input: {
       return loaded
     },
     loadTarget: input.loadTarget,
-    loadDefinition: async (id) => {
-      const response = await input.capture({ kind: 'DEFINITION', definitionId: id })
-      if (response.kind !== 'DEFINITION')
-        throw new Error('Turn effect perception definition capture kind mismatch.')
-      const current = response.definition
-      if (!current) return null
-      if (current.id !== id || current.gameSystemId !== input.state.gameSystemId)
-        throw new Error('Turn effect perception definition binding mismatch.')
-      return {
-        definitionFamilyKey: current.definitionFamilyKey,
-        gameSystemId: current.gameSystemId,
-        current
-      }
-    },
+    loadDefinition: (id) =>
+      readNativeLiveDefinition({
+        gameSystemId: input.state.gameSystemId,
+        definitionId: id,
+        capture: input.capture
+      }),
     loadSystem: async () => {
       if (input.system.id !== input.state.gameSystemId)
         throw new Error('Turn effect perception System binding mismatch.')
@@ -73,50 +65,86 @@ export async function resolveNativeLiveTurnEffectPerception(input: {
     loadSpatialEffects: async (sceneId) => {
       if (!sceneFence || sceneId !== sceneFence.sceneId)
         throw new Error('Turn effect perception Scene scope is unavailable.')
-      const effects: Extract<
-        LiveSessionEncounterRulesResponse,
-        { kind: 'SCENE_SPATIAL_EFFECTS' }
-      >['effects'] = []
-      let afterEffectId: string | null = null
-      for (;;) {
-        const response = await input.capture({
-          kind: 'SCENE_SPATIAL_EFFECTS',
-          sceneId,
-          expectedSceneVersion: sceneFence.sceneVersion,
-          afterEffectId
-        })
-        if (
-          response.kind !== 'SCENE_SPATIAL_EFFECTS' ||
-          response.sceneId !== sceneId ||
-          response.sceneVersion !== sceneFence.sceneVersion ||
-          response.effects.length > 4
-        )
-          throw new Error('Turn effect spatial page binding mismatch.')
-        let lastId: string | null = afterEffectId
-        for (const effect of response.effects) {
-          if (
-            (lastId !== null && effect.id <= lastId) ||
-            effect.encounterId !== input.state.id ||
-            effect.sceneId !== sceneId
-          )
-            throw new Error('Turn effect spatial page identity mismatch.')
-          lastId = effect.id
-          effects.push(effect)
-        }
-        if (effects.length > MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
-          throw new Error('Turn effect spatial effects exceed the supported bound.')
-        if (response.continueAfter === null) {
-          if (response.effects.length === 4)
-            throw new Error('Turn effect spatial page cursor mismatch.')
-          break
-        }
-        if (response.effects.length !== 4 || response.continueAfter !== lastId)
-          throw new Error('Turn effect spatial page cursor mismatch.')
-        afterEffectId = response.continueAfter
-      }
-      return effects
+      return readNativeLiveSpatialEffects({
+        encounterId: input.state.id,
+        sceneId,
+        sceneVersion: sceneFence.sceneVersion,
+        capture: input.capture
+      })
     }
   })
+}
+
+/** Reads one reusable definition of the Encounter's System through the live capture. */
+export async function readNativeLiveDefinition(input: {
+  gameSystemId: string
+  definitionId: string
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const response = await input.capture({ kind: 'DEFINITION', definitionId: input.definitionId })
+  if (response.kind !== 'DEFINITION')
+    throw new Error('Turn effect perception definition capture kind mismatch.')
+  const current = response.definition
+  if (!current) return null
+  if (current.id !== input.definitionId || current.gameSystemId !== input.gameSystemId)
+    throw new Error('Turn effect perception definition binding mismatch.')
+  return {
+    definitionFamilyKey: current.definitionFamilyKey,
+    gameSystemId: current.gameSystemId,
+    current
+  }
+}
+
+/** Reads every spatial effect of one Scene through bounded, cursor-checked pages of the live capture. */
+export async function readNativeLiveSpatialEffects(input: {
+  encounterId: string
+  sceneId: string
+  sceneVersion: number
+  capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
+}) {
+  const { sceneId } = input
+  const effects: Extract<
+    LiveSessionEncounterRulesResponse,
+    { kind: 'SCENE_SPATIAL_EFFECTS' }
+  >['effects'] = []
+  let afterEffectId: string | null = null
+  for (;;) {
+    const response = await input.capture({
+      kind: 'SCENE_SPATIAL_EFFECTS',
+      sceneId,
+      expectedSceneVersion: input.sceneVersion,
+      afterEffectId
+    })
+    if (
+      response.kind !== 'SCENE_SPATIAL_EFFECTS' ||
+      response.sceneId !== sceneId ||
+      response.sceneVersion !== input.sceneVersion ||
+      response.effects.length > 4
+    )
+      throw new Error('Turn effect spatial page binding mismatch.')
+    let lastId: string | null = afterEffectId
+    for (const effect of response.effects) {
+      if (
+        (lastId !== null && effect.id <= lastId) ||
+        effect.encounterId !== input.encounterId ||
+        effect.sceneId !== sceneId
+      )
+        throw new Error('Turn effect spatial page identity mismatch.')
+      lastId = effect.id
+      effects.push(effect)
+    }
+    if (effects.length > MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)
+      throw new Error('Turn effect spatial effects exceed the supported bound.')
+    if (response.continueAfter === null) {
+      if (response.effects.length === 4)
+        throw new Error('Turn effect spatial page cursor mismatch.')
+      break
+    }
+    if (response.effects.length !== 4 || response.continueAfter !== lastId)
+      throw new Error('Turn effect spatial page cursor mismatch.')
+    afterEffectId = response.continueAfter
+  }
+  return effects
 }
 
 /** Reads the perception Scene through bounded, cursor-checked entity pages of the live capture. */

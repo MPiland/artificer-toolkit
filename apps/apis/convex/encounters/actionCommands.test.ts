@@ -1968,6 +1968,68 @@ describe('Assisted soft enforcement', () => {
     })
   }, 60000)
 
+  it('a player-driven Bite by an Invisible attacker on a Scene rolls with advantage, named "Unseen attacker"', async () => {
+    // The seeded Wolf lists no authored Senses, so its sight is definitive.
+    const base = await distanceSetup({ rolls: 'PROMPT' })
+    const invisible = srdSystemRecord.conditionTypes.find((value) => value.code === 'INVISIBLE')
+    if (!invisible) throw new Error('Missing Invisible condition fixture.')
+    await base.t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
+        campaignId: base.campaign.id,
+        userId: base.other.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: base.campaign.createdAt,
+        joinedAt: base.campaign.createdAt,
+        leftAt: null
+      })
+    )
+    await setAutoRollDice(base.t, base.other.userId, false)
+    const conditioned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        actorId: base.actor.id,
+        conditions: [invisible.id]
+      }
+    })
+    const granted = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: conditioned.projection.version,
+        actorId: base.actor.id,
+        controllerUserIds: [base.other.userId]
+      }
+    })
+    const issued = await executeInRoom(base.other.caller, {
+      command: command({
+        encounterId: base.run.id,
+        expectedVersion: granted.projection.version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId,
+        sceneContext: {
+          sceneId: base.sceneId,
+          expectedSceneVersion: 0,
+          sourceTokenId: base.tokens[0]!.id,
+          targetTokenId: base.tokens[1]!.id
+        }
+      })
+    })
+    expect(issued.occurrence?.pending).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: { rollMode: 'ADVANTAGE' }
+    })
+    expect(await pendingFor(base, base.owner.caller)).toMatchObject({
+      kind: 'D20_EVIDENCE',
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Unseen attacker'] }
+    })
+  }, 60000)
+
   it('a Paralyzed target makes an adjacent Bite roll with advantage and hit critically (D94)', async () => {
     // The seeded Wolf's Bite (+4, 2d4 + 2) at the adjacent seeded Wolf (AC 13).
     const base = await distanceSetup({ rolls: 'PROMPT' })

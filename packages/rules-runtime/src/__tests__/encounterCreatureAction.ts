@@ -36,6 +36,8 @@ import {
 } from '../encounterActionMechanicsPlan.js'
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
+import { resolveEncounterAttackPerception } from '../encounterAttackPerception.js'
+import type { EncounterRelationshipD20Contributor } from '../encounterRelationshipActionFacts.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
 import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionCompiler.js'
@@ -337,6 +339,10 @@ export async function prepareCreatureAction(input: {
   featureId: string
   overridable: boolean
   targetActiveEffects?: readonly ActiveRuleEffectRecord[]
+  /** Resolves sight between the actors on the real perception rules (no Scene), as the room does. */
+  attackPerception?: boolean
+  /** What a Dodge on the target would give attacks against it, as the room's defense sets it. */
+  targetAttackContributors?: readonly EncounterRelationshipD20Contributor[]
 }) {
   const actors = input.actor.id === input.target.id ? [input.actor] : [input.actor, input.target]
   const encounter = creatureEncounter(
@@ -351,11 +357,16 @@ export async function prepareCreatureAction(input: {
         async ([id, target]) =>
           [
             id,
-            await withEncounterConditionMechanics({
-              target,
-              gameSystemId: SRD_SYSTEM_ID,
-              definitions: srdConditionDefinitionSource()
-            })
+            {
+              ...(await withEncounterConditionMechanics({
+                target,
+                gameSystemId: SRD_SYSTEM_ID,
+                definitions: srdConditionDefinitionSource()
+              })),
+              ...(id === input.target.id && input.targetAttackContributors
+                ? { basicActionAttackContributors: input.targetAttackContributors }
+                : {})
+            }
           ] as const
       )
     )
@@ -369,6 +380,21 @@ export async function prepareCreatureAction(input: {
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     overridable: input.overridable,
     movementTargets,
+    ...(input.attackPerception
+      ? {
+          loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+            resolveEncounterAttackPerception({
+              gameSystemId: SRD_SYSTEM_ID,
+              attacker: sourceFacts,
+              target: targetFacts,
+              placement: null,
+              loadDefinition: async () => {
+                throw new Error('No Sense definitions are read.')
+              },
+              loadSystem: async () => srdSystemRecord
+            })
+        }
+      : {}),
     loadSource: async (source) =>
       resolveEncounterActionSource({ ...source, system: srdSystemRecord }),
     loadRelationshipFacts: async () => []

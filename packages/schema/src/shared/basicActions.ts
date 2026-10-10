@@ -95,6 +95,8 @@ export type BasicActionReusableDefinitionDocumentDto = z.infer<
  * A lasting basic-action effect, kept in the acting actor's Run resources until the start of that
  * actor's next turn. `NO_OPPORTUNITY_ATTACKS` also ends when the turn it was taken in
  * (`turnSequence`) ends, and `ALLY_ADVANTAGE` when the ally's next attack roll or check uses it.
+ * `DISADVANTAGE_ON_ATTACKS_AGAINST` applies only against attackers the holder can see; RESOLVE_ACTION
+ * checks that sight and drops it against an attacker the holder definitely cannot see.
  */
 export const encounterBasicActionEffectDtoSchema = lazySchema(() =>
   z

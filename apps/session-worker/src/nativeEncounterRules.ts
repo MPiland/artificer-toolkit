@@ -50,6 +50,7 @@ import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
+import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -248,6 +249,15 @@ export async function planNativeLiveEncounterAction(
     overridable: true,
     movementTargets,
     sceneContext,
+    loadAttackPerception: ({ sourceFacts, targetFacts }) =>
+      readNativeLiveAttackPerception({
+        state,
+        system,
+        attacker: sourceFacts,
+        target: targetFacts,
+        sceneContext,
+        capture
+      }),
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
       mergeCanonicalD20Contributors(
