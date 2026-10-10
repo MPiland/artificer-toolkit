@@ -11,6 +11,11 @@ import {
   serverOptionalCombatContestPendingContextDtoSchema
 } from './ruleExecutionOptionalCombatPending.js'
 import {
+  encounterLegendaryResistancePinDtoSchema,
+  validateEncounterLegendaryResistancePin
+} from './ruleExecutionDirectActionPendingContexts.js'
+import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
+import {
   movementReactionPendingContextDtoSchema,
   spatialPendingContextDtoSchema
 } from './ruleExecutionSpatialPendingContexts.js'
@@ -20,6 +25,7 @@ import {
 } from './ruleExecutionPendingApplication.js'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
+  serverCompletedRuleExecutionDtoSchema,
   serverRuleExecutionContinuationDtoSchema,
   serverInitiativeDeclarationRequestDtoSchema,
   type RuleExecutionPhaseReceiptsDto,
@@ -461,6 +467,29 @@ export type OptionalCombatPassageChoicePendingContextDto = z.infer<
  * kernel continuation (a derived occurrence id keeps their request ids apart); the aggregate keeps the
  * caught set, sealed with a checksum of the Scene facts that decided it.
  */
+/**
+ * A caught creature's Legendary Resistance on its failed save: the offer sealed against that save and
+ * the creature's pool when it was made, then the controller's decision once taken. The charge is spent
+ * when the area commits, never here.
+ */
+const encounterAreaLegendaryResistanceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    originalExecutionChecksum: checksumSchema,
+    targetStateChecksum: checksumSchema,
+    d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+    resistance: encounterLegendaryResistancePinDtoSchema,
+    decision: z.optional(
+      z.strictObject({
+        selection: z.enum(['DECLINE', 'USE']),
+        choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema)
+      })
+    )
+  })
+)
+export type EncounterAreaLegendaryResistanceDto = z.infer<
+  typeof encounterAreaLegendaryResistanceDtoSchema
+>
+
 export type EncounterAreaActionPendingContextDto = {
   kind: 'ENCOUNTER_AREA_ACTION'
   schemaVersion: 1
@@ -483,6 +512,8 @@ export type EncounterAreaActionPendingContextDto = {
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
     /** Set once the creature's own roller answered its save; the GM can no longer take it out. */
     testedJson?: string
+    /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
+    legendaryResistance?: EncounterAreaLegendaryResistanceDto
   }[]
 }
 
@@ -524,7 +555,8 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             actorId: uuidSchema,
             token: encounterAreaTokenDtoSchema,
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
-            testedJson: z.optional(z.string())
+            testedJson: z.optional(z.string()),
+            legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema)
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -549,6 +581,26 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
                 'Each area save must be a unique, kept creature whose sealed continuation shares the area root.'
             })
           seen.add(target.actorId)
+          if (target.legendaryResistance) {
+            if (
+              target.testedJson === undefined ||
+              target.legendaryResistance.resistance.targetActorId !== target.actorId ||
+              target.legendaryResistance.resistance.poolRemaining !==
+                target.legendaryResistance.resistance.poolBefore -
+                  target.legendaryResistance.resistance.featureCost
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['targets', index, 'legendaryResistance'],
+                message:
+                  'A Legendary Resistance offer belongs to the creature’s own answered save and an available Feature cost.'
+              })
+            validateEncounterLegendaryResistancePin(
+              target.legendaryResistance.resistance,
+              context,
+              ['targets', index, 'legendaryResistance', 'resistance']
+            )
+          }
         }
       })
     )

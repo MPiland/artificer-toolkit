@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
-import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
@@ -13,7 +13,9 @@ import {
 import { movementReactionActionExecutionDtoSchema } from './ruleExecutionMovementReactionReceipts.js'
 import {
   directActionTwoPhaseDtoSchema,
-  encounterConcentrationDamageCheckPendingContextDtoSchema
+  encounterConcentrationDamageCheckPendingContextDtoSchema,
+  encounterLegendaryResistancePinDtoSchema,
+  validateEncounterLegendaryResistancePin
 } from './ruleExecutionDirectActionPendingContexts.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import { storedRuleExecutionResultDtoSchema } from './ruleExecutionResults.js'
@@ -28,8 +30,6 @@ import {
 import {
   ruleExecutionChecksumSchema as checksumSchema,
   ruleExecutionNonNegativeIntegerSchema as nonNegativeIntegerSchema,
-  ruleExecutionPortNameSchema as portNameSchema,
-  ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 
@@ -166,23 +166,7 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       originalExecutionChecksum: checksumSchema,
       targetStateChecksum: checksumSchema,
       maintenanceCurrentnessChecksum: z.optional(checksumSchema),
-      resistance: z.strictObject({
-        targetActorId: uuidSchema,
-        ownerFeatureId: authoredIdentifierSchema,
-        chargeId: authoredIdentifierSchema,
-        featureCost: positiveIntegerSchema,
-        poolBefore: nonNegativeIntegerSchema,
-        poolRemaining: nonNegativeIntegerSchema,
-        definitionId: uuidSchema,
-        definitionVersion: positiveIntegerSchema,
-        definitionChecksum: checksumSchema,
-        choiceGraphDefinitionId: uuidSchema,
-        choiceGraphDefinitionVersion: positiveIntegerSchema,
-        choiceGraphDefinitionChecksum: checksumSchema,
-        useOutput: portNameSchema,
-        useOptionId: checksumSchema,
-        selectionChecksum: checksumSchema
-      })
+      resistance: encounterLegendaryResistancePinDtoSchema
     })
   ])
 )
@@ -332,36 +316,10 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
               message:
                 'Legendary Resistance must retain one exact failed-save action and available Feature cost.'
             })
-          if (
-            checksumRuleDocument({
-              targetActorId: value.phase.resistance.targetActorId,
-              ownerFeatureId: value.phase.resistance.ownerFeatureId,
-              chargeId: value.phase.resistance.chargeId,
-              featureCost: value.phase.resistance.featureCost,
-              definitionId: value.phase.resistance.definitionId,
-              definitionVersion: value.phase.resistance.definitionVersion,
-              definitionChecksum: value.phase.resistance.definitionChecksum,
-              choiceGraphDefinitionId: value.phase.resistance.choiceGraphDefinitionId,
-              choiceGraphDefinitionVersion: value.phase.resistance.choiceGraphDefinitionVersion,
-              choiceGraphDefinitionChecksum: value.phase.resistance.choiceGraphDefinitionChecksum
-            }) !== value.phase.resistance.selectionChecksum
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['phase', 'resistance', 'selectionChecksum'],
-              message: 'Legendary Resistance selection checksum is invalid.'
-            })
-          if (
-            checksumRuleDocument({
-              kind: 'USE',
-              selectionChecksum: value.phase.resistance.selectionChecksum
-            }) !== value.phase.resistance.useOptionId
-          )
-            context.addIssue({
-              code: 'custom',
-              path: ['phase', 'resistance', 'useOptionId'],
-              message: 'Legendary Resistance use option identity is invalid.'
-            })
+          validateEncounterLegendaryResistancePin(value.phase.resistance, context, [
+            'phase',
+            'resistance'
+          ])
         }
         if (checksumRuleDocument(value.reactionTimeline) !== value.reactionSelectionChecksum)
           context.addIssue({

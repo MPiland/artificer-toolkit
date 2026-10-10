@@ -61,7 +61,11 @@ export async function readLiveEncounterActionAdmission(
     return { ...admission, kind: 'REPLAY' as const, result: responseAdmission.result, resume: null }
   if (admission.kind === 'REPLAY') return { ...admission, resume: null }
   const resume = responseAdmission?.kind === 'READY' ? responseAdmission : null
-  if (resume && resume.resolution.requestId !== resume.pending.snapshot.request.requestId)
+  if (
+    resume &&
+    'requestId' in resume.resolution &&
+    resume.resolution.requestId !== resume.pending.snapshot.request.requestId
+  )
     rejectDomain('VERSION_STALE', 'The action evidence request is stale.')
   return { ...admission, resume }
 }

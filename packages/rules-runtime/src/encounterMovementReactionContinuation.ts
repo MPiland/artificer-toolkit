@@ -21,6 +21,7 @@ import {
   startMovementReactionChoice
 } from './movementReactionChoice.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import { encounterLegendaryResistancePin } from './encounterLegendaryResistanceChoice.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import { EncounterConflictError } from './encounterErrors.js'
 import type {
@@ -402,28 +403,12 @@ export function retainEncounterMovementReactionActionEvidence(input: {
   })
 }
 
-export function legendaryResistanceUseOptionId(input: { selectionChecksum: string }): string {
-  return checksumRuleDocument({ kind: 'USE', selectionChecksum: input.selectionChecksum })
-}
-
 export function createEncounterLegendaryResistancePhase(
   input: Pick<
     Parameters<typeof retainEncounterLegendaryResistanceChoice>[0],
     'selectedOptionId' | 'execution' | 'd20' | 'candidate' | 'targetStateChecksum'
   >
 ): Extract<MovementReactionPendingContext['phase'], { kind: 'LEGENDARY_RESISTANCE_CHOICE' }> {
-  const selectionChecksum = checksumRuleDocument({
-    targetActorId: input.candidate.targetActorId,
-    ownerFeatureId: input.candidate.ownerFeatureId,
-    chargeId: input.candidate.chargeId,
-    featureCost: input.candidate.featureCost,
-    definitionId: input.candidate.lifecycle.definitionId,
-    definitionVersion: input.candidate.lifecycle.definitionVersion,
-    definitionChecksum: input.candidate.lifecycle.definitionChecksum,
-    choiceGraphDefinitionId: input.candidate.lifecycle.choiceGraphDefinitionId,
-    choiceGraphDefinitionVersion: input.candidate.lifecycle.choiceGraphDefinitionVersion,
-    choiceGraphDefinitionChecksum: input.candidate.lifecycle.choiceGraphDefinitionChecksum
-  })
   return {
     kind: 'LEGENDARY_RESISTANCE_CHOICE',
     selectedOptionId: input.selectedOptionId,
@@ -431,23 +416,7 @@ export function createEncounterLegendaryResistancePhase(
     originalD20: input.d20,
     originalExecutionChecksum: checksumRuleDocument(input.execution),
     targetStateChecksum: input.targetStateChecksum,
-    resistance: {
-      targetActorId: input.candidate.targetActorId,
-      ownerFeatureId: input.candidate.ownerFeatureId,
-      chargeId: input.candidate.chargeId,
-      featureCost: input.candidate.featureCost,
-      poolBefore: input.candidate.poolBefore,
-      poolRemaining: input.candidate.poolRemaining,
-      definitionId: input.candidate.lifecycle.definitionId,
-      definitionVersion: input.candidate.lifecycle.definitionVersion,
-      definitionChecksum: input.candidate.lifecycle.definitionChecksum,
-      choiceGraphDefinitionId: input.candidate.lifecycle.choiceGraphDefinitionId,
-      choiceGraphDefinitionVersion: input.candidate.lifecycle.choiceGraphDefinitionVersion,
-      choiceGraphDefinitionChecksum: input.candidate.lifecycle.choiceGraphDefinitionChecksum,
-      useOutput: input.candidate.lifecycle.useOutput,
-      useOptionId: legendaryResistanceUseOptionId({ selectionChecksum }),
-      selectionChecksum
-    }
+    resistance: encounterLegendaryResistancePin(input.candidate)
   }
 }
 

@@ -20,12 +20,16 @@ export async function insertActionEvidenceReceipt(
     rootFingerprint: string
     userId: string
     rootInitiatorUserId?: string
+    /** The save an area Legendary Resistance decision belongs to; every other answer names its own. */
+    areaSaveRequestId?: string
     commandResult?: EncounterCommandResultDto
     result: ReturnType<typeof storedRuleExecutionResultDtoSchema.parse>
   }
 ) {
   const { occurrence, response } = input
-  if (!('requestId' in response.resolution)) throw new Error('The action requires evidence.')
+  const requestId =
+    'requestId' in response.resolution ? response.resolution.requestId : input.areaSaveRequestId
+  if (requestId === undefined) throw new Error('The action requires evidence.')
   await ctx.db.insert(
     'encounterRuleReceipts',
     encounterStoredRuleReceiptSchema.parse({
@@ -46,7 +50,7 @@ export async function insertActionEvidenceReceipt(
           rootInitiatorUserId: input.rootInitiatorUserId ?? input.userId,
           expectedAggregateVersion: response.expectedVersion,
           expectedOccurrenceVersion: response.expectedOccurrenceVersion,
-          requestId: response.resolution.requestId,
+          requestId,
           resolutionKind: response.resolution.kind,
           ...(input.commandResult
             ? { replayReceipt: encounterReplayReceipt(input.commandResult) }

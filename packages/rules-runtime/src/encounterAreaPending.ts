@@ -17,6 +17,7 @@ export function encounterAreaTargetOccurrenceId(areaOccurrenceId: string, actorI
 }
 
 type AreaContext = EncounterAreaActionPendingContextDto
+type AreaTarget = AreaContext['targets'][number]
 
 /**
  * Seals the Scene facts that decided who the area caught: the Scene version, the picked origin and
@@ -72,18 +73,25 @@ export function removeEncounterAreaTarget<
   }
 }
 
+function requireAreaContext(snapshot: ServerAggregateChoicePendingSnapshotDto) {
+  const { applicationContext } = snapshot
+  if (applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+    throw new Error('The snapshot is not a pending area action.')
+  return applicationContext
+}
+
 /**
  * Records that the roller of the save with `requestId` answered it, keeping the answer to settle
- * the area with. The other saves, the caught set and its checksum stay exactly as sealed.
+ * the area with, and the Legendary Resistance offered if the save failed. The other saves, the
+ * caught set and its checksum stay exactly as sealed.
  */
 export function markEncounterAreaSaveTested(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
   requestId: string,
-  testedJson: string
+  testedJson: string,
+  legendaryResistance: AreaTarget['legendaryResistance'] | null = null
 ): ServerAggregateChoicePendingSnapshotDto {
-  const { applicationContext } = snapshot
-  if (applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
-    throw new Error('The snapshot is not a pending area action.')
+  const applicationContext = requireAreaContext(snapshot)
   const answered = applicationContext.targets.find(
     (target) => target.snapshot.request.requestId === requestId
   )
@@ -94,7 +102,33 @@ export function markEncounterAreaSaveTested(
     applicationContext: {
       ...applicationContext,
       targets: applicationContext.targets.map((target) =>
-        target === answered ? { ...target, testedJson } : target
+        target === answered
+          ? { ...target, testedJson, ...(legendaryResistance ? { legendaryResistance } : {}) }
+          : target
+      )
+    }
+  })
+}
+
+/**
+ * Records one creature's Legendary Resistance decision on its offer; every other target, the caught
+ * set and its checksum stay exactly as sealed. A creature decides once.
+ */
+export function markEncounterAreaLegendaryResistanceDecided(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  actorId: string,
+  decided: NonNullable<AreaTarget['legendaryResistance']>
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const offered = applicationContext.targets.find((target) => target.actorId === actorId)
+  if (!offered?.legendaryResistance || offered.legendaryResistance.decision)
+    throw new Error('This creature has no Legendary Resistance choice awaiting a decision.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: applicationContext.targets.map((target) =>
+        target === offered ? { ...target, legendaryResistance: decided } : target
       )
     }
   })

@@ -8,6 +8,7 @@ import {
   TRIGGER
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -20,8 +21,18 @@ import {
   catchEncounterAreaActorIds,
   prepareEncounterAreaTests,
   settleEncounterAreaAction,
+  type EncounterAreaTarget,
   type EncounterAreaTargetTest
 } from '../encounterAreaActionExecution.js'
+import {
+  decideEncounterAreaLegendaryResistance,
+  encounterAreaLegendaryResistanceAudits,
+  offerEncounterAreaLegendaryResistance
+} from '../encounterAreaLegendaryResistance.js'
+import { findEncounterFeatureResource } from '../encounterActorRuleOutput.js'
+import { discoverEncounterLegendaryResistanceCandidate } from '../encounterLegendaryResistanceDiscovery.js'
+import { srdActorRules, srdDefinitions } from '../testing/dnd5eSrdEncounter.js'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   creatureActor,
   prepareCreatureAction,
@@ -209,7 +220,10 @@ function areaActors(feature: CreatureFeature, resisted: string) {
 /** Every caught creature prepared through the real action preparation, each against its own facts. */
 async function areaSource(
   caster: EncounterRunActorState,
-  caught: readonly EncounterRunActorState[]
+  caught: readonly EncounterRunActorState[],
+  discoverLegendaryResistance: (
+    actor: EncounterRunActorState
+  ) => EncounterAreaTarget['discoverLegendaryResistance'] = () => async () => null
 ) {
   const prepared = await Promise.all(
     caught.map((target) =>
@@ -227,7 +241,8 @@ async function areaSource(
       actorId: caught[index]!.id,
       binding: value.binding,
       // Each creature rolls its own save; the caster's dice are the app's.
-      autoRoll: { SOURCE: true, TARGET: false }
+      autoRoll: { SOURCE: true, TARGET: false },
+      discoverLegendaryResistance: discoverLegendaryResistance(caught[index]!)
     }))
   }
 }
@@ -601,5 +616,186 @@ describe('an area action executed as one occurrence', () => {
         ({ targetActorId }) => targetActorId
       )
     ).toEqual([FOE_ID])
+  })
+})
+
+const LEGENDARY_RESISTANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000e4'
+const DRAGON_ID = '00000000-0000-4000-8000-0000000f1005'
+const NO_RESISTANCE = { kind: 'DECLINE' } as const
+
+const legendaryResistanceFeature = (() => {
+  const feature = adultBlackDragon.features?.find((entry) =>
+    entry.ruleDefinitionIds?.includes(LEGENDARY_RESISTANCE_DEFINITION_ID)
+  )
+  if (!feature) throw new Error('SRD Legendary Resistance is missing.')
+  return feature
+})()
+
+function dragonActor(used = 0) {
+  return creatureActor({
+    id: DRAGON_ID,
+    label: 'Dragon',
+    features: [legendaryResistanceFeature],
+    hitPoints: 100,
+    ...(used > 0 ? { featureChargesUsed: { [legendaryResistanceFeature.id]: used } } : {})
+  })
+}
+
+/** Real discovery of the SRD Legendary Resistance on the given creature's current pool. */
+function discoverFor(actors: readonly EncounterRunActorState[]) {
+  const actorRules = srdActorRules(actors)
+  return (actor: EncounterRunActorState) => () =>
+    discoverEncounterLegendaryResistanceCandidate({
+      encounter: { gameSystemId: SRD_SYSTEM_ID },
+      targetActor: actor,
+      actorRules,
+      definitions: srdDefinitions
+    })
+}
+
+function testedOf(tests: readonly EncounterAreaTargetTest[], actorId: string) {
+  const test = tests.find((entry) => entry.actorId === actorId)
+  if (test?.kind !== 'TESTED') throw new Error(`${actorId} has no answered save.`)
+  return test
+}
+
+/** A dragon with three Legendary Resistance charges and a plain foe, both caught in Fireball. */
+async function caughtDragonAndFoe(naturals: Readonly<Record<string, number>>) {
+  const { caster, foe } = areaActors(fireball(), FIRE)
+  const dragon = dragonActor()
+  const actors = [caster, dragon, foe]
+  const source = await areaSource(caster, [dragon, foe], discoverFor(actors))
+  const tests = await answerSaves(source, naturals, [DRAGON_ID, FOE_ID])
+  const offer = offerEncounterAreaLegendaryResistance({
+    test: testedOf(tests, DRAGON_ID),
+    targetStateChecksum: 'a'.repeat(64)
+  })
+  const currentFeatureResource = findEncounterFeatureResource(
+    srdActorRules(actors),
+    DRAGON_ID,
+    legendaryResistanceFeature.id
+  )!
+  return { source, tests, offer, currentFeatureResource, dragon }
+}
+
+async function decideDragon(
+  area: Awaited<ReturnType<typeof caughtDragonAndFoe>>,
+  selection: Parameters<typeof decideEncounterAreaLegendaryResistance>[0]['selection'],
+  candidate = testedOf(area.tests, DRAGON_ID).legendaryResistance!
+) {
+  return decideEncounterAreaLegendaryResistance({
+    runtime,
+    areaOccurrenceId: OCCURRENCE_ID,
+    test: testedOf(area.tests, DRAGON_ID),
+    offer: area.offer!,
+    candidate,
+    targetStateChecksum: 'a'.repeat(64),
+    selection,
+    currentFeatureResource: area.currentFeatureResource
+  })
+}
+
+describe('Legendary Resistance on an area save', () => {
+  it('finds the creature’s Legendary Resistance after its failed save, and only then', async () => {
+    const failed = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    expect(testedOf(failed.tests, DRAGON_ID).legendaryResistance).toMatchObject({
+      targetActorId: DRAGON_ID,
+      ownerFeatureId: legendaryResistanceFeature.id,
+      poolBefore: 3,
+      poolRemaining: 2
+    })
+    expect(testedOf(failed.tests, FOE_ID).legendaryResistance).toBeNull()
+
+    const saved = await caughtDragonAndFoe({ [DRAGON_ID]: 11, [FOE_ID]: 10 })
+    expect(testedOf(saved.tests, DRAGON_ID).legendaryResistance).toBeNull()
+    expect(saved.offer).toBeNull()
+  })
+
+  it('finds it when the save is rolled for the creature as the area opens', async () => {
+    const { caster, foe } = areaActors(fireball(), FIRE)
+    const dragon = dragonActor()
+    const source = await areaSource(caster, [dragon, foe], discoverFor([caster, dragon, foe]))
+    const dice = scriptedRandom([9])
+    const tests = await prepareEncounterAreaTests({
+      ...source,
+      random: dice.random,
+      targets: source.targets.map((target) =>
+        target.actorId === DRAGON_ID
+          ? { ...target, autoRoll: { SOURCE: true, TARGET: true } }
+          : target
+      )
+    })
+    expect(testedOf(tests, DRAGON_ID).legendaryResistance).toMatchObject({
+      targetActorId: DRAGON_ID
+    })
+    expect(tests.find((test) => test.actorId === FOE_ID)?.kind).toBe('PENDING')
+  })
+
+  it('turns the failed save into a success for the creature that uses it, and for it alone', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const used = await decideDragon(area, {
+      kind: 'OPTION',
+      optionId: area.offer!.resistance.useOptionId
+    })
+    expect(used.chargeProposal).toMatchObject({
+      ownerActorId: DRAGON_ID,
+      cost: 1,
+      beforeRemaining: 3,
+      afterRemaining: 2
+    })
+    const settled = await settleEncounterAreaAction({
+      ...area.source,
+      tests: area.tests,
+      random: scriptedRandom(EIGHT_D6).random,
+      legendaryResistance: encounterAreaLegendaryResistanceAudits(
+        new Map([[DRAGON_ID, used.legendaryResistance]])
+      )
+    })
+    expect(applied(settled, DRAGON_ID)).toEqual([13])
+    expect(applied(settled, FOE_ID)).toEqual([27])
+  })
+
+  it('leaves the failure, and the full damage, when the creature declines', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const declined = await decideDragon(area, NO_RESISTANCE)
+    expect(declined.chargeProposal).toBeNull()
+    const settled = await settleEncounterAreaAction({
+      ...area.source,
+      tests: area.tests,
+      random: scriptedRandom(EIGHT_D6).random,
+      legendaryResistance: encounterAreaLegendaryResistanceAudits(
+        new Map([[DRAGON_ID, declined.legendaryResistance]])
+      )
+    })
+    expect(applied(settled, DRAGON_ID)).toEqual([27])
+    expect(applied(settled, FOE_ID)).toEqual([27])
+  })
+
+  it('does not settle while a creature’s Legendary Resistance choice is undecided', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    await expect(
+      settleEncounterAreaAction({
+        ...area.source,
+        tests: area.tests,
+        random: scriptedRandom(EIGHT_D6).random
+      })
+    ).rejects.toThrow('Legendary Resistance choice is undecided')
+  })
+
+  it('refuses a decision once the pool it was offered against has changed', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const spent = dragonActor(1)
+    const stale = await discoverFor([spent])(spent)()
+    expect(stale?.poolBefore).toBe(2)
+    await expect(
+      decideDragon(area, { kind: 'OPTION', optionId: area.offer!.resistance.useOptionId }, stale!)
+    ).rejects.toThrow('Legendary Resistance evidence is stale')
+  })
+
+  it('refuses an option the offer never issued', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    await expect(decideDragon(area, { kind: 'OPTION', optionId: 'f'.repeat(64) })).rejects.toThrow(
+      'Legendary Resistance selection was not issued'
+    )
   })
 })

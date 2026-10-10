@@ -5174,7 +5174,7 @@
         {
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -5519,6 +5519,24 @@
               "origin": [],
               "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. How the table declares moving at half speed to avoid it is an open question.",
               "id": "SPELLS-17.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-18",
+          "title": "Legendary Resistance on a single-target action save",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "When a Creature with Legendary Resistance fails a save forced by a single-target action or spell, its controller is offered Legendary Resistance before the outcome applies; using it turns the failure into a success and spends the charge, declining keeps the failure, and GM undo returns the charge.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found 2026-10-10 while scoping SPELLS-7 slice 5c-ii: the room throws 'The action requires a Legendary Resistance decision.' (apps/session-worker/src/nativeEncounterRules.ts afterTest), and no PBI tracked it. Same ruling as area saves (per target, interstitial, offered to the creature's controller, as on movement); reuse the Legendary Resistance choice helpers 5c-ii shares with movement. Build right after SPELLS-7.",
+              "id": "SPELLS-18.1"
             }
           ]
         }

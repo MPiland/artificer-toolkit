@@ -37,7 +37,12 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = lazySchema(() 
         expectedAggregateVersion: aggregateVersionSchema,
         expectedOccurrenceVersion: aggregateVersionSchema,
         requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-        resolutionKind: z.enum(['ENTER_DICE', 'ENTER_INTEGER', 'SYSTEM_ROLL']),
+        resolutionKind: z.enum([
+          'ENTER_DICE',
+          'ENTER_INTEGER',
+          'SYSTEM_ROLL',
+          'AREA_LEGENDARY_RESISTANCE'
+        ]),
         /**
          * Native evidence retries retain the authorized response's command receipt, parsed by its
          * API owner; the replay rebuilds its projection from the Run's records.

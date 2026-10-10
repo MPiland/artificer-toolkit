@@ -39090,11 +39090,17 @@ export declare const api: {
                     };
               }
             | {
-                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                allowedResponses: Array<
+                  "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                >;
                 casterActorId: string;
                 caughtChecksum: string;
                 encounterVersion: number;
                 kind: "AREA_SAVES";
+                legendaryResistance: Array<{
+                  actorId: string;
+                  optionId: string;
+                }>;
                 occurrenceId: string;
                 occurrenceVersion: number;
                 saves: Array<{
@@ -39363,11 +39369,17 @@ export declare const api: {
                       };
                 }
               | {
-                  allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                  allowedResponses: Array<
+                    "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                  >;
                   casterActorId: string;
                   caughtChecksum: string;
                   encounterVersion: number;
                   kind: "AREA_SAVES";
+                  legendaryResistance: Array<{
+                    actorId: string;
+                    optionId: string;
+                  }>;
                   occurrenceId: string;
                   occurrenceVersion: number;
                   saves: Array<{
@@ -40149,11 +40161,14 @@ export declare const api: {
                 };
           }
         | {
-            allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+            allowedResponses: Array<
+              "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+            >;
             casterActorId: string;
             caughtChecksum: string;
             encounterVersion: number;
             kind: "AREA_SAVES";
+            legendaryResistance: Array<{ actorId: string; optionId: string }>;
             occurrenceId: string;
             occurrenceVersion: number;
             saves: Array<{
@@ -40907,11 +40922,17 @@ export declare const api: {
                     };
               }
             | {
-                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                allowedResponses: Array<
+                  "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                >;
                 casterActorId: string;
                 caughtChecksum: string;
                 encounterVersion: number;
                 kind: "AREA_SAVES";
+                legendaryResistance: Array<{
+                  actorId: string;
+                  optionId: string;
+                }>;
                 occurrenceId: string;
                 occurrenceVersion: number;
                 saves: Array<{

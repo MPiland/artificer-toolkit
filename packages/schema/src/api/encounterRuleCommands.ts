@@ -266,6 +266,18 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
         bonus: z.nullable(initiativeDeclarationSelectionDtoSchema)
       }),
       ...movementReactionChoiceSelectionDtoSchema._zod.def.options,
+      /**
+       * One creature's Legendary Resistance decision on its failed area save, answered in any order
+       * relative to the other creatures. `USE` names the option the creature's offer sealed.
+       */
+      z.strictObject({
+        kind: z.literal('AREA_LEGENDARY_RESISTANCE'),
+        actorId: uuidSchema,
+        decision: z.discriminatedUnion('kind', [
+          z.strictObject({ kind: z.literal('USE'), optionId: checksumSchema }),
+          z.strictObject({ kind: z.literal('DECLINE') })
+        ])
+      }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
       /** A Legendary Action option and the actor it targets, from the option's targets. */
@@ -325,7 +337,7 @@ export type UseEncounterBasicActionInputDto = z.infer<typeof useEncounterBasicAc
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
-export type RollRuleEvidenceInputDto =z.infer<typeof rollRuleEvidenceInputDtoSchema>
+export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema
 >

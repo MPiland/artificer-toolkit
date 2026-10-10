@@ -59,11 +59,13 @@ export async function readNativeEncounterActionResponseAdmission(
     snapshot && occurrence.state === 'PENDING' && areaActionPendingContext(snapshot)
       ? await readNativeAreaActionPending(ctx, occurrence)
       : null
+  const { resolution: answer } = response
+  // A Legendary Resistance decision names its creature; every other area answer names a save's request.
   const areaSave = area
-    ? area.targets.find(
-        (target) =>
-          'requestId' in response.resolution &&
-          target.snapshot.request.requestId === response.resolution.requestId
+    ? area.targets.find((target) =>
+        answer.kind === 'AREA_LEGENDARY_RESISTANCE'
+          ? target.actorId === answer.actorId
+          : 'requestId' in answer && target.snapshot.request.requestId === answer.requestId
       )
     : null
   if (area && !areaSave) rejectDomain('DECISION_NOT_PENDING')
@@ -117,8 +119,7 @@ export async function readNativeEncounterActionResponseAdmission(
       metadata.rootInitiatorUserId !== initiator ||
       metadata.expectedAggregateVersion !== response.expectedVersion ||
       metadata.expectedOccurrenceVersion !== response.expectedOccurrenceVersion ||
-      !('requestId' in response.resolution) ||
-      metadata.requestId !== response.resolution.requestId ||
+      ('requestId' in answer && metadata.requestId !== answer.requestId) ||
       metadata.resolutionKind !== response.resolution.kind ||
       receipt.campaignId !== run.campaignId ||
       receipt.encounterId !== run.id ||
@@ -160,7 +161,13 @@ export async function readNativeEncounterActionResponseAdmission(
     occurrence.expectedEncounterVersion !== run.version
   )
     rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
-  if (areaSave?.testedJson !== undefined) rejectDomain('DECISION_NOT_PENDING')
+  if (answer.kind === 'AREA_LEGENDARY_RESISTANCE') {
+    // Only a creature whose failed save offered a choice, not yet decided, can answer it.
+    const offer = areaSave?.legendaryResistance
+    if (!offer || offer.decision) rejectDomain('DECISION_NOT_PENDING')
+    if (answer.decision.kind === 'USE' && answer.decision.optionId !== offer.resistance.useOptionId)
+      rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
+  } else if (areaSave?.testedJson !== undefined) rejectDomain('DECISION_NOT_PENDING')
   if (response.commandId === parsed.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const used = await ctx.db
     .query('encounterRunCommands')
@@ -181,9 +188,10 @@ export async function readNativeEncounterActionResponseAdmission(
   if (
     resolution.kind !== 'ENTER_DICE' &&
     resolution.kind !== 'ENTER_INTEGER' &&
-    resolution.kind !== 'SYSTEM_ROLL'
+    resolution.kind !== 'SYSTEM_ROLL' &&
+    resolution.kind !== 'AREA_LEGENDARY_RESISTANCE'
   )
-    throw new Error('The action requires dice or integer evidence.')
+    throw new Error('The action requires dice, integer or Legendary Resistance evidence.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {
     occurrence,
     initiatorUserId: initiator

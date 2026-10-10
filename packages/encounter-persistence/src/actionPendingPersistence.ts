@@ -10,7 +10,11 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { requireAreaActionAnswer, requireAreaActionPendingRoot } from './actionAreaPending.js'
+import {
+  requireAreaActionAnswer,
+  requireAreaActionLegendaryResistance,
+  requireAreaActionPendingRoot
+} from './actionAreaPending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
@@ -83,13 +87,20 @@ export async function persistEncounterActionPending(
     if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
     if (resume) {
-      // An area save answer stores the same area with that one save marked answered.
+      // An area answer stores the same area with that one save answered, or that one choice decided.
       if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
-      requireAreaActionAnswer({
-        stored: resume.area.snapshot,
-        next: snapshot,
-        requestId: resume.pending.snapshot.request.requestId
-      })
+      if (input.response?.resolution.kind === 'AREA_LEGENDARY_RESISTANCE')
+        requireAreaActionLegendaryResistance({
+          stored: resume.area.snapshot,
+          next: snapshot,
+          actorId: resume.area.actorId
+        })
+      else
+        requireAreaActionAnswer({
+          stored: resume.area.snapshot,
+          next: snapshot,
+          requestId: resume.pending.snapshot.request.requestId
+        })
     } else
       await requireAreaActionPendingRoot(
         {
@@ -171,6 +182,7 @@ export async function persistEncounterActionPending(
       rootFingerprint: fingerprint,
       userId,
       rootInitiatorUserId: initiatorUserId,
+      areaSaveRequestId: resume.area ? resume.pending.snapshot.request.requestId : undefined,
       result: {
         status: 'PAUSED',
         occurrenceId: occurrence.id,

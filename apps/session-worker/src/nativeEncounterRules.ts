@@ -71,7 +71,8 @@ import {
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import {
   planNativeLiveEncounterAreaAction,
-  planNativeLiveEncounterAreaAnswer
+  planNativeLiveEncounterAreaAnswer,
+  planNativeLiveEncounterAreaLegendaryResistance
 } from './nativeEncounterAreaRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
@@ -141,6 +142,10 @@ export async function planNativeLiveEncounterAction(
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
   const areaSnapshot = admission.kind === 'ACTION_RESPONSE' ? admission.areaSnapshot : null
   let evidenceResolution: EncounterEvidenceAnswer | null = null
+  let areaDecision: Extract<
+    ResolveRuleOccurrenceInputDto['resolution'],
+    { kind: 'AREA_LEGENDARY_RESISTANCE' }
+  > | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
@@ -149,13 +154,14 @@ export async function planNativeLiveEncounterAction(
       responseCommand.resolution,
       admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null
     )
-    if (
+    if (resolution.kind === 'AREA_LEGENDARY_RESISTANCE') areaDecision = resolution
+    else if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
       resolution.kind !== 'SYSTEM_ROLL'
     )
       throw new Error('The action requires dice or integer evidence.')
-    evidenceResolution = resolution
+    else evidenceResolution = resolution
     const context = snapshot.applicationContext
     const root = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
     if (
@@ -163,9 +169,10 @@ export async function planNativeLiveEncounterAction(
       (areaSnapshot ?? snapshot).occurrenceId !== responseCommand.occurrenceId ||
       context.commandFingerprint !== admission.fingerprint ||
       checksumCanonicalJson(root) !== admission.fingerprint ||
-      snapshot.request.requestId !== resolution.requestId ||
-      (context.d20Policy === null && resolution.kind === 'ENTER_DICE') ||
-      (context.d20Policy !== null && resolution.kind === 'ENTER_INTEGER')
+      (evidenceResolution !== null &&
+        (snapshot.request.requestId !== evidenceResolution.requestId ||
+          (context.d20Policy === null && evidenceResolution.kind === 'ENTER_DICE') ||
+          (context.d20Policy !== null && evidenceResolution.kind === 'ENTER_INTEGER')))
     )
       throw new Error('The pending action evidence is invalid.')
     // Contests (Disarm) and deferred Cleaving have their own planners; their evidence never
@@ -227,11 +234,23 @@ export async function planNativeLiveEncounterAction(
       loadTarget,
       capture,
       runtime: executionOptions.runtime,
-      random: executionOptions.random
+      random: executionOptions.random,
+      requireAutoRoll
     }
     if (responseCommand) {
-      if (!areaSnapshot || !evidenceResolution)
-        throw new Error('The pending area action is unavailable.')
+      if (!areaSnapshot) throw new Error('The pending area action is unavailable.')
+      if (areaDecision)
+        return {
+          ...(await planNativeLiveEncounterAreaLegendaryResistance({
+            ...areaInput,
+            response: responseCommand,
+            areaSnapshot,
+            decision: areaDecision
+          })),
+          dependencies,
+          revisions
+        }
+      if (!evidenceResolution) throw new Error('The pending area action is unavailable.')
       return {
         ...(await planNativeLiveEncounterAreaAnswer({
           ...areaInput,

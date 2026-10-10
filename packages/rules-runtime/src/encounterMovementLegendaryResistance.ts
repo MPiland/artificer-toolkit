@@ -1,9 +1,14 @@
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import {
-  retainEncounterLegendaryResistanceChoice,
-  legendaryResistanceUseOptionId
-} from './encounterMovementReactionContinuation.js'
+  openEncounterLegendaryResistanceChoice,
+  requireFailedLegendaryResistanceSave,
+  sameEncounterLegendaryResistanceCandidate,
+  settleEncounterLegendaryResistanceChoice,
+  type EncounterLegendaryResistanceFeatureResource,
+  type EncounterLegendaryResistanceSelection
+} from './encounterLegendaryResistanceChoice.js'
+import { retainEncounterLegendaryResistanceChoice } from './encounterMovementReactionContinuation.js'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
   ServerRuleExecutionContinuationDto,
@@ -94,67 +99,6 @@ export function nativeMovementResistanceResource(
   return resource
 }
 
-type NativeMovementLegendaryResistanceSelection =
-  | { kind: 'DECLINE' }
-  | { kind: 'OPTION'; optionId: string }
-
-interface NativeMovementLegendaryResistanceChargeProposal {
-  ownerActorId: string
-  ownerFeatureId: string
-  chargeId: string
-  cost: number
-  beforeUsed: number
-  afterUsed: number
-  beforeRemaining: number
-  afterRemaining: number
-}
-
-function sameCandidate(
-  phase: LegendaryResistancePhase,
-  candidate: EncounterLegendaryResistanceCandidate
-) {
-  const resistance = phase.resistance
-  const {
-    poolBefore: _poolBefore,
-    poolRemaining: _poolRemaining,
-    useOutput: _useOutput,
-    useOptionId,
-    selectionChecksum,
-    ...selectionPin
-  } = resistance
-  return (
-    checksumRuleDocument(selectionPin) === selectionChecksum &&
-    legendaryResistanceUseOptionId({ selectionChecksum }) === useOptionId &&
-    candidate.targetActorId === resistance.targetActorId &&
-    candidate.ownerFeatureId === resistance.ownerFeatureId &&
-    candidate.chargeId === resistance.chargeId &&
-    candidate.featureCost === resistance.featureCost &&
-    candidate.poolBefore === resistance.poolBefore &&
-    candidate.poolRemaining === resistance.poolRemaining &&
-    candidate.lifecycle.definitionId === resistance.definitionId &&
-    candidate.lifecycle.definitionVersion === resistance.definitionVersion &&
-    candidate.lifecycle.definitionChecksum === resistance.definitionChecksum &&
-    candidate.lifecycle.choiceGraphDefinitionId === resistance.choiceGraphDefinitionId &&
-    candidate.lifecycle.choiceGraphDefinitionVersion === resistance.choiceGraphDefinitionVersion &&
-    candidate.lifecycle.choiceGraphDefinitionChecksum ===
-      resistance.choiceGraphDefinitionChecksum &&
-    candidate.lifecycle.useOutput === resistance.useOutput
-  )
-}
-
-function requireFailedSave(input: {
-  execution: LegendaryResistancePhase['originalExecution']
-  d20: ServerRuleExecutionD20EvidenceDto
-}) {
-  if (
-    input.execution.status !== 'COMPLETE' ||
-    input.execution.outputs.resultPath !== 'ON_SAVE_FAIL' ||
-    input.execution.evidence.outputs.resultPath !== 'ON_SAVE_FAIL' ||
-    input.d20.resultPath !== 'ON_SAVE_FAIL'
-  )
-    throw new Error('Legendary Resistance requires sealed failed-save evidence.')
-}
-
 /**
  * Starts the sealed two-option choice after the native TEST has failed. The
  * enclosing movement mutation retains the returned snapshot; this function
@@ -172,7 +116,7 @@ export async function retainNativeMovementLegendaryResistance(input: {
   d20: ServerRuleExecutionD20EvidenceDto
   candidate: EncounterLegendaryResistanceCandidate
 }): Promise<ServerKernelRuleExecutionPendingSnapshotDto> {
-  requireFailedSave({ execution: input.execution, d20: input.d20 })
+  requireFailedLegendaryResistanceSave({ execution: input.execution, d20: input.d20 })
   if (
     input.candidate.targetActorId !== input.prepared.prepared.target.id ||
     (input.context.phase.kind !== 'CHOICE' &&
@@ -180,21 +124,7 @@ export async function retainNativeMovementLegendaryResistance(input: {
         input.context.phase.selectedOptionId !== input.prepared.option.optionId))
   )
     throw new Error('Legendary Resistance action selection is stale.')
-  const choice = await input.runtime.executeResolved({
-    command: {
-      definitionId: input.candidate.choiceGraph.id,
-      occurrenceId: input.occurrenceId,
-      facts: {}
-    },
-    published: input.candidate.choiceGraph
-  })
-  if (
-    choice.status !== 'PAUSED' ||
-    choice.continuation.request.nodeId !== 'choice' ||
-    choice.continuation.request.min !== 0 ||
-    choice.continuation.request.max !== 1
-  )
-    throw new Error('Legendary Resistance choice graph did not issue its exact bounded request.')
+  const choice = await openEncounterLegendaryResistanceChoice(input)
   return bindEncounterMovementMaintenancePending(
     retainEncounterLegendaryResistanceChoice({
       continuation: choice.continuation,
@@ -222,13 +152,9 @@ export async function resolveNativeMovementLegendaryResistance(input: {
   prepared: PreparedMovementReaction
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
   candidate: EncounterLegendaryResistanceCandidate
-  selection: NativeMovementLegendaryResistanceSelection
+  selection: EncounterLegendaryResistanceSelection
   testD20Policy: ServerRuleExecutionD20PolicyDto
-  currentFeatureResource: {
-    used: number
-    maximum: number | null
-    remaining: number | null
-  }
+  currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   requireEncounterMovementMaintenanceCurrentness(input.snapshot, input.prepared.maintenance)
   const context = input.snapshot.applicationContext
@@ -240,10 +166,10 @@ export async function resolveNativeMovementLegendaryResistance(input: {
     checksumRuleDocument(input.prepared.action.target) !== context.phase.targetStateChecksum ||
     checksumRuleDocument(context.phase.originalExecution) !==
       context.phase.originalExecutionChecksum ||
-    !sameCandidate(context.phase, input.candidate)
+    !sameEncounterLegendaryResistanceCandidate(context.phase.resistance, input.candidate)
   )
     throw new Error('Legendary Resistance evidence is stale.')
-  requireFailedSave({
+  requireFailedLegendaryResistanceSave({
     execution: context.phase.originalExecution,
     d20: context.phase.originalD20
   })
@@ -266,64 +192,15 @@ async function resolveResistanceChoice(input: {
   candidate: EncounterLegendaryResistanceCandidate
   phase: LegendaryResistancePhase
   continuation: ServerRuleExecutionContinuationDto
-  selection: NativeMovementLegendaryResistanceSelection
+  selection: EncounterLegendaryResistanceSelection
   testD20Policy: ServerRuleExecutionD20PolicyDto
-  currentFeatureResource: {
-    used: number
-    maximum: number | null
-    remaining: number | null
-  }
+  currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   const { phase } = input
-
-  const use =
-    input.selection.kind === 'OPTION' && input.selection.optionId === phase.resistance.useOptionId
-  if (input.selection.kind !== 'DECLINE' && !use)
-    throw new Error('Legendary Resistance selection was not issued.')
-
-  if (
-    input.continuation.graph.source.definitionId !== input.candidate.choiceGraph.id ||
-    input.continuation.graph.source.checksum !== input.candidate.choiceGraph.checksum
-  )
-    throw new Error('Legendary Resistance choice continuation pin is stale.')
-  const choice = await input.runtime.resume({
-    continuation: input.continuation,
-    response: {
-      requestId: input.continuation.request.requestId,
-      value: use ? 1 : 0
-    }
+  const { use, choice, chargeProposal } = await settleEncounterLegendaryResistanceChoice({
+    ...input,
+    resistance: phase.resistance
   })
-  if (
-    choice.status !== 'COMPLETE' ||
-    choice.evidence.source.definitionId !== input.candidate.choiceGraph.id ||
-    choice.evidence.source.checksum !== input.candidate.choiceGraph.checksum ||
-    choice.outputs[input.candidate.lifecycle.useOutput] !== use
-  )
-    throw new Error('Legendary Resistance choice did not settle its exact pin.')
-
-  const chargeProposal = use
-    ? (() => {
-        if (
-          input.currentFeatureResource.maximum === null ||
-          input.currentFeatureResource.remaining !==
-            input.currentFeatureResource.maximum - input.currentFeatureResource.used ||
-          input.currentFeatureResource.remaining !== input.candidate.poolBefore ||
-          input.currentFeatureResource.used + input.candidate.featureCost >
-            input.currentFeatureResource.maximum
-        )
-          throw new Error('Legendary Resistance charge is stale.')
-        return {
-          ownerActorId: input.candidate.targetActorId,
-          ownerFeatureId: input.candidate.ownerFeatureId,
-          chargeId: input.candidate.chargeId,
-          cost: input.candidate.featureCost,
-          beforeUsed: input.currentFeatureResource.used,
-          afterUsed: input.currentFeatureResource.used + input.candidate.featureCost,
-          beforeRemaining: input.candidate.poolBefore,
-          afterRemaining: input.candidate.poolRemaining
-        } satisfies NativeMovementLegendaryResistanceChargeProposal
-      })()
-    : null
 
   return {
     execution: phase.originalExecution,
@@ -358,11 +235,7 @@ export async function replayNativeMovementLegendaryResistance(input: {
   d20: ServerRuleExecutionD20EvidenceDto
   testD20Policy: ServerRuleExecutionD20PolicyDto
   audit: Awaited<ReturnType<typeof resolveNativeMovementLegendaryResistance>>['audit']
-  currentFeatureResource: {
-    used: number
-    maximum: number | null
-    remaining: number | null
-  }
+  currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   const phase: LegendaryResistancePhase = {
     kind: 'LEGENDARY_RESISTANCE_CHOICE',
@@ -373,24 +246,16 @@ export async function replayNativeMovementLegendaryResistance(input: {
     targetStateChecksum: input.audit.targetStateChecksum,
     resistance: input.audit.resistance
   }
-  requireFailedSave({ execution: input.execution, d20: input.d20 })
+  requireFailedLegendaryResistanceSave({ execution: input.execution, d20: input.d20 })
   if (
-    !sameCandidate(phase, input.candidate) ||
+    !sameEncounterLegendaryResistanceCandidate(phase.resistance, input.candidate) ||
     input.candidate.targetActorId !== input.prepared.prepared.target.id ||
     checksumRuleDocument(input.execution) !== phase.originalExecutionChecksum ||
     checksumRuleDocument(input.prepared.action.target) !== phase.targetStateChecksum ||
     checksumRuleDocument(input.testD20Policy) !== checksumRuleDocument(input.audit.d20)
   )
     throw new Error('The retained Legendary Resistance decision is stale.')
-  const choice = await input.runtime.executeResolved({
-    command: {
-      definitionId: input.candidate.choiceGraph.id,
-      occurrenceId: input.occurrenceId,
-      facts: {}
-    },
-    published: input.candidate.choiceGraph
-  })
-  if (choice.status !== 'PAUSED') throw new Error('Legendary Resistance choice is unavailable.')
+  const choice = await openEncounterLegendaryResistanceChoice(input)
   const resolved = await resolveResistanceChoice({
     ...input,
     phase,

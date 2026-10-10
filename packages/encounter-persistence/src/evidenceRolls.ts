@@ -1,6 +1,7 @@
 import {
   encounterCommandResultDtoSchema,
   encounterEvidenceRollDtoSchema,
+  type PendingEncounterRuleOccurrenceSummaryDto,
   type EncounterCommandResultDto,
   type EncounterEvidenceRollDto,
   type EncounterSettledAppRollDto
@@ -74,6 +75,23 @@ export async function readLatestAttempt(
 }
 
 /**
+ * The dice requests a pending decision asks its viewer to roll, each with whoever rolls it. An area
+ * asks one per creature's save, rolled by that creature; any other decision asks at most one.
+ */
+function pendingEvidenceRequests(pending: PendingEncounterRuleOccurrenceSummaryDto) {
+  if (pending.kind === 'AREA_SAVES')
+    return pending.saves.map((save) => ({ request: save.request, rollerActorId: save.actorId }))
+  return 'request' in pending
+    ? [
+        {
+          request: pending.request,
+          rollerActorId: 'rollerActorId' in pending ? pending.rollerActorId : null
+        }
+      ]
+    : []
+}
+
+/**
  * Admits one "Roll dice" (ADR 0034 decision 3): only a member who may answer the request (it is in
  * their pending decision) can roll it. A repeated command id is its stored attempt (`REPLAY`).
  */
@@ -133,10 +151,13 @@ async function admitEvidenceRoll(
   if (pending?.occurrenceId !== input.occurrenceId) rejectDomain('DECISION_NOT_PENDING')
   if (pending.occurrenceVersion !== input.expectedOccurrenceVersion)
     rejectDomain('VERSION_STALE', 'This decision changed; review it and roll again.')
-  const request = 'request' in pending ? pending.request : null
-  if (!request || request.requestId !== input.requestId) rejectDomain('DECISION_NOT_PENDING')
+  const answered = pendingEvidenceRequests(pending).find(
+    ({ request }) => request.requestId === input.requestId
+  )
+  if (!answered) rejectDomain('DECISION_NOT_PENDING')
+  const { request, rollerActorId } = answered
   const derivedRollMode: EncounterD20RollModeDto | null =
-    pending.kind === 'D20_EVIDENCE' ? pending.request.rollMode : null
+    'rollMode' in request ? request.rollMode : null
   if (!derivedRollMode && input.rollMode !== null)
     throw new Error('Only a d20 roll takes a roll mode.')
   const rollMode = derivedRollMode ? (input.rollMode ?? derivedRollMode) : null
@@ -151,6 +172,7 @@ async function admitEvidenceRoll(
     fingerprint,
     pending,
     request,
+    rollerActorId,
     derivedRollMode,
     rollMode,
     die: request.min === 1 && LOGGED_DICE.has(request.max) ? request.max : null
@@ -206,10 +228,9 @@ export async function rollEncounterRuleEvidence(
   // Every attempt gets a card: the table's, or the GM's private history for a hidden or private
   // GM roll (Q14, D62).
   const state = readRunState(run)
-  const roller =
-    'rollerActorId' in pending && pending.rollerActorId
-      ? await readRunActor(ctx, state, pending.rollerActorId)
-      : null
+  const roller = admitted.rollerActorId
+    ? await readRunActor(ctx, state, admitted.rollerActorId)
+    : null
   let tableRoll: RollRecordDto | null = null
   if (evaluated) {
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
@@ -310,13 +331,16 @@ export async function readLatestEvidenceRolls(
   { run, campaign, membership }: CampaignAuthority & { run: EncounterDocument<'encounterRuns'> }
 ): Promise<EncounterEvidenceRollDto[]> {
   const pending = await readPendingRunDecision(ctx, run, campaign, membership)
-  const request = pending && 'request' in pending ? pending.request : null
-  if (!pending || !request) return []
-  const row = await readLatestAttempt(ctx, {
-    occurrenceId: pending.occurrenceId,
-    occurrenceVersion: pending.occurrenceVersion,
-    requestId: request.requestId,
-    userId: membership.userId
-  })
-  return row ? [presentEvidenceRoll(readStoredRoll(row))] : []
+  if (!pending) return []
+  const rows = await Promise.all(
+    pendingEvidenceRequests(pending).map(({ request }) =>
+      readLatestAttempt(ctx, {
+        occurrenceId: pending.occurrenceId,
+        occurrenceVersion: pending.occurrenceVersion,
+        requestId: request.requestId,
+        userId: membership.userId
+      })
+    )
+  )
+  return rows.flatMap((row) => (row ? [presentEvidenceRoll(readStoredRoll(row))] : []))
 }

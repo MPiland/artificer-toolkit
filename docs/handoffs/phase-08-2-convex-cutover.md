@@ -143,6 +143,7 @@
 | `e4af44327`              | A POINT `RESOLVE_ACTION` opens one pending `ENCOUNTER_AREA_ACTION` with a sealed save per caught creature (`AREA_SAVES` summary, caught checksum, `ACTION_AREA_SCENE` capture).                                                                                         |
 | `38125d04b`              | GM-only `REMOVE_AREA_TARGET`. It records no Run command and does not bump the Run version. A replay is answered from the current state, after the stale-version check. `removedActorIds` is kept on the occurrence.                                                     |
 | `bb994e79c`              | Saves can be answered in any order, each by its creature's own roller. A creature that has already rolled cannot be removed.                                                                                                                                            |
+| 5c-ii (this commit)      | Legendary Resistance on area saves: a failed Creature save opens a sealed per-target offer (`encounterAreaLegendaryResistance.ts`; shared helpers moved to `encounterLegendaryResistanceChoice.ts`, one pin schema). Answered by `AREA_LEGENDARY_RESISTANCE {actorId, decision}` from the GM or the creature's controller, in any order; the caster never sees it. Area saves honor each roller's auto-roll. SYSTEM_ROLL admits an area save by requestId. |
 
 **Rulings already made:**
 
@@ -164,10 +165,8 @@
 
 **Next, in order (one agent, report after each green slice):**
 
-1. **5c-ii**
-   - Legendary Resistance on area saves: reuse `LEGENDARY_RESISTANCE_CHOICE` and `discoverEncounterLegendaryResistanceCandidate` in the `testTarget` `afterTest` hook. Feed the result into `settleEncounterAreaAction`'s per-target audit, and wire it in `nativeEncounterRules` and `planNativeLiveEncounterAreaAnswer`.
-   - SYSTEM_ROLL for area saves: `admitEvidenceRoll` and `readLatestEvidenceRolls` in `evidenceRolls.ts` need an AREA_SAVES branch that finds the save by requestId, with the roller as `save.actorId`.
-2. **5d commit**
+1. 5c-ii is done (row above).
+2. **5d commit.** First red test: the last save or Legendary Resistance decision answered commits the area (ruling: an automatic commit). The AREA_SAVES summary refinement (at least one save or choice) stays; a settle-ready summary must never exist. Spend each USE's charge from the decision's `chargeProposal`, and feed `encounterAreaLegendaryResistanceAudits` into `settleEncounterAreaAction`.
    - Settle re-derives each target by resuming from `testedJson`. Each target's kernel id is `encounterAreaTargetOccurrenceId(areaOccurrenceId, actorId)`.
    - The commit-side caught-set check excludes `removedActorIds`.
    - Commit in one transaction with one undo, spending resources and items once.
@@ -194,7 +193,7 @@ Area path file map:
 - `packages/encounter-persistence/src/`: `actionAreaPending.ts`, `areaTargetRemoval.ts`, `actionResumeAdmission.ts` and `actionPendingPersistence.ts`.
 - `apps/session-worker/src/`: `nativeEncounterAreaRules.ts`, `roomEncounterCommands.ts`, and `test/nativeRoomAreaAction.test.ts`.
 
-After SPELLS-7, continue the WSJF ranking: ATTACK-7, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
+After SPELLS-7, build SPELLS-18 (Legendary Resistance on a single-target action save, which still throws at `nativeEncounterRules.ts` `afterTest`; reuse `encounterLegendaryResistanceChoice.ts`), then continue the WSJF ranking: ATTACK-7, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
 
 **Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing.
 

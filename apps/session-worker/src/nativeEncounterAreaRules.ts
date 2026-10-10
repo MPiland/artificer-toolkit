@@ -29,6 +29,14 @@ import {
   evaluateEncounterAreaRuleWarnings,
   RULE_WARNINGS_MESSAGE
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import {
+  decideEncounterAreaLegendaryResistance,
+  offerEncounterAreaLegendaryResistance
+} from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
+import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
+import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import {
   answerEncounterAreaTest,
   catchEncounterAreaActorIds,
@@ -41,6 +49,7 @@ import {
 import {
   buildEncounterAreaPendingSnapshot,
   encounterAreaTargetOccurrenceId,
+  markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
@@ -77,6 +86,8 @@ type AreaPlanInput = {
   ) => ReturnType<LiveCaptureReads['encounterRules']>
   runtime: RulesRuntimeService
   random?: (maximum: number) => number
+  /** Whether the roller who answers this creature's save has "Auto-roll my dice" on. */
+  requireAutoRoll: (actorId: string) => boolean
 }
 
 /** What every creature of one area shares: the caster, the Scene the point was picked in, and the area. */
@@ -246,7 +257,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     targets: preparedTargets.map(({ prepared }) => ({
       actorId: prepared.target.id,
       binding: prepared.binding,
-      autoRoll: { SOURCE: false, TARGET: false }
+      autoRoll: { SOURCE: false, TARGET: false },
+      discoverLegendaryResistance: discoverAreaLegendaryResistance(input, prepared)
     }))
   })
   const commandJson = JSON.stringify(command)
@@ -281,7 +293,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       })
     }
   })
-  const snapshot = buildEncounterAreaPendingSnapshot({
+  let snapshot = buildEncounterAreaPendingSnapshot({
     occurrenceId,
     optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
     commandJson,
@@ -292,6 +304,34 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     area: { origin: command.target.point, shape: area.shape },
     targets
   })
+  // A creature whose roller auto-rolls has its save rolled now, so an auto-rolled failure opens its
+  // Legendary Resistance choice. It is kept as the dice it rolled, which replay without rolling again.
+  for (const [index, target] of targets.entries()) {
+    if (!input.requireAutoRoll(target.actorId)) continue
+    const requestId = target.snapshot.request.requestId
+    const tested = await replayAreaTargetSave(
+      input,
+      { actor: caught[index]!.actor, target: preparedTargets[index]! },
+      target,
+      occurrenceId,
+      { kind: 'AUTO_ROLL', requestId }
+    )
+    const rolled: EncounterEvidenceAnswer = {
+      kind: 'ENTER_DICE',
+      requestId,
+      rawFaces: tested.boundary.d20.rawFaces,
+      rollMode: tested.boundary.d20.rollMode
+    }
+    snapshot = markEncounterAreaSaveTested(
+      snapshot,
+      requestId,
+      JSON.stringify(rolled),
+      offerEncounterAreaLegendaryResistance({
+        test: tested,
+        targetStateChecksum: checksumRuleDocument(preparedTargets[index]!.prepared.target)
+      })
+    )
+  }
   return {
     kind: 'AREA_PENDING' as const,
     command,
@@ -317,7 +357,7 @@ export async function planNativeLiveEncounterAreaAnswer(
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
   }
 ) {
-  const { command, state, actors, capture, areaSnapshot, resolution } = input
+  const { command, actors, areaSnapshot, resolution } = input
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
@@ -335,15 +375,164 @@ export async function planNativeLiveEncounterAreaAnswer(
     command.optionalCombatIntent != null
   )
     throw new Error('The pending action evidence is invalid.')
+  const revalidated = await revalidateAreaTarget(input, context, answered)
+  const tested = await replayAreaTargetSave(
+    input,
+    revalidated,
+    answered,
+    areaSnapshot.occurrenceId,
+    resolution
+  )
+  const offer = offerEncounterAreaLegendaryResistance({
+    test: tested,
+    targetStateChecksum: checksumRuleDocument(revalidated.target.prepared.target)
+  })
+  return {
+    kind: 'AREA_PENDING' as const,
+    command,
+    response: input.response,
+    snapshot: markEncounterAreaSaveTested(
+      areaSnapshot,
+      resolution.requestId,
+      JSON.stringify(resolution),
+      offer
+    ),
+    prepared: { actors },
+    fingerprint: input.fingerprint,
+    initiatorUserId: context.initiatorUserId,
+    occurrenceId: areaSnapshot.occurrenceId
+  }
+}
+
+/**
+ * Plans one creature's Legendary Resistance decision on its failed area save. Its save is replayed
+ * from the answer kept with it, so the decision is checked against the save, the creature's facts and
+ * its pool as they are now; no other creature is touched. The charge it proposes is spent when the
+ * area commits, not here.
+ */
+export async function planNativeLiveEncounterAreaLegendaryResistance(
+  input: AreaPlanInput & {
+    response: ResolveRuleOccurrenceInputDto
+    areaSnapshot: ServerAggregateChoicePendingSnapshotDto
+    decision: Extract<
+      ResolveRuleOccurrenceInputDto['resolution'],
+      { kind: 'AREA_LEGENDARY_RESISTANCE' }
+    >
+  }
+) {
+  const { command, actors, areaSnapshot, decision } = input
+  const selection: EncounterLegendaryResistanceSelection =
+    decision.decision.kind === 'USE'
+      ? { kind: 'OPTION', optionId: decision.decision.optionId }
+      : { kind: 'DECLINE' }
+  const context = areaSnapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_AREA_ACTION')
+    throw new Error('The pending area action is unavailable.')
+  const decided = context.targets.find((target) => target.actorId === decision.actorId)
+  if (
+    !decided?.legendaryResistance ||
+    decided.legendaryResistance.decision ||
+    decided.testedJson === undefined ||
+    decided.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+    areaSnapshot.occurrenceId !== input.response.occurrenceId ||
+    context.commandFingerprint !== input.fingerprint ||
+    command.optionalCombatIntent != null
+  )
+    throw new Error('The pending Legendary Resistance evidence is invalid.')
+  const revalidated = await revalidateAreaTarget(input, context, decided)
+  const resolution: EncounterEvidenceAnswer = JSON.parse(decided.testedJson)
+  const tested = await replayAreaTargetSave(
+    input,
+    revalidated,
+    decided,
+    areaSnapshot.occurrenceId,
+    resolution
+  )
+  const { prepared } = revalidated.target
+  const candidate = await discoverAreaLegendaryResistance(input, prepared)()
+  if (!candidate) throw new Error('Legendary Resistance evidence is stale.')
+  const resource = findEncounterFeatureResource(
+    prepared.actorRules,
+    candidate.targetActorId,
+    candidate.ownerFeatureId
+  )
+  if (!resource) throw new Error('The Legendary Resistance resource is unavailable.')
+  const { legendaryResistance, chargeProposal } = await decideEncounterAreaLegendaryResistance({
+    runtime: input.runtime,
+    areaOccurrenceId: areaSnapshot.occurrenceId,
+    test: tested,
+    offer: decided.legendaryResistance,
+    candidate,
+    targetStateChecksum: checksumRuleDocument(prepared.target),
+    selection,
+    currentFeatureResource: resource
+  })
+  return {
+    kind: 'AREA_PENDING' as const,
+    command,
+    response: input.response,
+    snapshot: markEncounterAreaLegendaryResistanceDecided(
+      areaSnapshot,
+      decision.actorId,
+      legendaryResistance
+    ),
+    chargeProposal,
+    prepared: { actors },
+    fingerprint: input.fingerprint,
+    initiatorUserId: context.initiatorUserId,
+    occurrenceId: areaSnapshot.occurrenceId
+  }
+}
+
+type AreaContext = Extract<
+  ServerAggregateChoicePendingSnapshotDto['applicationContext'],
+  { kind: 'ENCOUNTER_AREA_ACTION' }
+>
+type AreaTargetRecord = AreaContext['targets'][number]
+
+/** The creature's Legendary Resistance on its current pool, looked up only once its save has failed. */
+function discoverAreaLegendaryResistance(
+  input: Pick<AreaPlanInput, 'state' | 'capture'>,
+  prepared: Pick<Awaited<ReturnType<typeof prepareAreaTarget>>['prepared'], 'target' | 'actorRules'>
+) {
+  return async () =>
+    prepared.target.kind === 'CREATURE'
+      ? discoverEncounterLegendaryResistanceCandidate({
+          encounter: input.state,
+          targetActor: prepared.target,
+          actorRules: prepared.actorRules,
+          definitions: {
+            requireCurrent: async (definitionId) => {
+              const response = await input.capture({ kind: 'DEFINITION', definitionId })
+              if (response.kind !== 'DEFINITION' || !response.definition)
+                throw new Error('Legendary Resistance definition is unavailable.')
+              return response.definition
+            }
+          }
+        })
+      : null
+}
+
+/**
+ * Prepares a sealed creature again against the Scene and its facts as they are now, and refuses it if
+ * the area, the creature's source or target, or the action's economy changed since the area opened.
+ */
+async function revalidateAreaTarget(
+  input: AreaPlanInput,
+  context: AreaContext,
+  sealed: AreaTargetRecord
+) {
+  const { command, state, actors, capture } = input
   const base = await prepareAreaScene(input)
   if (
     base.scene.sceneVersion !== context.scene.sceneVersion ||
     checksumCanonicalJson(base.area.shape) !== checksumCanonicalJson(context.area.shape)
   )
     throw new Error('The pending area changed.')
-  const actor = actors.find((candidate) => candidate.id === answered.actorId)
-  const token = base.scene.tokens.find((candidate) => candidate.actorId === answered.actorId)
-  if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
+  const actor = actors.find((candidate) => candidate.id === sealed.actorId)
+  const token = base.scene.tokens.find((candidate) => candidate.actorId === sealed.actorId)
+  if (!actor || !token || sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
+    throw new Error('Encounter rules input binding mismatch.')
   if (!base.movementTargets.has(actor.id))
     base.movementTargets.set(actor.id, await input.loadTarget(actor))
   const target = await prepareAreaTarget({
@@ -371,7 +560,7 @@ export async function planNativeLiveEncounterAreaAnswer(
       base.movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
   if (
-    answered.snapshot.applicationContext.currentnessChecksum !==
+    sealed.snapshot.applicationContext.currentnessChecksum !==
     encounterActionCurrentnessChecksum({
       prepared: target.prepared,
       actionEconomy: economy?.consumption ?? null,
@@ -381,42 +570,40 @@ export async function planNativeLiveEncounterAreaAnswer(
     })
   )
     throw new Error('The pending action source or target changed.')
+  return { actor, target }
+}
+
+/** Runs one creature's sealed save with its answer; an area save is always its target's own roll. */
+async function replayAreaTargetSave(
+  input: AreaPlanInput,
+  { actor, target }: Awaited<ReturnType<typeof revalidateAreaTarget>>,
+  sealed: AreaTargetRecord,
+  areaOccurrenceId: string,
+  resolution: EncounterEvidenceAnswer
+) {
   const [tested] = await answerEncounterAreaTest({
     runtime: input.runtime,
     random: input.random,
     adapter: target.prepared.adapter,
     plan: target.prepared.plan,
-    occurrenceId: areaSnapshot.occurrenceId,
+    occurrenceId: areaOccurrenceId,
     target: {
       actorId: actor.id,
       binding: target.prepared.binding,
-      autoRoll: { SOURCE: false, TARGET: false }
+      autoRoll: { SOURCE: false, TARGET: false },
+      discoverLegendaryResistance: discoverAreaLegendaryResistance(input, target.prepared)
     },
     tests: [
       {
         actorId: actor.id,
         kind: 'PENDING',
-        // An area save is always its target's own roll.
-        pending: { ...restoreEncounterActionPending(answered.snapshot), roller: 'TARGET' }
+        pending: { ...restoreEncounterActionPending(sealed.snapshot), roller: 'TARGET' }
       }
     ],
     resolution
   })
   if (tested?.kind !== 'TESTED') throw new Error('An area save must settle with its answer.')
-  return {
-    kind: 'AREA_PENDING' as const,
-    command,
-    response: input.response,
-    snapshot: markEncounterAreaSaveTested(
-      areaSnapshot,
-      resolution.requestId,
-      JSON.stringify(resolution)
-    ),
-    prepared: { actors },
-    fingerprint: input.fingerprint,
-    initiatorUserId: context.initiatorUserId,
-    occurrenceId: areaSnapshot.occurrenceId
-  }
+  return tested
 }
 
 /** The sealed pending contract the room persists for a point-area action: every caught creature's save. */
@@ -424,7 +611,8 @@ export function buildNativeLiveEncounterAreaActionPendingInput(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   plan: Pick<
     | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAction>>
-    | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>,
+    | Awaited<ReturnType<typeof planNativeLiveEncounterAreaAnswer>>
+    | Awaited<ReturnType<typeof planNativeLiveEncounterAreaLegendaryResistance>>,
     'command' | 'response' | 'snapshot'
   > & {
     dependencies: readonly { request: LiveSessionEncounterRulesRequest }[]

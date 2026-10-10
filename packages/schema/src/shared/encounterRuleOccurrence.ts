@@ -184,26 +184,54 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         request: d20EvidenceRequestDtoSchema,
         allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
       }),
-      z.strictObject({
-        kind: z.literal('AREA_SAVES'),
-        occurrenceId: uuidSchema,
-        occurrenceVersion: versionSchema,
-        encounterVersion: versionSchema,
-        casterActorId: uuidSchema,
-        /** Seals who the area still catches; the GM's removal command carries it to prove it read the current set. */
-        caughtChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-        /** The saves this viewer may see: all of them for the GM, otherwise the viewer's own creatures'. */
-        saves: z
-          .array(
-            z.strictObject({
-              actorId: uuidSchema,
-              request: d20EvidenceRequestDtoSchema
-            })
-          )
-          .check(z.minLength(1))
-          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
-        allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
-      }),
+      z
+        .strictObject({
+          kind: z.literal('AREA_SAVES'),
+          occurrenceId: uuidSchema,
+          occurrenceVersion: versionSchema,
+          encounterVersion: versionSchema,
+          casterActorId: uuidSchema,
+          /** Seals who the area still catches; the GM's removal command carries it to prove it read the current set. */
+          caughtChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+          /** The saves this viewer may answer: all of them for the GM, otherwise the viewer's own creatures'. */
+          saves: z
+            .array(
+              z.strictObject({
+                actorId: uuidSchema,
+                request: d20EvidenceRequestDtoSchema
+              })
+            )
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /**
+           * The Legendary Resistance choices this viewer may answer, after a creature's failed save:
+           * the GM's for every creature, otherwise the viewer's own creatures'. Nobody else, the caster
+           * included, is told a choice exists.
+           */
+          legendaryResistance: z
+            .array(
+              z.strictObject({
+                actorId: uuidSchema,
+                /** The option that uses the Legendary Resistance; declining needs no option. */
+                optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/))
+              })
+            )
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          allowedResponses: z.tuple([
+            z.literal('ENTER_DICE'),
+            z.literal('SYSTEM_ROLL'),
+            z.literal('AREA_LEGENDARY_RESISTANCE')
+          ])
+        })
+        .check(
+          z.superRefine((summary, context) => {
+            if (summary.saves.length === 0 && summary.legendaryResistance.length === 0)
+              context.addIssue({
+                code: 'custom',
+                path: ['saves'],
+                message: 'An area summary shows the viewer at least one save or choice to answer.'
+              })
+          })
+        ),
       z.strictObject({
         kind: z.literal('ACTION_OUTCOME_EVIDENCE'),
         occurrenceId: uuidSchema,

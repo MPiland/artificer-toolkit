@@ -1,3 +1,4 @@
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema } from '../zod.js'
 import {
@@ -30,6 +31,67 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 
+/** The exact Legendary Resistance source a failed save is offered, pinned when it is offered. */
+export const encounterLegendaryResistancePinDtoSchema = lazySchema(() =>
+  z.strictObject({
+    targetActorId: uuidSchema,
+    ownerFeatureId: authoredIdentifierSchema,
+    chargeId: authoredIdentifierSchema,
+    featureCost: positiveIntegerSchema,
+    poolBefore: nonNegativeIntegerSchema,
+    poolRemaining: nonNegativeIntegerSchema,
+    definitionId: uuidSchema,
+    definitionVersion: positiveIntegerSchema,
+    definitionChecksum: checksumSchema,
+    choiceGraphDefinitionId: uuidSchema,
+    choiceGraphDefinitionVersion: positiveIntegerSchema,
+    choiceGraphDefinitionChecksum: checksumSchema,
+    useOutput: portNameSchema,
+    useOptionId: checksumSchema,
+    selectionChecksum: checksumSchema
+  })
+)
+
+export type EncounterLegendaryResistancePinDto = z.infer<
+  typeof encounterLegendaryResistancePinDtoSchema
+>
+
+/** The pin's selection checksum and use option identity are derived, never free-standing. */
+export function validateEncounterLegendaryResistancePin(
+  pin: EncounterLegendaryResistancePinDto,
+  context: z.core.$RefinementCtx,
+  path: readonly (string | number)[]
+) {
+  if (
+    checksumRuleDocument({
+      targetActorId: pin.targetActorId,
+      ownerFeatureId: pin.ownerFeatureId,
+      chargeId: pin.chargeId,
+      featureCost: pin.featureCost,
+      definitionId: pin.definitionId,
+      definitionVersion: pin.definitionVersion,
+      definitionChecksum: pin.definitionChecksum,
+      choiceGraphDefinitionId: pin.choiceGraphDefinitionId,
+      choiceGraphDefinitionVersion: pin.choiceGraphDefinitionVersion,
+      choiceGraphDefinitionChecksum: pin.choiceGraphDefinitionChecksum
+    }) !== pin.selectionChecksum
+  )
+    context.addIssue({
+      code: 'custom',
+      path: [...path, 'selectionChecksum'],
+      message: 'Legendary Resistance selection checksum is invalid.'
+    })
+  if (
+    checksumRuleDocument({ kind: 'USE', selectionChecksum: pin.selectionChecksum }) !==
+    pin.useOptionId
+  )
+    context.addIssue({
+      code: 'custom',
+      path: [...path, 'useOptionId'],
+      message: 'Legendary Resistance use option identity is invalid.'
+    })
+}
+
 /** Server-only interstitial control evidence retained when a failed TEST uses Legendary Resistance. */
 const directActionLegendaryResistanceOutcomeAuditDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -37,23 +99,7 @@ const directActionLegendaryResistanceOutcomeAuditDtoSchema = lazySchema(() =>
     selection: z.enum(['DECLINE', 'USE']),
     originalExecutionChecksum: checksumSchema,
     targetStateChecksum: checksumSchema,
-    resistance: z.strictObject({
-      targetActorId: uuidSchema,
-      ownerFeatureId: authoredIdentifierSchema,
-      chargeId: authoredIdentifierSchema,
-      featureCost: positiveIntegerSchema,
-      poolBefore: nonNegativeIntegerSchema,
-      poolRemaining: nonNegativeIntegerSchema,
-      definitionId: uuidSchema,
-      definitionVersion: positiveIntegerSchema,
-      definitionChecksum: checksumSchema,
-      choiceGraphDefinitionId: uuidSchema,
-      choiceGraphDefinitionVersion: positiveIntegerSchema,
-      choiceGraphDefinitionChecksum: checksumSchema,
-      useOutput: portNameSchema,
-      useOptionId: checksumSchema,
-      selectionChecksum: checksumSchema
-    }),
+    resistance: encounterLegendaryResistancePinDtoSchema,
     d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
   })
 )
@@ -318,23 +364,7 @@ export const encounterActorRuleActionPendingContextDtoSchema = lazySchema(() =>
         d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
         originalExecutionChecksum: checksumSchema,
         targetStateChecksum: checksumSchema,
-        resistance: z.strictObject({
-          targetActorId: uuidSchema,
-          ownerFeatureId: authoredIdentifierSchema,
-          chargeId: authoredIdentifierSchema,
-          featureCost: positiveIntegerSchema,
-          poolBefore: nonNegativeIntegerSchema,
-          poolRemaining: nonNegativeIntegerSchema,
-          definitionId: uuidSchema,
-          definitionVersion: positiveIntegerSchema,
-          definitionChecksum: checksumSchema,
-          choiceGraphDefinitionId: uuidSchema,
-          choiceGraphDefinitionVersion: positiveIntegerSchema,
-          choiceGraphDefinitionChecksum: checksumSchema,
-          useOutput: portNameSchema,
-          useOptionId: checksumSchema,
-          selectionChecksum: checksumSchema
-        })
+        resistance: encounterLegendaryResistancePinDtoSchema
       })
     ])
   })
@@ -457,23 +487,7 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
         d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
         originalExecutionChecksum: checksumSchema,
         targetStateChecksum: checksumSchema,
-        resistance: z.strictObject({
-          targetActorId: uuidSchema,
-          ownerFeatureId: authoredIdentifierSchema,
-          chargeId: authoredIdentifierSchema,
-          featureCost: positiveIntegerSchema,
-          poolBefore: nonNegativeIntegerSchema,
-          poolRemaining: nonNegativeIntegerSchema,
-          definitionId: uuidSchema,
-          definitionVersion: positiveIntegerSchema,
-          definitionChecksum: checksumSchema,
-          choiceGraphDefinitionId: uuidSchema,
-          choiceGraphDefinitionVersion: positiveIntegerSchema,
-          choiceGraphDefinitionChecksum: checksumSchema,
-          useOutput: portNameSchema,
-          useOptionId: checksumSchema,
-          selectionChecksum: checksumSchema
-        })
+        resistance: encounterLegendaryResistancePinDtoSchema
       })
     ])
   })

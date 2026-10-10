@@ -47,7 +47,7 @@ export async function readEncounterWaitingOn(
   if (!decision) return null
   if (decision.kind === 'AREA_SAVES') {
     const controllers = await Promise.all(
-      decision.saves.map(async ({ actorId }) =>
+      [...decision.saves, ...decision.legendaryResistance].map(async ({ actorId }) =>
         readEncounterActorPrimaryController(
           ctx,
           campaign,

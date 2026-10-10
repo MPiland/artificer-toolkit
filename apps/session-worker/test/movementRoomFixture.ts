@@ -158,6 +158,8 @@ export interface MovementRoomConfig {
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   /** Whose stored preference rolls dice automatically: the GM's or the Character player's. */
   autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH'
+  /** The actors the room's player controls, besides any Character assigned to them. */
+  playerControlledActorIds?: readonly string[]
   /**
    * Spatial effects that deal 1 damage to whoever crosses them (or, with `save`, fails their save).
    * They are fixed to the Scene unless `moving` anchors them to the mover's token.
@@ -206,7 +208,7 @@ export interface MovementRoomConfig {
 export async function movementRoom(config: MovementRoomConfig) {
   const campaignId = crypto.randomUUID()
   const encounterId = crypto.randomUUID()
-  const actors = config.actors.map((actor) =>
+  let actors = config.actors.map((actor) =>
     encounterRunActorStateSchema.parse({ ...actor, encounterId })
   )
   const state = encounterRunStateSchema.parse({
@@ -255,6 +257,11 @@ export async function movementRoom(config: MovementRoomConfig) {
   const base = await fixture(scene)
   base.room.systemId = SRD_SYSTEM_ID
   base.capture.sceneEncounterId = encounterId
+  actors = actors.map((actor) =>
+    config.playerControlledActorIds?.includes(actor.id)
+      ? { ...actor, controllerUserIds: [base.playerId] }
+      : actor
+  )
 
   const character = actors.find((actor) => actor.kind === 'CHARACTER')
   const characterId = character?.sourceId ?? null

@@ -96,6 +96,55 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
 }
 
 /**
+ * The pending area as one viewer reads it: the GM, or a player who controls `controlledActorIds`.
+ * Null when the viewer has nothing in it to answer.
+ */
+export function readPendingAreaForViewer(
+  stub: RoomStub,
+  viewer: { isOwner: boolean; controlledActorIds: ReadonlySet<string> }
+) {
+  return runInDurableObject(stub, async (_instance, context) => {
+    const room = new RoomEncounterStore(context.storage)
+    const occurrence = room
+      .documents('encounterRuleOccurrences')
+      .find((candidate) => candidate.state === 'PENDING')
+    if (!occurrence) throw new Error('No area is pending.')
+    const pending = projectNativeAreaActionPending(
+      occurrence,
+      await readNativeAreaActionPending({ db: room.store }, occurrence),
+      viewer
+    )
+    if (pending && pending.kind !== 'AREA_SAVES') throw new Error('The pending area is invalid.')
+    return pending
+  })
+}
+
+/**
+ * What the pending area stored of each creature that was offered a Legendary Resistance choice: the
+ * selection decided, or null while it waits.
+ */
+export function readPendingAreaChoices(stub: RoomStub) {
+  return runInDurableObject(stub, async (_instance, context) => {
+    const room = new RoomEncounterStore(context.storage)
+    const occurrence = room
+      .documents('encounterRuleOccurrences')
+      .find((candidate) => candidate.state === 'PENDING')
+    if (!occurrence) throw new Error('No area is pending.')
+    const { targets } = await readNativeAreaActionPending({ db: room.store }, occurrence)
+    return targets.flatMap((target) =>
+      target.legendaryResistance
+        ? [
+            {
+              actorId: target.actorId,
+              selection: target.legendaryResistance.decision?.selection ?? null
+            }
+          ]
+        : []
+    )
+  })
+}
+
+/**
  * Every roll card the room holds: the table's roll entries and the GM's private history, each as
  * its roll record plus the audience it went to.
  */

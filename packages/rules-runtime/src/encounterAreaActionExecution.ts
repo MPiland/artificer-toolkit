@@ -12,6 +12,7 @@ import {
   type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import { nextRollInt } from './random.js'
 
@@ -20,7 +21,7 @@ type TestBoundary = Exclude<
   Awaited<ReturnType<typeof prepareNativeActionTest>>,
   PendingNativeActionGraphs
 >
-type LegendaryResistanceAudit = NonNullable<
+export type EncounterAreaLegendaryResistanceAudit = NonNullable<
   Parameters<typeof continueNativeActionAfterTest>[0]['legendaryResistance']
 >
 
@@ -37,12 +38,22 @@ export type EncounterAreaTarget = {
   actorId: string
   binding: NativeActionInput['binding']
   autoRoll: EncounterActionAutoRoll
+  /** The creature's Legendary Resistance on its current pool, asked for only once its save has failed. */
+  discoverLegendaryResistance: () => Promise<EncounterLegendaryResistanceCandidate | null>
 }
 
-/** One caught creature's save: awaiting its roller, or answered and sealed. */
+/**
+ * One caught creature's save: awaiting its roller, or answered and sealed. A failed save carries the
+ * Legendary Resistance its creature may use, which must be decided before the area settles.
+ */
 export type EncounterAreaTargetTest =
   | { actorId: string; kind: 'PENDING'; pending: PendingNativeActionGraphs }
-  | { actorId: string; kind: 'TESTED'; boundary: TestBoundary }
+  | {
+      actorId: string
+      kind: 'TESTED'
+      boundary: TestBoundary
+      legendaryResistance: EncounterLegendaryResistanceCandidate | null
+    }
 
 /**
  * The actors with a token touching a point-origin area, in token-id order, each once. The caster and
@@ -68,17 +79,29 @@ async function testTarget(
   target: EncounterAreaTarget,
   resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
 ): Promise<EncounterAreaTargetTest> {
+  const resistance: { candidate: EncounterLegendaryResistanceCandidate | null } = {
+    candidate: null
+  }
   const result = await prepareNativeActionTest({
     ...source,
     occurrenceId: encounterAreaTargetOccurrenceId(source.occurrenceId, target.actorId),
     binding: target.binding,
     autoRoll: target.autoRoll,
-    afterTest: async () => undefined,
+    // Runs after any completed TEST, whether it was answered or rolled for the creature.
+    afterTest: async (execution) => {
+      if (execution.outputs.resultPath === 'ON_SAVE_FAIL')
+        resistance.candidate = await target.discoverLegendaryResistance()
+    },
     ...(resume ? { resume } : {})
   })
   return result.kind === 'PENDING'
     ? { actorId: target.actorId, kind: 'PENDING', pending: result }
-    : { actorId: target.actorId, kind: 'TESTED', boundary: result }
+    : {
+        actorId: target.actorId,
+        kind: 'TESTED',
+        boundary: result,
+        legendaryResistance: resistance.candidate
+      }
 }
 
 /** Opens every caught creature's save at once; none is rolled for it and no damage is rolled. */
@@ -140,7 +163,7 @@ export async function settleEncounterAreaAction(
   input: AreaActionSource & {
     targets: readonly EncounterAreaTarget[]
     tests: readonly EncounterAreaTargetTest[]
-    legendaryResistance?: ReadonlyMap<string, LegendaryResistanceAudit>
+    legendaryResistance?: ReadonlyMap<string, EncounterAreaLegendaryResistanceAudit>
   }
 ) {
   requireDistinctTargets(input.targets)
@@ -149,6 +172,15 @@ export async function settleEncounterAreaAction(
     input.tests.some((test) => test.kind !== 'TESTED')
   )
     throw new Error('Every caught creature must answer its save before the area settles.')
+  if (
+    input.tests.some(
+      (test) =>
+        test.kind === 'TESTED' &&
+        test.legendaryResistance &&
+        !input.legendaryResistance?.has(test.actorId)
+    )
+  )
+    throw new Error('A Legendary Resistance choice is undecided; the area cannot settle.')
   const frozenRolls = createFrozenRollTape(input.random ?? nextRollInt)
   const settled = []
   for (const target of input.targets) {

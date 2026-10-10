@@ -15,6 +15,7 @@ import type {
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaCaughtChecksum,
+  markEncounterAreaLegendaryResistanceDecided,
   markEncounterAreaSaveTested
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
@@ -55,7 +56,8 @@ function areaTargets(context: EncounterAreaActionPendingContextDto) {
       token: target.token,
       snapshot: target.snapshot,
       context: inner,
-      testedJson: target.testedJson
+      testedJson: target.testedJson,
+      legendaryResistance: target.legendaryResistance
     }
   })
 }
@@ -175,30 +177,61 @@ export async function requireAreaActionPendingRoot(
 
 /**
  * Verifies the area snapshot a save answer stores: it is the stored area with exactly the answered
- * creature's save marked tested, and nothing else changed.
+ * creature's save marked tested, with the Legendary Resistance it offered and not yet decided, and
+ * nothing else changed.
  */
 export function requireAreaActionAnswer(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
   next: ServerRuleExecutionPendingSnapshotDto
   requestId: string
 }) {
-  const next = areaActionPendingContext(input.next)
-  const testedJson = next?.targets.find(
+  const answered = areaActionPendingContext(input.next)?.targets.find(
     (target) => target.snapshot.request.requestId === input.requestId
-  )?.testedJson
+  )
   if (
-    testedJson === undefined ||
+    answered?.testedJson === undefined ||
+    answered.legendaryResistance?.decision !== undefined ||
     input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
     checksumCanonicalJson(input.next) !==
-      checksumCanonicalJson(markEncounterAreaSaveTested(input.stored, input.requestId, testedJson))
+      checksumCanonicalJson(
+        markEncounterAreaSaveTested(
+          input.stored,
+          input.requestId,
+          answered.testedJson,
+          answered.legendaryResistance
+        )
+      )
   )
     throw new Error('Live Session pending area answer mismatch.')
 }
 
 /**
- * The saves one viewer reads. The GM reads every unanswered save; a player reads only those of the
- * creatures they control, each with what that creature's own facts imply. Null when the viewer has
- * none.
+ * Verifies the area snapshot a Legendary Resistance decision stores: it is the stored area with
+ * exactly that creature's offer decided, and nothing else changed.
+ */
+export function requireAreaActionLegendaryResistance(input: {
+  stored: ServerRuleExecutionPendingSnapshotDto
+  next: ServerRuleExecutionPendingSnapshotDto
+  actorId: string
+}) {
+  const decided = areaActionPendingContext(input.next)?.targets.find(
+    (target) => target.actorId === input.actorId
+  )?.legendaryResistance
+  if (
+    decided?.decision === undefined ||
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    checksumCanonicalJson(input.next) !==
+      checksumCanonicalJson(
+        markEncounterAreaLegendaryResistanceDecided(input.stored, input.actorId, decided)
+      )
+  )
+    throw new Error('Live Session pending area decision mismatch.')
+}
+
+/**
+ * What one viewer reads of an area. The GM reads every unanswered save and every undecided Legendary
+ * Resistance choice; a player reads only those of the creatures they control, each save with what that
+ * creature's own facts imply. Nobody else learns a choice exists. Null when the viewer has neither.
  */
 export function projectNativeAreaActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
@@ -206,9 +239,15 @@ export function projectNativeAreaActionPending(
   viewer: { isOwner: boolean; controlledActorIds: ReadonlySet<string> },
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
+  const answers = (actorId: string) => viewer.isOwner || viewer.controlledActorIds.has(actorId)
+  const legendaryResistance = pending.targets.flatMap((target) =>
+    target.legendaryResistance && !target.legendaryResistance.decision && answers(target.actorId)
+      ? [{ actorId: target.actorId, optionId: target.legendaryResistance.resistance.useOptionId }]
+      : []
+  )
   const saves = pending.targets.flatMap((target) => {
     if (target.testedJson !== undefined) return []
-    if (!viewer.isOwner && !viewer.controlledActorIds.has(target.actorId)) return []
+    if (!answers(target.actorId)) return []
     const summary = projectNativeActionPending(
       occurrence,
       { snapshot: target.snapshot, context: target.context },
@@ -218,7 +257,7 @@ export function projectNativeAreaActionPending(
     if (summary.kind !== 'D20_EVIDENCE') throw new Error('Stored area save evidence is invalid.')
     return [{ actorId: target.actorId, request: summary.request }]
   })
-  return saves.length === 0
+  return saves.length === 0 && legendaryResistance.length === 0
     ? null
     : {
         kind: 'AREA_SAVES',
@@ -228,6 +267,7 @@ export function projectNativeAreaActionPending(
         casterActorId: pending.context.casterActorId,
         caughtChecksum: pending.context.caughtChecksum,
         saves,
-        allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+        legendaryResistance,
+        allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
       }
 }
