@@ -159,9 +159,11 @@ export async function resolveEncounterPointSight(
   input: AttackPerceptionLoaders & {
     observer: AttackPerceptionActor
     point: ScenePoint
-    placement: Omit<EncounterAttackPerceptionPlacement, 'attackerToken' | 'targetToken'> & {
-      observerToken: SceneToken
-    } | null
+    placement:
+      | (Omit<EncounterAttackPerceptionPlacement, 'attackerToken' | 'targetToken'> & {
+          observerToken: SceneToken
+        })
+      | null
   }
 ): Promise<EncounterAttackSight> {
   const { placement } = input

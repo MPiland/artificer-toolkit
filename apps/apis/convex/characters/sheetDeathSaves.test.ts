@@ -206,7 +206,13 @@ describe('Sheet death saves outside an Encounter (D96)', () => {
     await expect(
       stranger.caller.mutation(api.characters.sheetCommands.execute, {
         id: fixture.character.id,
-        command: { ...base, commandId: crypto.randomUUID(), type: 'SET_DEATH_SAVES', successes: 1, failures: 0 }
+        command: {
+          ...base,
+          commandId: crypto.randomUUID(),
+          type: 'SET_DEATH_SAVES',
+          successes: 1,
+          failures: 0
+        }
       })
     ).rejects.toThrow()
     expect(await saves(fixture)).toEqual(NO_DEATH_SAVES)

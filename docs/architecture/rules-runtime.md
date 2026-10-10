@@ -670,7 +670,7 @@ neutral (bright, unobscured, line of effect). A Creature observer with authored 
 ordinary sight fails is `UNKNOWN`: no contributor, Dodge stays. Not wired: Convex action preparation, Disarm,
 opportunity attacks (movement-owned; movement reaction perception also omits condition contributions).
 
-Believed vs true attack mode (current, D100): `encounterAttackBelief.ts` derives the roller's *believed*
+Believed vs true attack mode (current, D100): `encounterAttackBelief.ts` derives the roller's _believed_
 contributors. These come from the attacker's own facts only, on the neutral environment
 (`resolveEncounterBelievedAttackPerception`), with the true sight contributors swapped for the believed ones.
 The pending action context stores the belief, and players' prompts show it; the GM sees the true mode. At

@@ -204,10 +204,9 @@ describe('area target policy', () => {
   })
 
   it('reports an origin that is both out of range and out of sight with both warnings, range first', () => {
-    expect(evaluate({ point: at(31), pointSeen: false })?.warnings.map(({ code }) => code)).toEqual([
-      'TARGET_OUT_OF_RANGE',
-      'TARGET_OUT_OF_SIGHT'
-    ])
+    expect(evaluate({ point: at(31), pointSeen: false })?.warnings.map(({ code }) => code)).toEqual(
+      ['TARGET_OUT_OF_RANGE', 'TARGET_OUT_OF_SIGHT']
+    )
     expect(
       evaluate({ sourceToken: null, pointSeen: false })?.warnings.map(({ code }) => code)
     ).toEqual(['TARGET_RANGE_UNCHECKED', 'TARGET_OUT_OF_SIGHT'])

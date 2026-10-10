@@ -98,7 +98,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
-import { readNativeLiveAttackPerception, readNativeLivePointSight } from './nativeAttackPerception.js'
+import {
+  readNativeLiveAttackPerception,
+  readNativeLivePointSight
+} from './nativeAttackPerception.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
