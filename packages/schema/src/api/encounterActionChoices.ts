@@ -119,7 +119,6 @@ export const getEncounterOptionalActionChoicesInputDtoSchema = lazySchema(() =>
       expectedVersion: true,
       actorId: true,
       actionId: true,
-      targetActorId: true,
       sceneContext: true
     }),
     {

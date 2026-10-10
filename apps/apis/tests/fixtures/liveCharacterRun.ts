@@ -398,7 +398,7 @@ export async function enemyBites(fixture: Fixture, from: CommandResult) {
     acknowledgedWarnings: [],
     expectedVersion,
     actorId: fixture.enemy.id,
-    targetActorId: fixture.hero.id,
+    target: { kind: 'ACTOR', actorId: fixture.hero.id },
     actionId: fixture.actionIds.enemy,
     optionalCombatIntent: null,
     sceneContext: null

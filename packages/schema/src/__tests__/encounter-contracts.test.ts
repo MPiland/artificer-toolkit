@@ -771,9 +771,13 @@ describe('encounter contracts', () => {
         type: 'RESOLVE_ACTION',
         actorId: encounterId,
         actionId: 'attack',
-        targetActorId: commandId
+        target: { kind: 'ACTOR', actorId: commandId }
       })
-    ).toMatchObject({ type: 'RESOLVE_ACTION', actionId: 'attack', targetActorId: commandId })
+    ).toMatchObject({
+      type: 'RESOLVE_ACTION',
+      actionId: 'attack',
+      target: { kind: 'ACTOR', actorId: commandId }
+    })
     expect(() =>
       encounterCommandInputDtoSchema.parse({
         encounterId,
@@ -794,7 +798,7 @@ describe('encounter contracts', () => {
       type: 'RESOLVE_ACTION',
       actorId: encounterId,
       actionId: 'attack',
-      targetActorId: commandId
+      target: { kind: 'ACTOR', actorId: commandId }
     }
     expect(
       encounterCommandInputDtoSchema.parse({ ...action, visibility: 'PRIVATE' })
@@ -806,6 +810,35 @@ describe('encounter contracts', () => {
         (issue) => issue.path.join('.') === 'visibility' && issue.code === 'invalid_value'
       )
     ).toBe(true)
+  })
+
+  it('names the action target as a closed kind and rejects the flat target field and unknown kinds', () => {
+    const action = {
+      encounterId,
+      commandId,
+      expectedVersion: 2,
+      type: 'RESOLVE_ACTION',
+      actorId: encounterId,
+      actionId: 'attack'
+    }
+    expect(
+      encounterCommandInputDtoSchema.safeParse({
+        ...action,
+        target: { kind: 'ACTOR', actorId: commandId }
+      }).success
+    ).toBe(true)
+    for (const rejected of [
+      { targetActorId: commandId },
+      { target: { kind: 'ACTOR', actorId: commandId }, targetActorId: commandId },
+      { target: { kind: 'ACTOR', actorId: commandId, extra: true } },
+      { target: { kind: 'POINT', actorId: commandId } },
+      { target: { actorId: commandId } },
+      { target: { kind: 'ACTOR', actorId: 'not-a-uuid' } }
+    ])
+      expect(
+        encounterCommandInputDtoSchema.safeParse({ ...action, ...rejected }).success,
+        JSON.stringify(rejected)
+      ).toBe(false)
   })
 
   it('accepts only closed optional combat action intent selections', () => {

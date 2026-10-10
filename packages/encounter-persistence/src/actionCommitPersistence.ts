@@ -1,6 +1,6 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import type { LiveSessionEncounterActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
@@ -63,7 +63,7 @@ export async function persistEncounterActionCommit(
     ): ReturnType<typeof readEncounterMaintenanceCapture>
     readActionSceneInputs(
       state: EncounterRunState,
-      input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>,
+      input: ActionSceneRequestDto,
       role: 'OWNER' | 'MEMBER'
     ): Promise<Extract<LiveSessionEncounterRulesResponse, { kind: 'ACTION_SCENE' }>['context']>
     validateReadFence(
@@ -125,13 +125,13 @@ export async function persistEncounterActionCommit(
     (batch.kind !== 'CHARACTER_MECHANICS_BATCH' &&
       batch.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') ||
     batch.sourceActorId !== command.actorId ||
-    batch.targetActorId !== command.targetActorId ||
+    batch.targetActorId !== command.target.actorId ||
     batch.occurrenceId !== execution.occurrenceId
   )
     throw new Error('Live Session action result scope mismatch.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
-  const target = actors.find((actor) => actor.id === command.targetActorId)
+  const target = actors.find((actor) => actor.id === command.target.actorId)
   if (
     !source ||
     !target ||
@@ -163,7 +163,11 @@ export async function persistEncounterActionCommit(
   }
   await callbacks.readActionSceneInputs(
     state,
-    command,
+    {
+      actorId: command.actorId,
+      targetActorId: command.target.actorId,
+      sceneContext: command.sceneContext
+    },
     membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
   )
   await callbacks.validateReadFence(state, [...characterIds], input.revisions)

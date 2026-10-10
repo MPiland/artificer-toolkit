@@ -350,7 +350,7 @@ export async function verifyEncounterEffects({
       commandId: crypto.randomUUID(),
       expectedVersion: run.version,
       actorId: source.id,
-      targetActorId: target.id,
+      target: { kind: 'ACTOR', actorId: target.id },
       actionId: `${source.id}:FEATURE:${encounterEffectFeatureId}:EFFECT:${encounterEffectId}`,
       optionalCombatIntent: null,
       // The tabletop sends its roll visibility with every action; PUBLIC is its default.

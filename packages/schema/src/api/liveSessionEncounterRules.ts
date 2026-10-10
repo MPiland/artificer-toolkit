@@ -22,6 +22,7 @@ import { systemVocabularySnapshotSchema } from '../projections/systemVocabulary.
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
+  actionSceneRequestDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -125,11 +126,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
-      command: z.pick(resolveEncounterActionInputDtoSchema, {
-        actorId: true,
-        targetActorId: true,
-        sceneContext: true
-      })
+      command: actionSceneRequestDtoSchema
     }),
     z.strictObject({ kind: z.literal('MAINTENANCE_SLOT'), ...maintenanceSlot }),
     z.strictObject({ kind: z.literal('MAINTENANCE_STATE'), stateId: postgresUuidSchema }),

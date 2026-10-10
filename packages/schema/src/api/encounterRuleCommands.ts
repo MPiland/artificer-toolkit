@@ -107,12 +107,18 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
   typeof encounterAcceptedWieldConflictDtoSchema
 >
 
+/** What a RESOLVE_ACTION aims at. A point-origin area joins the union with SPELLS-7. */
+export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema })])
+)
+export type ResolveEncounterActionTargetDto = z.infer<typeof resolveEncounterActionTargetDtoSchema>
+
 export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('RESOLVE_ACTION'),
     actorId: uuidSchema,
     actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
-    targetActorId: uuidSchema,
+    target: resolveEncounterActionTargetDtoSchema,
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     acceptedWieldConflict: z._default(
       z.optional(z.nullable(encounterAcceptedWieldConflictDtoSchema)),
@@ -144,6 +150,14 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     )
   })
 )
+
+/** The Scene read for one source and one target actor's tokens, however the action names its target. */
+export const actionSceneRequestDtoSchema = lazySchema(() =>
+  z.extend(z.pick(resolveEncounterActionInputDtoSchema, { actorId: true, sceneContext: true }), {
+    targetActorId: uuidSchema
+  })
+)
+export type ActionSceneRequestDto = z.infer<typeof actionSceneRequestDtoSchema>
 
 /**
  * The current actor takes one of its System's basic actions (Q11). `targetActorId` names the ally an

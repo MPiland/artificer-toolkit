@@ -809,7 +809,7 @@ async function executeCutoverWorkloadAction(
       commandId: crypto.randomUUID(),
       expectedVersion: aggregate.run.version,
       actorId,
-      targetActorId,
+      target: { kind: 'ACTOR', actorId: targetActorId },
       actionId: cutoverWorkloadActionId(actorId, item.ordinal === 1 ? 'ACTION' : 'BONUS_ACTION'),
       optionalCombatIntent: null,
       sceneContext: null
@@ -1058,7 +1058,7 @@ async function verifyCutoverWorkloadPreflight({
       commandId,
       expectedVersion: aggregate.run.version,
       actorId,
-      targetActorId,
+      target: { kind: 'ACTOR' as const, actorId: targetActorId },
       actionId: cutoverWorkloadActionId(actorId, 'ACTION'),
       optionalCombatIntent: null,
       sceneContext: null
@@ -1094,7 +1094,7 @@ async function verifyCutoverWorkloadPreflight({
         commandId: crypto.randomUUID(),
         expectedVersion: aggregate.run.version,
         actorId: targetActorId,
-        targetActorId: actorId,
+        target: { kind: 'ACTOR', actorId },
         actionId: cutoverWorkloadActionId(targetActorId, 'ACTION'),
         optionalCombatIntent: null,
         sceneContext: null

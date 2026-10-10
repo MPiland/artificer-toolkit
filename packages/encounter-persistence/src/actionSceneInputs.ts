@@ -1,4 +1,4 @@
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
   SceneLiveEntity,
   SceneLiveStateHeader
@@ -38,7 +38,7 @@ export interface EncounterActionSceneReaders {
 export async function readEncounterActionSceneInputs(
   ctx: EncounterReadContext,
   state: EncounterRunState,
-  command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>,
+  command: ActionSceneRequestDto,
   callbacks: EncounterActionSceneReaders
 ) {
   const request = command.sceneContext

@@ -85,7 +85,7 @@ export async function readNativeDisarmReplay(
     payload.occurrenceVersion !== occurrence.version ||
     application.occurrenceId !== occurrence.id ||
     application.sourceActorId !== command.actorId ||
-    application.targetActorId !== command.targetActorId ||
+    application.targetActorId !== command.target.actorId ||
     application.policy.definitionId !== command.optionalCombatIntent?.definitionId ||
     application.contestGraph.definitionId !== graph.published.id ||
     application.contestGraph.checksum !== graph.published.checksum ||

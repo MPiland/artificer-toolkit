@@ -80,7 +80,7 @@ export async function persistEncounterActionChildren(
       context.parentOccurrenceId !== execution.occurrenceId ||
       context.parentResultChecksum !== checksumRuleDocument(execution) ||
       context.sourceActorId !== input.command.actorId ||
-      context.initialTargetActorId !== input.command.targetActorId ||
+      context.initialTargetActorId !== input.command.target.actorId ||
       context.action.actionId !== input.command.actionId ||
       context.chainStep !== 1 ||
       context.scene.sceneId !== scene.sceneId ||

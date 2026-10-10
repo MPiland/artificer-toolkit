@@ -262,7 +262,7 @@ export async function playerControlFixture(
       commandId: crypto.randomUUID(),
       expectedVersion: await readRunVersion(fixture),
       actorId,
-      targetActorId,
+      target: { kind: 'ACTOR', actorId: targetActorId },
       actionId,
       optionalCombatIntent: null,
       sceneContext: null,

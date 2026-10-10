@@ -30,7 +30,7 @@ export async function readNativeEncounterActionAdmission(
     encounterId: command.encounterId.toLowerCase(),
     commandId: command.commandId.toLowerCase(),
     actorId: command.actorId.toLowerCase(),
-    targetActorId: command.targetActorId.toLowerCase(),
+    target: { ...command.target, actorId: command.target.actorId.toLowerCase() },
     sceneContext: command.sceneContext
       ? {
           ...command.sceneContext,
@@ -128,7 +128,7 @@ export async function readNativeEncounterActionAdmission(
         payload.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH') ||
       payload.applicationOutputs.occurrenceId !== occurrence.id ||
       payload.applicationOutputs.sourceActorId !== input.actorId ||
-      payload.applicationOutputs.targetActorId !== input.targetActorId ||
+      payload.applicationOutputs.targetActorId !== input.target.actorId ||
       metadata.transition !== 'START' ||
       metadata.definitionId !== initialExecution.evidence.source.definitionId ||
       (payload.initialFactsChecksum !== undefined
@@ -153,7 +153,7 @@ export async function readNativeEncounterActionAdmission(
   if (!resume) {
     const [actor, target] = await Promise.all([
       readRunActor(ctx, state, input.actorId),
-      readRunActor(ctx, state, input.targetActorId)
+      readRunActor(ctx, state, input.target.actorId)
     ])
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')

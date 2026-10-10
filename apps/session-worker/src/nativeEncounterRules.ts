@@ -179,7 +179,7 @@ export async function planNativeLiveEncounterAction(
     state.gameSystemId !== system.id ||
     new Set(state.actorIds).size !== state.actorIds.length ||
     !state.actorIds.includes(command.actorId) ||
-    !state.actorIds.includes(command.targetActorId)
+    !state.actorIds.includes(command.target.actorId)
   )
     throw new Error('Encounter rules input binding mismatch.')
   if (state.automationMode === 'MANUAL')
@@ -206,7 +206,7 @@ export async function planNativeLiveEncounterAction(
     return preparedTarget.target
   }
   const selectedActors = actors.filter(
-    (actor) => actor.id === command.actorId || actor.id === command.targetActorId
+    (actor) => actor.id === command.actorId || actor.id === command.target.actorId
   )
   const movementTargets = new Map(
     await Promise.all(
@@ -218,7 +218,7 @@ export async function planNativeLiveEncounterAction(
         kind: 'ACTION_SCENE',
         command: {
           actorId: command.actorId,
-          targetActorId: command.targetActorId,
+          targetActorId: command.target.actorId,
           sceneContext: command.sceneContext
         }
       })
@@ -243,7 +243,7 @@ export async function planNativeLiveEncounterAction(
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor: actors.find((actor) => actor.id === command.actorId)!,
-    target: actors.find((actor) => actor.id === command.targetActorId)!,
+    target: actors.find((actor) => actor.id === command.target.actorId)!,
     actors,
     actionId: command.actionId,
     wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },

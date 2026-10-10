@@ -850,7 +850,8 @@ const distanceFaultCause = {
 } as const
 
 function command(
-  input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'actionId'> & {
+  input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'actionId'> & {
+    targetActorId: string
     encounterId: string
     commandId?: string
     expectedVersion?: number
@@ -865,7 +866,7 @@ function command(
     commandId: input.commandId ?? crypto.randomUUID(),
     expectedVersion: input.expectedVersion ?? 0,
     actorId: input.actorId,
-    targetActorId: input.targetActorId,
+    target: { kind: 'ACTOR', actorId: input.targetActorId },
     actionId: input.actionId,
     optionalCombatIntent: null,
     sceneContext: input.sceneContext ?? null
@@ -1179,7 +1180,7 @@ describe('native encounter actions', () => {
     expect(
       await rejection(
         executeInRoom(base.owner.caller, {
-          command: command({ ...input, targetActorId: base.actor.id })
+          command: { ...input, target: { kind: 'ACTOR', actorId: base.actor.id } }
         })
       )
     ).toMatchObject({ reason: 'RULE_WARNINGS', warnings: [{ code: 'TARGET_DISPOSITION' }] })
@@ -1204,7 +1205,7 @@ describe('native encounter actions', () => {
     expect(await records(base.t, base.run.id, base.campaign.id)).toEqual(settled)
     await expect(
       executeInRoom(base.owner.caller, {
-        command: command({ ...input, commandId: crypto.randomUUID() })
+        command: { ...input, commandId: crypto.randomUUID() }
       })
     ).rejects.toMatchObject({ data: { reason: 'VERSION_STALE' } })
     await expect(
@@ -1661,7 +1662,7 @@ describe('native encounter actions', () => {
     })
     const exhausted = await rejection(
       executeInRoom(base.owner.caller, {
-        command: command({ ...input, commandId: crypto.randomUUID(), expectedVersion: 1 })
+        command: { ...input, commandId: crypto.randomUUID(), expectedVersion: 1 }
       })
     )
     expect(exhausted).toMatchObject({
@@ -1850,7 +1851,9 @@ describe('Assisted soft enforcement', () => {
     const again = (acknowledgedWarnings: EncounterRuleWarningCodeDto[]) =>
       executeInRoom(base.owner.caller, {
         command: {
-          ...command({ ...first, commandId: crypto.randomUUID(), expectedVersion: 1 }),
+          ...first,
+          commandId: crypto.randomUUID(),
+          expectedVersion: 1,
           acknowledgedWarnings
         }
       })
@@ -1924,7 +1927,7 @@ describe('Assisted soft enforcement', () => {
           command: {
             ...outOfRange,
             commandId: crypto.randomUUID(),
-            targetActorId: base.actor.id,
+            target: { kind: 'ACTOR', actorId: base.actor.id },
             sceneContext: null
           }
         })
@@ -2308,16 +2311,20 @@ describe('Assisted soft enforcement', () => {
     const before = await records(base.t, base.run.id, base.campaign.id)
     const refuse = async (changed: typeof input) =>
       (await rejection(executeInRoom(base.owner.caller, { command: changed }))).reason
-    expect(await refuse({ ...input, actorId: base.target.id, targetActorId: base.actor.id })).toBe(
-      'NOT_CURRENT_ACTOR'
-    )
+    expect(
+      await refuse({
+        ...input,
+        actorId: base.target.id,
+        target: { kind: 'ACTOR', actorId: base.actor.id }
+      })
+    ).toBe('NOT_CURRENT_ACTOR')
     expect(await refuse({ ...input, expectedVersion: 7 })).toBe('VERSION_STALE')
     await expect(executeInRoom(base.other.caller, { command: input })).rejects.toThrow(
       'Campaign not found.'
     )
     await expectUnavailableRefusal(
       executeInRoom(base.owner.caller, {
-        command: { ...input, targetActorId: crypto.randomUUID() }
+        command: { ...input, target: { kind: 'ACTOR', actorId: crypto.randomUUID() } }
       }),
       'actor'
     )

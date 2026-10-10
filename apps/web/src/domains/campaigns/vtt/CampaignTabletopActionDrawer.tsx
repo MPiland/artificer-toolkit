@@ -317,7 +317,7 @@ export function CampaignTabletopActionDrawer({
         expectedVersion: encounter.version,
         actorId: currentActor.id,
         actionId: selectedAction.id,
-        targetActorId,
+        target: { kind: 'ACTOR', actorId: targetActorId },
         sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,

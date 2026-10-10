@@ -438,7 +438,7 @@ describe('turn capture scope over the real room', () => {
       commandId: testUuid(0x71),
       expectedVersion: state.version,
       actorId: CASTER_ID,
-      targetActorId: TARGET_ID,
+      target: { kind: 'ACTOR', actorId: TARGET_ID },
       actionId: testUuid(0x72),
       optionalCombatIntent: null,
       sceneContext: null

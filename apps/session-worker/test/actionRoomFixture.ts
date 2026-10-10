@@ -301,7 +301,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         commandId: crypto.randomUUID(),
         expectedVersion: await version(),
         actorId,
-        targetActorId,
+        target: { kind: 'ACTOR', actorId: targetActorId },
         actionId: chosenActionId,
         optionalCombatIntent,
         sceneContext

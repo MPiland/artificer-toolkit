@@ -662,7 +662,7 @@ describe('Encounter rule overrides and undo', () => {
     expectedVersion: 3,
     actorId: ids.character,
     actionId: 'bite',
-    targetActorId: ids.token
+    target: { kind: 'ACTOR', actorId: ids.token }
   }
 
   it('defaults acknowledgements to none and keeps each code once', () => {
@@ -680,7 +680,7 @@ describe('Encounter rule overrides and undo', () => {
   })
 
   it('accepts a GM undo with only its Run version', () => {
-    const { actorId: _actor, actionId: _action, targetActorId: _target, ...base } = action
+    const { actorId: _actor, actionId: _action, target: _target, ...base } = action
     expect(
       revertLastEncounterActionInputDtoSchema.parse({ ...base, type: 'REVERT_LAST_ACTION' })
     ).toEqual({ ...base, type: 'REVERT_LAST_ACTION' })

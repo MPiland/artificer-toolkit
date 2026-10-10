@@ -91,7 +91,7 @@ export async function planNativeLiveDisarm(
     capture
   })
   const actor = actors.find((entry) => entry.id === root.actorId)
-  const target = actors.find((entry) => entry.id === root.targetActorId)
+  const target = actors.find((entry) => entry.id === root.target.actorId)
   if (!actor || !target) throw new Error('Disarm actors are unavailable.')
   const movementTargets = new Map(
     await Promise.all(
@@ -113,7 +113,11 @@ export async function planNativeLiveDisarm(
     actors,
     actor,
     target,
-    command: { ...root, definitionId: intent.definitionId }
+    command: {
+      ...root,
+      targetActorId: root.target.actorId,
+      definitionId: intent.definitionId
+    }
   })
   // An ally's Help (basic action, Q11) gives the initiator's attack roll or the defender's check
   // advantage; the Disarm's commit uses each up.
@@ -146,7 +150,7 @@ export async function planNativeLiveDisarm(
           kind: 'ACTION_SCENE',
           command: {
             actorId: root.actorId,
-            targetActorId: root.targetActorId,
+            targetActorId: root.target.actorId,
             sceneContext: root.sceneContext
           }
         })

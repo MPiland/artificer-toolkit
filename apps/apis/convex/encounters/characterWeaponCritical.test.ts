@@ -99,7 +99,7 @@ async function setup() {
       commandId: crypto.randomUUID(),
       expectedVersion: run.version,
       actorId: actor.id,
-      targetActorId: target.id,
+      target: { kind: 'ACTOR' as const, actorId: target.id },
       actionId: attack.actionId,
       optionalCombatIntent: null,
       sceneContext: null

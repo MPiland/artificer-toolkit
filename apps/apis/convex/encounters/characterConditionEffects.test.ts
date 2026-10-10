@@ -344,7 +344,7 @@ function action(
     commandId: crypto.randomUUID(),
     expectedVersion,
     actorId,
-    targetActorId: base.target.id,
+    target: { kind: 'ACTOR', actorId: base.target.id },
     actionId: `${actorId}:FEATURE:${featureId}:EFFECT:${effectId}`,
     optionalCombatIntent: null,
     sceneContext: null

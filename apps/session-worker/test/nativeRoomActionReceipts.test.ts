@@ -213,7 +213,7 @@ async function actionRoom(creature: CreatureAuthored, rolls?: readonly number[])
         commandId: crypto.randomUUID(),
         expectedVersion: input.expectedVersion,
         actorId: SOURCE_ID,
-        targetActorId: input.targetActorId,
+        target: { kind: 'ACTOR', actorId: input.targetActorId },
         actionId: capability.actionId,
         optionalCombatIntent: null,
         sceneContext: null

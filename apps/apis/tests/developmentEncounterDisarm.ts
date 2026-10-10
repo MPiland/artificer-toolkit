@@ -380,7 +380,7 @@ export async function verifyEncounterDisarm({
     commandId: crypto.randomUUID(),
     expectedVersion: run.version,
     actorId: source.id,
-    targetActorId: target.id,
+    target: { kind: 'ACTOR', actorId: target.id },
     actionId: action.id,
     sceneContext,
     visibility: gmRollVisibility,

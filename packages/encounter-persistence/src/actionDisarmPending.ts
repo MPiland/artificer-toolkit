@@ -19,7 +19,7 @@ export async function readNativeDisarmPending(
     contest.selection.kind !== 'DISARM' ||
     contest.actionId !== command.actionId ||
     contest.sourceActorId !== command.actorId ||
-    contest.targetActorId !== command.targetActorId ||
+    contest.targetActorId !== command.target.actorId ||
     contest.optionalCombat.definitionId !== command.optionalCombatIntent?.definitionId ||
     contest.optionalCombat.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum ||
     snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||

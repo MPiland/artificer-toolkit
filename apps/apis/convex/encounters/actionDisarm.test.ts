@@ -230,7 +230,10 @@ describe('room Disarm commands', () => {
       expect(await records(base)).toEqual(after)
       expect(await readRoomTimeline(base.owner.caller, base.campaign.id)).toEqual(timeline)
       await expect(
-        disarmInRoom(base.owner, { ...base.command, targetActorId: base.actor.id })
+        disarmInRoom(base.owner, {
+          ...base.command,
+          target: { kind: 'ACTOR', actorId: base.actor.id }
+        })
       ).rejects.toThrow()
       await expect(
         disarmInRoom(base.owner, { ...base.command, commandId: crypto.randomUUID() })

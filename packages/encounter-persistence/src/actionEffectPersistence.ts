@@ -24,7 +24,7 @@ type EffectCommitInput = {
   state: EncounterRunState
   command: Pick<
     ResolveEncounterActionInputDto,
-    'encounterId' | 'actorId' | 'targetActorId' | 'actionId' | 'commandId'
+    'encounterId' | 'actorId' | 'target' | 'actionId' | 'commandId'
   >
   execution: Pick<CompleteExecution, 'occurrenceId' | 'applicationOutputs'>
   maintainedState: EncounterMaintainedEffectStateRecord | null
@@ -50,7 +50,7 @@ function actionOutputs(input: EffectCommitInput) {
     input.state.id !== command.encounterId ||
     execution.occurrenceId !== outputs.occurrenceId ||
     outputs.sourceActorId !== command.actorId ||
-    outputs.targetActorId !== command.targetActorId
+    outputs.targetActorId !== command.target.actorId
   )
     throw new Error('Completed action effect receipt does not match the command.')
   return outputs
@@ -214,7 +214,7 @@ export async function persistEncounterActionEffects(
   }
 ): Promise<EncounterRunActorState[]> {
   const { state, recurring, outputs } = classifyCreatedEffects(input)
-  const target = input.actors.find((actor) => actor.id === input.command.targetActorId)
+  const target = input.actors.find((actor) => actor.id === input.command.target.actorId)
   if (!target) throw new Error('Completed action effect target is unavailable.')
   if (
     (target.kind === 'CHARACTER' && outputs.kind !== 'CHARACTER_MECHANICS_BATCH') ||

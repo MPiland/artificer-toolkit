@@ -1,7 +1,7 @@
 import { readEncounterActionSceneInputs } from '@artificer-toolkit/encounter-persistence/actionSceneInputs'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneStoredLiveEntitySchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -39,7 +39,7 @@ export function readRoomActionSceneInputs(
   ctx: EncounterReadContext,
   transaction: RoomTransaction,
   state: EncounterRunState,
-  command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>
+  command: ActionSceneRequestDto
 ) {
   return readEncounterActionSceneInputs(ctx, state, command, {
     readScene: async (sceneId) => readRoomScene(transaction, sceneId),

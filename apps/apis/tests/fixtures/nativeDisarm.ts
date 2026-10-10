@@ -277,7 +277,7 @@ export async function nativeDisarmFixture(
       commandId: crypto.randomUUID(),
       expectedVersion: state.version,
       actorId: actor.id,
-      targetActorId: target.id,
+      target: { kind: 'ACTOR', actorId: target.id },
       actionId,
       sceneContext: null,
       optionalCombatIntent: {
@@ -388,7 +388,11 @@ export async function prepareStoredDisarm(
   if (!intent) throw new Error('Optional combat Disarm is unavailable.')
   const definition = requireEncounterDisarmDefinition({
     ...input,
-    command: { ...command, definitionId: intent.definitionId }
+    command: {
+      ...command,
+      targetActorId: command.target.actorId,
+      definitionId: intent.definitionId
+    }
   })
   const tx = encounterTurnReadTransaction(ctx)
   const { campaign } = await requireCampaignAuthority(
@@ -406,7 +410,11 @@ export async function prepareStoredDisarm(
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     overridable: false
   })
-  const sceneContext = await readActionSceneContext(tx, state, command)
+  const sceneContext = await readActionSceneContext(tx, state, {
+    actorId: command.actorId,
+    targetActorId: command.target.actorId,
+    sceneContext: command.sceneContext
+  })
   const selection = readEncounterDisarmSelection({
     actor,
     target,

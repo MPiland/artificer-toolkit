@@ -283,7 +283,7 @@ function actionInput(base: Awaited<ReturnType<typeof recurringFixture>>) {
     commandId: crypto.randomUUID(),
     expectedVersion: base.run.version,
     actorId: base.actor.id,
-    targetActorId: base.target.id,
+    target: { kind: 'ACTOR' as const, actorId: base.target.id },
     actionId: `${base.actor.id}:FEATURE:${recurringFeatureId}:EFFECT:${recurringEffectId}`,
     optionalCombatIntent: null,
     sceneContext: null

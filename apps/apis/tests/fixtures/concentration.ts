@@ -167,7 +167,7 @@ export function concentrationAction(
     commandId,
     expectedVersion,
     actorId: fixture.actor.id,
-    targetActorId: fixture.target.id,
+    target: { kind: 'ACTOR', actorId: fixture.target.id },
     actionId: fixture.actionId,
     optionalCombatIntent: null,
     sceneContext: null

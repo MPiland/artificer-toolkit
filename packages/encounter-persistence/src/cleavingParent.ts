@@ -113,7 +113,7 @@ export async function verifyNativeCleavingParentChain(
     command.actionId !== context.action.actionId ||
     root.ruleOccurrenceId !== parent.occurrence.id ||
     root.ruleResultChecksum !== checksumRuleDocument(parent.payload) ||
-    command.targetActorId !== retained.initialTargetActorId ||
+    command.target.actorId !== retained.initialTargetActorId ||
     context.initialTargetActorId !== retained.initialTargetActorId ||
     checksumRuleDocument(context.originalAttack) !==
       checksumRuleDocument(retained.originalAttack) ||

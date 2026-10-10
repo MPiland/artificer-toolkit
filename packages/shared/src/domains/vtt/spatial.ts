@@ -283,6 +283,43 @@ export function spatialGeometryIntersectsTokenFootprint(input: {
   )
 }
 
+/**
+ * A point-origin area in Scene units. A sphere, circle or cylinder is a radius. A cube's point of
+ * origin is the center of its bottom face (SRD: on one of its faces), so on the flat Scene the cube
+ * is centered on the picked point.
+ */
+export type SpatialPointAreaShape =
+  | { readonly kind: 'RADIUS'; readonly radius: number }
+  | { readonly kind: 'CUBE'; readonly edgeLength: number }
+
+/**
+ * The tokens whose footprint touches a point-origin area, sorted by id. A cylinder's height is not
+ * modeled: the Scene is flat. An invalid shape or token catches nothing (fails closed).
+ */
+export function spatialTokensInsidePointArea(input: {
+  origin: ScenePoint
+  shape: SpatialPointAreaShape
+  tokens: readonly SpatialSceneToken[]
+}): string[] {
+  const { origin, shape } = input
+  const geometry: SpatialGeometry =
+    shape.kind === 'RADIUS'
+      ? { kind: 'CIRCLE', center: origin, radius: shape.radius }
+      : {
+          kind: 'POLYGON',
+          points: [
+            { x: origin.x - shape.edgeLength / 2, y: origin.y - shape.edgeLength / 2 },
+            { x: origin.x + shape.edgeLength / 2, y: origin.y - shape.edgeLength / 2 },
+            { x: origin.x + shape.edgeLength / 2, y: origin.y + shape.edgeLength / 2 },
+            { x: origin.x - shape.edgeLength / 2, y: origin.y + shape.edgeLength / 2 }
+          ]
+        }
+  return input.tokens
+    .filter((token) => spatialGeometryIntersectsTokenFootprint({ geometry, token }))
+    .map((token) => token.id)
+    .sort()
+}
+
 function interpolate(from: ScenePoint, to: ScenePoint, progress: number): ScenePoint {
   return {
     x: from.x + (to.x - from.x) * progress,

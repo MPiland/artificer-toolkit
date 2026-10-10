@@ -31,7 +31,7 @@ function normalizeRoot(command: ResolveEncounterActionInputDto): ResolveEncounte
     encounterId: command.encounterId.toLowerCase(),
     commandId: command.commandId.toLowerCase(),
     actorId: command.actorId.toLowerCase(),
-    targetActorId: command.targetActorId.toLowerCase(),
+    target: { ...command.target, actorId: command.target.actorId.toLowerCase() },
     sceneContext: command.sceneContext
       ? {
           ...command.sceneContext,
@@ -202,7 +202,7 @@ export async function readDisarmAdmission(
   if (!response) {
     const [actor, target] = await Promise.all([
       readRunActor(ctx, state, root.actorId),
-      readRunActor(ctx, state, root.targetActorId)
+      readRunActor(ctx, state, root.target.actorId)
     ])
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')

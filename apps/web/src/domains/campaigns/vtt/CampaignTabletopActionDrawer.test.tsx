@@ -167,7 +167,7 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
     const [first, second] = onResolve.mock.calls.map(([command]) => command)
     expect(second).toMatchObject({
       actionId: first!.actionId,
-      targetActorId: first!.targetActorId,
+      target: first!.target,
       acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE', 'TARGET_OUT_OF_RANGE']
     })
     expect(second!.commandId).not.toBe(first!.commandId)
@@ -423,7 +423,10 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Resolve action' }))
     expect(onResolve).toHaveBeenCalledWith(
-      expect.objectContaining({ actionId: actions[0]!.id, targetActorId: target.id })
+      expect.objectContaining({
+        actionId: actions[0]!.id,
+        target: { kind: 'ACTOR', actorId: target.id }
+      })
     )
   })
 
@@ -446,7 +449,7 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
     expect(onResolve).toHaveBeenCalledTimes(2)
     expect(onResolve.mock.calls[1]![0]).toMatchObject({
       actionId: onResolve.mock.calls[0]![0].actionId,
-      targetActorId: onResolve.mock.calls[0]![0].targetActorId
+      target: onResolve.mock.calls[0]![0].target
     })
   })
 

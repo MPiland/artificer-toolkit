@@ -5,6 +5,7 @@ import {
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
   type SpatialEffectInstance,
+  spatialTokensInsidePointArea,
   type SpatialSceneToken,
   VTT_SPATIAL_LIMITS
 } from '../domains/vtt/spatial.js'
@@ -511,6 +512,42 @@ describe('token footprint path crossings', () => {
           { x: 5, y: 0 }
         ],
         stationaryTokens: [lowerId]
+      })
+    ).toEqual([])
+  })
+})
+
+describe('spatialTokensInsidePointArea', () => {
+  const near = token('00000000-0000-4000-8000-0000000000a1', 10)
+  const edge = token('00000000-0000-4000-8000-0000000000a2', 21)
+  const far = token('00000000-0000-4000-8000-0000000000a3', 40)
+
+  it('catches every footprint touching a radius area, sorted by id', () => {
+    expect(
+      spatialTokensInsidePointArea({
+        origin: { x: 0, y: 0 },
+        shape: { kind: 'RADIUS', radius: 20 },
+        tokens: [far, edge, near]
+      })
+    ).toEqual([near.id, edge.id])
+  })
+
+  it('centers a cube on the point', () => {
+    expect(
+      spatialTokensInsidePointArea({
+        origin: { x: 0, y: 0 },
+        shape: { kind: 'CUBE', edgeLength: 20 },
+        tokens: [near, edge, far]
+      })
+    ).toEqual([near.id])
+  })
+
+  it('catches nothing for an invalid shape', () => {
+    expect(
+      spatialTokensInsidePointArea({
+        origin: { x: 0, y: 0 },
+        shape: { kind: 'RADIUS', radius: -1 },
+        tokens: [near]
       })
     ).toEqual([])
   })

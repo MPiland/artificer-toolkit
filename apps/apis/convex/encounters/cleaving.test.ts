@@ -548,7 +548,7 @@ async function setup(
       commandId: crypto.randomUUID(),
       expectedVersion: run.version + 1,
       actorId: actor.id,
-      targetActorId: run.actors[1]!.id,
+      target: { kind: 'ACTOR', actorId: run.actors[1]!.id },
       actionId,
       optionalCombatIntent: null,
       sceneContext: {

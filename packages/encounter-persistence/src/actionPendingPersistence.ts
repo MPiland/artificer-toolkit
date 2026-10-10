@@ -1,5 +1,5 @@
 import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
@@ -26,7 +26,7 @@ export async function persistEncounterActionPending(
     ): ReturnType<typeof readEncounterMaintenanceCapture>
     readActionSceneInputs(
       state: EncounterRunState,
-      input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>,
+      input: ActionSceneRequestDto,
       role: 'OWNER' | 'MEMBER'
     ): Promise<Extract<LiveSessionEncounterRulesResponse, { kind: 'ACTION_SCENE' }>['context']>
     validateReadFence(
@@ -55,7 +55,7 @@ export async function persistEncounterActionPending(
     snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
     (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
-      snapshot.applicationContext.rollerActorId !== admission.input.targetActorId) ||
+      snapshot.applicationContext.rollerActorId !== admission.input.target.actorId) ||
     snapshot.applicationContext.commandFingerprint !== fingerprint ||
     checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
@@ -70,7 +70,7 @@ export async function persistEncounterActionPending(
   )
     throw new Error('Live Session pending action root mismatch.')
   const actors = await readRunActors(ctx, state)
-  if (!actors.some((actor) => actor.id === admission.input.targetActorId))
+  if (!actors.some((actor) => actor.id === admission.input.target.actorId))
     throw new Error('Encounter action target was not found.')
   const characterIds = new Set(
     actors.flatMap((actor) => {
@@ -89,7 +89,11 @@ export async function persistEncounterActionPending(
   }
   await callbacks.readActionSceneInputs(
     state,
-    admission.input,
+    {
+      actorId: admission.input.actorId,
+      targetActorId: admission.input.target.actorId,
+      sceneContext: admission.input.sceneContext
+    },
     membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
   )
   await callbacks.validateReadFence(state, [...characterIds], input.revisions)

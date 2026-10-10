@@ -123,7 +123,7 @@ function command(input: {
     commandId: input.commandId ?? crypto.randomUUID(),
     expectedVersion: input.expectedVersion,
     actorId: input.actorId,
-    targetActorId: input.targetActorId,
+    target: { kind: 'ACTOR', actorId: input.targetActorId },
     actionId: input.actionId,
     optionalCombatIntent: null,
     sceneContext: null

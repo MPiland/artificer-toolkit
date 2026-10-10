@@ -1,5 +1,5 @@
 import type { LiveSessionEncounterCleavingCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterCleaving'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
@@ -50,7 +50,7 @@ export async function persistEncounterCleavingResponse(
     ): ReturnType<typeof readEncounterMaintenanceCapture>
     readActionSceneInputs(
       state: EncounterRunState,
-      input: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>,
+      input: ActionSceneRequestDto,
       role: 'OWNER' | 'MEMBER'
     ): Promise<Extract<LiveSessionEncounterRulesResponse, { kind: 'ACTION_SCENE' }>['context']>
     validateReadFence(

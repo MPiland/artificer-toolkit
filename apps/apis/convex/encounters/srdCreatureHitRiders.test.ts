@@ -153,7 +153,7 @@ async function setup(input: {
       commandId: crypto.randomUUID(),
       expectedVersion: run.version,
       actorId: actor.id,
-      targetActorId: target.id,
+      target: { kind: 'ACTOR' as const, actorId: target.id },
       actionId,
       optionalCombatIntent: null,
       sceneContext: null
@@ -327,14 +327,14 @@ describe('seeded SRD Creature hit riders in the room', () => {
     const pending = await executeInRoom(base.owner.caller, { command: base.command })
     expect(pending.occurrence).toMatchObject({
       status: 'PENDING',
-      pending: { kind: 'D20_EVIDENCE', rollerActorId: base.command.targetActorId }
+      pending: { kind: 'D20_EVIDENCE', rollerActorId: base.command.target.actorId }
     })
     const session = await readRoomEncounterSession(base.player.caller, base.campaign.id, {
       timeline: false
     })
     expect(session.held ? session.state.pending : null).toMatchObject({
       kind: 'D20_EVIDENCE',
-      rollerActorId: base.command.targetActorId
+      rollerActorId: base.command.target.actorId
     })
     // A natural 20 saves against DC 11; the poison dice roll 2 and 2, halved to 2.
     await rollFaces(base, [1, 1])

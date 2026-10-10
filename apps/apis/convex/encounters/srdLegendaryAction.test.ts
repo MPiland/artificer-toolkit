@@ -306,7 +306,7 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
             commandId: crypto.randomUUID(),
             expectedVersion: current.projection.version,
             actorId: base.dragonActor.id,
-            targetActorId: base.characterActor.id,
+            target: { kind: 'ACTOR', actorId: base.characterActor.id },
             actionId: legendaryActionId,
             optionalCombatIntent: null,
             sceneContext: null

@@ -19,7 +19,7 @@ import type { EncounterWieldConflictAcceptance } from '@artificer-toolkit/rules-
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { CharacterTurnFacts } from '@artificer-toolkit/rules-runtime/character/turnFacts'
 import type { GetEncounterOptionalActionChoicesInputDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
@@ -46,7 +46,7 @@ type ActionEconomyInput<TFacts extends CharacterTurnFacts> = {
 export async function readActionSceneContext(
   tx: EncounterTurnReadTransaction,
   state: EncounterRunState,
-  command: Pick<ResolveEncounterActionInputDto, 'actorId' | 'targetActorId' | 'sceneContext'>
+  command: ActionSceneRequestDto
 ) {
   const inputs = await readEncounterActionSceneInputs(tx, state, command, tx.ports.sceneReaders)
   if (!inputs) return null

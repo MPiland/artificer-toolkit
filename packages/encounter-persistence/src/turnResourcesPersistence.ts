@@ -284,7 +284,7 @@ export async function persistEncounterTurnResources(
       command: {
         encounterId: state.id,
         actorId: ownerId,
-        targetActorId,
+        target: { kind: 'ACTOR', actorId: targetActorId },
         actionId: option.actionId,
         commandId: root.rootCommandId
       },

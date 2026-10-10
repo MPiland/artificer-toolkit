@@ -157,7 +157,7 @@ export async function verifyEncounterActionTransactions({
       commandId,
       expectedVersion: fixture.run.version,
       actorId: fixture.source.id,
-      targetActorId: fixture.target.id,
+      target: { kind: 'ACTOR', actorId: fixture.target.id },
       actionId: fixture.actionId,
       optionalCombatIntent: null,
       sceneContext: null
@@ -235,7 +235,7 @@ export async function verifyEncounterActionTransactions({
       commandId: winnerCommand.commandId,
       expectedVersion: winnerCommand.expectedVersion,
       actorId: winnerCommand.actorId,
-      targetActorId: contentionFixture.source.id,
+      target: { kind: 'ACTOR', actorId: contentionFixture.source.id },
       actionId: winnerCommand.actionId,
       optionalCombatIntent: winnerCommand.optionalCombatIntent,
       sceneContext: winnerCommand.sceneContext

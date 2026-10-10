@@ -97,7 +97,7 @@ export async function persistLiveMovementReaction(
   const command = {
     encounterId: state.id,
     actorId: source.id,
-    targetActorId: target.id,
+    target: { kind: 'ACTOR' as const, actorId: target.id },
     actionId: receipt.option.actionId,
     commandId: input.sourceCommandId
   }

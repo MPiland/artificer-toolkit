@@ -39,7 +39,7 @@ function useAntitoxin(
     acknowledgedWarnings: [RANGE, ...acknowledgedWarnings],
     expectedVersion: from.projection.version,
     actorId: allyOf(fixture).id,
-    targetActorId: fixture.enemy.id,
+    target: { kind: 'ACTOR', actorId: fixture.enemy.id },
     actionId,
     optionalCombatIntent: null,
     sceneContext: null
@@ -55,7 +55,7 @@ function heroPoisons(fixture: Fixture, from: CommandResult) {
     acknowledgedWarnings: [],
     expectedVersion: from.projection.version,
     actorId: fixture.hero.id,
-    targetActorId: fixture.enemy.id,
+    target: { kind: 'ACTOR', actorId: fixture.enemy.id },
     actionId: fixture.actionIds.hero,
     optionalCombatIntent: null,
     sceneContext: null

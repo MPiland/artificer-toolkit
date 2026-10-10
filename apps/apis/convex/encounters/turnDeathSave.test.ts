@@ -273,7 +273,7 @@ function useKit(
     acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED', ...acknowledgedWarnings],
     expectedVersion,
     actorId: ally.id,
-    targetActorId: fixture.hero.id,
+    target: { kind: 'ACTOR', actorId: fixture.hero.id },
     actionId,
     optionalCombatIntent: null,
     sceneContext: null

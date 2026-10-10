@@ -176,7 +176,7 @@ export async function verifyEncounterLifecycle({
         type: 'RESOLVE_ACTION',
         actorId: first.id,
         actionId: 'any-action',
-        targetActorId: second.id,
+        target: { kind: 'ACTOR', actorId: second.id },
         acceptedWieldConflict: null,
         acknowledgedWarnings: [],
         sceneContext: null

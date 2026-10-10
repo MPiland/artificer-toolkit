@@ -113,7 +113,7 @@ describe('Encounter reads of live Character state', () => {
             acknowledgedWarnings: [],
             expectedVersion,
             actorId: fixture.enemy.id,
-            targetActorId: fixture.hero.id,
+            target: { kind: 'ACTOR', actorId: fixture.hero.id },
             actionId: fixture.actionIds.enemy,
             optionalCombatIntent: null,
             sceneContext: null
@@ -133,7 +133,7 @@ describe('Encounter reads of live Character state', () => {
             acknowledgedWarnings: [],
             expectedVersion,
             actorId: fixture.hero.id,
-            targetActorId: fixture.enemy.id,
+            target: { kind: 'ACTOR', actorId: fixture.enemy.id },
             actionId: fixture.actionIds.hero,
             optionalCombatIntent: null,
             sceneContext: null

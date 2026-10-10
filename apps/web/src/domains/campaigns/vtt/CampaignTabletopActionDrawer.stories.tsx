@@ -240,7 +240,7 @@ export const ResolveTargetedAction: Story = {
         type: 'RESOLVE_ACTION',
         actorId: sourceActor.id,
         actionId: 'equipment-staff:attack',
-        targetActorId: targetActor.id,
+        target: { kind: 'ACTOR', actorId: targetActor.id },
         acceptedWieldConflict: null,
         sceneContext: {
           sceneId: tabletopLiveScene.id,
@@ -351,7 +351,7 @@ export const CreatureSource: Story = {
     await expect(resolveAction).toHaveBeenCalledWith(
       expect.objectContaining({
         actorId: targetActor.id,
-        targetActorId: sourceActor.id,
+        target: { kind: 'ACTOR', actorId: sourceActor.id },
         actionId: 'creature-claw',
         optionalCombatIntent: null
       })
@@ -550,7 +550,10 @@ export const SecondAttackPreselected: Story = {
     await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
     await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))
     await expect(resolveAction).toHaveBeenCalledWith(
-      expect.objectContaining({ actionId: actions[0].id, targetActorId: targetActor.id })
+      expect.objectContaining({
+        actionId: actions[0].id,
+        target: { kind: 'ACTOR', actorId: targetActor.id }
+      })
     )
   }
 }

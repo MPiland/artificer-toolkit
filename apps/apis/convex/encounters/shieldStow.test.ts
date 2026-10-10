@@ -188,7 +188,7 @@ async function setup({ weapon = greatsword, shieldEquipped = true, weaponEquippe
     commandId: crypto.randomUUID(),
     expectedVersion: prepared.state.version,
     actorId: actor.id,
-    targetActorId: target.id,
+    target: { kind: 'ACTOR', actorId: target.id },
     actionId,
     optionalCombatIntent: null,
     sceneContext: null,

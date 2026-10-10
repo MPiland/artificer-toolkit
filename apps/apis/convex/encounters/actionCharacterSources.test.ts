@@ -87,7 +87,7 @@ function input(
     commandId,
     expectedVersion,
     actorId: fixture.actor.id,
-    targetActorId,
+    target: { kind: 'ACTOR', actorId: targetActorId },
     actionId: fixture.actionId,
     optionalCombatIntent: null,
     sceneContext: null
