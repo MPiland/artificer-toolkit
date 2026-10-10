@@ -145,6 +145,7 @@
 | `bb994e79c`              | Saves can be answered in any order, each by its creature's own roller. A creature that has already rolled cannot be removed.                                                                                                                                            |
 | `8e083e252`              | Legendary Resistance on area saves: a failed Creature save opens a sealed per-target offer (`encounterAreaLegendaryResistance.ts`; shared helpers moved to `encounterLegendaryResistanceChoice.ts`, one pin schema). Answered by `AREA_LEGENDARY_RESISTANCE {actorId, decision}` from the GM or the creature's controller, in any order; the caster never sees it. Area saves honor each roller's auto-roll. SYSTEM_ROLL admits an area save by requestId. |
 | `3c7b046f0`              | 5d: the last save answer or LR decision (or open, when all auto-roll) commits the area in one transaction: a root `AGGREGATE_CHOICE_COMPLETE` (output `ENCOUNTER_AREA_ACTION`) holding the source spend once, plus one child batch per kept target (`ENCOUNTER_ACTOR_MECHANICS_BATCH` or `CHARACTER_MECHANICS_BATCH`) under `encounterAreaTargetOccurrenceId`. LR charge sits on the child. Undo reverts children in reverse, then the root. `refuseAreaEffectOutcomes` refuses conditions, lasting/recurring effects and maintenance (SPELLS-19). The LR terminal binding also accepts a phased result's TEST phase. Action receipts never spend a spell slot yet (SPELLS-8.1 note). |
+| `a5e97b3d1`, `977392a4b` | 5d-ii: last-creature removal and zero-kept areas commit (spend only). 5e: the caster's D100 perception of each caught creature is sealed at open (`perceivedByCaster`; UNKNOWN counts as perceived). `AREA_SAVES.caught` is labels only: all for the GM, perceived ones for the caster's controller, none for others; `caughtChecksum` and a hidden caster's id are GM-only. Timeline visibility gains `ISSUER`: the stored RESOLVE_ACTION carries `issuerLines` (perceived outcomes; an unperceived failure as an unnamed line; a used LR counts as success) and `gmLines` (GM removals), enforced in `readEncounterTimelinePage`. |
 
 **Rulings already made:**
 
@@ -168,8 +169,8 @@
 
 1. 5c-ii and 5d are done (rows above).
 2. **5d-ii** done (`a5e97b3d1`): last-creature removal commits the area; spend-only areas commit; LR binding tightened; commit-time refusal and Character-caster tests added.
-3. **5e** Per-role projection tests at the projection seam, including the GM-only "GM removed X from the area" history line (5d recorded only `removedActorIds` on the root).
-4. **5f** A seeded Character wizard: the save DC comes from the spell save DC, and a 4th-level slot rolls 9d6.
+3. **5e** done (`977392a4b`). The web UI does not render `caught`, `issuerLines` or `gmLines` yet (web round). 5h must document the `ISSUER` timeline audience in `docs/architecture/live-sessions.md` and D103.
+4. **5f** moved to SPELLS-8.4: no Character spell reaches `RESOLVE_ACTION` yet (see its ledger note). SPELLS-7 proves areas with Creature casters.
 5. **5g** The Fireball room journey in `apps/session-worker/test/`: the caster, an ally the GM removes, saves answered out of order, an unperceived creature, then undo.
 6. **5h**
    - Record D103 in `phase-08-2-decisions.md`, covering:

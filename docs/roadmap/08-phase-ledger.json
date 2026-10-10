@@ -5236,6 +5236,14 @@
               "origin": [],
               "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions. Aid's maximum hit point bonus scales with the slot level (SPELL_SLOT_LEVEL); modifierGrantPlan leaves slot-scaled grants manual until casting resolves the amount. Heroism's per-turn temporary hit point entry is not linked to Concentration yet: link it once one cast carries both Heroism entries under one maintenance policy (prepareEncounterActionMaintenance refuses two).",
               "id": "SPELLS-8.3"
+            },
+            {
+              "text": "A Character wizard casts SRD Fireball at a point in the room: each caught creature saves against the wizard's spell save DC, a 3rd-level cast rolls 8d6 and a 4th-level cast 9d6, once for the whole area, and the slot is spent and restored by GM undo.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Moved 2026-10-10 from SPELLS-7 slice 5f, which found no Character spell reaches RESOLVE_ACTION: buildCharacterActionRuleFacts (packages/rules-runtime/src/character/characterActionRuleFacts.ts) has no spell branch and encounterActionChoices.ts has no spell kind. spellCastCandidates (one per castLevel) already feed the Sheet and initiative declarations, and characterActionMechanics.ts resolves SPELL_CAST_LEVEL rows and SOURCE_SAVE_DC from a candidate. Suggested shape: one CHARACTER_SPELL_CAST action choice per candidateId, so no cast-level command field. The session-worker Character fixture is a level-1 Fighter; a Wizard fixture is needed. Depends on SPELLS-8.1.",
+              "id": "SPELLS-8.4"
             }
           ]
         },
