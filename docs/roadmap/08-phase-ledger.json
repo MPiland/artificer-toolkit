@@ -5173,27 +5173,35 @@
         },
         {
           "id": "SPELLS-7",
-          "title": "Area and multi-target actions",
+          "title": "Area actions from a point (Fireball)",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
-              "text": "Multi-target RESOLVE_ACTION, templates, per-target saves, cover and breath/area Legendary options work.",
+              "text": "The caster picks a point on the map for a point-origin area (sphere, cube, circle, cylinder); every creature inside it is caught, allies and the caster included; the caster and the GM see the list before it resolves, and only the GM can remove a creature from it. A point beyond range or out of sight is an overridable warning.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 4.",
+              "note": "rul-9-rules-audit.md slice 4, split 2026-10-10 into SPELLS-7 (point areas), SPELLS-13 (cones and lines), SPELLS-14 (cover), SPELLS-15 (area Legendary options), SPELLS-16 (caster spares creatures) and SPELLS-17 (placed zones, was 7.2 Caltrops). User ruling 2026-10-10: the app picks everyone in the area and the GM can adjust; a feature such as the Evocation wizard's Sculpt Spells lets the caster choose (SPELLS-16). The room computes the set, stores it with a currentness checksum and refuses if a token moved; the command carries a discriminated target (ACTOR or POINT), with no targetActorId alias.",
               "id": "SPELLS-7.1"
             },
             {
-              "text": "Caltrops apply their area speed penalty, which ends when the creature regains hit points.",
+              "text": "Every caught creature's save is asked at once, each by the creature's own roller; damage is rolled once and applies in full on a failed save and halved on a success, per target with its own defenses; the action commits once when the last save is in, and GM undo reverts every target.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered from SPELLS-5 refinement (D99): an area APPLY_GRANT.",
+              "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5).",
               "id": "SPELLS-7.2"
+            },
+            {
+              "text": "A caught creature the caster cannot perceive appears in the caster's results only if it fails its save; otherwise the caster sees nothing about it. Its own roller gets the save prompt as usual, and the GM sees everything.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User ruling 2026-10-10 (no metagaming, like ATTACK-10.1 and ATTACK-17.3). A failed save shows the creature in the results; revealing its token on the map stays the GM's call.",
+              "id": "SPELLS-7.3"
             }
           ]
         },
@@ -5405,6 +5413,104 @@
               "origin": [],
               "note": "Registered with SPELLS-12.1. The conditional effect is an ordinary modifier (damage vulnerability) gated by the held-Concentration-count predicate, evaluated where modifiers are read, not a timed grant. Journey: a Character with the authored ring holds Bless and Fly, takes damage, rolls two saves in order, loses one spell and keeps the other.",
               "id": "SPELLS-12.3"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-13",
+          "title": "Cone and line areas",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "The caster picks an origin and a direction for a cone or line area (Burning Hands, Lightning Bolt, a dragon's breath), and it catches and resolves every creature inside it as SPELLS-7 does.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor.",
+              "id": "SPELLS-13.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-14",
+          "title": "Cover",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "With the Campaign's automatic-cover setting on, the app works out half, three-quarters or total cover from the Scene's walls and creatures for attacks and area saves, shows it as a labelled bonus (+2 or +5; total cover blocks), and the GM can change the tier.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Split from SPELLS-7 on 2026-10-10. User ruling 2026-10-10: automatic, with the GM able to change it, and the automation is a setting. The setting's default is an open question. Depends on SPELLS-7 for saves; findSquareGridCreatureCoverIntervenors is test-only today, so extend it or delete it.",
+              "id": "SPELLS-14.1"
+            },
+            {
+              "text": "With the automatic-cover setting off, the GM sets a target's cover tier when it matters, and it applies the same bonus.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered with SPELLS-14.1.",
+              "id": "SPELLS-14.2"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-15",
+          "title": "Area Legendary options",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A Creature's breath and other area Legendary options are offered in the Legendary window and resolve through the area executor.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Split from SPELLS-7 on 2026-10-10. D51 deferred area options to area targeting. Depends on SPELLS-7 and SPELLS-13.",
+              "id": "SPELLS-15.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-16",
+          "title": "The caster spares creatures in an area",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An authorable effect (the Evocation wizard's Sculpt Spells) lets the caster choose up to a number of caught creatures, which automatically succeed on the save and take no damage on a success.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-10 from the user's SPELLS-7 ruling: things like the Evocation subclass let the wizard choose. Depends on SPELLS-7.",
+              "id": "SPELLS-16.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-17",
+          "title": "Placed zones (Caltrops)",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Spreading Caltrops places a field on the map; a creature that enters it makes a DC 15 Dexterity save, and on a failure its movement stops, it takes 1 piercing damage, and its speed drops by 10 feet until it regains hit points.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. How the table declares moving at half speed to avoid it is an open question.",
+              "id": "SPELLS-17.1"
             }
           ]
         }
