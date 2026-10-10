@@ -143,7 +143,8 @@
 | `e4af44327`              | A POINT `RESOLVE_ACTION` opens one pending `ENCOUNTER_AREA_ACTION` with a sealed save per caught creature (`AREA_SAVES` summary, caught checksum, `ACTION_AREA_SCENE` capture).                                                                                         |
 | `38125d04b`              | GM-only `REMOVE_AREA_TARGET`. It records no Run command and does not bump the Run version. A replay is answered from the current state, after the stale-version check. `removedActorIds` is kept on the occurrence.                                                     |
 | `bb994e79c`              | Saves can be answered in any order, each by its creature's own roller. A creature that has already rolled cannot be removed.                                                                                                                                            |
-| 5c-ii (this commit)      | Legendary Resistance on area saves: a failed Creature save opens a sealed per-target offer (`encounterAreaLegendaryResistance.ts`; shared helpers moved to `encounterLegendaryResistanceChoice.ts`, one pin schema). Answered by `AREA_LEGENDARY_RESISTANCE {actorId, decision}` from the GM or the creature's controller, in any order; the caster never sees it. Area saves honor each roller's auto-roll. SYSTEM_ROLL admits an area save by requestId. |
+| `8e083e252`              | Legendary Resistance on area saves: a failed Creature save opens a sealed per-target offer (`encounterAreaLegendaryResistance.ts`; shared helpers moved to `encounterLegendaryResistanceChoice.ts`, one pin schema). Answered by `AREA_LEGENDARY_RESISTANCE {actorId, decision}` from the GM or the creature's controller, in any order; the caster never sees it. Area saves honor each roller's auto-roll. SYSTEM_ROLL admits an area save by requestId. |
+| `3c7b046f0`              | 5d: the last save answer or LR decision (or open, when all auto-roll) commits the area in one transaction: a root `AGGREGATE_CHOICE_COMPLETE` (output `ENCOUNTER_AREA_ACTION`) holding the source spend once, plus one child batch per kept target (`ENCOUNTER_ACTOR_MECHANICS_BATCH` or `CHARACTER_MECHANICS_BATCH`) under `encounterAreaTargetOccurrenceId`. LR charge sits on the child. Undo reverts children in reverse, then the root. `refuseAreaEffectOutcomes` refuses conditions, lasting/recurring effects and maintenance (SPELLS-19). The LR terminal binding also accepts a phased result's TEST phase. Action receipts never spend a spell slot yet (SPELLS-8.1 note). |
 
 **Rulings already made:**
 
@@ -161,19 +162,13 @@
   - Sort the target ids in the Attack-action checksum.
   - The last save answered settles in the same way a single-target save settles today. Read that path and match it; the expectation is an automatic commit.
 
-**Known gap in the committed tree:** once the last unanswered save is answered, the GM projection throws "Stored Encounter area action has no pending save". 5d closes this.
+**Known gaps in the committed tree (5d-ii closes them):** removing the last creature the area waits on is refused instead of committing; an area that keeps no creature is refused instead of committing its spend; the commit-time effect refusal and a Character caster's spend are untested; the LR binding accepts either shape instead of discriminating. 5d wrote no GM-only removal history line (no mechanism exists); 5e owns it.
 
 **Next, in order (one agent, report after each green slice):**
 
-1. 5c-ii is done (row above).
-2. **5d commit.** First red test: the last save or Legendary Resistance decision answered commits the area (ruling: an automatic commit). The AREA_SAVES summary refinement (at least one save or choice) stays; a settle-ready summary must never exist. Spend each USE's charge from the decision's `chargeProposal`, and feed `encounterAreaLegendaryResistanceAudits` into `settleEncounterAreaAction`.
-   - Settle re-derives each target by resuming from `testedJson`. Each target's kernel id is `encounterAreaTargetOccurrenceId(areaOccurrenceId, actorId)`.
-   - The commit-side caught-set check excludes `removedActorIds`.
-   - Commit in one transaction with one undo, spending resources and items once.
-   - Each damaged target gets one card and one Concentration check.
-   - An area that catches nothing still commits.
-   - Write the GM-only history line.
-3. **5e** Per-role projection tests at the projection seam.
+1. 5c-ii and 5d are done (rows above).
+2. **5d-ii** (agent running): GM removal of the last-waiting creature commits the area; an area that keeps no creature commits its spend with no children and no damage card, and undo restores it; LR binding discriminates by shape; tests for the commit-time effect refusal and a Character caster's spend.
+3. **5e** Per-role projection tests at the projection seam, including the GM-only "GM removed X from the area" history line (5d recorded only `removedActorIds` on the root).
 4. **5f** A seeded Character wizard: the save DC comes from the spell save DC, and a 4th-level slot rolls 9d6.
 5. **5g** The Fireball room journey in `apps/session-worker/test/`: the caster, an ally the GM removes, saves answered out of order, an unperceived creature, then undo.
 6. **5h**

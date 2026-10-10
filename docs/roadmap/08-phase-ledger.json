@@ -5218,7 +5218,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 5 (depends on area actions).",
+              "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots.",
               "id": "SPELLS-8.1"
             },
             {
@@ -5537,6 +5537,24 @@
               "origin": [],
               "note": "Found 2026-10-10 while scoping SPELLS-7 slice 5c-ii: the room throws 'The action requires a Legendary Resistance decision.' (apps/session-worker/src/nativeEncounterRules.ts afterTest), and no PBI tracked it. Same ruling as area saves (per target, interstitial, offered to the creature's controller, as on movement); reuse the Legendary Resistance choice helpers 5c-ii shares with movement. Build right after SPELLS-7.",
               "id": "SPELLS-18.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-19",
+          "title": "Area actions that leave conditions or lasting effects",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "A point-area action whose per-creature outcome applies a condition, a lasting or recurring effect, a relationship condition, or a maintained (Concentration) effect commits that outcome on each caught creature it selects, and GM undo removes it from every one.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
+              "id": "SPELLS-19.1"
             }
           ]
         }
