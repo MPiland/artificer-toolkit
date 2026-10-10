@@ -10,7 +10,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { requireAreaActionPendingRoot } from './actionAreaPending.js'
+import { requireAreaActionAnswer, requireAreaActionPendingRoot } from './actionAreaPending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
@@ -80,18 +80,27 @@ export async function persistEncounterActionPending(
     | Extract<typeof snapshot, { snapshotKind: 'KERNEL_EVIDENCE' }>['applicationContext']
     | null = null
   if (target.kind === 'POINT') {
-    if (resume || input.command.optionalCombatIntent != null)
+    if (input.command.optionalCombatIntent != null)
       throw new Error('Live Session pending action root mismatch.')
-    await requireAreaActionPendingRoot(
-      {
-        snapshot,
-        command: { ...admission.input, target },
-        fingerprint,
-        initiatorUserId,
-        state
-      },
-      callbacks.readAreaSceneInputs
-    )
+    if (resume) {
+      // An area save answer stores the same area with that one save marked answered.
+      if (!resume.area) throw new Error('Live Session pending area answer mismatch.')
+      requireAreaActionAnswer({
+        stored: resume.area.snapshot,
+        next: snapshot,
+        requestId: resume.pending.snapshot.request.requestId
+      })
+    } else
+      await requireAreaActionPendingRoot(
+        {
+          snapshot,
+          command: { ...admission.input, target },
+          fingerprint,
+          initiatorUserId,
+          state
+        },
+        callbacks.readAreaSceneInputs
+      )
   } else {
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
@@ -166,7 +175,10 @@ export async function persistEncounterActionPending(
         status: 'PAUSED',
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
-        request: requireServerKernelRuleExecutionPendingSnapshot(snapshot).request,
+        // An area answer's receipt names the request it answered; the area keeps no single next one.
+        request: resume.area
+          ? resume.pending.snapshot.request
+          : requireServerKernelRuleExecutionPendingSnapshot(snapshot).request,
         ...(evidence?.d20Policy
           ? {
               pending: {

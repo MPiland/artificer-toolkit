@@ -8,8 +8,12 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readNativeEncounterActionAdmission } from './actionAdmission.js'
-import { canAnswerNativeActionEvidence, readNativeActionPending } from './actionPending.js'
-import { areaActionPendingContext } from './actionAreaPending.js'
+import {
+  canAnswerNativeActionEvidence,
+  canControlEvidenceRoller,
+  readNativeActionPending
+} from './actionPending.js'
+import { areaActionPendingContext, readNativeAreaActionPending } from './actionAreaPending.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
@@ -50,10 +54,24 @@ export async function readNativeEncounterActionResponseAdmission(
     return null
   if (occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
     throw new Error('The action occurrence scope is invalid.')
-  if (snapshot && areaActionPendingContext(snapshot))
-    throw new Error('Area save answers are not available yet.')
-  const pending =
-    occurrence.state === 'PENDING' ? await readNativeActionPending(ctx, occurrence) : null
+  // An area answer resumes the one creature's save whose request it names, under the area's root.
+  const area =
+    snapshot && occurrence.state === 'PENDING' && areaActionPendingContext(snapshot)
+      ? await readNativeAreaActionPending(ctx, occurrence)
+      : null
+  const areaSave = area
+    ? area.targets.find(
+        (target) =>
+          'requestId' in response.resolution &&
+          target.snapshot.request.requestId === response.resolution.requestId
+      )
+    : null
+  if (area && !areaSave) rejectDomain('DECISION_NOT_PENDING')
+  const pending = areaSave
+    ? { command: area!.command, context: areaSave.context, snapshot: areaSave.snapshot }
+    : occurrence.state === 'PENDING'
+      ? await readNativeActionPending(ctx, occurrence)
+      : null
   let parsed = pending?.command
   if (!parsed) {
     if (rootReceipt?.commandType !== 'RESOLVE_ACTION')
@@ -68,7 +86,14 @@ export async function readNativeEncounterActionResponseAdmission(
   const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
   if (
     pending &&
-    !(await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence }))
+    !(areaSave
+      ? await canControlEvidenceRoller(ctx, {
+          run,
+          campaign,
+          membership,
+          rollerActorId: areaSave.actorId
+        })
+      : await canAnswerNativeActionEvidence(ctx, { run, campaign, membership, occurrence }))
   )
     rejectDomain('NOT_ACTOR_CONTROLLER')
   const fingerprint = checksumCanonicalJson(response)
@@ -135,6 +160,7 @@ export async function readNativeEncounterActionResponseAdmission(
     occurrence.expectedEncounterVersion !== run.version
   )
     rejectDomain('VERSION_STALE', 'The action occurrence version is stale.')
+  if (areaSave?.testedJson !== undefined) rejectDomain('DECISION_NOT_PENDING')
   if (response.commandId === parsed.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const used = await ctx.db
     .query('encounterRunCommands')
@@ -164,5 +190,13 @@ export async function readNativeEncounterActionResponseAdmission(
   })
   if (admission.kind !== 'READY')
     rejectDomain('VERSION_STALE', 'The action occurrence is no longer pending.')
-  return { kind: 'READY' as const, admission, occurrence, pending, resolution, appRoll }
+  return {
+    kind: 'READY' as const,
+    admission,
+    occurrence,
+    pending,
+    area: area ? { snapshot: area.snapshot, actorId: areaSave!.actorId } : null,
+    resolution,
+    appRoll
+  }
 }

@@ -63,7 +63,21 @@ export async function canAnswerNativeActionEvidence(
 ): Promise<boolean> {
   if (input.membership.role === 'OWNER') return true
   const { context } = await readNativeActionPending(ctx, input.occurrence)
-  const actor = await readRunActor(ctx, readRunState(input.run), context.rollerActorId)
+  return canControlEvidenceRoller(ctx, { ...input, rollerActorId: context.rollerActorId })
+}
+
+/** Whether the member controls the actor whose roll a pending request waits on. */
+export async function canControlEvidenceRoller(
+  ctx: EncounterReadTransaction,
+  input: {
+    run: EncounterDocument<'encounterRuns'>
+    campaign: EncounterDocument<'campaigns'>
+    membership: EncounterDocument<'campaignMemberships'>
+    rollerActorId: string
+  }
+): Promise<boolean> {
+  if (input.membership.role === 'OWNER') return true
+  const actor = await readRunActor(ctx, readRunState(input.run), input.rollerActorId)
   return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
 }
 

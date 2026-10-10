@@ -8,7 +8,8 @@ import {
   continueNativeActionAfterTest,
   prepareNativeActionTest,
   type EncounterActionAutoRoll,
-  type PendingNativeActionGraphs
+  type PendingNativeActionGraphs,
+  type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
@@ -65,7 +66,7 @@ function requireDistinctTargets(targets: readonly EncounterAreaTarget[]) {
 async function testTarget(
   source: AreaActionSource,
   target: EncounterAreaTarget,
-  resume?: { pending: PendingNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+  resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
 ): Promise<EncounterAreaTargetTest> {
   const result = await prepareNativeActionTest({
     ...source,

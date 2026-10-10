@@ -230,6 +230,7 @@ export async function readRoomEncounterTurnCapture(
         ? {
             kind: 'ACTION_RESPONSE' as const,
             snapshot: resumed.kind === 'READY' ? resumed.pending.snapshot : null,
+            areaSnapshot: resumed.kind === 'READY' ? (resumed.area?.snapshot ?? null) : null,
             appRoll: resumed.kind === 'READY' ? resumed.appRoll : null
           }
         : { kind: 'ACTION_COMMAND' as const }),

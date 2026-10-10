@@ -72,6 +72,34 @@ export function removeEncounterAreaTarget<
   }
 }
 
+/**
+ * Records that the roller of the save with `requestId` answered it, keeping the answer to settle
+ * the area with. The other saves, the caught set and its checksum stay exactly as sealed.
+ */
+export function markEncounterAreaSaveTested(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  testedJson: string
+): ServerAggregateChoicePendingSnapshotDto {
+  const { applicationContext } = snapshot
+  if (applicationContext.kind !== 'ENCOUNTER_AREA_ACTION')
+    throw new Error('The snapshot is not a pending area action.')
+  const answered = applicationContext.targets.find(
+    (target) => target.snapshot.request.requestId === requestId
+  )
+  if (!answered || answered.testedJson !== undefined)
+    throw new Error('This area save is not awaiting an answer.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: applicationContext.targets.map((target) =>
+        target === answered ? { ...target, testedJson } : target
+      )
+    }
+  })
+}
+
 /** The pending occurrence of a point-area action: one sealed save per caught creature. */
 export function buildEncounterAreaPendingSnapshot(
   input: Omit<AreaContext, 'kind' | 'schemaVersion' | 'caughtChecksum' | 'removedActorIds'> & {

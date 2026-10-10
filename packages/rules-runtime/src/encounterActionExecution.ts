@@ -217,7 +217,7 @@ type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
 type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
 
 /** A paused request resumed by its answer; whose roll it was no longer matters. */
-type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
+export type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
 
 /** Whose roll a paused action request is: the acting source's or its target's (a save). */
 export type EncounterActionRoller = 'SOURCE' | 'TARGET'

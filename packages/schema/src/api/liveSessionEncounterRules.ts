@@ -371,7 +371,10 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       command: resolveEncounterActionInputDtoSchema,
       fingerprint: projectionChecksumSchema,
       result: z.nullable(encounterCommandResultDtoSchema),
-      snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema)
+      /** The answered request's sealed continuation; for an area save, the answering creature's own. */
+      snapshot: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema),
+      /** Set only when the answer belongs to a point-area action: the whole pending area. */
+      areaSnapshot: z.nullable(serverAggregateChoicePendingSnapshotDtoSchema)
     }),
     z.strictObject({
       kind: z.literal('CLEAVING_RESPONSE'),

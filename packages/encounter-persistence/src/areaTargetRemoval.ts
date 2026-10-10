@@ -61,14 +61,14 @@ export async function removeAreaActionTarget(ctx: EncounterPersistenceTransactio
       }
     })
   }
-  if (context.removedActorIds.includes(input.actorId)) return settled()
-
   if (
     run.version !== input.expectedVersion ||
     occurrence.version !== input.expectedOccurrenceVersion ||
     context.caughtChecksum !== input.expectedCaughtChecksum
   )
     rejectDomain('VERSION_STALE')
+  // Replay by state, after the fence: a current-version removal of an already removed creature.
+  if (context.removedActorIds.includes(input.actorId)) return settled()
   const removal = removeEncounterAreaTarget(context, input.actorId)
   if (removal.kind !== 'REMOVED')
     rejectDomain(

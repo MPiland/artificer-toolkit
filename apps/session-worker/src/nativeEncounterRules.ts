@@ -62,13 +62,17 @@ import {
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import {
   liveSessionEncounterActionPendingInputSchema,
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
-import { planNativeLiveEncounterAreaAction } from './nativeEncounterAreaRules.js'
+import {
+  planNativeLiveEncounterAreaAction,
+  planNativeLiveEncounterAreaAnswer
+} from './nativeEncounterAreaRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
@@ -135,6 +139,7 @@ export async function planNativeLiveEncounterAction(
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
   const command = admission.command
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
+  const areaSnapshot = admission.kind === 'ACTION_RESPONSE' ? admission.areaSnapshot : null
   let evidenceResolution: EncounterEvidenceAnswer | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
@@ -154,7 +159,8 @@ export async function planNativeLiveEncounterAction(
     const context = snapshot.applicationContext
     const root = resolveEncounterActionInputDtoSchema.parse(JSON.parse(context.commandJson))
     if (
-      snapshot.occurrenceId !== responseCommand.occurrenceId ||
+      // An area save is sealed under its own occurrence id; the answer names the area's.
+      (areaSnapshot ?? snapshot).occurrenceId !== responseCommand.occurrenceId ||
       context.commandFingerprint !== admission.fingerprint ||
       checksumCanonicalJson(root) !== admission.fingerprint ||
       snapshot.request.requestId !== resolution.requestId ||
@@ -210,8 +216,7 @@ export async function planNativeLiveEncounterAction(
     return preparedTarget.target
   }
   if (command.target.kind === 'POINT') {
-    if (responseCommand) throw new Error('Area save answers are not available yet.')
-    const area = await planNativeLiveEncounterAreaAction({
+    const areaInput = {
       initial,
       command: { ...command, target: command.target },
       fingerprint: admission.fingerprint,
@@ -223,8 +228,22 @@ export async function planNativeLiveEncounterAction(
       capture,
       runtime: executionOptions.runtime,
       random: executionOptions.random
-    })
-    return { ...area, dependencies, revisions }
+    }
+    if (responseCommand) {
+      if (!areaSnapshot || !evidenceResolution)
+        throw new Error('The pending area action is unavailable.')
+      return {
+        ...(await planNativeLiveEncounterAreaAnswer({
+          ...areaInput,
+          response: responseCommand,
+          resolution: evidenceResolution,
+          areaSnapshot
+        })),
+        dependencies,
+        revisions
+      }
+    }
+    return { ...(await planNativeLiveEncounterAreaAction(areaInput)), dependencies, revisions }
   }
   const targetActorId = actionTargetActorId(command.target)
   const selectedActors = actors.filter(
@@ -367,32 +386,7 @@ export async function planNativeLiveEncounterAction(
     responseCommand &&
     evidenceResolution &&
     snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-      ? {
-          pending: {
-            kind: 'PENDING' as const,
-            continuation: (() => {
-              const {
-                snapshotKind: _snapshotKind,
-                applicationContext: _applicationContext,
-                optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
-                phaseReceipts: _phaseReceipts,
-                deferredCleaving: _deferredCleaving,
-                ...continuation
-              } = snapshot
-              return continuation
-            })(),
-            d20Policy: snapshot.applicationContext.d20Policy,
-            twoPhase: snapshot.applicationContext.twoPhase,
-            ...(snapshot.applicationContext.d20Belief
-              ? { d20Belief: snapshot.applicationContext.d20Belief }
-              : {}),
-            ...(snapshot.applicationContext.heldD20
-              ? { heldD20: snapshot.applicationContext.heldD20 }
-              : {}),
-            ...(snapshot.phaseReceipts ? { phaseReceipts: snapshot.phaseReceipts } : {})
-          },
-          resolution: evidenceResolution
-        }
+      ? { pending: restoreEncounterActionPending(snapshot), resolution: evidenceResolution }
       : null
   const execution = await advanceNativeActionGraphs({
     runtime: executionOptions.runtime,

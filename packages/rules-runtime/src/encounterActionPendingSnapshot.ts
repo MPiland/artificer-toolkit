@@ -1,5 +1,33 @@
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
+import type {
+  PendingNativeActionGraphs,
+  ResumedNativeActionGraphs
+} from './encounterActionExecution.js'
+
+/** The paused request a sealed snapshot holds, restored so its roller's answer can resume it. */
+export function restoreEncounterActionPending(
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+): ResumedNativeActionGraphs {
+  const {
+    snapshotKind: _snapshotKind,
+    applicationContext: context,
+    optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+    phaseReceipts,
+    deferredCleaving: _deferredCleaving,
+    ...continuation
+  } = snapshot
+  if (context.kind !== 'ENCOUNTER_ACTION')
+    throw new Error('The pending action snapshot is invalid.')
+  return {
+    kind: 'PENDING',
+    continuation,
+    d20Policy: context.d20Policy,
+    twoPhase: context.twoPhase,
+    ...(context.d20Belief ? { d20Belief: context.d20Belief } : {}),
+    ...(context.heldD20 ? { heldD20: context.heldD20 } : {}),
+    ...(phaseReceipts ? { phaseReceipts } : {})
+  }
+}
 
 /**
  * The sealed pending snapshot of one paused action request: the kernel continuation with the

@@ -92,11 +92,24 @@ describe('room GM removal from a pending area', () => {
 
   it('replays a repeated removal without changing the area again', async () => {
     const { room, decision } = await pendingAreaRoom()
-    const command = room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!)
-    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+    expect((await room.send(room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
     const after = await room.pendingDecision()
-    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+    // Same creature, current versions: the area already reflects it, so nothing changes.
+    expect((await room.send(room.removeAreaTargetCommand(after, CAUGHT_IDS[2]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
     expect(await room.pendingDecision()).toEqual(after)
+  })
+
+  it('refuses a stale removal even when the creature was already removed', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    expect((await room.send(room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    const answer = await room.send(room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!))
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'VERSION_STALE' })
   })
 
   it('refuses a removal made against a caught set that has since changed', async () => {
@@ -127,6 +140,132 @@ describe('room GM removal from a pending area', () => {
       type: 'COMMAND_REJECTED',
       reason: 'TARGET_UNAVAILABLE'
     })
+    expect(savesOf(await room.pendingDecision())).toHaveLength(4)
+  })
+})
+
+describe('room area saves answered by each creature', () => {
+  async function pendingAreaRoom() {
+    const room = await areaRoom()
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    return { room, decision: await room.pendingDecision() }
+  }
+  type Decision = Awaited<ReturnType<typeof pendingAreaRoom>>['decision']
+  const savesOf = (decision: Decision) => {
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    return decision.pending.saves.map(({ actorId }) => actorId)
+  }
+  /** `actorId`'s own save answered with one natural d20 face. */
+  const answerCommand = (
+    room: Awaited<ReturnType<typeof pendingAreaRoom>>['room'],
+    decision: Decision,
+    actorId: string,
+    face = 9
+  ) => {
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const save = decision.pending.saves.find((entry) => entry.actorId === actorId)
+    if (!save) throw new Error('The creature has no pending save.')
+    return room.resolveCommand(decision, {
+      kind: 'ENTER_DICE',
+      requestId: save.request.requestId,
+      rawFaces: [face],
+      rollMode: save.request.rollMode
+    })
+  }
+
+  it('records one creature’s save and leaves the others waiting', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    expect((await room.send(answerCommand(room, decision, CAUGHT_IDS[0]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+
+    const after = await room.pendingDecision()
+    expect(savesOf(after).sort()).toEqual([CASTER_ID, CAUGHT_IDS[1]!, CAUGHT_IDS[2]!].sort())
+    expect(after.occurrence.version).toBe(decision.occurrence.version + 1)
+    expect(after.encounterVersion).toBe(decision.encounterVersion)
+    // Nothing is damaged until the area settles.
+    const history = await readRoomHistory(room.room.base.stub)
+    expect(history.actors).toEqual(before.actors)
+    expect(history.occurrences.filter((row) => row.state === 'PENDING')).toHaveLength(1)
+  })
+
+  it('takes the saves in any order', async () => {
+    const { room } = await pendingAreaRoom()
+    for (const actorId of [CAUGHT_IDS[2]!, CASTER_ID, CAUGHT_IDS[0]!]) {
+      const decision = await room.pendingDecision()
+      expect((await room.send(answerCommand(room, decision, actorId))).type).toBe(
+        'COMMAND_COMMITTED'
+      )
+      expect(savesOf(await room.pendingDecision())).not.toContain(actorId)
+    }
+    expect(savesOf(await room.pendingDecision())).toEqual([CAUGHT_IDS[1]!])
+  })
+
+  it('replays a repeated answer without recording it again', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const command = answerCommand(room, decision, CAUGHT_IDS[0]!)
+    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+    const after = await room.pendingDecision()
+    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+    expect(await room.pendingDecision()).toEqual(after)
+  })
+
+  it('refuses an answer made against a stale occurrence', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    expect((await room.send(answerCommand(room, decision, CAUGHT_IDS[0]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    const stale = await room.send(answerCommand(room, decision, CAUGHT_IDS[1]!))
+    expect(stale).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'VERSION_STALE' })
+    expect(savesOf(await room.pendingDecision())).toContain(CAUGHT_IDS[1]!)
+  })
+
+  it('refuses a save that was already answered', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const first = answerCommand(room, decision, CAUGHT_IDS[0]!)
+    expect((await room.send(first)).type).toBe('COMMAND_COMMITTED')
+    const fresh = await room.pendingDecision()
+    // The first answer's request no longer waits, so a second try finds nothing to answer.
+    const again = await room.send({
+      ...first,
+      commandId: crypto.randomUUID(),
+      expectedOccurrenceVersion: fresh.occurrence.version
+    })
+    expect(again).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'DECISION_NOT_PENDING' })
+    expect(savesOf(await room.pendingDecision())).toHaveLength(3)
+  })
+
+  it('refuses the GM taking out a creature that already rolled', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    expect((await room.send(answerCommand(room, decision, CAUGHT_IDS[0]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    const fresh = await room.pendingDecision()
+    const removal = await room.send(room.removeAreaTargetCommand(fresh, CAUGHT_IDS[0]!))
+    expect(removal).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+    expect(savesOf(await room.pendingDecision())).toHaveLength(3)
+  })
+
+  it('refuses an answer for a creature the GM took out', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const stillWaiting = answerCommand(room, decision, CAUGHT_IDS[2]!)
+    expect((await room.send(room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    const fresh = await room.pendingDecision()
+    const answer = await room.send({
+      ...stillWaiting,
+      commandId: crypto.randomUUID(),
+      expectedOccurrenceVersion: fresh.occurrence.version
+    })
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'DECISION_NOT_PENDING' })
+  })
+
+  it('refuses a player answering a creature the GM runs', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const answer = await room.sendAsPlayer(answerCommand(room, decision, CAUGHT_IDS[0]!))
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'NOT_ACTOR_CONTROLLER' })
     expect(savesOf(await room.pendingDecision())).toHaveLength(4)
   })
 })

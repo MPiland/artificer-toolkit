@@ -13,7 +13,10 @@ import type {
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
-import { encounterAreaCaughtChecksum } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import {
+  encounterAreaCaughtChecksum,
+  markEncounterAreaSaveTested
+} from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
@@ -51,7 +54,8 @@ function areaTargets(context: EncounterAreaActionPendingContextDto) {
       actorId: target.actorId,
       token: target.token,
       snapshot: target.snapshot,
-      context: inner
+      context: inner,
+      testedJson: target.testedJson
     }
   })
 }
@@ -170,8 +174,31 @@ export async function requireAreaActionPendingRoot(
 }
 
 /**
- * The saves one viewer reads. The GM reads every save; a player reads only those of the creatures
- * they control, each with what that creature's own facts imply. Null when the viewer has none.
+ * Verifies the area snapshot a save answer stores: it is the stored area with exactly the answered
+ * creature's save marked tested, and nothing else changed.
+ */
+export function requireAreaActionAnswer(input: {
+  stored: ServerRuleExecutionPendingSnapshotDto
+  next: ServerRuleExecutionPendingSnapshotDto
+  requestId: string
+}) {
+  const next = areaActionPendingContext(input.next)
+  const testedJson = next?.targets.find(
+    (target) => target.snapshot.request.requestId === input.requestId
+  )?.testedJson
+  if (
+    testedJson === undefined ||
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    checksumCanonicalJson(input.next) !==
+      checksumCanonicalJson(markEncounterAreaSaveTested(input.stored, input.requestId, testedJson))
+  )
+    throw new Error('Live Session pending area answer mismatch.')
+}
+
+/**
+ * The saves one viewer reads. The GM reads every unanswered save; a player reads only those of the
+ * creatures they control, each with what that creature's own facts imply. Null when the viewer has
+ * none.
  */
 export function projectNativeAreaActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
@@ -180,6 +207,7 @@ export function projectNativeAreaActionPending(
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
   const saves = pending.targets.flatMap((target) => {
+    if (target.testedJson !== undefined) return []
     if (!viewer.isOwner && !viewer.controlledActorIds.has(target.actorId)) return []
     const summary = projectNativeActionPending(
       occurrence,
