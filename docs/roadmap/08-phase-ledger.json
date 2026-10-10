@@ -5183,32 +5183,47 @@
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["apps/session-worker/test/nativeRoomAreaJourney.test.ts"],
+          "journeyStatus": "partial",
+          "journeyGap": "The Fireball journey (Creature caster) drives pick, caught list per role, GM removal, out-of-order saves, one commit and undo, but not an out-of-sight point, a range warning or a Character caster (SPELLS-8.4).",
           "origin": [],
           "acs": [
             {
               "text": "The caster picks a point on the map for a point-origin area (sphere, cube, circle, cylinder); every creature inside it is caught, allies and the caster included; the caster and the GM see the list before it resolves, and only the GM can remove a creature from it. A point beyond range or out of sight is an overridable warning.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAreaAction.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionCompilation.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterAreaPending.test.ts",
+                "apps/session-worker/test/nativeRoomAreaAction.test.ts",
+                "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
+              ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 4, split 2026-10-10 into SPELLS-7 (point areas), SPELLS-13 (cones and lines), SPELLS-14 (cover), SPELLS-15 (area Legendary options), SPELLS-16 (caster spares creatures) and SPELLS-17 (placed zones, was 7.2 Caltrops). User ruling 2026-10-10: the app picks everyone in the area and the GM can adjust; a feature such as the Evocation wizard's Sculpt Spells lets the caster choose (SPELLS-16). The room computes the set, stores it with a currentness checksum and refuses if a token moved; the command carries a discriminated target (ACTOR or POINT), with no targetActorId alias.",
+              "note": "rul-9-rules-audit.md slice 4, split 2026-10-10 into SPELLS-7 (point areas), SPELLS-13 (cones and lines), SPELLS-14 (cover), SPELLS-15 (area Legendary options), SPELLS-16 (caster spares creatures) and SPELLS-17 (placed zones, was 7.2 Caltrops). User ruling 2026-10-10: the app picks everyone in the area and the GM can adjust; a feature such as the Evocation wizard's Sculpt Spells lets the caster choose (SPELLS-16). The room computes the set, stores it with a currentness checksum and refuses if a token moved; the command carries a discriminated target (ACTOR or POINT), with no targetActorId alias. Built 2026-10-10 (D103). Unproved: a point out of sight is not checked anywhere (encounterAreaAction.ts warns only TARGET_OUT_OF_RANGE and TARGET_RANGE_UNCHECKED), and no room test sends an area action with an unacknowledged or acknowledged range warning (the policy warning is unit-tested only).",
               "id": "SPELLS-7.1"
             },
             {
               "text": "Every caught creature's save is asked at once, each by the creature's own roller; damage is rolled once and applies in full on a failed save and halved on a success, per target with its own defenses; the action commits once when the last save is in, and GM undo reverts every target.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterAreaActionExecution.test.ts",
+                "apps/session-worker/test/nativeRoomAreaAction.test.ts",
+                "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5).",
+              "note": "User ruling 2026-10-10: all at once, like a real table. Covers a concentration check per damaged concentrating target and Legendary Resistance on an area save (a throw today). Saves follow the believed/true rule later (ATTACK-10.5). Built 2026-10-10 (D103): proved by the executor, room and journey tests.",
               "id": "SPELLS-7.2"
             },
             {
               "text": "A caught creature the caster cannot perceive appears in the caster's results only if it fails its save; otherwise the caster sees nothing about it. Its own roller gets the save prompt as usual, and the GM sees everything.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "apps/session-worker/test/nativeRoomAreaAction.test.ts",
+                "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-10 (no metagaming, like ATTACK-10.1 and ATTACK-17.3). A failed save shows the creature in the results; revealing its token on the map stays the GM's call.",
+              "note": "User ruling 2026-10-10 (no metagaming, like ATTACK-10.1 and ATTACK-17.3). A failed save shows the creature in the results; revealing its token on the map stays the GM's call. Built 2026-10-10 (D103). Unproved: no test has a player control a caster-unperceived creature and read that player's own save prompt (the unperceived creatures in the tests are GM-run); the code projects it by controller, not by perception. The roller's own roll card stays GM-private until ATTACK-17.5.",
               "id": "SPELLS-7.3"
             }
           ]

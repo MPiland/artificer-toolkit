@@ -146,6 +146,7 @@
 | `8e083e252`              | Legendary Resistance on area saves: a failed Creature save opens a sealed per-target offer (`encounterAreaLegendaryResistance.ts`; shared helpers moved to `encounterLegendaryResistanceChoice.ts`, one pin schema). Answered by `AREA_LEGENDARY_RESISTANCE {actorId, decision}` from the GM or the creature's controller, in any order; the caster never sees it. Area saves honor each roller's auto-roll. SYSTEM_ROLL admits an area save by requestId. |
 | `3c7b046f0`              | 5d: the last save answer or LR decision (or open, when all auto-roll) commits the area in one transaction: a root `AGGREGATE_CHOICE_COMPLETE` (output `ENCOUNTER_AREA_ACTION`) holding the source spend once, plus one child batch per kept target (`ENCOUNTER_ACTOR_MECHANICS_BATCH` or `CHARACTER_MECHANICS_BATCH`) under `encounterAreaTargetOccurrenceId`. LR charge sits on the child. Undo reverts children in reverse, then the root. `refuseAreaEffectOutcomes` refuses conditions, lasting/recurring effects and maintenance (SPELLS-19). The LR terminal binding also accepts a phased result's TEST phase. Action receipts never spend a spell slot yet (SPELLS-8.1 note). |
 | `a5e97b3d1`, `977392a4b` | 5d-ii: last-creature removal and zero-kept areas commit (spend only). 5e: the caster's D100 perception of each caught creature is sealed at open (`perceivedByCaster`; UNKNOWN counts as perceived). `AREA_SAVES.caught` is labels only: all for the GM, perceived ones for the caster's controller, none for others; `caughtChecksum` and a hidden caster's id are GM-only. Timeline visibility gains `ISSUER`: the stored RESOLVE_ACTION carries `issuerLines` (perceived outcomes; an unperceived failure as an unnamed line; a used LR counts as success) and `gmLines` (GM removals), enforced in `readEncounterTimelinePage`. |
+| `34344c049`              | 5g: the Fireball room journey (`nativeRoomAreaJourney.test.ts`); an unperceived creature's area save card is GM-private. |
 
 **Rulings already made:**
 
@@ -172,16 +173,18 @@
 3. **5e** done (`977392a4b`). The web UI does not render `caught`, `issuerLines` or `gmLines` yet (web round). 5h must document the `ISSUER` timeline audience in `docs/architecture/live-sessions.md` and D103.
 4. **5f** moved to SPELLS-8.4: no Character spell reaches `RESOLVE_ACTION` yet (see its ledger note). SPELLS-7 proves areas with Creature casters.
 5. **5g** done: `apps/session-worker/test/nativeRoomAreaJourney.test.ts` (Creature caster). An area save card of a creature the caster cannot perceive is GM-private (`rollerAsPerceivedByCaster` in `ruleRollCards.ts`); the player who rolled it gets no card yet (ATTACK-17.5).
-6. **5h**
-   - Record D103 in `phase-08-2-decisions.md`, covering:
-     - the atomic occurrence and the frozen damage;
-     - the per-creature plan;
-     - the cube origin and cylinder height;
-     - GM removal as its own command, with no Run command;
-     - replay from the current state, after the stale check.
-   - Amend the phase text in `docs/architecture/rules-runtime.md`.
-   - Add ledger proof paths for SPELLS-7.1, 7.2, 7.3 and the journey, then flip them.
-7. The web round: pick a point, show the area preview, give the GM a remove control, and add the area-saves prompt.
+6. **5h** done (docs and ledger; no product code). D103 is recorded in `phase-08-2-decisions.md`; `docs/architecture/rules-runtime.md` has "Point-area actions" and `docs/architecture/live-sessions.md` has the REMOVE_AREA_TARGET and area commit bullet, the `ISSUER` timeline audience with `gmLines`, and the area roll-card routing. Ledger: SPELLS-7.2 DONE; SPELLS-7.1 and 7.3 carry proof paths but stay IN_PROGRESS, and SPELLS-7 has the journey recorded with `journeyStatus` partial, because clauses are unproved:
+   - **7.1:** a point out of sight is not checked by any code (only `TARGET_OUT_OF_RANGE` and `TARGET_RANGE_UNCHECKED` exist), and no room test sends an area action through the range warning gate (`areaRuleOverrides`; the policy warning is unit-tested only).
+   - **7.3:** no test has a player control a caster-unperceived creature and read that player's own save prompt (the unperceived creatures in the tests are GM-run).
+   - Build and test these two before closing SPELLS-7 (one small slice: an out-of-sight warning for the picked point, a room test for the unacknowledged and acknowledged range warning, and a room test for the unperceived creature's own roller).
+7. **The web round (next after the two proof gaps).** The web renders none of this yet. It must:
+   - **Pick a point:** let the caster choose the origin on the map for an area action (a POINT target, `{ kind: 'POINT', point }`), preview the area shape on the Scene, and show the overridable out-of-range warning.
+   - **Caught list per role:** render `AREA_SAVES.caught` (labels only): all for the GM, the perceived ones for the caster's controller, none for others. A `caughtChecksum` is sent to the GM only.
+   - **GM remove control:** a `REMOVE_AREA_TARGET` control per creature that has not rolled, composed with the occurrence version and `caughtChecksum` the GM last read; a stale or already-answered refusal is a normal message.
+   - **Area save prompts:** each roller sees only their own creature's `saves` entry (enter dice, app roll, auto-roll), in any order, with the pending list shrinking as answers land.
+   - **Legendary Resistance offers:** `legendaryResistance` entries (actor and `optionId`) are shown to the GM and that creature's controller only, answered with `AREA_LEGENDARY_RESISTANCE { actorId, decision }`; never to the caster.
+   - **Results:** show `issuerLines` to the issuing user and the GM and `gmLines` to the GM only on the timeline entry (visibility `ISSUER`), and the per-creature save cards and one damage card in chat.
+   - Read D103 and the "Point-area actions" section of `docs/architecture/rules-runtime.md` first; the room contracts are in `docs/architecture/live-sessions.md`.
 
 Area path file map:
 

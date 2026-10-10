@@ -166,6 +166,15 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   TURN, ACTION, CONCENTRATION, CLEAVING, DISARM or MOVEMENT. The selected planner repeats canonical
   admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
   pending occurrence and the caller may answer it.
+- `REMOVE_AREA_TARGET` (GM-only) takes one creature out of a pending point-area action
+  (`areaTargetRemoval.ts`, routed with `AREA_REMOVAL` admission). It is not a Run command, and while the area
+  still waits on another creature it writes no command receipt and leaves the Run version alone; only the
+  occurrence version moves. A removal that leaves nothing to wait on writes nothing itself and the room commits
+  the area through the same path as a last save answer. Area saves and `AREA_LEGENDARY_RESISTANCE` decisions
+  are routed to the pending area occurrence and answered by each creature's controller or the GM in any order.
+  The last answer, the last decision, a settling removal, or the open when every save auto-rolls commits the
+  area in one transaction: a root receipt with the source spend plus one child receipt per kept creature
+  (current, D103).
 - The GM tools and dice commands run `recordEncounterCommand`. A GM `UPDATE_ACTOR` with a
   `characterCommand` commits that Sheet command on the Run's held Character; the same command on a
   Character the room does not hold is refused ("Make this change from the Character Sheet.").
@@ -282,6 +291,12 @@ settlement, timeline }`:
   Convex reads. Every push re-admits the socket against the current authorization.
 - A command's `expectedVersion` comes from the pushed `version`; the checkpointed Convex version lags the
   room while the Run is held, so a client must not compare the two.
+- Timeline audiences (current, D103): an entry is `PRIVATE` (the GM), `TABLE` (every member) or `ISSUER` (the
+  GM and the user who issued the command). A `RESOLVE_ACTION` is `ISSUER` when it stores `issuerLines`, which
+  an area action uses for what its caster perceived; `readEncounterTimelinePage` merges a player's TABLE
+  entries with the ISSUER entries they issued, and a player's copy always has empty `gmLines` (the GM-only
+  lines, such as "GM removed <label> from the area"). A stored entry that does not match its audience is an
+  integrity error. The web does not render `caught`, `issuerLines` or `gmLines` yet.
 
 #### Held turn reads
 
@@ -387,6 +402,12 @@ refuses to reveal it. Every automatic rule roll gets a card through `recordRuleR
 roller is PRIVATE, a roller with a non-owner controller is TABLE, otherwise the command's `visibility`
 or the stored `gmRollVisibility` decides. Convex and the room present rolls through one
 `presentRoll`/`presentRetainedRoll` in `@artificer-toolkit/rules-runtime`.
+
+Area save cards (current, D103): each caught creature's save is its own card, authored by the creature's
+roller and routed by the rules above, except that a creature the area's caster cannot perceive is routed as a
+hidden roller (`rollerAsPerceivedByCaster`, D62), so its card is PRIVATE and never reaches the table. The
+area's one damage roll is carded once, with the first creature. The player who rolled an unperceived
+creature's save gets no card yet (ATTACK-17.5).
 
 **Rate buckets (D72).** Per-account token buckets live in room SQLite
 ([roomRateLimits](../../apps/session-worker/src/roomRateLimits.ts), allowances in `roomLimits.ts`):

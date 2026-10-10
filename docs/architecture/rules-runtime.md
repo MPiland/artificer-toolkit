@@ -236,6 +236,34 @@ conditions, replaced maintained effects, lost Concentration, Cleaving damage to 
 other contested actions; a second undo is refused. Its implementation is
 `packages/encounter-persistence/src/actionRevert.ts`.
 
+### Point-area actions (current, D103)
+
+A POINT-target action over an area-contents plan opens one pending `ENCOUNTER_AREA_ACTION`
+(`AGGREGATE_CHOICE`) occurrence. `catchEncounterAreaActorIds` picks the actors with a token touching the
+area, once each, and `encounterAreaCaughtChecksum` seals the Scene version, the area and those creatures.
+Each caught creature carries its own sealed single-target save under
+`encounterAreaTargetOccurrenceId(area, actor)`; `prepareEncounterAreaTests` opens them all without rolling
+damage and `answerEncounterAreaTest` answers one whatever the others have done. `removeEncounterAreaTarget`
+(the GM's removal, SPELLS-7.1) refuses a creature that has answered and seals the caught set again.
+
+Legendary Resistance on an area save is per creature and interstitial. After a failed Creature save
+`afterTest` asks the creature's `discoverLegendaryResistance`, and `offerEncounterAreaLegendaryResistance`
+seals the offer against the failed execution, the creature's facts, its d20 policy and the pinned resistance.
+`decideEncounterAreaLegendaryResistance` re-checks all of them against the creature's pool as it is now
+before it records `USE` or `DECLINE`; the charge is only proposed there and is spent by the area's commit.
+`encounterLegendaryResistanceChoice.ts` holds the helpers shared with movement.
+
+`settleEncounterAreaAction` runs only when every save is answered and every offer decided. It rolls damage
+once through a frozen roll tape (the first creature that needs die n rolls it, later ones replay it, and a
+different die is refused), then continues each creature's own plan, so resistance, immunity and
+vulnerability stay per creature. The persistence side commits one root `AGGREGATE_CHOICE_COMPLETE` that
+holds the source spend once and one mechanics-batch child per kept creature
+(`packages/encounter-persistence/src/areaCommitPersistence.ts`); `REVERT_LAST_ACTION` reverts the children in
+reverse, then the root. An outcome that leaves a condition, a lasting or recurring effect or a maintained
+effect is refused whole until SPELLS-19. Per-role visibility and the command flow are in
+[live-sessions.md](live-sessions.md#encounter-commands); the decision is
+[D103](../handoffs/phase-08-2-decisions.md).
+
 ### 0 hit points (D63, current)
 
 A Creature or custom Run actor stores `defeated`. `nextEncounterActorDefeated`
