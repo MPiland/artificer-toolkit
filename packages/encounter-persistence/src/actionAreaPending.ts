@@ -198,6 +198,7 @@ export function projectNativeAreaActionPending(
         occurrenceVersion: occurrence.version,
         encounterVersion: occurrence.expectedEncounterVersion,
         casterActorId: pending.context.casterActorId,
+        caughtChecksum: pending.context.caughtChecksum,
         saves,
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
       }

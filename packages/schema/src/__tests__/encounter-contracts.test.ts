@@ -874,6 +874,30 @@ describe('encounter contracts', () => {
       ).toBe(false)
   })
 
+  it('closes the GM command that takes one creature out of a pending area', () => {
+    const removal = {
+      type: 'REMOVE_AREA_TARGET',
+      encounterId,
+      commandId,
+      expectedVersion: 2,
+      occurrenceId: encounterId,
+      expectedOccurrenceVersion: 1,
+      expectedCaughtChecksum: 'a'.repeat(64),
+      actorId: commandId
+    }
+    expect(encounterCommandInputDtoSchema.parse(removal)).toEqual(removal)
+    for (const change of [
+      { expectedCaughtChecksum: 'not-a-checksum' },
+      { actorId: 'wolf' },
+      { expectedOccurrenceVersion: -1 },
+      { extra: true }
+    ])
+      expect(
+        encounterCommandInputDtoSchema.safeParse({ ...removal, ...change }).success,
+        JSON.stringify(change)
+      ).toBe(false)
+  })
+
   it('accepts only closed optional combat action intent selections', () => {
     const fieldId = 'a'.repeat(64)
     const positionFieldId = 'b'.repeat(64)

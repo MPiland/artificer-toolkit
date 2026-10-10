@@ -481,6 +481,8 @@ export type EncounterAreaActionPendingContextDto = {
     token: EncounterAreaTokenDto
     /** Sealed against this creature's own source and target facts, so its save resumes only if they hold. */
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+    /** Set once the creature's own roller answered its save; the GM can no longer take it out. */
+    testedJson?: string
   }[]
 }
 
@@ -521,10 +523,10 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           z.strictObject({
             actorId: uuidSchema,
             token: encounterAreaTokenDtoSchema,
-            snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema)
+            snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
+            testedJson: z.optional(z.string())
           })
         )
-        .check(z.minLength(1))
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
     })
     .check(

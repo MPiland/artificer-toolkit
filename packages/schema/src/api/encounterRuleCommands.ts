@@ -301,6 +301,19 @@ export const voidRuleOccurrenceInputDtoSchema = lazySchema(() =>
     expectedOccurrenceVersion: versionSchema
   })
 )
+/**
+ * GM-only: takes one creature out of a pending area before its save is answered. The checksum is the
+ * caught set the GM saw; a changed set refuses the command as stale.
+ */
+export const removeAreaTargetInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('REMOVE_AREA_TARGET'),
+    occurrenceId: uuidSchema,
+    expectedOccurrenceVersion: versionSchema,
+    expectedCaughtChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+    actorId: uuidSchema
+  })
+)
 /** GM-only exact undo of the Run's last committed action and its committed children. */
 export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
@@ -311,7 +324,8 @@ export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActi
 export type UseEncounterBasicActionInputDto = z.infer<typeof useEncounterBasicActionInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
-export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
+export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
+export type RollRuleEvidenceInputDto =z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema
 >

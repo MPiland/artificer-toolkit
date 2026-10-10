@@ -61,3 +61,72 @@ describe('room point-area action', () => {
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 })
+
+describe('room GM removal from a pending area', () => {
+  /** The room with its area pending on the first Fireball point, and the GM's view of it. */
+  async function pendingAreaRoom() {
+    const room = await areaRoom()
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    return { room, decision: await room.pendingDecision() }
+  }
+  const savesOf = (decision: Awaited<ReturnType<typeof pendingAreaRoom>>['decision']) => {
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    return decision.pending.saves.map(({ actorId }) => actorId)
+  }
+
+  it('takes a creature out of the area and seals the caught set again', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    // Ids arrive in any case and are lowercased at admission.
+    const command = room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!.toUpperCase())
+    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+
+    const after = await room.pendingDecision()
+    if (after.pending.kind !== 'AREA_SAVES' || decision.pending.kind !== 'AREA_SAVES')
+      throw new Error('Expected the area saves.')
+    expect(savesOf(after).sort()).toEqual([CASTER_ID, CAUGHT_IDS[0]!, CAUGHT_IDS[1]!].sort())
+    expect(after.pending.caughtChecksum).not.toBe(decision.pending.caughtChecksum)
+    expect(after.occurrence.version).toBe(decision.occurrence.version + 1)
+    // The area is still pending, so the Encounter itself has not moved.
+    expect(after.encounterVersion).toBe(decision.encounterVersion)
+  })
+
+  it('replays a repeated removal without changing the area again', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const command = room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!)
+    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+    const after = await room.pendingDecision()
+    expect((await room.send(command)).type).toBe('COMMAND_COMMITTED')
+    expect(await room.pendingDecision()).toEqual(after)
+  })
+
+  it('refuses a removal made against a caught set that has since changed', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    expect((await room.send(room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!))).type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    // Fresh versions, but the checksum is the one the GM saw before the first removal.
+    const fresh = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const answer = await room.send(
+      room.removeAreaTargetCommand(fresh, CAUGHT_IDS[1]!, {
+        expectedCaughtChecksum: decision.pending.caughtChecksum
+      })
+    )
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'VERSION_STALE' })
+    expect(savesOf(await room.pendingDecision())).toContain(CAUGHT_IDS[1]!)
+  })
+
+  it('refuses a player and a creature the area did not catch', async () => {
+    const { room, decision } = await pendingAreaRoom()
+    const byPlayer = room.removeAreaTargetCommand(decision, CAUGHT_IDS[2]!)
+    expect(await room.sendAsPlayer(byPlayer)).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'GM_ONLY'
+    })
+    expect(await room.send(room.removeAreaTargetCommand(decision, FAR_ID))).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'TARGET_UNAVAILABLE'
+    })
+    expect(savesOf(await room.pendingDecision())).toHaveLength(4)
+  })
+})

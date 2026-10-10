@@ -14,6 +14,7 @@ import { vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import { connectPlayer } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 import { readPendingActionDecision } from './roomHistoryReads.js'
 
@@ -366,6 +367,48 @@ export async function actionRoom(config: ActionRoomConfig) {
         sceneContext: null
       }
       return { command, answer: await send(command) }
+    },
+    /** The GM's command taking `actorId` out of the pending area `decision` shows. */
+    removeAreaTargetCommand(
+      decision: NonNullable<Awaited<ReturnType<typeof readPendingActionDecision>>>,
+      actorId: string,
+      overrides: Record<string, unknown> = {}
+    ) {
+      if (decision.pending.kind !== 'AREA_SAVES') throw new Error('The decision is not an area.')
+      return {
+        type: 'REMOVE_AREA_TARGET',
+        encounterId: room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: decision.encounterVersion,
+        occurrenceId: decision.occurrence.id,
+        expectedOccurrenceVersion: decision.occurrence.version,
+        expectedCaughtChecksum: decision.pending.caughtChecksum,
+        actorId,
+        ...overrides
+      }
+    },
+    /** Sends `command` on a player's socket instead of the GM's; the room's answer. */
+    async sendAsPlayer(command: Record<string, unknown> & { commandId: string }) {
+      const player = await connectPlayer(room.base)
+      const first = player.messages.length
+      player.socket.send(
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: 0,
+          command: { scope: 'ENCOUNTER', command }
+        })
+      )
+      return vi.waitFor(() => {
+        const answer = player.messages
+          .slice(first)
+          .find(
+            (message) =>
+              (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+              message.commandId === command.commandId
+          )
+        if (!answer) throw new Error('The room has not answered the player.')
+        return answer
+      })
     },
     /** The room's own Optional Rule choice for the acting actor's action at `targetActorId`. */
     async optionalActionChoices(

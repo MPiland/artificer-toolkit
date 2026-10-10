@@ -37,6 +37,41 @@ export function encounterAreaCaughtChecksum(input: {
   })
 }
 
+/**
+ * The GM takes one creature out of a pending area. Only a creature whose save is still unanswered can
+ * go; the checksum is sealed again over those still caught.
+ */
+export function removeEncounterAreaTarget<
+  Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token'> & {
+    testedJson?: string
+  }
+>(
+  context: Pick<AreaContext, 'scene' | 'area' | 'removedActorIds'> & { targets: Target[] },
+  actorId: string
+):
+  | { kind: 'NOT_CAUGHT' | 'ANSWERED' }
+  | {
+      kind: 'REMOVED'
+      targets: Target[]
+      removedActorIds: string[]
+      caughtChecksum: string
+    } {
+  const removed = context.targets.find((target) => target.actorId === actorId)
+  if (!removed) return { kind: 'NOT_CAUGHT' }
+  if (removed.testedJson !== undefined) return { kind: 'ANSWERED' }
+  const targets = context.targets.filter((target) => target !== removed)
+  return {
+    kind: 'REMOVED',
+    targets,
+    removedActorIds: [...context.removedActorIds, actorId],
+    caughtChecksum: encounterAreaCaughtChecksum({
+      scene: context.scene,
+      area: context.area,
+      caught: targets
+    })
+  }
+}
+
 /** The pending occurrence of a point-area action: one sealed save per caught creature. */
 export function buildEncounterAreaPendingSnapshot(
   input: Omit<AreaContext, 'kind' | 'schemaVersion' | 'caughtChecksum' | 'removedActorIds'> & {

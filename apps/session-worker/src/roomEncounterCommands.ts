@@ -44,6 +44,7 @@ import {
   executeRoomEncounterBasicAction,
   executeRoomEncounterBasicActionResponse
 } from './roomEncounterBasicActions.js'
+import { removeAreaActionTarget } from '@artificer-toolkit/encounter-persistence/areaTargetRemoval'
 import {
   prepareRuleOccurrenceVoid,
   recordRuleOccurrenceVoid
@@ -235,12 +236,14 @@ export async function executeRoomEncounterCommand(input: {
           ? await executeResponse(command)
           : command.type === 'VOID_RULE_OCCURRENCE'
             ? await executeVoid()
-            : command.type === 'USE_BASIC_ACTION'
-              ? await executeBasicAction()
-              : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-                  command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-                ? await executeTokenBinding(command)
-                : await recordEncounterCommand(context, command, userId, input.random)
+            : command.type === 'REMOVE_AREA_TARGET'
+              ? await removeAreaActionTarget(context, command)
+              : command.type === 'USE_BASIC_ACTION'
+                ? await executeBasicAction()
+                : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+                    command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+                  ? await executeTokenBinding(command)
+                  : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const currentRun = await context.db
     .query('encounterRuns')

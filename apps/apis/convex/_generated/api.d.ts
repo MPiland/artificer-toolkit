@@ -39092,6 +39092,7 @@ export declare const api: {
             | {
                 allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
                 casterActorId: string;
+                caughtChecksum: string;
                 encounterVersion: number;
                 kind: "AREA_SAVES";
                 occurrenceId: string;
@@ -39364,6 +39365,7 @@ export declare const api: {
               | {
                   allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
                   casterActorId: string;
+                  caughtChecksum: string;
                   encounterVersion: number;
                   kind: "AREA_SAVES";
                   occurrenceId: string;
@@ -40149,6 +40151,7 @@ export declare const api: {
         | {
             allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
             casterActorId: string;
+            caughtChecksum: string;
             encounterVersion: number;
             kind: "AREA_SAVES";
             occurrenceId: string;
@@ -40906,6 +40909,7 @@ export declare const api: {
             | {
                 allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
                 casterActorId: string;
+                caughtChecksum: string;
                 encounterVersion: number;
                 kind: "AREA_SAVES";
                 occurrenceId: string;

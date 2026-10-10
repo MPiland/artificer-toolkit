@@ -190,6 +190,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
         casterActorId: uuidSchema,
+        /** Seals who the area still catches; the GM's removal command carries it to prove it read the current set. */
+        caughtChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
         /** The saves this viewer may see: all of them for the GM, otherwise the viewer's own creatures'. */
         saves: z
           .array(
