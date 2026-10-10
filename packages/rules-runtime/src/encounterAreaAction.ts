@@ -1,18 +1,16 @@
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import type { ShapeDto } from '@artificer-toolkit/schema/shared/shape'
+import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import {
   lengthMeasurementInSceneUnits,
   measureSceneDistance,
-  sceneDistanceAsCoordinateLength,
+  pointAreaInSceneCoordinates,
   sceneFootprintMeasureHalfExtent,
   type SceneGrid,
   type ScenePoint,
   type SceneToken,
   type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
-
-type ShapeMeasurement = Extract<ShapeDto, { shapeKind: 'CUBE' }>['edgeLength']
 
 const RANGE_UNCHECKED: EncounterRuleWarningDto = {
   code: 'TARGET_RANGE_UNCHECKED',
@@ -59,36 +57,48 @@ function measuredLength(
   }
 }
 
-function coordinateLength(measurement: ShapeMeasurement, grid: SceneGrid): number | null {
-  if (measurement.scaling !== undefined || !(measurement.amount > 0)) return null
-  const distance = measuredLength(measurement, grid)
-  return distance === null ? null : sceneDistanceAsCoordinateLength(grid, distance)
+/**
+ * The authored area of a point-taking policy: a sphere, cylinder or circle is a radius and a cube
+ * is its edge. Null for an action that does not take a point.
+ */
+function authoredPointArea(
+  policy: CompiledActionTargetPolicy
+): Extract<EncounterActionChoiceDto['target'], { kind: 'POINT' }>['area'] | null {
+  const { shape } = policy
+  if (encounterActionTargetKind(policy) !== 'POINT' || shape === null) return null
+  if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
+  if (
+    shape.shapeKind === 'SPHERE' ||
+    shape.shapeKind === 'CYLINDER' ||
+    shape.shapeKind === 'CIRCLE'
+  )
+    return { kind: 'RADIUS', radius: shape.radius }
+  return null
 }
 
 /**
- * The authored area as a point-origin shape in Scene coordinates: a sphere, cylinder or circle is a
- * radius and a cube is its edge. A cylinder's height is not modeled (the Scene is flat). Null for an
- * unsupported shape or a size that is scaled, empty or unmeasurable on this Scene.
+ * What the action's choice asks the client to pick: a creature, or the point an area is centered on
+ * (with the area as authored, for the client's preview). A policy this path cannot resolve stays an
+ * actor choice; resolving it is refused.
+ */
+export function encounterActionChoiceTarget(
+  policy: CompiledActionTargetPolicy | undefined
+): EncounterActionChoiceDto['target'] {
+  const area = policy ? authoredPointArea(policy) : null
+  return area ? { kind: 'POINT', area } : { kind: 'ACTOR' }
+}
+
+/**
+ * The authored area as a point-origin shape in Scene coordinates. A cylinder's height is not
+ * modeled (the Scene is flat). Null for an unsupported shape or a size that is scaled, empty or
+ * unmeasurable on this Scene.
  */
 export function compileEncounterPointArea(
   policy: CompiledActionTargetPolicy,
   grid: SceneGrid
 ): SpatialPointAreaShape | null {
-  const { shape } = policy
-  if (encounterActionTargetKind(policy) !== 'POINT' || shape === null) return null
-  if (shape.shapeKind === 'CUBE') {
-    const edgeLength = coordinateLength(shape.edgeLength, grid)
-    return edgeLength === null ? null : { kind: 'CUBE', edgeLength }
-  }
-  if (
-    shape.shapeKind === 'SPHERE' ||
-    shape.shapeKind === 'CYLINDER' ||
-    shape.shapeKind === 'CIRCLE'
-  ) {
-    const radius = coordinateLength(shape.radius, grid)
-    return radius === null ? null : { kind: 'RADIUS', radius }
-  }
-  return null
+  const area = authoredPointArea(policy)
+  return area ? pointAreaInSceneCoordinates(area, grid) : null
 }
 
 /**
@@ -119,7 +129,10 @@ export function evaluateEncounterAreaTargetPolicy(input: {
 
 /** The range warning for the picked origin; null when the range is not a distance or unlimited. */
 function evaluateRangeWarnings(
-  input: Pick<Parameters<typeof evaluateEncounterAreaTargetPolicy>[0], 'point' | 'grid' | 'sourceToken'>,
+  input: Pick<
+    Parameters<typeof evaluateEncounterAreaTargetPolicy>[0],
+    'point' | 'grid' | 'sourceToken'
+  >,
   range: CompiledActionTargetPolicy['range']
 ): EncounterRuleWarningDto[] | null {
   if (range.rangeKind === 'UNLIMITED') return []

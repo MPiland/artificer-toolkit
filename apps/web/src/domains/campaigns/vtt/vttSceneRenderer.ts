@@ -11,7 +11,8 @@ import {
   isSceneMovementPathValid,
   SceneBarrierIndex,
   visibilityPolygonForLight,
-  type ScenePoint
+  type ScenePoint,
+  type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import type {
   Application,
@@ -28,6 +29,7 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  pointAreaOverlay,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
@@ -59,6 +61,10 @@ export type CampaignVttTool =
   | 'FOG_HIDE'
 
 interface VttSceneRendererCallbacks {
+  /** The caster clicked the map while aiming an area. */
+  onAreaPoint?: (point: ScenePoint) => void
+  /** The caster pressed Escape while aiming an area. */
+  onAreaAimCancel?: () => void
   onMapLoadStatus?: (status: VttMapLoadStatus) => void
   onCreateAnnotation?: (position: ScenePoint) => void
   onCreateBarrier: (
@@ -83,6 +89,8 @@ interface VttSceneRendererCallbacks {
 export type VttMapLoadStatus = 'ERROR' | 'LOADING' | 'READY'
 
 export interface VttSceneRendererUpdate {
+  /** While set, the pointer aims this area: a preview follows it and a click picks its origin. */
+  areaAim?: { shape: SpatialPointAreaShape } | null
   boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
@@ -1055,7 +1063,7 @@ export async function createVttSceneRenderer(
     }
     addTokenStatuses(visual, token, presentation)
     visual.on('pointerdown', (event) => {
-      if (!tokenCanMove(token) || current?.tool !== 'SELECT') return
+      if (!tokenCanMove(token) || current?.tool !== 'SELECT' || current.areaAim) return
       event.stopPropagation()
       const point = worldPoint(event)
       drag = {
@@ -1119,29 +1127,31 @@ export async function createVttSceneRenderer(
     })
   }
 
+  function overlayGraphic(overlay: VttScenePresentationOverlay): Graphics {
+    const graphic = new pixi.Graphics()
+    if (overlay.kind === 'CIRCLE') {
+      graphic
+        .circle(overlay.center.x, overlay.center.y, overlay.radius)
+        .fill({ alpha: 0.1, color: overlay.color })
+        .stroke({ alpha: 0.9, color: overlay.color, width: overlay.purpose === 'TARGET' ? 5 : 3 })
+    } else if (overlay.kind === 'PATH') {
+      const first = overlay.points[0]
+      if (first) graphic.moveTo(first.x, first.y)
+      for (const point of overlay.points.slice(1)) graphic.lineTo(point.x, point.y)
+      graphic.stroke({ alpha: 0.9, color: overlay.color, width: 4 })
+    } else if (overlay.points.length >= 3) {
+      graphic
+        .poly(overlay.points.flatMap((point) => [point.x, point.y]))
+        .fill({ alpha: overlay.purpose === 'TRAP' ? 0.18 : 0.1, color: overlay.color })
+        .stroke({ alpha: 0.85, color: overlay.color, width: 3 })
+    }
+    return graphic
+  }
+
   function drawPresentationOverlays(overlays: VttSceneRendererUpdate['overlays']): void {
     if (renderedOverlays === overlays) return
     destroyChildren(presentationLayer)
-    for (const overlay of overlays ?? []) {
-      const graphic = new pixi.Graphics()
-      if (overlay.kind === 'CIRCLE') {
-        graphic
-          .circle(overlay.center.x, overlay.center.y, overlay.radius)
-          .fill({ alpha: 0.1, color: overlay.color })
-          .stroke({ alpha: 0.9, color: overlay.color, width: overlay.purpose === 'TARGET' ? 5 : 3 })
-      } else if (overlay.kind === 'PATH') {
-        const first = overlay.points[0]
-        if (first) graphic.moveTo(first.x, first.y)
-        for (const point of overlay.points.slice(1)) graphic.lineTo(point.x, point.y)
-        graphic.stroke({ alpha: 0.9, color: overlay.color, width: 4 })
-      } else if (overlay.points.length >= 3) {
-        graphic
-          .poly(overlay.points.flatMap((point) => [point.x, point.y]))
-          .fill({ alpha: overlay.purpose === 'TRAP' ? 0.18 : 0.1, color: overlay.color })
-          .stroke({ alpha: 0.85, color: overlay.color, width: 3 })
-      }
-      presentationLayer.addChild(graphic)
-    }
+    for (const overlay of overlays ?? []) presentationLayer.addChild(overlayGraphic(overlay))
     renderedOverlays = overlays ?? null
   }
 
@@ -1184,6 +1194,12 @@ export async function createVttSceneRenderer(
       cancelActiveInteraction()
     }
     current = next
+    // Escape cancels the aim, so the canvas takes focus when it starts.
+    if (!previous?.areaAim && next.areaAim) app.canvas.focus({ preventScroll: true })
+    if (previous?.areaAim && !next.areaAim) {
+      destroyChildren(measurementLayer)
+      drawMeasurements(next.scene)
+    }
     if (previous) clearCommittedRemoteTokenDragPreviews(previous.scene, next.scene)
     clearCommittedRemoteFogPreviews(next.scene)
     if (previous && sameSceneRenderInputs(previous, next)) {
@@ -1335,6 +1351,10 @@ export async function createVttSceneRenderer(
     requestRender()
     if (!current) return
     const point = worldPoint(event)
+    if (current.areaAim && event.button === 0) {
+      callbacks.onAreaPoint?.(point)
+      return
+    }
     if (current.tool === 'PAN' || event.button === 1) {
       panStart = {
         pointer: { x: event.global.x, y: event.global.y },
@@ -1385,7 +1405,14 @@ export async function createVttSceneRenderer(
 
   app.stage.on('globalpointermove', (event) => {
     pingPress.move({ x: event.global.x, y: event.global.y })
-    if (panStart || drag || gestureStart) requestRender()
+    if (panStart || drag || gestureStart || current?.areaAim) requestRender()
+    if (current?.areaAim && !panStart) {
+      destroyChildren(measurementLayer)
+      measurementLayer.addChild(
+        overlayGraphic(pointAreaOverlay(current.areaAim.shape, worldPoint(event)))
+      )
+      return
+    }
     if (panStart) {
       world.position.set(
         panStart.world.x + event.global.x - panStart.pointer.x,
@@ -1469,6 +1496,11 @@ export async function createVttSceneRenderer(
     if (isVttPingKey(event)) {
       event.preventDefault()
       pingViewCentre()
+      return
+    }
+    if (current?.areaAim && event.key === 'Escape') {
+      event.preventDefault()
+      callbacks.onAreaAimCancel?.()
       return
     }
     if (!current || current.tool !== 'WALL' || !wallChainStart) return

@@ -7,6 +7,7 @@ import {
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  pointAreaOverlay,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
   resolveSceneTokenMove,
@@ -18,6 +19,25 @@ import {
 } from './vttSceneRenderer.model'
 
 describe('VTT scene renderer model', () => {
+  it('draws a radius area as a target circle and a cube as a target square centered on the point', () => {
+    expect(pointAreaOverlay({ kind: 'RADIUS', radius: 400 }, { x: 700, y: 500 })).toMatchObject({
+      kind: 'CIRCLE',
+      purpose: 'TARGET',
+      center: { x: 700, y: 500 },
+      radius: 400
+    })
+    expect(pointAreaOverlay({ kind: 'CUBE', edgeLength: 300 }, { x: 700, y: 500 })).toMatchObject({
+      kind: 'POLYGON',
+      purpose: 'TARGET',
+      points: [
+        { x: 550, y: 350 },
+        { x: 850, y: 350 },
+        { x: 850, y: 650 },
+        { x: 550, y: 650 }
+      ]
+    })
+  })
+
   it('resolves symmetric, bounded, and safe zoom scales', () => {
     const zoomedIn = resolveVttZoomScale(1, 1.1)
 

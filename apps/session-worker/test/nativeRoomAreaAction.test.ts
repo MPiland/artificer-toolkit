@@ -117,6 +117,21 @@ describe('room point-area action', () => {
     expect(vitalsOf(history)).toEqual(vitalsOf(before))
   })
 
+  it('offers an area action as a point with its authored radius, and a bite as a creature', async () => {
+    const area = await areaRoom()
+    const areaChoices = await area.actionChoices()
+    expect(areaChoices.actions.map(({ target }) => target)).toEqual([
+      { kind: 'POINT', area: { kind: 'RADIUS', radius: { amount: 20, unit: 'FEET' } } }
+    ])
+
+    const bite = await actionRoom({
+      actors: [srdCreatureActor({ id: CASTER_ID, creature: plainWolf })],
+      ownerFeatureId: plainWolf.features?.find((feature) => feature.label === 'Bite')?.id
+    })
+    const biteChoices = await bite.actionChoices()
+    expect(biteChoices.actions.map(({ target }) => target)).toEqual([{ kind: 'ACTOR' }])
+  })
+
   it('refuses a creature target for an area action', async () => {
     const room = await areaRoom()
     const { answer } = await room.startAction(CAUGHT_IDS[0]!)
@@ -1921,9 +1936,9 @@ describe('room area save prompt of a creature the caster cannot perceive', () =>
     expect(caster?.caught).not.toContain('Phantom Wolf')
     expect(JSON.stringify(caster)).not.toContain(PHANTOM_ID)
     expect(JSON.stringify(caster)).not.toContain('Phantom')
-    expect(
-      (await viewAs(room, [], true))?.saves.map(({ actorId }) => actorId).sort()
-    ).toEqual([CASTER_ID, SEEN_ID, PHANTOM_ID].sort())
+    expect((await viewAs(room, [], true))?.saves.map(({ actorId }) => actorId).sort()).toEqual(
+      [CASTER_ID, SEEN_ID, PHANTOM_ID].sort()
+    )
   })
 
   it('lets that roller answer their own save, which leaves the other saves waiting', async () => {

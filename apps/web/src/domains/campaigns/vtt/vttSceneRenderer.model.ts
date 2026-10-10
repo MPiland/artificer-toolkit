@@ -5,7 +5,8 @@ import {
   measureScenePathDistance,
   SceneBarrierIndex,
   type SceneGrid,
-  type ScenePoint
+  type ScenePoint,
+  type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 
 const unexploredOpacity = 224
@@ -96,9 +97,43 @@ export type VttScenePresentationOverlay =
       id: string
       kind: 'POLYGON'
       label: string
-      purpose: 'AURA' | 'TRAP'
+      purpose: 'AURA' | 'TARGET' | 'TRAP'
       points: ScenePoint[]
     }
+
+const pointAreaColor = 0xe8590c
+
+/** The overlay for a point-origin area centered on `origin`: a circle for a radius, a square for a cube. */
+export function pointAreaOverlay(
+  shape: SpatialPointAreaShape,
+  origin: ScenePoint
+): VttScenePresentationOverlay {
+  if (shape.kind === 'RADIUS') {
+    return {
+      center: origin,
+      color: pointAreaColor,
+      id: 'area-origin',
+      kind: 'CIRCLE',
+      label: 'Area origin',
+      purpose: 'TARGET',
+      radius: shape.radius
+    }
+  }
+  const half = shape.edgeLength / 2
+  return {
+    color: pointAreaColor,
+    id: 'area-origin',
+    kind: 'POLYGON',
+    label: 'Area origin',
+    points: [
+      { x: origin.x - half, y: origin.y - half },
+      { x: origin.x + half, y: origin.y - half },
+      { x: origin.x + half, y: origin.y + half },
+      { x: origin.x - half, y: origin.y + half }
+    ],
+    purpose: 'TARGET'
+  }
+}
 
 type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {
   x: number

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useDisclosure } from '@mantine/hooks'
+import { useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
@@ -13,6 +14,7 @@ import type {
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 
@@ -33,6 +35,7 @@ const actions = [
     grip: { value: 'ONE_HANDED', attackKey: 'staff-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: null,
     warnings: [],
+    target: { kind: 'ACTOR' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -47,6 +50,7 @@ const greatswordActions = [
     grip: { value: 'TWO_HANDED', attackKey: 'greatsword-instance:MELEE_WEAPON_ATTACK' },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
     warnings: [],
+    target: { kind: 'ACTOR' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -62,6 +66,7 @@ const longswordActions = [
     grip: { value: 'ONE_HANDED', attackKey: longswordAttackKey },
     wieldConflict: null,
     warnings: [],
+    target: { kind: 'ACTOR' },
     attackSlot: null
   },
   {
@@ -74,6 +79,7 @@ const longswordActions = [
     grip: { value: 'TWO_HANDED', attackKey: longswordAttackKey },
     wieldConflict: { kind: 'STOW_SHIELD', shieldItemInstanceId, armorClassDelta: -2 },
     warnings: [],
+    target: { kind: 'ACTOR' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -179,13 +185,27 @@ const meta = {
     waitingOn: null,
     basicActions: [],
     openAttackAction: null,
+    areaOrigin: null,
+    onAreaOriginChange: fn(),
+    onAreaShapeChange: fn(),
+    onPickAreaOrigin: fn(),
     onUseBasicAction: sendBasicActionCommand,
     onOpen: fn(),
     onClose: fn()
   },
   render: function Render(args) {
     const [opened, { open, close }] = useDisclosure(false)
-    return <CampaignTabletopActionDrawer {...args} opened={opened} onOpen={open} onClose={close} />
+    const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(args.areaOrigin)
+    return (
+      <CampaignTabletopActionDrawer
+        {...args}
+        areaOrigin={areaOrigin}
+        opened={opened}
+        onAreaOriginChange={setAreaOrigin}
+        onOpen={open}
+        onClose={close}
+      />
+    )
   },
   parameters: {
     a11y: { test: 'error' },
@@ -318,6 +338,7 @@ export const CreatureSource: Story = {
         grip: null,
         wieldConflict: null,
         warnings: [],
+        target: { kind: 'ACTOR' },
         attackSlot: null
       }
     ],
@@ -589,6 +610,50 @@ export const UseBasicActions: Story = {
         actorId: sourceActor.id,
         definitionId: basicActions[0].definitionId,
         targetActorId: null
+      })
+    )
+  }
+}
+
+const fireball = {
+  id: 'spell-fireball:cast',
+  label: 'Fireball',
+  sourceLabel: 'Spell',
+  rangeLabel: '150 ft',
+  grip: null,
+  wieldConflict: null,
+  warnings: [],
+  target: { kind: 'POINT', area: { kind: 'RADIUS', radius: { amount: 20, unit: 'FEET' } } },
+  attackSlot: null
+} satisfies EncounterActionChoiceDto
+
+/** An area action asks for its center, lists who stands in it, and sends the point. */
+export const ResolveAreaAction: Story = {
+  args: { ...ResolveTargetedAction.args, actions: [fireball], optionalRules: [] },
+  play: async ({ canvasElement }) => {
+    resolveAction.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Action' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Fireball · Spell' }))
+    await expect(drawer.getByText('Area origin')).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Center on token' }))
+    await userEvent.click(await page.findByRole('option', { name: 'Ember' }))
+    await expect(await drawer.findByText('In the area: Ember')).toBeVisible()
+    await userEvent.click(drawer.getByRole('button', { name: 'Resolve action' }))
+
+    await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))
+    await expect(resolveAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: fireball.id,
+        sceneContext: null,
+        target: {
+          kind: 'POINT',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          point: tabletopLiveScene.tokens[0]!.position
+        }
       })
     )
   }

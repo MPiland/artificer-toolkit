@@ -2,6 +2,8 @@ import {
   encounterActionEconomyWarnings,
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
@@ -140,6 +142,12 @@ export async function readEncounterActionChoices(
         const candidate = mechanics.rulePolicyInput.actionCandidates.find(
           (value) => value.actionId === action.id
         )
+        const entry = mechanics.compiledActionEntryPoints.find(
+          (value) =>
+            value.kind === 'CHARACTER_ACTION' &&
+            value.actionId === action.id &&
+            value.effectId === candidate?.effectId
+        )
         const wieldConflict = candidate
           ? evaluateEncounterCharacterActionWieldConflict({
               candidate,
@@ -173,6 +181,9 @@ export async function readEncounterActionChoices(
             : null,
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           attackSlot: economy.attackSlot,
+          target: encounterActionChoiceTarget(
+            entry?.kind === 'CHARACTER_ACTION' ? entry.targetPolicy : undefined
+          ),
           warnings: [
             ...economy.warnings,
             ...(reasonCode === 'SOURCE_NOT_EQUIPPED'
@@ -223,6 +234,7 @@ export async function readEncounterActionChoices(
               : null,
             wieldConflict: null,
             attackSlot: economy.attackSlot,
+            target: encounterActionChoiceTarget(buildCompiledActionTargetPolicy(action)),
             warnings: economy.warnings
           }
         })

@@ -5,6 +5,7 @@ import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import { encounterAcceptedWieldConflictDtoSchema } from './encounterRuleCommands.js'
 import { equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
+import { shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   basicActionCostDtoSchema,
   basicActionReusableDefinitionDocumentDtoSchema
@@ -47,6 +48,20 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * still asks "Do it anyway".
      */
     warnings: encounterRuleWarningsDtoSchema,
+    /**
+     * What the client picks before resolving: a creature, or the point an area is centered on. The
+     * area is as authored; the client converts it to the Scene's coordinates to preview it.
+     */
+    target: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('ACTOR') }),
+      z.strictObject({
+        kind: z.literal('POINT'),
+        area: z.discriminatedUnion('kind', [
+          z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+          z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
+        ])
+      })
+    ]),
     /**
      * The attack of the actor's Attack action this choice would make ("Attack 2 of 3"): a weapon
      * attack that fits the open Attack action, or the first one of a fresh turn. Null for choices that

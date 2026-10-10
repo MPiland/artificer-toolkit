@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  pointAreaInSceneCoordinates,
   collectSpatialMovementCandidates,
   collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
@@ -10,7 +11,7 @@ import {
   VTT_SPATIAL_LIMITS
 } from '../domains/vtt/spatial.js'
 import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
-import { VTT_SCENE_LIMITS } from '../domains/vtt/scene.js'
+import { VTT_SCENE_LIMITS, type SceneGrid } from '../domains/vtt/scene.js'
 
 const ids = {
   effect: '00000000-0000-4000-8000-000000000001',
@@ -536,6 +537,50 @@ describe('sceneDistanceAsCoordinateLength', () => {
     expect(
       sceneDistanceAsCoordinateLength({ kind: 'GRIDLESS', pixelsPerUnit: 8, unit: 'FEET' }, 20)
     ).toBe(160)
+  })
+})
+
+describe('pointAreaInSceneCoordinates', () => {
+  const feetGrid: SceneGrid = {
+    kind: 'SQUARE',
+    cellSize: 100,
+    diagonalPolicy: 'EQUAL',
+    distancePerCell: 5,
+    origin: { x: 0, y: 0 },
+    unit: 'FEET'
+  }
+  const feet = (amount: number) => ({ amount, unit: 'FEET' as const })
+
+  it('turns an authored radius and cube edge into Scene coordinates', () => {
+    expect(pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: feet(20) }, feetGrid)).toEqual({
+      kind: 'RADIUS',
+      radius: 400
+    })
+    expect(pointAreaInSceneCoordinates({ kind: 'CUBE', edgeLength: feet(15) }, feetGrid)).toEqual({
+      kind: 'CUBE',
+      edgeLength: 300
+    })
+  })
+
+  it('converts the authored unit into the Scene unit', () => {
+    const metersGrid: SceneGrid = { ...feetGrid, distancePerCell: 1.5, unit: 'METERS' }
+    const area = pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: feet(20) }, metersGrid)
+    expect(area?.kind === 'RADIUS' && area.radius).toBeCloseTo(((20 * 0.3048) / 1.5) * 100)
+  })
+
+  it('has no area when the size is scaled, empty or unmeasurable on the Scene', () => {
+    const scaled = {
+      ...feet(20),
+      scaling: { kind: 'BREAKPOINT', breakpoints: [] }
+    }
+    expect(pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: scaled }, feetGrid)).toBeNull()
+    expect(pointAreaInSceneCoordinates({ kind: 'RADIUS', radius: feet(0) }, feetGrid)).toBeNull()
+    expect(
+      pointAreaInSceneCoordinates(
+        { kind: 'CUBE', edgeLength: feet(15) },
+        { ...feetGrid, unit: 'SQUARES' }
+      )
+    ).toBeNull()
   })
 })
 

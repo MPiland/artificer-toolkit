@@ -31,11 +31,19 @@ import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/enc
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { EQUIPMENT_GRIP_REGISTRY } from '@artificer-toolkit/shared/core'
+import {
+  pointAreaInSceneCoordinates,
+  spatialTokensInsidePointArea,
+  type ScenePoint,
+  type SpatialPointAreaShape
+} from '@artificer-toolkit/shared/vtt'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
+
+const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
 
 function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto['attackSlot']>) {
   return `Attack ${number} of ${total}`
@@ -58,7 +66,11 @@ export function CampaignTabletopActionDrawer({
   onClose,
   pending,
   scene,
+  areaOrigin,
   waitingOn,
+  onAreaOriginChange,
+  onAreaShapeChange,
+  onPickAreaOrigin,
   onResolve,
   onUseBasicAction,
   onLoadOptionalChoices
@@ -80,9 +92,17 @@ export function CampaignTabletopActionDrawer({
   onOpen: () => void
   onClose: () => void
   pending: boolean
-  scene: CampaignSceneStateDto
+  /** The Scene the Encounter is bound to; null when the presented Scene is not that one. */
+  scene: CampaignSceneStateDto | null
+  /** Where the caster picked an area's center; the stage draws it and keeps it while the drawer is closed. */
+  areaOrigin: ScenePoint | null
   /** Who must answer a pending decision the viewer can't; derived by the server. */
   waitingOn: EncounterSessionStateDto['waitingOn']
+  onAreaOriginChange: (point: ScenePoint | null) => void
+  /** The selected action's area in Scene coordinates, for the stage's preview; null when none. */
+  onAreaShapeChange: (shape: SpatialPointAreaShape | null) => void
+  /** Asks the stage to let the caster click the map for the area's center. */
+  onPickAreaOrigin: () => void
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
   onUseBasicAction: (command: UseEncounterBasicActionInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
@@ -94,7 +114,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedTargetActorId, setPickedTargetActorId] = useState<string | null | undefined>(
     undefined
   )
-  const [optionalRuleId, setOptionalRuleId] = useState<string | null>(null)
+  const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
     requestIdentity: string
     value: EncounterOptionalActionChoicesDto
@@ -132,6 +152,34 @@ export function CampaignTabletopActionDrawer({
   const targetActorId =
     pickedTargetActorId === undefined ? preselectedTargetActorId : pickedTargetActorId
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
+  const pointArea = selectedAction?.target.kind === 'POINT' ? selectedAction.target.area : null
+  // Optional rules choose among the target creature's entities, so an area has none.
+  const optionalRuleId = pointArea ? null : pickedOptionalRuleId
+  const sceneTokens = scene?.tokens ?? NO_TOKENS
+  const sceneGrid = scene?.grid ?? null
+  const areaShape = useMemo(
+    () => (pointArea && sceneGrid ? pointAreaInSceneCoordinates(pointArea, sceneGrid) : null),
+    [pointArea, sceneGrid]
+  )
+  const tokensInArea = useMemo(() => {
+    if (!areaOrigin || !areaShape) return []
+    const inside = new Set(
+      spatialTokensInsidePointArea({ origin: areaOrigin, shape: areaShape, tokens: sceneTokens })
+    )
+    return sceneTokens.filter((token) => inside.has(token.id)).map((token) => token.label)
+  }, [areaOrigin, areaShape, sceneTokens])
+  const target: ResolveEncounterActionInputDto['target'] | null = pointArea
+    ? scene && areaOrigin && areaShape
+      ? {
+          kind: 'POINT',
+          sceneId: scene.id,
+          expectedSceneVersion: scene.version,
+          point: areaOrigin
+        }
+      : null
+    : targetActorId
+      ? { kind: 'ACTOR', actorId: targetActorId }
+      : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
     const groups = new Map<
@@ -156,18 +204,18 @@ export function CampaignTabletopActionDrawer({
   const selectedActionId = selectedAction?.id ?? null
   const selectedOptionalRuleId = selectedOptionalRule?.definitionId ?? null
   const sourceToken = useMemo(
-    () => scene.tokens.find((token) => actorIdByTokenId.get(token.id) === currentActor?.id),
-    [actorIdByTokenId, currentActor?.id, scene.tokens]
+    () => sceneTokens.find((token) => actorIdByTokenId.get(token.id) === currentActor?.id),
+    [actorIdByTokenId, currentActor?.id, sceneTokens]
   )
   const targetToken = useMemo(
-    () => scene.tokens.find((token) => actorIdByTokenId.get(token.id) === targetActorId),
-    [actorIdByTokenId, scene.tokens, targetActorId]
+    () => sceneTokens.find((token) => actorIdByTokenId.get(token.id) === targetActorId),
+    [actorIdByTokenId, sceneTokens, targetActorId]
   )
   const sourceTokenId = sourceToken?.id ?? null
   const targetTokenId = targetToken?.id ?? null
   const sceneContext = useMemo(
     () =>
-      sourceTokenId && targetTokenId
+      scene && sourceTokenId && targetTokenId
         ? {
             sceneId: scene.id,
             expectedSceneVersion: scene.version,
@@ -175,7 +223,7 @@ export function CampaignTabletopActionDrawer({
             targetTokenId
           }
         : null,
-    [scene.id, scene.version, sourceTokenId, targetTokenId]
+    [scene, sourceTokenId, targetTokenId]
   )
   const choiceRequestIdentity = JSON.stringify([
     encounter.id,
@@ -184,10 +232,12 @@ export function CampaignTabletopActionDrawer({
     selectedActionId,
     targetActorId,
     selectedOptionalRuleId,
-    scene.id,
-    scene.version,
+    scene?.id,
+    scene?.version,
     sourceTokenId,
-    targetTokenId
+    targetTokenId,
+    areaOrigin?.x,
+    areaOrigin?.y
   ])
   const currentOptionalChoices =
     optionalChoices?.requestIdentity === choiceRequestIdentity ? optionalChoices.value : null
@@ -245,15 +295,7 @@ export function CampaignTabletopActionDrawer({
       actorId: currentActorId,
       actionId: selectedActionId,
       targetActorId,
-      sceneContext:
-        sourceTokenId && targetTokenId
-          ? {
-              sceneId: scene.id,
-              expectedSceneVersion: scene.version,
-              sourceTokenId,
-              targetTokenId
-            }
-          : null,
+      sceneContext,
       definitionId: selectedOptionalRuleId
     })
       .then((nextChoices) => {
@@ -281,14 +323,21 @@ export function CampaignTabletopActionDrawer({
     encounter.version,
     onLoadOptionalChoices,
     opened,
-    scene.id,
-    scene.version,
+    sceneContext,
     selectedActionId,
     selectedOptionalRuleId,
-    sourceTokenId,
-    targetActorId,
-    targetTokenId
+    targetActorId
   ])
+
+  // An origin belongs to the action it was picked for.
+  useEffect(() => {
+    onAreaOriginChange(null)
+  }, [onAreaOriginChange, selectedActionId])
+
+  useEffect(() => {
+    onAreaShapeChange(areaShape)
+    return () => onAreaShapeChange(null)
+  }, [areaShape, onAreaShapeChange])
 
   async function resolveAction(
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
@@ -299,7 +348,7 @@ export function CampaignTabletopActionDrawer({
     if (
       !currentActor ||
       !selectedAction ||
-      !targetActorId ||
+      !target ||
       selectionControlsDisabled ||
       optionalChoicesLoading ||
       currentOptionalChoicesError !== null ||
@@ -317,8 +366,8 @@ export function CampaignTabletopActionDrawer({
         expectedVersion: encounter.version,
         actorId: currentActor.id,
         actionId: selectedAction.id,
-        target: { kind: 'ACTOR', actorId: targetActorId },
-        sceneContext,
+        target,
+        sceneContext: pointArea ? null : sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
         ...(isGm ? { visibility: gmRollVisibility } : {}),
@@ -334,6 +383,7 @@ export function CampaignTabletopActionDrawer({
             }
           : null
       })
+      if (pointArea) onAreaOriginChange(null)
       if (response.occurrence?.status === 'PENDING') {
         setFeedback('Action paused for a required decision.')
       } else if (response.roll) {
@@ -463,18 +513,78 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedActionId}
                 />
               ) : null}
-              <Select
-                comboboxProps={{ withinPortal: false }}
-                // A defeated creature isn't a target (D63); the server still warns if one is named.
-                data={encounter.actors
-                  .filter((actor) => !actor.defeated)
-                  .map((actor) => ({ label: actor.label, value: actor.id }))}
-                disabled={selectionControlsDisabled}
-                label='Target'
-                searchable
-                value={targetActorId}
-                onChange={setPickedTargetActorId}
-              />
+              {pointArea ? (
+                <Stack gap='xs'>
+                  <Text fw={600} size='sm'>
+                    Area origin
+                  </Text>
+                  {scene === null ? (
+                    <Text c='dimmed' size='sm'>
+                      There is no Scene for this Encounter, so an area cannot be placed.
+                    </Text>
+                  ) : areaShape === null ? (
+                    <Text c='dimmed' size='sm'>
+                      This area cannot be drawn on the current Scene.
+                    </Text>
+                  ) : (
+                    <>
+                      <Group align='flex-end'>
+                        <Button
+                          disabled={selectionControlsDisabled}
+                          variant='default'
+                          onClick={onPickAreaOrigin}
+                        >
+                          Pick on map
+                        </Button>
+                        <Select
+                          comboboxProps={{ withinPortal: false }}
+                          data={sceneTokens.map((token) => ({
+                            label: token.label,
+                            value: token.id
+                          }))}
+                          disabled={selectionControlsDisabled}
+                          label='Center on token'
+                          placeholder='Choose a token'
+                          searchable
+                          value={null}
+                          onChange={(tokenId) => {
+                            const token = sceneTokens.find((candidate) => candidate.id === tokenId)
+                            if (token) onAreaOriginChange(token.position)
+                          }}
+                        />
+                      </Group>
+                      {areaOrigin ? (
+                        <>
+                          <Text size='sm'>
+                            In the area: {tokensInArea.length ? tokensInArea.join(', ') : 'no one'}
+                          </Text>
+                          <Button
+                            disabled={selectionControlsDisabled}
+                            size='compact-sm'
+                            variant='subtle'
+                            onClick={() => onAreaOriginChange(null)}
+                          >
+                            Clear origin
+                          </Button>
+                        </>
+                      ) : null}
+                    </>
+                  )}
+                </Stack>
+              ) : (
+                <Select
+                  comboboxProps={{ withinPortal: false }}
+                  // A defeated creature isn't a target (D63); the server still warns if one is named.
+                  data={encounter.actors
+                    .filter((actor) => !actor.defeated)
+                    .map((actor) => ({ label: actor.label, value: actor.id }))}
+                  disabled={selectionControlsDisabled}
+                  label='Target'
+                  searchable
+                  value={targetActorId}
+                  onChange={setPickedTargetActorId}
+                />
+              )}
               {selectedAction?.attackSlot ? (
                 <Text fw={600} size='sm'>
                   {attackSlotLabel(selectedAction.attackSlot)}
@@ -495,7 +605,7 @@ export function CampaignTabletopActionDrawer({
                   ))}
                 </List>
               ) : null}
-              {optionalRules.length ? (
+              {optionalRules.length && !pointArea ? (
                 <Select
                   clearable
                   comboboxProps={{ withinPortal: false }}
@@ -589,7 +699,7 @@ export function CampaignTabletopActionDrawer({
                     disabled={
                       dependentControlsDisabled ||
                       !selectedAction ||
-                      !targetActorId ||
+                      !target ||
                       incompleteOptionalChoices ||
                       currentOptionalChoicesError !== null
                     }

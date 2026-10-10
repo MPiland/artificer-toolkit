@@ -3,7 +3,7 @@ import { measurementUnitCodeSchema, shapeKindSchema } from './enums.js'
 import { createBreakpointScalingDtoSchema } from './scaling.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
 
-const shapeMeasurementDtoSchema = lazySchema(() =>
+export const shapeMeasurementDtoSchema = lazySchema(() =>
   z.object({
     amount: z.number(),
     unit: measurementUnitCodeSchema,

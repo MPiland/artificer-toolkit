@@ -1,5 +1,14 @@
+import type { MeasurementUnitCode } from '../core/measurement.js'
+import { sceneDistanceAsCoordinateLength } from './geometry.js'
+import { lengthMeasurementInSceneUnits } from './sceneReducer.js'
 import { segmentsIntersect } from './segments.js'
-import { VTT_SCENE_LIMITS, VTT_SPATIAL_LIMITS, type ScenePoint, type SceneToken } from './scene.js'
+import {
+  VTT_SCENE_LIMITS,
+  VTT_SPATIAL_LIMITS,
+  type SceneGrid,
+  type ScenePoint,
+  type SceneToken
+} from './scene.js'
 
 export { VTT_SPATIAL_LIMITS } from './scene.js'
 
@@ -291,6 +300,44 @@ export function spatialGeometryIntersectsTokenFootprint(input: {
 export type SpatialPointAreaShape =
   | { readonly kind: 'RADIUS'; readonly radius: number }
   | { readonly kind: 'CUBE'; readonly edgeLength: number }
+
+/** An authored length; one with `scaling` depends on a level and has no fixed Scene size. */
+interface AuthoredPointAreaLength {
+  readonly amount: number
+  readonly unit: MeasurementUnitCode
+  readonly scaling?: unknown
+}
+
+/** A point-origin area as authored: a sphere, cylinder or circle is a radius, a cube is its edge. */
+export type AuthoredPointArea =
+  | { readonly kind: 'RADIUS'; readonly radius: AuthoredPointAreaLength }
+  | { readonly kind: 'CUBE'; readonly edgeLength: AuthoredPointAreaLength }
+
+function coordinateLength(length: AuthoredPointAreaLength, grid: SceneGrid): number | null {
+  if (length.scaling !== undefined || !(length.amount > 0)) return null
+  try {
+    const distance = lengthMeasurementInSceneUnits(length, grid)
+    return distance === null ? null : sceneDistanceAsCoordinateLength(grid, distance)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The authored area in Scene coordinates. Null for a size that is scaled, empty or unmeasurable on
+ * this Scene. A cylinder's height is not modeled (the Scene is flat).
+ */
+export function pointAreaInSceneCoordinates(
+  area: AuthoredPointArea,
+  grid: SceneGrid
+): SpatialPointAreaShape | null {
+  if (area.kind === 'CUBE') {
+    const edgeLength = coordinateLength(area.edgeLength, grid)
+    return edgeLength === null ? null : { kind: 'CUBE', edgeLength }
+  }
+  const radius = coordinateLength(area.radius, grid)
+  return radius === null ? null : { kind: 'RADIUS', radius }
+}
 
 /**
  * The tokens whose footprint touches a point-origin area, sorted by id. A cylinder's height is not

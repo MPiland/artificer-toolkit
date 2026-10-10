@@ -12,6 +12,7 @@ import type {
   EncounterActionChoicesDto,
   EncounterBasicActionChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { SpatialPointAreaShape } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
@@ -41,6 +42,7 @@ const actions = [
     grip: null,
     wieldConflict: null,
     warnings: [],
+    target: { kind: 'ACTOR' },
     attackSlot: null
   }
 ] satisfies EncounterActionChoiceDto[]
@@ -65,7 +67,12 @@ function drawerElement(
     encounter = tabletopGmEncounter,
     onUseBasicAction = vi.fn(),
     isGm = false,
-    waitingOn = null
+    waitingOn = null,
+    scene = tabletopLiveScene,
+    areaOrigin = null,
+    onAreaOriginChange = vi.fn(),
+    onAreaShapeChange = vi.fn(),
+    onPickAreaOrigin = vi.fn()
   }: {
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
@@ -75,6 +82,11 @@ function drawerElement(
     onUseBasicAction?: (command: UseEncounterBasicActionInputDto) => Promise<unknown>
     isGm?: boolean
     waitingOn?: 'GM' | 'PLAYER' | null
+    scene?: typeof tabletopLiveScene | null
+    areaOrigin?: { x: number; y: number } | null
+    onAreaOriginChange?: (point: { x: number; y: number } | null) => void
+    onAreaShapeChange?: (shape: SpatialPointAreaShape | null) => void
+    onPickAreaOrigin?: () => void
   } = {}
 ) {
   return (
@@ -92,8 +104,12 @@ function drawerElement(
       optionalRules={[]}
       pending={false}
       unavailableActions={unavailableActions}
-      scene={tabletopLiveScene}
+      scene={scene}
+      areaOrigin={areaOrigin}
       waitingOn={waitingOn}
+      onAreaOriginChange={onAreaOriginChange}
+      onAreaShapeChange={onAreaShapeChange}
+      onPickAreaOrigin={onPickAreaOrigin}
       onClose={vi.fn()}
       onLoadOptionalChoices={vi.fn()}
       onOpen={vi.fn()}
@@ -185,6 +201,7 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
       grip: { value: grip, attackKey: 'longsword::MELEE_WEAPON_ATTACK' },
       wieldConflict: null,
       warnings: [],
+      target: { kind: 'ACTOR' as const },
       attackSlot: null
     })
     renderDrawer(onResolve, { choices: [longsword('ONE_HANDED'), longsword('TWO_HANDED')] })
@@ -511,5 +528,124 @@ describe('CampaignTabletopActionDrawer attack slots (D93)', () => {
     expect(onResolve).toHaveBeenLastCalledWith(
       expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
     )
+  })
+})
+
+describe('CampaignTabletopActionDrawer area origin (D103)', () => {
+  const fireball = {
+    ...actions[0]!,
+    id: 'spell-fireball:cast',
+    label: 'Fireball',
+    sourceLabel: 'Spell',
+    rangeLabel: '150 ft',
+    attackBonus: undefined,
+    target: {
+      kind: 'POINT' as const,
+      area: { kind: 'RADIUS' as const, radius: { amount: 20, unit: 'FEET' as const } }
+    }
+  } satisfies EncounterActionChoiceDto
+  const ember = tabletopLiveScene.tokens[0]!
+  const radiusInCoordinates = (20 / tabletopLiveScene.grid.distancePerCell) * 70
+
+  async function chooseFireball(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    await user.keyboard('{ArrowDown}{Enter}')
+  }
+
+  it('asks for an origin instead of a target, then sends the point with the Scene it was picked on', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const onAreaOriginChange = vi.fn()
+    const onAreaShapeChange = vi.fn()
+    const onPickAreaOrigin = vi.fn()
+    const options = { choices: [fireball], onAreaOriginChange, onAreaShapeChange, onPickAreaOrigin }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseFireball(user)
+    expect(screen.queryByRole('combobox', { name: 'Target' })).not.toBeInTheDocument()
+    expect(screen.getByText('Area origin')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
+    expect(onAreaShapeChange).toHaveBeenLastCalledWith({
+      kind: 'RADIUS',
+      radius: radiusInCoordinates
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Pick on map' }))
+    expect(onPickAreaOrigin).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('combobox', { name: 'Center on token' }))
+    await user.click(screen.getByRole('option', { name: ember.label }))
+    expect(onAreaOriginChange).toHaveBeenLastCalledWith(ember.position)
+
+    view.rerender(drawerElement(onResolve, { ...options, areaOrigin: ember.position }))
+    expect(await screen.findByText(`In the area: ${ember.label}`)).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: fireball.id,
+        sceneContext: null,
+        target: {
+          kind: 'POINT',
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          point: ember.position
+        }
+      })
+    )
+    expect(onAreaOriginChange).toHaveBeenLastCalledWith(null)
+  })
+
+  it('shows an out-of-range rejection and resends the same point acknowledged', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi
+      .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      .mockImplementationOnce(async (command) => {
+        throw new LiveSessionCommandRejectedError({
+          code: 'DOMAIN_REJECTED',
+          commandId: command.commandId,
+          currentSequence: 3,
+          message: 'This action breaks a rule. Do it anyway?',
+          reason: 'RULE_WARNINGS',
+          warnings: [warnings[1]!]
+        })
+      })
+      .mockResolvedValue(resolved)
+    const options = { choices: [fireball], areaOrigin: ember.position }
+    const view = renderDrawer(onResolve, options)
+
+    await chooseFireball(user)
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    const confirmation = await screen.findByRole('alert')
+    expect(within(confirmation).getByText('The target is out of range.')).toBeVisible()
+
+    await user.click(within(confirmation).getByRole('button', { name: 'Do it anyway' }))
+    expect(onResolve).toHaveBeenCalledTimes(2)
+    expect(onResolve.mock.calls[1]![0]).toMatchObject({
+      target: onResolve.mock.calls[0]![0].target,
+      acknowledgedWarnings: ['TARGET_OUT_OF_RANGE']
+    })
+
+    onResolve.mockImplementationOnce(async (command) => {
+      throw new LiveSessionCommandRejectedError({
+        code: 'DOMAIN_REJECTED',
+        commandId: command.commandId,
+        currentSequence: 4,
+        message: 'This action breaks a rule. Do it anyway?',
+        reason: 'RULE_WARNINGS',
+        warnings: [warnings[1]!]
+      })
+    })
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+    await screen.findByRole('alert')
+    view.rerender(drawerElement(onResolve, { ...options, areaOrigin: { x: 700, y: 500 } }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
+
+  it('cannot resolve without a current Scene', async () => {
+    const user = userEvent.setup()
+    renderDrawer(vi.fn(), { choices: [fireball], scene: null })
+
+    await chooseFireball(user)
+    expect(screen.getByText(/no Scene/i)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Resolve action' })).toBeDisabled()
   })
 })

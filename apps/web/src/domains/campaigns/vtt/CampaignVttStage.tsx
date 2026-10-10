@@ -33,7 +33,8 @@ import {
   createUniformSceneFogLayer,
   projectSceneForViewer,
   sceneFogOwnerFailure,
-  type ScenePoint
+  type ScenePoint,
+  type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
@@ -90,7 +91,7 @@ import {
   type VttSceneRenderer,
   type VttSceneRendererUpdate
 } from './vttSceneRenderer'
-import { formatSceneMeasurement } from './vttSceneRenderer.model'
+import { formatSceneMeasurement, pointAreaOverlay } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 import { isEncounterActorMine } from './encounterActorControl'
 
@@ -103,6 +104,10 @@ export function CampaignVttStage({
 }) {
   const convex = useConvex()
   const [actionsOpened, setActionsOpened] = useState(false)
+  // An area action's center, picked on the map, and the area's size on this Scene.
+  const [areaOrigin, setAreaOrigin] = useState<ScenePoint | null>(null)
+  const [areaShape, setAreaShape] = useState<SpatialPointAreaShape | null>(null)
+  const [aimingArea, setAimingArea] = useState(false)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
@@ -488,12 +493,23 @@ export function CampaignVttStage({
       viewerUserId
     ]
   )
+  const areaAim = useMemo(
+    () => (aimingArea && areaShape ? { shape: areaShape } : null),
+    [aimingArea, areaShape]
+  )
+  const areaOverlays = useMemo(
+    () =>
+      areaShape && areaOrigin && !areaAim ? [pointAreaOverlay(areaShape, areaOrigin)] : undefined,
+    [areaAim, areaOrigin, areaShape]
+  )
   rendererUpdateRef.current = renderedScene
     ? {
+        areaAim,
         boundTokenControl,
         currentUserId: viewerUserId,
         mapDelivery: mapDelivery.data ?? null,
         mode: effectiveMode,
+        overlays: areaOverlays,
         role: gmPreviewUserId ? 'PLAYER' : campaign.role,
         scene: renderedScene,
         tokenPresentations,
@@ -603,6 +619,15 @@ export function CampaignVttStage({
     if (!host || !scene) return
     let disposed = false
     void createVttSceneRenderer(host, {
+      onAreaAimCancel: () => {
+        setAimingArea(false)
+        setActionsOpened(true)
+      },
+      onAreaPoint: (point) => {
+        setAreaOrigin(point)
+        setAimingArea(false)
+        setActionsOpened(true)
+      },
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -707,6 +732,8 @@ export function CampaignVttStage({
     const latestUpdate = rendererUpdateRef.current
     if (latestUpdate) renderer.current?.update(latestUpdate)
   }, [
+    areaAim,
+    areaOverlays,
     boundTokenControl,
     campaign.role,
     currentUserId,
@@ -1118,15 +1145,19 @@ export function CampaignVttStage({
               connected={live.status === 'CONNECTED'}
               encounter={activeEncounter}
               isGm={campaign.role === 'OWNER'}
-              opened={actionsOpened}
+              opened={actionsOpened && !aimingArea}
               onOpen={() => setActionsOpened(true)}
               onClose={() => setActionsOpened(false)}
               unavailableActions={currentActionChoices?.unavailableActions ?? []}
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
-              scene={scene}
+              scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
+              areaOrigin={areaOrigin}
               waitingOn={encounterSessionState?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
+              onAreaOriginChange={setAreaOrigin}
+              onAreaShapeChange={setAreaShape}
+              onPickAreaOrigin={() => setAimingArea(true)}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
               onUseBasicAction={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}

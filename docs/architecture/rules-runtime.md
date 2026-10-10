@@ -260,7 +260,14 @@ vulnerability stay per creature. The persistence side commits one root `AGGREGAT
 holds the source spend once and one mechanics-batch child per kept creature
 (`packages/encounter-persistence/src/areaCommitPersistence.ts`); `REVERT_LAST_ACTION` reverts the children in
 reverse, then the root. An outcome that leaves a condition, a lasting or recurring effect or a maintained
-effect is refused whole until SPELLS-19. Per-role visibility and the command flow are in
+effect is refused whole until SPELLS-19.
+
+Each action choice carries `target`: `{ kind: 'ACTOR' }` or `{ kind: 'POINT', area }`, where `area` is the
+authored radius or cube edge (`encounterActionChoiceTarget`). A policy this path cannot resolve (a cone,
+line, wall or dome) stays an actor choice and is refused when resolved. The web converts the area to Scene
+coordinates with `pointAreaInSceneCoordinates` (`shared/vtt`), the same function `compileEncounterPointArea`
+uses, to preview it and list the tokens the viewer sees inside; the room still decides who is caught.
+Per-role visibility and the command flow are in
 [live-sessions.md](live-sessions.md#encounter-commands); the decision is
 [D103](../handoffs/phase-08-2-decisions.md).
 
