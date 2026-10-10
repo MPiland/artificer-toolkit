@@ -204,7 +204,7 @@ describe('multiple damage parts on one path keep their identity through the kern
     const prepared = await prepareBite()
     // The fire part's 2d6 bound to the piercing part's identity.
     const binding = rebindBiteDamage(prepared, (outcome, [piercing]) =>
-      outcome === piercing ? { ...outcome, expression: '2d6' } : outcome
+      outcome === piercing ? { ...outcome, diceExpression: '2d6' } : outcome
     )
     await expect(settleCreatureAction({ prepared, rolls: [10], binding })).rejects.toThrow(
       'D&D resolved damage expression does not match the authored dice.'

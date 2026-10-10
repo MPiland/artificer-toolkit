@@ -899,6 +899,19 @@ function relationshipRecurrenceGraph(input: {
   })
 }
 
+/**
+ * The factor an authored damage outcome scales its total by: its `multiplier` (the monster
+ * vocabulary for half on a successful save) times its `amountKind` (the spell vocabulary: HALF is
+ * 0.5, DOUBLE is 2). Every compiled damage amount reads it, so both vocabularies compile alike.
+ */
+function damageMultiplier(outcome: {
+  amountKind?: 'FULL' | 'HALF' | 'DOUBLE'
+  multiplier?: number
+}): number {
+  const kind = outcome.amountKind === 'HALF' ? 0.5 : outcome.amountKind === 'DOUBLE' ? 2 : 1
+  return (outcome.multiplier ?? 1) * kind
+}
+
 /** An authored damage multiplier (for example half on a successful save), rounded down. */
 function multipliedDamageAmount(amount: number, multiplier: number): number {
   const value = Math.floor(amount * multiplier)
@@ -944,7 +957,7 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
   uuid(outcome.damageTypeId, 'D&D damage type identity')
   return {
     kind: 'DAMAGE',
-    amount: multipliedDamageAmount(outcome.amount, outcome.multiplier ?? 1),
+    amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
     damageTypeId: outcome.damageTypeId
   }
 }
@@ -982,7 +995,7 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
       uuid(outcome.damageTypeId, 'D&D damage type identity')
       return {
         kind: 'DAMAGE',
-        amount: multipliedDamageAmount(amount, outcome.multiplier ?? 1),
+        amount: multipliedDamageAmount(amount, damageMultiplier(outcome)),
         damageTypeId: outcome.damageTypeId
       }
     }
@@ -1567,7 +1580,7 @@ function exactImmediateFollowUpSaveShape(
         typeof repeatingDamage.dice === 'string' &&
         repeatingDamageDiceCount !== null &&
         UUID.test(repeatingDamage.damageTypeId) &&
-        repeatingDamage.multiplier === undefined &&
+        damageMultiplier(repeatingDamage) === 1 &&
         !repeatingDamage.bonuses?.length &&
         primaryDiceCount !== null &&
         1 + primaryDiceCount * 2 + 1 + repeatingDamageDiceCount <=
@@ -1589,7 +1602,7 @@ function exactImmediateFollowUpSaveShape(
     failure.scalingKind === 'NONE' &&
     failureDiceCount !== null &&
     UUID.test(failure.damageTypeId) &&
-    failure.multiplier === undefined &&
+    damageMultiplier(failure) === 1 &&
     !failure.bonuses?.length &&
     commonBoundedSave &&
     1 + primaryDiceCount! * 2 + 1 + failureDiceCount <=
@@ -1661,8 +1674,8 @@ function exactImmediateFollowUpSaveShape(
     nestedDiceCount !== null &&
     UUID.test(failure.damageTypeId) &&
     failure.damageTypeId === success.damageTypeId &&
-    failure.multiplier === undefined &&
-    success.multiplier === 0.5 &&
+    damageMultiplier(failure) === 1 &&
+    damageMultiplier(success) === 0.5 &&
     !failure.bonuses?.length &&
     !success.bonuses?.length &&
     (reduction === undefined ||
@@ -2122,7 +2135,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome 
   uuid(outcome.damageTypeId, 'D&D damage type identity')
   return {
     kind: 'DAMAGE',
-    amount: multipliedDamageAmount(outcome.amount, outcome.multiplier ?? 1),
+    amount: multipliedDamageAmount(outcome.amount, damageMultiplier(outcome)),
     damageTypeId: outcome.damageTypeId
   }
 }
@@ -3513,8 +3526,8 @@ function diceGraphDefinition(input: {
     ? rolledSubtotal
     : { kind: 'NODE_OUTPUT' as const, nodeId: totalNodeId, port: 'value' }
   const multiplier =
-    outcome.effectKind === 'DAMAGE' && outcome.multiplier !== undefined && outcome.multiplier !== 1
-      ? outcome.multiplier
+    outcome.effectKind === 'DAMAGE' && damageMultiplier(outcome) !== 1
+      ? damageMultiplier(outcome)
       : null
   const multipliedNodeId = `${prefix}damage-multiplied`
   const multiplierNode =
@@ -6273,8 +6286,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         )
           continue
         const expression =
-          typeof row.expression === 'string'
-            ? row.expression
+          typeof row.diceExpression === 'string'
+            ? row.diceExpression
             : resolveCreatureDamageExpression({
                 outcome: row,
                 sourceDerivedFacts: sourceFacts,
@@ -6304,8 +6317,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         )
           continue
         const expression =
-          typeof row.expression === 'string'
-            ? row.expression
+          typeof row.diceExpression === 'string'
+            ? row.diceExpression
             : resolveCreatureDamageExpression({
                 outcome: row,
                 sourceDerivedFacts: sourceFacts,

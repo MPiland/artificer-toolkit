@@ -43,8 +43,7 @@ const FIRE = srdDamageTypeId('FIRE')
  * SRD Fireball as the Creature Feature a monster would carry. Two things differ from the authored
  * spell, both because a Creature Feature has no spellcaster behind it: a fixed DC of 13 in place of
  * SOURCE_SAVE_DC, and the damage taken at its base cast level (3rd) from the authored row, since a
- * Creature Feature has no cast level to scale by, and an authored HALF amount in the multiplier a
- * Creature Feature states it with. The area, range, save, fire damage and half on a
+ * Creature Feature has no cast level to scale by. The area, range, save, fire damage and half on a
  * success are the SRD data.
  */
 function fireball(): CreatureFeature {
@@ -73,7 +72,7 @@ function fireball(): CreatureFeature {
               ...path.resultBlock,
               outcomes: path.resultBlock.outcomes.map((outcome) => {
                 if (outcome.effectKind !== 'DAMAGE' || !('levels' in outcome)) return outcome
-                const { levels, scalingSource, amountKind, ...rest } = outcome
+                const { levels, scalingSource, ...rest } = outcome
                 void scalingSource
                 const row = levels.find((level) => level.level === 3)
                 if (!row || !('diceConfig' in row))
@@ -82,8 +81,7 @@ function fireball(): CreatureFeature {
                   ...rest,
                   valueKind: 'DICE' as const,
                   scalingKind: 'NONE' as const,
-                  diceConfig: row.diceConfig,
-                  ...(amountKind === 'HALF' ? { multiplier: 0.5 } : {})
+                  diceConfig: row.diceConfig
                 }
               })
             }

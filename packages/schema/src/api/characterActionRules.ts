@@ -380,6 +380,10 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
             outcomeId: z.optional(identitySchema),
             pathCode: identitySchema,
             expression: stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+            diceExpression: stringSchema
+              .check(z.trim())
+              .check(z.minLength(1))
+              .check(z.maxLength(500)),
             damageTypeId: identitySchema,
             scaling: z.array(actionOutcomeScalingSchema).check(z.maxLength(100))
           }),

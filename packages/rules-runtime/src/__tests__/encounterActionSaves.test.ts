@@ -15,6 +15,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { antitoxinEffect } from './antitoxinEffectFixture.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import { evaluateSrdCharacter, srdFeature } from './dnd5eSrdCharacter.js'
+import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   creatureActor,
@@ -157,6 +158,35 @@ function acidBreath(): CreatureFeature {
         }
       }
     ]
+  }
+}
+
+/**
+ * The same SRD Acid Breath with its half-on-success authored as `amountKind: 'HALF'` (the spell
+ * vocabulary) instead of the monster `multiplier: 0.5`.
+ */
+function acidBreathAuthoredHalf(): CreatureFeature {
+  const feature = acidBreath()
+  return {
+    ...feature,
+    effects: (feature.effects ?? []).map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => {
+        if (!('resultBlock' in path) || path.resultBlock.resultKind !== 'SINGLE') return path
+        return {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            outcomes: path.resultBlock.outcomes.map((outcome) => {
+              if (outcome.effectKind !== 'DAMAGE' || outcome.multiplier !== 0.5) return outcome
+              const { multiplier, ...rest } = outcome
+              void multiplier
+              return { ...rest, amountKind: 'HALF' as const }
+            })
+          }
+        }
+      })
+    }))
   }
 }
 
@@ -325,6 +355,144 @@ describe('saving throw outcomes through action execution', () => {
     expect(result.d20).toMatchObject({ total: 14, defenseOrDc: 11, resultPath: 'ON_SAVE_SUCCESS' })
     expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 7 }])
     expect(result.hitPoints).toBe(4)
+  })
+})
+
+describe('a half-damage success authored as an amount kind', () => {
+  it('halves the SRD Acid Breath on a successful save like the authored multiplier does', async () => {
+    const feature = acidBreathAuthoredHalf()
+    expect(JSON.stringify(feature)).toContain('"amountKind":"HALF"')
+    expect(JSON.stringify(feature)).not.toContain('"multiplier"')
+    const result = await resolve({ feature, rolls: [11, 0, 1, 2, 3, 4] })
+    expect(result.d20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 7 }])
+  })
+
+  describe('a Character mechanic stating the amount in its resolved expression', () => {
+    const SPELL_ID = '00000000-0000-4000-8000-0000000d0008'
+    const SPELL_EFFECT_ID = '00000000-0000-4000-8000-0000000d0009'
+
+    /** The binding outcomes the real Character action evaluator resolves for a 5d8 save spell. */
+    async function settleWithCharacterMechanic(input: {
+      feature: CreatureFeature
+      amount: { amountKind: 'HALF' | null; amountMultiplier: number | null }
+    }) {
+      const prepared = await prepareCreatureAction({
+        actor: creatureActor({ id: SOURCE_ID, label: 'Save Caster', features: [input.feature] }),
+        target: creatureActor({ id: TARGET_ID, label: 'Wolf', features: [] }),
+        featureId: input.feature.id,
+        overridable: true
+      })
+      const bound = (
+        prepared.binding.actionMechanic as { outcomes: Array<Record<string, unknown>> }
+      ).outcomes
+      const output = evaluateDnd5e2014CharacterActions({
+        candidates: [],
+        abilityDefinitions: [],
+        spellCandidates: [],
+        spellSlots: [],
+        spellMechanics: [],
+        proficiencies: [],
+        itemAdjustments: [],
+        spellEffects: [
+          {
+            spellId: SPELL_ID,
+            effects: [
+              {
+                effectId: SPELL_EFFECT_ID,
+                mechanicFacts: {
+                  invocation: {
+                    triggerCode: 'SAVING_THROW',
+                    activation: null,
+                    range: { rangeKind: 'UNLIMITED', amount: null, unit: null },
+                    savingThrow: null,
+                    reactionMovementTrigger: null
+                  },
+                  outcomes: bound.map((outcome) => ({
+                    kind: 'DAMAGE' as const,
+                    outcomeId: outcome.outcomeId as string,
+                    pathCode: outcome.pathCode as string,
+                    label: null,
+                    damageTypeId: outcome.damageTypeId as string,
+                    valueKind: 'DICE' as const,
+                    scalingKind: 'NONE' as const,
+                    scalingSource: null,
+                    classId: null,
+                    amountKind:
+                      outcome.pathCode === 'ON_SAVE_SUCCESS' ? input.amount.amountKind : null,
+                    amountMultiplier:
+                      outcome.pathCode === 'ON_SAVE_SUCCESS' ? input.amount.amountMultiplier : null,
+                    values: [
+                      {
+                        level: null,
+                        order: 0,
+                        amount: null,
+                        dice: '5d8',
+                        halfHitPointsDice: null,
+                        multiplier: null,
+                        minimum: null,
+                        maximum: null
+                      }
+                    ],
+                    bonuses: []
+                  }))
+                }
+              }
+            ]
+          }
+        ],
+        activeSourceIds: [],
+        activeEquipmentInstanceIds: [],
+        resources: [],
+        modifierGroups: [],
+        totalLevel: 5,
+        classLevels: [],
+        proficiencyBonus: 3,
+        abilities: [],
+        skills: [],
+        spellcasting: { saveDc: 13, attackBonus: 5 }
+      })
+      const mechanic = output.spellReferenceMechanics.find((entry) => entry.spellId === SPELL_ID)!
+        .mechanics[0]!
+      const binding = {
+        ...prepared.binding,
+        actionMechanic: { ...prepared.binding.actionMechanic, outcomes: mechanic.outcomes }
+      }
+      const { mechanics } = await settleCreatureAction({
+        prepared,
+        binding,
+        rolls: [11, 0, 1, 2, 3, 4]
+      })
+      const target = mechanics.targetPlan.updatedActor
+      if (target.kind === 'CHARACTER') throw new Error('Expected a Creature target.')
+      return target.currentHitPoints
+    }
+
+    it('applies an authored amount kind HALF once', async () => {
+      expect(
+        await settleWithCharacterMechanic({
+          feature: acidBreathAuthoredHalf(),
+          amount: { amountKind: 'HALF', amountMultiplier: null }
+        })
+      ).toBe(11 - 7)
+    })
+
+    it('applies an authored multiplier once', async () => {
+      expect(
+        await settleWithCharacterMechanic({
+          feature: acidBreath(),
+          amount: { amountKind: null, amountMultiplier: 0.5 }
+        })
+      ).toBe(11 - 7)
+    })
+  })
+
+  it('still takes the full damage on a failed save', async () => {
+    const result = await resolve({
+      feature: acidBreathAuthoredHalf(),
+      rolls: [4, 0, 0, 0, 0, 1]
+    })
+    expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 6 }])
   })
 })
 

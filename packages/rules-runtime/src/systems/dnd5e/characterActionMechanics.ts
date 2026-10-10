@@ -78,18 +78,21 @@ function formatExpression(value: number | string, bonus: number): string {
   return bonus > 0 ? `${base} + ${formatNumber(bonus)}` : `${base} - ${formatNumber(-bonus)}`
 }
 
+/**
+ * Words the authored damage amount (kind and multiplier) as the roll expression's own transform,
+ * so the sheet rolls it as stated. The bare dice stay in `diceExpression`.
+ */
 function applyDamageAmountMetadata(
   expression: string,
   amountKind: 'FULL' | 'HALF' | 'DOUBLE' | null,
   multiplier: number | null
 ): string {
-  const multiplied =
-    multiplier !== null && multiplier !== 1
-      ? `${formatNumber(multiplier)} × ${expression}`
-      : expression
-  if (amountKind === 'HALF') return `half of ${multiplied}`
-  if (amountKind === 'DOUBLE') return `double ${multiplied}`
-  return multiplied
+  const factor = (multiplier ?? 1) * (amountKind === 'HALF' ? 0.5 : amountKind === 'DOUBLE' ? 2 : 1)
+  if (factor === 1) return expression
+  if (factor === 0.5) return `half of ${expression}`
+  if (factor === 2) return `double ${expression}`
+  if (Number.isInteger(factor) && factor > 2) return `${factor} × (${expression})`
+  throw new Error(`Action damage amount factor ${factor} has no roll expression.`)
 }
 
 function canonicalAbility(value: string): AbilityCode | null {
@@ -387,6 +390,7 @@ export function resolveDnd5eActionMechanic(
             outcome.amountKind,
             outcome.amountMultiplier
           ),
+          diceExpression: expression,
           damageTypeId: outcome.damageTypeId,
           scaling
         }
