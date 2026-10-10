@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   EncounterCommandResultDto,
+  RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -13,7 +14,7 @@ import type {
 const expect = playwrightExpect.configure({ timeout: 90_000 })
 
 type CapturedEncounterCommand = {
-  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
+  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
   result?: EncounterCommandResultDto
   error?: string
 }
@@ -43,7 +44,12 @@ export function captureEncounterCommands(
         )
           return
         const command = message.data.command.command
-        if (command.type !== 'RESOLVE_ACTION' && command.type !== 'RESOLVE_RULE_OCCURRENCE') return
+        if (
+          command.type !== 'RESOLVE_ACTION' &&
+          command.type !== 'RESOLVE_RULE_OCCURRENCE' &&
+          command.type !== 'REMOVE_AREA_TARGET'
+        )
+          return
         if (!commands.has(command.commandId)) commands.set(command.commandId, { command })
       })
       socket.on('framereceived', ({ payload }) => {
@@ -97,7 +103,7 @@ export async function waitForCommand(
   commands: Map<string, CapturedEncounterCommand>,
   priorCount: number
 ): Promise<{
-  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
+  command: ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto | RemoveAreaTargetInputDto
   result: EncounterCommandResultDto
 }> {
   await expect.poll(() => commands.size).toBe(priorCount + 1)

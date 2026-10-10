@@ -5182,10 +5182,12 @@
         {
           "id": "SPELLS-7",
           "title": "Area actions from a point (Fireball)",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/session-worker/test/nativeRoomAreaJourney.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "Every AC is proved at the room seam. The web round is still open: picking a point on the map, the per-role caught list, the GM remove control, area save prompts and Legendary Resistance offers, and the caster's ISSUER and GM lines. The PBI closes with a browser journey of that flow.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomAreaJourney.test.ts",
+            "apps/web/tests/live-backend/encounterArea.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -5201,7 +5203,7 @@
                 "apps/session-worker/test/nativeRoomAreaJourney.test.ts"
               ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 4, split 2026-10-10 into SPELLS-7 (point areas), SPELLS-13 (cones and lines), SPELLS-14 (cover), SPELLS-15 (area Legendary options), SPELLS-16 (caster spares creatures) and SPELLS-17 (placed zones, was 7.2 Caltrops). User ruling 2026-10-10: the app picks everyone in the area and the GM can adjust; a feature such as the Evocation wizard's Sculpt Spells lets the caster choose (SPELLS-16). The room computes the set, stores it with a currentness checksum and refuses if a token moved; the command carries a discriminated target (ACTOR or POINT), with no targetActorId alias. Built 2026-10-10 (D103). Out of sight (2026-10-10, D103): the caster's sight of the picked point is the D100 perception rules with the point as a subject with no conditions or effects (resolveEncounterPointSight), raising the overridable TARGET_OUT_OF_SIGHT beside TARGET_OUT_OF_RANGE; an undecided sight (a Creature's unmodeled free-text Senses) raises nothing. The room tests send the area action unacknowledged (refused with the warning, nothing opened or spent) and acknowledged (area opens) for range, a Blinded caster and a light-blocking wall.",
+              "note": "rul-9-rules-audit.md slice 4, split 2026-10-10 into SPELLS-7 (point areas), SPELLS-13 (cones and lines), SPELLS-14 (cover), SPELLS-15 (area Legendary options), SPELLS-16 (caster spares creatures) and SPELLS-17 (placed zones, was 7.2 Caltrops). User ruling 2026-10-10: the app picks everyone in the area and the GM can adjust; a feature such as the Evocation wizard's Sculpt Spells lets the caster choose (SPELLS-16). The room computes the set, stores it with a currentness checksum and refuses if a token moved; the command carries a discriminated target (ACTOR or POINT), with no targetActorId alias. Built 2026-10-10 (D103). Out of sight (2026-10-10, D103): the caster's sight of the picked point is the D100 perception rules with the point as a subject with no conditions or effects (resolveEncounterPointSight), raising the overridable TARGET_OUT_OF_SIGHT beside TARGET_OUT_OF_RANGE; an undecided sight (a Creature's unmodeled free-text Senses) raises nothing. The room tests send the area action unacknowledged (refused with the warning, nothing opened or spent) and acknowledged (area opens) for range, a Blinded caster and a light-blocking wall. Web 2026-10-10 (5e4eec851, 0a1fd73cb, ec779091f): the action drawer picks the origin on the map or centers it on a token and previews who is caught; the decision drawer shows the caught list and per-role save groups, with GM-only removal and Legendary Resistance offers; Encounter history shows the issuer lines and GM-only lines. The live browser journey (apps/web/tests/live-backend/encounterArea.ts, runLocalConvexProof.ps1 -Proof area-browser) proves the pick, Escape cancel, GM removal, the player's own-save-only view, the commit's HP changes and the history.",
               "id": "SPELLS-7.1"
             },
             {

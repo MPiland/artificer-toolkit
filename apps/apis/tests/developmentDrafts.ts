@@ -115,7 +115,8 @@ if (
   process.argv.includes('--checkpoint') ||
   process.argv.includes('--checkpoint-large') ||
   process.argv.includes('--encounter-disarm') ||
-  process.argv.includes('--encounter-disarm-browser')
+  process.argv.includes('--encounter-disarm-browser') ||
+  process.argv.includes('--encounter-area-browser')
 ) {
   assert.equal(mode, 'local', 'Receipt proof requires the verified isolated local backend.')
   assert.equal(process.env.CONVEX_SELF_HOSTED_URL, deploymentUrl.origin)
@@ -2697,6 +2698,7 @@ try {
     process.argv.includes('--encounter-action-contention') ||
     process.argv.includes('--encounter-disarm') ||
     process.argv.includes('--encounter-disarm-browser') ||
+    process.argv.includes('--encounter-area-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
     process.argv.includes('--encounter-reaction-contention')
@@ -2725,8 +2727,15 @@ try {
     const disarm = process.argv.includes('--encounter-disarm') || disarmBrowser
     const effectsBrowser = process.argv.includes('--encounter-effects-browser')
     const effectJourney = process.argv.includes('--encounter-effects') || effectsBrowser
+    const areaBrowser = process.argv.includes('--encounter-area-browser')
     const lifecycle =
-      lifecycleSuite || movementBrowser || effectJourney || actionContention || disarm || workload
+      lifecycleSuite ||
+      movementBrowser ||
+      effectJourney ||
+      actionContention ||
+      disarm ||
+      areaBrowser ||
+      workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
     characterFixtures.push({ userId: player.identity.userId, characterId })
@@ -2857,6 +2866,79 @@ try {
                 )
               }
             : undefined
+        })
+      }
+      if (areaBrowser) {
+        publicationAuthors.push({
+          client: owner.client,
+          userId: owner.identity.userId,
+          systemId: srdSystemRecord.id,
+          subjectKind: 'CREATURE'
+        })
+        browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+        const { createAreaCaster, createAreaWolf } = await import('./fixtures/encounterArea')
+        const creatures = [
+          createAreaCaster(crypto.randomUUID(), 'Area caster'),
+          createAreaWolf(crypto.randomUUID(), 'Area ally wolf'),
+          createAreaWolf(crypto.randomUUID(), 'Area enemy wolf'),
+          createAreaWolf(crypto.randomUUID(), 'Area far wolf')
+        ] as const
+        for (const creature of creatures) {
+          const draft = await owner.client.mutation(api.content.drafts.save, {
+            subjectKind: 'CREATURE',
+            subjectId: creature.id,
+            systemId: srdSystemRecord.id,
+            label: creature.label,
+            payload: creature
+          })
+          assert.ok(draft.updatedAt)
+          await owner.client.mutation(api.content.publication.publishDraft, {
+            subjectKind: 'CREATURE',
+            subjectId: draft.subjectId,
+            expectedDraftUpdatedAt: draft.updatedAt
+          })
+        }
+        const { verifyEncounterArea } = await import('./developmentEncounterArea')
+        await verifyEncounterArea({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          casterId: creatures[0].id,
+          allyId: creatures[1].id,
+          enemyId: creatures[2].id,
+          farId: creatures[3].id,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          readTimeline: () => owner.client.encounterTimeline(campaign.id),
+          browser: async (fixture, verify) => {
+            const { verifyEncounterAreaBrowser } =
+              await import('../../web/tests/live-backend/encounterArea')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterAreaBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/area-vtt-browser-20261010/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
         })
       }
       if (effectJourney) {

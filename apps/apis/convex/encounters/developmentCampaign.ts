@@ -345,8 +345,7 @@ export const removeFixtureCampaign = internalMutation({
       ) ||
       noteDependencies.some(({ references }) => references.length) ||
       ((conversations.length || notebookSections.length) &&
-        (sessions.length ||
-          announcements.length ||
+        (announcements.length ||
           contentShares.length ||
           (contentRemovalEvents.length > 0 && !sceneDeparture)))
     )

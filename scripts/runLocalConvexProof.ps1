@@ -12,7 +12,7 @@ param(
     'publication-equipment-browser', 'campaign-lifecycle', 'campaign-custody-browser',
     'campaign-membership-browser', 'campaign-collaboration-browser', 'campaign-content-browser',
     'scene-live-browser', 'vtt-map-retention', 'movement', 'passage', 'disarm-browser', 'effects-browser',
-    'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
+    'area-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
     'character-sheet-spells-browser', 'vtt-browser', 'v15-workload'
   )][string]$Proof
 )
@@ -54,6 +54,7 @@ $driverArguments = [string[]]@(switch ($Proof) {
   'passage' { '--encounter-passage-browser' }
   'disarm-browser' { '--encounter-disarm-browser' }
   'effects-browser' { '--encounter-effects-browser' }
+  'area-browser' { '--encounter-area-browser' }
   'builder-browser' { '--character-builder-browser' }
   'v15-workload' { '--encounter-v15-workload' }
   'account-deletion-browser' { '--account-deletion-browser'; "--fixture-attempt=$Name" }
