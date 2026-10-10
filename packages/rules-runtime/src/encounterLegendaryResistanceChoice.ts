@@ -2,7 +2,8 @@ import type { EncounterLegendaryResistancePinDto } from '@artificer-toolkit/sche
 import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto,
-  ServerRuleExecutionD20EvidenceDto
+  ServerRuleExecutionD20EvidenceDto,
+  ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -207,4 +208,79 @@ export async function settleEncounterLegendaryResistanceChoice(input: {
     : null
 
   return { use, choice, chargeProposal }
+}
+
+/** What a sealed offer pins about the failed save, the creature and the resistance it may use. */
+type EncounterLegendaryResistanceOfferPin = {
+  originalExecutionChecksum: string
+  targetStateChecksum: string
+  d20: ServerRuleExecutionD20PolicyDto
+  resistance: EncounterLegendaryResistancePinDto
+}
+
+/** The interstitial audit a decided offer hands the sealed OUTCOME it selects. */
+export function encounterLegendaryResistanceAudit(input: {
+  offer: EncounterLegendaryResistanceOfferPin
+  selection: 'DECLINE' | 'USE'
+  choiceExecution: ServerCompletedRuleExecutionDto
+}) {
+  return {
+    choiceExecution: input.choiceExecution,
+    selection: input.selection,
+    originalExecutionChecksum: input.offer.originalExecutionChecksum,
+    targetStateChecksum: input.offer.targetStateChecksum,
+    resistance: input.offer.resistance,
+    d20: input.offer.d20
+  }
+}
+
+/**
+ * Settles a creature's decision against its sealed offer. The offer, the failed save, the creature's
+ * facts and the freshly discovered pool must all still be the ones it was made against. A decision to
+ * use also proposes the charge it costs; spending it belongs to the caller's commit.
+ */
+export async function decideEncounterLegendaryResistance(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  boundary: {
+    execution: ServerCompletedRuleExecutionDto
+    d20: ServerRuleExecutionD20EvidenceDto
+    d20Policy: ServerRuleExecutionD20PolicyDto
+  }
+  offer: EncounterLegendaryResistanceOfferPin
+  candidate: EncounterLegendaryResistanceCandidate
+  targetStateChecksum: string
+  selection: EncounterLegendaryResistanceSelection
+  currentFeatureResource: EncounterLegendaryResistanceFeatureResource
+}) {
+  const { boundary, offer } = input
+  if (
+    input.targetStateChecksum !== offer.targetStateChecksum ||
+    checksumRuleDocument(boundary.execution) !== offer.originalExecutionChecksum ||
+    checksumRuleDocument(boundary.d20Policy) !== checksumRuleDocument(offer.d20) ||
+    !sameEncounterLegendaryResistanceCandidate(offer.resistance, input.candidate)
+  )
+    throw new Error('Legendary Resistance evidence is stale.')
+  requireFailedLegendaryResistanceSave({ execution: boundary.execution, d20: boundary.d20 })
+  const choice = await openEncounterLegendaryResistanceChoice({
+    runtime: input.runtime,
+    occurrenceId: input.occurrenceId,
+    candidate: input.candidate
+  })
+  const settled = await settleEncounterLegendaryResistanceChoice({
+    runtime: input.runtime,
+    candidate: input.candidate,
+    resistance: offer.resistance,
+    continuation: choice.continuation,
+    selection: input.selection,
+    currentFeatureResource: input.currentFeatureResource
+  })
+  return {
+    ...settled,
+    audit: encounterLegendaryResistanceAudit({
+      offer,
+      selection: settled.use ? 'USE' : 'DECLINE',
+      choiceExecution: settled.choice
+    })
+  }
 }

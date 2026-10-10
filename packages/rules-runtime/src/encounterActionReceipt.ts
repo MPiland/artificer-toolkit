@@ -11,7 +11,7 @@ import type {
   NativeEncounterActionMechanicsInput,
   planNativeEncounterAreaSourceSpend
 } from './encounterActionMechanicsPlan.js'
-import type { encounterAreaTargetLegendaryResistance } from './encounterAreaLegendaryResistance.js'
+import type { encounterTargetLegendaryResistance } from './encounterAreaLegendaryResistance.js'
 
 /** Recorded so a GM undo restores the allowance exactly; an override may exceed the maximum. */
 function actionEconomyReceipt(consumption: EncounterActionEconomyConsumption | null) {
@@ -43,10 +43,9 @@ export function buildEncounterActionStoredExecution(input: {
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
   /** Set when the batch is one creature's outcome of a point-area action rooted at `parentOccurrenceId`. */
-  area?: {
-    parentOccurrenceId: string
-    resistance: ReturnType<typeof encounterAreaTargetLegendaryResistance> | null
-  }
+  area?: { parentOccurrenceId: string }
+  /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
+  resistance?: ReturnType<typeof encounterTargetLegendaryResistance> | null
 }) {
   const { prepared, execution, occurrenceId, occurrenceVersion, settled, effects } = input
   const { state, source, actor, target } = prepared
@@ -123,8 +122,8 @@ export function buildEncounterActionStoredExecution(input: {
             sourceCharacterStreamVersion,
             resourceConsumption: resourceReceipt,
             featureResourceConsumption: featureResourceReceipt,
-            targetFeatureResourceConsumption: input.area?.resistance?.charge ?? null,
-            legendaryResistance: input.area?.resistance?.legendaryResistance ?? null,
+            targetFeatureResourceConsumption: input.resistance?.charge ?? null,
+            legendaryResistance: input.resistance?.legendaryResistance ?? null,
             sourceItemUseStateTransition: settled.sourceItemUseStateTransition,
             sourceItemConsumption: settled.itemConsumptionReceipt,
             actionEconomyTransition,

@@ -125,6 +125,9 @@ export async function persistEncounterActionPending(
       snapshot.graph.source.gameSystemId !== state.gameSystemId ||
       snapshot.deferredCleaving !== undefined ||
       snapshot.applicationContext.contest !== undefined ||
+      (snapshot.applicationContext.legendaryResistance !== undefined &&
+        snapshot.applicationContext.legendaryResistance.resistance.targetActorId !==
+          target.actorId) ||
       (resume &&
         (snapshot.occurrenceId !== resume.occurrence.id ||
           snapshot.applicationContext.currentnessChecksum !==
@@ -182,7 +185,7 @@ export async function persistEncounterActionPending(
       rootFingerprint: fingerprint,
       userId,
       rootInitiatorUserId: initiatorUserId,
-      areaSaveRequestId: resume.area ? resume.pending.snapshot.request.requestId : undefined,
+      answeredRequestId: resume.pending.snapshot.request.requestId,
       result: {
         status: 'PAUSED',
         occurrenceId: occurrence.id,

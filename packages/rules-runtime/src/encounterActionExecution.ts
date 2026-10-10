@@ -37,9 +37,17 @@ import {
   type ServerRuleExecutionNestedD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
-import { directActionTwoPhaseDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import {
+  directActionTwoPhaseDtoSchema,
+  type EncounterLegendaryResistanceOfferDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type { z } from 'zod'
+import {
+  encounterLegendaryResistancePin,
+  openEncounterLegendaryResistanceChoice
+} from './encounterLegendaryResistanceChoice.js'
+import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import { nextRollInt } from './random.js'
 
 /** Runs the sealed TEST and selected OUTCOME before the owning mutation settles mechanics. */
@@ -237,6 +245,8 @@ export type PendingNativeActionGraphs = {
   d20Belief?: EncounterAttackD20Belief
   /** The d20 already entered while one more is needed to settle the true mode. */
   heldD20?: EncounterActionHeldD20Dto
+  /** Set while the target's failed save waits on its Legendary Resistance choice; `continuation` is that choice. */
+  legendaryResistance?: EncounterLegendaryResistanceOfferDto
 }
 
 type NativeActionTestBoundary = {
@@ -702,6 +712,56 @@ export async function prepareNativeActionTest(
   return boundary
 }
 
+/** Rebuilds a sealed TEST boundary from current facts and the recorded faces, without rolling again. */
+export async function reconstructNativeActionTest(
+  input: Pick<
+    NativeActionBaseInput,
+    'runtime' | 'adapter' | 'plan' | 'occurrenceId' | 'binding'
+  > & {
+    execution: ServerCompletedRuleExecutionDto
+    d20: Pick<
+      ServerRuleExecutionD20EvidenceDto,
+      'requestId' | 'rawFaces' | 'rollMode' | 'selectedNatural'
+    >
+  }
+) {
+  const source: NativeActionBaseInput = {
+    runtime: input.runtime,
+    adapter: input.adapter,
+    plan: input.plan,
+    occurrenceId: input.occurrenceId,
+    binding: input.binding,
+    autoRoll: { SOURCE: false, TARGET: false },
+    afterTest: async () => undefined,
+    random: () => {
+      throw new Error('Retained TEST evidence must not roll again.')
+    }
+  }
+  const pending = await prepareNativeActionTest(source)
+  if (pending.kind !== 'PENDING' || pending.continuation.request.requestId !== input.d20.requestId)
+    throw new Error('The retained TEST request is stale.')
+  const boundary = await prepareNativeActionTest({
+    ...source,
+    resume: {
+      pending,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: input.d20.requestId,
+        rawFaces: input.d20.rawFaces,
+        rollMode: input.d20.rollMode
+      }
+    }
+  })
+  if (
+    boundary.kind !== 'TEST_BOUNDARY' ||
+    boundary.d20.rollMode !== input.d20.rollMode ||
+    boundary.d20.selectedNatural !== input.d20.selectedNatural ||
+    checksumRuleDocument(boundary.execution) !== checksumRuleDocument(input.execution)
+  )
+    throw new Error('The retained TEST execution is stale.')
+  return boundary
+}
+
 type NativeActionLegendaryResistanceAudit = NonNullable<
   Extract<NativeTwoPhase, { phase: 'OUTCOME' }>['legendaryResistance']
 >
@@ -938,6 +998,14 @@ export async function advanceNativeActionGraphs(input: {
   autoRoll: EncounterActionAutoRoll
   binding: Omit<Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0], 'published'>
   afterTest(execution: ServerCompletedRuleExecutionDto): Promise<void>
+  /**
+   * The Legendary Resistance the resisting target may use against a failed TEST save. A found
+   * candidate holds the action before its OUTCOME for the target's choice.
+   */
+  legendaryResistance?: {
+    discover(): Promise<EncounterLegendaryResistanceCandidate | null>
+    targetStateChecksum: string
+  }
   resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   /**
    * The true and believed sight of an attack roll. Only the room's RESOLVE_ACTION passes it: the
@@ -1265,6 +1333,31 @@ export async function advanceNativeActionGraphs(input: {
       }
     ]
     await input.afterTest(result)
+    const resistance = input.legendaryResistance
+    const candidate =
+      resistance && testD20.resultPath === 'ON_SAVE_FAIL' ? await resistance.discover() : null
+    if (resistance && candidate && twoPhase?.phase === 'TEST') {
+      const choice = await openEncounterLegendaryResistanceChoice({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        candidate
+      })
+      return {
+        kind: 'PENDING',
+        continuation: choice.continuation,
+        d20Policy: null,
+        twoPhase,
+        roller: 'TARGET',
+        legendaryResistance: {
+          originalExecution: result,
+          originalD20: testD20,
+          d20: stage.d20.policy,
+          originalExecutionChecksum: checksumRuleDocument(result),
+          targetStateChecksum: resistance.targetStateChecksum,
+          resistance: encounterLegendaryResistancePin(candidate)
+        }
+      }
+    }
     const outcome = resolveEncounterActionPhaseExecution({
       plan: input.plan,
       phase: 'TEST',

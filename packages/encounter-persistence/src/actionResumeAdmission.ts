@@ -169,6 +169,15 @@ export async function readNativeEncounterActionResponseAdmission(
     if (answer.decision.kind === 'USE' && answer.decision.optionId !== offer.resistance.useOptionId)
       rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
   } else if (areaSave?.testedJson !== undefined) rejectDomain('DECISION_NOT_PENDING')
+  else {
+    // A single-target action holding a creature's Legendary Resistance offer takes only its answer.
+    const held = areaSave ? undefined : pending.context.legendaryResistance
+    if (answer.kind === 'DECLINE' || answer.kind === 'OPTION') {
+      if (!held) rejectDomain('DECISION_NOT_PENDING')
+      if (answer.kind === 'OPTION' && answer.optionId !== held.resistance.useOptionId)
+        rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
+    } else if (held) rejectDomain('DECISION_NOT_PENDING')
+  }
   if (response.commandId === parsed.commandId || rootReceipt) rejectDomain('COMMAND_ID_REUSED')
   const used = await ctx.db
     .query('encounterRunCommands')
@@ -190,7 +199,9 @@ export async function readNativeEncounterActionResponseAdmission(
     resolution.kind !== 'ENTER_DICE' &&
     resolution.kind !== 'ENTER_INTEGER' &&
     resolution.kind !== 'SYSTEM_ROLL' &&
-    resolution.kind !== 'AREA_LEGENDARY_RESISTANCE'
+    resolution.kind !== 'AREA_LEGENDARY_RESISTANCE' &&
+    resolution.kind !== 'DECLINE' &&
+    resolution.kind !== 'OPTION'
   )
     throw new Error('The action requires dice, integer or Legendary Resistance evidence.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {

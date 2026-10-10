@@ -40,7 +40,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   decideEncounterAreaLegendaryResistance,
   encounterAreaLegendaryResistanceAudits,
-  encounterAreaTargetLegendaryResistance,
+  encounterTargetLegendaryResistance,
   offerEncounterAreaLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
@@ -352,7 +352,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       actorId: prepared.target.id,
       binding: prepared.binding,
       autoRoll: { SOURCE: false, TARGET: false },
-      discoverLegendaryResistance: discoverAreaLegendaryResistance(input, prepared)
+      discoverLegendaryResistance: discoverNativeLegendaryResistance(input, prepared)
     }))
   })
   const commandJson = JSON.stringify(command)
@@ -556,7 +556,7 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
     resolution
   )
   const { prepared } = revalidated.target
-  const candidate = await discoverAreaLegendaryResistance(input, prepared)()
+  const candidate = await discoverNativeLegendaryResistance(input, prepared)()
   if (!candidate) throw new Error('Legendary Resistance evidence is stale.')
   const resource = findEncounterFeatureResource(
     prepared.actorRules,
@@ -604,7 +604,7 @@ type AreaContext = Extract<
 type AreaTargetRecord = AreaContext['targets'][number]
 
 /** The creature's Legendary Resistance on its current pool, looked up only once its save has failed. */
-function discoverAreaLegendaryResistance(
+export function discoverNativeLegendaryResistance(
   input: Pick<AreaPlanInput, 'state' | 'capture'>,
   prepared: Pick<Awaited<ReturnType<typeof prepareAreaTarget>>['prepared'], 'target' | 'actorRules'>
 ) {
@@ -712,7 +712,7 @@ async function replayAreaTargetSave(
       actorId: actor.id,
       binding: target.prepared.binding,
       autoRoll: { SOURCE: false, TARGET: false },
-      discoverLegendaryResistance: discoverAreaLegendaryResistance(input, target.prepared)
+      discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     },
     tests: [
       {
@@ -930,7 +930,7 @@ export async function planNativeLiveEncounterAreaCommit(
       actorId: target.prepared.target.id,
       binding: target.prepared.binding,
       autoRoll: { SOURCE: false, TARGET: false },
-      discoverLegendaryResistance: discoverAreaLegendaryResistance(input, target.prepared)
+      discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     })),
     tests,
     legendaryResistance: audits
@@ -977,9 +977,9 @@ export async function planNativeLiveEncounterAreaCommit(
       userId
     )
     const audit = audits.get(actor.id)
-    let resistance: ReturnType<typeof encounterAreaTargetLegendaryResistance> | null = null
+    let resistance: ReturnType<typeof encounterTargetLegendaryResistance> | null = null
     if (audit) {
-      const candidate = await discoverAreaLegendaryResistance(input, prepared)()
+      const candidate = await discoverNativeLegendaryResistance(input, prepared)()
       const resource =
         candidate &&
         findEncounterFeatureResource(
@@ -988,7 +988,7 @@ export async function planNativeLiveEncounterAreaCommit(
           candidate.ownerFeatureId
         )
       if (!candidate || !resource) throw new Error('Legendary Resistance evidence is stale.')
-      resistance = encounterAreaTargetLegendaryResistance({
+      resistance = encounterTargetLegendaryResistance({
         audit,
         candidate,
         boundary: test.boundary,
@@ -1017,7 +1017,8 @@ export async function planNativeLiveEncounterAreaCommit(
         maintenanceTransition: null,
         actionEconomy: null,
         attackAction: null,
-        area: { parentOccurrenceId: areaOccurrenceId, resistance }
+        area: { parentOccurrenceId: areaOccurrenceId },
+        resistance
       })
     })
   }

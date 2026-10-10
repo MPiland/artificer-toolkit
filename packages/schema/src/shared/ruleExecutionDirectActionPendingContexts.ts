@@ -92,6 +92,24 @@ export function validateEncounterLegendaryResistancePin(
     })
 }
 
+/**
+ * A failed save held for its creature's Legendary Resistance choice: the failed TEST execution and its
+ * d20, the exact TEST policy a later sealed OUTCOME continues from, and the pin of the resistance offered.
+ */
+export const encounterLegendaryResistanceOfferDtoSchema = lazySchema(() =>
+  z.strictObject({
+    originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+    originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+    d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+    originalExecutionChecksum: checksumSchema,
+    targetStateChecksum: checksumSchema,
+    resistance: encounterLegendaryResistancePinDtoSchema
+  })
+)
+export type EncounterLegendaryResistanceOfferDto = z.infer<
+  typeof encounterLegendaryResistanceOfferDtoSchema
+>
+
 /** Server-only interstitial control evidence retained when a failed TEST uses Legendary Resistance. */
 const directActionLegendaryResistanceOutcomeAuditDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -356,15 +374,8 @@ export const encounterActorRuleActionPendingContextDtoSchema = lazySchema(() =>
           })
         )
       }),
-      z.strictObject({
-        kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
-        originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-        originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-        /** Exact TEST policy retained for a later sealed OUTCOME continuation. */
-        d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-        originalExecutionChecksum: checksumSchema,
-        targetStateChecksum: checksumSchema,
-        resistance: encounterLegendaryResistancePinDtoSchema
+      z.extend(encounterLegendaryResistanceOfferDtoSchema, {
+        kind: z.literal('LEGENDARY_RESISTANCE_CHOICE')
       })
     ])
   })
@@ -480,14 +491,8 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
           })
         )
       }),
-      z.strictObject({
-        kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
-        originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-        originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-        d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-        originalExecutionChecksum: checksumSchema,
-        targetStateChecksum: checksumSchema,
-        resistance: encounterLegendaryResistancePinDtoSchema
+      z.extend(encounterLegendaryResistanceOfferDtoSchema, {
+        kind: z.literal('LEGENDARY_RESISTANCE_CHOICE')
       })
     ])
   })

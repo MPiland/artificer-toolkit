@@ -20,15 +20,15 @@ export async function insertActionEvidenceReceipt(
     rootFingerprint: string
     userId: string
     rootInitiatorUserId?: string
-    /** The save an area Legendary Resistance decision belongs to; every other answer names its own. */
-    areaSaveRequestId?: string
+    /** The request a Legendary Resistance decision answers; a dice or integer answer names its own. */
+    answeredRequestId?: string
     commandResult?: EncounterCommandResultDto
     result: ReturnType<typeof storedRuleExecutionResultDtoSchema.parse>
   }
 ) {
   const { occurrence, response } = input
   const requestId =
-    'requestId' in response.resolution ? response.resolution.requestId : input.areaSaveRequestId
+    'requestId' in response.resolution ? response.resolution.requestId : input.answeredRequestId
   if (requestId === undefined) throw new Error('The action requires evidence.')
   await ctx.db.insert(
     'encounterRuleReceipts',

@@ -38,7 +38,10 @@ import {
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
-import { snapshotCreatureTypeId } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  snapshotCreatureTypeId,
+  withFeatureChargeUsed
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
   encounterActionSuppressedWarning,
   evaluateEncounterActionRuleWarnings,
@@ -61,7 +64,13 @@ import {
   type EncounterEvidenceAnswer
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
+import {
+  replayNativeActionLegendaryResistance,
+  resolveNativeActionLegendaryResistance
+} from '@artificer-toolkit/rules-runtime/encounterActionLegendaryResistance'
+import type { EncounterLegendaryResistanceSelection } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceChoice'
+import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
+import type { EncounterLegendaryResistanceOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
@@ -71,6 +80,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
 import {
+  discoverNativeLegendaryResistance,
   planNativeLiveEncounterAreaAction,
   planNativeLiveEncounterAreaAnswer,
   planNativeLiveEncounterAreaLegendaryResistance,
@@ -88,6 +98,7 @@ import {
   nativeConcentrationDamageSourceLabels
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import {
+  encounterRunActorStateSchema,
   encounterRunStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -166,6 +177,10 @@ export async function planNativeLiveEncounterAction(
     ResolveRuleOccurrenceInputDto['resolution'],
     { kind: 'AREA_LEGENDARY_RESISTANCE' }
   > | null = null
+  let resistanceAnswer: {
+    offer: EncounterLegendaryResistanceOfferDto
+    selection: EncounterLegendaryResistanceSelection
+  } | null = null
   if (responseCommand) {
     if (!snapshot || snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION')
       throw new Error('The pending action snapshot is unavailable.')
@@ -175,7 +190,14 @@ export async function planNativeLiveEncounterAction(
       admission.kind === 'ACTION_RESPONSE' ? admission.appRoll : null
     )
     if (resolution.kind === 'AREA_LEGENDARY_RESISTANCE') areaDecision = resolution
-    else if (
+    else if (snapshot.applicationContext.legendaryResistance) {
+      if (resolution.kind !== 'DECLINE' && resolution.kind !== 'OPTION')
+        throw new Error('The action requires a Legendary Resistance decision.')
+      resistanceAnswer = {
+        offer: snapshot.applicationContext.legendaryResistance,
+        selection: resolution
+      }
+    } else if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
       resolution.kind !== 'SYSTEM_ROLL'
@@ -463,7 +485,7 @@ export async function planNativeLiveEncounterAction(
           resolution: evidenceResolution
         }
       : null
-  const execution = await advanceNativeActionGraphs({
+  const actionSource = {
     runtime: executionOptions.runtime,
     random: executionOptions.random,
     adapter: prepared.adapter,
@@ -474,30 +496,49 @@ export async function planNativeLiveEncounterAction(
       TARGET: requireAutoRoll(prepared.target.id)
     },
     binding: prepared.binding,
-    attackSight: prepared.attackSight,
-    ...(resume ? { resume } : {}),
-    afterTest: async (test) => {
-      if (test.outputs.resultPath !== 'ON_SAVE_FAIL' || prepared.target.kind !== 'CREATURE') return
-      const candidate = await discoverEncounterLegendaryResistanceCandidate({
-        encounter: state,
-        targetActor: prepared.target,
-        actorRules: prepared.actorRules,
-        definitions: {
-          requireCurrent: async (definitionId) => {
-            const response = await capture({
-              kind: 'DEFINITION',
-              definitionId
-            })
-            if (response.kind !== 'DEFINITION' || !response.definition)
-              throw new Error('Legendary Resistance definition is unavailable.')
-            return response.definition
-          }
-        }
+    afterTest: async () => undefined
+  }
+  const discoverResistance = discoverNativeLegendaryResistance({ state, capture }, prepared)
+  const targetStateChecksum = checksumRuleDocument(prepared.target)
+  /** The creature's Legendary Resistance and pool as they are now; a decision or its record needs both. */
+  const currentResistance = async () => {
+    const candidate = await discoverResistance()
+    const currentFeatureResource =
+      candidate &&
+      findEncounterFeatureResource(
+        prepared.actorRules,
+        candidate.targetActorId,
+        candidate.ownerFeatureId
+      )
+    if (!candidate || !currentFeatureResource)
+      throw new Error('Legendary Resistance evidence is stale.')
+    return { candidate, currentFeatureResource, targetStateChecksum }
+  }
+  const answered = resistanceAnswer
+    ? await resolveNativeActionLegendaryResistance({
+        ...actionSource,
+        ...resistanceAnswer,
+        ...(await currentResistance())
       })
-      // A Legendary Resistance decision on an action save is not built yet (movement saves have it).
-      if (candidate) throw new Error('The action requires a Legendary Resistance decision.')
-    }
-  })
+    : null
+  const execution =
+    answered?.execution ??
+    (await advanceNativeActionGraphs({
+      ...actionSource,
+      attackSight: prepared.attackSight,
+      ...(resume ? { resume } : {}),
+      legendaryResistance: { discover: discoverResistance, targetStateChecksum }
+    }))
+  const retained = resume?.pending.twoPhase
+  const resistance =
+    answered?.resistance ??
+    (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
+      ? await replayNativeActionLegendaryResistance({
+          ...actionSource,
+          outcome: retained,
+          ...(await currentResistance())
+        })
+      : null)
   const occurredAt = new Date().toISOString()
   const preflight = {
     command,
@@ -538,7 +579,7 @@ export async function planNativeLiveEncounterAction(
     published: execution.published,
     targetActorId: prepared.target.id
   })
-  const mechanics = planNativeEncounterActionMechanics(
+  const planned = planNativeEncounterActionMechanics(
     {
       prepared,
       encounterId: state.id,
@@ -557,6 +598,26 @@ export async function planNativeLiveEncounterAction(
     },
     initial.expectedUserId
   )
+  // A Legendary Resistance the target used spends its own charge with the outcome.
+  const charge = resistance?.charge
+  const chargedTarget = (actor: EncounterRunActorState) =>
+    charge
+      ? encounterRunActorStateSchema.parse({
+          ...actor,
+          resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.afterUsed)
+        })
+      : actor
+  const mechanics = {
+    ...planned,
+    mechanics: {
+      ...planned.mechanics,
+      updatedActor: chargedTarget(planned.mechanics.updatedActor)
+    },
+    settledSource:
+      planned.settledSource.id === prepared.target.id
+        ? chargedTarget(planned.settledSource)
+        : planned.settledSource
+  }
   const settlement = planNativeLiveEncounterSettlement({
     command,
     occurrenceId,
@@ -616,7 +677,8 @@ export async function planNativeLiveEncounterAction(
     maintainedState: settlement.maintainedState,
     maintenanceTransition: settlement.maintenanceTransition,
     actionEconomy,
-    attackAction
+    attackAction,
+    resistance
   })
   const cleavingRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
   const cleaving =

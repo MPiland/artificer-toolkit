@@ -17,7 +17,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { prepareNativeActionTest } from './encounterActionExecution.js'
+import { reconstructNativeActionTest } from './encounterActionExecution.js'
 import type { prepareEncounterMovementReactionAction } from './encounterMovementReactionPreparation.js'
 import {
   bindEncounterMovementMaintenancePending,
@@ -51,41 +51,15 @@ export async function reconstructNativeMovementResistanceTest(input: {
     'requestId' | 'rawFaces' | 'rollMode' | 'selectedNatural'
   >
 }) {
-  const source = {
+  return reconstructNativeActionTest({
     runtime: input.runtime,
     occurrenceId: input.occurrenceId,
     adapter: input.prepared.prepared.adapter,
     binding: input.prepared.prepared.binding,
     plan: input.prepared.executionPlan,
-    autoRoll: { SOURCE: false, TARGET: false },
-    afterTest: async () => undefined,
-    random: () => {
-      throw new Error('Retained TEST evidence must not roll again.')
-    }
-  }
-  const pending = await prepareNativeActionTest(source)
-  if (pending.kind !== 'PENDING' || pending.continuation.request.requestId !== input.d20.requestId)
-    throw new Error('The retained Legendary Resistance TEST request is stale.')
-  const boundary = await prepareNativeActionTest({
-    ...source,
-    resume: {
-      pending,
-      resolution: {
-        kind: 'ENTER_DICE',
-        requestId: input.d20.requestId,
-        rawFaces: input.d20.rawFaces,
-        rollMode: input.d20.rollMode
-      }
-    }
+    execution: input.execution,
+    d20: input.d20
   })
-  if (
-    boundary.kind !== 'TEST_BOUNDARY' ||
-    boundary.d20.rollMode !== input.d20.rollMode ||
-    boundary.d20.selectedNatural !== input.d20.selectedNatural ||
-    checksumRuleDocument(boundary.execution) !== checksumRuleDocument(input.execution)
-  )
-    throw new Error('The retained Legendary Resistance TEST execution is stale.')
-  return boundary
 }
 
 export function nativeMovementResistanceResource(

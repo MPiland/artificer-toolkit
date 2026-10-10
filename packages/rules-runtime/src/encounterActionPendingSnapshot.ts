@@ -25,6 +25,7 @@ export function restoreEncounterActionPending(
     twoPhase: context.twoPhase,
     ...(context.d20Belief ? { d20Belief: context.d20Belief } : {}),
     ...(context.heldD20 ? { heldD20: context.heldD20 } : {}),
+    ...(context.legendaryResistance ? { legendaryResistance: context.legendaryResistance } : {}),
     ...(phaseReceipts ? { phaseReceipts } : {})
   }
 }
@@ -59,7 +60,10 @@ export function buildEncounterActionPendingSnapshot(input: {
       d20Policy: execution.d20Policy,
       twoPhase: execution.twoPhase,
       ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
-      ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {})
+      ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
+      ...(execution.legendaryResistance
+        ? { legendaryResistance: execution.legendaryResistance }
+        : {})
     },
     ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
   }

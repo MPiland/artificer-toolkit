@@ -542,7 +542,7 @@ export async function persistEncounterAreaCommit(
       rootFingerprint: fingerprint,
       userId,
       rootInitiatorUserId: initiatorUserId,
-      areaSaveRequestId: resume.pending.snapshot.request.requestId,
+      answeredRequestId: resume.pending.snapshot.request.requestId,
       result: rootExecution
     })
   return presentEncounterResultForMember(ctx, { campaign, membership, result })

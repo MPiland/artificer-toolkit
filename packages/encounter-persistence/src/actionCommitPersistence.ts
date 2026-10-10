@@ -233,8 +233,25 @@ export async function persistEncounterActionCommit(
     ) !== checksumCanonicalJson(batch.sourceItemUseStateTransition)
   )
     throw new Error('Live Session mechanics receipt mismatch.')
+  // A Legendary Resistance the target used spends one of its own charges with the outcome.
+  const targetCharge =
+    batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ? batch.targetFeatureResourceConsumption : null
+  if (targetCharge && targetCharge.ownerActorId !== target.id)
+    throw new Error('Live Session action charge scope mismatch.')
+  const settledTarget = targetCharge
+    ? await settleActionSourceSpend(ctx, {
+        encounterId: state.id,
+        source: mechanics.updatedActor,
+        spend: {
+          featureResourceConsumption: targetCharge,
+          actionEconomyTransition: null,
+          attackActionTransition: undefined
+        },
+        economyOverridden: false
+      })
+    : mechanics.updatedActor
   const beforeSource =
-    sourceMechanics?.updatedActor ?? (source.id === target.id ? mechanics.updatedActor : source)
+    sourceMechanics?.updatedActor ?? (source.id === target.id ? settledTarget : source)
   const settledSource = await settleActionSourceSpend(ctx, {
     encounterId: state.id,
     source: beforeSource,
@@ -242,7 +259,7 @@ export async function persistEncounterActionCommit(
     economyOverridden: overridesActionEconomy(input.ruleOverrides)
   })
   let nextActors = actors.map((actor) =>
-    actor.id === source.id ? settledSource : actor.id === target.id ? mechanics.updatedActor : actor
+    actor.id === source.id ? settledSource : actor.id === target.id ? settledTarget : actor
   )
   nextActors = await callbacks.persistActionEffects({
     ...effectInput,
@@ -355,6 +372,7 @@ export async function persistEncounterActionCommit(
       rootFingerprint: fingerprint,
       userId,
       rootInitiatorUserId: initiatorUserId,
+      answeredRequestId: resume.pending.snapshot.request.requestId,
       result: execution
     })
   return presentEncounterResultForMember(ctx, {

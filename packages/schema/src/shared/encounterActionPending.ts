@@ -1,5 +1,9 @@
 import { z, lazySchema } from '../zod.js'
-import { directActionTwoPhaseDtoSchema } from './ruleExecutionDirectActionPendingContexts.js'
+import {
+  directActionTwoPhaseDtoSchema,
+  encounterLegendaryResistanceOfferDtoSchema,
+  validateEncounterLegendaryResistancePin
+} from './ruleExecutionDirectActionPendingContexts.js'
 import {
   serverRuleExecutionD20BeliefDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema
@@ -52,10 +56,34 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.1). */
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
-      heldD20: z.optional(heldD20Schema)
+      heldD20: z.optional(heldD20Schema),
+      /**
+       * Set while the target's failed save waits on its Legendary Resistance choice. The snapshot's
+       * continuation is that choice; the TEST stays unsettled until the answer.
+       */
+      legendaryResistance: z.optional(encounterLegendaryResistanceOfferDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {
+        if (value.legendaryResistance) {
+          validateEncounterLegendaryResistancePin(value.legendaryResistance.resistance, context, [
+            'legendaryResistance',
+            'resistance'
+          ])
+          if (
+            value.twoPhase?.phase !== 'TEST' ||
+            value.rollerActorId !== value.legendaryResistance.resistance.targetActorId ||
+            value.d20Policy !== null ||
+            value.contest ||
+            value.heldD20
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['legendaryResistance'],
+              message:
+                'A Legendary Resistance offer belongs to a TEST held for the resisting creature.'
+            })
+        }
         if (value.heldD20 && value.d20Policy === null)
           context.addIssue({
             code: 'custom',

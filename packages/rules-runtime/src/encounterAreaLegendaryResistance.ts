@@ -7,12 +7,11 @@ import type {
 } from './encounterAreaActionExecution.js'
 import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import {
+  decideEncounterLegendaryResistance,
+  encounterLegendaryResistanceAudit,
   encounterLegendaryResistancePin,
   legendaryResistanceChargeProposal,
-  openEncounterLegendaryResistanceChoice,
-  requireFailedLegendaryResistanceSave,
   sameEncounterLegendaryResistanceCandidate,
-  settleEncounterLegendaryResistanceChoice,
   type EncounterLegendaryResistanceFeatureResource,
   type EncounterLegendaryResistanceSelection
 } from './encounterLegendaryResistanceChoice.js'
@@ -54,38 +53,18 @@ export async function decideEncounterAreaLegendaryResistance(input: {
   selection: EncounterLegendaryResistanceSelection
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
-  const { boundary } = input.test
-  if (
-    input.offer.decision ||
-    input.targetStateChecksum !== input.offer.targetStateChecksum ||
-    checksumRuleDocument(boundary.execution) !== input.offer.originalExecutionChecksum ||
-    checksumRuleDocument(boundary.d20Policy) !== checksumRuleDocument(input.offer.d20) ||
-    !sameEncounterLegendaryResistanceCandidate(input.offer.resistance, input.candidate)
-  )
-    throw new Error('Legendary Resistance evidence is stale.')
-  requireFailedLegendaryResistanceSave({ execution: boundary.execution, d20: boundary.d20 })
-  const choice = await openEncounterLegendaryResistanceChoice({
-    runtime: input.runtime,
+  if (input.offer.decision) throw new Error('Legendary Resistance evidence is stale.')
+  const decided = await decideEncounterLegendaryResistance({
+    ...input,
     occurrenceId: encounterAreaTargetOccurrenceId(input.areaOccurrenceId, input.test.actorId),
-    candidate: input.candidate
-  })
-  const settled = await settleEncounterLegendaryResistanceChoice({
-    runtime: input.runtime,
-    candidate: input.candidate,
-    resistance: input.offer.resistance,
-    continuation: choice.continuation,
-    selection: input.selection,
-    currentFeatureResource: input.currentFeatureResource
+    boundary: input.test.boundary
   })
   return {
     legendaryResistance: {
       ...input.offer,
-      decision: {
-        selection: settled.use ? ('USE' as const) : ('DECLINE' as const),
-        choiceExecution: settled.choice
-      }
+      decision: { selection: decided.audit.selection, choiceExecution: decided.choice }
     } satisfies EncounterAreaLegendaryResistanceDto,
-    chargeProposal: settled.chargeProposal
+    chargeProposal: decided.chargeProposal
   }
 }
 
@@ -96,27 +75,28 @@ export function encounterAreaLegendaryResistanceAudits(
   const audits = new Map<string, EncounterAreaLegendaryResistanceAudit>()
   for (const [actorId, offer] of offers) {
     if (!offer.decision) continue
-    audits.set(actorId, {
-      choiceExecution: offer.decision.choiceExecution,
-      selection: offer.decision.selection,
-      originalExecutionChecksum: offer.originalExecutionChecksum,
-      targetStateChecksum: offer.targetStateChecksum,
-      resistance: offer.resistance,
-      d20: offer.d20
-    })
+    audits.set(
+      actorId,
+      encounterLegendaryResistanceAudit({
+        offer,
+        selection: offer.decision.selection,
+        choiceExecution: offer.decision.choiceExecution
+      })
+    )
   }
   return audits
 }
 
 /**
- * What a creature's area outcome records of its decided Legendary Resistance: the decision against the
- * failed save it replaces, and, when it used the resistance, the charge it cost on the creature's
- * current pool. The creature's pool and the offer must still be the ones the decision was made against.
+ * What a creature's action outcome (one area target's, or a single-target action's) records of its
+ * decided Legendary Resistance: the decision against the failed save it replaces, and, when it used the
+ * resistance, the charge it cost on the creature's current pool. The creature's pool and the offer must
+ * still be the ones the decision was made against.
  */
-export function encounterAreaTargetLegendaryResistance(input: {
+export function encounterTargetLegendaryResistance(input: {
   audit: EncounterAreaLegendaryResistanceAudit
   candidate: EncounterLegendaryResistanceCandidate
-  boundary: TestedAreaTest['boundary']
+  boundary: Pick<TestedAreaTest['boundary'], 'execution' | 'd20'>
   currentFeatureResource: EncounterLegendaryResistanceFeatureResource
 }) {
   const { audit, candidate, boundary } = input

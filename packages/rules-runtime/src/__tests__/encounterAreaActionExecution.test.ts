@@ -27,10 +27,11 @@ import {
 import {
   decideEncounterAreaLegendaryResistance,
   encounterAreaLegendaryResistanceAudits,
-  encounterAreaTargetLegendaryResistance,
+  encounterTargetLegendaryResistance,
   offerEncounterAreaLegendaryResistance
 } from '../encounterAreaLegendaryResistance.js'
 import { findEncounterFeatureResource } from '../encounterActorRuleOutput.js'
+import { decideEncounterLegendaryResistance } from '../encounterLegendaryResistanceChoice.js'
 import { discoverEncounterLegendaryResistanceCandidate } from '../encounterLegendaryResistanceDiscovery.js'
 import { srdActorRules, srdDefinitions } from '../testing/dnd5eSrdEncounter.js'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -789,7 +790,7 @@ describe('Legendary Resistance on an area save', () => {
           new Map([[DRAGON_ID, decided.legendaryResistance]])
         ).values()
       ]
-      const recorded = encounterAreaTargetLegendaryResistance({
+      const recorded = encounterTargetLegendaryResistance({
         audit: audit!,
         candidate: test.legendaryResistance!,
         boundary: test.boundary,
@@ -815,7 +816,7 @@ describe('Legendary Resistance on an area save', () => {
     const spent = dragonActor(1)
     const stale = await discoverFor([spent])(spent)()
     expect(() =>
-      encounterAreaTargetLegendaryResistance({
+      encounterTargetLegendaryResistance({
         audit: audit!,
         candidate: stale!,
         boundary: testedOf(area.tests, DRAGON_ID).boundary,
@@ -849,6 +850,63 @@ describe('Legendary Resistance on an area save', () => {
     const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
     await expect(decideDragon(area, { kind: 'OPTION', optionId: 'f'.repeat(64) })).rejects.toThrow(
       'Legendary Resistance selection was not issued'
+    )
+  })
+})
+
+describe('the Legendary Resistance decision a single-target action shares with an area', () => {
+  async function decideShared(
+    area: Awaited<ReturnType<typeof caughtDragonAndFoe>>,
+    overrides: Partial<Parameters<typeof decideEncounterLegendaryResistance>[0]> = {}
+  ) {
+    return decideEncounterLegendaryResistance({
+      runtime,
+      occurrenceId: OCCURRENCE_ID,
+      boundary: testedOf(area.tests, DRAGON_ID).boundary,
+      offer: area.offer!,
+      candidate: testedOf(area.tests, DRAGON_ID).legendaryResistance!,
+      targetStateChecksum: area.offer!.targetStateChecksum,
+      selection: { kind: 'OPTION', optionId: area.offer!.resistance.useOptionId },
+      currentFeatureResource: area.currentFeatureResource,
+      ...overrides
+    })
+  }
+
+  it('audits a use against the failed save, spending nothing itself', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const decided = await decideShared(area)
+    expect(decided.audit.selection).toBe('USE')
+    expect(decided.chargeProposal).toMatchObject({ ownerActorId: DRAGON_ID, cost: 1 })
+  })
+
+  it('refuses a creature whose pool changed since the offer', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const spent = dragonActor(1)
+    const candidate = (await discoverFor([spent])(spent)())!
+    await expect(decideShared(area, { candidate })).rejects.toThrow(
+      'Legendary Resistance evidence is stale.'
+    )
+    const resource = { ...area.currentFeatureResource, used: 1, remaining: 2 }
+    await expect(decideShared(area, { currentFeatureResource: resource })).rejects.toThrow(
+      'Legendary Resistance charge is stale.'
+    )
+  })
+
+  it('refuses a creature whose state changed since the offer', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    await expect(decideShared(area, { targetStateChecksum: 'b'.repeat(64) })).rejects.toThrow(
+      'Legendary Resistance evidence is stale.'
+    )
+  })
+
+  it('refuses a candidate whose pin differs from the offer', async () => {
+    const area = await caughtDragonAndFoe({ [DRAGON_ID]: 10, [FOE_ID]: 10 })
+    const candidate = {
+      ...testedOf(area.tests, DRAGON_ID).legendaryResistance!,
+      ownerFeatureId: FEATURE_ID
+    }
+    await expect(decideShared(area, { candidate })).rejects.toThrow(
+      'Legendary Resistance evidence is stale.'
     )
   })
 })
