@@ -50,6 +50,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'INITIATIVE_DECLARATION') return 'Initiative declaration required'
   if (kind === 'RECHARGE_EVIDENCE') return 'Recharge roll required'
   if (kind === 'ACTION_OUTCOME_EVIDENCE') return 'Action outcome required'
+  if (kind === 'AREA_SAVES') return 'Area saves'
   return 'Initiative order required'
 }
 

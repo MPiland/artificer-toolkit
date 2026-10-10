@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
+  RemoveAreaTargetInputDto,
   ResolveRuleOccurrenceInputDto,
   RollRuleEvidenceInputDto,
   VoidRuleOccurrenceInputDto
@@ -28,6 +29,28 @@ const d20Pending = {
     derivedRollModeReasons: ['Flanking']
   },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+const areaPending = {
+  kind: 'AREA_SAVES',
+  occurrenceId,
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  casterActorId: tabletopGmEncounter.actors[0]!.id,
+  caughtChecksum: 'e'.repeat(64),
+  caught: ['Ember', 'Vault Warden'],
+  saves: tabletopGmEncounter.actors.map((actor) => ({
+    actorId: actor.id,
+    request: {
+      requestId: `save-${actor.id}`,
+      min: 1 as const,
+      max: 20 as const,
+      rollMode: 'NORMAL' as const,
+      derivedRollModeReasons: []
+    }
+  })),
+  legendaryResistance: [],
+  allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
 const reactionPending = {
@@ -110,7 +133,11 @@ const declarationPending = {
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
 async function resolveDecisionCommand(
-  command: ResolveRuleOccurrenceInputDto | RollRuleEvidenceInputDto | VoidRuleOccurrenceInputDto
+  command:
+    | RemoveAreaTargetInputDto
+    | ResolveRuleOccurrenceInputDto
+    | RollRuleEvidenceInputDto
+    | VoidRuleOccurrenceInputDto
 ): Promise<EncounterCommandResultDto> {
   resolveDecision(command)
   if (command.type === 'ROLL_RULE_EVIDENCE')
@@ -242,6 +269,30 @@ export const InitiativeAppRoll: Story = {
     await expect(resolveDecision).toHaveBeenLastCalledWith(
       expect.objectContaining({
         resolution: { kind: 'SYSTEM_ROLL', requestId: 'initiative-roll', rollId: appRollId }
+      })
+    )
+  }
+}
+
+export const AreaSaves: Story = {
+  args: { pending: areaPending },
+  play: async ({ canvasElement }) => {
+    resolveDecision.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    const drawer = await openDecision(page)
+    await expect(drawer.getByText('Caught in the area: Ember, Vault Warden')).toBeVisible()
+    const row = within(drawer.getByRole('group', { name: 'Vault Warden' }))
+    await userEvent.type(row.getByLabelText('Die 1'), '9')
+    await userEvent.click(row.getByRole('button', { name: 'Submit roll' }))
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
+    await expect(resolveDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: `save-${tabletopGmEncounter.actors[1]!.id}`,
+          rawFaces: [9],
+          rollMode: 'NORMAL'
+        }
       })
     )
   }

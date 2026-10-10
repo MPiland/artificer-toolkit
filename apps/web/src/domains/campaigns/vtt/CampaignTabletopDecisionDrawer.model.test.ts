@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { rollPromptText } from './CampaignTabletopDecisionDrawer.model'
+import { decisionTitle, rollPromptText } from './CampaignTabletopDecisionDrawer.model'
+
+describe('decisionTitle', () => {
+  it('titles a pending area as its saves', () => {
+    expect(decisionTitle('AREA_SAVES')).toBe('Area saves')
+  })
+})
 
 describe('rollPromptText', () => {
   it('names a death save with the saves already held', () => {

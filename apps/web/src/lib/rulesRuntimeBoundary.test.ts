@@ -15,7 +15,8 @@ const isEncounterModule = (path: string) => /^encounter/i.test(path.split(/[\\/]
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry)
-    if (statSync(path).isDirectory()) return sourceFiles(path)
+    // Test-support folders are never bundled, so their imports cannot reach the browser.
+    if (statSync(path).isDirectory()) return entry === 'tests' ? [] : sourceFiles(path)
     return /\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path) ? [path] : []
   })
 }

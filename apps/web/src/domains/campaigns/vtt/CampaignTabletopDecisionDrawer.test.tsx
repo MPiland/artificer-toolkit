@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
@@ -849,5 +849,174 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
         }
       })
     )
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer area saves', () => {
+  const [ember, warden] = tabletopGmEncounter.actors
+  const saveRequest = (requestId: string) => ({
+    requestId,
+    min: 1 as const,
+    max: 20 as const,
+    rollMode: 'NORMAL' as const,
+    derivedRollModeReasons: []
+  })
+  const areaBase = {
+    kind: 'AREA_SAVES',
+    occurrenceId,
+    occurrenceVersion: 6,
+    encounterVersion: tabletopGmEncounter.version,
+    casterActorId: ember!.id,
+    caughtChecksum: null,
+    caught: [],
+    saves: [],
+    legendaryResistance: [],
+    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
+  } satisfies PendingEncounterRuleOccurrenceSummaryDto
+  const gmArea = {
+    ...areaBase,
+    caughtChecksum: 'e'.repeat(64),
+    caught: ['Ember', 'Vault Warden', 'Phantom Wolf'],
+    saves: [
+      { actorId: ember!.id, request: saveRequest('save-ember') },
+      { actorId: warden!.id, request: saveRequest('save-warden') }
+    ]
+  } satisfies PendingEncounterRuleOccurrenceSummaryDto
+
+  async function openArea(
+    area: PendingEncounterRuleOccurrenceSummaryDto,
+    options: {
+      canVoid: boolean
+      onResolve: Parameters<typeof CampaignTabletopDecisionDrawer>[0]['onResolve']
+    }
+  ) {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={options.canVoid}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={area}
+        submitting={false}
+        onResolve={options.onResolve}
+      />
+    )
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    return user
+  }
+
+  it('shows the GM the caught list, a save row per creature and removes one with the seal', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openArea(gmArea, { canVoid: true, onResolve })
+
+    expect(screen.getByText('Area saves')).toBeVisible()
+    expect(screen.getByText('Caught in the area: Ember, Vault Warden, Phantom Wolf')).toBeVisible()
+    const wardenRow = screen.getByRole('group', { name: 'Vault Warden' })
+    expect(screen.getByRole('group', { name: "Ember's Wake" })).toBeVisible()
+
+    await user.click(within(wardenRow).getByRole('button', { name: 'Remove from area' }))
+    expect(onResolve).toHaveBeenCalledWith({
+      type: 'REMOVE_AREA_TARGET',
+      encounterId: tabletopGmEncounter.id,
+      commandId: expect.any(String),
+      expectedVersion: gmArea.encounterVersion,
+      occurrenceId,
+      expectedOccurrenceVersion: gmArea.occurrenceVersion,
+      expectedCaughtChecksum: gmArea.caughtChecksum,
+      actorId: warden!.id
+    })
+  })
+
+  it('shows a refused removal as an inline message', async () => {
+    const onResolve = vi.fn(async () => {
+      throw new Error('The area changed. Read it again.')
+    })
+    const user = await openArea(gmArea, { canVoid: true, onResolve })
+
+    await user.click(
+      within(screen.getByRole('group', { name: "Ember's Wake" })).getByRole('button', {
+        name: 'Remove from area'
+      })
+    )
+    expect(await screen.findByText('The area changed. Read it again.')).toBeVisible()
+  })
+
+  it('gives a roller their own save without a removal and answers it as a single-target save', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const user = await openArea(
+      {
+        ...areaBase,
+        saves: [{ actorId: warden!.id, request: saveRequest('save-warden') }]
+      },
+      { canVoid: false, onResolve }
+    )
+
+    expect(screen.queryByText(/Caught in the area/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: "Ember's Wake" })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Remove from area' })).not.toBeInTheDocument()
+
+    const row = screen.getByRole('group', { name: 'Vault Warden' })
+    await user.type(within(row).getByLabelText('Die 1'), '14')
+    await user.click(within(row).getByRole('button', { name: 'Submit roll' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId,
+        expectedOccurrenceVersion: areaBase.occurrenceVersion,
+        correlationId: null,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'save-warden',
+          rawFaces: [14],
+          rollMode: 'NORMAL'
+        }
+      })
+    )
+  })
+
+  it('offers Legendary Resistance per creature and sends its decision', async () => {
+    const onResolve = vi.fn(async () => resolved())
+    const optionId = 'f'.repeat(64)
+    const user = await openArea(
+      { ...areaBase, legendaryResistance: [{ actorId: warden!.id, optionId }] },
+      { canVoid: false, onResolve }
+    )
+
+    expect(screen.getByText('Vault Warden failed its save')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Use Legendary Resistance' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        resolution: {
+          kind: 'AREA_LEGENDARY_RESISTANCE',
+          actorId: warden!.id,
+          decision: { kind: 'USE', optionId }
+        }
+      })
+    )
+    await user.click(screen.getByRole('button', { name: 'Decline' }))
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'AREA_LEGENDARY_RESISTANCE',
+          actorId: warden!.id,
+          decision: { kind: 'DECLINE' }
+        }
+      })
+    )
+  })
+
+  it('tells the caster’s controller the caught creatures and that saves are pending', async () => {
+    await openArea(
+      { ...areaBase, caught: ['Ember', 'Vault Warden'] },
+      { canVoid: false, onResolve: vi.fn() }
+    )
+
+    expect(screen.getByText('Caught in the area: Ember, Vault Warden')).toBeVisible()
+    expect(screen.getByText('Waiting for saves.')).toBeVisible()
+    expect(screen.queryByRole('group')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Submit roll' })).not.toBeInTheDocument()
   })
 })

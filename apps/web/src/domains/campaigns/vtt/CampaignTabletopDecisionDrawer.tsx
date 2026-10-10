@@ -21,6 +21,7 @@ import type {
   EncounterGmProjectionDto,
   EncounterCommandResultDto,
   EncounterPlayerProjectionDto,
+  RemoveAreaTargetInputDto,
   ResolveRuleOccurrenceInputDto,
   RollRuleEvidenceInputDto,
   VoidRuleOccurrenceInputDto
@@ -62,7 +63,11 @@ export function CampaignTabletopDecisionDrawer({
   skipped: { onDismiss: () => void } | null
   submitting: boolean
   onResolve: (
-    command: ResolveRuleOccurrenceInputDto | RollRuleEvidenceInputDto | VoidRuleOccurrenceInputDto
+    command:
+      | RemoveAreaTargetInputDto
+      | ResolveRuleOccurrenceInputDto
+      | RollRuleEvidenceInputDto
+      | VoidRuleOccurrenceInputDto
   ) => Promise<EncounterCommandResultDto>
 }) {
   const [opened, { close, open }] = useDisclosure(false)
@@ -154,6 +159,28 @@ export function CampaignTabletopDecisionDrawer({
     }
   }
 
+  /** GM-only: takes one creature out of the pending area, proving the caught set it last read. */
+  async function removeAreaTarget(checksum: string, actorId: string): Promise<void> {
+    if (disabled) return
+    setLocalPending(true)
+    setFeedback(null)
+    setError(null)
+    try {
+      await onResolve({
+        type: 'REMOVE_AREA_TARGET',
+        ...commandTarget(),
+        expectedCaughtChecksum: checksum,
+        actorId
+      })
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error ? nextError.message : 'The creature could not be removed.'
+      )
+    } finally {
+      setLocalPending(false)
+    }
+  }
+
   return (
     <>
       <Tooltip label='Pending decision'>
@@ -223,6 +250,18 @@ export function CampaignTabletopDecisionDrawer({
                 onSubmit={(resolution) => void resolve(resolution)}
               />
             </>
+          ) : pending.kind === 'AREA_SAVES' ? (
+            <AreaSavesControls
+              actors={encounter.actors}
+              disabled={disabled}
+              latestRoll={latestRoll}
+              pending={pending}
+              onRemove={(actorId) => {
+                if (pending.caughtChecksum) void removeAreaTarget(pending.caughtChecksum, actorId)
+              }}
+              onRoll={rollEvidence}
+              onSubmit={(resolution) => void resolve(resolution)}
+            />
           ) : pending.kind === 'MOVEMENT_REACTION' ? (
             <Stack gap='xs'>
               {pending.choice.options.map((option) => (
@@ -372,6 +411,121 @@ export function CampaignTabletopDecisionDrawer({
         </Stack>
       </Drawer>
     </>
+  )
+}
+
+/**
+ * What this viewer may answer while an area's saves are open: their own saves (every one for the
+ * GM, who can also remove a creature before it rolls) and Legendary Resistance choices. A viewer
+ * with nothing to answer only sees who is caught.
+ */
+function AreaSavesControls({
+  actors,
+  disabled,
+  latestRoll,
+  pending,
+  onRemove,
+  onRoll,
+  onSubmit
+}: {
+  actors: readonly { id: string; label: string }[]
+  disabled: boolean
+  latestRoll: EncounterEvidenceRollDto | null
+  pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'AREA_SAVES' }>
+  onRemove: (actorId: string) => void
+  onRoll: (
+    requestId: string,
+    rollMode: EncounterD20RollModeDto | null
+  ) => Promise<EncounterCommandResultDto | null>
+  onSubmit: (resolution: ResolveRuleOccurrenceInputDto['resolution']) => void
+}) {
+  const labelOf = (actorId: string) =>
+    actors.find((actor) => actor.id === actorId)?.label ?? 'Hidden combatant'
+  const canRemove = pending.caughtChecksum !== null
+
+  return (
+    <Stack gap='md'>
+      {pending.caught.length > 0 ? (
+        <Text size='sm'>Caught in the area: {pending.caught.join(', ')}</Text>
+      ) : null}
+      {pending.saves.map((save) => (
+        <Stack
+          aria-label={labelOf(save.actorId)}
+          gap='xs'
+          key={save.request.requestId}
+          role='group'
+        >
+          <Group justify='space-between'>
+            <Text fw={600} size='sm'>
+              {labelOf(save.actorId)}
+            </Text>
+            {canRemove ? (
+              <Button
+                color='red'
+                disabled={disabled}
+                size='compact-sm'
+                variant='subtle'
+                onClick={() => onRemove(save.actorId)}
+              >
+                Remove from area
+              </Button>
+            ) : null}
+          </Group>
+          <CampaignTabletopEvidenceRollRow
+            disabled={disabled}
+            latestRoll={latestRoll}
+            pending={{
+              kind: 'D20_EVIDENCE',
+              occurrenceId: pending.occurrenceId,
+              occurrenceVersion: pending.occurrenceVersion,
+              encounterVersion: pending.encounterVersion,
+              rollerActorId: save.actorId,
+              request: save.request,
+              allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+            }}
+            onRoll={(rollMode) => onRoll(save.request.requestId, rollMode)}
+            onSubmit={onSubmit}
+          />
+        </Stack>
+      ))}
+      {pending.legendaryResistance.map((offer) => (
+        <Stack gap='xs' key={offer.actorId}>
+          <Text size='sm'>{labelOf(offer.actorId)} failed its save</Text>
+          <Group>
+            <Button
+              disabled={disabled}
+              onClick={() =>
+                onSubmit({
+                  kind: 'AREA_LEGENDARY_RESISTANCE',
+                  actorId: offer.actorId,
+                  decision: { kind: 'USE', optionId: offer.optionId }
+                })
+              }
+            >
+              Use Legendary Resistance
+            </Button>
+            <Button
+              disabled={disabled}
+              variant='default'
+              onClick={() =>
+                onSubmit({
+                  kind: 'AREA_LEGENDARY_RESISTANCE',
+                  actorId: offer.actorId,
+                  decision: { kind: 'DECLINE' }
+                })
+              }
+            >
+              Decline
+            </Button>
+          </Group>
+        </Stack>
+      ))}
+      {pending.saves.length === 0 && pending.legendaryResistance.length === 0 ? (
+        <Text c='dimmed' size='sm'>
+          Waiting for saves.
+        </Text>
+      ) : null}
+    </Stack>
   )
 }
 
