@@ -347,7 +347,9 @@ export async function actionRoom(config: ActionRoomConfig) {
     /** The acting actor's area action at the Scene `point`; the room's answer, not yet checked. */
     async startAreaAction(
       point: { x: number; y: number },
-      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = []
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
+      /** Whose socket sends it: the GM's, or the player who controls the acting actor. */
+      sender: 'GM' | 'PLAYER' = 'GM'
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -367,7 +369,10 @@ export async function actionRoom(config: ActionRoomConfig) {
         optionalCombatIntent: null,
         sceneContext: null
       }
-      return { command, answer: await send(command) }
+      return {
+        command,
+        answer: sender === 'PLAYER' ? await this.sendAsPlayer(command) : await send(command)
+      }
     },
     /** The GM's command taking `actorId` out of the pending area `decision` shows. */
     removeAreaTargetCommand(
@@ -376,6 +381,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       overrides: Record<string, unknown> = {}
     ) {
       if (decision.pending.kind !== 'AREA_SAVES') throw new Error('The decision is not an area.')
+      if (decision.pending.caughtChecksum === null)
+        throw new Error('Only the GM reads the caught-set seal.')
       return {
         type: 'REMOVE_AREA_TARGET',
         encounterId: room.encounterId,

@@ -196,6 +196,7 @@ export class RoomEncounterSessionFeed {
           ? await readEncounterTimelinePage({
               campaignId: campaign.id,
               player: membership.role !== 'OWNER',
+              userId: member.userId,
               runVersion: active.version,
               cursorVersion: null,
               limit: TIMELINE_LIMIT,

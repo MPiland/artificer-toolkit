@@ -7,7 +7,10 @@ import {
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
   EncounterAreaActionPendingContextDto,
   ServerAggregateChoicePendingSnapshotDto,
@@ -251,14 +254,31 @@ export function requireAreaActionRemoval(input: {
  * What one viewer reads of an area. The GM reads every unanswered save and every undecided Legendary
  * Resistance choice; a player reads only those of the creatures they control, each save with what that
  * creature's own facts imply. Nobody else learns a choice exists. Null when the viewer has neither.
+ * The caught-set seal is the GM's alone, and a caster the players cannot see is named only to the GM
+ * and the caster's own controller, so neither lets a player infer a hidden creature. Before the area
+ * resolves, the GM reads every caught creature and the caster's controller reads those the caster
+ * perceived when it opened (sealed on the occurrence); nobody else reads a caught list.
  */
 export function projectNativeAreaActionPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   pending: Pick<Awaited<ReturnType<typeof readNativeAreaActionPending>>, 'context' | 'targets'>,
-  viewer: { isOwner: boolean; controlledActorIds: ReadonlySet<string> },
+  viewer: {
+    isOwner: boolean
+    controlledActorIds: ReadonlySet<string>
+    /** The Run's actors: their labels, and which the GM has not hidden from the players (D62). */
+    actors: readonly Pick<EncounterRunActorState, 'id' | 'label' | 'public'>[]
+  },
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
   const answers = (actorId: string) => viewer.isOwner || viewer.controlledActorIds.has(actorId)
+  const casterId = pending.context.casterActorId
+  const caught =
+    viewer.isOwner || viewer.controlledActorIds.has(casterId)
+      ? pending.context.targets.flatMap((target) => {
+          const actor = viewer.actors.find((candidate) => candidate.id === target.actorId)
+          return actor && (viewer.isOwner || target.perceivedByCaster) ? [actor.label] : []
+        })
+      : []
   const legendaryResistance = pending.targets.flatMap((target) =>
     target.legendaryResistance && !target.legendaryResistance.decision && answers(target.actorId)
       ? [
@@ -281,15 +301,19 @@ export function projectNativeAreaActionPending(
     if (summary.kind !== 'D20_EVIDENCE') throw new Error('Stored area save evidence is invalid.')
     return [{ actorId: target.actorId, request: summary.request }]
   })
-  return saves.length === 0 && legendaryResistance.length === 0
+  return saves.length === 0 && legendaryResistance.length === 0 && caught.length === 0
     ? null
     : {
         kind: 'AREA_SAVES',
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         encounterVersion: occurrence.expectedEncounterVersion,
-        casterActorId: pending.context.casterActorId,
-        caughtChecksum: pending.context.caughtChecksum,
+        casterActorId:
+          answers(casterId) || viewer.actors.some((actor) => actor.id === casterId && actor.public)
+            ? casterId
+            : null,
+        caughtChecksum: viewer.isOwner ? pending.context.caughtChecksum : null,
+        caught,
         saves,
         legendaryResistance,
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']

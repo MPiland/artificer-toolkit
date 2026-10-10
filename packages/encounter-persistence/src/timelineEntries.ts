@@ -52,13 +52,16 @@ function commandTimelineMetadata(command: StoredCommand) {
     throw new Error('Stored Encounter command receipt mismatch.')
   const id = command.commandType === 'CREATE' ? command.commandId : command.id
   const version = command.commandType === 'CREATE' ? 0 : command.version
-  // A stored PRIVATE narrows a PUBLIC enemy roll that came from a hidden actor (D62).
+  // A stored PRIVATE narrows a PUBLIC enemy roll that came from a hidden actor (D62). An action
+  // that keeps results for its issuer is shown to the issuing user as well as the GM.
   const visibility =
     input?.type === 'ROLL_ENEMY_ACTION' &&
     input.visibility === 'PUBLIC' &&
     command.visibility !== 'PRIVATE'
       ? ('TABLE' as const)
-      : ('PRIVATE' as const)
+      : command.commandType === 'RESOLVE_ACTION' && command.issuerLines.length > 0
+        ? ('ISSUER' as const)
+        : ('PRIVATE' as const)
   if (
     (command.id !== undefined && command.id !== id) ||
     (command.version !== undefined && command.version !== version) ||
@@ -109,6 +112,8 @@ export function presentTimelineEntry(
     ruleOverrides:
       command.commandType === 'RESOLVE_ACTION' || command.commandType === 'USE_BASIC_ACTION'
         ? command.ruleOverrides
-        : []
+        : [],
+    issuerLines: command.commandType === 'RESOLVE_ACTION' ? command.issuerLines : [],
+    gmLines: command.commandType === 'RESOLVE_ACTION' ? command.gmLines : []
   }
 }

@@ -11,6 +11,8 @@ import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encount
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { readEncounterTimelinePage } from '@artificer-toolkit/encounter-persistence/timelinePages'
 import { liveSessionCheckpointRetainedRollSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 
@@ -79,7 +81,11 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
               ? projectNativeAreaActionPending(
                   occurrence,
                   await readNativeAreaActionPending({ db: room.store }, occurrence),
-                  { isOwner, controlledActorIds: isOwner ? actorIds : new Set() }
+                  {
+                    isOwner,
+                    controlledActorIds: isOwner ? actorIds : new Set(),
+                    actors: room.documents('encounterRunActors').map(readStoredRunActor)
+                  }
                 )
               : projectNativeActionPending(
                   occurrence,
@@ -109,10 +115,11 @@ export function readPendingAreaForViewer(
       .documents('encounterRuleOccurrences')
       .find((candidate) => candidate.state === 'PENDING')
     if (!occurrence) throw new Error('No area is pending.')
+
     const pending = projectNativeAreaActionPending(
       occurrence,
       await readNativeAreaActionPending({ db: room.store }, occurrence),
-      viewer
+      { ...viewer, actors: room.documents('encounterRunActors').map(readStoredRunActor) }
     )
     if (pending && pending.kind !== 'AREA_SAVES') throw new Error('The pending area is invalid.')
     return pending
@@ -173,4 +180,39 @@ export function readRoomChatBodies(stub: RoomStub) {
       .documents('campaignConversationEntryPayloads')
       .flatMap((payload) => (payload.kind === 'CHAT' && payload.body ? [payload.body] : []))
   )
+}
+
+/**
+ * The Run's timeline page as the GM or a player reads it, produced by the shared page reader over
+ * the room's stored commands, newest first.
+ */
+export function readRoomTimeline(
+  stub: RoomStub,
+  { player, userId }: { player: boolean; userId: string }
+) {
+  return runInDurableObject(stub, async (_instance, context) => {
+    const room = new RoomEncounterStore(context.storage)
+    const [run] = room.documents('encounterRuns')
+    if (!run) throw new Error('The room holds no Run.')
+    const commands = room.documents('encounterRunCommands')
+    return readEncounterTimelinePage({
+      campaignId: run.campaignId,
+      player,
+      userId,
+      runVersion: run.version,
+      cursorVersion: null,
+      limit: 100,
+      async *scan({ visibility, beforeVersion }) {
+        const rows = commands
+          .filter(
+            (command) =>
+              (command.version ?? 0) < beforeVersion &&
+              (visibility === null || command.visibility === visibility)
+          )
+          .sort((left, right) => (right.version ?? 0) - (left.version ?? 0))
+        for (const row of rows) yield row
+      },
+      read: async (command) => command
+    })
+  })
 }

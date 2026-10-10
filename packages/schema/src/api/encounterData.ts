@@ -301,14 +301,19 @@ export const encounterTimelineEntryDtoSchema = lazySchema(() =>
     id: uuidSchema,
     version: versionSchema,
     commandType: z.string().check(z.minLength(1)).check(z.maxLength(80)),
-    visibility: z.enum(['PRIVATE', 'TABLE']),
+    /** PRIVATE is the GM's alone; TABLE is every member's; ISSUER is the GM's and the issuing user's. */
+    visibility: z.enum(['PRIVATE', 'TABLE', 'ISSUER']),
     actorUserId: uuidSchema,
     createdAt: timestampSchema,
     roll: z.nullable(rollRecordDtoSchema),
     /** The named basic action a `USE_BASIC_ACTION` entry took; null for every other command. */
     label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
     /** Rule warnings the action overrode; the GM log badges each one. */
-    ruleOverrides: encounterRuleWarningsDtoSchema
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    /** History lines for the issuing user, such as an area's outcomes for its caster; empty for every other player. */
+    issuerLines: z.array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))),
+    /** GM-only history lines, such as the GM removing a creature from an area; always empty for a player. */
+    gmLines: z.array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
   })
 )
 export const encounterTimelineDtoSchema = lazySchema(() =>

@@ -39093,8 +39093,9 @@ export declare const api: {
                 allowedResponses: Array<
                   "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
                 >;
-                casterActorId: string;
-                caughtChecksum: string;
+                casterActorId: string | null;
+                caught: Array<string>;
+                caughtChecksum: string | null;
                 encounterVersion: number;
                 kind: "AREA_SAVES";
                 legendaryResistance: Array<{
@@ -39372,8 +39373,9 @@ export declare const api: {
                   allowedResponses: Array<
                     "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
                   >;
-                  casterActorId: string;
-                  caughtChecksum: string;
+                  casterActorId: string | null;
+                  caught: Array<string>;
+                  caughtChecksum: string | null;
                   encounterVersion: number;
                   kind: "AREA_SAVES";
                   legendaryResistance: Array<{
@@ -40164,8 +40166,9 @@ export declare const api: {
             allowedResponses: Array<
               "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
             >;
-            casterActorId: string;
-            caughtChecksum: string;
+            casterActorId: string | null;
+            caught: Array<string>;
+            caughtChecksum: string | null;
             encounterVersion: number;
             kind: "AREA_SAVES";
             legendaryResistance: Array<{ actorId: string; optionId: string }>;
@@ -40925,8 +40928,9 @@ export declare const api: {
                 allowedResponses: Array<
                   "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
                 >;
-                casterActorId: string;
-                caughtChecksum: string;
+                casterActorId: string | null;
+                caught: Array<string>;
+                caughtChecksum: string | null;
                 encounterVersion: number;
                 kind: "AREA_SAVES";
                 legendaryResistance: Array<{

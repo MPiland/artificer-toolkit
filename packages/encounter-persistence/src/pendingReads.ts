@@ -211,7 +211,11 @@ export async function readPendingRunDecision(
       projectNativeAreaActionPending(
         occurrence,
         pending,
-        { isOwner: membership.role === 'OWNER', controlledActorIds },
+        {
+          isOwner: membership.role === 'OWNER',
+          controlledActorIds,
+          actors
+        },
         reasons
       )
     )

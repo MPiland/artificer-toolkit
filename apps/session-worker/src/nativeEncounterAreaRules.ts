@@ -98,6 +98,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
+import { readNativeLiveAttackPerception } from './nativeAttackPerception.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
@@ -266,6 +267,30 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   for (const { actor } of caught)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
 
+  // Whom the caster perceives is decided once, as the area opens, and sealed with each creature's
+  // save: a later change of sight or lighting does not change what the caster is told (D100). An
+  // UNKNOWN sight (a Creature whose free-text Senses are not modeled) counts as perceived, as D100
+  // does not penalise it either.
+  const perceivedByCaster = new Set<string>()
+  for (const { actor } of caught) {
+    const target = movementTargets.get(actor.id)
+    if (
+      actor.id === caster.id ||
+      (target &&
+        (
+          await readNativeLiveAttackPerception({
+            state,
+            system: input.system,
+            attacker: casterFacts,
+            target,
+            sceneContext: { sceneId: scene.sceneId, sceneVersion: scene.sceneVersion, grid },
+            capture
+          })
+        ).actual.attackerSeesTarget !== 'UNSEEN')
+    )
+      perceivedByCaster.add(actor.id)
+  }
+
   const allyAdvantage = encounterBasicActionAllyAdvantage({
     actors,
     attackerId: caster.id
@@ -324,6 +349,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     if (test?.kind !== 'PENDING') throw new Error('An area save must wait for its roller.')
     return {
       actorId: prepared.target.id,
+      perceivedByCaster: perceivedByCaster.has(prepared.target.id),
       token: {
         tokenId: token.tokenId,
         position: token.position,

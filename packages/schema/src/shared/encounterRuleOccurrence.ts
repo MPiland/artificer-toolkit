@@ -190,9 +190,17 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           occurrenceId: uuidSchema,
           occurrenceVersion: versionSchema,
           encounterVersion: versionSchema,
-          casterActorId: uuidSchema,
-          /** Seals who the area still catches; the GM's removal command carries it to prove it read the current set. */
-          caughtChecksum: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+          /** Null for a caster the players cannot see, unless the viewer is the GM or controls it. */
+          casterActorId: z.nullable(uuidSchema),
+          /** Seals who the area still catches; the GM's removal command carries it to prove it read the current set. Null for everyone but the GM. */
+          caughtChecksum: z.nullable(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
+          /**
+           * The caught creatures the viewer sees before the area resolves: every one for the GM, those
+           * the caster perceives, by label only for a viewer who controls the caster, and none for anyone else.
+           */
+          caught: z
+            .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
           /** The saves this viewer may answer: all of them for the GM, otherwise the viewer's own creatures'. */
           saves: z
             .array(
@@ -224,11 +232,16 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         })
         .check(
           z.superRefine((summary, context) => {
-            if (summary.saves.length === 0 && summary.legendaryResistance.length === 0)
+            if (
+              summary.saves.length === 0 &&
+              summary.legendaryResistance.length === 0 &&
+              summary.caught.length === 0
+            )
               context.addIssue({
                 code: 'custom',
                 path: ['saves'],
-                message: 'An area summary shows the viewer at least one save or choice to answer.'
+                message:
+                  'An area summary shows the viewer at least one save, choice or caught creature.'
               })
           })
         ),

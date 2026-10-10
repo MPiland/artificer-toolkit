@@ -210,7 +210,7 @@ const encounterStoredRunCommandBaseSchema = lazySchema(() =>
     actorUserId: postgresUuidSchema,
     createdAt: z.iso.datetime(),
     // Optional until the Encounter timeline metadata backfill has completed.
-    visibility: z.optional(z.enum(['PRIVATE', 'TABLE']))
+    visibility: z.optional(z.enum(['PRIVATE', 'TABLE', 'ISSUER']))
   })
 )
 
@@ -268,7 +268,21 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
-      addedConcentrationCasterId: z.nullable(postgresUuidSchema)
+      addedConcentrationCasterId: z.nullable(postgresUuidSchema),
+      /** GM-only history lines (the GM removing a creature from an area); the timeline never shows them to a player. */
+      /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
+      issuerLines: z._default(
+        z
+          .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
+      gmLines: z._default(
+        z
+          .array(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      )
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('USE_BASIC_ACTION'),

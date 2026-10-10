@@ -25,6 +25,7 @@ import {
   readRoomChatBodies,
   readRoomHistory,
   readRoomRollCards,
+  readRoomTimeline,
   type RoomHistory
 } from './roomHistoryReads.js'
 
@@ -1368,5 +1369,424 @@ describe('room area action cast by a Character', () => {
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect((await readCharacterChargesUsed(room)).filter((used) => used !== 0)).toEqual([])
     expect(await readCharacterHitPoints(room)).toBe(hitPointsBefore)
+  })
+})
+
+describe('room area visibility by role', () => {
+  const SEEN_ID = CAUGHT_IDS[0]!
+  const SECOND_ID = CAUGHT_IDS[1]!
+  const HIDDEN_ID = testUuid(0x710)
+  const NO_ONE = new Set<string>()
+  const shadowWolf = { ...plainWolf, label: 'Shadow Wolf' }
+  const shadowLegend = { ...legendaryWolf, label: 'Shadow Wolf' }
+
+  /**
+   * The caster, a visible Wolf, a creature the GM has hidden from the players, a second visible Wolf,
+   * all in the area, and a Wolf out of it. With `hiddenCaster` the caster is the hidden one.
+   */
+  async function visibilityRoom(
+    options: {
+      hiddenCreature?: typeof shadowWolf
+      hiddenCaster?: boolean
+      playerControlledActorIds?: string[]
+    } = {}
+  ) {
+    const hide = <Actor extends object>(actor: Actor) => ({ ...actor, public: false })
+    const caster = srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() })
+    const room = await actionRoom({
+      ...(options.playerControlledActorIds
+        ? { playerControlledActorIds: options.playerControlledActorIds }
+        : {}),
+      actors: [
+        options.hiddenCaster ? hide(caster) : caster,
+        srdCreatureActor({ id: SEEN_ID, creature: plainWolf }),
+        hide(srdCreatureActor({ id: HIDDEN_ID, creature: options.hiddenCreature ?? shadowLegend })),
+        srdCreatureActor({ id: SECOND_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+    expect((await room.startAreaAction({ x: 50, y: 150 })).answer.type).toBe('COMMAND_COMMITTED')
+    return room
+  }
+  type Room = Awaited<ReturnType<typeof visibilityRoom>>
+  const gmView = (room: Room) =>
+    readPendingAreaForViewer(room.room.base.stub, { isOwner: true, controlledActorIds: NO_ONE })
+  const playerView = (room: Room, controlled: string[]) =>
+    readPendingAreaForViewer(room.room.base.stub, {
+      isOwner: false,
+      controlledActorIds: new Set(controlled)
+    })
+  async function saveCommand(room: Room, actorId: string, face: number) {
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const save = decision.pending.saves.find((entry) => entry.actorId === actorId)
+    if (!save) throw new Error('The creature has no pending save.')
+    return room.resolveCommand(decision, {
+      kind: 'ENTER_DICE',
+      requestId: save.request.requestId,
+      rawFaces: [face],
+      rollMode: save.request.rollMode
+    })
+  }
+  async function remove(room: Room, actorId: string) {
+    const answered = await room.send(
+      room.removeAreaTargetCommand(await room.pendingDecision(), actorId)
+    )
+    expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('shows the GM every caught creature’s save and Legendary Resistance offer, hidden ones included', async () => {
+    const room = await visibilityRoom()
+    const gm = await gmView(room)
+    expect(gm?.saves.map(({ actorId }) => actorId).sort()).toEqual(
+      [CASTER_ID, SEEN_ID, HIDDEN_ID, SECOND_ID].sort()
+    )
+    expect(gm?.casterActorId).toBe(CASTER_ID)
+    expect(gm?.caughtChecksum).toMatch(/^[a-f0-9]{64}$/)
+
+    expect((await room.send(await saveCommand(room, HIDDEN_ID, 1))).type).toBe('COMMAND_COMMITTED')
+    expect((await gmView(room))?.legendaryResistance.map(({ actorId }) => actorId)).toEqual([
+      HIDDEN_ID
+    ])
+  })
+
+  it('shows each roller only their own creature’s prompt', async () => {
+    const room = await visibilityRoom()
+    expect((await room.send(await saveCommand(room, HIDDEN_ID, 1))).type).toBe('COMMAND_COMMITTED')
+
+    const seen = await playerView(room, [SEEN_ID])
+    expect(seen?.saves.map(({ actorId }) => actorId)).toEqual([SEEN_ID])
+    expect(seen?.legendaryResistance).toEqual([])
+    expect(JSON.stringify(seen)).not.toContain(HIDDEN_ID)
+
+    const hidden = await playerView(room, [HIDDEN_ID])
+    expect(hidden?.saves).toEqual([])
+    expect(hidden?.legendaryResistance.map(({ actorId }) => actorId)).toEqual([HIDDEN_ID])
+    expect(JSON.stringify(hidden)).not.toContain(SEEN_ID)
+    expect((await playerView(room, [CASTER_ID]))?.saves.map(({ actorId }) => actorId)).toEqual([
+      CASTER_ID
+    ])
+  })
+
+  it('gives a player none of the GM’s sealing of the caught set', async () => {
+    const room = await visibilityRoom()
+    const player = await playerView(room, [SEEN_ID])
+    expect(player?.caughtChecksum).toBeNull()
+    expect(player?.casterActorId).toBe(CASTER_ID)
+    const gm = await gmView(room)
+    expect(JSON.stringify(player)).not.toContain(gm?.caughtChecksum ?? 'missing')
+  })
+
+  it('names a caster the players cannot see only to the GM and the caster’s own controller', async () => {
+    const room = await visibilityRoom({ hiddenCaster: true })
+    expect((await gmView(room))?.casterActorId).toBe(CASTER_ID)
+    expect((await playerView(room, [SEEN_ID]))?.casterActorId).toBeNull()
+    expect((await playerView(room, [CASTER_ID]))?.casterActorId).toBe(CASTER_ID)
+  })
+
+  it('leaves a player’s prompt unchanged when the GM removes a creature they cannot see', async () => {
+    const room = await visibilityRoom({ hiddenCreature: shadowWolf })
+    const before = await playerView(room, [SEEN_ID])
+    await remove(room, HIDDEN_ID)
+    const after = await playerView(room, [SEEN_ID])
+    // Only the occurrence version moves, as it does when any other creature answers.
+    expect({ ...after, occurrenceVersion: before?.occurrenceVersion }).toEqual(before)
+  })
+
+  it('tells a player nothing of a creature they cannot see in any refusal', async () => {
+    const room = await visibilityRoom({
+      hiddenCreature: shadowWolf,
+      playerControlledActorIds: [SEEN_ID]
+    })
+    const decision = await room.pendingDecision()
+    const byPlayer = await room.sendAsPlayer(room.removeAreaTargetCommand(decision, HIDDEN_ID))
+    expect(byPlayer).toMatchObject({ type: 'COMMAND_REJECTED' })
+
+    // An answer composed before the GM removed the hidden creature is stale.
+    const stale = await saveCommand(room, SEEN_ID, 9)
+    await remove(room, HIDDEN_ID)
+    const staleAnswer = await room.sendAsPlayer(stale)
+    expect(staleAnswer).toMatchObject({ type: 'COMMAND_REJECTED' })
+    for (const refusal of [byPlayer, staleAnswer]) {
+      expect(JSON.stringify(refusal)).not.toContain(HIDDEN_ID)
+      expect(JSON.stringify(refusal)).not.toContain('Shadow')
+    }
+  })
+
+  it('keeps a creature the players cannot see off the table’s cards and chat once the area commits', async () => {
+    const room = await visibilityRoom({ hiddenCreature: shadowWolf })
+    await answerAllSaves(room)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+
+    const stub = room.room.base.stub
+    const cards = await readRoomRollCards(stub)
+    const table = cards.filter((card) => card.audience === 'TABLE')
+    expect(JSON.stringify(table)).not.toContain('Shadow Wolf')
+    expect(JSON.stringify(table)).not.toContain(HIDDEN_ID)
+    expect(JSON.stringify(cards.filter((card) => card.audience === 'PRIVATE'))).toContain(
+      'Shadow Wolf'
+    )
+    const chat = JSON.stringify(await readRoomChatBodies(stub))
+    expect(chat).not.toContain('Shadow Wolf')
+    expect(chat).not.toContain(HIDDEN_ID)
+  })
+
+  describe('the GM-only history line', () => {
+    const rootEntry = (page: Awaited<ReturnType<typeof readRoomTimeline>>) =>
+      page.entries.find((entry) => entry.commandType === 'RESOLVE_ACTION')
+
+    it('records each removal for the GM in the order made, and shows players nothing of it', async () => {
+      const room = await visibilityRoom({ hiddenCreature: shadowWolf })
+      await remove(room, HIDDEN_ID)
+      await remove(room, SECOND_ID)
+      await answerAllSaves(room)
+
+      const stub = room.room.base.stub
+      expect(
+        rootEntry(await readRoomTimeline(stub, { player: false, userId: room.room.base.userId }))
+          ?.gmLines
+      ).toEqual(['GM removed Shadow Wolf from the area', 'GM removed Wolf from the area'])
+      const player = await readRoomTimeline(stub, { player: true, userId: room.room.base.playerId })
+      expect(player.entries.every((entry) => entry.gmLines.length === 0)).toBe(true)
+      expect(JSON.stringify(player)).not.toContain('removed')
+      expect(JSON.stringify(player)).not.toContain('Shadow')
+    })
+
+    it('records the removal that settles the area', async () => {
+      const room = await visibilityRoom({ hiddenCreature: shadowWolf })
+      for (const actorId of [CASTER_ID, SEEN_ID]) {
+        expect((await room.send(await saveCommand(room, actorId, 9))).type).toBe(
+          'COMMAND_COMMITTED'
+        )
+      }
+      await remove(room, HIDDEN_ID)
+      await remove(room, SECOND_ID)
+      expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+      expect(
+        rootEntry(
+          await readRoomTimeline(room.room.base.stub, {
+            player: false,
+            userId: room.room.base.userId
+          })
+        )?.gmLines
+      ).toHaveLength(2)
+    })
+
+    it('records nothing for an area where the GM removed no one', async () => {
+      const room = await visibilityRoom({ hiddenCreature: shadowWolf })
+      await answerAllSaves(room)
+      expect(
+        rootEntry(
+          await readRoomTimeline(room.room.base.stub, {
+            player: false,
+            userId: room.room.base.userId
+          })
+        )?.gmLines
+      ).toEqual([])
+    })
+  })
+})
+
+describe('room area perception for the caster', () => {
+  const SEEN_ID = CAUGHT_IDS[0]!
+  const PHANTOM_ID = testUuid(0x711)
+  const SHADOW_ID = testUuid(0x712)
+  const INVISIBLE_ID = srdSystemRecord.conditionTypes.find(
+    (condition) => condition.code === 'INVISIBLE'
+  )?.id
+  const OUTSIDER_ID = testUuid(0x999)
+  const NO_ONE = new Set<string>()
+
+  /**
+   * A caster with no Senses of its own, a Wolf in plain sight, an Invisible Wolf the table can see
+   * (public), and a Wolf the table cannot (hidden) in plain sight of the caster, all in the area.
+   * The player controls the caster and sends the action.
+   */
+  async function perceptionRoom(options: { legendary?: boolean } = {}) {
+    const wolf = options.legendary ? legendaryWolf : plainWolf
+    const caster = { ...fireballWolf(), senses: [] }
+    const room = await actionRoom({
+      playerControlledActorIds: [CASTER_ID],
+      actors: [
+        srdCreatureActor({ id: CASTER_ID, creature: caster }),
+        srdCreatureActor({ id: SEEN_ID, creature: wolf }),
+        srdCreatureActor({
+          id: PHANTOM_ID,
+          creature: { ...wolf, label: 'Phantom Wolf' },
+          conditionIds: INVISIBLE_ID ? [INVISIBLE_ID] : []
+        }),
+        {
+          ...srdCreatureActor({ id: SHADOW_ID, creature: { ...plainWolf, label: 'Shadow Wolf' } }),
+          public: false
+        },
+        srdCreatureActor({ id: FAR_ID, creature: plainWolf })
+      ],
+      ownerFeatureId: BITE_ID
+    })
+    const started = await room.startAreaAction({ x: 50, y: 150 }, [], 'PLAYER')
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    return room
+  }
+  type Room = Awaited<ReturnType<typeof perceptionRoom>>
+  const gmView = (room: Room) =>
+    readPendingAreaForViewer(room.room.base.stub, { isOwner: true, controlledActorIds: NO_ONE })
+  const playerView = (room: Room, controlled: string[]) =>
+    readPendingAreaForViewer(room.room.base.stub, {
+      isOwner: false,
+      controlledActorIds: new Set(controlled)
+    })
+  const lines = async (room: Room, viewer: 'GM' | 'CASTER_PLAYER' | 'OUTSIDER') => {
+    const { base } = room.room
+    const page = await readRoomTimeline(base.stub, {
+      player: viewer !== 'GM',
+      userId:
+        viewer === 'GM' ? base.userId : viewer === 'CASTER_PLAYER' ? base.playerId : OUTSIDER_ID
+    })
+    return page.entries.find((entry) => entry.commandType === 'RESOLVE_ACTION')
+  }
+
+  it('lists every caught creature to the GM', async () => {
+    const room = await perceptionRoom()
+    expect((await gmView(room))?.caught.slice().sort()).toEqual(
+      ['Wolf', 'Wolf', 'Phantom Wolf', 'Shadow Wolf'].sort()
+    )
+  })
+
+  it('lists to the caster only the caught creatures they perceive, whether or not the table sees them', async () => {
+    const room = await perceptionRoom()
+    const caster = await playerView(room, [CASTER_ID])
+    expect(caster?.caught.slice().sort()).toEqual(['Shadow Wolf', 'Wolf', 'Wolf'])
+    expect(JSON.stringify(caster)).not.toContain(PHANTOM_ID)
+    expect(JSON.stringify(caster)).not.toContain('Phantom')
+  })
+
+  it('lists nothing to a player who does not control the caster', async () => {
+    const room = await perceptionRoom()
+    expect((await playerView(room, [SEEN_ID]))?.caught).toEqual([])
+  })
+
+  it('takes a removed creature off the caster’s list and keeps the rest as sealed', async () => {
+    const room = await perceptionRoom()
+    const removed = await room.send(
+      room.removeAreaTargetCommand(await room.pendingDecision(), SHADOW_ID)
+    )
+    expect(removed.type, JSON.stringify(removed)).toBe('COMMAND_COMMITTED')
+    expect((await playerView(room, [CASTER_ID]))?.caught).toEqual(['Wolf', 'Wolf'])
+  })
+
+  describe('the results the caster keeps', () => {
+    it('shows each perceived creature’s outcome and each failed unperceived one as an unseen creature', async () => {
+      const room = await perceptionRoom()
+      await answerAllSaves(room)
+      const entry = await lines(room, 'CASTER_PLAYER')
+      expect(entry?.visibility).toBe('ISSUER')
+      expect(entry?.issuerLines.slice().sort()).toEqual([
+        'An unseen creature failed its save',
+        'Shadow Wolf failed its save',
+        'Wolf failed its save',
+        'Wolf failed its save'
+      ])
+      expect(JSON.stringify(entry)).not.toContain('Phantom')
+      expect(JSON.stringify(entry)).not.toContain(PHANTOM_ID)
+    })
+
+    it('leaves no trace of an unperceived creature that succeeded', async () => {
+      const room = await perceptionRoom()
+      await answerAllSaves(room, { [PHANTOM_ID]: 20 })
+      const entry = await lines(room, 'CASTER_PLAYER')
+      expect(entry?.issuerLines.slice().sort()).toEqual([
+        'Shadow Wolf failed its save',
+        'Wolf failed its save',
+        'Wolf failed its save'
+      ])
+    })
+
+    it('shows a perceived creature that succeeded', async () => {
+      const room = await perceptionRoom()
+      await answerAllSaves(room, { [SEEN_ID]: 20 })
+      expect((await lines(room, 'CASTER_PLAYER'))?.issuerLines).toContain(
+        'Wolf succeeded on its save'
+      )
+    })
+
+    /** Answers every save with a 1, then settles the Legendary Resistance offers `uses` names as USE. */
+    async function failAllThenDecide(room: Room, uses: string[]) {
+      await answerAllSaves(room)
+      for (;;) {
+        const pending = await readPendingActionDecision(room.room.base.stub)
+        if (pending?.pending.kind !== 'AREA_SAVES') return
+        const [offered] = pending.pending.legendaryResistance
+        if (!offered) return
+        const sent = await room.send(
+          room.resolveCommand(pending, {
+            kind: 'AREA_LEGENDARY_RESISTANCE',
+            actorId: offered.actorId,
+            decision: uses.includes(offered.actorId)
+              ? { kind: 'USE', optionId: offered.optionId }
+              : { kind: 'DECLINE' }
+          })
+        )
+        expect(sent.type, JSON.stringify(sent)).toBe('COMMAND_COMMITTED')
+      }
+    }
+
+    it('reports a perceived creature that used Legendary Resistance as having succeeded', async () => {
+      const room = await perceptionRoom({ legendary: true })
+      await failAllThenDecide(room, [SEEN_ID])
+      const entry = await lines(room, 'CASTER_PLAYER')
+      expect(entry?.issuerLines.slice().sort()).toEqual([
+        'An unseen creature failed its save',
+        'Shadow Wolf failed its save',
+        'Wolf failed its save',
+        'Wolf succeeded on its save'
+      ])
+    })
+
+    it('leaves no trace of an unperceived creature that used Legendary Resistance', async () => {
+      const room = await perceptionRoom({ legendary: true })
+      await failAllThenDecide(room, [PHANTOM_ID])
+      const entry = await lines(room, 'CASTER_PLAYER')
+      expect(entry?.issuerLines).not.toContain('An unseen creature failed its save')
+      expect(JSON.stringify(entry)).not.toContain('Phantom')
+    })
+
+    it('still reports a creature that declined Legendary Resistance as having failed', async () => {
+      const room = await perceptionRoom({ legendary: true })
+      await failAllThenDecide(room, [])
+      const entry = await lines(room, 'CASTER_PLAYER')
+      expect(entry?.issuerLines.slice().sort()).toEqual([
+        'An unseen creature failed its save',
+        'Shadow Wolf failed its save',
+        'Wolf failed its save',
+        'Wolf failed its save'
+      ])
+    })
+
+    it('shows the GM the same results and no other player any of them', async () => {
+      const room = await perceptionRoom()
+      await answerAllSaves(room)
+      const caster = await lines(room, 'CASTER_PLAYER')
+      expect((await lines(room, 'GM'))?.issuerLines).toEqual(caster?.issuerLines)
+      expect(await lines(room, 'OUTSIDER')).toBeUndefined()
+    })
+
+    it('keeps the GM’s removals out of the caster’s copy', async () => {
+      const room = await perceptionRoom()
+      const removed = await room.send(
+        room.removeAreaTargetCommand(await room.pendingDecision(), SHADOW_ID)
+      )
+      expect(removed.type).toBe('COMMAND_COMMITTED')
+      await answerAllSaves(room)
+      expect((await lines(room, 'GM'))?.gmLines).toEqual(['GM removed Shadow Wolf from the area'])
+      const caster = await lines(room, 'CASTER_PLAYER')
+      expect(caster?.gmLines).toEqual([])
+      expect(JSON.stringify(caster)).not.toContain('Shadow')
+      expect(caster?.issuerLines.slice().sort()).toEqual([
+        'An unseen creature failed its save',
+        'Wolf failed its save',
+        'Wolf failed its save'
+      ])
+    })
   })
 })

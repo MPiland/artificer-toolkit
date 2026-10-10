@@ -510,6 +510,8 @@ export type EncounterAreaActionPendingContextDto = {
     token: EncounterAreaTokenDto
     /** Sealed against this creature's own source and target facts, so its save resumes only if they hold. */
     snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+    /** Whether the caster perceived the creature when the area opened; sealed, so it cannot drift. */
+    perceivedByCaster: boolean
     /** Set once the creature's own roller answered its save; the GM can no longer take it out. */
     testedJson?: string
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
@@ -554,6 +556,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
           z.strictObject({
             actorId: uuidSchema,
             token: encounterAreaTokenDtoSchema,
+            perceivedByCaster: z.boolean(),
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
             testedJson: z.optional(z.string()),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema)

@@ -5,9 +5,10 @@ import {
   projectNativeAreaActionPending,
   readNativeAreaActionPending
 } from './actionAreaPending.js'
-import { readRunState } from './documents.js'
+import { readRunActors, readRunState } from './documents.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { noEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -46,14 +47,15 @@ export async function nativeActionPendingResult(
       occurrenceId: occurrence.id,
       occurrenceVersion: occurrence.version,
       status: 'PENDING',
-      pending: await projectGmPending(ctx, occurrence)
+      pending: await projectGmPending(ctx, occurrence, readRunState(run))
     }
   })
 }
 
 async function projectGmPending(
   ctx: EncounterReadContext,
-  occurrence: EncounterDocument<'encounterRuleOccurrences'>
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  state: EncounterRunState
 ) {
   const snapshot =
     occurrence.state === 'PENDING' ? await readPendingSnapshot(ctx, occurrence) : null
@@ -66,7 +68,7 @@ async function projectGmPending(
   const pending = projectNativeAreaActionPending(
     occurrence,
     await readNativeAreaActionPending(ctx, occurrence),
-    { isOwner: true, controlledActorIds: new Set() },
+    { isOwner: true, controlledActorIds: new Set(), actors: await readRunActors(ctx, state) },
     noEncounterRollModeReasons
   )
   if (!pending) throw new Error('Stored Encounter area action has no pending save.')

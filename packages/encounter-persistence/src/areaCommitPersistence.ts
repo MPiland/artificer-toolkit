@@ -511,7 +511,22 @@ export async function persistEncounterAreaCommit(
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: [],
       consumedGrants: [],
-      addedConcentrationCasterId: null
+      addedConcentrationCasterId: null,
+      issuerLines: children.flatMap(({ actor, batch }) => {
+        // The rolled d20 keeps its failed path when Legendary Resistance turned it into a success.
+        const failed =
+          batch.d20?.resultPath === 'ON_SAVE_FAIL' &&
+          !(batch.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' && batch.legendaryResistance?.use)
+        if (context.targets.find((target) => target.actorId === actor.id)?.perceivedByCaster)
+          return [`${actor.label} ${failed ? 'failed its save' : 'succeeded on its save'}`]
+        // An unperceived creature reaches the caster only by failing, and then unnamed.
+        return failed ? ['An unseen creature failed its save'] : []
+      }),
+      gmLines: context.removedActorIds.map((actorId) => {
+        const removed = actors.find((actor) => actor.id === actorId)
+        if (!removed) throw new Error('Live Session area removed an unknown creature.')
+        return `GM removed ${removed.label} from the area`
+      })
     },
     occurredAt: input.occurredAt
   })
