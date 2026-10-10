@@ -6,7 +6,7 @@ import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { EncounterCharacterRow } from './characterPlay.js'
+import { readEncounterCharacterPlay, type EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
 type MaintenanceCleanupResult = Pick<
@@ -74,7 +74,12 @@ export async function cleanupRemovedActorEffects(
       holders: await Promise.all(
         (await readRunActors(ctx, input.state)).map(async (actor) => ({
           actor,
-          effects: await effects.list(turnEffectOwner(actor, input.state.id))
+          // A deleted Character has no play record and holds no effects; its removal must not need them.
+          effects:
+            actor.kind === 'CHARACTER' &&
+            !(actor.sourceId && (await readEncounterCharacterPlay(ctx, actor.sourceId)))
+              ? []
+              : await effects.list(turnEffectOwner(actor, input.state.id))
         }))
       )
     })
