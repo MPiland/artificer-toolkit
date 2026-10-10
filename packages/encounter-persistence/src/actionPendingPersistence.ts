@@ -1,15 +1,20 @@
 import type { LiveSessionEncounterActionPendingInput } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type {
+  ActionAreaSceneRequestDto,
+  ActionSceneRequestDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { requireAreaActionPendingRoot } from './actionAreaPending.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
-import { nativeActionPendingResult } from './actionPending.js'
+import { nativeActionPendingResult } from './actionPendingResult.js'
 import { changedFields, readRunActors } from './documents.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
@@ -29,6 +34,10 @@ export async function persistEncounterActionPending(
       input: ActionSceneRequestDto,
       role: 'OWNER' | 'MEMBER'
     ): Promise<Extract<LiveSessionEncounterRulesResponse, { kind: 'ACTION_SCENE' }>['context']>
+    readAreaSceneInputs(
+      state: EncounterRunState,
+      input: ActionAreaSceneRequestDto
+    ): Promise<Extract<LiveSessionEncounterRulesResponse, { kind: 'ACTION_AREA_SCENE' }>['context']>
     validateReadFence(
       state: EncounterRunState,
       characterIds: readonly string[],
@@ -50,28 +59,8 @@ export async function persistEncounterActionPending(
     })
   const { resume, initiatorUserId } = admission
   const { snapshot } = input
-  if (
-    snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
-    snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-    snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
-    (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
-      snapshot.applicationContext.rollerActorId !== admission.input.target.actorId) ||
-    snapshot.applicationContext.commandFingerprint !== fingerprint ||
-    checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
-    snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
-    snapshot.graph.source.gameSystemId !== state.gameSystemId ||
-    snapshot.deferredCleaving !== undefined ||
-    snapshot.applicationContext.contest !== undefined ||
-    (resume &&
-      (snapshot.occurrenceId !== resume.occurrence.id ||
-        snapshot.applicationContext.currentnessChecksum !==
-          resume.pending.context.currentnessChecksum)) ||
-    input.command.optionalCombatIntent != null
-  )
-    throw new Error('Live Session pending action root mismatch.')
+  const { target } = admission.input
   const actors = await readRunActors(ctx, state)
-  if (!actors.some((actor) => actor.id === admission.input.target.actorId))
-    throw new Error('Encounter action target was not found.')
   const characterIds = new Set(
     actors.flatMap((actor) => {
       if (actor.kind !== 'CHARACTER') return []
@@ -87,15 +76,55 @@ export async function persistEncounterActionPending(
     await callbacks.readMaintenanceCapture(state, request)
     if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
   }
-  await callbacks.readActionSceneInputs(
-    state,
-    {
-      actorId: admission.input.actorId,
-      targetActorId: admission.input.target.actorId,
-      sceneContext: admission.input.sceneContext
-    },
-    membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
-  )
+  let evidence:
+    | Extract<typeof snapshot, { snapshotKind: 'KERNEL_EVIDENCE' }>['applicationContext']
+    | null = null
+  if (target.kind === 'POINT') {
+    if (resume || input.command.optionalCombatIntent != null)
+      throw new Error('Live Session pending action root mismatch.')
+    await requireAreaActionPendingRoot(
+      {
+        snapshot,
+        command: { ...admission.input, target },
+        fingerprint,
+        initiatorUserId,
+        state
+      },
+      callbacks.readAreaSceneInputs
+    )
+  } else {
+    if (
+      snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
+      snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+      snapshot.applicationContext.initiatorUserId !== initiatorUserId ||
+      (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
+        snapshot.applicationContext.rollerActorId !== target.actorId) ||
+      snapshot.applicationContext.commandFingerprint !== fingerprint ||
+      checksumCanonicalJson(JSON.parse(snapshot.applicationContext.commandJson)) !== fingerprint ||
+      snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+      snapshot.graph.source.gameSystemId !== state.gameSystemId ||
+      snapshot.deferredCleaving !== undefined ||
+      snapshot.applicationContext.contest !== undefined ||
+      (resume &&
+        (snapshot.occurrenceId !== resume.occurrence.id ||
+          snapshot.applicationContext.currentnessChecksum !==
+            resume.pending.context.currentnessChecksum)) ||
+      input.command.optionalCombatIntent != null
+    )
+      throw new Error('Live Session pending action root mismatch.')
+    evidence = snapshot.applicationContext
+    if (!actors.some((actor) => actor.id === target.actorId))
+      throw new Error('Encounter action target was not found.')
+    await callbacks.readActionSceneInputs(
+      state,
+      {
+        actorId: admission.input.actorId,
+        targetActorId: target.actorId,
+        sceneContext: admission.input.sceneContext
+      },
+      membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
+    )
+  }
   await callbacks.validateReadFence(state, [...characterIds], input.revisions)
   const collision = await ctx.db
     .query('encounterRuleOccurrences')
@@ -137,16 +166,15 @@ export async function persistEncounterActionPending(
         status: 'PAUSED',
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
-        request: snapshot.request,
-        ...(snapshot.applicationContext.d20Policy
+        request: requireServerKernelRuleExecutionPendingSnapshot(snapshot).request,
+        ...(evidence?.d20Policy
           ? {
               pending: {
                 kind: 'D20_EVIDENCE',
                 // The receipt is a recipient-visible record, so it keeps what the roller was shown.
-                rollMode: snapshot.applicationContext.heldD20
+                rollMode: evidence.heldD20
                   ? 'NORMAL'
-                  : (snapshot.applicationContext.d20Belief ?? snapshot.applicationContext.d20Policy)
-                      .rollMode
+                  : (evidence.d20Belief ?? evidence.d20Policy).rollMode
               }
             }
           : {})

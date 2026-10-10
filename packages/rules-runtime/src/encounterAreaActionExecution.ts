@@ -11,6 +11,7 @@ import {
   type PendingNativeActionGraphs
 } from './encounterActionExecution.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import { encounterAreaTargetOccurrenceId } from './encounterAreaPending.js'
 import { nextRollInt } from './random.js'
 
 type NativeActionInput = Parameters<typeof prepareNativeActionTest>[0]
@@ -22,7 +23,10 @@ type LegendaryResistanceAudit = NonNullable<
   Parameters<typeof continueNativeActionAfterTest>[0]['legendaryResistance']
 >
 
-/** What every caught creature shares: one rules runtime, plan, adapter and Action occurrence. */
+/**
+ * What every caught creature shares: one rules runtime, plan, adapter and area occurrence. Each
+ * creature's save runs under an occurrence id derived from the area's and its own.
+ */
 type AreaActionSource = Pick<NativeActionInput, 'runtime' | 'adapter' | 'plan' | 'occurrenceId'> & {
   random?: (maximum: number) => number
 }
@@ -65,6 +69,7 @@ async function testTarget(
 ): Promise<EncounterAreaTargetTest> {
   const result = await prepareNativeActionTest({
     ...source,
+    occurrenceId: encounterAreaTargetOccurrenceId(source.occurrenceId, target.actorId),
     binding: target.binding,
     autoRoll: target.autoRoll,
     afterTest: async () => undefined,
@@ -150,6 +155,7 @@ export async function settleEncounterAreaAction(
     if (test?.kind !== 'TESTED') throw new Error('The area save is unavailable.')
     const result = await continueNativeActionAfterTest({
       ...input,
+      occurrenceId: encounterAreaTargetOccurrenceId(input.occurrenceId, target.actorId),
       binding: target.binding,
       // The roller of a nested save would pause here: only the frozen damage may be rolled.
       autoRoll: { SOURCE: true, TARGET: false },

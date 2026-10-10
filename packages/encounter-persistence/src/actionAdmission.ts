@@ -5,7 +5,7 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readEncounterActorDefeated } from './characterStates.js'
-import { nativeActionPendingResult, readNativeActionPending } from './actionPending.js'
+import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { requireEncounterActorControl } from './actorController.js'
@@ -26,15 +26,15 @@ export async function readNativeEncounterActionAdmission(
   resume?: { occurrence: EncounterDocument<'encounterRuleOccurrences'>; initiatorUserId: string }
 ) {
   const { target } = command
-  // A point-origin area has no executable path until the room can plan and commit one.
-  if (target.kind !== 'ACTOR')
-    rejectDomain('TARGET_UNAVAILABLE', 'Area actions are not available yet.')
   const input = {
     ...command,
     encounterId: command.encounterId.toLowerCase(),
     commandId: command.commandId.toLowerCase(),
     actorId: command.actorId.toLowerCase(),
-    target: { ...target, actorId: target.actorId.toLowerCase() },
+    target:
+      target.kind === 'ACTOR'
+        ? { ...target, actorId: target.actorId.toLowerCase() }
+        : { ...target, sceneId: target.sceneId.toLowerCase() },
     sceneContext: command.sceneContext
       ? {
           ...command.sceneContext,
@@ -132,7 +132,8 @@ export async function readNativeEncounterActionAdmission(
         payload.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH') ||
       payload.applicationOutputs.occurrenceId !== occurrence.id ||
       payload.applicationOutputs.sourceActorId !== input.actorId ||
-      payload.applicationOutputs.targetActorId !== input.target.actorId ||
+      (input.target.kind === 'ACTOR' &&
+        payload.applicationOutputs.targetActorId !== input.target.actorId) ||
       metadata.transition !== 'START' ||
       metadata.definitionId !== initialExecution.evidence.source.definitionId ||
       (payload.initialFactsChecksum !== undefined
@@ -155,14 +156,16 @@ export async function readNativeEncounterActionAdmission(
     return { kind: 'REPLAY' as const, input, run, state, campaign, membership, fingerprint, result }
   }
   if (!resume) {
-    const [actor, target] = await Promise.all([
-      readRunActor(ctx, state, input.actorId),
-      readRunActor(ctx, state, input.target.actorId)
-    ])
+    const actor = await readRunActor(ctx, state, input.actorId)
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
-    // Players target only actors in their projection; a hidden actor reads as unavailable.
-    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    // An area names no creature: the Scene decides whom it catches. A player's own save still
+    // shows only the creatures their projection holds.
+    if (input.target.kind === 'ACTOR') {
+      const target = await readRunActor(ctx, state, input.target.actorId)
+      // Players target only actors in their projection; a hidden actor reads as unavailable.
+      if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    }
   }
   if (state.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
@@ -179,7 +182,7 @@ export async function readNativeEncounterActionAdmission(
   if (pending.length === 1) {
     const occurrence = pending[0]!
     if (occurrence.rootCommandId !== input.commandId) rejectDomain('PENDING_DECISION')
-    const { context } = await readNativeActionPending(ctx, occurrence)
+    const { context } = await readNativePendingRoot(ctx, occurrence)
     if (context.commandFingerprint !== fingerprint || context.initiatorUserId !== initiatorUserId)
       rejectDomain('COMMAND_ID_REUSED')
     if (!resume)

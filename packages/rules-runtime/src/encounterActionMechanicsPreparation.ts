@@ -117,52 +117,23 @@ export function compileEncounterFeatureActionPlan(
   )
 }
 
-/** Prepares current source, target, and resource facts without persistence access. */
-export async function prepareEncounterActionMechanics<
+/**
+ * The action the source actor takes: its source, the adapter and execution plan that run it, and the
+ * target policy that decides what it may be aimed at. It reads nothing about any target, so an area
+ * action learns its policy before it knows whom the area catches.
+ */
+export async function prepareEncounterActionSource<
   TCharacterFacts extends CharacterActionMovementFacts
 >(input: {
   state: EncounterRunState
   actor: EncounterRunActorState
-  target: EncounterRunActorState
-  actors: readonly EncounterRunActorState[]
   actionId: string
-  wieldConflictAcceptance: EncounterWieldConflictAcceptance
-  /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
-  overridable: boolean
-  movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
-  /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
-  sceneContext?: EncounterActionSceneContext | null
-  /**
-   * Whether each side of an attack sees the other (SRD unseen attacker/target). Called only for an
-   * attack roll; omitted by flows that do not read perception, which leave sight out of the roll.
-   */
-  loadAttackPerception?: (input: {
-    sourceFacts: MovementTarget<TCharacterFacts>
-    targetFacts: MovementTarget<TCharacterFacts>
-  }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
+  sourceFacts: MovementTarget<TCharacterFacts>
   loadSource: (
     input: Omit<EncounterActionSourceInput, 'system'>
   ) => Promise<NativeEncounterActionSource>
-  loadRelationshipFacts: (input: {
-    state: EncounterRunState
-    actors: readonly EncounterRunActorState[]
-    sourceActorId: string
-    targetActorId: string
-    actionEffectId: string
-    activeEffectsByActorId?: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
-  }) => Promise<readonly EncounterRelationshipD20Contributor[]>
 }) {
-  const { state, actor, target, actors, actionId } = input
-  const currentTargets = input.movementTargets
-  const sourceFacts = currentTargets.get(actor.id)
-  const targetFacts = currentTargets.get(target.id)
-  if (
-    !sourceFacts ||
-    !targetFacts ||
-    checksumCanonicalJson(sourceFacts.actor) !== checksumCanonicalJson(actor) ||
-    checksumCanonicalJson(targetFacts.actor) !== checksumCanonicalJson(target)
-  )
-    throw new Error('Encounter action facts are stale.')
+  const { state, actor, actionId, sourceFacts } = input
   const characterAction = sourceFacts.characterReactionSource
   const candidate = characterAction?.mechanics.rulePolicyInput.actionCandidates.find(
     (value) => value.actionId === actionId
@@ -210,6 +181,62 @@ export async function prepareEncounterActionMechanics<
         ? source.entry.compilation.executionPlan
         : { kind: 'SINGLE_GRAPH' as const, published: source.entry.compilation.published }
       : compileEncounterFeatureActionPlan(adapter, source.capability)
+  return { source, adapter, targetPolicy, plan }
+}
+
+/** Prepares current source, target, and resource facts without persistence access. */
+export async function prepareEncounterActionMechanics<
+  TCharacterFacts extends CharacterActionMovementFacts
+>(input: {
+  state: EncounterRunState
+  actor: EncounterRunActorState
+  target: EncounterRunActorState
+  actors: readonly EncounterRunActorState[]
+  actionId: string
+  wieldConflictAcceptance: EncounterWieldConflictAcceptance
+  /** RESOLVE_ACTION reports overridable warnings; reactions, legendary actions and Disarm refuse them. */
+  overridable: boolean
+  movementTargets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+  /** The locked Scene positions of a RESOLVE_ACTION, for range-derived roll modes. */
+  sceneContext?: EncounterActionSceneContext | null
+  /**
+   * Whether each side of an attack sees the other (SRD unseen attacker/target). Called only for an
+   * attack roll; omitted by flows that do not read perception, which leave sight out of the roll.
+   */
+  loadAttackPerception?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<{ actual: EncounterAttackPerception; believed: EncounterAttackPerception }>
+  loadSource: (
+    input: Omit<EncounterActionSourceInput, 'system'>
+  ) => Promise<NativeEncounterActionSource>
+  loadRelationshipFacts: (input: {
+    state: EncounterRunState
+    actors: readonly EncounterRunActorState[]
+    sourceActorId: string
+    targetActorId: string
+    actionEffectId: string
+    activeEffectsByActorId?: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+  }) => Promise<readonly EncounterRelationshipD20Contributor[]>
+}) {
+  const { state, actor, target, actors, actionId } = input
+  const currentTargets = input.movementTargets
+  const sourceFacts = currentTargets.get(actor.id)
+  const targetFacts = currentTargets.get(target.id)
+  if (
+    !sourceFacts ||
+    !targetFacts ||
+    checksumCanonicalJson(sourceFacts.actor) !== checksumCanonicalJson(actor) ||
+    checksumCanonicalJson(targetFacts.actor) !== checksumCanonicalJson(target)
+  )
+    throw new Error('Encounter action facts are stale.')
+  const { source, adapter, targetPolicy, plan } = await prepareEncounterActionSource({
+    state,
+    actor,
+    actionId,
+    sourceFacts,
+    loadSource: input.loadSource
+  })
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'

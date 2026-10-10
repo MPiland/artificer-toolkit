@@ -4,6 +4,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import { rangeDtoSchema, type RangeDto } from './range.js'
+import { spatialPointDtoSchema } from './spatialFacts.js'
 import { encounterInitiativePendingContextDtoSchema } from './ruleExecutionInitiativePending.js'
 import {
   optionalCombatPassageContinuationDtoSchema,
@@ -455,6 +456,102 @@ export type OptionalCombatPassageChoicePendingContextDto = z.infer<
   typeof optionalCombatPassageChoicePendingContextDtoSchema
 >
 
+/**
+ * A point-area action waits on one save per caught creature at once. Each target keeps its own sealed
+ * kernel continuation (a derived occurrence id keeps their request ids apart); the aggregate keeps the
+ * caught set, sealed with a checksum of the Scene facts that decided it.
+ */
+export type EncounterAreaActionPendingContextDto = {
+  kind: 'ENCOUNTER_AREA_ACTION'
+  schemaVersion: 1
+  commandJson: string
+  commandFingerprint: string
+  initiatorUserId: string
+  casterActorId: string
+  scene: { sceneId: string; sceneVersion: number }
+  /** The picked origin and the compiled shape, in Scene units. */
+  area: { origin: { x: number; y: number }; shape: EncounterAreaShapeDto }
+  /** Binds the Scene version, the area, and every creature still caught with its token footprint. */
+  caughtChecksum: string
+  /** Creatures the GM took out of the area while the saves were pending. */
+  removedActorIds: string[]
+  targets: {
+    actorId: string
+    /** The footprint of the creature's token when the area caught it. */
+    token: EncounterAreaTokenDto
+    /** Sealed against this creature's own source and target facts, so its save resumes only if they hold. */
+    snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+  }[]
+}
+
+const encounterAreaShapeDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('RADIUS'), radius: z.number().check(z.positive()) }),
+    z.strictObject({ kind: z.literal('CUBE'), edgeLength: z.number().check(z.positive()) })
+  ])
+)
+export type EncounterAreaShapeDto = z.infer<typeof encounterAreaShapeDtoSchema>
+
+const encounterAreaTokenDtoSchema = lazySchema(() =>
+  z.strictObject({
+    tokenId: uuidSchema,
+    position: spatialPointDtoSchema,
+    width: z.number().check(z.positive()),
+    height: z.number().check(z.positive()),
+    rotationDegrees: z.number().check(z.gte(0)).check(z.lt(360))
+  })
+)
+export type EncounterAreaTokenDto = z.infer<typeof encounterAreaTokenDtoSchema>
+
+const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_AREA_ACTION'),
+      schemaVersion: z.literal(1),
+      commandJson: z.string(),
+      commandFingerprint: checksumSchema,
+      initiatorUserId: uuidSchema,
+      casterActorId: uuidSchema,
+      scene: z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema }),
+      area: z.strictObject({ origin: spatialPointDtoSchema, shape: encounterAreaShapeDtoSchema }),
+      caughtChecksum: checksumSchema,
+      removedActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      targets: z
+        .array(
+          z.strictObject({
+            actorId: uuidSchema,
+            token: encounterAreaTokenDtoSchema,
+            snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema)
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        const seen = new Set<string>()
+        for (const [index, target] of value.targets.entries()) {
+          const inner = target.snapshot.applicationContext
+          if (
+            seen.has(target.actorId) ||
+            value.removedActorIds.includes(target.actorId) ||
+            inner.kind !== 'ENCOUNTER_ACTION' ||
+            inner.commandFingerprint !== value.commandFingerprint ||
+            inner.initiatorUserId !== value.initiatorUserId ||
+            inner.rollerActorId !== target.actorId
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index],
+              message:
+                'Each area save must be a unique, kept creature whose sealed continuation shares the area root.'
+            })
+          seen.add(target.actorId)
+        }
+      })
+    )
+)
+
 export type ServerAggregateChoicePendingSnapshotDto = {
   snapshotKind: 'AGGREGATE_CHOICE'
   schemaVersion: 1
@@ -465,6 +562,7 @@ export type ServerAggregateChoicePendingSnapshotDto = {
     | z.infer<typeof initiativeDeclarationAggregateChoicePendingContextDtoSchema>
     | OptionalCombatCleavingChoicePendingContextDto
     | OptionalCombatPassageChoicePendingContextDto
+    | EncounterAreaActionPendingContextDto
 }
 
 const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
@@ -477,7 +575,8 @@ const serverAggregateChoicePendingSnapshotObjectSchema = lazySchema(() =>
       legendaryActionChoicePendingContextDtoSchema,
       initiativeDeclarationAggregateChoicePendingContextDtoSchema,
       optionalCombatCleavingChoicePendingContextDtoSchema,
-      optionalCombatPassageChoicePendingContextDtoSchema
+      optionalCombatPassageChoicePendingContextDtoSchema,
+      encounterAreaActionPendingContextDtoSchema
     ])
   })
 )

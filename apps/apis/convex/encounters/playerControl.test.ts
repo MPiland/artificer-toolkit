@@ -221,10 +221,15 @@ describe('Encounter actor control', () => {
     ).toEqual([base.player.userId])
   })
 
-  it('refuses a point-origin target until area actions can execute', async () => {
+  it('refuses a point-origin target for an action that does not take a point', async () => {
     const base = await playerControlFixture()
     const command = await base.bite(base.companion.id, base.enemy.id, {
-      target: { kind: 'POINT', point: { x: 100, y: 100 } }
+      target: {
+        kind: 'POINT',
+        sceneId: crypto.randomUUID(),
+        expectedSceneVersion: 0,
+        point: { x: 100, y: 100 }
+      }
     })
     await expect(
       domainRejection(executeInRoom(base.owner.caller, { command }))

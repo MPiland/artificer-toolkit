@@ -1,6 +1,5 @@
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
-import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorControl } from './actorController.js'
@@ -9,7 +8,6 @@ import {
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { readRunActor, readRunState } from './documents.js'
-import { readEncounterGmProjection } from './nativeProjection.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -141,31 +139,4 @@ export function projectNativeActionPending(
         },
         allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
       }
-}
-
-export async function nativeActionPendingResult(
-  ctx: EncounterReadTransaction,
-  run: EncounterDocument<'encounterRuns'>,
-  occurrence: EncounterDocument<'encounterRuleOccurrences'>
-) {
-  if (
-    run.id !== occurrence.encounterId ||
-    run.campaignId !== occurrence.campaignId ||
-    run.version !== occurrence.expectedEncounterVersion
-  )
-    throw new Error('Pending Encounter action scope is stale.')
-  return encounterCommandResultDtoSchema.parse({
-    projection: await readEncounterGmProjection(ctx, readRunState(run)),
-    roll: null,
-    occurrence: {
-      occurrenceId: occurrence.id,
-      occurrenceVersion: occurrence.version,
-      status: 'PENDING',
-      pending: projectNativeActionPending(
-        occurrence,
-        await readNativeActionPending(ctx, occurrence),
-        true
-      )
-    }
-  })
 }

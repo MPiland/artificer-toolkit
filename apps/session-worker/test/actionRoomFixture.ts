@@ -124,6 +124,40 @@ export function biteWolf(
   })
 }
 
+/**
+ * The SRD Wolf with its Bite made a point-area save: every creature in a 20-foot sphere within 150
+ * feet makes a Dexterity save (DC 10) against 1 damage. It is the shape of Fireball, authored as a
+ * Creature so a room can run it without a Character's spell slots.
+ */
+export function fireballWolf(): CreatureAuthored {
+  const bite = biteWolf('SAVE', { reachFeet: 150 })
+  return creatureAuthoredDtoSchema.parse({
+    ...bite,
+    features: bite.features?.map((feature) =>
+      feature.label !== 'Bite'
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              invocation: {
+                ...effect.invocation,
+                targeting: {
+                  selectionKind: 'AREA_CONTENTS' as const,
+                  dispositionKind: 'ANY' as const
+                },
+                shape: {
+                  id: '00000000-0000-4000-8000-000000000c96',
+                  shapeKind: 'SPHERE' as const,
+                  radius: { amount: 20, unit: 'FEET' as const }
+                }
+              }
+            }))
+          }
+    )
+  })
+}
+
 export interface ActionRoomConfig extends Pick<
   MovementRoomConfig,
   | 'automationMode'
@@ -305,6 +339,31 @@ export async function actionRoom(config: ActionRoomConfig) {
         actionId: chosenActionId,
         optionalCombatIntent,
         sceneContext
+      }
+      return { command, answer: await send(command) }
+    },
+    /** The acting actor's area action at the Scene `point`; the room's answer, not yet checked. */
+    async startAreaAction(
+      point: { x: number; y: number },
+      acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = []
+    ) {
+      const command: ResolveEncounterActionInputDto = {
+        type: 'RESOLVE_ACTION',
+        acceptedWieldConflict: null,
+        acknowledgedWarnings,
+        encounterId: room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await version(),
+        actorId: source.id,
+        target: {
+          kind: 'POINT',
+          sceneId: room.scene.id,
+          expectedSceneVersion: room.scene.version,
+          point
+        },
+        actionId,
+        optionalCombatIntent: null,
+        sceneContext: null
       }
       return { command, answer: await send(command) }
     },

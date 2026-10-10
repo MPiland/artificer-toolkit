@@ -5,6 +5,7 @@ import {
   projectNativeActionPending,
   readNativeActionPending
 } from './actionPending.js'
+import { projectNativeAreaActionPending, readNativeAreaActionPending } from './actionAreaPending.js'
 import { projectNativeDisarmPendingForMember } from './actionDisarmPending.js'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
@@ -44,6 +45,18 @@ export async function readEncounterWaitingOn(
   if (!ownerMembership) throw new Error('The Campaign owner membership is unavailable.')
   const decision = await readPendingRunDecision(ctx, row, campaign, ownerMembership)
   if (!decision) return null
+  if (decision.kind === 'AREA_SAVES') {
+    const controllers = await Promise.all(
+      decision.saves.map(async ({ actorId }) =>
+        readEncounterActorPrimaryController(
+          ctx,
+          campaign,
+          await readRunActor(ctx, readRunState(row), actorId)
+        )
+      )
+    )
+    return controllers.every((controller) => controller === campaign.ownerUserId) ? 'GM' : 'PLAYER'
+  }
   const actorId =
     decision.kind === 'D20_EVIDENCE' ||
     decision.kind === 'ACTION_OUTCOME_EVIDENCE' ||
@@ -191,6 +204,17 @@ export async function readPendingRunDecision(
     if (pending.kind !== 'INITIATIVE_DECLARATION')
       throw new Error('Stored initiative declaration is invalid.')
     return controlledActorIds.has(pending.actorId) ? pending : null
+  }
+  if (context.kind === 'ENCOUNTER_AREA_ACTION') {
+    const pending = await readNativeAreaActionPending(ctx, occurrence)
+    return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
+      projectNativeAreaActionPending(
+        occurrence,
+        pending,
+        { isOwner: membership.role === 'OWNER', controlledActorIds },
+        reasons
+      )
+    )
   }
   if (context.kind === 'ENCOUNTER_ACTION') {
     if (!(await canAnswerNativeActionEvidence(ctx, { run: row, campaign, membership, occurrence })))

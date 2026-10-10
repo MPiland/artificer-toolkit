@@ -15,7 +15,7 @@ import {
   readNativeDisarmPending
 } from './actionDisarmPending.js'
 import { readNativeDisarmEvidenceReplay, readNativeDisarmReplay } from './actionDisarmReplay.js'
-import { nativeActionPendingResult } from './actionPending.js'
+import { nativeActionPendingResult } from './actionPendingResult.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { replayEncounterCommandResult } from './replayReceipts.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'

@@ -32,7 +32,11 @@ export function isNativeActionOccurrence(input: {
   context: Pick<PendingContext, 'kind'> | null
   rootCommandType: string | null
 }) {
-  return input.rootCommandType === 'RESOLVE_ACTION' || input.context?.kind === 'ENCOUNTER_ACTION'
+  return (
+    input.rootCommandType === 'RESOLVE_ACTION' ||
+    input.context?.kind === 'ENCOUNTER_ACTION' ||
+    input.context?.kind === 'ENCOUNTER_AREA_ACTION'
+  )
 }
 
 /** The pending contexts the Session room resumes through Scene geometry. */

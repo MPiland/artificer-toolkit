@@ -74,9 +74,40 @@ export function evaluateEncounterActionRuleWarnings(input: {
       : []),
     ...targetWarnings
   ]
-  return warnings.every((warning) => input.acknowledged.includes(warning.code))
+  return acknowledgeEncounterActionWarnings(warnings, input.acknowledged)
+}
+
+function acknowledgeEncounterActionWarnings(
+  warnings: EncounterRuleWarningDto[],
+  acknowledged: readonly EncounterRuleWarningCodeDto[]
+):
+  | { kind: 'UNACKNOWLEDGED'; warnings: EncounterRuleWarningDto[] }
+  | { kind: 'ACCEPTED'; overrides: EncounterRuleWarningDto[] } {
+  return warnings.every((warning) => acknowledged.includes(warning.code))
     ? { kind: 'ACCEPTED', overrides: warnings }
     : { kind: 'UNACKNOWLEDGED', warnings }
+}
+
+/**
+ * The same soft-check gate for a point-origin area action. Every creature in the area is caught, so
+ * no per-target rule applies: the area's own range warning, the preparation warnings and the action
+ * allowance are all it reports.
+ */
+export function evaluateEncounterAreaRuleWarnings(input: {
+  preparedWarnings: readonly EncounterRuleWarningDto[]
+  areaWarnings: readonly EncounterRuleWarningDto[]
+  actionEconomy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
+  activationCode: string
+  acknowledged: readonly EncounterRuleWarningCodeDto[]
+}) {
+  return acknowledgeEncounterActionWarnings(
+    [
+      ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
+      ...input.preparedWarnings,
+      ...input.areaWarnings
+    ],
+    input.acknowledged
+  )
 }
 
 const allowanceName = (activationCode: string) => activationCode.toLowerCase().replaceAll('_', ' ')

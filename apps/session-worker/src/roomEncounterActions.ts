@@ -22,7 +22,11 @@ import {
 import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
-import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
+import { buildNativeLiveEncounterAreaActionPendingInput } from './nativeEncounterAreaRules.js'
+import {
+  readRoomActionAreaSceneInputs,
+  readRoomActionSceneInputs
+} from './roomActionSceneInputs.js'
 import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
@@ -67,9 +71,11 @@ export async function executeRoomEncounterAction(input: {
   })
   if (plan.kind === 'REPLAY') return plan.result
   const captured =
-    plan.kind === 'PENDING'
-      ? buildNativeLiveEncounterActionPendingInput(scope, plan)
-      : buildNativeLiveEncounterActionCommitInput(scope, plan)
+    plan.kind === 'AREA_PENDING'
+      ? buildNativeLiveEncounterAreaActionPendingInput(scope, plan)
+      : plan.kind === 'PENDING'
+        ? buildNativeLiveEncounterActionPendingInput(scope, plan)
+        : buildNativeLiveEncounterActionCommitInput(scope, plan)
   const ids = new Set(
     plan.prepared.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
@@ -79,10 +85,13 @@ export async function executeRoomEncounterAction(input: {
     (revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id)
   )
   mergeNativeRulesRevisions(revisions, captured.revisions)
-  const callbacks: Parameters<typeof persistEncounterActionCommit>[2] = {
+  const callbacks: Parameters<typeof persistEncounterActionCommit>[2] &
+    Parameters<typeof persistEncounterActionPending>[2] = {
     readMaintenanceCapture: (state, request) => readRoomMaintenanceCapture(ctx, state, request),
     readActionSceneInputs: (state, command) =>
       readRoomActionSceneInputs(ctx, transaction, state, command),
+    readAreaSceneInputs: (state, command) =>
+      readRoomActionAreaSceneInputs(ctx, transaction, state, command),
     validateReadFence: async (state, characterIds, revisions) =>
       assertRoomEncounterRulesRevisions(observed, state, characterIds, revisions),
     currentCharacterMaximumHitPoints: async (state, id) => {
@@ -111,6 +120,12 @@ export async function executeRoomEncounterAction(input: {
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
       })
   }
+  if (plan.kind === 'AREA_PENDING')
+    return persistEncounterActionPending(
+      ctx,
+      { ...buildNativeLiveEncounterAreaActionPendingInput(scope, plan), revisions },
+      callbacks
+    )
   return plan.kind === 'PENDING'
     ? persistEncounterActionPending(
         ctx,

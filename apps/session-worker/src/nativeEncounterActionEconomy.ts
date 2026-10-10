@@ -1,0 +1,68 @@
+import type { LiveSessionEncounterRulesRequest } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
+import {
+  encounterAttackActionTransition,
+  evaluateEncounterAttackAction
+} from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
+
+type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+type EconomyTarget = Parameters<typeof evaluateEncounterAttackAction>[0]['target']
+
+/**
+ * The action allowance the chosen action spends and the Attack action it opens or continues, for a
+ * single target or for every creature an area caught. A suppressed allowance only warns: the
+ * command may acknowledge it.
+ */
+export async function evaluateNativeLiveActionEconomy(input: {
+  prepared: Pick<Prepared, 'source' | 'actor'>
+  state: EncounterRunState
+  actionId: string
+  /** The acting actor's own facts. */
+  sourceTarget: EconomyTarget
+  targetIds: readonly string[]
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => ReturnType<LiveCaptureReads['encounterRules']>
+}) {
+  const { prepared } = input
+  const invocation =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.candidate.mechanicFacts.invocation
+      : prepared.source.capability.mechanicFacts.invocation
+  const { activation } = invocation
+  if (!activation || activation.amount === null)
+    throw new Error('The selected action activation is not normalized.')
+  const {
+    economy,
+    attackAction: openedAttackAction,
+    suppressed
+  } = await evaluateEncounterAttackAction({
+    triggerCode: invocation.triggerCode,
+    actor: prepared.actor,
+    state: input.state,
+    activation: { code: activation.code, amount: activation.amount },
+    target: input.sourceTarget,
+    loadTarget: async () => input.sourceTarget,
+    definitions: {
+      requireCurrent: async (definitionId) => {
+        const response = await input.capture({ kind: 'DEFINITION', definitionId })
+        if (response.kind !== 'DEFINITION' || !response.definition)
+          throw new Error('Action-economy capability is unavailable.')
+        return response.definition
+      }
+    }
+  })
+  return {
+    activationCode: activation.code,
+    economy,
+    suppressed,
+    attackAction: openedAttackAction
+      ? encounterAttackActionTransition(openedAttackAction, {
+          actionId: input.actionId,
+          targetIds: [...input.targetIds]
+        })
+      : null
+  }
+}

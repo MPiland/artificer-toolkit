@@ -109,20 +109,24 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
 
 /**
  * What a RESOLVE_ACTION aims at: one creature, or the origin of a point-area action
- * (AREA_CONTENTS targeting) in Scene coordinates.
+ * (AREA_CONTENTS targeting) in the coordinates of the Scene version the caster saw.
  */
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
-    z.strictObject({ kind: z.literal('POINT'), point: spatialPointDtoSchema })
+    z.strictObject({
+      kind: z.literal('POINT'),
+      sceneId: uuidSchema,
+      expectedSceneVersion: versionSchema,
+      point: spatialPointDtoSchema
+    })
   ])
 )
 export type ResolveEncounterActionTargetDto = z.infer<typeof resolveEncounterActionTargetDtoSchema>
 
-/** The creature an action targets. Admission refuses a point-origin area until it can execute one. */
+/** The creature a single-target action aims at; a point-origin area names none. */
 export function actionTargetActorId(target: ResolveEncounterActionTargetDto): string {
-  if (target.kind !== 'ACTOR')
-    throw new Error('A point-origin area action cannot execute here yet.')
+  if (target.kind !== 'ACTOR') throw new Error('A point-origin area action names no creature.')
   return target.actorId
 }
 
@@ -163,6 +167,16 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     )
   })
 )
+
+/** The Scene read for a point-area action: the caster's token and every bound creature token. */
+export const actionAreaSceneRequestDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actorId: uuidSchema,
+    sceneId: uuidSchema,
+    expectedSceneVersion: versionSchema
+  })
+)
+export type ActionAreaSceneRequestDto = z.infer<typeof actionAreaSceneRequestDtoSchema>
 
 /** The Scene read for one source and one target actor's tokens, however the action names its target. */
 export const actionSceneRequestDtoSchema = lazySchema(() =>

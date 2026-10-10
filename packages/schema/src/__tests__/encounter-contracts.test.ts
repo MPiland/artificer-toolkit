@@ -850,19 +850,23 @@ describe('encounter contracts', () => {
       actorId: encounterId,
       actionId: 'fireball'
     }
+    const scene = { sceneId: encounterId, expectedSceneVersion: 3 }
     expect(
       encounterCommandInputDtoSchema.parse({
         ...action,
-        target: { kind: 'POINT', point: { x: 12.5, y: -30 } }
+        target: { kind: 'POINT', ...scene, point: { x: 12.5, y: -30 } }
       })
-    ).toMatchObject({ target: { kind: 'POINT', point: { x: 12.5, y: -30 } } })
+    ).toMatchObject({ target: { kind: 'POINT', ...scene, point: { x: 12.5, y: -30 } } })
     for (const target of [
-      { kind: 'POINT' },
-      { kind: 'POINT', point: { x: 1 } },
-      { kind: 'POINT', point: { x: 1, y: 2, z: 3 } },
-      { kind: 'POINT', point: { x: Number.POSITIVE_INFINITY, y: 0 } },
-      { kind: 'POINT', point: { x: 1, y: 2 }, actorId: commandId },
-      { kind: 'POINT', point: { x: 1, y: 2 }, extra: true }
+      { kind: 'POINT', ...scene },
+      { kind: 'POINT', point: { x: 1, y: 2 } },
+      { kind: 'POINT', sceneId: encounterId, point: { x: 1, y: 2 } },
+      { kind: 'POINT', expectedSceneVersion: 3, point: { x: 1, y: 2 } },
+      { kind: 'POINT', ...scene, point: { x: 1 } },
+      { kind: 'POINT', ...scene, point: { x: 1, y: 2, z: 3 } },
+      { kind: 'POINT', ...scene, point: { x: Number.POSITIVE_INFINITY, y: 0 } },
+      { kind: 'POINT', ...scene, point: { x: 1, y: 2 }, actorId: commandId },
+      { kind: 'POINT', ...scene, point: { x: 1, y: 2 }, extra: true }
     ])
       expect(
         encounterCommandInputDtoSchema.safeParse({ ...action, target }).success,

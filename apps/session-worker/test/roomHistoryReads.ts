@@ -3,6 +3,10 @@ import {
   projectNativeActionPending,
   readNativeActionPending
 } from '@artificer-toolkit/encounter-persistence/actionPending'
+import {
+  projectNativeAreaActionPending,
+  readNativeAreaActionPending
+} from '@artificer-toolkit/encounter-persistence/actionAreaPending'
 import { projectNativeBasicActionCheckPending } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import { projectNativeCleavingPending } from '@artificer-toolkit/encounter-persistence/cleavingPending'
 import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-persistence/concentrationPending'
@@ -71,11 +75,17 @@ export function readPendingActionDecision(stub: RoomStub, isOwner = true) {
                 controlledActorIds: actorIds,
                 visibleActorIds: actorIds
               })
-            : projectNativeActionPending(
-                occurrence,
-                await readNativeActionPending({ db: room.store }, occurrence),
-                isOwner
-              )
+            : kind === 'ENCOUNTER_AREA_ACTION'
+              ? projectNativeAreaActionPending(
+                  occurrence,
+                  await readNativeAreaActionPending({ db: room.store }, occurrence),
+                  { isOwner, controlledActorIds: isOwner ? actorIds : new Set() }
+                )
+              : projectNativeActionPending(
+                  occurrence,
+                  await readNativeActionPending({ db: room.store }, occurrence),
+                  isOwner
+                )
     if (!pending) throw new Error('The pending decision is not shown to the GM.')
     return {
       occurrence,

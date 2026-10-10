@@ -39090,6 +39090,25 @@ export declare const api: {
                     };
               }
             | {
+                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                casterActorId: string;
+                encounterVersion: number;
+                kind: "AREA_SAVES";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                saves: Array<{
+                  actorId: string;
+                  request: {
+                    derivedRollModeReasons: Array<string>;
+                    heldD20?: { caption: string | null; faces: Array<number> };
+                    max: 20;
+                    min: 1;
+                    requestId: string;
+                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  };
+                }>;
+              }
+            | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
                 encounterVersion: number;
                 kind: "ACTION_OUTCOME_EVIDENCE";
@@ -39341,6 +39360,28 @@ export declare const api: {
                         dc: number;
                         kind: "BASIC_ACTION_CHECK";
                       };
+                }
+              | {
+                  allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                  casterActorId: string;
+                  encounterVersion: number;
+                  kind: "AREA_SAVES";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  saves: Array<{
+                    actorId: string;
+                    request: {
+                      derivedRollModeReasons: Array<string>;
+                      heldD20?: {
+                        caption: string | null;
+                        faces: Array<number>;
+                      };
+                      max: 20;
+                      min: 1;
+                      requestId: string;
+                      rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    };
+                  }>;
                 }
               | {
                   allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
@@ -40106,6 +40147,25 @@ export declare const api: {
                 };
           }
         | {
+            allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+            casterActorId: string;
+            encounterVersion: number;
+            kind: "AREA_SAVES";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            saves: Array<{
+              actorId: string;
+              request: {
+                derivedRollModeReasons: Array<string>;
+                heldD20?: { caption: string | null; faces: Array<number> };
+                max: 20;
+                min: 1;
+                requestId: string;
+                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              };
+            }>;
+          }
+        | {
             allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;
             encounterVersion: number;
             kind: "ACTION_OUTCOME_EVIDENCE";
@@ -40842,6 +40902,25 @@ export declare const api: {
                       dc: number;
                       kind: "BASIC_ACTION_CHECK";
                     };
+              }
+            | {
+                allowedResponses: Array<"ENTER_DICE" | "SYSTEM_ROLL">;
+                casterActorId: string;
+                encounterVersion: number;
+                kind: "AREA_SAVES";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                saves: Array<{
+                  actorId: string;
+                  request: {
+                    derivedRollModeReasons: Array<string>;
+                    heldD20?: { caption: string | null; faces: Array<number> };
+                    max: 20;
+                    min: 1;
+                    requestId: string;
+                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  };
+                }>;
               }
             | {
                 allowedResponses: Array<"ENTER_INTEGER" | "SYSTEM_ROLL">;

@@ -31,7 +31,10 @@ import { readBasicActionCheckResponseAdmission } from '@artificer-toolkit/encoun
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterCleavingBindings } from '@artificer-toolkit/encounter-persistence/cleavingSceneInputs'
-import { readRoomActionSceneInputs } from './roomActionSceneInputs.js'
+import {
+  readRoomActionAreaSceneInputs,
+  readRoomActionSceneInputs
+} from './roomActionSceneInputs.js'
 import { readCleavingResponseAdmission } from '@artificer-toolkit/encounter-persistence/cleavingResponseAdmission'
 import { readNativeEncounterActionAdmission } from '@artificer-toolkit/encounter-persistence/actionAdmission'
 import { readNativeEncounterActionResponseAdmission } from '@artificer-toolkit/encounter-persistence/actionResumeAdmission'
@@ -422,6 +425,18 @@ export async function readRoomEncounterTurnCapture(
               targetTokenId: request.command.sceneContext.targetTokenId.toLowerCase()
             }
           : null
+      })
+    }
+  } else if (request.kind === 'ACTION_AREA_SCENE') {
+    const actorId = request.command.actorId.toLowerCase()
+    if (!state.actorIds.includes(actorId))
+      throw new Error('Action Scene actor is not in the Encounter.')
+    response = {
+      kind: 'ACTION_AREA_SCENE',
+      context: await readRoomActionAreaSceneInputs(ctx, transaction, state, {
+        actorId,
+        sceneId: request.command.sceneId.toLowerCase(),
+        expectedSceneVersion: request.command.expectedSceneVersion
       })
     }
   } else if (request.kind === 'INITIATIVE_ROUND') {

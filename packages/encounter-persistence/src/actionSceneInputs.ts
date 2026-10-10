@@ -1,4 +1,7 @@
-import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type {
+  ActionAreaSceneRequestDto,
+  ActionSceneRequestDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
   SceneLiveEntity,
   SceneLiveStateHeader
@@ -13,6 +16,7 @@ import type {
   sceneStoredLiveEntitySchema,
   sceneStoredLiveStateSchema
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
+import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterReadContext } from './store.js'
 import { parseSceneLiveEntity } from './sceneLiveState.js'
@@ -34,15 +38,16 @@ export interface EncounterActionSceneReaders {
   ): Promise<ReturnType<typeof sceneStoredDefinitionEntitySchema.parse> | null>
 }
 
-/** Reads exact stored geometry without rules evaluation; the caller owns commit freshness. */
-export async function readEncounterActionSceneInputs(
+/**
+ * Opens the Scene an action reads at the version the caller saw, and returns the one reader of a
+ * bound creature's token geometry. The caller owns commit freshness.
+ */
+async function openActionScene(
   ctx: EncounterReadContext,
   state: EncounterRunState,
-  command: ActionSceneRequestDto,
+  request: { sceneId: string; expectedSceneVersion: number },
   callbacks: EncounterActionSceneReaders
 ) {
-  const request = command.sceneContext
-  if (!request) return null
   const { header, live } = await callbacks.readScene(request.sceneId)
   const bindingRow = await ctx.db
     .query('encounterSceneBindings')
@@ -123,6 +128,19 @@ export async function readEncounterActionSceneInputs(
       rotationDegrees: token.rotationDegrees
     }
   }
+  return { header, readToken }
+}
+
+/** Reads exact stored geometry without rules evaluation; the caller owns commit freshness. */
+export async function readEncounterActionSceneInputs(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  command: ActionSceneRequestDto,
+  callbacks: EncounterActionSceneReaders
+) {
+  const request = command.sceneContext
+  if (!request) return null
+  const { header, readToken } = await openActionScene(ctx, state, request, callbacks)
   const [sourceToken, targetToken] = await Promise.all([
     readToken(request.sourceTokenId, command.actorId),
     readToken(request.targetTokenId, command.targetActorId)
@@ -133,5 +151,30 @@ export async function readEncounterActionSceneInputs(
     sourceToken,
     targetToken,
     sceneGrid: header.grid
+  }
+}
+
+/** The caster's token and every creature token bound to the Encounter, for a point-area action. */
+export async function readEncounterActionAreaSceneInputs(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  command: ActionAreaSceneRequestDto,
+  callbacks: EncounterActionSceneReaders
+) {
+  const { header, readToken } = await openActionScene(ctx, state, command, callbacks)
+  const rows = await ctx.db
+    .query('encounterActorTokenBindings')
+    .withIndex('by_encounterId_actorId', (q) => q.eq('encounterId', state.id))
+    .take(MAX_ENCOUNTER_ACTORS + 1)
+  if (rows.length > MAX_ENCOUNTER_ACTORS) throw new Error('Action Scene token context is stale.')
+  const tokens = await Promise.all(rows.map((row) => readToken(row.tokenId, row.actorId)))
+  const sourceToken = tokens.find((token) => token.actorId === command.actorId)
+  if (!sourceToken) throw new Error('Action Scene token context is stale.')
+  return {
+    sceneId: header.id,
+    sceneVersion: header.version,
+    sceneGrid: header.grid,
+    sourceToken,
+    tokens
   }
 }

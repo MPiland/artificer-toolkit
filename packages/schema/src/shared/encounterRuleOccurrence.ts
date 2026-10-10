@@ -128,6 +128,47 @@ export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
 )
 export type EncounterRuleRollTriggerDto = z.infer<typeof encounterRuleRollTriggerDtoSchema>
 
+/** The d20 a save or check asks its roller for, with the mode and reasons that roller is shown. */
+const d20EvidenceRequestDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+      min: z.literal(1),
+      max: z.literal(20),
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      /**
+       * Why the rules derived `rollMode`: the labels of the contributors that produced it (for
+       * example "Flanking" or a feature, item or condition name). Empty for Normal or when the
+       * sources have no label.
+       */
+      derivedRollModeReasons: z
+        .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
+        .check(z.maxLength(32)),
+      /**
+       * The d20 already rolled when the server needs one more to settle the true mode
+       * (ATTACK-10.1): the roller enters one more d20, or asks the app to roll it.
+       */
+      heldD20: z.optional(
+        z.strictObject({
+          faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
+          caption: z.nullable(
+            z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+          )
+        })
+      )
+    })
+    .check(
+      z.superRefine((request, context) => {
+        if (request.heldD20 && request.rollMode !== 'NORMAL')
+          context.addIssue({
+            code: 'custom',
+            path: ['rollMode'],
+            message: 'A held d20 is a single die, so the request rolls Normal.'
+          })
+      })
+    )
+)
+
 export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
   z
     .discriminatedUnion('kind', [
@@ -140,43 +181,25 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         rollerActorId: z.nullable(uuidSchema),
         /** What the roll is for, when a rule raised it from an earlier outcome. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
-        request: z
-          .strictObject({
-            requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
-            min: z.literal(1),
-            max: z.literal(20),
-            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-            /**
-             * Why the rules derived `rollMode`: the labels of the contributors that produced it (for
-             * example "Flanking" or a feature, item or condition name). Empty for Normal or when the
-             * sources have no label.
-             */
-            derivedRollModeReasons: z
-              .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
-              .check(z.maxLength(32)),
-            /**
-             * The d20 already rolled when the server needs one more to settle the true mode
-             * (ATTACK-10.1): the roller enters one more d20, or asks the app to roll it.
-             */
-            heldD20: z.optional(
-              z.strictObject({
-                faces: z.tuple([ruleExecutionReceiptD20FaceSchema]),
-                caption: z.nullable(
-                  z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
-                )
-              })
-            )
-          })
-          .check(
-            z.superRefine((request, context) => {
-              if (request.heldD20 && request.rollMode !== 'NORMAL')
-                context.addIssue({
-                  code: 'custom',
-                  path: ['rollMode'],
-                  message: 'A held d20 is a single die, so the request rolls Normal.'
-                })
+        request: d20EvidenceRequestDtoSchema,
+        allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
+      }),
+      z.strictObject({
+        kind: z.literal('AREA_SAVES'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        casterActorId: uuidSchema,
+        /** The saves this viewer may see: all of them for the GM, otherwise the viewer's own creatures'. */
+        saves: z
+          .array(
+            z.strictObject({
+              actorId: uuidSchema,
+              request: d20EvidenceRequestDtoSchema
             })
-          ),
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         allowedResponses: z.tuple([z.literal('ENTER_DICE'), z.literal('SYSTEM_ROLL')])
       }),
       z.strictObject({

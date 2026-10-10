@@ -22,6 +22,7 @@ import { systemVocabularySnapshotSchema } from '../projections/systemVocabulary.
 import { liveSessionBootstrapInputSchema } from './liveSessionState.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 import {
+  actionAreaSceneRequestDtoSchema,
   actionSceneRequestDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
@@ -127,6 +128,10 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
       command: actionSceneRequestDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_AREA_SCENE'),
+      command: actionAreaSceneRequestDtoSchema
     }),
     z.strictObject({ kind: z.literal('MAINTENANCE_SLOT'), ...maintenanceSlot }),
     z.strictObject({ kind: z.literal('MAINTENANCE_STATE'), stateId: postgresUuidSchema }),
@@ -284,6 +289,18 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
           targetToken: actionToken
         })
       )
+    }),
+    z.strictObject({
+      kind: z.literal('ACTION_AREA_SCENE'),
+      revisions: liveSessionRulesRevisionsSchema,
+      context: z.strictObject({
+        sceneId: postgresUuidSchema,
+        sceneVersion: z.number().check(z.int()).check(z.nonnegative()),
+        sceneGrid: sceneGridDtoSchema,
+        sourceToken: actionToken,
+        /** Every creature token bound to the Encounter, the caster's included. */
+        tokens: z.array(actionToken).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
     }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_SLOT'),

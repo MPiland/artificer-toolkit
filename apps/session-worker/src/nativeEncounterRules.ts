@@ -19,10 +19,6 @@ import {
   isDnd5eMeleeAttackKind
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
 import {
-  encounterAttackActionTransition,
-  evaluateEncounterAttackAction
-} from '@artificer-toolkit/rules-runtime/encounterAttackAction'
-import {
   encounterActionSourceLabel,
   encounterLegendaryActionFeatureIds,
   resolveEncounterActionSource
@@ -58,6 +54,7 @@ import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import {
   withEncounterAppRoll,
   type EncounterEvidenceAnswer
@@ -71,6 +68,12 @@ import {
   liveSessionEncounterActionCommitInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
+import { planNativeLiveEncounterAreaAction } from './nativeEncounterAreaRules.js'
+import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
+import {
+  nativeLiveRelationshipFacts,
+  refuseLegendaryWindowAction
+} from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
   nativeConcentrationDamageApplications,
@@ -131,7 +134,6 @@ export async function planNativeLiveEncounterAction(
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
   const command = admission.command
-  const targetActorId = actionTargetActorId(command.target)
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
   let evidenceResolution: EncounterEvidenceAnswer | null = null
   if (responseCommand) {
@@ -181,7 +183,7 @@ export async function planNativeLiveEncounterAction(
     state.gameSystemId !== system.id ||
     new Set(state.actorIds).size !== state.actorIds.length ||
     !state.actorIds.includes(command.actorId) ||
-    !state.actorIds.includes(targetActorId)
+    (command.target.kind === 'ACTOR' && !state.actorIds.includes(command.target.actorId))
   )
     throw new Error('Encounter rules input binding mismatch.')
   if (state.automationMode === 'MANUAL')
@@ -207,6 +209,24 @@ export async function planNativeLiveEncounterAction(
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target
   }
+  if (command.target.kind === 'POINT') {
+    if (responseCommand) throw new Error('Area save answers are not available yet.')
+    const area = await planNativeLiveEncounterAreaAction({
+      initial,
+      command: { ...command, target: command.target },
+      fingerprint: admission.fingerprint,
+      state,
+      system,
+      actors,
+      activeEffectsByActorId,
+      loadTarget,
+      capture,
+      runtime: executionOptions.runtime,
+      random: executionOptions.random
+    })
+    return { ...area, dependencies, revisions }
+  }
+  const targetActorId = actionTargetActorId(command.target)
   const selectedActors = actors.filter(
     (actor) => actor.id === command.actorId || actor.id === targetActorId
   )
@@ -262,28 +282,9 @@ export async function planNativeLiveEncounterAction(
         capture
       }),
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
-    loadRelationshipFacts: async (input) =>
-      mergeCanonicalD20Contributors(
-        lockedRelationshipActionFacts({
-          actionEffectId: input.actionEffectId,
-          sourceActorId: input.sourceActorId,
-          targetActorId: input.targetActorId,
-          targets: { activeEffectsByActorId }
-        }),
-        allyAdvantage ? [allyAdvantage.contributor] : []
-      )
+    loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId, allyAdvantage })
   }).catch(refuseStaleCharacterAction)
-  if (
-    prepared.source.kind === 'CREATURE' &&
-    encounterLegendaryActionFeatureIds(prepared.actor).has(
-      prepared.source.capability.ownerFeatureId
-    )
-  )
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'LEGENDARY_WINDOW_ONLY',
-      message: DOMAIN_REJECTION_MESSAGES.LEGENDARY_WINDOW_ONLY
-    })
+  refuseLegendaryWindowAction(prepared)
   // Only an attack roll uses the advantage; a saving-throw action leaves it for the next attack.
   const allyAdvantageUses =
     allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
@@ -296,44 +297,18 @@ export async function planNativeLiveEncounterAction(
       : []
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const activation =
-    prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.candidate.mechanicFacts.invocation.activation
-      : prepared.source.capability.mechanicFacts.invocation.activation
-  if (!activation || activation.amount === null)
-    throw new Error('The selected action activation is not normalized.')
-  const {
-    economy,
-    attackAction: openedAttackAction,
-    suppressed
-  } = await evaluateEncounterAttackAction({
-    triggerCode:
-      prepared.source.kind === 'CHARACTER_ACTION'
-        ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
-        : prepared.source.capability.mechanicFacts.invocation.triggerCode,
-    actor: prepared.actor,
-    state,
-    activation: { code: activation.code, amount: activation.amount },
-    target: movementTargets.get(prepared.actor.id),
-    loadTarget: async () => movementTargets.get(prepared.actor.id),
-    definitions: {
-      requireCurrent: async (definitionId) => {
-        const response = await capture({ kind: 'DEFINITION', definitionId })
-        if (response.kind !== 'DEFINITION' || !response.definition)
-          throw new Error('Action-economy capability is unavailable.')
-        return response.definition
-      }
-    }
-  })
-  const attackAction = openedAttackAction
-    ? encounterAttackActionTransition(openedAttackAction, {
-        actionId: command.actionId,
-        targetIds: [prepared.target.id]
-      })
-    : null
+  const { activationCode, economy, suppressed, attackAction } =
+    await evaluateNativeLiveActionEconomy({
+      prepared,
+      state,
+      actionId: command.actionId,
+      sourceTarget: movementTargets.get(prepared.actor.id),
+      targetIds: [prepared.target.id],
+      capture
+    })
   const ruleWarnings = evaluateEncounterActionRuleWarnings({
     preparedWarnings: suppressed
-      ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activation.code)]
+      ? [...prepared.ruleWarnings, encounterActionSuppressedWarning(activationCode)]
       : prepared.ruleWarnings,
     target: {
       actor: prepared.actor,
@@ -354,7 +329,7 @@ export async function planNativeLiveEncounterAction(
       ? { targetDying: isEncounterTargetDying(movementTargets.get(prepared.target.id)) }
       : null,
     actionEconomy: economy,
-    activationCode: activation.code,
+    activationCode,
     acknowledged: command.acknowledgedWarnings
   })
   if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
@@ -639,26 +614,16 @@ export function buildNativeLiveEncounterActionPendingInput(
     maintenanceOwners: plan.dependencies.flatMap(({ request }) =>
       request.kind === 'MAINTENANCE_OWNER' ? [request] : []
     ),
-    snapshot: {
-      ...plan.execution.continuation,
-      snapshotKind: 'KERNEL_EVIDENCE',
+    snapshot: buildEncounterActionPendingSnapshot({
+      execution: plan.execution,
       optionalCombatSnapshotChecksum: plan.prepared.state.optionalCombatSnapshotChecksum,
-      applicationContext: {
-        kind: 'ENCOUNTER_ACTION',
-        schemaVersion: 1,
-        commandJson: JSON.stringify(plan.command),
-        commandFingerprint: plan.fingerprint,
-        initiatorUserId: plan.initiatorUserId,
-        rollerActorId:
-          plan.execution.roller === 'SOURCE' ? plan.prepared.actor.id : plan.prepared.target.id,
-        currentnessChecksum: plan.currentnessChecksum,
-        d20Policy: plan.execution.d20Policy,
-        twoPhase: plan.execution.twoPhase,
-        ...(plan.execution.d20Belief ? { d20Belief: plan.execution.d20Belief } : {}),
-        ...(plan.execution.heldD20 ? { heldD20: plan.execution.heldD20 } : {})
-      },
-      ...(plan.execution.phaseReceipts ? { phaseReceipts: plan.execution.phaseReceipts } : {})
-    }
+      commandJson: JSON.stringify(plan.command),
+      commandFingerprint: plan.fingerprint,
+      initiatorUserId: plan.initiatorUserId,
+      sourceActorId: plan.prepared.actor.id,
+      targetActorId: plan.prepared.target.id,
+      currentnessChecksum: plan.currentnessChecksum
+    })
   })
 }
 

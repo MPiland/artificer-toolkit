@@ -56,6 +56,7 @@ const answerRequired = (subject: string): RuleOccurrenceVoid => ({
 export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): RuleOccurrenceVoid {
   switch (context.kind) {
     case 'ENCOUNTER_ACTION':
+    case 'ENCOUNTER_AREA_ACTION':
     case 'ENCOUNTER_CHARACTER_RULE_ACTION':
     case 'ENCOUNTER_ACTOR_RULE_ACTION':
     case 'ENCOUNTER_ACTOR_SPELL_CAST':

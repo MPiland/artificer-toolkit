@@ -1,7 +1,13 @@
-import { readEncounterActionSceneInputs } from '@artificer-toolkit/encounter-persistence/actionSceneInputs'
+import {
+  readEncounterActionAreaSceneInputs,
+  readEncounterActionSceneInputs
+} from '@artificer-toolkit/encounter-persistence/actionSceneInputs'
 import type { EncounterReadContext } from '@artificer-toolkit/encounter-persistence/store'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type {
+  ActionAreaSceneRequestDto,
+  ActionSceneRequestDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { sceneStoredDefinitionEntitySchema } from '@artificer-toolkit/schema/projections/sceneDefinitionPersistence'
 import { sceneStoredLiveEntitySchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { canonicalizeJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -42,6 +48,19 @@ export function readRoomActionSceneInputs(
   command: ActionSceneRequestDto
 ) {
   return readEncounterActionSceneInputs(ctx, state, command, {
+    readScene: async (sceneId) => readRoomScene(transaction, sceneId),
+    ...roomSceneTokenReaders(transaction)
+  })
+}
+
+/** The caster's and every bound creature's token, read with the same checks as a single target. */
+export function readRoomActionAreaSceneInputs(
+  ctx: EncounterReadContext,
+  transaction: RoomTransaction,
+  state: EncounterRunState,
+  command: ActionAreaSceneRequestDto
+) {
+  return readEncounterActionAreaSceneInputs(ctx, state, command, {
     readScene: async (sceneId) => readRoomScene(transaction, sceneId),
     ...roomSceneTokenReaders(transaction)
   })

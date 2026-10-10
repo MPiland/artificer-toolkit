@@ -106,9 +106,11 @@ export async function persistEncounterActionCommit(
     execution.status !== 'COMPLETE' ||
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
-    command.optionalCombatIntent != null
+    command.optionalCombatIntent != null ||
+    command.target.kind !== 'ACTOR'
   )
     throw new Error('Live Session terminal action is not an ordinary completed root.')
+  const targetActorId = command.target.actorId
   const initialEvidence = execution.phaseReceipts?.[0]?.execution.evidence ?? execution.evidence
   if (
     initialEvidence.source.definitionId !== input.initialDefinitionId ||
@@ -125,13 +127,13 @@ export async function persistEncounterActionCommit(
     (batch.kind !== 'CHARACTER_MECHANICS_BATCH' &&
       batch.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH') ||
     batch.sourceActorId !== command.actorId ||
-    batch.targetActorId !== command.target.actorId ||
+    batch.targetActorId !== targetActorId ||
     batch.occurrenceId !== execution.occurrenceId
   )
     throw new Error('Live Session action result scope mismatch.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
-  const target = actors.find((actor) => actor.id === command.target.actorId)
+  const target = actors.find((actor) => actor.id === targetActorId)
   if (
     !source ||
     !target ||
@@ -165,7 +167,7 @@ export async function persistEncounterActionCommit(
     state,
     {
       actorId: command.actorId,
-      targetActorId: command.target.actorId,
+      targetActorId,
       sceneContext: command.sceneContext
     },
     membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'

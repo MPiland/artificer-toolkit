@@ -8,11 +8,9 @@ import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/sh
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readNativeEncounterActionAdmission } from './actionAdmission.js'
-import {
-  canAnswerNativeActionEvidence,
-  nativeActionPendingResult,
-  readNativeActionPending
-} from './actionPending.js'
+import { canAnswerNativeActionEvidence, readNativeActionPending } from './actionPending.js'
+import { areaActionPendingContext } from './actionAreaPending.js'
+import { nativeActionPendingResult } from './actionPendingResult.js'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { isNativeActionOccurrence } from './occurrenceOwner.js'
@@ -52,6 +50,8 @@ export async function readNativeEncounterActionResponseAdmission(
     return null
   if (occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
     throw new Error('The action occurrence scope is invalid.')
+  if (snapshot && areaActionPendingContext(snapshot))
+    throw new Error('Area save answers are not available yet.')
   const pending =
     occurrence.state === 'PENDING' ? await readNativeActionPending(ctx, occurrence) : null
   let parsed = pending?.command
