@@ -1,4 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readTestActor } from './storedActors'
 import type {
   CreateEncounterBlueprintInputDto,
@@ -386,11 +387,12 @@ export async function prepareStoredDisarm(
   const { state, actor, target, command } = input
   const intent = command.optionalCombatIntent
   if (!intent) throw new Error('Optional combat Disarm is unavailable.')
+  const targetActorId = actionTargetActorId(command.target)
   const definition = requireEncounterDisarmDefinition({
     ...input,
     command: {
       ...command,
-      targetActorId: command.target.actorId,
+      targetActorId,
       definitionId: intent.definitionId
     }
   })
@@ -412,7 +414,7 @@ export async function prepareStoredDisarm(
   })
   const sceneContext = await readActionSceneContext(tx, state, {
     actorId: command.actorId,
-    targetActorId: command.target.actorId,
+    targetActorId,
     sceneContext: command.sceneContext
   })
   const selection = readEncounterDisarmSelection({

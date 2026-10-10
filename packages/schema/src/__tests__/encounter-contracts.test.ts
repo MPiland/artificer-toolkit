@@ -841,6 +841,35 @@ describe('encounter contracts', () => {
       ).toBe(false)
   })
 
+  it('names a point-origin area target as a POINT with finite Scene coordinates only', () => {
+    const action = {
+      encounterId,
+      commandId,
+      expectedVersion: 2,
+      type: 'RESOLVE_ACTION',
+      actorId: encounterId,
+      actionId: 'fireball'
+    }
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        ...action,
+        target: { kind: 'POINT', point: { x: 12.5, y: -30 } }
+      })
+    ).toMatchObject({ target: { kind: 'POINT', point: { x: 12.5, y: -30 } } })
+    for (const target of [
+      { kind: 'POINT' },
+      { kind: 'POINT', point: { x: 1 } },
+      { kind: 'POINT', point: { x: 1, y: 2, z: 3 } },
+      { kind: 'POINT', point: { x: Number.POSITIVE_INFINITY, y: 0 } },
+      { kind: 'POINT', point: { x: 1, y: 2 }, actorId: commandId },
+      { kind: 'POINT', point: { x: 1, y: 2 }, extra: true }
+    ])
+      expect(
+        encounterCommandInputDtoSchema.safeParse({ ...action, target }).success,
+        JSON.stringify(target)
+      ).toBe(false)
+  })
+
   it('accepts only closed optional combat action intent selections', () => {
     const fieldId = 'a'.repeat(64)
     const positionFieldId = 'b'.repeat(64)

@@ -107,11 +107,24 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
   typeof encounterAcceptedWieldConflictDtoSchema
 >
 
-/** What a RESOLVE_ACTION aims at. A point-origin area joins the union with SPELLS-7. */
+/**
+ * What a RESOLVE_ACTION aims at: one creature, or the origin of a point-area action
+ * (AREA_CONTENTS targeting) in Scene coordinates.
+ */
 export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema })])
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('ACTOR'), actorId: uuidSchema }),
+    z.strictObject({ kind: z.literal('POINT'), point: spatialPointDtoSchema })
+  ])
 )
 export type ResolveEncounterActionTargetDto = z.infer<typeof resolveEncounterActionTargetDtoSchema>
+
+/** The creature an action targets. Admission refuses a point-origin area until it can execute one. */
+export function actionTargetActorId(target: ResolveEncounterActionTargetDto): string {
+  if (target.kind !== 'ACTOR')
+    throw new Error('A point-origin area action cannot execute here yet.')
+  return target.actorId
+}
 
 export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {

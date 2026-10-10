@@ -221,6 +221,16 @@ describe('Encounter actor control', () => {
     ).toEqual([base.player.userId])
   })
 
+  it('refuses a point-origin target until area actions can execute', async () => {
+    const base = await playerControlFixture()
+    const command = await base.bite(base.companion.id, base.enemy.id, {
+      target: { kind: 'POINT', point: { x: 100, y: 100 } }
+    })
+    await expect(
+      domainRejection(executeInRoom(base.owner.caller, { command }))
+    ).resolves.toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
+  })
+
   it('lets a granted player act for the companion only on its turn against visible targets', async () => {
     const base = await playerControlFixture()
     await hide(base, base.lurker.id)

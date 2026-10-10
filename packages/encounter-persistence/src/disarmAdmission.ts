@@ -3,6 +3,7 @@ import {
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -25,13 +26,17 @@ import type { EncounterReadTransaction } from './ports.js'
 
 type DisarmCommand = ResolveEncounterActionInputDto | ResolveRuleOccurrenceInputDto
 
-function normalizeRoot(command: ResolveEncounterActionInputDto): ResolveEncounterActionInputDto {
+function normalizeRoot(command: ResolveEncounterActionInputDto) {
+  const { target } = command
+  // Disarm takes one creature; a point-origin area has no Disarm.
+  if (target.kind !== 'ACTOR')
+    rejectDomain('TARGET_UNAVAILABLE', 'Area actions are not available yet.')
   return {
     ...command,
     encounterId: command.encounterId.toLowerCase(),
     commandId: command.commandId.toLowerCase(),
     actorId: command.actorId.toLowerCase(),
-    target: { ...command.target, actorId: command.target.actorId.toLowerCase() },
+    target: { ...target, actorId: target.actorId.toLowerCase() },
     sceneContext: command.sceneContext
       ? {
           ...command.sceneContext,
@@ -202,7 +207,7 @@ export async function readDisarmAdmission(
   if (!response) {
     const [actor, target] = await Promise.all([
       readRunActor(ctx, state, root.actorId),
-      readRunActor(ctx, state, root.target.actorId)
+      readRunActor(ctx, state, actionTargetActorId(root.target))
     ])
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')

@@ -1,3 +1,4 @@
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto
@@ -85,7 +86,7 @@ export async function readNativeDisarmReplay(
     payload.occurrenceVersion !== occurrence.version ||
     application.occurrenceId !== occurrence.id ||
     application.sourceActorId !== command.actorId ||
-    application.targetActorId !== command.target.actorId ||
+    application.targetActorId !== actionTargetActorId(command.target) ||
     application.policy.definitionId !== command.optionalCombatIntent?.definitionId ||
     application.contestGraph.definitionId !== graph.published.id ||
     application.contestGraph.checksum !== graph.published.checksum ||

@@ -25,12 +25,16 @@ export async function readNativeEncounterActionAdmission(
   userId: string,
   resume?: { occurrence: EncounterDocument<'encounterRuleOccurrences'>; initiatorUserId: string }
 ) {
+  const { target } = command
+  // A point-origin area has no executable path until the room can plan and commit one.
+  if (target.kind !== 'ACTOR')
+    rejectDomain('TARGET_UNAVAILABLE', 'Area actions are not available yet.')
   const input = {
     ...command,
     encounterId: command.encounterId.toLowerCase(),
     commandId: command.commandId.toLowerCase(),
     actorId: command.actorId.toLowerCase(),
-    target: { ...command.target, actorId: command.target.actorId.toLowerCase() },
+    target: { ...target, actorId: target.actorId.toLowerCase() },
     sceneContext: command.sceneContext
       ? {
           ...command.sceneContext,

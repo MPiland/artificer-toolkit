@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
+  actionTargetActorId,
   resolveEncounterActionInputDtoSchema,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
@@ -130,6 +131,7 @@ export async function planNativeLiveEncounterAction(
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
   if (admission.kind !== initial.request.kind) throw new Error('Encounter command is unavailable.')
   const command = admission.command
+  const targetActorId = actionTargetActorId(command.target)
   const snapshot = admission.kind === 'ACTION_RESPONSE' ? admission.snapshot : null
   let evidenceResolution: EncounterEvidenceAnswer | null = null
   if (responseCommand) {
@@ -179,7 +181,7 @@ export async function planNativeLiveEncounterAction(
     state.gameSystemId !== system.id ||
     new Set(state.actorIds).size !== state.actorIds.length ||
     !state.actorIds.includes(command.actorId) ||
-    !state.actorIds.includes(command.target.actorId)
+    !state.actorIds.includes(targetActorId)
   )
     throw new Error('Encounter rules input binding mismatch.')
   if (state.automationMode === 'MANUAL')
@@ -206,7 +208,7 @@ export async function planNativeLiveEncounterAction(
     return preparedTarget.target
   }
   const selectedActors = actors.filter(
-    (actor) => actor.id === command.actorId || actor.id === command.target.actorId
+    (actor) => actor.id === command.actorId || actor.id === targetActorId
   )
   const movementTargets = new Map(
     await Promise.all(
@@ -218,7 +220,7 @@ export async function planNativeLiveEncounterAction(
         kind: 'ACTION_SCENE',
         command: {
           actorId: command.actorId,
-          targetActorId: command.target.actorId,
+          targetActorId,
           sceneContext: command.sceneContext
         }
       })
@@ -243,7 +245,7 @@ export async function planNativeLiveEncounterAction(
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor: actors.find((actor) => actor.id === command.actorId)!,
-    target: actors.find((actor) => actor.id === command.target.actorId)!,
+    target: actors.find((actor) => actor.id === targetActorId)!,
     actors,
     actionId: command.actionId,
     wieldConflictAcceptance: { kind: 'PROMPTED', accepted: command.acceptedWieldConflict },

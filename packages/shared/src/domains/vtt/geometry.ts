@@ -581,6 +581,13 @@ export function measureSceneDistance(grid: SceneGrid, from: ScenePoint, to: Scen
   return cells * grid.distancePerCell
 }
 
+/** A length in the Scene's distance unit as coordinate length: the inverse of what measureSceneDistance counts. */
+export function sceneDistanceAsCoordinateLength(grid: SceneGrid, distance: number): number {
+  return grid.kind === 'GRIDLESS'
+    ? distance * grid.pixelsPerUnit
+    : (distance / grid.distancePerCell) * grid.cellSize
+}
+
 export function measureScenePathDistance(grid: SceneGrid, path: readonly ScenePoint[]): number {
   if (grid.kind !== 'SQUARE' || grid.diagonalPolicy !== 'ALTERNATING') {
     let distance = 0

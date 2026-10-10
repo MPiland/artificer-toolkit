@@ -9,6 +9,7 @@ import {
   type SpatialSceneToken,
   VTT_SPATIAL_LIMITS
 } from '../domains/vtt/spatial.js'
+import { sceneDistanceAsCoordinateLength } from '../domains/vtt/geometry.js'
 import { VTT_SCENE_LIMITS } from '../domains/vtt/scene.js'
 
 const ids = {
@@ -514,6 +515,27 @@ describe('token footprint path crossings', () => {
         stationaryTokens: [lowerId]
       })
     ).toEqual([])
+  })
+})
+
+describe('sceneDistanceAsCoordinateLength', () => {
+  it('turns a distance into coordinate length by cell on a square grid and by pixels per unit gridless', () => {
+    expect(
+      sceneDistanceAsCoordinateLength(
+        {
+          kind: 'SQUARE',
+          cellSize: 100,
+          diagonalPolicy: 'EQUAL',
+          distancePerCell: 5,
+          origin: { x: 0, y: 0 },
+          unit: 'FEET'
+        },
+        20
+      )
+    ).toBe(400)
+    expect(
+      sceneDistanceAsCoordinateLength({ kind: 'GRIDLESS', pixelsPerUnit: 8, unit: 'FEET' }, 20)
+    ).toBe(160)
   })
 })
 

@@ -1,3 +1,4 @@
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { readEncounterActorControl } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
 import { projectNativeActionPending, readNativeActionPending } from './actionPending.js'
@@ -19,7 +20,7 @@ export async function readNativeDisarmPending(
     contest.selection.kind !== 'DISARM' ||
     contest.actionId !== command.actionId ||
     contest.sourceActorId !== command.actorId ||
-    contest.targetActorId !== command.target.actorId ||
+    contest.targetActorId !== actionTargetActorId(command.target) ||
     contest.optionalCombat.definitionId !== command.optionalCombatIntent?.definitionId ||
     contest.optionalCombat.snapshotChecksum !== snapshot.optionalCombatSnapshotChecksum ||
     snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||

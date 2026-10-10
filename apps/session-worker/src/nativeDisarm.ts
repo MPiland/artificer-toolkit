@@ -1,6 +1,7 @@
-import type {
-  ResolveEncounterActionInputDto,
-  ResolveRuleOccurrenceInputDto
+import {
+  actionTargetActorId,
+  type ResolveEncounterActionInputDto,
+  type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   liveSessionEncounterDisarmCommitInputSchema,
@@ -81,6 +82,7 @@ export async function planNativeLiveDisarm(
   const ready = admission.ready
   if (!ready) throw new Error('The Disarm is unavailable.')
   const root = ready.command
+  const targetActorId = actionTargetActorId(root.target)
   const intent = root.optionalCombatIntent
   if (!intent) throw new Error('Optional combat Disarm is unavailable.')
   const { state, system } = await capture({ kind: 'INPUTS' })
@@ -91,7 +93,7 @@ export async function planNativeLiveDisarm(
     capture
   })
   const actor = actors.find((entry) => entry.id === root.actorId)
-  const target = actors.find((entry) => entry.id === root.target.actorId)
+  const target = actors.find((entry) => entry.id === targetActorId)
   if (!actor || !target) throw new Error('Disarm actors are unavailable.')
   const movementTargets = new Map(
     await Promise.all(
@@ -115,7 +117,7 @@ export async function planNativeLiveDisarm(
     target,
     command: {
       ...root,
-      targetActorId: root.target.actorId,
+      targetActorId,
       definitionId: intent.definitionId
     }
   })
@@ -150,7 +152,7 @@ export async function planNativeLiveDisarm(
           kind: 'ACTION_SCENE',
           command: {
             actorId: root.actorId,
-            targetActorId: root.target.actorId,
+            targetActorId,
             sceneContext: root.sceneContext
           }
         })

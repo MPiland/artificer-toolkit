@@ -3,7 +3,10 @@ import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runt
 import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  actionTargetActorId,
+  type ResolveEncounterActionInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
@@ -50,7 +53,7 @@ function actionOutputs(input: EffectCommitInput) {
     input.state.id !== command.encounterId ||
     execution.occurrenceId !== outputs.occurrenceId ||
     outputs.sourceActorId !== command.actorId ||
-    outputs.targetActorId !== command.target.actorId
+    outputs.targetActorId !== actionTargetActorId(command.target)
   )
     throw new Error('Completed action effect receipt does not match the command.')
   return outputs
@@ -214,7 +217,9 @@ export async function persistEncounterActionEffects(
   }
 ): Promise<EncounterRunActorState[]> {
   const { state, recurring, outputs } = classifyCreatedEffects(input)
-  const target = input.actors.find((actor) => actor.id === input.command.target.actorId)
+  const target = input.actors.find(
+    (actor) => actor.id === actionTargetActorId(input.command.target)
+  )
   if (!target) throw new Error('Completed action effect target is unavailable.')
   if (
     (target.kind === 'CHARACTER' && outputs.kind !== 'CHARACTER_MECHANICS_BATCH') ||

@@ -6,7 +6,10 @@ import type {
   LiveSessionEncounterDisarmCommitInput,
   LiveSessionEncounterDisarmPendingInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterDisarm'
-import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  actionTargetActorId,
+  type ActionSceneRequestDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
@@ -64,7 +67,11 @@ async function requireCurrentDisarmInputs(
   const actors = await readRunActors(ctx, state)
   await callbacks.readActionSceneInputs(
     state,
-    { actorId: root.actorId, targetActorId: root.target.actorId, sceneContext: root.sceneContext },
+    {
+      actorId: root.actorId,
+      targetActorId: actionTargetActorId(root.target),
+      sceneContext: root.sceneContext
+    },
     membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
   )
   await callbacks.validateReadFence(
@@ -161,6 +168,7 @@ export async function persistEncounterDisarmCommit(
   const { run, state, campaign, membership, root, response, fingerprint, occurrence, prior } =
     admission
   const { execution, contest, occurredAt } = input
+  const targetActorId = actionTargetActorId(root.target)
   const outputs =
     execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'CONTESTED_ACTION'
       ? execution.applicationOutputs
@@ -174,7 +182,7 @@ export async function persistEncounterDisarmCommit(
     contest.actionKind !== 'DISARM' ||
     contest.actionId !== root.actionId ||
     contest.sourceActorId !== root.actorId ||
-    contest.targetActorId !== root.target.actorId ||
+    contest.targetActorId !== targetActorId ||
     contest.optionalCombat.definitionId !== root.optionalCombatIntent?.definitionId ||
     contest.optionalCombat.snapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     outputs.sealedContextChecksum !== checksumRuleDocument(contest) ||
@@ -191,7 +199,7 @@ export async function persistEncounterDisarmCommit(
     throw new Error('Live Session Disarm result scope mismatch.')
   const actors = await requireCurrentDisarmInputs(ctx, admission, input.revisions, callbacks)
   const source = actors.find((actor) => actor.id === root.actorId)
-  const target = actors.find((actor) => actor.id === root.target.actorId)
+  const target = actors.find((actor) => actor.id === targetActorId)
   const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
   if (
     !source ||
@@ -225,7 +233,7 @@ export async function persistEncounterDisarmCommit(
           : actor
     ),
     uses: input.allyAdvantageUses,
-    rollerActorIds: [root.actorId, root.target.actorId]
+    rollerActorIds: [root.actorId, targetActorId]
   })
   await deleteConsumedGrants(ctx, {
     actor: settled.actor,

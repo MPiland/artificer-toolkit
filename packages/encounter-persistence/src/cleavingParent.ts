@@ -1,3 +1,4 @@
+import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { encounterExecuteInputSchema } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleReceiptSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
@@ -113,7 +114,7 @@ export async function verifyNativeCleavingParentChain(
     command.actionId !== context.action.actionId ||
     root.ruleOccurrenceId !== parent.occurrence.id ||
     root.ruleResultChecksum !== checksumRuleDocument(parent.payload) ||
-    command.target.actorId !== retained.initialTargetActorId ||
+    actionTargetActorId(command.target) !== retained.initialTargetActorId ||
     context.initialTargetActorId !== retained.initialTargetActorId ||
     checksumRuleDocument(context.originalAttack) !==
       checksumRuleDocument(retained.originalAttack) ||
