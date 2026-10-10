@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-07.
+**Updated:** 2026-10-10. Start at "Done 2026-10-10" below for the SPELLS-7 state and next steps.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -126,6 +126,78 @@
 - AUTHORING-12.4 DONE, which completes AUTHORING-12: Sheet overrides (ability, item weight, HP max) leave every authored root, version, payload chunk and compilation unchanged (`sheetAdjustments.test.ts`). Edit Source and Create New were already proved.
 - Ledger 79/140 PBIs, 341/483 ACs. SPELLS-5.6 and 5.7 are done (2026-10-09). 5.6: stored `speeds` replace `walkingSpeed`, and a voluntary move may name its `speedId`. 5.7: a Character's Concentration grant carries over to the Campaign clock and ends when its caster starts another Concentration, in the room or at checkpoint via the Run's `concentrationCasterCharacterIds`; mid-Run admission is deferred (D99). The ATTACK-10 and ENCOUNTER-7 branches are merged (7fdd1b675, 7e4f76c74) and the merged tree is green; ENCOUNTER-7 is DONE. A deleted Character's Run actor is removed without reading its effects (e3559734b). SPELLS-5.11 DONE (eeca6d635, D101): the caster ends their own Concentration at any time; Convex ends the caster's and outside holders' grants and the room, under the same command id, ends those an active Run holds, immediately and with no GM approval, writing a GM-only `CONCENTRATION_DROPPED_OUTSIDE` history entry. Concentration has no range condition unless the spell says so. ATTACK-10.1 ruling (being built on `claude/priceless-carson-0bbcd9`): before commit the prompt shows only the mode the attacker believes; on commit the true mode applies, a cancelled die is marked and a missing die is rolled (or prompted in manual play); the player card says generically "the target can sense you" and never names the Sense; the GM sees the specific reason. New PBIs: ATTACK-17 (target from map tokens or the Encounter list, sharing one selection; unseen and hidden creatures are not listed unless the GM reveals them; players can attack a square for the GM to resolve), ENCOUNTER-8 (animated ✕ and new die when the mode changes at commit), ATTACK-10.5 (saves follow the reason rule), SPELLS-5.12 and 5.13 (carried Concentration in later fights; carried grants count down in rounds and completing a Run offers to advance the Campaign clock). Next here: SPELLS-11. SPELLS-12 (more than one Concentration, generic capacity modifier) follows SPELLS-8. Then continue the WSJF ranking: SPELLS-7, ATTACK-10, ATTACK-7. Open needs-proof gaps: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14.
 
+**Done 2026-10-10 (SPELLS-11, ATTACK-10.1, SPELLS-7 in progress):**
+
+- SPELLS-11 DONE (`caa872b51`, D102); ATTACK-10.1 merged and DONE (`3dde32799`, D100). The SPELLS-7 split (`3e5877b07`) added SPELLS-13 to 17 and open questions Q1 and Q2. SPELLS-13.2 (caster-origin areas such as Thunderwave) was registered in `92aa12035`.
+- Fixed in passing (`f1bbfc4c6`): `amountKind` HALF and DOUBLE were ignored by the test-plan compiler, and a Character-cast HALF spell could not settle. Character DAMAGE mechanics now carry a bare `diceExpression` beside the worded `expression`.
+- The validation helpers `local-validation/codex-batch/vt.ps1` and `gate.ps1` now exit non-zero when any step fails. Before this they could print a failure and still exit 0.
+- Ledger 80/145 PBIs, 345/491 ACs.
+
+**SPELLS-7 (Fireball from a point) state, all commits green:**
+
+| Commit                   | Slice                                                                                                                                                                                                                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ead37ec90`              | The action `target` is a closed union, `{kind:'ACTOR', actorId}` or `{kind:'POINT', point}`, with no flat alias. Adds `spatialTokensInsidePointArea`.                                                                                                                   |
+| `0e85bc2ce`              | Point-area compilation and the range warning (`packages/rules-runtime/src/encounterAreaAction.ts`).                                                                                                                                                                     |
+| `41e09d03a`, `b590beea0` | The area executor (`encounterAreaActionExecution.ts`): one frozen damage roll, a save per creature, full damage on a fail and half on a success after defenses. AREA_CONTENTS compiles to the per-creature SINGLE_TARGET plan, and the area only decides who is caught. |
+| `e4af44327`              | A POINT `RESOLVE_ACTION` opens one pending `ENCOUNTER_AREA_ACTION` with a sealed save per caught creature (`AREA_SAVES` summary, caught checksum, `ACTION_AREA_SCENE` capture).                                                                                         |
+| `38125d04b`              | GM-only `REMOVE_AREA_TARGET`. It records no Run command and does not bump the Run version. A replay is answered from the current state, after the stale-version check. `removedActorIds` is kept on the occurrence.                                                     |
+| `bb994e79c`              | Saves can be answered in any order, each by its creature's own roller. A creature that has already rolled cannot be removed.                                                                                                                                            |
+
+**Rulings already made:**
+
+- The cube origin is the center of its bottom face, so the footprint is centered on the point.
+- Cylinder height is ignored on a flat Scene.
+- Self and Touch areas belong to SPELLS-13.2.
+- Per-role visibility:
+  - The GM sees every caught creature.
+  - The caster sees the caught creatures they perceive. An unperceived creature is shown to the caster only after commit, and only if it failed its save.
+  - Each roller sees only their own prompt.
+  - No player-visible reason names a hidden creature.
+- GM history shows "GM removed X from the area". Players never see it.
+- Open questions from the last report, decided:
+  - Legendary Resistance is per target and interstitial, offered to the creature's controller after a failed save, the same way as on movement.
+  - Sort the target ids in the Attack-action checksum.
+  - The last save answered settles in the same way a single-target save settles today. Read that path and match it; the expectation is an automatic commit.
+
+**Known gap in the committed tree:** once the last unanswered save is answered, the GM projection throws "Stored Encounter area action has no pending save". 5d closes this.
+
+**Next, in order (one agent, report after each green slice):**
+
+1. **5c-ii**
+   - Legendary Resistance on area saves: reuse `LEGENDARY_RESISTANCE_CHOICE` and `discoverEncounterLegendaryResistanceCandidate` in the `testTarget` `afterTest` hook. Feed the result into `settleEncounterAreaAction`'s per-target audit, and wire it in `nativeEncounterRules` and `planNativeLiveEncounterAreaAnswer`.
+   - SYSTEM_ROLL for area saves: `admitEvidenceRoll` and `readLatestEvidenceRolls` in `evidenceRolls.ts` need an AREA_SAVES branch that finds the save by requestId, with the roller as `save.actorId`.
+2. **5d commit**
+   - Settle re-derives each target by resuming from `testedJson`. Each target's kernel id is `encounterAreaTargetOccurrenceId(areaOccurrenceId, actorId)`.
+   - The commit-side caught-set check excludes `removedActorIds`.
+   - Commit in one transaction with one undo, spending resources and items once.
+   - Each damaged target gets one card and one Concentration check.
+   - An area that catches nothing still commits.
+   - Write the GM-only history line.
+3. **5e** Per-role projection tests at the projection seam.
+4. **5f** A seeded Character wizard: the save DC comes from the spell save DC, and a 4th-level slot rolls 9d6.
+5. **5g** The Fireball room journey in `apps/session-worker/test/`: the caster, an ally the GM removes, saves answered out of order, an unperceived creature, then undo.
+6. **5h**
+   - Record D103 in `phase-08-2-decisions.md`, covering:
+     - the atomic occurrence and the frozen damage;
+     - the per-creature plan;
+     - the cube origin and cylinder height;
+     - GM removal as its own command, with no Run command;
+     - replay from the current state, after the stale check.
+   - Amend the phase text in `docs/architecture/rules-runtime.md`.
+   - Add ledger proof paths for SPELLS-7.1, 7.2, 7.3 and the journey, then flip them.
+7. The web round: pick a point, show the area preview, give the GM a remove control, and add the area-saves prompt.
+
+Area path file map:
+
+- `packages/rules-runtime/src/`: `encounterAreaAction*.ts`, `encounterAreaPending.ts` and `encounterActionPendingSnapshot.ts`.
+- `packages/encounter-persistence/src/`: `actionAreaPending.ts`, `areaTargetRemoval.ts`, `actionResumeAdmission.ts` and `actionPendingPersistence.ts`.
+- `apps/session-worker/src/`: `nativeEncounterAreaRules.ts`, `roomEncounterCommands.ts`, and `test/nativeRoomAreaAction.test.ts`.
+
+After SPELLS-7, continue the WSJF ranking: ATTACK-7, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
+
+**Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing.
+
 **Done 2026-10-08 (thirteenth session):**
 
 - SPELLS-3.5 DONE (D96, `faceb847b`): a STABILIZE effect application (`deathSavesAfterStabilize`, `isCharacterDying` in `schema/shared/characterDeathSaves.ts`; folded in `encounterCharacterMechanicsBatch.ts`). The real SRD Healer's Kit compiles to it in `effectActionCompiler.ts`. A target that is not dying is the overridable `TARGET_NOT_DYING` warning and changes nothing. Proved by an ally journey in `turnDeathSave.test.ts`: the kit spends one charge, and undo restores the saves and the charge. Room tests (`nativeRoomStabilizeAction.test.ts`) self-target, because the room fixture holds one Character; its new `characterEquipment` option puts real SRD equipment in the room. With no Scene, touch range is the acknowledged `TARGET_RANGE_UNCHECKED` warning.
@@ -146,45 +218,45 @@
 - SPELLS-2 (D94): conditions apply their mechanics through one authored condition policy (`condition-rule-state` mechanics, evaluated by `encounterConditionMechanics.ts`), with no per-condition code. Mechanics cover attack and save roll modes, save auto-fail, crits against, speed and exhaustion levels, for Characters and Creatures. SPELLS-2.1 was refined into 2.1–2.7. Fixed: the Overrun initiator contributors dropped the condition's holder, and roll-mode reasons named a condition by its rule-state definition label ("Paralyzed rule policy") instead of the condition. The shared apis `fixture()` now seeds the SRD condition rule states, because Encounter reads require a definition for every active condition. `srdManifest.generated.ts` was regenerated. Pre-existing failures were also fixed. CAMPAIGN-7 had dropped the PLAYER-only assignment check without D92's replacement, so `readCampaignAssignedCharacter` now fails closed unless an OWNER membership matches the Campaign's owner (the gmWrites and rolls tests prove it). The archived-Campaign capabilities expectation now lists CAMPAIGN-7's `assignOwnCharacter` and `transferOwnInventory`. The Manual-run concentration and evidence-roll tests assert ENCOUNTER-2's `ASSISTED_ONLY` domain rejection. The conformance snapshot carries the new outcome-rule fact. The Builder catalogue assembly test has an explicit timeout. The 500-definition options ceiling test now fills from the rows already present, because the seeded condition rule states count toward that shared ceiling. Deferred items (Petrified resistance, Exhaustion 4 and 6, the Creature level editor, the auto-fail roll UX, concentration saves under conditions) are registered as SPELLS-10. Proofs and journeys are in the ledger (`actionCommands.test.ts`, `basicActions.test.ts`). Ledger 64/126 PBIs, 291/420 ACs (the counts include ATTACK-8's concurrent registrations).
   **Next work: the WSJF ranking below, top down (ranked 2026-10-07).** WSJF = (user/business value + time criticality + risk reduction or enablement) / job size, Fibonacci scores. A PBI never starts before the PBIs it is marked "after".
 
-| #   | PBI                                     | WSJF | Note                                                                                                                                     |
-| --- | --------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                   |
-| 2   | PRIVACY-3                               | 5.3  | Done (fourth session).                                                                                                                   |
-| 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                    |
-| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                    |
-| 5   | CAMPAIGN-7                              | 4.3  | Done (seventh session).                                                                                                                  |
-| 6   | ATTACK-8                                | 4.2  | Done (eighth session). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                                              |
-| 7   | ATTACK-3                                | 4.0  | Done (ninth session).                                                                                                                    |
-| 8   | PLATFORM-5 (5.6)                        | 4.0  | Done (ninth session).                                                                                                                    |
+| #   | PBI                                     | WSJF | Note                                                                                                                                       |
+| --- | --------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | PLATFORM-11                             | 8.0  | Done (fourth session).                                                                                                                     |
+| 2   | PRIVACY-3                               | 5.3  | Done (fourth session).                                                                                                                     |
+| 3   | SHEET-6                                 | 5.0  | Done (fifth session).                                                                                                                      |
+| 4   | ENCOUNTER-2 (2.7)                       | 4.3  | Done (sixth session).                                                                                                                      |
+| 5   | CAMPAIGN-7                              | 4.3  | Done (seventh session).                                                                                                                    |
+| 6   | ATTACK-8                                | 4.2  | Done (eighth session). ATTACK-11 (authored Multiattack, auto-sequence) follows it directly.                                                |
+| 7   | ATTACK-3                                | 4.0  | Done (ninth session).                                                                                                                      |
+| 8   | PLATFORM-5 (5.6)                        | 4.0  | Done (ninth session).                                                                                                                      |
 | 9   | "Needs proof" audit                     | 4.0  | Proofs linked (ninth session); 13.4, 14.2, 14.3, PERF-3.7, 3.10, 3.11 closed (fifteenth). Open: PLATFORM-13.2, 13.3, 14.1, PERF-3.4, 3.14. |
-| 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                             |
-| 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                               |
-| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Done (D96, D98; fourteenth session).                                                                                                     |
-| 13  | SPELLS-5                                | 3.8  | Merged `983ce6ad9`; 5.6 per-speed-type movement still to build. SPELLS-11 (single-use items used up) follows it directly.              |
-| 14  | RULES-1                                 | 3.3  | Done (fourteenth session): `kernelDiceIdentity.test.ts`.                                                                                 |
-| 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                          |
-| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Done (journeys closed before the fourteenth session).                                                                                    |
-| 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                   |
-| 18  | AUTHORING-14                            | 2.7  | Done (all-domain duplication conformance).                                                                                               |
-| 19  | ATTACK-7                                | 2.6  | Grapple and shove; 7.2 Engulf (after ATTACK-11).                                                                                         |
-| 20  | VTT_UI-2                                | 2.6  |                                                                                                                                          |
-| 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                 |
-| 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                       |
-| 23  | PLATFORM-2                              | 2.3  | Done (journey closed).                                                                                                                   |
-| 24  | SHEET-7                                 | 2.0  | Done (parallel session, fourteenth).                                                                                                     |
-| 25  | AUTHORING-12 (12.4)                     | 1.8  | Done (fifteenth session).                                                                                                                |
-| 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                |
-| 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                          |
-| 28  | REACTION-4                              | 1.5  | After SPELLS-8.                                                                                                                          |
-| 29  | SPELLS-4                                | 1.5  |                                                                                                                                          |
-| 30  | ATTACK-6                                | 1.3  |                                                                                                                                          |
-| 31  | ATTACK-5                                | 1.2  | After SPELLS-2 and ATTACK-7: 35 of its 41 allowlisted attacks are grapple, swallow, attach, drain and condition riders (`OUTCOME_KIND`). |
-| 32  | AUTHORING-1 (1.4, 1.5)                  | 1.1  |                                                                                                                                          |
-| 33  | VTT_UI-3                                | 1.0  |                                                                                                                                          |
-| 34  | ROOM-6                                  | 0.9  | Test fixtures only.                                                                                                                      |
-| 35  | ENCOUNTER-4                             | 0.8  | Speed Factor (optional rule).                                                                                                            |
-| 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                           |
-| 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                            |
+| 10  | SPELLS-2                                | 3.3  | Done (parallel session, D94; merged in the ninth session). SPELLS-10 holds the deferred condition mechanics.                               |
+| 11  | SPELLS-9                                | 4.5  | Done (tenth session, D95).                                                                                                                 |
+| 12  | SPELLS-3 (3.2–3.6)                      | 4.2  | Done (D96, D98; fourteenth session).                                                                                                       |
+| 13  | SPELLS-5                                | 3.8  | Merged `983ce6ad9`; 5.6 per-speed-type movement still to build. SPELLS-11 (single-use items used up) follows it directly.                  |
+| 14  | RULES-1                                 | 3.3  | Done (fourteenth session): `kernelDiceIdentity.test.ts`.                                                                                   |
+| 15  | ATTACK-10                               | 3.0  | After SPELLS-2.                                                                                                                            |
+| 16  | BUILDER-3, AUTHORING-2, AUTHORING-13    | 3.0  | Done (journeys closed before the fourteenth session).                                                                                      |
+| 17  | SPELLS-7                                | 3.0  | Area and multi-target.                                                                                                                     |
+| 18  | AUTHORING-14                            | 2.7  | Done (all-domain duplication conformance).                                                                                                 |
+| 19  | ATTACK-7                                | 2.6  | Grapple and shove; 7.2 Engulf (after ATTACK-11).                                                                                           |
+| 20  | VTT_UI-2                                | 2.6  |                                                                                                                                            |
+| 21  | ATTACK-9                                | 2.5  | Class-feature resolvers.                                                                                                                   |
+| 22  | SPELLS-8                                | 2.3  | After SPELLS-5, SPELLS-7, RULES-1.                                                                                                         |
+| 23  | PLATFORM-2                              | 2.3  | Done (journey closed).                                                                                                                     |
+| 24  | SHEET-7                                 | 2.0  | Done (parallel session, fourteenth).                                                                                                       |
+| 25  | AUTHORING-12 (12.4)                     | 1.8  | Done (fifteenth session).                                                                                                                  |
+| 26  | ATTACK-4                                | 1.7  | Cleaving (optional rule).                                                                                                                  |
+| 27  | MOVE-3, VTT_UI-1, VTT_UI-4, PLATFORM-12 | 1.6  |                                                                                                                                            |
+| 28  | REACTION-4                              | 1.5  | After SPELLS-8.                                                                                                                            |
+| 29  | SPELLS-4                                | 1.5  |                                                                                                                                            |
+| 30  | ATTACK-6                                | 1.3  |                                                                                                                                            |
+| 31  | ATTACK-5                                | 1.2  | After SPELLS-2 and ATTACK-7: 35 of its 41 allowlisted attacks are grapple, swallow, attach, drain and condition riders (`OUTCOME_KIND`).   |
+| 32  | AUTHORING-1 (1.4, 1.5)                  | 1.1  |                                                                                                                                            |
+| 33  | VTT_UI-3                                | 1.0  |                                                                                                                                            |
+| 34  | ROOM-6                                  | 0.9  | Test fixtures only.                                                                                                                        |
+| 35  | ENCOUNTER-4                             | 0.8  | Speed Factor (optional rule).                                                                                                              |
+| 36  | MOVE-2                                  | 0.6  | Overrun, Shove Aside, Tumble (optional rules).                                                                                             |
+| 37  | ATTACK-2 (2.5)                          | —    | Umbrella; closes when spells, reactions and death saves land.                                                                              |
 
 **Optional-combat variants (ranked 2026-10-08).** Each is opt-in and offered only once it resolves, so value and time criticality are low (2 and 1) and size decides. They slot into the table above by WSJF; none outranks SPELLS-3.
 
