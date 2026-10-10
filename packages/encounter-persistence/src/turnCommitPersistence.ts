@@ -197,6 +197,7 @@ export async function persistEncounterTurnCommit(
     ctx,
     {
       state,
+      campaign,
       root,
       occurrenceId: input.occurrenceId,
       occurredAt: input.occurredAt,

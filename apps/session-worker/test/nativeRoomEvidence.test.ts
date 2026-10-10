@@ -14,6 +14,7 @@ import {
   parseReceiptExecution,
   readPendingActionDecision,
   readRoomHistory,
+  readRoomRollCards,
   type RoomHistory
 } from './roomHistoryReads.js'
 
@@ -185,6 +186,63 @@ describe('room d20 evidence', () => {
     expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(storedD20Evidence(before)).toEqual([])
+  })
+
+  describe('roll cards (ENCOUNTER-7.2)', () => {
+    /** The d20 cards: damage totals are cards of their own and are not counted here. */
+    async function d20CardKinds(room: Awaited<ReturnType<typeof wolvesRoom>>) {
+      return (await readRoomRollCards(room.room.base.stub))
+        .filter(({ roll }) => roll.source.kind !== 'DAMAGE')
+        .map(({ roll }) => roll.source.kind)
+    }
+
+    it('posts one card for a d20 the app rolled', async () => {
+      const room = await wolvesRoom(biteWolf('ATTACK'), { rolls: [8] })
+      const decision = await startedWithPrompt(room)
+      expect((await room.rollDice(decision)).type).toBe('COMMAND_COMMITTED')
+      const [held] = (await readRoomHistory(room.room.base.stub)).evidenceRolls
+      expect(
+        (
+          await room.resolve(decision, {
+            kind: 'SYSTEM_ROLL',
+            requestId: decision.pending.request.requestId,
+            rollId: held!.id
+          })
+        ).type
+      ).toBe('COMMAND_COMMITTED')
+      expect(await d20CardKinds(room)).toEqual(['MANUAL'])
+    })
+
+    it('posts one card for an entered d20', async () => {
+      const room = await wolvesRoom(biteWolf('ATTACK'))
+      const decision = await startedWithPrompt(room)
+      await room.resolve(decision, {
+        kind: 'ENTER_DICE',
+        requestId: decision.pending.request.requestId,
+        rawFaces: [14],
+        rollMode: 'NORMAL'
+      })
+      expect(await d20CardKinds(room)).toEqual(['ATTACK'])
+    })
+
+    it('posts one card for an auto-rolled d20', async () => {
+      const room = await wolvesRoom(biteWolf('ATTACK'), { autoRoll: 'GAME_MASTER', rolls: [9] })
+      expect((await room.startAction(TARGET_ID)).answer.type).toBe('COMMAND_COMMITTED')
+      expect(await d20CardKinds(room)).toEqual(['ATTACK'])
+    })
+
+    it('cards an entered d20 even when the app rolled first', async () => {
+      const room = await wolvesRoom(biteWolf('ATTACK'), { rolls: [8] })
+      const decision = await startedWithPrompt(room)
+      await room.rollDice(decision)
+      await room.resolve(decision, {
+        kind: 'ENTER_DICE',
+        requestId: decision.pending.request.requestId,
+        rawFaces: [14],
+        rollMode: 'NORMAL'
+      })
+      expect(await d20CardKinds(room)).toEqual(['MANUAL', 'ATTACK'])
+    })
   })
 
   it('rolls on the server without a prompt when the roller auto-rolls', async () => {

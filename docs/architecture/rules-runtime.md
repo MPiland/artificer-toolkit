@@ -157,7 +157,17 @@ contributors behind the derived mode (`encounterRollModeReasons`, labeled for di
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
 redacted. Manual mode records an idempotent receipt at an unchanged version without invoking the Kernel or
-applying state and carries no rules cue (ADR 0034). Actions in a Manual Encounter are refused with the
+applying state and carries no rules cue (ADR 0034). **One card per die (ENCOUNTER-7, current).** Every
+Encounter rule die posts exactly one roll card through `recordRuleRollCard`: an action's d20s and damage
+totals, a Legendary Action's (`recordActionRollCards`), each Recharge d6 (source kind `RECHARGE`) and the
+turn-start death save. A die settled by a `SYSTEM_ROLL` answer already has its "Rolled by the app" attempt
+card, so the commit skips it; an auto-rolled or entered die (including one entered after an app roll) is
+carded at commit. `readAppCardedDice` (`packages/encounter-persistence/src/appCardedDice.ts`) decides this
+from journaled answers, never from die values: each `SYSTEM_ROLL` answer (an action's `ACTION_EVIDENCE`
+receipts, a turn root's `resolutionCommands`, `LEGENDARY_SYSTEM_ROLL` for Legendary windows) is joined to
+its latest attempt and covers at most one settled die of the same request and value.
+Known limit: an app-rolled single-die damage request also gets a commit total card.
+Actions in a Manual Encounter are refused with the
 `ASSISTED_ONLY` domain rejection.
 
 **Active effects and maintained state.** Current active effects are state, not occurrences. Each stores an

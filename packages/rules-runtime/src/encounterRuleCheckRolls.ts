@@ -133,6 +133,34 @@ export function deathSaveRollRecord(input: {
 }
 
 /**
+ * The roll-log record of one Recharge d6 an entering creature rolled at its turn start. The caller
+ * scopes `occurrenceId` per Feature so one turn's several Recharge cards keep distinct ids.
+ */
+export function rechargeRollRecord(input: {
+  occurrenceId: string
+  rawDie: number
+  featureLabel: string
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const evaluated = evaluateRollExpression(
+    parseRollExpression('1d6'),
+    { nextInt: () => input.rawDie - 1 },
+    'NORMAL'
+  )
+  return rollRecordDtoSchema.parse({
+    id: ruleCheckRollId(input.occurrenceId, 0),
+    ...evaluated,
+    characterId: null,
+    characterLabel: input.rollerLabel,
+    source: { kind: 'RECHARGE', label: `${input.featureLabel} recharge`.slice(0, 80) },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
+/**
  * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine)), from its recorded
  * faces and the helper's modifier. The card is the helper's own.
  */

@@ -56,7 +56,7 @@ function readStoredRoll(row: EncounterDocument<'encounterEvidenceRolls'>) {
   return encounterStoredEvidenceRollSchema.parse(stored)
 }
 
-async function readAttempts(
+export async function readLatestAttempt(
   ctx: EncounterReadTransaction,
   input: { occurrenceId: string; occurrenceVersion: number; requestId: string; userId: string }
 ) {
@@ -175,7 +175,7 @@ export async function rollEncounterRuleEvidence(
     ? evaluated.evidence.terms[0]!.rolls
     : [admitted.request.min + nextInt(admitted.request.max - admitted.request.min + 1)]
   const value = rollMode ? selectEncounterActionD20Natural(rollMode, faces) : faces[0]!
-  const latest = await readAttempts(ctx, {
+  const latest = await readLatestAttempt(ctx, {
     occurrenceId: input.occurrenceId,
     occurrenceVersion: pending.occurrenceVersion,
     requestId: input.requestId,
@@ -280,7 +280,7 @@ export async function readEncounterSettledAppRoll(
     .withIndex('by_publicId', (q) => q.eq('id', rollId))
     .unique()
   const latest = row
-    ? await readAttempts(ctx, {
+    ? await readLatestAttempt(ctx, {
         occurrenceId: input.occurrence.id,
         occurrenceVersion: input.occurrence.version,
         requestId: resolution.requestId,
@@ -309,7 +309,7 @@ export async function readLatestEvidenceRolls(
   const pending = await readPendingRunDecision(ctx, run, campaign, membership)
   const request = pending && 'request' in pending ? pending.request : null
   if (!pending || !request) return []
-  const row = await readAttempts(ctx, {
+  const row = await readLatestAttempt(ctx, {
     occurrenceId: pending.occurrenceId,
     occurrenceVersion: pending.occurrenceVersion,
     requestId: request.requestId,

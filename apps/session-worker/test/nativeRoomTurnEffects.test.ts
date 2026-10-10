@@ -9,7 +9,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
+import { parseReceiptExecution, readRoomHistory, readRoomRollCards } from './roomHistoryReads.js'
 import { seedTurnSaveEffect } from './turnEvidenceFixture.js'
 
 const FIRST_ID = testUuid(0x720)
@@ -474,6 +474,96 @@ describe('a room ADVANCE_TURN into a depleted Recharge Feature', () => {
     const recharged = held.actors.find((actor) => actor.id === SECOND_ID)
     expect(JSON.parse(recharged!.stateJson)).toMatchObject({
       resources: { featureCharges: { [featureId]: 0 } }
+    })
+  })
+
+  describe('roll cards (ENCOUNTER-7.1)', () => {
+    /** Every roll card of the turn (it holds only Recharge dice): audience, label and die. */
+    async function rechargeCards(room: Awaited<ReturnType<typeof movementRoom>>) {
+      return (await readRoomRollCards(room.base.stub)).map(({ audience, roll }) => ({
+        audience,
+        label: roll.source.label,
+        total: roll.evidence.total
+      }))
+    }
+
+    /** The pending Recharge decision, and the command that answers it. */
+    function pendingRecharge(answer: Awaited<ReturnType<typeof rechargeRoom>>['answer']) {
+      if (
+        answer.type !== 'COMMAND_COMMITTED' ||
+        answer.delta?.scope !== 'ENCOUNTER' ||
+        !('occurrence' in answer.delta.result)
+      )
+        throw new Error('Expected the pending occurrence in the answer.')
+      const decision = answer.delta.result.occurrence?.pending
+      if (decision?.kind !== 'RECHARGE_EVIDENCE') throw new Error('Expected a Recharge decision.')
+      return decision
+    }
+
+    function recharge(
+      room: Awaited<ReturnType<typeof movementRoom>>,
+      decision: ReturnType<typeof pendingRecharge>,
+      command: Record<string, unknown>
+    ) {
+      const commandId = crypto.randomUUID()
+      return room.send(commandId, {
+        scope: 'ENCOUNTER',
+        command: {
+          encounterId: room.encounterId,
+          commandId,
+          expectedVersion: decision.encounterVersion,
+          occurrenceId: decision.occurrenceId,
+          expectedOccurrenceVersion: decision.occurrenceVersion,
+          ...command
+        }
+      })
+    }
+
+    it('cards an auto-rolled die once', async () => {
+      const { room } = await rechargeRoom([4])
+      expect(await rechargeCards(room)).toEqual([
+        { audience: 'TABLE', label: 'Bite recharge', total: 5 }
+      ])
+    })
+
+    it('cards an entered die once', async () => {
+      const { room, answer } = await rechargeRoom([], null)
+      const decision = pendingRecharge(answer)
+      const resolved = await recharge(room, decision, {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        correlationId: null,
+        resolution: { kind: 'ENTER_INTEGER', requestId: decision.request.requestId, value: 5 }
+      })
+      expect(resolved.type).toBe('COMMAND_COMMITTED')
+      expect(await rechargeCards(room)).toEqual([
+        { audience: 'TABLE', label: 'Bite recharge', total: 5 }
+      ])
+    })
+
+    it('cards an app-rolled die once, as its attempt', async () => {
+      // The app's d6 shows 6.
+      const { room, answer } = await rechargeRoom([5], null)
+      const decision = pendingRecharge(answer)
+      const rolled = await recharge(room, decision, {
+        type: 'ROLL_RULE_EVIDENCE',
+        requestId: decision.request.requestId,
+        rollMode: null
+      })
+      expect(rolled.type).toBe('COMMAND_COMMITTED')
+      const [held] = (await readRoomHistory(room.base.stub)).evidenceRolls
+      const resolved = await recharge(room, decision, {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        correlationId: null,
+        resolution: {
+          kind: 'SYSTEM_ROLL',
+          requestId: decision.request.requestId,
+          rollId: held!.id
+        }
+      })
+      expect(resolved.type).toBe('COMMAND_COMMITTED')
+      expect(await rechargeCards(room)).toEqual([
+        { audience: 'TABLE', label: 'Rolled by the app, attempt 1', total: 6 }
+      ])
     })
   })
 })

@@ -33,7 +33,12 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readRunActor, writeRunActor } from './documents.js'
-import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import {
+  deathSaveRollRecord,
+  rechargeRollRecord
+} from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import { readAppCardedDice, settledDie, turnSystemRollAnswers } from './appCardedDice.js'
+import { recordActionRollCards, settledD20s } from './actionRollCards.js'
 import type {
   CampaignAuthority,
   EncounterCharacterWriteTransaction,
@@ -46,9 +51,12 @@ import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-tool
 
 /** Applies only the sealed resource outcomes after outgoing effects have committed. */
 export async function persistEncounterTurnResources(
-  ctx: EncounterCharacterWriteTransaction,
+  ctx: EncounterCharacterWriteTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainGmRoll'>
+  },
   input: {
     state: EncounterRunState
+    campaign: CampaignAuthority['campaign']
     root: TurnCoordinatorRootDto
     occurrenceId: string
     occurredAt: string
@@ -128,6 +136,19 @@ export async function persistEncounterTurnResources(
     await writeRunActor(ctx, row._id, next)
   }
 
+  // One answer pool for every window, because two windows can ask the same request.
+  const legendaryAppCarded = await readAppCardedDice(ctx, {
+    occurrenceId,
+    answers: turnSystemRollAnswers(root.resolutionCommands, 'LEGENDARY_SYSTEM_ROLL'),
+    dice: actions.flatMap((raw) => {
+      const { resolution } = turnLegendaryActionEvidenceDtoSchema.parse(raw)
+      return resolution.kind === 'EXECUTED' &&
+        (resolution.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
+          resolution.application.kind === 'CHARACTER_MECHANICS_BATCH')
+        ? settledD20s(resolution.application)
+        : [null, null]
+    })
+  })
   const seenOwners = new Set<string>()
   for (const [ordinal, raw] of actions.entries()) {
     const evidence = turnLegendaryActionEvidenceDtoSchema.parse(raw)
@@ -287,6 +308,23 @@ export async function persistEncounterTurnResources(
         resources: withFeatureChargeUsed(settled, feature.id, resource.afterUsed)
       })
     )
+    // The action's dice post exactly as a direct action's do, each Legendary Action in its own scope.
+    await recordActionRollCards(ctx, {
+      campaign: input.campaign,
+      encounterId: state.id,
+      gameSystemId: state.gameSystemId,
+      rollScope: `${occurrenceId}:legendary:${ordinal}`,
+      batch: application,
+      actionLabel: (await ctx.ports.readContentLabel(option.actionId)) ?? 'Legendary Action',
+      source: owner,
+      target,
+      initiatorUserId: root.initiatorUserId,
+      visibility: undefined,
+      createdAt: occurredAt,
+      appCardedD20s: new Set(
+        [0, 1].filter((checkIndex) => legendaryAppCarded.has(2 * ordinal + checkIndex))
+      )
+    })
   }
   if (legendaryRefreshes.length) {
     if (
@@ -375,6 +413,11 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Recharge selection is stale.')
     let actor = await readActor(enteringId)
     if (actor.kind !== 'CREATURE') throw new Error('Live Session Recharge owner is unavailable.')
+    const appCarded = await readAppCardedDice(ctx, {
+      occurrenceId,
+      answers: turnSystemRollAnswers(root.resolutionCommands, 'SYSTEM_ROLL'),
+      dice: recharge.executions.map((entry) => settledDie(entry.execution, entry.rawDie))
+    })
     for (const execution of recharge.executions) {
       const candidate = execution.candidate
       const feature = snapshotFeatureDefinitions(actor).find(
@@ -420,6 +463,26 @@ export async function persistEncounterTurnResources(
       })
       await writeActor(actor, next)
       actor = await readActor(enteringId)
+      // The d6 posts one card, unless the app's own attempt for it already did.
+      if (appCarded.has(execution.ordinal)) continue
+      const system = await ctx.ports.requireSystem(state.gameSystemId)
+      const roll = rechargeRollRecord({
+        occurrenceId: `${occurrenceId}:recharge:${execution.ordinal}`,
+        rawDie: execution.rawDie,
+        featureLabel: feature.label,
+        rollerLabel: actor.label,
+        ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+        createdAt: occurredAt
+      })
+      await recordRuleRollCard(ctx, {
+        campaign: input.campaign,
+        encounterId: state.id,
+        roller: actor,
+        initiatorUserId: root.initiatorUserId,
+        visibility: undefined,
+        clientNonce: roll.id,
+        roll
+      })
     }
   }
 }
@@ -495,15 +558,12 @@ export async function persistEncounterTurnDeathSave(
     throw new Error('Live Session death save settlement differs from its plan.')
   // Every save gets exactly one card, the Character's own roll. A save the app rolled already has
   // its "Rolled by the app" attempt card, so only an auto-rolled or entered die is carded here.
-  const appRolled = (
-    await ctx.db
-      .query('encounterEvidenceRolls')
-      .withIndex('by_occurrenceId_version_requestId_userId', (q) =>
-        q.eq('occurrenceId', occurrenceId)
-      )
-      .collect()
-  ).some((attempt) => attempt.value === plan.rawDie)
-  if (appRolled) return
+  const appCarded = await readAppCardedDice(ctx, {
+    occurrenceId,
+    answers: turnSystemRollAnswers(root.resolutionCommands, 'SYSTEM_ROLL'),
+    dice: [settledDie(plan.execution, plan.rawDie)]
+  })
+  if (appCarded.has(0)) return
   const system = await ctx.ports.requireSystem(state.gameSystemId)
   const roll = deathSaveRollRecord({
     occurrenceId,
