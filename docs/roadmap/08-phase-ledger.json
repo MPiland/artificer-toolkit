@@ -5418,7 +5418,7 @@
         },
         {
           "id": "SPELLS-13",
-          "title": "Cone and line areas",
+          "title": "Cone, line and caster-origin areas",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
@@ -5431,6 +5431,14 @@
               "origin": [],
               "note": "Split from SPELLS-7 on 2026-10-10; builds after SPELLS-7 on the same area executor.",
               "id": "SPELLS-13.1"
+            },
+            {
+              "text": "An area with Self range starts at the caster (Thunderwave's cube): the caster picks which side of their space it extends from, it never catches the caster unless the text says so, and it resolves every other creature inside it as SPELLS-7 does.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Found in SPELLS-7.1 on 2026-10-10: point-area compilation refuses Self- and Touch-range areas because they have no picked point.",
+              "id": "SPELLS-13.2"
             }
           ]
         },
