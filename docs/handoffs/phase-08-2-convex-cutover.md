@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-10. Start at "Done 2026-10-10" below for the SPELLS-7 state and next steps (SPELLS-7 is DONE after slice 5i; the web round is next).
+**Updated:** 2026-10-10. Start at "Done 2026-10-10" below for the SPELLS-7 state and next steps (SPELLS-7 is DONE with its web round and browser journey; SPELLS-18 is next).
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -176,14 +176,11 @@
 6. **5h** done (docs and ledger; no product code). D103 is recorded in `phase-08-2-decisions.md`; `docs/architecture/rules-runtime.md` has "Point-area actions" and `docs/architecture/live-sessions.md` has the REMOVE_AREA_TARGET and area commit bullet, the `ISSUER` timeline audience with `gmLines`, and the area roll-card routing. Ledger: SPELLS-7.2 DONE; SPELLS-7.1 and 7.3 carry proof paths but stay IN_PROGRESS, and SPELLS-7 has the journey recorded with `journeyStatus` partial, because clauses are unproved:
    - **7.1 (closed by 5i):** `TARGET_OUT_OF_SIGHT` is raised beside `TARGET_OUT_OF_RANGE` when the caster cannot see the picked point. `resolveEncounterPointSight` (`encounterAttackPerception.ts`) runs the D100 `resolveAttackSight` with the point as a subject with no conditions or effects; the worker reads the live Scene with `readNativeLivePointSight` (`nativeAttackPerception.ts`) in `prepareAreaScene`. An undecided sight (unmodeled free-text Creature Senses) raises nothing. The room tests send the range and sight warnings unacknowledged (refused, nothing opened or spent) and acknowledged (area opens): `nativeRoomAreaAction.test.ts` "room area origin warnings".
    - **7.3 (closed by 5i):** a room test where a player controls an Invisible creature the caster cannot perceive: that player reads and answers their own save prompt, the caster's view shows nothing of it. SPELLS-7 is DONE with the journey verified; the Character caster is SPELLS-8.4.
-7. **The web round (next after the two proof gaps).** The web renders none of this yet. It must:
-   - **Pick a point:** let the caster choose the origin on the map for an area action (a POINT target, `{ kind: 'POINT', point }`), preview the area shape on the Scene, and show the overridable out-of-range warning.
-   - **Caught list per role:** render `AREA_SAVES.caught` (labels only): all for the GM, the perceived ones for the caster's controller, none for others. A `caughtChecksum` is sent to the GM only.
-   - **GM remove control:** a `REMOVE_AREA_TARGET` control per creature that has not rolled, composed with the occurrence version and `caughtChecksum` the GM last read; a stale or already-answered refusal is a normal message.
-   - **Area save prompts:** each roller sees only their own creature's `saves` entry (enter dice, app roll, auto-roll), in any order, with the pending list shrinking as answers land.
-   - **Legendary Resistance offers:** `legendaryResistance` entries (actor and `optionId`) are shown to the GM and that creature's controller only, answered with `AREA_LEGENDARY_RESISTANCE { actorId, decision }`; never to the caster.
-   - **Results:** show `issuerLines` to the issuing user and the GM and `gmLines` to the GM only on the timeline entry (visibility `ISSUER`), and the per-creature save cards and one damage card in chat.
-   - Read D103 and the "Point-area actions" section of `docs/architecture/rules-runtime.md` first; the room contracts are in `docs/architecture/live-sessions.md`.
+7. **Web round done; SPELLS-7 is DONE.**
+   - `5e4eec851`: choices carry a `target` (ACTOR, or POINT with the authored area); the action drawer picks the origin on the map (Escape cancels) or centers it on a token, and previews who is caught.
+   - `0a1fd73cb`: the decision drawer's "Area saves" shows the caught list, per-role save groups, GM-only "Remove from area" and Legendary Resistance offers.
+   - `ec779091f`: Encounter history shows `issuerLines` and "GM only" `gmLines`.
+   - `8bf0f5f16`: the live browser journey `apps/web/tests/live-backend/encounterArea.ts`, run with `pwsh scripts/runLocalConvexProof.ps1 -Name <unique> -Proof area-browser` (needs the Worker on 8787 and the web app on 3000). Fixture cleanup now allows a Session beside collaboration rows.
 
 Area path file map:
 
