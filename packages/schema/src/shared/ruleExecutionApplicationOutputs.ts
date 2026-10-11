@@ -34,7 +34,8 @@ import {
   contestedActionApplicationOutputDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
   encounterAreaActionApplicationOutputDtoSchema,
-  encounterActorMechanicsBatchApplicationOutputDtoSchema
+  encounterActorMechanicsBatchApplicationOutputDtoSchema,
+  escapeCheckApplicationOutputDtoSchema
 } from './ruleExecutionEncounterApplications.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
@@ -57,6 +58,7 @@ const serverRuleExecutionApplicationOutputsDtoSchemaImpl = lazySchema(() =>
     encounterAreaActionApplicationOutputDtoSchema,
     encounterActorMechanicsBatchApplicationOutputDtoSchema,
     basicActionCheckApplicationOutputDtoSchema,
+    escapeCheckApplicationOutputDtoSchema,
     z
       .strictObject({
         kind: z.literal('CHARACTER_MECHANICS_BATCH'),

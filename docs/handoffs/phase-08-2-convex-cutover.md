@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-11. Start at "Done 2026-10-10" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slice A is DONE (`9a2799a96`); slice B is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
+**Updated:** 2026-10-11. Start at "Done 2026-10-11" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (the slice B commit) are DONE; AUTHORING-17 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -190,7 +190,15 @@ Area path file map:
 - `packages/encounter-persistence/src/`: `actionAreaPending.ts`, `areaTargetRemoval.ts`, `actionResumeAdmission.ts` and `actionPendingPersistence.ts`.
 - `apps/session-worker/src/`: `nativeEncounterAreaRules.ts`, `roomEncounterCommands.ts`, and `test/nativeRoomAreaAction.test.ts`.
 
-SPELLS-18 and ATTACK-7 slice A are done. Continue the WSJF ranking: ATTACK-7 slice B (the Escape action against a fixed DC, on the First Aid check path; task T2), then AUTHORING-17 → SHEET-8 → ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
+**Done 2026-10-11 (ATTACK-7 slice B, task T2):**
+
+- The Escape action against a fixed DC (D105): a dedicated `ESCAPE_RELATIONSHIP` command on the First Aid check path, offered on the holder's turn as "Escape from <grappler>" ("Escape a grapple" when the grappler is hidden, D100). Room plans; Convex re-derives the escape from the stored effect (`escapeEffectVerification.ts`) and ends the relationship effect and the conditions only it owned (`relationshipEndPersistence.ts`, Character Sheet conditions included). Undo returns a failed escape's activation and refuses a success ("Undo can't restore an escaped grapple; adjust manually.").
+- Proofs: the Giant Toad Convex journey (`srdCreatureHitRiders.test.ts`), `nativeRoomEscapeAction.test.ts` (16), `encounterEscapeCheck.test.ts`, `escapeEffectVerification.test.ts` and the drawer tests. ATTACK-7.3 stays IN_PROGRESS for the contested escape (slice C). ATTACK-7.9 (a rescuer within reach, the Cloaker's `CREATURE_WITHIN_REACH`) is registered with task T9.
+- Found in validation: the pure Giant Toad rules test had been red since slice A (conditions moved onto the relationship effect). It now asserts the effect's condition contributions, and `nativeRoomHitRiders.test.ts` proves a Creature target ends Grappled and Restrained.
+- Cleanup: one `abilityModifier` for the dnd5e System; one `captureActionEconomyDefinitions` for the room action planners; `useWarnedCommand` shared by basic actions and escapes.
+- Not proved in the room: ALREADY_ENDED (no room command ends the effect while a prompted roll waits); covered by the settlement unit tests.
+
+AUTHORING-17 is next. Continue the WSJF ranking: AUTHORING-17 → SHEET-8 → ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
 
 **Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing.
 

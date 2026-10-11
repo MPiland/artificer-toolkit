@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
@@ -77,6 +78,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
 )
 
 export const MAX_BASIC_ACTION_CHOICES = 64
+export const MAX_ESCAPE_CHECK_CHOICES = 64
 
 /** One of the Run System's basic actions (Q11), offered to every actor apart from its features. */
 export const encounterBasicActionChoiceDtoSchema = lazySchema(() =>
@@ -87,6 +89,27 @@ export const encounterBasicActionChoiceDtoSchema = lazySchema(() =>
     actionCost: basicActionCostDtoSchema,
     /** The one target to choose first: an ally to help, or a dying Character to stabilize. */
     target: z.nullable(z.enum(['ALLY', 'DYING_CHARACTER'])),
+    /** Soft-rule warnings that already apply, as for `actions`. */
+    warnings: encounterRuleWarningsDtoSchema
+  })
+)
+
+/**
+ * A relationship effect the actor holds and can try to escape against a fixed DC (D105): the
+ * grapple's offer. The client submits `activeEffectId` and one of the allowed `checks`.
+ */
+export const encounterEscapeChoiceDtoSchema = lazySchema(() =>
+  z.strictObject({
+    activeEffectId: postgresUuidSchema,
+    /** "Escape from <grappler>", or "Escape a grapple" when the grappler is hidden from the requester. */
+    label: labelSchema,
+    dc: z.number().check(z.int()).check(z.positive()),
+    actionCost: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE']),
+    /** The ability or skill checks the escape allows; the first is the default. */
+    checks: z
+      .array(z.strictObject({ checkDefinitionId: postgresUuidSchema, label: labelSchema }))
+      .check(z.minLength(1))
+      .check(z.maxLength(MAX_ESCAPE_CHECK_CHOICES)),
     /** Soft-rule warnings that already apply, as for `actions`. */
     warnings: encounterRuleWarningsDtoSchema
   })
@@ -118,6 +141,10 @@ export const encounterActionChoicesDtoSchema = lazySchema(() =>
     basicActions: z
       .array(encounterBasicActionChoiceDtoSchema)
       .check(z.maxLength(MAX_BASIC_ACTION_CHOICES)),
+    /** One entry per escapable relationship the actor holds. */
+    escapes: z
+      .array(encounterEscapeChoiceDtoSchema)
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
     optionalRules: z.array(z.strictObject({ definitionId: postgresUuidSchema, label: labelSchema }))
   })
 )
@@ -173,6 +200,7 @@ export type GetEncounterActionChoicesInputDto = z.infer<
 >
 export type EncounterActionChoiceDto = z.infer<typeof encounterActionChoiceDtoSchema>
 export type EncounterBasicActionChoiceDto = z.infer<typeof encounterBasicActionChoiceDtoSchema>
+export type EncounterEscapeChoiceDto = z.infer<typeof encounterEscapeChoiceDtoSchema>
 export type EncounterActionChoicesDto = z.infer<typeof encounterActionChoicesDtoSchema>
 export type EncounterActionChoicesResponseDto = z.infer<
   typeof encounterActionChoicesResponseDtoSchema

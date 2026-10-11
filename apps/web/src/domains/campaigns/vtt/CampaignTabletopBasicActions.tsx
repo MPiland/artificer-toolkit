@@ -1,15 +1,14 @@
-import { Alert, Button, List, Select, Stack, Text, Title, Tooltip } from '@mantine/core'
+import { Button, Select, Stack, Text, Title, Tooltip } from '@mantine/core'
 import { useEffect, useState } from 'react'
 import type { EncounterBasicActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandResultDto,
   UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { ACTIVATION_REGISTRY } from '@artificer-toolkit/shared/core'
-import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
-import { LiveSessionCommandRejectedError } from './liveSessionClient'
-import * as styles from './CampaignTabletopBasicActions.css'
+import { CampaignTabletopCommandOutcome } from './CampaignTabletopCommandOutcome'
+import { useWarnedCommand } from './useWarnedCommand'
+import * as styles from './CampaignTabletopActionList.css'
 
 /**
  * The System's basic actions (Q11), listed apart from the actor's own features. Each row names the
@@ -35,57 +34,35 @@ export function CampaignTabletopBasicActions({
   onUse: (command: UseEncounterBasicActionInputDto) => Promise<EncounterCommandResultDto>
 }) {
   const [targetByAction, setTargetByAction] = useState<Record<string, string>>({})
-  const [submittingId, setSubmittingId] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState<{
-    definitionId: string
-    warnings: EncounterRuleWarningDto[]
-  } | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { submittingId, confirming, feedback, error, run, cancelConfirmation } =
+    useWarnedCommand(actorId)
 
   useEffect(() => {
     setTargetByAction({})
-    setConfirming(null)
-    setFeedback(null)
-    setError(null)
   }, [actorId])
 
-  async function use(
+  function use(
     choice: EncounterBasicActionChoiceDto,
     acknowledgedWarnings: UseEncounterBasicActionInputDto['acknowledgedWarnings']
   ) {
-    setConfirming(null)
-    setFeedback(null)
-    setError(null)
-    setSubmittingId(choice.definitionId)
-    try {
-      await onUse({
-        type: 'USE_BASIC_ACTION',
-        encounterId,
-        commandId: crypto.randomUUID(),
-        expectedVersion: encounterVersion,
-        actorId,
-        definitionId: choice.definitionId,
-        targetActorId: choice.target ? (targetByAction[choice.definitionId] ?? null) : null,
-        acknowledgedWarnings
-      })
-      setFeedback(`${choice.label} used.`)
-    } catch (nextError) {
-      if (nextError instanceof LiveSessionCommandRejectedError && nextError.rejection.warnings)
-        setConfirming({
+    return run(
+      choice.definitionId,
+      () =>
+        onUse({
+          type: 'USE_BASIC_ACTION',
+          encounterId,
+          commandId: crypto.randomUUID(),
+          expectedVersion: encounterVersion,
+          actorId,
           definitionId: choice.definitionId,
-          warnings: nextError.rejection.warnings
-        })
-      else
-        setError(nextError instanceof Error ? nextError.message : 'The action could not be used.')
-    } finally {
-      setSubmittingId(null)
-    }
+          targetActorId: choice.target ? (targetByAction[choice.definitionId] ?? null) : null,
+          acknowledgedWarnings
+        }),
+      { done: `${choice.label} used.`, failed: 'The action could not be used.' }
+    )
   }
 
-  const confirmingChoice = basicActions.find(
-    (choice) => choice.definitionId === confirming?.definitionId
-  )
+  const confirmingChoice = basicActions.find((choice) => choice.definitionId === confirming?.id)
   return (
     <section aria-labelledby='basic-actions-title' className={styles.section}>
       <Title id='basic-actions-title' order={3} size='h5'>
@@ -148,40 +125,20 @@ export function CampaignTabletopBasicActions({
           )
         })}
       </ul>
-      {confirming && confirmingChoice ? (
-        <CampaignTabletopActionConfirmation
-          confirmIsPrimary={false}
-          confirmLabel='Do it anyway'
-          disabled={disabled || submittingId !== null}
-          title='This breaks a rule'
-          onCancel={() => setConfirming(null)}
-          onConfirm={() =>
-            void use(
-              confirmingChoice,
-              confirming.warnings.map((warning) => warning.code)
-            )
-          }
-        >
-          <List size='sm'>
-            {confirming.warnings.map((warning) => (
-              <List.Item key={warning.code}>{warning.message}</List.Item>
-            ))}
-          </List>
-          <Text c='dimmed' size='xs'>
-            The GM sees every override in the Encounter history.
-          </Text>
-        </CampaignTabletopActionConfirmation>
-      ) : null}
-      {feedback ? (
-        <Alert aria-live='polite' color='green'>
-          {feedback}
-        </Alert>
-      ) : null}
-      {error ? (
-        <Alert aria-live='assertive' color='red'>
-          {error}
-        </Alert>
-      ) : null}
+      <CampaignTabletopCommandOutcome
+        disabled={disabled || submittingId !== null}
+        error={error}
+        feedback={feedback}
+        warnings={confirmingChoice ? (confirming?.warnings ?? null) : null}
+        onCancel={cancelConfirmation}
+        onConfirm={(warnings) =>
+          confirmingChoice &&
+          void use(
+            confirmingChoice,
+            warnings.map((warning) => warning.code)
+          )
+        }
+      />
     </section>
   )
 }

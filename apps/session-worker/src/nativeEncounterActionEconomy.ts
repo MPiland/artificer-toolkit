@@ -5,10 +5,28 @@ import {
   encounterAttackActionTransition,
   evaluateEncounterAttackAction
 } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import type { ActionEconomyInput } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 type EconomyTarget = Parameters<typeof evaluateEncounterAttackAction>[0]['target']
+type EconomyCapture = (
+  request: LiveSessionEncounterRulesRequest
+) => ReturnType<LiveCaptureReads['encounterRules']>
+
+/** The current capability definitions an allowance resolves against, read through the planner's captures. */
+export function captureActionEconomyDefinitions(
+  capture: EconomyCapture
+): ActionEconomyInput['definitions'] {
+  return {
+    requireCurrent: async (definitionId) => {
+      const response = await capture({ kind: 'DEFINITION', definitionId })
+      if (response.kind !== 'DEFINITION' || !response.definition)
+        throw new Error('Action-economy capability is unavailable.')
+      return response.definition
+    }
+  }
+}
 
 /**
  * The action allowance the chosen action spends and the Attack action it opens or continues, for a
@@ -22,9 +40,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
   /** The acting actor's own facts. */
   sourceTarget: EconomyTarget
   targetIds: readonly string[]
-  capture: (
-    request: LiveSessionEncounterRulesRequest
-  ) => ReturnType<LiveCaptureReads['encounterRules']>
+  capture: EconomyCapture
 }) {
   const { prepared } = input
   const invocation =
@@ -45,14 +61,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
     activation: { code: activation.code, amount: activation.amount },
     target: input.sourceTarget,
     loadTarget: async () => input.sourceTarget,
-    definitions: {
-      requireCurrent: async (definitionId) => {
-        const response = await input.capture({ kind: 'DEFINITION', definitionId })
-        if (response.kind !== 'DEFINITION' || !response.definition)
-          throw new Error('Action-economy capability is unavailable.')
-        return response.definition
-      }
-    }
+    definitions: captureActionEconomyDefinitions(input.capture)
   })
   return {
     activationCode: activation.code,

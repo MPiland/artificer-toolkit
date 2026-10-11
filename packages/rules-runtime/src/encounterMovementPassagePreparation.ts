@@ -16,11 +16,14 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
 import { createEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
 import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from './systems/dnd5e/optionalCombatContestPendingContext.js'
 import {
@@ -57,9 +60,37 @@ type PassagePreparationInput<TCharacterFacts extends CharacterMovementFacts> = {
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
 }
 
-/** An actor's modifier, contributors and roll mode for one System check (skill or ability). */
+/** A Character's ability check by ability definition: its modifier, evidence and roll mode. */
+function characterAbilityCheck(
+  facts: CharacterMovementFacts,
+  policy: CharacterRulePolicyOutput,
+  abilityDefinitionId: string
+) {
+  const code = facts.ruleEvaluation.facts.abilityDefinitions.find(
+    (definition) => definition.id === abilityDefinitionId
+  )?.code
+  if (code === undefined) return { modifier: undefined, evidence: undefined, rollMode: undefined }
+  // The System may spell an ability "STR" while the rules output keys it "STRENGTH": every lookup
+  // goes through the one canonical key.
+  const canonicalKey = (ability: string) => resolveAbilityAlias(ability) ?? ability
+  const canonical = canonicalKey(code)
+  const byCanonical = <TValue>(record: Readonly<Record<string, TValue>>) => record[canonical]
+  return {
+    modifier: policy.derivedStats.abilities.find(
+      (entry) => canonicalKey(entry.abilityId) === canonical
+    )?.modifier.effective,
+    evidence: byCanonical(policy.rollContributorEvidence.abilityChecks),
+    rollMode: byCanonical(policy.rollModes.abilityChecks)
+  }
+}
+
+/**
+ * An actor's modifier, contributors and roll mode for one System check: a skill check, or an
+ * ability check named by its ability definition.
+ */
 export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts>(input: {
   actorId: string
+  checkKind: 'SKILL' | 'ABILITY'
   checkDefinitionId: string
   gameSystemId: string
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
@@ -85,19 +116,27 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       registry: facts.ruleEvaluation.registry,
       rulePolicyOutput: policy
     })
-    const modifier = initiative.checkTotals[input.checkDefinitionId]
+    const check =
+      input.checkKind === 'SKILL'
+        ? {
+            modifier: initiative.checkTotals[input.checkDefinitionId],
+            evidence: policy.rollContributorEvidence.skillChecks[input.checkDefinitionId],
+            rollMode: policy.rollModes.skillChecks[input.checkDefinitionId]
+          }
+        : characterAbilityCheck(facts, policy, input.checkDefinitionId)
     return withConditions({
       controllerCharacterId: facts.active.id,
-      contributors: (policy.rollContributorEvidence.skillChecks[input.checkDefinitionId] ?? []).map(
-        ({ domainKey, grantId, influence, sourceId }) => ({
-          domainKey: domainKey ?? null,
-          grantId: grantId ?? null,
-          influence,
-          sourceId
-        })
-      ),
-      modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
-      rollMode: policy.rollModes.skillChecks[input.checkDefinitionId] ?? 'NORMAL',
+      contributors: (check.evidence ?? []).map(({ domainKey, grantId, influence, sourceId }) => ({
+        domainKey: domainKey ?? null,
+        grantId: grantId ?? null,
+        influence,
+        sourceId
+      })),
+      modifier:
+        typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
+          ? check.modifier
+          : null,
+      rollMode: check.rollMode ?? 'NORMAL',
       size: initiative.effectiveSize
     })
   }
@@ -116,7 +155,13 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     )
     if (ruleFacts.gameSystemId !== input.gameSystemId)
       throw new Error('Movement passage Creature facts are stale.')
-    const modifier = ruleFacts.checkTotals?.[input.checkDefinitionId]
+    const abilityScore = ruleFacts.abilityScores[input.checkDefinitionId]
+    const modifier =
+      input.checkKind === 'SKILL'
+        ? ruleFacts.checkTotals?.[input.checkDefinitionId]
+        : abilityScore === undefined
+          ? undefined
+          : abilityModifier(abilityScore)
     return withConditions({
       controllerCharacterId: null,
       contributors: [],
@@ -208,12 +253,14 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
   }
   const sourceSize = actorContestFacts({
     actorId: source.actor.id,
+    checkKind: 'SKILL',
     checkDefinitionId: '00000000-0000-0000-0000-000000000000',
     gameSystemId: input.state.gameSystemId,
     targets: input.targets
   }).size
   const blockerSize = actorContestFacts({
     actorId: blocker.actor.id,
+    checkKind: 'SKILL',
     checkDefinitionId: '00000000-0000-0000-0000-000000000000',
     gameSystemId: input.state.gameSystemId,
     targets: input.targets
@@ -230,12 +277,14 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
   if (preliminary.kind !== 'PROPOSED') throw new Error('Movement passage policy is unavailable.')
   const initiator = actorContestFacts({
     actorId: source.actor.id,
+    checkKind: 'SKILL',
     checkDefinitionId: preliminary.proposal.contest.initiatorCheckDefinitionId,
     gameSystemId: input.state.gameSystemId,
     targets: input.targets
   })
   const defender = actorContestFacts({
     actorId: blocker.actor.id,
+    checkKind: 'SKILL',
     checkDefinitionId: preliminary.proposal.contest.targetCheckDefinitionId,
     gameSystemId: input.state.gameSystemId,
     targets: input.targets

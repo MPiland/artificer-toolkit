@@ -4,11 +4,8 @@ import {
   type EncounterActorRuleInput,
   type EncounterActorRuleOutput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { abilityModifier } from './abilityModifier.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-
-function abilityModifier(score: number): number {
-  return Math.floor((score - 10) / 2)
-}
 
 function clampInteger(
   value: number,

@@ -4421,8 +4421,8 @@
           "id": "ATTACK-7",
           "title": "Grapple and shove",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["apps/apis/convex/encounters/srdCreatureHitRiders.test.ts"],
+          "journeyStatus": "partial",
           "origin": [],
           "acs": [
             {
@@ -4435,10 +4435,16 @@
             },
             {
               "text": "A grappled creature can use its Action to escape with one of the grapple's authored checks, against its fixed escape DC or contested by the grappler's authored check; success ends the grapple.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomEscapeAction.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts",
+                "packages/encounter-persistence/src/__tests__/escapeEffectVerification.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx"
+              ],
               "origin": [],
-              "note": "D105 slice B (fixed DC) and C (contest).",
+              "note": "D105 slice B (fixed DC) done 2026-10-11: the Giant Toad journey offers the DC 13 escape, a d20 20 frees the Character (Grappled and Restrained removed) and a 1 keeps it; the room, Convex re-verification and drawer tests cover the rest. The contested escape is slice C.",
               "id": "ATTACK-7.3"
             },
             {
@@ -4481,10 +4487,11 @@
                 "packages/schema/src/__tests__/actor-relationship-escape-check.test.ts",
                 "packages/shared/src/__tests__/authoring-node-map-visibility.test.ts",
                 "packages/rules-runtime/src/__tests__/encounterActionEffectBaseline.test.ts",
-                "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts"
+                "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts"
               ],
               "origin": [],
-              "note": "D105 slice A. Swallow and other allowlisted riders stay with ATTACK-5. The live Giant Toad hit is the regression proof that a relationship's conditions on a Character bind to the receipt's active-effect CREATE (they failed the trace binding before).",
+              "note": "D105 slice A. Swallow and other allowlisted riders stay with ATTACK-5. The live Giant Toad hit is the regression proof that a relationship's conditions on a Character bind to the receipt's active-effect CREATE (they failed the trace binding before). Since 2026-10-11 the room hit-rider test proves a Creature target ends Grappled and Restrained under one relationship effect; the pure rules test, stale since slice A, now asserts the effect's condition contributions.",
               "id": "ATTACK-7.8"
             },
             {
@@ -4494,6 +4501,14 @@
               "origin": [],
               "note": "D93. After ATTACK-11 (conditional slot).",
               "id": "ATTACK-7.2"
+            },
+            {
+              "text": "When a grapple's escape allows it (the Cloaker), another creature within reach of the grappled creature can use its Action to make the escape check and free it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105. Registered 2026-10-11 in slice B: the SRD Cloaker authors `CREATURE_WITHIN_REACH` and no play path existed. Reuses the slice B escape command with the rescuer as the actor.",
+              "id": "ATTACK-7.9"
             }
           ],
           "tasks": [
@@ -4506,7 +4521,7 @@
             {
               "id": "ATTACK-7.T2",
               "text": "Slice B: the Escape action against a fixed DC (room, Convex, web), on the First Aid check path.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-7.3"]
             },
             {
@@ -4544,6 +4559,12 @@
               "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
               "status": "TODO",
               "closes": ["ATTACK-7.2"]
+            },
+            {
+              "id": "ATTACK-7.T9",
+              "text": "A rescuer within reach of the grappled creature escapes for it when the module's actorKinds include CREATURE_WITHIN_REACH: offer, reach check, the rescuer rolls, success ends the grapple. After slice B.",
+              "status": "TODO",
+              "closes": ["ATTACK-7.9"]
             }
           ]
         },

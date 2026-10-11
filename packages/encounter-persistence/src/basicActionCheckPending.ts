@@ -7,19 +7,16 @@ import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolk
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterDocument } from './store.js'
 
-/** The frozen check and the paused graph a pending basic action check waits on. */
-export function readBasicActionCheckSnapshot(
-  snapshot: ServerRuleExecutionPendingSnapshotDto | null
-) {
+/** The paused d20 graph of a kernel snapshot, split from its application context. */
+function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
   if (
     snapshot === null ||
     snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
-    snapshot.applicationContext.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
     snapshot.request.min !== 1 ||
     snapshot.request.max !== 20
   )
-    throw new Error('The basic action check occurrence is unavailable.')
+    return null
   const {
     snapshotKind: _kind,
     applicationContext: context,
@@ -31,34 +28,81 @@ export function readBasicActionCheckSnapshot(
   return { snapshot, context, continuation }
 }
 
+/** The frozen check and the paused graph a pending basic action check waits on. */
+export function readBasicActionCheckSnapshot(
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null
+) {
+  const pending = readKernelCheckSnapshot(snapshot)
+  if (pending?.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK')
+    throw new Error('The basic action check occurrence is unavailable.')
+  return {
+    snapshot: pending.snapshot,
+    continuation: pending.continuation,
+    context: pending.context
+  }
+}
+
+/** The frozen check and the paused graph a pending Escape check waits on. */
+export function readEscapeCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  const pending = readKernelCheckSnapshot(snapshot)
+  if (pending?.context.kind !== 'ENCOUNTER_ESCAPE_CHECK')
+    throw new Error('The escape check occurrence is unavailable.')
+  return {
+    snapshot: pending.snapshot,
+    continuation: pending.continuation,
+    context: pending.context
+  }
+}
+
+function requirePendingRoot(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  pending: { snapshot: { occurrenceId: string }; context: { commandId: string } }
+) {
+  if (
+    occurrence.state !== 'PENDING' ||
+    pending.snapshot.occurrenceId !== occurrence.id ||
+    occurrence.rootCommandId !== pending.context.commandId
+  )
+    throw new Error('The check occurrence is unavailable.')
+}
+
 /** `snapshot` is the occurrence's `readPendingSnapshot`. */
 export function readNativeBasicActionCheckPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   snapshot: ServerRuleExecutionPendingSnapshotDto | null
 ) {
   const pending = readBasicActionCheckSnapshot(snapshot)
-  if (
-    occurrence.state !== 'PENDING' ||
-    pending.snapshot.occurrenceId !== occurrence.id ||
-    occurrence.rootCommandId !== pending.context.commandId
-  )
-    throw new Error('The basic action check occurrence is unavailable.')
+  requirePendingRoot(occurrence, pending)
   return pending
 }
 
-/** The helper rolls the check; its controllers and the GM answer it. */
+/** `snapshot` is the occurrence's `readPendingSnapshot`. */
+export function readNativeEscapeCheckPending(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null
+) {
+  const pending = readEscapeCheckSnapshot(snapshot)
+  requirePendingRoot(occurrence, pending)
+  return pending
+}
+
+/** The roller rolls the check (the helper, or the escaping holder); its controllers and the GM answer it. */
 export function projectNativeBasicActionCheckPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   pendingSnapshot: ServerRuleExecutionPendingSnapshotDto,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ) {
-  const { snapshot, context } = readNativeBasicActionCheckPending(occurrence, pendingSnapshot)
+  const { snapshot, context } =
+    pendingSnapshot.applicationContext.kind === 'ENCOUNTER_ESCAPE_CHECK'
+      ? readNativeEscapeCheckPending(occurrence, pendingSnapshot)
+      : readNativeBasicActionCheckPending(occurrence, pendingSnapshot)
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_EVIDENCE',
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
-    rollerActorId: context.helperActorId,
+    rollerActorId:
+      context.kind === 'ENCOUNTER_ESCAPE_CHECK' ? context.actorId : context.helperActorId,
     trigger: encounterBasicActionCheckTrigger(context),
     request: {
       requestId: snapshot.request.requestId,

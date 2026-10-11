@@ -43,6 +43,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -191,13 +192,7 @@ export async function planNativeLiveDisarm(
     activation: { code: 'ACTION', amount: 1 },
     target: prepared.sourceFacts,
     loadTarget: async () => movementTargets.get(actor.id),
-    definitions: {
-      requireCurrent: async (definitionId) => {
-        const { definition: current } = await capture({ kind: 'DEFINITION', definitionId })
-        if (!current) throw new Error('Action-economy capability is unavailable.')
-        return current
-      }
-    }
+    definitions: captureActionEconomyDefinitions(capture)
   })
   const pending = ready.snapshot
   const priorContext =

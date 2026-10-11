@@ -531,6 +531,35 @@ export const encounterBasicActionCheckPendingContextDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A held creature's pending Escape check (D105). The activation is already spent; the d20 settles
+ * the check against the fixed `check.dc`, and success ends the relationship effect.
+ */
+export const encounterEscapeCheckPendingContextDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('ENCOUNTER_ESCAPE_CHECK'),
+    schemaVersion: z.literal(1),
+    commandId: uuidSchema,
+    commandFingerprint: checksumSchema,
+    actionLabel: identifierSchema,
+    actorId: uuidSchema,
+    activeEffectId: uuidSchema,
+    relationshipOutcomeId: uuidSchema,
+    escapeModuleId: uuidSchema,
+    check: z.strictObject({
+      checkDefinitionId: uuidSchema,
+      dc: positiveIntegerSchema,
+      label: identifierSchema
+    }),
+    d20: z.strictObject({
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      contributors: canonicalConcentrationContributorsDtoSchema,
+      contributorChecksum: checksumSchema,
+      modifier: integerSchema
+    })
+  })
+)
+
 export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySchema(() =>
   z
     .strictObject({

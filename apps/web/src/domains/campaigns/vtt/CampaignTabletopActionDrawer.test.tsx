@@ -4,13 +4,15 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
+  EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto,
   UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
-  EncounterBasicActionChoiceDto
+  EncounterBasicActionChoiceDto,
+  EncounterEscapeChoiceDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { SpatialPointAreaShape } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -63,9 +65,12 @@ function drawerElement(
     choices = actions,
     unavailableActions = [],
     basicActions = [],
+    escapes = [],
     openAttackAction = null,
     encounter = tabletopGmEncounter,
     onUseBasicAction = vi.fn(),
+    onEscape = vi.fn(),
+    escapeResult = resolved,
     isGm = false,
     waitingOn = null,
     scene = tabletopLiveScene,
@@ -77,9 +82,13 @@ function drawerElement(
     choices?: EncounterActionChoiceDto[]
     unavailableActions?: EncounterActionChoicesDto['unavailableActions']
     basicActions?: EncounterBasicActionChoiceDto[]
+    escapes?: EncounterEscapeChoiceDto[]
     openAttackAction?: EncounterActionChoicesDto['openAttackAction']
     encounter?: EncounterGmProjectionDto
     onUseBasicAction?: (command: UseEncounterBasicActionInputDto) => Promise<unknown>
+    onEscape?: (command: EscapeRelationshipInputDto) => Promise<unknown>
+    /** What the room answers an escape with. */
+    escapeResult?: EncounterCommandResultDto
     isGm?: boolean
     waitingOn?: 'GM' | 'PLAYER' | null
     scene?: typeof tabletopLiveScene | null
@@ -94,6 +103,7 @@ function drawerElement(
       actionChoicesError={null}
       actions={choices}
       basicActions={basicActions}
+      escapes={escapes}
       openAttackAction={openAttackAction}
       actionsLoading={false}
       actorIdByTokenId={new Map()}
@@ -120,6 +130,10 @@ function drawerElement(
       onUseBasicAction={async (command) => {
         await onUseBasicAction(command)
         return resolved
+      }}
+      onEscape={async (command) => {
+        await onEscape(command)
+        return escapeResult
       }}
     />
   )
@@ -390,6 +404,160 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     await user.click(await screen.findByRole('button', { name: 'Use Dash' }))
     await user.click(await screen.findByRole('button', { name: 'Do it anyway' }))
     expect(onUseBasicAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
+    )
+  })
+})
+
+const escapeChoices = [
+  {
+    activeEffectId: '00000000-0000-4000-8000-000000000e01',
+    label: 'Escape from Giant Toad',
+    dc: 13,
+    actionCost: 'ACTION',
+    checks: [
+      {
+        checkDefinitionId: '00000000-0000-4000-8000-000000000e11',
+        label: 'Dexterity (Acrobatics)'
+      },
+      { checkDefinitionId: '00000000-0000-4000-8000-000000000e12', label: 'Strength (Athletics)' }
+    ],
+    warnings: []
+  }
+] satisfies EncounterEscapeChoiceDto[]
+
+describe('CampaignTabletopActionDrawer escapes', () => {
+  it('offers the escape with its DC and cost in its own section', async () => {
+    renderDrawer(vi.fn(), { escapes: escapeChoices })
+
+    const section = await screen.findByRole('region', { name: 'Escape' })
+    expect(within(section).getByText('Escape from Giant Toad')).toBeVisible()
+    expect(within(section).getByText(/DC 13/)).toBeVisible()
+    expect(within(section).getByText(/Action/)).toBeVisible()
+  })
+
+  it('sends the first allowed check unless another is chosen', async () => {
+    const user = userEvent.setup()
+    const onEscape = vi.fn().mockResolvedValue(resolved)
+    renderDrawer(vi.fn(), { escapes: escapeChoices, onEscape })
+
+    await user.click(await screen.findByRole('button', { name: 'Escape from Giant Toad' }))
+    expect(onEscape).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'ESCAPE_RELATIONSHIP',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        activeEffectId: escapeChoices[0].activeEffectId,
+        checkDefinitionId: escapeChoices[0].checks[0].checkDefinitionId,
+        acknowledgedWarnings: []
+      })
+    )
+    expect(await screen.findByText('Escape attempted.')).toBeVisible()
+
+    await user.click(screen.getByRole('combobox', { name: 'Check for escape from giant toad' }))
+    await user.click(await screen.findByRole('option', { name: 'Strength (Athletics)' }))
+    await user.click(screen.getByRole('button', { name: 'Escape from Giant Toad' }))
+    expect(onEscape).toHaveBeenLastCalledWith(
+      expect.objectContaining({ checkDefinitionId: escapeChoices[0].checks[1].checkDefinitionId })
+    )
+  })
+
+  it('asks for no check when the effect allows only one', async () => {
+    renderDrawer(vi.fn(), {
+      escapes: [{ ...escapeChoices[0], checks: [escapeChoices[0].checks[1]] }]
+    })
+
+    await screen.findByRole('button', { name: 'Escape from Giant Toad' })
+    expect(screen.queryByRole('combobox', { name: /Check for/ })).not.toBeInTheDocument()
+  })
+
+  it('says a roll is awaited when the escape waits on the d20, and not when it settled', async () => {
+    const user = userEvent.setup()
+    const awaitingRoll: EncounterCommandResultDto = {
+      ...resolved,
+      occurrence: {
+        occurrenceId: '00000000-0000-4000-8000-000000000e21',
+        occurrenceVersion: 1,
+        status: 'PENDING',
+        pending: {
+          kind: 'D20_EVIDENCE',
+          occurrenceId: '00000000-0000-4000-8000-000000000e21',
+          occurrenceVersion: 1,
+          encounterVersion: tabletopGmEncounter.version,
+          rollerActorId: null,
+          request: {
+            requestId: 'escape-roll',
+            min: 1,
+            max: 20,
+            rollMode: 'NORMAL',
+            derivedRollModeReasons: []
+          },
+          allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+        }
+      }
+    }
+    const waiting = renderDrawer(vi.fn(), { escapes: escapeChoices, escapeResult: awaitingRoll })
+    await user.click(await screen.findByRole('button', { name: 'Escape from Giant Toad' }))
+    expect(
+      await screen.findByText('Escape started. Roll the d20 to see if it works.')
+    ).toBeVisible()
+    waiting.unmount()
+
+    renderDrawer(vi.fn(), { escapes: escapeChoices })
+    await user.click(await screen.findByRole('button', { name: 'Escape from Giant Toad' }))
+    expect(await screen.findByText('Escape attempted.')).toBeVisible()
+    expect(screen.queryByText(/Roll the d20/)).not.toBeInTheDocument()
+  })
+
+  it('starts the check and the outcome afresh when a different effect holds the actor', async () => {
+    const user = userEvent.setup()
+    const onEscape = vi.fn().mockResolvedValue(resolved)
+    const view = renderDrawer(vi.fn(), { escapes: escapeChoices, onEscape })
+
+    await user.click(
+      await screen.findByRole('combobox', { name: 'Check for escape from giant toad' })
+    )
+    await user.click(await screen.findByRole('option', { name: 'Strength (Athletics)' }))
+    await user.click(screen.getByRole('button', { name: 'Escape from Giant Toad' }))
+    expect(await screen.findByText('Escape attempted.')).toBeVisible()
+    expect(screen.getByRole('combobox', { name: /Check for/ })).toHaveValue('Strength (Athletics)')
+
+    view.rerender(
+      drawerElement(vi.fn(), {
+        escapes: [{ ...escapeChoices[0], activeEffectId: '00000000-0000-4000-8000-000000000e02' }],
+        onEscape
+      })
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: /Check for/ })).toHaveValue(
+        'Dexterity (Acrobatics)'
+      )
+    )
+    expect(screen.queryByText('Escape attempted.')).not.toBeInTheDocument()
+  })
+
+  it('resends the escape with its warnings acknowledged on "Do it anyway"', async () => {
+    const user = userEvent.setup()
+    const onEscape = vi
+      .fn<(command: EscapeRelationshipInputDto) => Promise<unknown>>()
+      .mockImplementationOnce(async (command) => {
+        throw new LiveSessionCommandRejectedError({
+          code: 'DOMAIN_REJECTED',
+          commandId: command.commandId,
+          currentSequence: 3,
+          message: 'This action breaks a rule. Do it anyway?',
+          reason: 'RULE_WARNINGS',
+          warnings: warnings.slice(0, 1)
+        })
+      })
+      .mockResolvedValue(resolved)
+    renderDrawer(vi.fn(), { escapes: escapeChoices, onEscape })
+
+    await user.click(await screen.findByRole('button', { name: 'Escape from Giant Toad' }))
+    expect(await screen.findByText('No action left this turn.')).toBeVisible()
+    await user.click(await screen.findByRole('button', { name: 'Do it anyway' }))
+    expect(onEscape).toHaveBeenLastCalledWith(
       expect.objectContaining({ acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE'] })
     )
   })

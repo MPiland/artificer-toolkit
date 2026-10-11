@@ -308,6 +308,19 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('ESCAPE_RELATIONSHIP'),
+      /** The timeline label: plain "Escape", which never names a grappler a player cannot see (D100). */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** What the escape spent, so the GM's undo of a failed attempt returns it. */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        /** The escape's d20 check occurrence, pending or settled. */
+        checkOccurrenceId: postgresUuidSchema
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
       /** The GM-only notice: "<caster> dropped Concentration: <label> ends on <holders>". */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))

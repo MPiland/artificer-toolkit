@@ -1,3 +1,5 @@
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {
   characterActor,
   creatureFeature,
@@ -22,6 +24,7 @@ import { seededSrdCreature } from './seededSrdCreature.js'
 const SOURCE_ID = testUuid(0x700)
 const CHARACTER_ACTOR_ID = testUuid(0x701)
 const CHARACTER_ID = testUuid(0x702)
+const CREATURE_TARGET_ID = testUuid(0x703)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -322,6 +325,30 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(batch.targetTransition.after.conditionIds).toEqual(
       expect.arrayContaining([conditionId('GRAPPLED'), conditionId('RESTRAINED')])
     )
+  })
+
+  it('grapples and restrains a Creature with one hit of the Giant Toad’s Bite, held by one relationship effect', async () => {
+    const toad = seededSrdCreature('Giant Toad')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: toad }),
+        srdCreatureActor({ id: CREATURE_TARGET_ID, creature: seededSrdCreature('Ogre') })
+      ],
+      ownerFeatureId: creatureFeature(toad, 'Bite').id,
+      autoRoll: 'GAME_MASTER',
+      rolls: [18, 0, 0]
+    })
+    const { answer } = await room.startAction(CREATURE_TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { actors, activeEffects } = await readRoomHistory(room.room.base.stub)
+    const row = actors.find(({ id }) => id === CREATURE_TARGET_ID)
+    if (!row) throw new Error('The Ogre is missing from the Run.')
+    const target = readStoredRunActor(row)
+    if (target.kind !== 'CREATURE') throw new Error('Expected the Ogre Creature actor.')
+    expect(readEncounterActorConditionState(target.conditions).ids.sort()).toEqual(
+      [conditionId('GRAPPLED'), conditionId('RESTRAINED')].sort()
+    )
+    expect(activeEffects).toHaveLength(1)
   })
 
   it('poisons the Character for 1 minute when it fails its save against the Homunculus’s Bite', async () => {

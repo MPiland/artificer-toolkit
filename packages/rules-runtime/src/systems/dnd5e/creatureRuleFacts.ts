@@ -11,11 +11,8 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
+import { abilityModifier } from './abilityModifier.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-
-function abilityModifier(score: number): number {
-  return Math.floor((score - 10) / 2)
-}
 
 function scaleProficiency(input: { bonus: number; level: string; rounding?: string }): number {
   switch (input.level) {

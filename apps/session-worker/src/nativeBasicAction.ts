@@ -37,6 +37,7 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -116,13 +117,7 @@ export async function planNativeLiveBasicAction(
         activation: { code: document.actionCost, amount: 1 },
         target: actorTarget,
         loadTarget: async () => actorTarget,
-        definitions: {
-          requireCurrent: async (definitionId) => {
-            const { definition: current } = await capture({ kind: 'DEFINITION', definitionId })
-            if (!current) throw new Error('Action-economy capability is unavailable.')
-            return current
-          }
-        }
+        definitions: captureActionEconomyDefinitions(capture)
       })
     : null
   const stabilizeTarget = document.check && target ? await prepare(target) : null

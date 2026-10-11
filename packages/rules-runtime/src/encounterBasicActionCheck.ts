@@ -1,7 +1,11 @@
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { basicActionCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
-import { encounterBasicActionCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
+import {
+  encounterBasicActionCheckPendingContextDtoSchema,
+  type encounterEscapeCheckPendingContextDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { characterMechanicsTargetStateDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -36,9 +40,14 @@ import { DND5E_SYSTEM_ID } from './systems/dnd5e/identity.js'
 type EncounterBasicActionCheckPendingContextDto = ReturnType<
   typeof encounterBasicActionCheckPendingContextDtoSchema.parse
 >
+type EncounterEscapeCheckPendingContextDto = ReturnType<
+  typeof encounterEscapeCheckPendingContextDtoSchema.parse
+>
 type CharacterMechanicsTargetStateDto = ReturnType<
   typeof characterMechanicsTargetStateDtoSchema.parse
 >
+/** The frozen d20 check every single-roll check action carries: First Aid and Escape. */
+type EncounterD20CheckContext = Pick<EncounterBasicActionCheckPendingContextDto, 'check' | 'd20'>
 
 /** Each System's basic action check graph: its one d20 request and no other evidence. */
 const basicActionCheckDefinitionBySystemId: ReadonlyMap<
@@ -103,7 +112,7 @@ export function encounterBasicActionCheckLabel(
 }
 
 export function encounterBasicActionCheckTrigger(
-  context: EncounterBasicActionCheckPendingContextDto
+  context: Pick<EncounterBasicActionCheckPendingContextDto, 'actionLabel' | 'check'>
 ): Extract<EncounterRuleRollTriggerDto, { kind: 'BASIC_ACTION_CHECK' }> {
   return {
     kind: 'BASIC_ACTION_CHECK',
@@ -142,6 +151,7 @@ export function prepareEncounterBasicActionCheck<
   if (!target.actor.sourceId) throw new EncounterValidationError('Choose a Character to stabilize.')
   const facts = actorContestFacts({
     actorId: helper.actor.id,
+    checkKind: 'SKILL',
     checkDefinitionId: input.check.checkDefinitionId,
     gameSystemId: input.gameSystemId,
     targets: new Map([[helper.actor.id, helper]])
@@ -215,7 +225,7 @@ export async function startEncounterBasicActionCheck(input: {
 /** The pending snapshot a prompted check waits on. */
 export function encounterBasicActionCheckPendingSnapshot(input: {
   continuation: ServerRuleExecutionContinuationDto
-  context: EncounterBasicActionCheckPendingContextDto
+  context: EncounterBasicActionCheckPendingContextDto | EncounterEscapeCheckPendingContextDto
   optionalCombatSnapshotChecksum: string | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
@@ -229,7 +239,7 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
 /** Rolls the frozen check against its DC: the natural d20 plus the helper's modifier. */
 export async function evaluateEncounterBasicActionCheck(input: {
   runtime: RulesRuntimeService
-  context: EncounterBasicActionCheckPendingContextDto
+  context: EncounterD20CheckContext
   continuation: ServerRuleExecutionContinuationDto
   answer: EncounterEvidenceAnswer
   rollD20: () => number
@@ -309,15 +319,35 @@ export function completeEncounterBasicActionCheckResult(input: {
     outcome: !input.targetStillDying ? 'NOT_DYING' : evaluated.reachesDc ? 'STABILIZED' : 'FAILED',
     targetTransition: transition
   })
+  return {
+    result: storedCheckResult({
+      evaluated,
+      continuation,
+      occurrenceVersion: input.occurrenceVersion,
+      initialFactsChecksum: input.initialFactsChecksum,
+      applicationOutputs
+    }),
+    applicationOutputs
+  }
+}
+
+/** The stored COMPLETE result of a settled single-d20 check, around its application outputs. */
+export function storedCheckResult(input: {
+  evaluated: Awaited<ReturnType<typeof evaluateEncounterBasicActionCheck>>
+  continuation: ServerRuleExecutionContinuationDto
+  occurrenceVersion: number
+  initialFactsChecksum: string
+  applicationOutputs: ServerRuleExecutionApplicationOutputsDto
+}) {
   const result = storedRuleExecutionResultDtoSchema.parse({
     status: 'COMPLETE',
-    occurrenceId: continuation.occurrenceId,
+    occurrenceId: input.continuation.occurrenceId,
     occurrenceVersion: input.occurrenceVersion,
     initialFactsChecksum: input.initialFactsChecksum,
-    outputs: evaluated.execution.outputs,
-    evidence: evaluated.execution.evidence,
-    applicationOutputs
+    outputs: input.evaluated.execution.outputs,
+    evidence: input.evaluated.execution.evidence,
+    applicationOutputs: input.applicationOutputs
   })
-  if (result.status !== 'COMPLETE') throw new Error('The basic action check did not complete.')
-  return { result, applicationOutputs }
+  if (result.status !== 'COMPLETE') throw new Error('The check did not complete.')
+  return result
 }

@@ -192,7 +192,27 @@ describe('SRD hits that apply several conditions (D62, M9)', () => {
       [1 + 2, srdDamageTypeId('PIERCING')],
       [2, srdDamageTypeId('POISON')]
     ])
-    expect(hit.conditionIds).toEqual([srdCondition('Grappled'), srdCondition('Restrained')].sort())
+    // D105: the conditions belong to one relationship effect, which the settlement applies to the
+    // target (proved for a Creature target in the Session Worker room: nativeRoomHitRiders.test.ts).
+    const definition = hit.effects.recurringEffect?.definition
+    if (definition?.schemaVersion !== 2)
+      throw new Error('Expected the grapple relationship effect.')
+    const conditionIds = [srdCondition('Grappled'), srdCondition('Restrained')].sort()
+    const contributions = definition.stateContributions
+    expect(
+      contributions
+        .flatMap((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP' ? contribution.conditionIds : []
+        )
+        .sort()
+    ).toEqual(conditionIds)
+    expect(
+      contributions
+        .flatMap((contribution) =>
+          contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
+        )
+        .sort()
+    ).toEqual(conditionIds)
   })
 })
 

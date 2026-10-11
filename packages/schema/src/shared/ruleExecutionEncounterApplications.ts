@@ -1193,3 +1193,52 @@ export const basicActionCheckApplicationOutputDtoSchema = lazySchema(() =>
       })
     )
 )
+
+/**
+ * A held creature's settled Escape check (D105). `ESCAPED` ended the relationship effect and
+ * removed `removedConditionIds`; `ALREADY_ENDED` means the effect was gone when a prompted roll
+ * settled, so nothing changed.
+ */
+export const escapeCheckApplicationOutputDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ESCAPE_CHECK'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      commandId: uuidSchema,
+      actorId: uuidSchema,
+      activeEffectId: uuidSchema,
+      check: z.strictObject({ checkDefinitionId: uuidSchema, dc: positiveIntegerSchema }),
+      d20: ruleCheckD20EvidenceDtoSchema,
+      outcome: z.enum(['ESCAPED', 'FAILED', 'ALREADY_ENDED']),
+      removedConditionIds: z.array(uuidSchema).check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.d20.dc !== value.check.dc)
+          context.addIssue({
+            code: 'custom',
+            path: ['d20', 'dc'],
+            message: 'The check evidence must be rolled against the check DC.'
+          })
+        if (value.outcome === 'ESCAPED' && value.d20.total < value.check.dc)
+          context.addIssue({
+            code: 'custom',
+            path: ['outcome'],
+            message: 'An escape needs a total that reaches the DC.'
+          })
+        if (value.outcome === 'FAILED' && value.d20.total >= value.check.dc)
+          context.addIssue({
+            code: 'custom',
+            path: ['outcome'],
+            message: 'A check that reaches its DC does not fail.'
+          })
+        if (value.outcome !== 'ESCAPED' && value.removedConditionIds.length > 0)
+          context.addIssue({
+            code: 'custom',
+            path: ['removedConditionIds'],
+            message: 'Only an escape removes conditions.'
+          })
+      })
+    )
+)

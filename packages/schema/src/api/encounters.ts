@@ -11,6 +11,7 @@ import { healthDisplayLevelDtoSchema } from './healthDisplay.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
 import {
   commandBaseDtoSchema,
+  escapeRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
@@ -22,6 +23,7 @@ import {
 
 export {
   encounterD20RollModeDtoSchema,
+  escapeRelationshipInputDtoSchema,
   rollRuleEvidenceInputDtoSchema,
   initiativeDeclarationSelectionDtoSchema,
   optionalCombatActionIntentDtoSchema,
@@ -34,6 +36,7 @@ export {
 } from './encounterRuleCommands.js'
 export type {
   EncounterD20RollModeDto,
+  EscapeRelationshipInputDto,
   RemoveAreaTargetInputDto,
   RollRuleEvidenceInputDto,
   InitiativeDeclarationSelectionDto,
@@ -302,6 +305,7 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     completeEncounterInputDtoSchema,
     resolveEncounterActionInputDtoSchema,
     useEncounterBasicActionInputDtoSchema,
+    escapeRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema,
     voidRuleOccurrenceInputDtoSchema,
     removeAreaTargetInputDtoSchema,

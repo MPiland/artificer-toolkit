@@ -13,6 +13,7 @@ import {
   SRD_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
+  SRD_ATHLETICS_SKILL_ID,
   SRD_CONDITION_TYPES,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -28,6 +29,7 @@ import {
   queueRoomRolls,
   readRoomEncounterSession,
   readRoomRollCards,
+  readRoomTimeline,
   seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -581,4 +583,146 @@ describe('seeded SRD Creature hit riders in the room', () => {
         .sort((a, b) => a - b)
     ).toEqual([3, 10 + 4])
   }, 30000)
+
+  describe('escaping the Giant Toad’s grapple (ATTACK-7.3)', () => {
+    /** The Toad grapples and restrains the Character, whose turn comes next. */
+    async function grappledOnItsTurn({ hidden = false } = {}) {
+      const base = await setup({
+        creature: 'Giant Toad',
+        feature: 'Bite',
+        conditionCodes: ['GRAPPLED', 'RESTRAINED'],
+        playerAutoRoll: false,
+        hidden
+      })
+      // A natural 19 hits; both damage dice roll 1.
+      await rollFaces(base, [18, 0, 0])
+      const bitten = await executeInRoom(base.owner.caller, { command: base.command })
+      expect(bitten.occurrence?.status).toBe('COMPLETE')
+      const advanced = await executeInRoom(base.owner.caller, {
+        command: {
+          type: 'ADVANCE_TURN',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: bitten.projection.version
+        }
+      })
+      await checkpointRoom(base.campaign.id)
+      return { base, version: advanced.projection.version }
+    }
+
+    /** The relationship effects holding the Character. */
+    async function holds(base: Fixture) {
+      return (await characterEffects(base)).filter(
+        ({ definition }) =>
+          definition.schemaVersion === 2 &&
+          definition.stateContributions.some(({ kind }) => kind === 'ACTOR_RELATIONSHIP')
+      )
+    }
+
+    async function escapeChoice(base: Fixture, version: number) {
+      const choices = await base.player.caller.query(api.encounters.actionChoices.get, {
+        encounterId: base.run.id,
+        expectedVersion: version,
+        actorId: base.target.id
+      })
+      return choices?.escapes ?? []
+    }
+
+    it('offers the escape with its DC and checks, and answering the d20 frees the Character', async () => {
+      const { base, version } = await grappledOnItsTurn()
+      const [hold] = await holds(base)
+      expect(hold).toBeDefined()
+      const escapes = await escapeChoice(base, version)
+      expect(escapes).toMatchObject([
+        {
+          activeEffectId: hold!.id,
+          label: 'Escape from Giant Toad',
+          dc: 13,
+          actionCost: 'ACTION',
+          checks: expect.arrayContaining([
+            expect.objectContaining({
+              checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+              label: 'Strength (Athletics)'
+            })
+          ])
+        }
+      ])
+      expect(escapes[0]!.checks).toHaveLength(2)
+
+      const prompted = await executeInRoom(base.player.caller, {
+        command: {
+          type: 'ESCAPE_RELATIONSHIP',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: version,
+          actorId: base.target.id,
+          activeEffectId: hold!.id,
+          checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+          acknowledgedWarnings: []
+        }
+      })
+      expect(prompted.occurrence?.pending).toMatchObject({
+        kind: 'D20_EVIDENCE',
+        trigger: { kind: 'BASIC_ACTION_CHECK', actionLabel: 'Escape', dc: 13 }
+      })
+      // Still held until the player's d20 settles the check.
+      expect(await holds(base)).toHaveLength(1)
+
+      const freed = await executeInRoom(base.player.caller, answerSave(base, prompted, 20))
+      expect(freed.occurrence?.status).toBe('COMPLETE')
+      await checkpointRoom(base.campaign.id)
+      expect(await holds(base)).toEqual([])
+      expect((await targetAfter(base)).conditions).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ conditionTypeId: conditionId('GRAPPLED') })
+        ])
+      )
+      expect((await targetAfter(base)).conditions).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ conditionTypeId: conditionId('RESTRAINED') })
+        ])
+      )
+      // The player's answer is the newest entry; the escape it settled sits just before it.
+      const entries = await readRoomTimeline(base.owner.caller, base.campaign.id)
+      expect(entries[1]).toMatchObject({ commandType: 'ESCAPE_RELATIONSHIP', label: 'Escape' })
+      expect(await escapeChoice(base, freed.projection.version)).toEqual([])
+    }, 60000)
+
+    it('does not name a grappler the player cannot see (D100)', async () => {
+      const { base, version } = await grappledOnItsTurn({ hidden: true })
+      expect(await escapeChoice(base, version)).toMatchObject([{ label: 'Escape a grapple' }])
+      const gmChoices = await base.owner.caller.query(api.encounters.actionChoices.get, {
+        encounterId: base.run.id,
+        expectedVersion: version,
+        actorId: base.target.id
+      })
+      expect(gmChoices?.escapes).toMatchObject([{ label: 'Escape from Giant Toad' }])
+    }, 60000)
+
+    it('keeps the grapple when the d20 misses, and spends the Action', async () => {
+      const { base, version } = await grappledOnItsTurn()
+      const [hold] = await holds(base)
+      const prompted = await executeInRoom(base.player.caller, {
+        command: {
+          type: 'ESCAPE_RELATIONSHIP',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: version,
+          actorId: base.target.id,
+          activeEffectId: hold!.id,
+          checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+          acknowledgedWarnings: []
+        }
+      })
+      const failed = await executeInRoom(base.player.caller, answerSave(base, prompted, 1))
+      expect(failed.occurrence?.status).toBe('COMPLETE')
+      await checkpointRoom(base.campaign.id)
+      expect(await holds(base)).toHaveLength(1)
+      expect((await targetAfter(base)).conditions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ conditionTypeId: conditionId('GRAPPLED') })
+        ])
+      )
+    }, 60000)
+  })
 })

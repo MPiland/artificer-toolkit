@@ -1,4 +1,7 @@
-import type { UseEncounterBasicActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  EscapeRelationshipInputDto,
+  UseEncounterBasicActionInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorDefeated } from './characterStates.js'
@@ -10,32 +13,30 @@ import { presentEncounterResultForMember } from './resultPresentation.js'
 import { presentTimelineEntry, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 
+type BasicActionRootCommand = UseEncounterBasicActionInputDto | EscapeRelationshipInputDto
+type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
+
 /**
- * Admits a basic action (Q11) for the room: the caller controls the current actor, a player's target
- * is visible to them, and a stored result replays before any currentness check. It reads no rules
- * inputs and writes nothing.
+ * Admits a command the current actor takes alone (a basic action, an Escape) for the room: the
+ * caller controls the current actor, `checkTarget` vets any actor it names, and a stored result
+ * replays before any currentness check. It reads no rules inputs and writes nothing.
  */
-export async function readBasicActionAdmission(
+async function admitCurrentActorCommand<TCommand extends BasicActionRootCommand>(
   ctx: EncounterReadTransaction,
-  input: Omit<LiveSessionEncounterRulesInput, 'request'> & {
-    command: UseEncounterBasicActionInputDto
-  }
+  input: BasicActionScopeInput,
+  command: TCommand,
+  checkTarget?: (scope: {
+    state: ReturnType<typeof readRunState>
+    role: BasicActionScopeInput['expectedRole']
+  }) => Promise<void>
 ) {
   const { userId } = await ctx.ports.requireIdentity()
-  const command: UseEncounterBasicActionInputDto = {
-    ...input.command,
-    encounterId: input.command.encounterId.toLowerCase(),
-    commandId: input.command.commandId.toLowerCase(),
-    actorId: input.command.actorId.toLowerCase(),
-    definitionId: input.command.definitionId.toLowerCase(),
-    targetActorId: input.command.targetActorId?.toLowerCase() ?? null
-  }
   if (
     userId !== input.expectedUserId ||
     command.encounterId !== input.encounterId ||
     command.expectedVersion !== input.expectedVersion
   )
-    throw new Error('Live Session basic action scope mismatch.')
+    throw new Error('Live Session current-actor command scope mismatch.')
   await ctx.ports.requireActiveLiveAuthority({
     campaignId: input.campaignId,
     epoch: input.authorityEpoch
@@ -51,7 +52,7 @@ export async function readBasicActionAdmission(
     userId
   )
   if (campaign.id !== input.campaignId || membership.role !== input.expectedRole)
-    throw new Error('Live Session basic action scope mismatch.')
+    throw new Error('Live Session current-actor command scope mismatch.')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
@@ -67,7 +68,7 @@ export async function readBasicActionAdmission(
   if (stored) {
     presentTimelineEntry(stored)
     if (
-      stored.commandType !== 'USE_BASIC_ACTION' ||
+      stored.commandType !== command.type ||
       stored.encounterId !== run.id ||
       stored.actorUserId !== userId ||
       stored.version !== command.expectedVersion + 1 ||
@@ -84,13 +85,7 @@ export async function readBasicActionAdmission(
   const actor = await readRunActor(ctx, state, command.actorId)
   await requireEncounterActorControl(ctx, { campaign, membership, actor })
   if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
-  if (command.targetActorId) {
-    const target = await readRunActor(ctx, state, command.targetActorId)
-    // Players aim only at actors in their projection; a hidden actor reads as unavailable.
-    if (membership.role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
-    if (await readEncounterActorDefeated(ctx, target))
-      rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't be helped.")
-  }
+  await checkTarget?.({ state, role: input.expectedRole })
   if (state.version !== command.expectedVersion) rejectDomain('VERSION_STALE')
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
@@ -102,4 +97,44 @@ export async function readBasicActionAdmission(
     .first()
   if (pending) rejectDomain('PENDING_DECISION')
   return { ...scope, kind: 'READY' as const, command, fingerprint }
+}
+
+/**
+ * Admits a basic action (Q11) for the room: the caller controls the current actor and a player's
+ * target is visible to them.
+ */
+export async function readBasicActionAdmission(
+  ctx: EncounterReadTransaction,
+  input: BasicActionScopeInput & { command: UseEncounterBasicActionInputDto }
+) {
+  const command: UseEncounterBasicActionInputDto = {
+    ...input.command,
+    encounterId: input.command.encounterId.toLowerCase(),
+    commandId: input.command.commandId.toLowerCase(),
+    actorId: input.command.actorId.toLowerCase(),
+    definitionId: input.command.definitionId.toLowerCase(),
+    targetActorId: input.command.targetActorId?.toLowerCase() ?? null
+  }
+  return admitCurrentActorCommand(ctx, input, command, async ({ state, role }) => {
+    if (!command.targetActorId) return
+    const target = await readRunActor(ctx, state, command.targetActorId)
+    // Players aim only at actors in their projection; a hidden actor reads as unavailable.
+    if (role !== 'OWNER' && !target.public) rejectDomain('TARGET_UNAVAILABLE')
+    if (await readEncounterActorDefeated(ctx, target))
+      rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't be helped.")
+  })
+}
+
+/** Admits an Escape (D105) for the room: the caller controls the current, escaping actor. */
+export async function readEscapeAdmission(
+  ctx: EncounterReadTransaction,
+  input: BasicActionScopeInput & { command: EscapeRelationshipInputDto }
+) {
+  const command: EscapeRelationshipInputDto = {
+    ...input.command,
+    encounterId: input.command.encounterId.toLowerCase(),
+    commandId: input.command.commandId.toLowerCase(),
+    actorId: input.command.actorId.toLowerCase()
+  }
+  return admitCurrentActorCommand(ctx, input, command)
 }

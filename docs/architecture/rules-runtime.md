@@ -594,6 +594,26 @@ Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_AP
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
 
+**Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
+`ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`) can spend the module's
+authored `activation` to try to break the hold (`findEncounterHolderEscape`). `prepareEncounterEscapeCheck`
+freezes the check for one allowed `skillIds` or `abilityDefinitionIds` entry: a Creature holder's total
+comes from its `checkTotals` or, for an ability check, its score through the shared `abilityModifier`
+(`actorContestFacts` reads both); a Character's from its rules. It then runs the same d20 core as First Aid
+(`encounterBasicActionCheck.ts`, trigger `BASIC_ACTION_CHECK`, so the roll prompt reads "Escape: <check>
+DC n"), with the pending context `ENCOUNTER_ESCAPE_CHECK` and the output `ESCAPE_CHECK` (`ESCAPED`, `FAILED`
+or `ALREADY_ENDED` when a prompted roll settles after the effect ended). A total at or above the DC ends the
+effect: `encounterEscapeEndedConditionIds` names the conditions only that effect owned (the effect's
+`CONDITION_OWNERSHIP` contributions through `endedMaintenanceConditions`, so a condition another remaining
+effect retains stays), and `encounterActorsAfterEscape` strips them from a Creature holder. A Character's
+conditions live on its Sheet, so the room's plan does not carry them; persistence removes them with the
+effect (`endEncounterRelationshipEffect` reconciles the maintenance owners on the Character's stream). The
+commit re-derives the escape from the holder's stored effect (`escapeEffectVerification.ts`) and refuses a
+plan whose DC, check, module or spent allowance the effect does not carry. A failure only spends the
+activation.
+`CONTEST` DCs, rescuers and release sweeps belong to later ATTACK-7 slices; Ally Help advantage is not
+applied to the escape roll.
+
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
 modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds

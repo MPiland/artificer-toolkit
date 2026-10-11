@@ -1,18 +1,23 @@
 import { z, lazySchema } from '../zod.js'
 import { advanceEncounterTurnInputDtoSchema } from './encounters.js'
 import {
+  escapeRelationshipInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   useEncounterBasicActionInputDtoSchema
 } from './encounterRuleCommands.js'
 
-/** A basic action, or the answer to the check it started (First Aid). */
+/** A basic action or an Escape, or the answer to the check either started (First Aid, Escape). */
 export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
   z.discriminatedUnion('type', [
     useEncounterBasicActionInputDtoSchema,
+    escapeRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema
   ])
 )
+export type LiveSessionEncounterBasicActionCommand = z.infer<
+  typeof liveSessionEncounterBasicActionCommandSchema
+>
 
 /**
  * A player's admitted Encounter action or action response (ADR 0034 decision 1). Every capture that

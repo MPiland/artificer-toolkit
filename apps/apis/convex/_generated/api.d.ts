@@ -38995,6 +38995,27 @@ export declare const api: {
           }>;
           encounterId: string;
           encounterVersion: number;
+          escapes: Array<{
+            actionCost: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+            activeEffectId: string;
+            checks: Array<{ checkDefinitionId: string; label: string }>;
+            dc: number;
+            label: string;
+            warnings: Array<{
+              code:
+                | "ACTION_ECONOMY_UNAVAILABLE"
+                | "RESOURCE_UNAVAILABLE"
+                | "SOURCE_NOT_EQUIPPED"
+                | "TARGET_DEFEATED"
+                | "TARGET_CREATURE_TYPE_EXCLUDED"
+                | "TARGET_DISPOSITION"
+                | "TARGET_NOT_DYING"
+                | "TARGET_OUT_OF_RANGE"
+                | "TARGET_OUT_OF_SIGHT"
+                | "TARGET_RANGE_UNCHECKED";
+              message: string;
+            }>;
+          }>;
           openAttackAction: {
             lastActionId: string;
             lastTargetIds: Array<string>;

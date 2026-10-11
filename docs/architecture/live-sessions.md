@@ -160,10 +160,25 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
 (`roomEncounterCommands.ts`), drawing dice from the room's secure random source:
 
 - `RESOLVE_ACTION` runs the action planner, or the Disarm planner (`nativeDisarm.ts`) when it carries
-  an optional-combat intent; `USE_BASIC_ACTION` runs `nativeBasicAction.ts`; `START` and
-  `ADVANCE_TURN` run the turn planner (`nativeEncounterTurn.ts`).
+  an optional-combat intent; `USE_BASIC_ACTION` runs `nativeBasicAction.ts`; `ESCAPE_RELATIONSHIP` runs
+  `nativeEscapeAction.ts`; `START` and `ADVANCE_TURN` run the turn planner (`nativeEncounterTurn.ts`).
+- `ESCAPE_RELATIONSHIP` (D105) is the current actor's attempt to break a fixed-DC hold. It shares the
+  `BASIC_ACTION` capture scope with `USE_BASIC_ACTION` (`basicActionScopeAdmission.ts` dispatches by command
+  type and pending context) and the First Aid check path, and there is no Convex mutation for it. The command
+  spends the effect's authored activation, then either settles in the same commit (the roller rolls
+  automatically) or leaves a PENDING `ENCOUNTER_ESCAPE_CHECK` occurrence owned by `ESCAPE` that the roller's
+  `RESOLVE_RULE_OCCURRENCE` settles through `nativeEscapeActionResponse.ts`. A total at or above the DC deletes
+  the relationship effect and the conditions only it owned in that commit (`relationshipEndPersistence.ts`).
+  The room's plan is never trusted for the effect's own terms: both commits (`escapePersistence.ts`,
+  `escapeCheckSettlement.ts`) load the holder's stored effect and re-derive the escape
+  (`escapeEffectVerification.ts`), refusing a DC, check, module or spent allowance it does not carry.
+  `REVERT_LAST_ACTION` returns the activation of a failed escape and refuses a successful one ("Undo can't
+  restore an escaped grapple; adjust manually.", also after its `RESOLVE_RULE_OCCURRENCE` answer), because the
+  deleted effect row and the removed conditions are not kept in receipts. Action choices offer the attempt as
+  `escapes`, labelled "Escape from <grappler>" or "Escape a grapple" when the grappler is hidden from the
+  requester.
 - Pending decisions are routed by `roomEncounterResponseRouting.ts` from the Run's retained occurrence:
-  TURN, ACTION, CONCENTRATION, CLEAVING, DISARM or MOVEMENT. The selected planner repeats canonical
+  TURN, ACTION, CONCENTRATION, CLEAVING, BASIC_ACTION, ESCAPE, DISARM or MOVEMENT. The selected planner repeats canonical
   admission. A decision no planner owns is refused with `VERSION_STALE` unless it names the Run's one
   pending occurrence and the caller may answer it.
 - `REMOVE_AREA_TARGET` (GM-only) takes one creature out of a pending point-area action

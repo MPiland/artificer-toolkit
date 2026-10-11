@@ -1,0 +1,112 @@
+import type { LiveSessionEncounterEscapeResponseCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import { findStoredEscape } from './escapeEffectVerification.js'
+import { endEncounterRelationshipEffect } from './relationshipEndPersistence.js'
+import { recordRuleRollCard } from './ruleRollCards.js'
+import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
+
+type EscapeCheckSettlement = LiveSessionEncounterEscapeResponseCommitInput['settlement']
+export type EscapeCheckOutput = Extract<
+  ServerRuleExecutionApplicationOutputsDto,
+  { kind: 'ESCAPE_CHECK' }
+>
+
+/**
+ * Settles an Escape check: checks the planned result against the frozen check and the holder's
+ * current effects, ends the relationship effect and the conditions it owned when the escape
+ * succeeded, then posts the holder's roll card unless the app already carded that die. Returns the
+ * actors with the holder released.
+ */
+export async function settleEncounterEscapeCheck(
+  ctx: EncounterWriteTransaction,
+  input: {
+    campaign: EncounterDocument<'campaigns'>
+    state: { id: string; gameSystemId: string }
+    actors: readonly EncounterRunActorState[]
+    settlement: EscapeCheckSettlement
+    rootCommandId: string
+    initiatorUserId: string
+    occurredAt: string
+    occurrenceVersion: number
+  }
+): Promise<{ actors: EncounterRunActorState[]; output: EscapeCheckOutput }> {
+  const { state, actors, settlement } = input
+  const { context, execution } = settlement
+  const output =
+    execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'ESCAPE_CHECK'
+      ? execution.applicationOutputs
+      : null
+  const holder = actors.find((actor) => actor.id === context.actorId)
+  if (
+    !output ||
+    execution.status !== 'COMPLETE' ||
+    !holder ||
+    holder.kind === 'CUSTOM' ||
+    execution.occurrenceVersion !== input.occurrenceVersion ||
+    output.occurrenceId !== execution.occurrenceId ||
+    output.commandId !== context.commandId ||
+    context.commandId !== input.rootCommandId ||
+    output.actorId !== context.actorId ||
+    output.activeEffectId !== context.activeEffectId ||
+    output.check.checkDefinitionId !== context.check.checkDefinitionId ||
+    output.check.dc !== context.check.dc ||
+    output.d20.modifier !== context.d20.modifier ||
+    output.d20.derivedRollMode !== context.d20.rollMode ||
+    output.d20.contributorChecksum !== context.d20.contributorChecksum ||
+    output.d20.total !== output.d20.selectedNatural + context.d20.modifier
+  )
+    throw new Error('Live Session escape check scope mismatch.')
+  const stillHeld =
+    (await findStoredEscape(ctx, { encounterId: state.id, holder, context })) !== null
+  if (
+    output.outcome !==
+    (!stillHeld ? 'ALREADY_ENDED' : output.d20.total >= context.check.dc ? 'ESCAPED' : 'FAILED')
+  )
+    throw new Error('Live Session escape check scope mismatch.')
+  let nextActors = [...actors]
+  if (output.outcome === 'ESCAPED') {
+    const ended = await endEncounterRelationshipEffect(ctx, {
+      encounterId: state.id,
+      actors: nextActors,
+      holderActorId: holder.id,
+      activeEffectId: context.activeEffectId,
+      occurredAt: input.occurredAt
+    })
+    if (
+      !ended ||
+      checksumCanonicalJson(ended.endedConditionIds) !==
+        checksumCanonicalJson(output.removedConditionIds)
+    )
+      throw new Error('Live Session escape differs from its plan.')
+    nextActors = ended.actors
+  } else if (output.removedConditionIds.length > 0) {
+    throw new Error('Live Session escape check scope mismatch.')
+  }
+  // The app already carded the die an app roll settled with; any other die gets the holder's card.
+  if (settlement.appRollId === null) {
+    const system = await ctx.ports.requireSystem(state.gameSystemId)
+    const roll = basicActionCheckRollRecord({
+      occurrenceId: execution.occurrenceId,
+      d20: output.d20,
+      actionLabel: context.actionLabel,
+      checkLabel: context.check.label,
+      rollerLabel: holder.label,
+      ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+      createdAt: input.occurredAt
+    })
+    await recordRuleRollCard(ctx, {
+      campaign: input.campaign,
+      encounterId: state.id,
+      roller: holder,
+      initiatorUserId: input.initiatorUserId,
+      visibility: undefined,
+      clientNonce: roll.id,
+      roll
+    })
+  }
+  return { actors: nextActors, output }
+}

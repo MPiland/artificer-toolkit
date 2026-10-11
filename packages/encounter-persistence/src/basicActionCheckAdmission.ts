@@ -1,9 +1,13 @@
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { requireEncounterActorControl } from './actorController.js'
-import { readNativeBasicActionCheckPending } from './basicActionCheckPending.js'
+import {
+  readNativeBasicActionCheckPending,
+  readNativeEscapeCheckPending
+} from './basicActionCheckPending.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
@@ -12,18 +16,33 @@ import { replayEncounterCommandResult } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
+
+type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
+  response: ResolveRuleOccurrenceInputDto
+}
+
+/** What differs between the d20 checks a root command can pend: First Aid and Escape. */
+type CheckAdmissionSpec<TPending extends { context: { commandFingerprint: string } }> = {
+  readPending(
+    occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+    snapshot: ServerRuleExecutionPendingSnapshotDto | null
+  ): TPending
+  /** The actor whose controllers roll the d20. */
+  rollerActorId(context: TPending['context']): string
+}
 
 /**
- * Admits the helper's d20 for a pending basic action check (First Aid) for the room: current
- * control and versions, the one pending occurrence, and a stored answer replaying before any
- * currentness check. It reads no rules inputs and writes nothing.
+ * Admits the roller's d20 for a pending check for the room: current control and versions, the one
+ * pending occurrence, and a stored answer replaying before any currentness check. It reads no
+ * rules inputs and writes nothing.
  */
-export async function readBasicActionCheckResponseAdmission(
-  ctx: EncounterReadTransaction,
-  input: Omit<LiveSessionEncounterRulesInput, 'request'> & {
-    response: ResolveRuleOccurrenceInputDto
+async function admitCheckResponse<
+  TPending extends {
+    context: { commandFingerprint: string }
+    snapshot: { request: { requestId: string } }
   }
-) {
+>(ctx: EncounterReadTransaction, input: CheckResponseInput, spec: CheckAdmissionSpec<TPending>) {
   const { userId } = await ctx.ports.requireIdentity()
   const response: ResolveRuleOccurrenceInputDto = {
     ...input.response,
@@ -37,7 +56,7 @@ export async function readBasicActionCheckResponseAdmission(
     response.encounterId !== input.encounterId ||
     response.expectedVersion !== input.expectedVersion
   )
-    throw new Error('Live Session basic action check scope mismatch.')
+    throw new Error('Live Session check response scope mismatch.')
   await ctx.ports.requireActiveLiveAuthority({
     campaignId: input.campaignId,
     epoch: input.authorityEpoch
@@ -53,7 +72,7 @@ export async function readBasicActionCheckResponseAdmission(
     userId
   )
   if (campaign.id !== input.campaignId || membership.role !== input.expectedRole)
-    throw new Error('Live Session basic action check scope mismatch.')
+    throw new Error('Live Session check response scope mismatch.')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (campaign.gameSystemId !== state.gameSystemId)
     throw new Error('Encounter Campaign System is stale.')
@@ -63,7 +82,7 @@ export async function readBasicActionCheckResponseAdmission(
     .withIndex('by_publicId', (q) => q.eq('id', response.occurrenceId))
     .unique()
   if (!occurrence || occurrence.encounterId !== run.id || occurrence.campaignId !== run.campaignId)
-    throw new Error('The basic action check occurrence is unavailable.')
+    throw new Error('The check occurrence is unavailable.')
   const fingerprint = checksumCanonicalJson(response)
   const [stored, evidence] = await Promise.all([
     ctx.db
@@ -107,10 +126,7 @@ export async function readBasicActionCheckResponseAdmission(
       result: await presentEncounterResultForMember(ctx, { campaign, membership, result })
     }
   }
-  const pending = readNativeBasicActionCheckPending(
-    occurrence,
-    await readPendingSnapshot(ctx, occurrence)
-  )
+  const pending = spec.readPending(occurrence, await readPendingSnapshot(ctx, occurrence))
   const { context, snapshot } = pending
   const root = await ctx.db
     .query('encounterRunCommands')
@@ -118,12 +134,13 @@ export async function readBasicActionCheckResponseAdmission(
       q.eq('campaignId', campaign.id).eq('commandId', occurrence.rootCommandId)
     )
     .unique()
+  // The fingerprint covers the command's type, so a root of the other check kind cannot match.
   if (
-    root?.commandType !== 'USE_BASIC_ACTION' ||
+    (root?.commandType !== 'USE_BASIC_ACTION' && root?.commandType !== 'ESCAPE_RELATIONSHIP') ||
     root.receipt.checkOccurrenceId !== occurrence.id ||
     root.commandFingerprint !== context.commandFingerprint
   )
-    throw new Error('The basic action check root is unavailable.')
+    throw new Error('The check root command is unavailable.')
   const reservedCommand = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_campaignId_rootCommandId', (q) =>
@@ -134,7 +151,7 @@ export async function readBasicActionCheckResponseAdmission(
   await requireEncounterActorControl(ctx, {
     campaign,
     membership,
-    actor: await readRunActor(ctx, state, context.helperActorId)
+    actor: await readRunActor(ctx, state, spec.rollerActorId(context))
   })
   if (
     occurrence.version !== response.expectedOccurrenceVersion ||
@@ -142,9 +159,9 @@ export async function readBasicActionCheckResponseAdmission(
     !('requestId' in response.resolution) ||
     response.resolution.requestId !== snapshot.request.requestId
   )
-    rejectDomain('VERSION_STALE', 'The basic action check changed; review it and answer again.')
+    rejectDomain('VERSION_STALE', 'The check changed; review it and answer again.')
   if (response.resolution.kind !== 'ENTER_DICE' && response.resolution.kind !== 'SYSTEM_ROLL')
-    throw new Error('A basic action check requires d20 evidence.')
+    throw new Error('A check requires d20 evidence.')
   if (state.status !== 'ACTIVE') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
   const pendingOccurrences = await ctx.db
@@ -163,4 +180,26 @@ export async function readBasicActionCheckResponseAdmission(
     initiatorUserId: root.actorUserId,
     appRoll: await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
   }
+}
+
+/** Admits the helper's d20 for a pending basic action check (First Aid). */
+export function readBasicActionCheckResponseAdmission(
+  ctx: EncounterReadTransaction,
+  input: CheckResponseInput
+) {
+  return admitCheckResponse(ctx, input, {
+    readPending: readNativeBasicActionCheckPending,
+    rollerActorId: (context) => context.helperActorId
+  })
+}
+
+/** Admits the held creature's d20 for a pending Escape check (D105). */
+export function readEscapeCheckResponseAdmission(
+  ctx: EncounterReadTransaction,
+  input: CheckResponseInput
+) {
+  return admitCheckResponse(ctx, input, {
+    readPending: readNativeEscapeCheckPending,
+    rollerActorId: (context) => context.actorId
+  })
 }

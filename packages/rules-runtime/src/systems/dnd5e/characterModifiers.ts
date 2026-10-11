@@ -4,6 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
+import { abilityModifier } from './abilityModifier.js'
 import {
   canonicalCharacterAbility,
   characterPolicyNumber,
@@ -127,12 +128,12 @@ export function evaluateDnd5eCharacterModifiers(
           .reduce((sum, group) => sum + group.effective, 0)
     }
   })
-  const abilityModifier = (ability: unknown) => {
+  const abilityModifierOf = (ability: unknown) => {
     const score =
       abilityScores.find(
         (entry) => canonicalCharacterAbility(entry.abilityId) === canonicalCharacterAbility(ability)
       )?.effective ?? 10
-    return Math.floor((score - 10) / 2)
+    return abilityModifier(score)
   }
   return grantFold.modifierGroups.map((group): CharacterResolvedModifierGroup => {
     const contributions = isAbilityModifier(group.modifierKind)
@@ -144,12 +145,12 @@ export function evaluateDnd5eCharacterModifiers(
                   characterPolicyNumber(payload.min ?? -999),
                   Math.min(
                     characterPolicyNumber(payload.max ?? 999),
-                    abilityModifier(payload.ability) *
+                    abilityModifierOf(payload.ability) *
                       characterPolicyNumber(payload.multiplier ?? 1)
                   )
                 )
               : Array.isArray(payload.abilities) && payload.abilities.length > 0
-                ? Math.max(...payload.abilities.map(abilityModifier))
+                ? Math.max(...payload.abilities.map(abilityModifierOf))
                 : 0
           return { ...contribution, resolvedValue }
         })
@@ -165,7 +166,7 @@ export function evaluateDnd5eCharacterModifiers(
             ? {
                 ...contribution,
                 resolvedValue: abilities.reduce<number>(
-                  (sum, ability) => sum + abilityModifier(ability),
+                  (sum, ability) => sum + abilityModifierOf(ability),
                   contribution.resolvedValue
                 )
               }

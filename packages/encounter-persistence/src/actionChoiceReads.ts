@@ -8,6 +8,11 @@ import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/enc
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import {
+  encounterEscapeCheckLabel,
+  findEncounterHolderEscape
+} from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { evaluateEncounterCharacterActionWieldConflict } from '@artificer-toolkit/rules-runtime/encounterWieldConflict'
@@ -28,6 +33,7 @@ import { requireEncounterActorControl } from './actorController.js'
 import { evaluateActionAttackAction, readDisarmSelection } from './actionPreparationReads.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
+import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { CampaignAuthority, EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -68,7 +74,7 @@ export async function readEncounterActionChoices(
 ): Promise<EncounterActionChoicesResponseDto> {
   const current = await readActionChoicesRun(tx, input)
   if (!current) return null
-  const { state, actor, campaign } = current
+  const { state, actor, campaign, membership } = current
   const actorTarget =
     actor.kind === 'CHARACTER'
       ? (
@@ -263,6 +269,45 @@ export async function readEncounterActionChoices(
             : (await readEconomy({ code: document.actionCost, amount: 1 })).warnings
       }))
   )
+  // The relationships the actor holds and may try to break free of against a fixed DC (D105).
+  const heldEscapes = (
+    actor.kind === 'CUSTOM' ? [] : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
+  ).flatMap((effect) => {
+    const escape = findEncounterHolderEscape(effect)
+    return escape ? [{ effect, ...escape }] : []
+  })
+  const escapes: EncounterActionChoicesDto['escapes'] = []
+  if (heldEscapes.length > 0) {
+    const [system, runActors] = await Promise.all([
+      tx.ports.requireSystem(state.gameSystemId),
+      readRunActors(tx, state)
+    ])
+    for (const { effect, module, dc } of heldEscapes) {
+      const { origin } = effect.definition
+      const grappler =
+        origin.kind === 'ENCOUNTER'
+          ? runActors.find((candidate) => candidate.id === origin.sourceActorId)
+          : undefined
+      const economy = await readEconomy({
+        code: module.activation.code,
+        amount: 'amount' in module.activation ? module.activation.amount : null
+      })
+      escapes.push({
+        activeEffectId: effect.id,
+        label:
+          grappler && (membership.role === 'OWNER' || grappler.public)
+            ? `Escape from ${grappler.label}`
+            : 'Escape a grapple',
+        dc,
+        actionCost: module.activation.code,
+        checks: [...module.checks.skillIds, ...module.checks.abilityDefinitionIds].map((id) => ({
+          checkDefinitionId: id,
+          label: encounterEscapeCheckLabel(system, id)
+        })),
+        warnings: economy.warnings
+      })
+    }
+  }
   return encounterActionChoicesDtoSchema.parse({
     encounterId: state.id,
     encounterVersion: state.version,
@@ -279,6 +324,7 @@ export async function readEncounterActionChoices(
     actions,
     unavailableActions,
     basicActions,
+    escapes,
     optionalRules: activeOptionalCombatDefinitions({
       automationMode: state.automationMode,
       snapshot: state.optionalCombatSnapshot

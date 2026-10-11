@@ -8,8 +8,7 @@ import { rejectDomain } from './domainRejections.js'
 import { readAreaRemovalCommitAdmission } from './areaTargetRemoval.js'
 import { readCleavingResponseAdmission } from './cleavingResponseAdmission.js'
 import { readDisarmAdmission } from './disarmAdmission.js'
-import { readBasicActionAdmission } from './basicActionAdmission.js'
-import { readBasicActionCheckResponseAdmission } from './basicActionCheckAdmission.js'
+import { readBasicActionScopeAdmission } from './basicActionScopeAdmission.js'
 import type { EncounterReadTransaction } from './ports.js'
 
 /**
@@ -122,16 +121,10 @@ export async function readLiveEncounterActionScope(
     return disarm
   }
   if (input.action.kind === 'BASIC_ACTION') {
-    const basic =
-      input.action.command.type === 'RESOLVE_RULE_OCCURRENCE'
-        ? await readBasicActionCheckResponseAdmission(ctx, {
-            ...input,
-            response: input.action.command
-          })
-        : await readBasicActionAdmission(ctx, {
-            ...input,
-            command: input.action.command
-          })
+    const basic = await readBasicActionScopeAdmission(ctx, {
+      ...input,
+      command: input.action.command
+    })
     if (basic.kind !== 'READY') throw new Error('The admitted basic action is unavailable.')
     return basic
   }

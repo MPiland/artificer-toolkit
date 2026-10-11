@@ -106,11 +106,14 @@ export function presentTimelineEntry(
     roll: receipt?.roll ?? null,
     label:
       command.commandType === 'USE_BASIC_ACTION' ||
+      command.commandType === 'ESCAPE_RELATIONSHIP' ||
       command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
         ? command.label
         : null,
     ruleOverrides:
-      command.commandType === 'RESOLVE_ACTION' || command.commandType === 'USE_BASIC_ACTION'
+      command.commandType === 'RESOLVE_ACTION' ||
+      command.commandType === 'USE_BASIC_ACTION' ||
+      command.commandType === 'ESCAPE_RELATIONSHIP'
         ? command.ruleOverrides
         : [],
     issuerLines: command.commandType === 'RESOLVE_ACTION' ? command.issuerLines : [],

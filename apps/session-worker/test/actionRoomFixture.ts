@@ -216,15 +216,16 @@ export async function actionRoom(config: ActionRoomConfig) {
     )
   })
 
-  /** A version-keyed read the room answers on the GM's socket. */
+  /** A version-keyed read the room answers on the GM's socket, or on `reader`'s. */
   async function readRoom<Kind extends EncounterReadDto['kind']>(
-    read: Extract<EncounterReadDto, { kind: Kind }>
+    read: Extract<EncounterReadDto, { kind: Kind }>,
+    reader: Pick<typeof room.base, 'messages' | 'socket'> = room.base
   ) {
     const requestId = crypto.randomUUID()
-    const first = room.base.messages.length
-    room.base.socket.send(JSON.stringify({ type: 'ENCOUNTER_READ', requestId, read }))
+    const first = reader.messages.length
+    reader.socket.send(JSON.stringify({ type: 'ENCOUNTER_READ', requestId, read }))
     const answer = await vi.waitFor(() => {
-      const found = room.base.messages
+      const found = reader.messages
         .slice(first)
         .find(
           (message) => message.type === 'ENCOUNTER_READ_RESULT' && message.requestId === requestId
@@ -309,6 +310,15 @@ export async function actionRoom(config: ActionRoomConfig) {
     /** The action of the Creature feature `ownerFeatureId` on the Run's `actor`, for its own turn. */
     featureActionId,
     actionChoices,
+    /** The actions the room offers `actorId`, as a player's socket reads them. */
+    async actionChoicesAsPlayer(actorId: string) {
+      const choices = await readRoom(
+        { kind: 'ACTION_CHOICES', input: { encounterId: room.encounterId, actorId } },
+        await connectPlayer(room.base)
+      )
+      if (!choices) throw new Error('The room offers the player no action choices.')
+      return choices
+    },
     /** The Scene context of the acting actor's token and the token of the actor at `targetIndex`. */
     sceneContext(targetIndex = 1) {
       const { scene } = room

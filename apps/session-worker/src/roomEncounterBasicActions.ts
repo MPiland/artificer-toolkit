@@ -1,8 +1,13 @@
-import { persistEncounterBasicActionResponse } from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
+import {
+  persistEncounterBasicActionResponse,
+  persistEncounterEscapeResponse
+} from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence/escapePersistence'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
+  EscapeRelationshipInputDto,
   ResolveRuleOccurrenceInputDto,
   UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -11,6 +16,8 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { planNativeLiveBasicAction } from './nativeBasicAction.js'
 import { planNativeLiveBasicActionResponse } from './nativeBasicActionResponse.js'
+import { planNativeLiveEscape } from './nativeEscapeAction.js'
+import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import {
   assertRoomEncounterReadFence,
@@ -108,6 +115,47 @@ export async function executeRoomEncounterBasicAction(
           observed,
           batch
         })
+    }
+  )
+}
+
+/** An Escape spends its activation and pends or settles the holder's check in one native commit. */
+export async function executeRoomEncounterEscape(
+  input: RoomBasicActionInput & { command: EscapeRelationshipInputDto }
+) {
+  const { ctx, transaction, scope, observed } = input
+  const plan = await planNativeLiveEscape(scope, input.command, basicActionExecution(input))
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterEscape(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        })
+    }
+  )
+}
+
+/** The holder's d20 settles a pending Escape check and frees them in one native commit. */
+export async function executeRoomEncounterEscapeResponse(
+  input: RoomBasicActionInput & { command: ResolveRuleOccurrenceInputDto }
+) {
+  const { ctx, scope, observed } = input
+  const plan = await planNativeLiveEscapeResponse(scope, input.command, basicActionExecution(input))
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterEscapeResponse(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: async (state, characterIds, fence) =>
+        assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
     }
   )
 }

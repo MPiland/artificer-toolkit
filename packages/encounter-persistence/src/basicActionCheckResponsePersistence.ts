@@ -2,10 +2,14 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import type { LiveSessionEncounterBasicActionResponseCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type {
+  LiveSessionEncounterBasicActionResponseCommitInput,
+  LiveSessionEncounterEscapeResponseCommitInput
+} from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import {
   encounterRunStateSchema,
+  type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
@@ -17,9 +21,13 @@ import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-t
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readBasicActionCheckResponseAdmission } from './basicActionCheckAdmission.js'
+import {
+  readBasicActionCheckResponseAdmission,
+  readEscapeCheckResponseAdmission
+} from './basicActionCheckAdmission.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
 import { changedFields, readRunActors } from './documents.js'
+import { settleEncounterEscapeCheck } from './escapeCheckSettlement.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
@@ -27,42 +35,109 @@ import { encounterReplayReceipt } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
 import type { EncounterWriteTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
+
+type CheckResponseCommitInput =
+  | LiveSessionEncounterBasicActionResponseCommitInput
+  | LiveSessionEncounterEscapeResponseCommitInput
+type CheckResponseAdmission =
+  | Awaited<ReturnType<typeof readBasicActionCheckResponseAdmission>>
+  | Awaited<ReturnType<typeof readEscapeCheckResponseAdmission>>
+
+/** What differs between the checks a root command can pend: its admission, its die and its effects. */
+type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
+  admit(ctx: EncounterWriteTransaction, input: TInput): Promise<CheckResponseAdmission>
+  selectedNatural(execution: TInput['settlement']['execution']): number | null
+  settle(
+    ctx: EncounterWriteTransaction,
+    input: {
+      campaign: EncounterDocument<'campaigns'>
+      state: EncounterRunState
+      actors: readonly EncounterRunActorState[]
+      settlement: TInput['settlement']
+      rootCommandId: string
+      initiatorUserId: string
+      occurredAt: string
+      occurrenceVersion: number
+    }
+  ): Promise<{ actors: EncounterRunActorState[] }>
+  validateReadFence(
+    state: EncounterRunState,
+    characterIds: readonly string[],
+    revisions: LiveSessionRulesRevisions
+  ): Promise<void>
+}
 
 /**
  * Commits the helper's d20 for a pending basic action check (First Aid): the stabilize it earned,
  * the occurrence's completion and the receipts, atomically. The root command already spent the
  * Action, so a failed check changes only the occurrence.
  */
-export async function persistEncounterBasicActionResponse(
+export function persistEncounterBasicActionResponse(
   ctx: EncounterWriteTransaction,
   input: LiveSessionEncounterBasicActionResponseCommitInput,
   callbacks: {
-    validateReadFence(
-      state: EncounterRunState,
-      characterIds: readonly string[],
-      revisions: LiveSessionRulesRevisions
-    ): Promise<void>
+    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
     applyMechanics(
       batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
     ): Promise<EncounterMechanicsBatchResult>
   }
-): Promise<EncounterCommandResultDto> {
-  const admission = await readBasicActionCheckResponseAdmission(ctx, {
-    ...input,
-    response: input.command
+) {
+  return persistCheckResponse(ctx, input, {
+    admit: (transaction, scope) =>
+      readBasicActionCheckResponseAdmission(transaction, { ...scope, response: scope.command }),
+    selectedNatural: (execution) =>
+      execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK'
+        ? execution.applicationOutputs.d20.selectedNatural
+        : null,
+    settle: (transaction, settleInput) =>
+      settleEncounterBasicActionCheck(transaction, {
+        ...settleInput,
+        applyMechanics: callbacks.applyMechanics
+      }),
+    validateReadFence: callbacks.validateReadFence
   })
+}
+
+/**
+ * Commits the holder's d20 for a pending Escape check (D105): the release it earned, the
+ * occurrence's completion and the receipts, atomically. The root command already spent the
+ * activation, so a failed check changes only the occurrence.
+ */
+export function persistEncounterEscapeResponse(
+  ctx: EncounterWriteTransaction,
+  input: LiveSessionEncounterEscapeResponseCommitInput,
+  callbacks: {
+    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterEscapeResponseCommitInput>['validateReadFence']
+  }
+) {
+  return persistCheckResponse(ctx, input, {
+    admit: (transaction, scope) =>
+      readEscapeCheckResponseAdmission(transaction, { ...scope, response: scope.command }),
+    selectedNatural: (execution) =>
+      execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'ESCAPE_CHECK'
+        ? execution.applicationOutputs.d20.selectedNatural
+        : null,
+    settle: settleEncounterEscapeCheck,
+    validateReadFence: callbacks.validateReadFence
+  })
+}
+
+async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
+  ctx: EncounterWriteTransaction,
+  input: TInput,
+  spec: CheckPersistenceSpec<TInput>
+): Promise<EncounterCommandResultDto> {
+  const admission = await spec.admit(ctx, input)
   // A lost acknowledgement replays before checking inputs its commit consumed.
   if (admission.kind === 'REPLAY') return admission.result
   const { run, state, campaign, membership, occurrence, pending, fingerprint, response } = admission
   const { context, continuation } = pending
   const { settlement } = input
   const { execution } = settlement
-  const natural =
-    execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK'
-      ? execution.applicationOutputs.d20.selectedNatural
-      : null
+  const natural = spec.selectedNatural(execution)
   const actors = await readRunActors(ctx, state)
-  await callbacks.validateReadFence(
+  await spec.validateReadFence(
     state,
     actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
     input.revisions
@@ -80,9 +155,9 @@ export async function persistEncounterBasicActionResponse(
     (settlement.appRollId !== null) !== (admission.appRoll !== null) ||
     (admission.appRoll !== null && settlement.appRollId !== admission.appRoll.rollId)
   )
-    throw new Error('Live Session basic action check result does not match its pending evidence.')
+    throw new Error('Live Session check result does not match its pending evidence.')
   const occurrenceVersion = occurrence.version + 1
-  const settled = await settleEncounterBasicActionCheck(ctx, {
+  const settled = await spec.settle(ctx, {
     campaign,
     state,
     actors,
@@ -90,8 +165,7 @@ export async function persistEncounterBasicActionResponse(
     rootCommandId: context.commandId,
     initiatorUserId: admission.initiatorUserId,
     occurredAt: input.occurredAt,
-    occurrenceVersion,
-    applyMechanics: callbacks.applyMechanics
+    occurrenceVersion
   })
   const nextState = encounterRunStateSchema.parse({
     ...state,

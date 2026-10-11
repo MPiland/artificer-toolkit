@@ -26,8 +26,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomInputs } from './roomInputs.js'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
-import { readBasicActionAdmission } from '@artificer-toolkit/encounter-persistence/basicActionAdmission'
-import { readBasicActionCheckResponseAdmission } from '@artificer-toolkit/encounter-persistence/basicActionCheckAdmission'
+import { readBasicActionScopeAdmission } from '@artificer-toolkit/encounter-persistence/basicActionScopeAdmission'
 import { readLiveConcentrationResponseAdmission } from '@artificer-toolkit/encounter-persistence/liveConcentrationResponseAdmission'
 import { readEncounterAutoRollByActorId } from '@artificer-toolkit/encounter-persistence/actorController'
 import { readEncounterCleavingBindings } from '@artificer-toolkit/encounter-persistence/cleavingSceneInputs'
@@ -334,14 +333,10 @@ export async function readRoomEncounterTurnCapture(
       throw new Error('Room basic action capture scope mismatch.')
     if (input.turnCommand || input.concentrationResponse)
       throw new Error('Room action capture cannot use another command scope.')
-    const { command } = input.request
-    const admission =
-      command.type === 'RESOLVE_RULE_OCCURRENCE'
-        ? await readBasicActionCheckResponseAdmission(ctx, {
-            ...input,
-            response: command
-          })
-        : await readBasicActionAdmission(ctx, { ...input, command })
+    const admission = await readBasicActionScopeAdmission(ctx, {
+      ...input,
+      command: input.request.command
+    })
     const response = {
       kind: 'BASIC_ACTION' as const,
       ready:

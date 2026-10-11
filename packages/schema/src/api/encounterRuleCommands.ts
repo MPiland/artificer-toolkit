@@ -202,6 +202,22 @@ export const useEncounterBasicActionInputDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The current actor, held by an Encounter relationship effect, spends its escape activation to
+ * attempt the module's fixed-DC check (D105). `checkDefinitionId` names one of the check choices
+ * the module allows.
+ */
+export const escapeRelationshipInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('ESCAPE_RELATIONSHIP'),
+    actorId: uuidSchema,
+    activeEffectId: postgresUuidSchema,
+    checkDefinitionId: postgresUuidSchema,
+    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+  })
+)
+
 const requestIdSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256))
 )
@@ -334,6 +350,7 @@ export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
 )
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type UseEncounterBasicActionInputDto = z.infer<typeof useEncounterBasicActionInputDtoSchema>
+export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>

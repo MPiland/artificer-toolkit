@@ -5,12 +5,16 @@ import {
 } from '../shared/basicActions.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { encounterBasicActionCheckPendingContextDtoSchema } from '../shared/ruleExecutionDirectActionPendingContexts.js'
+import {
+  encounterBasicActionCheckPendingContextDtoSchema,
+  encounterEscapeCheckPendingContextDtoSchema
+} from '../shared/ruleExecutionDirectActionPendingContexts.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import {
+  escapeRelationshipInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   useEncounterBasicActionInputDtoSchema
 } from './encounterRuleCommands.js'
@@ -87,6 +91,56 @@ export const liveSessionEncounterBasicActionResponseCommitInputSchema = lazySche
   })
 )
 
+/** A settled Escape check: the frozen check, its stored result and the app roll it used. */
+const escapeCheckSettlementSchema = lazySchema(() =>
+  z.strictObject({
+    context: encounterEscapeCheckPendingContextDtoSchema,
+    execution: storedRuleExecutionResultDtoSchema,
+    appRollId: z.nullable(postgresUuidSchema)
+  })
+)
+
+/**
+ * A room-planned Escape (D105): the activation it spent and its d20 check, waiting on the holder's
+ * roll or settled by an auto-roll. Convex checks it against the current Run and records it; a
+ * settled escape also ends the relationship effect and the conditions it owned.
+ */
+export const liveSessionEncounterEscapeCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: escapeRelationshipInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+    /** Warnings the command acknowledged and the room overrode. */
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    check: z.discriminatedUnion('kind', [
+      z.strictObject({
+        kind: z.literal('PENDING'),
+        snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema
+      }),
+      z.strictObject({ kind: z.literal('SETTLED'), settlement: escapeCheckSettlementSchema })
+    ]),
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
+/** The holder's d20 for a pending Escape check; it settles the check. */
+export const liveSessionEncounterEscapeResponseCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: resolveRuleOccurrenceInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    settlement: escapeCheckSettlementSchema,
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
+export type LiveSessionEncounterEscapeCommitInput = z.infer<
+  typeof liveSessionEncounterEscapeCommitInputSchema
+>
+export type LiveSessionEncounterEscapeResponseCommitInput = z.infer<
+  typeof liveSessionEncounterEscapeResponseCommitInputSchema
+>
 export type LiveSessionEncounterBasicActionCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionCommitInputSchema
 >

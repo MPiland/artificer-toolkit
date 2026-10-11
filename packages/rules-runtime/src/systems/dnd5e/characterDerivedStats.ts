@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 
+import { abilityModifier } from './abilityModifier.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -23,10 +24,6 @@ const rankValues = { NONE: 0, HALF: 1, FULL: 2, DOUBLE: 3 } as const
 
 function proficiencyBonus(totalLevel: number): number {
   return Math.floor((Math.max(totalLevel, 1) - 1) / 4) + 2
-}
-
-function modifier(score: number): number {
-  return Math.floor((score - 10) / 2)
 }
 
 function requireModifierSource(
@@ -225,7 +222,7 @@ export function evaluateDnd5eCharacterDerivedStats(
             .filter((bonus) => bonus.state === 'APPLIED')
             .reduce((total, bonus) => total + bonus.value, 0)
         : record.scoreOverride.value
-    const effectiveModifier = modifier(effectiveScore)
+    const effectiveModifier = abilityModifier(effectiveScore)
     return {
       abilityId: record.abilityId,
       score: {

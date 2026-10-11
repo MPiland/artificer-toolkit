@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
+  EscapeRelationshipInputDto,
   ResolveEncounterActionInputDto,
   UseEncounterBasicActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
@@ -11,6 +12,7 @@ import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
   EncounterBasicActionChoiceDto,
+  EncounterEscapeChoiceDto,
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
@@ -177,6 +179,36 @@ async function sendBasicActionCommand(
   }
 }
 
+const escapeSent = fn()
+const escapes = [
+  {
+    activeEffectId: '00000000-0000-4000-8000-000000000e01',
+    label: 'Escape from Giant Toad',
+    dc: 13,
+    actionCost: 'ACTION',
+    checks: [
+      {
+        checkDefinitionId: '00000000-0000-4000-8000-000000000e11',
+        label: 'Dexterity (Acrobatics)'
+      },
+      { checkDefinitionId: '00000000-0000-4000-8000-000000000e12', label: 'Strength (Athletics)' }
+    ],
+    warnings: []
+  }
+] satisfies EncounterEscapeChoiceDto[]
+
+async function sendEscapeCommand(
+  command: EscapeRelationshipInputDto
+): Promise<EncounterCommandResultDto> {
+  escapeSent(command)
+  return {
+    projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
+    roll: null,
+    occurrence: null,
+    evidenceRoll: null
+  }
+}
+
 const meta = {
   component: CampaignTabletopActionDrawer,
   args: {
@@ -184,12 +216,14 @@ const meta = {
     opened: false,
     waitingOn: null,
     basicActions: [],
+    escapes: [],
     openAttackAction: null,
     areaOrigin: null,
     onAreaOriginChange: fn(),
     onAreaShapeChange: fn(),
     onPickAreaOrigin: fn(),
     onUseBasicAction: sendBasicActionCommand,
+    onEscape: sendEscapeCommand,
     onOpen: fn(),
     onClose: fn()
   },
@@ -610,6 +644,32 @@ export const UseBasicActions: Story = {
         actorId: sourceActor.id,
         definitionId: basicActions[0].definitionId,
         targetActorId: null
+      })
+    )
+  }
+}
+
+export const EscapeFromGrapple: Story = {
+  args: { ...ResolveTargetedAction.args, escapes },
+  play: async ({ canvasElement }) => {
+    escapeSent.mockClear()
+    const { page, drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Escape' }))
+
+    await userEvent.click(
+      section.getByRole('combobox', { name: 'Check for escape from giant toad' })
+    )
+    await userEvent.click(await page.findByRole('option', { name: 'Strength (Athletics)' }))
+    await userEvent.click(section.getByRole('button', { name: 'Escape from Giant Toad' }))
+
+    await waitFor(() => expect(escapeSent).toHaveBeenCalledTimes(1))
+    await expect(await section.findByText('Escape attempted.')).toBeVisible()
+    await expect(escapeSent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'ESCAPE_RELATIONSHIP',
+        actorId: sourceActor.id,
+        activeEffectId: escapes[0].activeEffectId,
+        checkDefinitionId: escapes[0].checks[1].checkDefinitionId
       })
     )
   }

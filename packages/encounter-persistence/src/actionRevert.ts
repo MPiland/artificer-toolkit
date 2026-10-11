@@ -14,6 +14,7 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
@@ -131,7 +132,7 @@ export async function revertLastEncounterAction(
   const rootIndex = recent.findIndex((entry) => entry.commandType !== 'RESOLVE_RULE_OCCURRENCE')
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
-  if (root?.commandType === 'USE_BASIC_ACTION') {
+  if (root?.commandType === 'USE_BASIC_ACTION' || root?.commandType === 'ESCAPE_RELATIONSHIP') {
     // A check the helper's roll settled is the one command after its action.
     const answer = recent[0]
     if (
@@ -141,7 +142,10 @@ export async function revertLastEncounterAction(
           answer.ruleOccurrenceId !== root.receipt.checkOccurrenceId))
     )
       throw new Error('Stored Encounter command scan is invalid.')
-    return revertBasicAction(ctx, { run, state, campaign, input, fingerprint, userId, root })
+    const scope = { run, state, campaign, input, fingerprint, userId }
+    return root.commandType === 'USE_BASIC_ACTION'
+      ? revertBasicAction(ctx, { ...scope, root })
+      : revertEscape(ctx, { ...scope, root })
   }
   if (!root || root.commandType !== 'RESOLVE_ACTION')
     unavailable(
@@ -523,7 +527,10 @@ type RevertScope = {
   input: RevertLastEncounterActionInputDto
   fingerprint: string
   userId: string
-  root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' | 'USE_BASIC_ACTION' }>
+  root: Extract<
+    StoredCommand,
+    { commandType: 'RESOLVE_ACTION' | 'USE_BASIC_ACTION' | 'ESCAPE_RELATIONSHIP' }
+  >
 }
 
 /** Writes the restored actors, the next Run version and the undo's own timeline entry. */
@@ -601,16 +608,10 @@ async function revertBasicAction(
   const kept = effects.slice(0, effects.length - receipt.effects.length)
   if (checksumCanonicalJson(effects.slice(kept.length)) !== checksumCanonicalJson(receipt.effects))
     unavailable(`${actor.label}'s basic-action effects changed; adjust manually.`)
-  let restored = withEncounterBasicActionEffects(actor, kept)
-  const economy = receipt.actionEconomy
-  if (economy) {
-    if (encounterRuleUsageUsed(restored, economy.definitionId) !== economy.afterUsed)
-      unavailable("The actor's action economy changed after this action; adjust manually.")
-    restored = encounterRunActorStateSchema.parse({
-      ...restored,
-      resources: withEncounterRuleUsageUsed(restored, economy.definitionId, economy.beforeUsed)
-    })
-  }
+  const restored = returnSpentActionEconomy(
+    withEncounterBasicActionEffects(actor, kept),
+    receipt.actionEconomy
+  )
   if (receipt.speedBonusTurn)
     await removeTurnSpeedBonus(ctx, {
       encounterId: state.id,
@@ -666,12 +667,56 @@ async function revertBasicAction(
   })
 }
 
-/** The stabilize a settled basic action check applied, if its roll reached the DC. */
-async function readBasicActionCheckStabilize(
+/** Gives a spent allowance back, refusing if the actor used it again since. */
+function returnSpentActionEconomy(
+  actor: EncounterRunActorState,
+  economy: EncounterActionEconomyConsumption | null
+): EncounterRunActorState {
+  if (!economy) return actor
+  if (encounterRuleUsageUsed(actor, economy.definitionId) !== economy.afterUsed)
+    unavailable("The actor's action economy changed after this action; adjust manually.")
+  return encounterRunActorStateSchema.parse({
+    ...actor,
+    resources: withEncounterRuleUsageUsed(actor, economy.definitionId, economy.beforeUsed)
+  })
+}
+
+/**
+ * Undoes an Escape attempt that failed: it returns the activation it spent. An escape that freed
+ * the holder removed an effect and conditions the receipts do not keep, so it is not undone.
+ */
+async function revertEscape(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'ESCAPE_RELATIONSHIP' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { receipt } = root
+  const outputs = await readCheckReceiptOutputs(ctx, {
+    state,
+    root,
+    occurrenceId: receipt.checkOccurrenceId
+  })
+  if (outputs.kind !== 'ESCAPE_CHECK') throw new Error('Stored escape check receipt is invalid.')
+  if (outputs.outcome === 'ESCAPED')
+    unavailable("Undo can't restore an escaped grapple; adjust manually.")
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find((entry) => entry.id === receipt.actorId)
+  if (!actor) unavailable('The actor left the Encounter; adjust manually.')
+  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/** The application outputs of a root command's settled check occurrence. */
+async function readCheckReceiptOutputs(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     state: EncounterRunState
-    root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }>
+    root: { version: number }
     occurrenceId: string
   }
 ) {
@@ -682,13 +727,27 @@ async function readBasicActionCheckStabilize(
     )
     .take(RECEIPT_SCAN_LIMIT)
   const receipt = receipts.find((entry) => entry.occurrenceId === input.occurrenceId)
-  if (!receipt) throw new Error('Stored basic action check receipt is missing.')
+  if (!receipt) throw new Error('Stored check receipt is missing.')
   const result = storedRuleExecutionResultDtoSchema.parse(JSON.parse(receipt.resultJson))
   if (checksumRuleDocument(result) !== receipt.resultChecksum)
     throw new Error('Stored Encounter rule receipt mismatch.')
-  if (result.status !== 'COMPLETE' || result.applicationOutputs.kind !== 'BASIC_ACTION_CHECK')
+  if (result.status !== 'COMPLETE') throw new Error('Stored check receipt is invalid.')
+  return result.applicationOutputs
+}
+
+/** The stabilize a settled basic action check applied, if its roll reached the DC. */
+async function readBasicActionCheckStabilize(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: EncounterRunState
+    root: Extract<StoredCommand, { commandType: 'USE_BASIC_ACTION' }>
+    occurrenceId: string
+  }
+) {
+  const outputs = await readCheckReceiptOutputs(ctx, input)
+  if (outputs.kind !== 'BASIC_ACTION_CHECK')
     throw new Error('Stored basic action check receipt is invalid.')
-  const { targetTransition, targetCharacterId } = result.applicationOutputs
+  const { targetTransition, targetCharacterId } = outputs
   return targetTransition ? { targetCharacterId, targetTransition } : null
 }
 async function restoreCharacter(

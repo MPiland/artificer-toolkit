@@ -2,7 +2,10 @@ import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounterData'
-import type { LiveSessionEncounterBasicActionCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type {
+  LiveSessionEncounterBasicActionCommitInput,
+  LiveSessionEncounterEscapeCommitInput
+} from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import {
   encounterRunStateSchema,
   type EncounterRunState,
@@ -14,6 +17,7 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
+import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -189,38 +193,18 @@ export async function persistEncounterBasicAction(
           }
         : null
   })
-  if (check?.kind === 'SETTLED') {
-    const { execution } = check.settlement
-    if (execution.status !== 'COMPLETE') throw new Error('The basic action check did not settle.')
-    await ctx.db.insert(
-      'encounterRuleReceipts',
-      encounterStoredRuleReceiptSchema.parse({
-        id: crypto.randomUUID(),
-        campaignId: campaign.id,
-        encounterId: run.id,
-        occurrenceId: execution.occurrenceId,
-        commandId: command.commandId,
-        commandType: 'USE_BASIC_ACTION',
-        commandFingerprint: fingerprint,
-        encounterVersion: nextState.version,
-        commandMetadataJson: JSON.stringify(
-          serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
-            schemaVersion: 1,
-            transition: 'START',
-            definitionId: execution.evidence.source.definitionId,
-            expectedAggregateVersion: state.version,
-            factsChecksum: checksumRuleDocument(execution.evidence.facts),
-            optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
-          })
-        ),
-        resultJson: JSON.stringify(execution),
-        resultChecksum: checksumRuleDocument(execution),
-        actorUserId: input.expectedUserId,
-        correlationId: null,
-        createdAt: input.occurredAt
-      })
-    )
-  }
+  if (check?.kind === 'SETTLED')
+    await insertSettledCheckReceipt(ctx, {
+      campaignId: campaign.id,
+      state,
+      nextVersion: nextState.version,
+      commandType: 'USE_BASIC_ACTION',
+      commandId: command.commandId,
+      commandFingerprint: fingerprint,
+      execution: check.settlement.execution,
+      actorUserId: input.expectedUserId,
+      occurredAt: input.occurredAt
+    })
   await ctx.db.patch(run._id, {
     version: nextState.version,
     stateJson: JSON.stringify(nextState),
@@ -262,15 +246,64 @@ export async function persistEncounterBasicAction(
   })
 }
 
-/** Stores the check's occurrence: waiting on the helper's d20, or already settled by an auto-roll. */
-async function insertCheckOccurrence(
+/** Stores the START receipt of a check an auto-roll settled in its root command's commit. */
+export async function insertSettledCheckReceipt(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    campaignId: string
+    state: Pick<EncounterRunState, 'id' | 'version' | 'optionalCombatSnapshotChecksum'>
+    nextVersion: number
+    commandType: 'USE_BASIC_ACTION' | 'ESCAPE_RELATIONSHIP'
+    commandId: string
+    commandFingerprint: string
+    execution: StoredRuleExecutionResultDto
+    actorUserId: string
+    occurredAt: string
+  }
+) {
+  const { execution, state } = input
+  if (execution.status !== 'COMPLETE') throw new Error('The check did not settle.')
+  await ctx.db.insert(
+    'encounterRuleReceipts',
+    encounterStoredRuleReceiptSchema.parse({
+      id: crypto.randomUUID(),
+      campaignId: input.campaignId,
+      encounterId: state.id,
+      occurrenceId: execution.occurrenceId,
+      commandId: input.commandId,
+      commandType: input.commandType,
+      commandFingerprint: input.commandFingerprint,
+      encounterVersion: input.nextVersion,
+      commandMetadataJson: JSON.stringify(
+        serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
+          schemaVersion: 1,
+          transition: 'START',
+          definitionId: execution.evidence.source.definitionId,
+          expectedAggregateVersion: state.version,
+          factsChecksum: checksumRuleDocument(execution.evidence.facts),
+          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+        })
+      ),
+      resultJson: JSON.stringify(execution),
+      resultChecksum: checksumRuleDocument(execution),
+      actorUserId: input.actorUserId,
+      correlationId: null,
+      createdAt: input.occurredAt
+    })
+  )
+}
+
+/** Stores the check's occurrence: waiting on the roller's d20, or already settled by an auto-roll. */
+export async function insertCheckOccurrence(
   ctx: EncounterCharacterWriteTransaction,
   input: {
     campaignId: string
     encounterId: string
     rootCommandId: string
     expectedEncounterVersion: number
-    check: NonNullable<LiveSessionEncounterBasicActionCommitInput['check']>
+    check:
+      | NonNullable<LiveSessionEncounterBasicActionCommitInput['check']>
+      | LiveSessionEncounterEscapeCommitInput['check']
     occurredAt: string
   }
 ) {
@@ -303,6 +336,6 @@ async function insertCheckOccurrence(
     })
   )
   const stored = await ctx.db.get(id)
-  if (!stored) throw new Error('The basic action check occurrence was not stored.')
+  if (!stored) throw new Error('The check occurrence was not stored.')
   return stored
 }

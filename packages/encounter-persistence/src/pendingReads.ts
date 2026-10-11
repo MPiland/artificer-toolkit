@@ -115,8 +115,10 @@ export async function readPendingRunDecision(
         )
       : null
   }
-  if (context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK')
-    return controlledActorIds.has(context.helperActorId)
+  if (context.kind === 'ENCOUNTER_BASIC_ACTION_CHECK' || context.kind === 'ENCOUNTER_ESCAPE_CHECK')
+    return controlledActorIds.has(
+      context.kind === 'ENCOUNTER_ESCAPE_CHECK' ? context.actorId : context.helperActorId
+    )
       ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
           projectNativeBasicActionCheckPending(occurrence, pendingSnapshot, reasons)
         )
