@@ -880,7 +880,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
           actorId: uuidSchema,
           loadoutEntryId: uuidSchema,
           equipmentId: uuidSchema,
-          fromState: z.literal('HELD'),
+          fromState: z.enum(['MAIN_HAND', 'OFF_HAND']),
           toState: z.literal('CARRIED'),
           beforeStateChecksum: checksumSchema,
           afterStateChecksum: checksumSchema

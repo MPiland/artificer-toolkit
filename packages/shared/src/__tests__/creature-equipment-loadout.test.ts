@@ -49,7 +49,7 @@ function creature(): CreatureAuthored {
         id: '00000000-0000-4000-8000-000000000001',
         equipmentId: '00000000-0000-4000-8000-000000000002',
         quantity: 1,
-        useState: 'HELD',
+        useState: 'MAIN_HAND',
         attuned: false,
         actionFeatureIds: ['00000000-0000-4000-8000-000000000003']
       }
@@ -79,6 +79,26 @@ describe('Creature equipment loadout compiler', () => {
     ]
 
     expect(compileCreature(optionOnly).equipmentLoadout).toEqual(optionOnly.equipmentLoadout)
+  })
+
+  it('rejects a second item in one hand and the retired HELD state', () => {
+    const crowded = creature()
+    crowded.equipmentLoadout = [
+      ...(crowded.equipmentLoadout ?? []),
+      {
+        id: '00000000-0000-4000-8000-000000000006',
+        equipmentId: '00000000-0000-4000-8000-000000000007',
+        quantity: 1,
+        useState: 'MAIN_HAND',
+        attuned: false,
+        actionFeatureIds: []
+      }
+    ]
+    expect(() => compileCreature(crowded)).toThrow('A hand can hold only one item.')
+
+    const retired = creature()
+    Object.assign(retired.equipmentLoadout![0]!, { useState: 'HELD' })
+    expect(() => compileCreature(retired)).toThrow('has invalid use state')
   })
 
   it('rejects an equipment binding to a missing Feature', () => {

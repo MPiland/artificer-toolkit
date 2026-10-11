@@ -8,6 +8,11 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 import { detailDtoSchema } from '../shared/detail.js'
+import {
+  EQUIPMENT_SLOT_CODES,
+  HAND_CONFLICT_MESSAGE,
+  resolveHandOccupancy
+} from '@artificer-toolkit/shared/core'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { ATTACK_TRIGGER_CODES } from '../effects/effect.js'
@@ -76,7 +81,7 @@ export const creatureEquipmentLoadoutEntryDtoSchema = lazySchema(() =>
       id: postgresUuidSchema,
       equipmentId: postgresUuidSchema,
       quantity: z.number().check(z.int()).check(z.positive()),
-      useState: z.enum(['CARRIED', 'HELD', 'WORN']),
+      useState: z.enum(EQUIPMENT_SLOT_CODES),
       attuned: z.boolean(),
       actionFeatureIds: authoredReferenceCollectionSchema(postgresUuidSchema)
     })
@@ -86,7 +91,7 @@ export const creatureEquipmentLoadoutEntryDtoSchema = lazySchema(() =>
           context.addIssue({
             code: 'custom',
             path: ['quantity'],
-            message: 'Held and worn equipment loadout entries must have quantity 1.'
+            message: 'Hand and worn equipment loadout entries must have quantity 1.'
           })
         }
       })
@@ -102,6 +107,17 @@ export const creatureEquipmentLoadoutDtoSchema = lazySchema(() =>
     z.superRefine((loadout, context) => {
       const occurrenceIds = new Set<string>()
       const actionFeatureIds = new Set<string>()
+
+      // Equipment is not resolved here, so two-handed blocking is enforced where it is.
+      for (const conflict of resolveHandOccupancy(
+        loadout.map((entry) => ({ id: entry.id, slot: entry.useState, twoHanded: false }))
+      ).conflicts) {
+        context.addIssue({
+          code: 'custom',
+          path: [loadout.findIndex((entry) => entry.id === conflict.itemId), 'useState'],
+          message: HAND_CONFLICT_MESSAGE[conflict.code]
+        })
+      }
 
       for (const [entryIndex, entry] of loadout.entries()) {
         if (occurrenceIds.has(entry.id)) {

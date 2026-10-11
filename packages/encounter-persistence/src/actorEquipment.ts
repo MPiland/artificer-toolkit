@@ -5,6 +5,7 @@ import {
 import { encounterCreatureEquipmentReplacementSchema } from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import {
+  assertCreatureLoadoutHands,
   pinCreatureEquipmentSources,
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -47,17 +48,17 @@ export async function replaceActorEquipment(
   })
   if (!source) throw new Error('Creature Equipment source is unavailable.')
   const snapshot = requireSnapshotIdentity(actor)
+  const equipmentLoadoutOverride = loadout.map((current) =>
+    current.id === entry.id ? { ...current, equipmentId: input.equipmentId } : current
+  )
+  const equipmentSources = currentSources.map(({ compiled: _compiled, ...current }) =>
+    current.loadoutEntryId === entry.id ? source : current
+  )
+  // The replacement may be two-handed, so the whole loadout's hands are checked again.
+  assertCreatureLoadoutHands(equipmentLoadoutOverride, equipmentSources)
   const next = encounterRunActorStateSchema.parse({
     ...actor,
-    snapshot: {
-      ...snapshot,
-      equipmentLoadoutOverride: loadout.map((current) =>
-        current.id === entry.id ? { ...current, equipmentId: input.equipmentId } : current
-      ),
-      equipmentSources: currentSources.map(({ compiled: _compiled, ...current }) =>
-        current.loadoutEntryId === entry.id ? source : current
-      )
-    },
+    snapshot: { ...snapshot, equipmentLoadoutOverride, equipmentSources },
     updatedAt
   })
   try {

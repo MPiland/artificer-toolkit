@@ -1,5 +1,6 @@
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { isHandSlot, type HandSlotCode } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
@@ -25,7 +26,8 @@ type EncounterActorOptionalContestContext = {
     readonly sourceChecksum: string
     readonly sourceRevision: number
     readonly sourceVersionId: string
-    readonly state: 'HELD'
+    /** The hand the item is held in; Disarm moves the item to CARRIED and undo restores this hand. */
+    readonly state: HandSlotCode
   }
   readonly ruleFacts: {
     readonly checkTotals: Readonly<Record<string, number>>
@@ -99,15 +101,14 @@ export function readEncounterActorOptionalContestContext(input: {
   } catch {
     return null
   }
-  const entry = loadout.find(
-    (candidate) => candidate.id === input.loadoutEntryId && candidate.useState === 'HELD'
-  )
+  const entry = loadout.find((candidate) => candidate.id === input.loadoutEntryId)
+  if (!entry || !isHandSlot(entry.useState)) return null
   const source = sources.find(
     (candidate) =>
       candidate.loadoutEntryId === input.loadoutEntryId &&
-      candidate.equipmentId === entry?.equipmentId
+      candidate.equipmentId === entry.equipmentId
   )
-  if (!entry || !source) return null
+  if (!source) return null
 
   const context = {
     ...actorFacts,
@@ -118,7 +119,7 @@ export function readEncounterActorOptionalContestContext(input: {
       sourceChecksum: source.sourceChecksum,
       sourceRevision: source.sourceRevision,
       sourceVersionId: source.sourceVersionId,
-      state: 'HELD'
+      state: entry.useState
     }
   } as const
   return { ...context, stateChecksum: checksumRuleDocument(context) }

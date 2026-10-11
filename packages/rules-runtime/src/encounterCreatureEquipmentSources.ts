@@ -5,6 +5,12 @@ import {
   compileEquipment,
   type CompiledEquipment
 } from '@artificer-toolkit/shared/subjects/compilers'
+import {
+  EQUIPMENT_PROPERTY_CODE,
+  HAND_CONFLICT_MESSAGE,
+  resolveHandOccupancy,
+  type EquipmentSlotCode
+} from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { z } from 'zod'
@@ -138,12 +144,36 @@ export function snapshotCreatureEquipmentSources(
   })
 }
 
+/**
+ * Refuses a loadout whose hands conflict once its pinned Equipment is known: a two-handed item
+ * belongs in the main hand, where it blocks the off hand (D107).
+ */
+export function assertCreatureLoadoutHands(
+  loadout: readonly { id: string; useState: EquipmentSlotCode }[],
+  sources: readonly SerializedEncounterCreatureEquipmentSource[]
+): void {
+  const twoHandedEntryIds = new Set(
+    sources
+      .filter((source) => source.payload.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
+      .map((source) => source.loadoutEntryId)
+  )
+  const [conflict] = resolveHandOccupancy(
+    loadout.map((entry) => ({
+      id: entry.id,
+      slot: entry.useState,
+      twoHanded: twoHandedEntryIds.has(entry.id)
+    }))
+  ).conflicts
+  if (conflict) throw new Error(HAND_CONFLICT_MESSAGE[conflict.code])
+}
+
 /** Builds the persisted source arm while the active sources are authorized. */
 export function pinCreatureEquipmentSources(input: {
   creature: {
     equipmentLoadout?: readonly {
       id: string
       equipmentId: string
+      useState: EquipmentSlotCode
       actionFeatureIds: readonly string[]
     }[]
     systemId: string
@@ -188,5 +218,6 @@ export function pinCreatureEquipmentSources(input: {
       })
     )
   }
+  assertCreatureLoadoutHands(loadout, sources)
   return sources
 }

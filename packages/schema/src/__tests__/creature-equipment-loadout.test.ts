@@ -45,7 +45,7 @@ describe('Creature equipment loadout contract', () => {
             id: 'not-a-uuid',
             equipmentId: ids.equipment,
             quantity: 2,
-            useState: 'HELD',
+            useState: 'MAIN_HAND',
             attuned: false,
             actionFeatureIds: []
           },
@@ -78,13 +78,55 @@ describe('Creature equipment loadout contract', () => {
             id: '00000000-0000-4000-8000-000000000008',
             equipmentId: '00000000-0000-4000-8000-000000000009',
             quantity: 1,
-            useState: 'HELD',
+            useState: 'MAIN_HAND',
             attuned: false,
             actionFeatureIds: [ids.feature]
           }
         ])
       ).success
     ).toBe(false)
+  })
+
+  it('accepts one item per hand beside carried and worn items', () => {
+    const entry = (n: number, useState: string) => ({
+      id: `00000000-0000-4000-8000-0000000001${n}0`,
+      equipmentId: `00000000-0000-4000-8000-0000000002${n}0`,
+      quantity: 1,
+      useState,
+      attuned: false,
+      actionFeatureIds: []
+    })
+    const parsed = creatureAuthoredDtoSchema.safeParse(
+      creature([
+        entry(1, 'MAIN_HAND'),
+        entry(2, 'OFF_HAND'),
+        { ...entry(3, 'CARRIED'), quantity: 20 },
+        entry(4, 'WORN')
+      ])
+    )
+    expect(parsed.error?.issues).toBeUndefined()
+    expect(parsed.success).toBe(true)
+  })
+
+  it('refuses a second item in the same hand and the retired HELD state', () => {
+    const entry = (n: number, useState: string) => ({
+      id: `00000000-0000-4000-8000-0000000001${n}0`,
+      equipmentId: `00000000-0000-4000-8000-0000000002${n}0`,
+      quantity: 1,
+      useState,
+      attuned: false,
+      actionFeatureIds: []
+    })
+    for (const hand of ['MAIN_HAND', 'OFF_HAND']) {
+      const parsed = creatureAuthoredDtoSchema.safeParse(
+        creature([entry(1, hand), entry(2, 'CARRIED'), entry(3, hand)])
+      )
+      expect(parsed.success).toBe(false)
+      expect(parsed.error?.issues).toEqual([
+        expect.objectContaining({ path: ['equipmentLoadout', 2, 'useState'] })
+      ])
+    }
+    expect(creatureAuthoredDtoSchema.safeParse(creature([entry(1, 'HELD')])).success).toBe(false)
   })
 
   it('rejects bindings to Features without an ACTION invocation', () => {
@@ -96,7 +138,7 @@ describe('Creature equipment loadout contract', () => {
               id: ids.loadout,
               equipmentId: ids.equipment,
               quantity: 1,
-              useState: 'HELD',
+              useState: 'MAIN_HAND',
               attuned: false,
               actionFeatureIds: [ids.feature]
             }

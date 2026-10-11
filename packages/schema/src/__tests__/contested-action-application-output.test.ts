@@ -89,7 +89,7 @@ describe('contested-action application output', () => {
           actorId: ids.targetActor,
           loadoutEntryId: ids.loadout,
           equipmentId: ids.item,
-          fromState: 'HELD',
+          fromState: 'OFF_HAND',
           toState: 'CARRIED',
           beforeStateChecksum: checksum('e'),
           afterStateChecksum: checksum('f')

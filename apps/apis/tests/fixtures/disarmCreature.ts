@@ -52,7 +52,7 @@ export function createDisarmCreature(weapon: typeof club, id = wolf.id) {
         id: disarmHeldEntryId,
         equipmentId: weapon.id,
         quantity: 1,
-        useState: 'HELD' as const,
+        useState: 'MAIN_HAND' as const,
         attuned: false,
         actionFeatureIds: [bite.id]
       },

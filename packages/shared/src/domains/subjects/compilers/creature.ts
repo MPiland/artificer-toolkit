@@ -5,7 +5,13 @@ import type {
   CreatureMountProfile,
   CreatureNpcProfile
 } from '#authored'
-import type { AbilityCode, SizeCode } from '#core'
+import {
+  EQUIPMENT_SLOT_CODES,
+  HAND_CONFLICT_MESSAGE,
+  resolveHandOccupancy,
+  type AbilityCode,
+  type SizeCode
+} from '#core'
 import {
   compileFeature,
   compileProficiencyGrant,
@@ -132,7 +138,7 @@ function compileEquipmentLoadout(
   const occurrenceIds = new Set<string>()
   const actionFeatureIds = new Set<string>()
 
-  return authored.equipmentLoadout.map((entry) => {
+  const loadout = authored.equipmentLoadout.map((entry) => {
     const entryId = requirePostgresUuid(authored.id, 'equipment loadout entry ID', entry.id)
     const equipmentId = requirePostgresUuid(
       authored.id,
@@ -144,7 +150,7 @@ function compileEquipmentLoadout(
         `Creature "${authored.id}" equipment loadout entry "${entryId}" must have a positive integer quantity.`
       )
     }
-    if (entry.useState !== 'CARRIED' && entry.useState !== 'HELD' && entry.useState !== 'WORN') {
+    if (!EQUIPMENT_SLOT_CODES.includes(entry.useState)) {
       throw new Error(
         `Creature "${authored.id}" equipment loadout entry "${entryId}" has invalid use state.`
       )
@@ -204,6 +210,17 @@ function compileEquipmentLoadout(
       actionFeatureIds: [...entry.actionFeatureIds]
     }
   })
+
+  // Equipment is not resolved here, so only the hands themselves are checked.
+  const [conflict] = resolveHandOccupancy(
+    loadout.map((entry) => ({ id: entry.id, slot: entry.useState, twoHanded: false }))
+  ).conflicts
+  if (conflict) {
+    throw new Error(
+      `Creature "${authored.id}" equipment loadout entry "${conflict.itemId}": ${HAND_CONFLICT_MESSAGE[conflict.code]}`
+    )
+  }
+  return loadout
 }
 
 function compileBase(authored: CreatureAuthored): CompiledCreatureBase {

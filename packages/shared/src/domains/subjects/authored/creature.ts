@@ -4,6 +4,7 @@ import type {
   CreatureCategoryCode,
   DamageDefenseBypassCode,
   DiceExpression,
+  EquipmentSlotCode,
   SizeCode
 } from '#core'
 import type {
@@ -49,7 +50,7 @@ export interface CreatureEquipmentLoadoutEntry {
   id: string
   equipmentId: string
   quantity: number
-  useState: 'CARRIED' | 'HELD' | 'WORN'
+  useState: EquipmentSlotCode
   attuned: boolean
   actionFeatureIds: string[]
 }

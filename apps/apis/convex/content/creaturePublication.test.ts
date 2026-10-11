@@ -2,6 +2,8 @@ import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import { srdCreatures } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
+import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
+import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -91,7 +93,7 @@ const fixtureSubjects = [
   ...referencedSpells.map((spell) =>
     importedSubject({ subjectKind: 'SPELL', ...spell, document: spell })
   ),
-  ...referencedEquipment.map((equipment) =>
+  ...[...referencedEquipment, greatclub].map((equipment) =>
     importedSubject({
       subjectKind: 'EQUIPMENT',
       ...equipment,
@@ -634,6 +636,76 @@ describe('native Creature publication', () => {
       checksum: result.checksum
     })
     expect(await t.run((ctx) => ctx.db.get(activeRootBefore.currentVersionId))).toBeNull()
+  })
+
+  it('publishes a hand loadout and refuses a two-handed weapon that crowds the other hand', async () => {
+    const { t, first } = await fixture()
+    const draft = await copyDraft(first.caller, archmage.id)
+    const copied = creatureAuthoredDtoSchema.parse(draft.payload)
+    const entry = (
+      equipmentId: string,
+      useState: 'MAIN_HAND' | 'OFF_HAND' | 'CARRIED' | 'WORN'
+    ) => ({
+      id: crypto.randomUUID(),
+      equipmentId,
+      quantity: 1,
+      useState,
+      attuned: false,
+      actionFeatureIds: []
+    })
+    const saveLoadout = (equipmentLoadout: ReturnType<typeof entry>[]) =>
+      first.caller.mutation(api.content.drafts.save, {
+        subjectKind: 'CREATURE',
+        subjectId: draft.subjectId,
+        systemId: draft.systemId,
+        label: 'Hand Archmage',
+        payload: { ...copied, equipmentLoadout }
+      })
+    const versionsBefore = async () =>
+      t.run((ctx) =>
+        ctx.db
+          .query('authoredVersions')
+          .withIndex('by_id_version', (q) => q.eq('id', draft.subjectId))
+          .take(3)
+      )
+    const refused = [
+      {
+        loadout: [entry(dagger.id, 'MAIN_HAND'), entry(greatclub.id, 'OFF_HAND')],
+        message: 'A two-handed item cannot be held in the off hand.'
+      },
+      {
+        loadout: [entry(greatclub.id, 'MAIN_HAND'), entry(dagger.id, 'OFF_HAND')],
+        message: 'A two-handed main-hand item blocks the off hand.'
+      }
+    ]
+    for (const { loadout, message } of refused) {
+      const invalid = await saveLoadout(loadout)
+      await expect(first.caller.mutation(publish, publicationInput(invalid))).rejects.toThrow(
+        message
+      )
+      expect(await versionsBefore()).toEqual([])
+    }
+
+    const valid = await saveLoadout([
+      entry(dagger.id, 'MAIN_HAND'),
+      entry(dagger.id, 'OFF_HAND'),
+      entry(greatclub.id, 'CARRIED'),
+      entry(dagger.id, 'WORN')
+    ])
+    await first.caller.mutation(publish, publicationInput(valid))
+    const [published] = await versionsBefore()
+    if (!published) throw new Error('Missing published hand loadout version.')
+    const stored = await t.run((ctx) => readStoredAuthoredVersionDocument(ctx, published))
+    expect(
+      creatureAuthoredDtoSchema.parse(stored).equipmentLoadout?.map((current) => current.useState)
+    ).toEqual(['MAIN_HAND', 'OFF_HAND', 'CARRIED', 'WORN'])
+
+    const twoHandedMain = await saveLoadout([
+      entry(greatclub.id, 'MAIN_HAND'),
+      entry(dagger.id, 'CARRIED')
+    ])
+    await first.caller.mutation(publish, publicationInput(twoHandedMain))
+    expect(await versionsBefore()).toHaveLength(1)
   })
 
   it('denies unauthorized or conflicting Creature publication and preserves the conflicting draft', async () => {

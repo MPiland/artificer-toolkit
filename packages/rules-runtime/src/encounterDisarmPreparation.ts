@@ -12,6 +12,7 @@ import {
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type { ServerOptionalCombatContestPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { isHandSlot } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
@@ -199,7 +200,7 @@ export function readEncounterDisarmSelection(input: {
     const binding = source.capability.equipmentBinding
     const loadout = binding
       ? snapshotCreatureEquipmentLoadout(actor).find(
-          (entry) => entry.id === binding.loadoutEntryId && entry.useState === 'HELD'
+          (entry) => entry.id === binding.loadoutEntryId && isHandSlot(entry.useState)
         )
       : null
     const equipment = binding
@@ -269,7 +270,7 @@ export function readEncounterDisarmSelection(input: {
     return {
       ownerState: 'ENCOUNTER_ACTOR' as const,
       heldItemIds: snapshotCreatureEquipmentLoadout(target)
-        .filter((entry) => entry.useState === 'HELD')
+        .filter((entry) => isHandSlot(entry.useState))
         .map((entry) => entry.id),
       checkTotals: facts?.ruleFacts.checkTotals ?? {},
       equipment: [],
@@ -564,7 +565,7 @@ export function planEncounterDisarmSuccess(input: {
       actorId: target.id,
       loadoutEntryId: context.equipment.loadoutEntryId,
       equipmentId: context.equipment.equipmentId,
-      fromState: 'HELD',
+      fromState: context.equipment.state,
       toState: 'CARRIED',
       beforeStateChecksum: applied.beforeStateChecksum,
       afterStateChecksum: applied.afterStateChecksum

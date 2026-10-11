@@ -1,5 +1,11 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { equipId } from '../equipment/shared.js'
+import type {
+  CreatureAuthored,
+  EquipmentAuthored,
+  EquipmentPropertyCode,
+  EquipmentSlotCode
+} from '@artificer-toolkit/shared'
+import { srdEquipment } from '../equipment/index.js'
+import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE, equipId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 type LoadoutBinding = readonly [
@@ -110,18 +116,51 @@ const LOADOUT_BINDINGS: readonly LoadoutBinding[] = [
   [175, 8, 383, 1]
 ]
 
+const EQUIPMENT_BY_ID = new Map(srdEquipment.map((equipment) => [equipment.id, equipment]))
+
+function boundEquipment(equipmentIndex: number) {
+  const equipment = EQUIPMENT_BY_ID.get(equipId(equipmentIndex))
+  if (!equipment) throw new Error(`Creature loadout binds missing Equipment ${equipmentIndex}.`)
+  return equipment
+}
+
+/**
+ * Deterministic hand assignment for one Creature's bound items: weapons are ordered melee first
+ * (binding order within each group); the first takes the main hand, the next one-handed weapon
+ * takes the off hand unless the main hand is two-handed, and everything else is carried.
+ */
+function assignSlots(items: readonly EquipmentAuthored[]): EquipmentSlotCode[] {
+  const has = (item: EquipmentAuthored, property: EquipmentPropertyCode) =>
+    item.properties?.includes(property) === true
+  const weapons = items.flatMap((item, index) =>
+    item.category === EQUIPMENT_CATEGORY_CODE.WEAPON ? [{ item, index }] : []
+  )
+  const [main, ...rest] = [
+    ...weapons.filter(({ item }) => !has(item, EQUIPMENT_PROPERTY_CODE.RANGED)),
+    ...weapons.filter(({ item }) => has(item, EQUIPMENT_PROPERTY_CODE.RANGED))
+  ]
+  const slots = items.map((): EquipmentSlotCode => 'CARRIED')
+  if (!main) return slots
+  slots[main.index] = 'MAIN_HAND'
+  if (has(main.item, EQUIPMENT_PROPERTY_CODE.TWO_HANDED)) return slots
+  const off = rest.find(({ item }) => !has(item, EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
+  if (off) slots[off.index] = 'OFF_HAND'
+  return slots
+}
+
 export function applyCreatureEquipmentLoadouts(creature: CreatureAuthored): CreatureAuthored {
   const creatureIndex = Number.parseInt(creature.id.slice(24, 28), 16)
   const bindings = LOADOUT_BINDINGS.filter(([index]) => index === creatureIndex)
   if (bindings.length === 0) return creature
 
+  const slots = assignSlots(bindings.map(([, , equipmentIndex]) => boundEquipment(equipmentIndex)))
   return {
     ...creature,
-    equipmentLoadout: bindings.map(([, featureIndex, equipmentIndex, localIndex]) => ({
+    equipmentLoadout: bindings.map(([, featureIndex, equipmentIndex, localIndex], index) => ({
       id: S.equipmentLoadoutId(creatureIndex, localIndex),
       equipmentId: equipId(equipmentIndex),
       quantity: 1,
-      useState: 'HELD',
+      useState: slots[index]!,
       attuned: false,
       actionFeatureIds: [S.featureId(creatureIndex, featureIndex)]
     }))

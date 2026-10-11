@@ -494,6 +494,16 @@ calculation (best of worn armor, unarmored, or an authored formula; a shield and
 Creature `qualifiedDamageDefenses` apply only to attacks lacking every bypassing trait. Modifier kinds
 without a consumer are rejected at grant validation (see [authoring schema](authoring-schema.md)).
 
+**Creature equipment hands (D107).** A Creature's authored `equipmentLoadout` places each item in
+`MAIN_HAND`, `OFF_HAND`, `CARRIED` or `WORN` (`EQUIPMENT_SLOT_CODES`, `packages/shared` core). One
+function, `resolveHandOccupancy`, decides hand legality for the schema (two items in one hand), the
+shared compiler, Creature publication (`apps/apis/convex/content/creatureLoadoutHands.ts`), Encounter
+admission (`pinCreatureEquipmentSources`) and the GM's per-instance `replaceActorEquipment`, which
+also read the Equipment's `TWO_HANDED` property because a two-handed main-hand item blocks the off
+hand and a two-handed item cannot sit in the off hand. Disarm moves an item from either hand to
+`CARRIED` and records the hand in the transition's `fromState`. SHEET-8, ATTACK-18 and ATTACK-19
+reuse the function for Characters.
+
 **Drawn weapons (user ruling, 2026-09-24).** A used Character action on a carried weapon treats it as
 drawn unless its equipment facts say `requiresEquipped`; the grant fold applies the same rule to
 Source-scoped `ATTACK_ROLL` and `DAMAGE` grants. Armor and shield still use real equipped state.

@@ -20,6 +20,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
+import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -83,7 +84,7 @@ const creature = {
       id: loadoutEntryId,
       equipmentId: club.id,
       quantity: 1,
-      useState: 'HELD' as const,
+      useState: 'MAIN_HAND' as const,
       attuned: false,
       actionFeatureIds: [bite.id]
     },
@@ -91,7 +92,7 @@ const creature = {
       id: unchangedLoadoutEntryId,
       equipmentId: dagger.id,
       quantity: 1,
-      useState: 'CARRIED' as const,
+      useState: 'OFF_HAND' as const,
       attuned: false,
       actionFeatureIds: []
     }
@@ -131,7 +132,8 @@ async function setup() {
         subjectKind: 'EQUIPMENT',
         document: compatibleClub
       }),
-      importedSubject({ ...dagger, subjectKind: 'EQUIPMENT', document: dagger })
+      importedSubject({ ...dagger, subjectKind: 'EQUIPMENT', document: dagger }),
+      importedSubject({ ...greatclub, subjectKind: 'EQUIPMENT', document: greatclub })
     ]
   })
   const campaign = await base.owner.caller.mutation(createCampaign, {
@@ -248,8 +250,8 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
       snapshot: {
         payload: beforeState.snapshot.payload,
         equipmentLoadoutOverride: [
-          { id: loadoutEntryId, equipmentId: compatibleClub.id },
-          { id: unchangedLoadoutEntryId, equipmentId: dagger.id }
+          { id: loadoutEntryId, equipmentId: compatibleClub.id, useState: 'MAIN_HAND' },
+          { id: unchangedLoadoutEntryId, equipmentId: dagger.id, useState: 'OFF_HAND' }
         ],
         equipmentSources: expect.arrayContaining([
           expect.objectContaining({
@@ -388,6 +390,53 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     for (const [input, message] of rejected)
       await expect(executeInRoom(owner.caller, input)).rejects.toThrow(message)
     expect(await stored(t, campaign.id, run.id)).toEqual(before)
+  }, 30000)
+
+  it('copies the authored hands to the instance and refuses a replacement that breaks them', async () => {
+    const { t, campaign, owner, run, creatureActor } = await setup()
+    const before = await stored(t, campaign.id, run.id)
+    const beforeState = before.actorStates.find((state) => state.id === creatureActor.id)
+    if (!beforeState || beforeState.kind === 'CHARACTER') throw new Error('Expected a Creature.')
+    expect(beforeState.snapshot).toMatchObject({
+      payload: {
+        equipmentLoadout: [
+          { id: loadoutEntryId, useState: 'MAIN_HAND' },
+          { id: unchangedLoadoutEntryId, useState: 'OFF_HAND' }
+        ]
+      }
+    })
+    // A two-handed weapon cannot replace the off-hand item.
+    await expect(
+      executeInRoom(
+        owner.caller,
+        replace({
+          encounterId: run.id,
+          actorId: creatureActor.id,
+          equipmentId: greatclub.id,
+          loadoutId: unchangedLoadoutEntryId
+        })
+      )
+    ).rejects.toThrow(RoomCommandRefusal)
+    expect(await stored(t, campaign.id, run.id)).toEqual(before)
+    // A one-handed replacement keeps the instance's hand.
+    await executeInRoom(
+      owner.caller,
+      replace({
+        encounterId: run.id,
+        actorId: creatureActor.id,
+        equipmentId: club.id,
+        loadoutId: unchangedLoadoutEntryId
+      })
+    )
+    const after = await stored(t, campaign.id, run.id)
+    const afterState = after.actorStates.find((state) => state.id === creatureActor.id)
+    if (!afterState || afterState.kind === 'CHARACTER') throw new Error('Expected a Creature.')
+    expect(afterState.snapshot).toMatchObject({
+      equipmentLoadoutOverride: [
+        { id: loadoutEntryId, equipmentId: club.id, useState: 'MAIN_HAND' },
+        { id: unchangedLoadoutEntryId, equipmentId: club.id, useState: 'OFF_HAND' }
+      ]
+    })
   }, 30000)
 
   it('rejects unauthorised and unavailable Equipment replacements without writes', async () => {

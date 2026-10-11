@@ -23,7 +23,7 @@ const creature = {
       id: '10000000-0000-4000-8000-000000000002',
       equipmentId: club.id,
       quantity: 1,
-      useState: 'HELD',
+      useState: 'MAIN_HAND',
       attuned: false,
       actionFeatureIds: []
     }

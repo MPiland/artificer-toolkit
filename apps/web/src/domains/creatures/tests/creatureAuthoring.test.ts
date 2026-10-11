@@ -113,7 +113,7 @@ describe('creature authoring helpers', () => {
           id: '00000000-0000-4000-8000-000000000003',
           equipmentId: '00000000-0000-4000-8000-000000000004',
           quantity: 1,
-          useState: 'HELD',
+          useState: 'MAIN_HAND',
           attuned: false,
           actionFeatureIds: ['00000000-0000-4000-8000-000000000002']
         }

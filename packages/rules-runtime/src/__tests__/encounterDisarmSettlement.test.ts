@@ -46,7 +46,7 @@ function equipmentSource(loadoutEntryId: string, payload: typeof heldWeapon) {
 }
 
 /** A Medium SRD Creature holding a dagger and carrying a club, as its Blueprint snapshot pins them. */
-function creatureTarget(heldState: 'HELD' | 'CARRIED' = 'HELD') {
+function creatureTarget(heldState: 'MAIN_HAND' | 'OFF_HAND' | 'CARRIED' = 'MAIN_HAND') {
   return creatureActor({
     id: TARGET_ACTOR_ID,
     snapshot: {
@@ -184,9 +184,9 @@ function disarmContest(input: {
   })
 }
 
-function creatureContest() {
+function creatureContest(heldState: 'MAIN_HAND' | 'OFF_HAND' = 'MAIN_HAND') {
   const context = readEncounterActorOptionalContestContext({
-    actor: creatureTarget(),
+    actor: creatureTarget(heldState),
     loadoutEntryId: HELD_ENTRY_ID
   })
   if (!context) throw new Error('The fixture Creature must hold its dagger.')
@@ -319,7 +319,7 @@ describe('Disarm settlement plan', () => {
         actorId: TARGET_ACTOR_ID,
         loadoutEntryId: HELD_ENTRY_ID,
         equipmentId: heldWeapon.id,
-        fromState: 'HELD',
+        fromState: 'MAIN_HAND',
         toState: 'CARRIED',
         beforeStateChecksum: before.stateChecksum,
         afterStateChecksum: checksumRuleDocument({
@@ -335,6 +335,28 @@ describe('Disarm settlement plan', () => {
     expect(() =>
       planEncounterDisarmSuccess({ target: planned.actor, contest, character: null })
     ).toThrow('Disarm Creature item changed before settlement.')
+  })
+
+  it('records the off hand a Creature held the item in, so undo restores the exact slot', () => {
+    const target = creatureTarget('OFF_HAND')
+    const planned = planEncounterDisarmSuccess({
+      target,
+      contest: creatureContest('OFF_HAND'),
+      character: null
+    })
+    if (planned.kind !== 'CREATURE') throw new Error('Expected a Creature settlement.')
+    expect(planned.stateTransition).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
+      loadoutEntryId: HELD_ENTRY_ID,
+      fromState: 'OFF_HAND',
+      toState: 'CARRIED'
+    })
+    expect(
+      readEncounterActorOptionalContestContext({
+        actor: planned.actor,
+        loadoutEntryId: HELD_ENTRY_ID
+      })
+    ).toBeNull()
   })
 
   it('refuses a Creature whose held item changed after the contest was sealed', () => {

@@ -46,7 +46,7 @@ async function disarmRoom(options: {
       : {
           ...ogre,
           equipmentLoadout: ogre.equipmentLoadout?.map((entry) =>
-            entry.useState === 'HELD' ? { ...entry, equipmentId: club.id } : entry
+            entry.useState === 'MAIN_HAND' ? { ...entry, equipmentId: club.id } : entry
           )
         }
   const [source, target] = [
@@ -60,7 +60,7 @@ async function disarmRoom(options: {
     optionalCombatKinds: ['DISARM']
   })
   const heldEntryId = snapshotCreatureEquipmentLoadout(target!).find(
-    (entry) => entry.useState === 'HELD'
+    (entry) => entry.useState === 'MAIN_HAND'
   )?.id
   if (!heldEntryId) throw new Error('The target Ogre holds no item.')
   return { room, heldEntryId }
@@ -172,7 +172,7 @@ describe('room Disarm contests', () => {
               kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
               actorId: TARGET_ID,
               loadoutEntryId: disarming.heldEntryId,
-              fromState: 'HELD',
+              fromState: 'MAIN_HAND',
               toState: 'CARRIED'
             }
           : { kind: 'NONE' }

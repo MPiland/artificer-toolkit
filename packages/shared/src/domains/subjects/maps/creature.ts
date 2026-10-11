@@ -212,9 +212,10 @@ export const CREATURE_EQUIPMENT_LOADOUT_NODE_MAP = creatureEquipmentLoadoutNode.
         nodes.selectSingle(['useState'], 'Use State', {
           kind: 'INLINE_OPTIONS',
           options: [
-            { code: 'HELD', label: 'Held' },
-            { code: 'WORN', label: 'Worn' },
-            { code: 'CARRIED', label: 'Carried' }
+            { code: 'MAIN_HAND', label: 'Main hand' },
+            { code: 'OFF_HAND', label: 'Off hand' },
+            { code: 'CARRIED', label: 'Carried' },
+            { code: 'WORN', label: 'Worn' }
           ]
         })
       )

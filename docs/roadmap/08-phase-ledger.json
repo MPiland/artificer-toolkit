@@ -1635,7 +1635,7 @@
         {
           "id": "AUTHORING-17",
           "title": "Creature AC is computed from what it wears and holds",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -1643,10 +1643,17 @@
           "acs": [
             {
               "text": "A Creature's authored loadout places each item in the main hand, off hand, carried or worn, with at most one item per hand and a two-handed weapon blocking the off hand; an Encounter instance copies the loadout, and the GM can change it for that instance.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "packages/shared/src/__tests__/equipment-hands.test.ts",
+                "packages/schema/src/__tests__/creature-equipment-loadout.test.ts",
+                "packages/source-data/src/srd/creatureEquipmentHands.test.ts",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "apps/apis/convex/encounters/equipmentCommands.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterDisarmSettlement.test.ts"
+              ],
               "origin": [],
-              "note": "Per-instance override already exists (equipmentLoadoutOverride); this changes useState from CARRIED | HELD | WORN.",
+              "note": "Slice A (T1) done 2026-10-11: useState is MAIN_HAND | OFF_HAND | CARRIED | WORN; publication and the instance replacement refuse a two-handed item in or blocking the off hand (red-first proof with both checks neutralized); SRD Creatures get deterministic hands; Disarm moves an item from either hand. The editor and its journey are T4.",
               "id": "AUTHORING-17.1"
             },
             {
@@ -1668,7 +1675,7 @@
             {
               "id": "AUTHORING-17.T1",
               "text": "Loadout useState becomes MAIN_HAND | OFF_HAND | CARRIED | WORN in schema, shared and source-data; add the shared hand-occupancy function (free hand, held items, blocked off hand); migrate development data in the same change.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["AUTHORING-17.1"]
             },
             {

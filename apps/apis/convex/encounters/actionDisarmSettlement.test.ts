@@ -145,7 +145,7 @@ describe('native Disarm preparation and settlement transactions', () => {
               kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
               actorId: base.target.id,
               loadoutEntryId: base.heldItemId,
-              fromState: 'HELD',
+              fromState: 'MAIN_HAND',
               toState: 'CARRIED'
             }
       )

@@ -174,7 +174,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         id: crypto.randomUUID(),
         equipmentId: '',
         quantity: 1,
-        useState: 'HELD',
+        useState: 'CARRIED',
         attuned: false,
         actionFeatureIds: []
       }
