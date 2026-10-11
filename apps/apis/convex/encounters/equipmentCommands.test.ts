@@ -39,6 +39,7 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   RoomCommandRefusal,
+  roomErrorLogs,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 
@@ -548,6 +549,7 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
         })
       )
     ).rejects.toThrow(RoomCommandRefusal)
+    expect(roomErrorLogs().join('\n')).toContain(unevaluableReason)
     expect(await stored(t, campaign.id, run.id)).toEqual(before)
   }, 30000)
 

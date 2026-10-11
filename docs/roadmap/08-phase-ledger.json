@@ -1635,16 +1635,18 @@
         {
           "id": "AUTHORING-17",
           "title": "Creature AC is computed from what it wears and holds",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/encounters/creatureEditArmorClass.test.ts"],
+          "journeyStatus": "verified",
           "origin": [],
           "note": "Registered 2026-10-10 by the product owner (D107). Introduces the hand slots (MAIN_HAND, OFF_HAND, CARRIED, WORN) and the shared hand-occupancy function that SHEET-8, ATTACK-18 and ATTACK-19 reuse. D&D Beyond keeps a fixed AC with a note; computed AC is deliberate.",
           "acs": [
             {
               "text": "A Creature's authored loadout places each item in the main hand, off hand, carried or worn, with at most one item per hand and a two-handed weapon blocking the off hand; an Encounter instance copies the loadout, and the GM can change it for that instance.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
+                "apps/apis/convex/encounters/creatureEditArmorClass.test.ts",
+                "apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx",
                 "packages/shared/src/__tests__/equipment-hands.test.ts",
                 "packages/schema/src/__tests__/creature-equipment-loadout.test.ts",
                 "packages/source-data/src/srd/creatureEquipmentHands.test.ts",
@@ -1653,13 +1655,14 @@
                 "packages/rules-runtime/src/__tests__/encounterDisarmSettlement.test.ts"
               ],
               "origin": [],
-              "note": "Slice A (T1) done 2026-10-11: useState is MAIN_HAND | OFF_HAND | CARRIED | WORN; publication and the instance replacement refuse a two-handed item in or blocking the off hand (red-first proof with both checks neutralized); SRD Creatures get deterministic hands; Disarm moves an item from either hand. The editor and its journey are T4.",
+              "note": "Slice A (T1) done 2026-10-11: useState is MAIN_HAND | OFF_HAND | CARRIED | WORN; publication and the instance replacement refuse a two-handed item in or blocking the off hand (red-first proof with both checks neutralized); SRD Creatures get deterministic hands; Disarm moves an item from either hand. T4 done 2026-10-11: the editor test sets Off hand and the natural armor bonus and submits them; the journey copies the SRD Goblin, publishes, and refuses a two-handed main-hand item beside the shield.",
               "id": "AUTHORING-17.1"
             },
             {
               "text": "Every Creature's AC is computed like a Character's: worn armor with its Dex cap (or 10 + Dex unarmored), plus one held shield with its magic bonus, plus an authored natural armor bonus, plus modifiers. There is no fixed AC or AC note, and giving an instance a +1 shield or dropping its shield changes its AC.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
+                "apps/apis/convex/encounters/creatureEditArmorClass.test.ts",
                 "packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts",
                 "packages/rules-runtime/src/__tests__/creatureEquipmentVariantPin.test.ts",
                 "apps/apis/convex/encounters/equipmentCommands.test.ts",
@@ -1668,7 +1671,7 @@
                 "apps/apis/convex/characters/context.extras.test.ts"
               ],
               "origin": [],
-              "note": "Slice B (T2) done 2026-10-11: armorClass and armorClassNote are removed for a required naturalArmorBonus; resolveDnd5eCreatureArmorClass shares the Character formula and counts a shield only in a hand. Encounter projection, cleaving, companions and the Creature detail read use it; a +1 shield replacement raises an instance's AC and a won Disarm of its shield lowers it. Equipment whose AC modifier is not the while-equipped form is refused at publication, Encounter admission and loadout replacement; the detail read shows no AC instead of failing. The editor fields and the edit-to-instance journey are T4.",
+              "note": "Slice B (T2) done 2026-10-11: armorClass and armorClassNote are removed for a required naturalArmorBonus; resolveDnd5eCreatureArmorClass shares the Character formula and counts a shield only in a hand. Encounter projection, cleaving, companions and the Creature detail read use it; a +1 shield replacement raises an instance's AC and a won Disarm of its shield lowers it. Equipment whose AC modifier is not the while-equipped form is refused at publication, Encounter admission and loadout replacement; the detail read shows no AC instead of failing. T4 done 2026-10-11: editing the Goblin (shield carried, natural armor 1) takes a new Run from 15 to 14 once the Blueprint is updated, while a Run already created keeps its pinned 15. A replacement's AC evaluability is checked per item by pinCreatureEquipmentSources (the redundant whole-loadout check is deleted), and the refusal test asserts the room-logged cause.",
               "id": "AUTHORING-17.2"
             },
             {
@@ -1702,7 +1705,7 @@
             {
               "id": "AUTHORING-17.T4",
               "text": "Creature editor loadout hands and natural armor fields, and the Encounter instance AC recompute; journey test from editing a Creature to its instance's AC. Also prove red the two slice B tests written after their fix: neutralize the loadout-replacement AC check in actorEquipment.ts and the effective-AC read for a replaced shield, confirm equipmentCommands.test.ts fails for the right reason, and restore.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["AUTHORING-17.1", "AUTHORING-17.2"]
             }
           ]

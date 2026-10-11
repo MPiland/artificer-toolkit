@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-11. Start at "Done 2026-10-11 (AUTHORING-17 slice A)" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 slice A (`ce728c7dc`) is DONE; slice B is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
+**Updated:** 2026-10-11. Start at "Done 2026-10-11 (AUTHORING-17 slice C" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -201,14 +201,21 @@ Area path file map:
 **Done 2026-10-11 (AUTHORING-17 slice B, tasks T2 + T3):**
 
 - Creature `armorClass` and `armorClassNote` are gone; `naturalArmorBonus` is required. `resolveDnd5eCreatureArmorClass` (`packages/rules-runtime/src/systems/dnd5e/armorClass.ts`) shares `combineDnd5eArmorClass` with the Character path and returns `{ ok: true, armorClass } | { ok: false, equipmentId, reason }`. A shield counts only in a hand; armor only WORN; an ARMOR or SHIELD with no `armorClass` is a failure, not a default.
-- Callers: publication throws the reason; Encounter admission and loadout replacement refuse at pin time (`assertCreatureLoadoutArmorClass` in `encounterCreatureEquipmentSources.ts`, `actorEquipment.ts`); `snapshotStatBlock` and companions throw via `requireCreatureArmorClass` (an invariant after the pin check); the Creature detail read (`content/details.ts`) returns `armorClass: null`. Only the SRD while-equipped restriction is evaluable on a Creature.
+- Callers: publication throws the reason; Encounter admission and loadout replacement refuse at pin time (`assertCreatureLoadoutArmorClass`, called by `pinCreatureEquipmentSources` in `encounterCreatureEquipmentSources.ts`); `snapshotStatBlock` and companions throw via `requireCreatureArmorClass` (an invariant after the pin check); the Creature detail read (`content/details.ts`) returns `armorClass: null`. Only the SRD while-equipped restriction is evaluable on a Creature.
 - Variant Equipment pins as its resolved base-shaped document; `sourceChecksum` is that payload's checksum. Companions load loadout Equipment through the plain-record `registry.creatureLoadoutEquipmentById`. Cleaving reads the effective AC.
 - All 317 SRD Creatures compute their printed AC (`creatureSrdArmorClass.test.ts`; oracle `SRD_CREATURE_STAT_BLOCKS`). Special cases are in the D107 addendum.
 - Found in validation: `schemaBoundary.test.ts` had been hiding a SPELLS-11 regression behind a stale dist (`lib/queries.ts` → `domainRejections` → `rules-runtime` `encounterErrors`); `refuseStaleCharacterAction` moved to `packages/encounter-persistence/src/staleCharacterAction.ts`. The web default-factory inventory was missing `checkChoice` and `escapeCheckDc` from ATTACK-7 slice B; both are registered.
 - `snapshotStatBlock` recomputes AC per call (~0.9 ms across the SRD set, `local-validation/a17b/perf.mjs`); memoize by `sourceFactsChecksum` only if projections get hot.
 - Local Convex data was wiped on 2026-10-11 to free memory (12 GB of old bundles and history). The deployment env vars were restored from `local.application.env` and the Worker's `.dev.vars`; `CONTENT_SNAPSHOT_TOKEN_SECRET` was freshly generated. The backend was redeployed, reseeded and audited.
 
-**Next: AUTHORING-17 slice C (T4).** Creature editor fields for loadout hands and the natural armor bonus, and the journey test from editing a Creature to its Encounter instance's AC; this closes AUTHORING-17.1 and 17.2.
+**Done 2026-10-11 (AUTHORING-17 slice C, task T4); AUTHORING-17 is DONE with a verified journey:**
+
+- Journey `apps/apis/convex/encounters/creatureEditArmorClass.test.ts`: the author duplicates the SRD Goblin and publishes it (Run AC 15). A greatclub in the main hand beside the shield is refused at publish. Then the shield moves to CARRIED with natural armor 1. A Run already created, and a Run from the not-yet-updated Blueprint, keep 15; after `blueprints.update` a new Run reads 14. The publish request is the shared fixture `tests/fixtures/creatureDrafts.ts`.
+- Editor proof: `AuthoredDomainAuthoringLayout.test.tsx` "submits a Creature loadout hand slot and natural armor bonus from the editor".
+- `replaceActorEquipment` no longer runs the whole-loadout AC check. Evaluability is per item, and `pinCreatureEquipmentSources` checks the replacement. The refusal test now asserts the room-logged cause (`roomErrorLogs()`). Red proofs for every new or strengthened test are in `local-validation/a17c/`.
+- No local codegen push: Convex changes are tests only, plus one deleted call in encounter-persistence.
+
+**Next: SHEET-8** (Character hands, `FREE_HAND`, stow and release-on-draw prompts; D107), then ATTACK-18.
 
 **Apis suite timing:** the full apis suite is 374 files run serially (`maxWorkers: 1`) and takes about 72 minutes. Never override `maxWorkers`; for focused runs pass explicit file paths, not folder filters.
 

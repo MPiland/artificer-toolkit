@@ -17,7 +17,6 @@ import {
 } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredDraftResult } from '@artificer-toolkit/schema/api/authoredDrafts'
 import {
-  authoredPublishDraftInputSchema,
   type AuthoredDeleteActiveInput,
   type AuthoredPublicationResult,
   type AuthoredPublishDraftInput
@@ -35,6 +34,7 @@ import {
   publicationFixture,
   versionWithCompilation
 } from '../../tests/fixtures/publication'
+import { creaturePublicationInput } from '../../tests/fixtures/creatureDrafts'
 import { srdPrintedArmorClass } from '../../tests/fixtures/srdCreatures'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
@@ -161,15 +161,6 @@ async function copyDraft(
   })
 }
 
-function publicationInput(draft: AuthoredDraftResult): AuthoredPublishDraftInput {
-  if (!draft.updatedAt) throw new Error('Missing Creature draft revision')
-  return authoredPublishDraftInputSchema.parse({
-    subjectKind: 'CREATURE',
-    subjectId: draft.subjectId,
-    expectedDraftUpdatedAt: draft.updatedAt
-  })
-}
-
 describe('native Creature publication', () => {
   it('refuses to publish a Creature attack that does not define exactly one ATTACK roll', async () => {
     const { first } = await fixture()
@@ -189,7 +180,7 @@ describe('native Creature publication', () => {
     })
 
     await expect(
-      first.caller.mutation(publish, publicationInput(withoutAttackRoll))
+      first.caller.mutation(publish, creaturePublicationInput(withoutAttackRoll))
     ).rejects.toThrow(
       '"Hooves" makes an attack, so it must define exactly one ATTACK roll with its attack bonus (it defines 0).'
     )
@@ -248,7 +239,7 @@ describe('native Creature publication', () => {
       })
       copies.push({
         draft,
-        result: await first.caller.mutation(publish, publicationInput(draft))
+        result: await first.caller.mutation(publish, creaturePublicationInput(draft))
       })
     }
     const masterIds = selectedCreatures.map((creature) => creature.id).sort()
@@ -511,7 +502,7 @@ describe('native Creature publication', () => {
         }
       }
     })
-    await first.caller.mutation(publish, publicationInput(beast))
+    await first.caller.mutation(publish, creaturePublicationInput(beast))
     const beastDetail = await first.caller.query(details, {
       subjectKind: 'CREATURE',
       id: beast.subjectId
@@ -547,7 +538,7 @@ describe('native Creature publication', () => {
         mountProfile: beast.payload.mountProfile
       }
     })
-    const replacement = await first.caller.mutation(publish, publicationInput(companion))
+    const replacement = await first.caller.mutation(publish, creaturePublicationInput(companion))
     const companionDetail = creatureAuthoredDtoSchema.parse(
       (
         await first.caller.query(details, {
@@ -569,7 +560,7 @@ describe('native Creature publication', () => {
   it('preserves active Creature state for stale or invalid loadout publication and replaces it only with a valid revision', async () => {
     const { t, first } = await fixture()
     const draft = await copyDraft(first.caller, archmage.id)
-    await first.caller.mutation(publish, publicationInput(draft))
+    await first.caller.mutation(publish, creaturePublicationInput(draft))
     const activeBefore = await first.caller.query(details, {
       subjectKind: 'CREATURE',
       id: draft.subjectId
@@ -591,7 +582,7 @@ describe('native Creature publication', () => {
       label: 'Working Archmage',
       payload: { ...copied, description: 'Unpublished edit' }
     })
-    await expect(first.caller.mutation(publish, publicationInput(draft))).rejects.toThrow(
+    await expect(first.caller.mutation(publish, creaturePublicationInput(draft))).rejects.toThrow(
       'draft or published content changed'
     )
     expect(
@@ -622,7 +613,9 @@ describe('native Creature publication', () => {
         label: 'Broken Archmage',
         payload: { ...stale.payload, equipmentLoadout: [loadoutPatch] }
       })
-      await expect(first.caller.mutation(publish, publicationInput(invalid))).rejects.toThrow()
+      await expect(
+        first.caller.mutation(publish, creaturePublicationInput(invalid))
+      ).rejects.toThrow()
       expect(
         await first.caller.query(api.content.drafts.get, {
           subjectKind: 'CREATURE',
@@ -656,7 +649,7 @@ describe('native Creature publication', () => {
       label: 'Replacement Archmage',
       payload: { ...copied, description: 'Published replacement' }
     })
-    const result = await first.caller.mutation(publish, publicationInput(replacement))
+    const result = await first.caller.mutation(publish, creaturePublicationInput(replacement))
     const versionsAfter = await t.run((ctx) =>
       ctx.db
         .query('authoredVersions')
@@ -714,9 +707,9 @@ describe('native Creature publication', () => {
     ]
     for (const { loadout, message } of refused) {
       const invalid = await saveLoadout(loadout)
-      await expect(first.caller.mutation(publish, publicationInput(invalid))).rejects.toThrow(
-        message
-      )
+      await expect(
+        first.caller.mutation(publish, creaturePublicationInput(invalid))
+      ).rejects.toThrow(message)
       expect(await versionsBefore()).toEqual([])
     }
 
@@ -726,7 +719,7 @@ describe('native Creature publication', () => {
       entry(greatclub.id, 'CARRIED'),
       entry(dagger.id, 'WORN')
     ])
-    await first.caller.mutation(publish, publicationInput(valid))
+    await first.caller.mutation(publish, creaturePublicationInput(valid))
     const [published] = await versionsBefore()
     if (!published) throw new Error('Missing published hand loadout version.')
     const stored = await t.run((ctx) => readStoredAuthoredVersionDocument(ctx, published))
@@ -738,7 +731,7 @@ describe('native Creature publication', () => {
       entry(greatclub.id, 'MAIN_HAND'),
       entry(dagger.id, 'CARRIED')
     ])
-    await first.caller.mutation(publish, publicationInput(twoHandedMain))
+    await first.caller.mutation(publish, creaturePublicationInput(twoHandedMain))
     expect(await versionsBefore()).toHaveLength(1)
   })
 
@@ -773,7 +766,7 @@ describe('native Creature publication', () => {
     })
     expect(creatureResponseDtoSchema.parse(detail)?.armorClass).toBeNull()
 
-    await expect(first.caller.mutation(publish, publicationInput(saved))).rejects.toThrow(
+    await expect(first.caller.mutation(publish, creaturePublicationInput(saved))).rejects.toThrow(
       `Equipment "${unevaluableShield.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
     )
     expect(
@@ -789,7 +782,7 @@ describe('native Creature publication', () => {
   it('denies unauthorized or conflicting Creature publication and preserves the conflicting draft', async () => {
     const { t, first, second } = await fixture()
     const draft = await copyDraft(first.caller)
-    const input = publicationInput(draft)
+    const input = creaturePublicationInput(draft)
     await expect(t.mutation(publish, input)).rejects.toThrow()
     await expect(second.caller.mutation(publish, input)).rejects.toThrow()
     await expect(
@@ -807,9 +800,9 @@ describe('native Creature publication', () => {
       label: ` ${draft.label.toUpperCase()} `,
       payload: duplicate.payload
     })
-    await expect(first.caller.mutation(publish, publicationInput(conflict))).rejects.toThrow(
-      'ACTIVE_NAME_CONFLICT'
-    )
+    await expect(
+      first.caller.mutation(publish, creaturePublicationInput(conflict))
+    ).rejects.toThrow('ACTIVE_NAME_CONFLICT')
     expect(
       await first.caller.query(api.content.drafts.get, {
         subjectKind: 'CREATURE',
@@ -821,7 +814,7 @@ describe('native Creature publication', () => {
   it('deletes only owned active Creatures, retaining a working draft or removing a route without one', async () => {
     const { t, first, second } = await fixture()
     const owned = await copyDraft(first.caller)
-    await first.caller.mutation(publish, publicationInput(owned))
+    await first.caller.mutation(publish, creaturePublicationInput(owned))
     const deleteInput = {
       subjectKind: 'CREATURE' as const,
       subjectId: owned.subjectId
@@ -895,7 +888,7 @@ describe('native Creature publication', () => {
       )
     ).toBeNull()
     const withoutDraft = await copyDraft(first.caller, unicorn.id)
-    await first.caller.mutation(publish, publicationInput(withoutDraft))
+    await first.caller.mutation(publish, creaturePublicationInput(withoutDraft))
     await first.caller.mutation(deleteActive, {
       subjectKind: 'CREATURE',
       subjectId: withoutDraft.subjectId

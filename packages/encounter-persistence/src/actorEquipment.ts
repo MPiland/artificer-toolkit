@@ -5,7 +5,6 @@ import {
 import { encounterCreatureEquipmentReplacementSchema } from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import {
-  assertCreatureLoadoutArmorClass,
   assertCreatureLoadoutHands,
   parseCreatureArmorClassInputs,
   pinCreatureEquipmentSources,
@@ -59,8 +58,6 @@ export async function replaceActorEquipment(
   )
   // The replacement may be two-handed, so the whole loadout's hands are checked again.
   assertCreatureLoadoutHands(equipmentLoadoutOverride, equipmentSources)
-  // The projection computes armor class strictly, so the whole new loadout must be evaluable.
-  assertCreatureLoadoutArmorClass(armorClassInputs, equipmentLoadoutOverride, equipmentSources)
   const next = encounterRunActorStateSchema.parse({
     ...actor,
     snapshot: { ...snapshot, equipmentLoadoutOverride, equipmentSources },

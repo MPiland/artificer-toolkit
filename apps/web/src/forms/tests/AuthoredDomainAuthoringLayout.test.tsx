@@ -553,6 +553,60 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getAllByText('a tiny ball of bat guano and sulfur').length).toBeGreaterThan(0)
   })
 
+  it('submits a Creature loadout hand slot and natural armor bonus from the editor', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+    const { authoringData } = authoredEditRouteLoaderData.creature
+    const creature = authoringData.response.item
+    if (!creature) throw new Error('Expected the owned Creature fixture.')
+    const loadoutEntry = {
+      id: '00000000-0000-4000-8000-0000000000a1',
+      equipmentId: '00000000-0000-4000-8000-0000000000a2',
+      quantity: 1,
+      useState: 'MAIN_HAND' as const,
+      attuned: false,
+      actionFeatureIds: []
+    }
+
+    render(
+      <TestRouterProvider>
+        <AuthoringLayout
+          data={{
+            ...authoringData,
+            response: {
+              ...authoringData.response,
+              item: { ...creature, equipmentLoadout: [loadoutEntry] }
+            }
+          }}
+          domain='creature'
+          mode='edit'
+        />
+      </TestRouterProvider>
+    )
+
+    await user.click(await screen.findByRole('link', { name: /^stats/i }))
+    const naturalArmor = await screen.findByRole('textbox', { name: /natural armor bonus/i })
+    await user.clear(naturalArmor)
+    await user.type(naturalArmor, '3')
+
+    await user.click(await screen.findByRole('link', { name: /^equipment/i }))
+    const useState = await screen.findByRole('combobox', { name: /use state/i })
+    await user.click(useState)
+    for (const label of ['Main hand', 'Off hand', 'Carried', 'Worn'])
+      expect(await screen.findByRole('option', { name: label })).toBeInTheDocument()
+    await user.click(screen.getByRole('option', { name: 'Off hand' }))
+
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalled())
+    expect(convexMocks.mutation.mock.calls.at(-1)?.[1]).toMatchObject({
+      payload: {
+        naturalArmorBonus: 3,
+        equipmentLoadout: [{ ...loadoutEntry, useState: 'OFF_HAND' }]
+      }
+    })
+  })
+
   it('loads native Spell copy sources after selection', async () => {
     const user = userEvent.setup()
     useStaticNodeRuntimeResolver()
