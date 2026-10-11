@@ -17,7 +17,7 @@ export const ochreJelly: CreatureAuthored = {
     WISDOM: 6,
     CHARISMA: 1
   },
-  armorClass: 8,
+  naturalArmorBonus: 0,
   hitPoints: 45,
   hitDice: {
     count: 6,

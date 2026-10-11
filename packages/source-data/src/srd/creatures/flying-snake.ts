@@ -17,7 +17,7 @@ export const flyingSnake: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 5
   },
-  armorClass: 14,
+  naturalArmorBonus: 0,
   hitPoints: 5,
   hitDice: {
     count: 2,

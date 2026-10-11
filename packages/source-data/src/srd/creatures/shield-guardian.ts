@@ -18,8 +18,7 @@ export const shieldGuardian: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 142,
   hitDice: {
     count: 15,

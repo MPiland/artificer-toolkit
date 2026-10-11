@@ -20,8 +20,7 @@ export const pitFiend: CreatureAuthored = {
     WISDOM: 18,
     CHARISMA: 24
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 7,
   hitPoints: 300,
   hitDice: {
     count: 24,

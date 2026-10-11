@@ -18,8 +18,7 @@ export const mimic: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 8
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 58,
   hitDice: {
     count: 9,

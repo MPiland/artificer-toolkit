@@ -18,8 +18,7 @@ export const giantCrocodile: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 7
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 85,
   hitDice: {
     count: 9,

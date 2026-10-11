@@ -18,7 +18,7 @@ export const wererat: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 8
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 33,
   hitDice: {
     count: 6,

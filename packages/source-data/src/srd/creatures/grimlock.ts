@@ -18,7 +18,7 @@ export const grimlock: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 6
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

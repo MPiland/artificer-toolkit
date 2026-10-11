@@ -17,7 +17,7 @@ export const badger: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 5
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 3,
   hitDice: {
     count: 1,

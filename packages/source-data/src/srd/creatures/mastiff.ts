@@ -18,7 +18,7 @@ export const mastiff: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 5,
   hitDice: {
     count: 1,

@@ -17,8 +17,7 @@ export const ogre: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 7
   },
-  armorClass: 11,
-  armorClassNote: 'hide armor',
+  naturalArmorBonus: 0,
   hitPoints: 59,
   hitDice: {
     count: 7,

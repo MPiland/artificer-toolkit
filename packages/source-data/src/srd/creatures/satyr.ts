@@ -17,8 +17,7 @@ export const satyr: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 14
   },
-  armorClass: 14,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 31,
   hitDice: {
     count: 7,

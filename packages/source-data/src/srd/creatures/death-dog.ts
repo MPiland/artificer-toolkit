@@ -20,7 +20,7 @@ export const deathDog: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 6
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 39,
   hitDice: {
     count: 6,

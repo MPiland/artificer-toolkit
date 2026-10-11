@@ -17,8 +17,7 @@ export const giantCrab: CreatureAuthored = {
     WISDOM: 9,
     CHARISMA: 3
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 13,
   hitDice: {
     count: 3,
@@ -98,9 +97,7 @@ export const giantCrab: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(119, 4) + '__result',
                 resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  S.grappledOutcome(119, { localIndex: 1, escapeDc: 11, heldAtOnce: 2 })
-                ]
+                outcomes: [S.grappledOutcome(119, { localIndex: 1, escapeDc: 11, heldAtOnce: 2 })]
               }
             }
           ]

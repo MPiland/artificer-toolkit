@@ -19,7 +19,7 @@ export const wraith: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 15
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 67,
   hitDice: {
     count: 9,

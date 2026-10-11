@@ -137,7 +137,7 @@ const authoredRootBoundaryCases: Array<{
         WISDOM: 10,
         CHARISMA: 10
       },
-      armorClass: 10,
+      naturalArmorBonus: 0,
       hitPoints: 10,
       speeds: []
     }

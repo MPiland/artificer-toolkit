@@ -19,8 +19,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 9
   },
-  armorClass: 15,
-  armorClassNote: 'chain shirt',
+  naturalArmorBonus: 0,
   hitPoints: 16,
   hitDice: {
     count: 3,

@@ -17,8 +17,7 @@ export const treant: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 12
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 7,
   hitPoints: 138,
   hitDice: {
     count: 12,

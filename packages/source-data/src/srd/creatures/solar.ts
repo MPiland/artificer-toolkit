@@ -17,8 +17,7 @@ export const solar: CreatureAuthored = {
     WISDOM: 25,
     CHARISMA: 30
   },
-  armorClass: 21,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 243,
   hitDice: {
     count: 18,

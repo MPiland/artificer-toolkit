@@ -18,8 +18,7 @@ export const assassin: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 15,
-  armorClassNote: 'studded leather',
+  naturalArmorBonus: 0,
   hitPoints: 78,
   hitDice: {
     count: 12,

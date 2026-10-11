@@ -17,8 +17,7 @@ export const xorn: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 11
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 9,
   hitPoints: 73,
   hitDice: {
     count: 7,

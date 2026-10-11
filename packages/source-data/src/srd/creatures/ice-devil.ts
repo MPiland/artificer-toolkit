@@ -18,8 +18,7 @@ export const iceDevil: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 18
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 180,
   hitDice: {
     count: 19,

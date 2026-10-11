@@ -18,8 +18,7 @@ export const ankheg: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 6
   },
-  armorClass: 14,
-  armorClassNote: '(natural armor), 11 while prone',
+  naturalArmorBonus: 4,
   hitPoints: 39,
   hitDice: {
     count: 6,

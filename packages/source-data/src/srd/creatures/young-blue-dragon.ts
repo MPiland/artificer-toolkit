@@ -18,8 +18,7 @@ export const youngBlueDragon: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 17
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 152,
   hitDice: {
     count: 16,

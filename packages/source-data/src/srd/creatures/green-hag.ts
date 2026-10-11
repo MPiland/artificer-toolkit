@@ -18,8 +18,7 @@ export const greenHag: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 14
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 82,
   hitDice: {
     count: 11,

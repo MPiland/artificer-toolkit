@@ -62,8 +62,7 @@ export interface CompiledCreature extends CompiledCreatureBase {
   creatureTypeId: string
   size: SizeCode
   abilityScores: Record<AbilityCode, number>
-  armorClass: number
-  armorClassNote?: string
+  naturalArmorBonus: number
   hitPoints: number
   hitDice?: CreatureAuthored['hitDice']
   senses?: string[]
@@ -248,8 +247,7 @@ function compileCreatureFields(authored: CreatureAuthored): CompiledCreature {
     creatureTypeId: authored.creatureTypeId,
     size: authored.size,
     abilityScores: authored.abilityScores,
-    armorClass: authored.armorClass,
-    armorClassNote: authored.armorClassNote,
+    naturalArmorBonus: authored.naturalArmorBonus,
     hitPoints: authored.hitPoints,
     hitDice: authored.hitDice,
     senses: authored.senses,

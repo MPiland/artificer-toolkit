@@ -19,8 +19,7 @@ export const tyrannosaurusRex: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 9
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 136,
   hitDice: {
     count: 13,

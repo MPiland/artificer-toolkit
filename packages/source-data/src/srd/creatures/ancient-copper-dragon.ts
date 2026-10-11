@@ -19,8 +19,7 @@ export const ancientCopperDragon: CreatureAuthored = {
     WISDOM: 17,
     CHARISMA: 19
   },
-  armorClass: 21,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 10,
   hitPoints: 350,
   hitDice: {
     count: 20,

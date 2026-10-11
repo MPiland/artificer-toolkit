@@ -17,7 +17,7 @@ export const acolyte: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 11
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 9,
   hitDice: {
     count: 2,

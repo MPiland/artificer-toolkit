@@ -17,8 +17,7 @@ export const drider: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 12
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 123,
   hitDice: {
     count: 13,

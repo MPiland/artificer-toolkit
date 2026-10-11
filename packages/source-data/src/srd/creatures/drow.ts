@@ -20,8 +20,7 @@ export const drow: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 12
   },
-  armorClass: 15,
-  armorClassNote: 'chain shirt',
+  naturalArmorBonus: 0,
   hitPoints: 13,
   hitDice: {
     count: 3,

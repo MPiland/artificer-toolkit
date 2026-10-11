@@ -20,8 +20,7 @@ export const hezrou: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 13
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 136,
   hitDice: {
     count: 13,

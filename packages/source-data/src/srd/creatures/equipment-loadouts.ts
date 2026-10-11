@@ -116,6 +116,59 @@ const LOADOUT_BINDINGS: readonly LoadoutBinding[] = [
   [175, 8, 383, 1]
 ]
 
+type WornGearBinding = readonly [
+  creatureIndex: number,
+  armorEquipmentIndex: number | null,
+  shieldEquipmentIndex: number | null
+]
+
+/**
+ * The armor a Creature wears and the shield it holds, from the printed armor class note ("studded
+ * leather, shield"). Both are armor class sources with no action Features: the computed armor class
+ * reads them, and the shield takes the off hand. Armor the SRD Equipment does not have ("armor
+ * scraps", "patchwork armor") is natural armor, and a conditional armor class ("15 with mage armor")
+ * authors only its base value.
+ */
+const WORN_GEAR_BINDINGS: readonly WornGearBinding[] = [
+  [29, 40, null],
+  [33, null, 50],
+  [37, 39, null],
+  [38, 40, null],
+  [44, 41, null],
+  [56, 41, 50],
+  [74, 39, null],
+  [75, 39, null],
+  [78, 42, null],
+  [88, 42, null],
+  [91, 43, 50],
+  [98, 49, null],
+  [102, 49, null],
+  [143, 40, 50],
+  [144, 41, 50],
+  [146, 39, 50],
+  [155, 42, 50],
+  [158, 49, null],
+  [165, 47, 50],
+  [178, 49, null],
+  [186, null, 50],
+  [206, 44, null],
+  [209, 41, null],
+  [211, 47, null],
+  [212, 41, null],
+  [225, 42, null],
+  [245, 39, null],
+  [247, 39, null],
+  [260, 39, null],
+  [266, 43, null],
+  [269, 39, null],
+  [272, 41, null],
+  [279, 48, null],
+  [293, 40, null]
+]
+
+const WORN_ARMOR_LOCAL_INDEX = 20
+const HELD_SHIELD_LOCAL_INDEX = 21
+
 const EQUIPMENT_BY_ID = new Map(srdEquipment.map((equipment) => [equipment.id, equipment]))
 
 function boundEquipment(equipmentIndex: number) {
@@ -127,9 +180,13 @@ function boundEquipment(equipmentIndex: number) {
 /**
  * Deterministic hand assignment for one Creature's bound items: weapons are ordered melee first
  * (binding order within each group); the first takes the main hand, the next one-handed weapon
- * takes the off hand unless the main hand is two-handed, and everything else is carried.
+ * takes the off hand unless the main hand is two-handed or a shield holds it, and everything else
+ * is carried.
  */
-function assignSlots(items: readonly EquipmentAuthored[]): EquipmentSlotCode[] {
+function assignSlots(
+  items: readonly EquipmentAuthored[],
+  shieldHeld: boolean
+): EquipmentSlotCode[] {
   const has = (item: EquipmentAuthored, property: EquipmentPropertyCode) =>
     item.properties?.includes(property) === true
   const weapons = items.flatMap((item, index) =>
@@ -142,7 +199,7 @@ function assignSlots(items: readonly EquipmentAuthored[]): EquipmentSlotCode[] {
   const slots = items.map((): EquipmentSlotCode => 'CARRIED')
   if (!main) return slots
   slots[main.index] = 'MAIN_HAND'
-  if (has(main.item, EQUIPMENT_PROPERTY_CODE.TWO_HANDED)) return slots
+  if (shieldHeld || has(main.item, EQUIPMENT_PROPERTY_CODE.TWO_HANDED)) return slots
   const off = rest.find(({ item }) => !has(item, EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
   if (off) slots[off.index] = 'OFF_HAND'
   return slots
@@ -151,18 +208,35 @@ function assignSlots(items: readonly EquipmentAuthored[]): EquipmentSlotCode[] {
 export function applyCreatureEquipmentLoadouts(creature: CreatureAuthored): CreatureAuthored {
   const creatureIndex = Number.parseInt(creature.id.slice(24, 28), 16)
   const bindings = LOADOUT_BINDINGS.filter(([index]) => index === creatureIndex)
-  if (bindings.length === 0) return creature
+  const [, armorIndex = null, shieldIndex = null] =
+    WORN_GEAR_BINDINGS.find(([index]) => index === creatureIndex) ?? []
+  if (bindings.length === 0 && armorIndex === null && shieldIndex === null) return creature
 
-  const slots = assignSlots(bindings.map(([, , equipmentIndex]) => boundEquipment(equipmentIndex)))
+  const slots = assignSlots(
+    bindings.map(([, , equipmentIndex]) => boundEquipment(equipmentIndex)),
+    shieldIndex !== null
+  )
+  const gearEntry = (localIndex: number, equipmentIndex: number, useState: EquipmentSlotCode) => ({
+    id: S.equipmentLoadoutId(creatureIndex, localIndex),
+    equipmentId: boundEquipment(equipmentIndex).id,
+    quantity: 1,
+    useState,
+    attuned: false,
+    actionFeatureIds: []
+  })
   return {
     ...creature,
-    equipmentLoadout: bindings.map(([, featureIndex, equipmentIndex, localIndex], index) => ({
-      id: S.equipmentLoadoutId(creatureIndex, localIndex),
-      equipmentId: equipId(equipmentIndex),
-      quantity: 1,
-      useState: slots[index]!,
-      attuned: false,
-      actionFeatureIds: [S.featureId(creatureIndex, featureIndex)]
-    }))
+    equipmentLoadout: [
+      ...bindings.map(([, featureIndex, equipmentIndex, localIndex], index) => ({
+        id: S.equipmentLoadoutId(creatureIndex, localIndex),
+        equipmentId: equipId(equipmentIndex),
+        quantity: 1,
+        useState: slots[index]!,
+        attuned: false,
+        actionFeatureIds: [S.featureId(creatureIndex, featureIndex)]
+      })),
+      ...(armorIndex === null ? [] : [gearEntry(WORN_ARMOR_LOCAL_INDEX, armorIndex, 'WORN')]),
+      ...(shieldIndex === null ? [] : [gearEntry(HELD_SHIELD_LOCAL_INDEX, shieldIndex, 'OFF_HAND')])
+    ]
   }
 }

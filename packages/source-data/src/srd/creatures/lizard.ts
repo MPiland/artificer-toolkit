@@ -17,7 +17,7 @@ export const lizard: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 3
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 2,
   hitDice: {
     count: 1,

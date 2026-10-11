@@ -17,7 +17,7 @@ export const giantConstrictorSnake: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 60,
   hitDice: {
     count: 8,

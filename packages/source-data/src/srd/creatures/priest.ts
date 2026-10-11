@@ -20,8 +20,7 @@ export const priest: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 13
   },
-  armorClass: 13,
-  armorClassNote: 'chain shirt',
+  naturalArmorBonus: 0,
   hitPoints: 27,
   hitDice: {
     count: 5,

@@ -17,7 +17,7 @@ export const bat: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 4
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

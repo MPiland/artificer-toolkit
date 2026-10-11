@@ -19,8 +19,7 @@ export const gladiator: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 15
   },
-  armorClass: 16,
-  armorClassNote: 'studded leather, shield',
+  naturalArmorBonus: 0,
   hitPoints: 112,
   hitDice: {
     count: 15,

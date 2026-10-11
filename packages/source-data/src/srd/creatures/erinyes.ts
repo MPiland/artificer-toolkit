@@ -20,8 +20,7 @@ export const erinyes: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 18
   },
-  armorClass: 18,
-  armorClassNote: 'plate',
+  naturalArmorBonus: 0,
   hitPoints: 153,
   hitDice: {
     count: 18,

@@ -7,7 +7,7 @@ import {
   type EncounterExecuteInput,
   type EncounterBlueprintDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { srdWolf as wolf } from './fixtures/srdCreatures'
+import { srdPrintedArmorClass, srdWolf as wolf } from './fixtures/srdCreatures'
 import { api } from '../convex/_generated/api.js'
 import {
   assertDomainRejection,
@@ -128,7 +128,7 @@ export async function verifyEncounterAutomation({
     for (const actor of wolves) {
       assert.equal(actor.sourceId, wolf.id)
       assert.equal(actor.currentHitPoints, wolf.hitPoints)
-      assert.equal(actor.statBlock?.armorClass, wolf.armorClass)
+      assert.equal(actor.statBlock?.armorClass, srdPrintedArmorClass(wolf))
       assert.deepEqual(
         actor.features.map((feature) => feature.id),
         wolf.features?.map((feature) => feature.id) ?? []
@@ -396,7 +396,7 @@ export async function verifyEncounterAutomation({
     const reinforcedCreature = projection.actors.find((actor) => actor.kind === 'CREATURE')
     assert.ok(reinforcedCreature)
     assert.equal(reinforcedCreature.sourceId, wolf.id)
-    assert.equal(reinforcedCreature.statBlock?.armorClass, wolf.armorClass)
+    assert.equal(reinforcedCreature.statBlock?.armorClass, srdPrintedArmorClass(wolf))
     assert.deepEqual(
       reinforcedCreature.features.map((feature) => feature.id),
       wolf.features?.map((feature) => feature.id) ?? []

@@ -281,7 +281,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
       WISDOM: 13,
       CHARISMA: 17
     },
-    armorClass: 18,
+    naturalArmorBonus: 8,
     hitPoints: 172,
     speeds: [
       { speedId: 'walk', amount: 40, unit: 'FEET' },

@@ -18,7 +18,7 @@ export const steamMephit: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 12
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 21,
   hitDice: {
     count: 6,

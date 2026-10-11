@@ -3,11 +3,13 @@ import { readTestActor } from '../../tests/fixtures/storedActors'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { prepareDnd5eOptionalCombatContestPendingContext } from '@artificer-toolkit/rules-runtime/systems/dnd5e/optionalCombatContestPendingContext'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import { disarmRecords, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
+import { srdPrintedArmorClass, srdWolf } from '../../tests/fixtures/srdCreatures'
 import { createRulesRuntime } from '../../tests/fixtures/rulesRuntime'
 import { prepareStoredDisarm } from '../../tests/fixtures/nativeDisarm'
 import { readCharacterRecord } from '../characters/stateDocuments'
@@ -209,6 +211,23 @@ describe('native Disarm preparation and settlement transactions', () => {
     },
     30000
   )
+
+  it('lowers a Creature target armor class when a won Disarm takes its shield', async () => {
+    const base = await nativeDisarmFixture('AUTO_ROLL', false, false, true)
+    const wolfArmorClass = srdPrintedArmorClass(srdWolf)
+    const shieldBonus = 2
+    const before = actorState(await disarmRecords(base), base.target.id)
+    expect(snapshotStatBlock(before)?.armorClass).toBe(wolfArmorClass + shieldBonus)
+    const settled = await settle(base, 'win')
+    expect(settled.applicationOutputs.stateTransition).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
+      loadoutEntryId: base.heldItemId,
+      fromState: 'OFF_HAND',
+      toState: 'CARRIED'
+    })
+    const after = actorState(await disarmRecords(base), base.target.id)
+    expect(snapshotStatBlock(after)?.armorClass).toBe(wolfArmorClass)
+  }, 30000)
 
   it.each(['tie', 'loss'] as const)(
     'spends one ACTION on a %s and leaves the held target item intact',

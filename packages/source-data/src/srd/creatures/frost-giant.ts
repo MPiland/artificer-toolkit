@@ -18,8 +18,7 @@ export const frostGiant: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 12
   },
-  armorClass: 15,
-  armorClassNote: 'patchwork armor',
+  naturalArmorBonus: 6,
   hitPoints: 138,
   hitDice: {
     count: 12,

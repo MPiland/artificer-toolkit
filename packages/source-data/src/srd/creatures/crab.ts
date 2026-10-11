@@ -17,8 +17,7 @@ export const crab: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 2
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 2,
   hitDice: {
     count: 1,

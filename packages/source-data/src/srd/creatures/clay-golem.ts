@@ -18,8 +18,7 @@ export const clayGolem: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 1
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 133,
   hitDice: {
     count: 14,

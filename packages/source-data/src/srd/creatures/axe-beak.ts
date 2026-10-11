@@ -17,7 +17,7 @@ export const axeBeak: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 19,
   hitDice: {
     count: 3,

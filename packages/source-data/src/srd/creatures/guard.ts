@@ -17,8 +17,7 @@ export const guard: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 16,
-  armorClassNote: 'chain shirt, shield',
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

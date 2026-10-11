@@ -20,8 +20,7 @@ export const nalfeshnee: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 15
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 184,
   hitDice: {
     count: 16,

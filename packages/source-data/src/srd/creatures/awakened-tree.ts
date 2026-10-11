@@ -17,8 +17,7 @@ export const awakenedTree: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 7
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 59,
   hitDice: {
     count: 7,

@@ -17,7 +17,7 @@ export const fleshGolem: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 9,
+  naturalArmorBonus: 0,
   hitPoints: 93,
   hitDice: {
     count: 11,

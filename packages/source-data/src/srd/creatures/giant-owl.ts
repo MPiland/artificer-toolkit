@@ -17,7 +17,7 @@ export const giantOwl: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 10
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 19,
   hitDice: {
     count: 3,

@@ -20,8 +20,7 @@ export const androsphinx: CreatureAuthored = {
     WISDOM: 18,
     CHARISMA: 23
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 7,
   hitPoints: 199,
   hitDice: {
     count: 19,

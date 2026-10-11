@@ -17,8 +17,7 @@ export const lich: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 16
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 135,
   hitDice: {
     count: 18,

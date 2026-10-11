@@ -17,7 +17,7 @@ export const bloodHawk: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 5
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 7,
   hitDice: {
     count: 2,

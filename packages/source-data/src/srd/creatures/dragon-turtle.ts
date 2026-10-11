@@ -19,8 +19,7 @@ export const dragonTurtle: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 12
   },
-  armorClass: 20,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 10,
   hitPoints: 341,
   hitDice: {
     count: 22,

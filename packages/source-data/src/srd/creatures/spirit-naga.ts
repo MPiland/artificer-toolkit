@@ -18,8 +18,7 @@ export const spiritNaga: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 16
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 75,
   hitDice: {
     count: 10,

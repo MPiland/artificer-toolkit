@@ -4,6 +4,8 @@ import { srdCreatures } from '@artificer-toolkit/source-data/srd/creatures/index
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
+import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
+import { shieldWoodPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shield-wood-plus-1.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
@@ -33,6 +35,7 @@ import {
   publicationFixture,
   versionWithCompilation
 } from '../../tests/fixtures/publication'
+import { srdPrintedArmorClass } from '../../tests/fixtures/srdCreatures'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
 
@@ -82,6 +85,24 @@ const referencedEquipment = srdEquipment.filter((equipment) => equipmentIds.has(
 if (referencedSpells.length !== spellIds.size || referencedEquipment.length !== equipmentIds.size)
   throw new Error('Creature fixture references missing canonical source records.')
 
+// A magic shield whose armor class modifier is not the while-equipped form a Creature can evaluate.
+const unevaluableShield = {
+  ...shieldWoodPlus1,
+  id: '00000000-0000-0000-0050-0ff000000000',
+  label: 'Unevaluable Shield',
+  modifiers: shieldWoodPlus1.modifiers?.map((modifier) => ({
+    ...modifier,
+    restrictions: undefined
+  }))
+}
+const fixtureEquipment = [
+  ...new Map(
+    [...referencedEquipment, greatclub, shieldWood, unevaluableShield].map(
+      (equipment) => [equipment.id, equipment] as const
+    )
+  ).values()
+]
+
 const fixtureSubjects = [
   ...selectedCreatures.map((creature) =>
     importedSubject({
@@ -93,7 +114,7 @@ const fixtureSubjects = [
   ...referencedSpells.map((spell) =>
     importedSubject({ subjectKind: 'SPELL', ...spell, document: spell })
   ),
-  ...[...referencedEquipment, greatclub].map((equipment) =>
+  ...fixtureEquipment.map((equipment) =>
     importedSubject({
       subjectKind: 'EQUIPMENT',
       ...equipment,
@@ -178,6 +199,19 @@ describe('native Creature publication', () => {
         subjectId: draft.subjectId
       })
     ).toEqual(withoutAttackRoll)
+  })
+
+  it('returns the computed armor class on Creature detail reads', async () => {
+    const { first } = await fixture()
+    for (const creature of selectedCreatures) {
+      const detail = await first.caller.query(details, {
+        subjectKind: 'CREATURE',
+        id: creature.id
+      })
+      expect(creatureResponseDtoSchema.parse(detail)?.armorClass, creature.label).toBe(
+        srdPrintedArmorClass(creature)
+      )
+    }
   })
 
   it('publishes canonical indexed Creature copies with cloned loadout bindings, source facts, and private active detail', async () => {
@@ -461,7 +495,7 @@ describe('native Creature publication', () => {
       payload: {
         ...copied,
         category: 'BEAST',
-        armorClass: 12,
+        naturalArmorBonus: 2,
         hitPoints: 24,
         damageVulnerabilities: ['radiant while in shadow'],
         damageResistances: ['nonmagical weapon damage'],
@@ -484,7 +518,7 @@ describe('native Creature publication', () => {
     })
     expect(creatureAuthoredDtoSchema.parse(beastDetail?.item)).toMatchObject({
       category: 'BEAST',
-      armorClass: 12,
+      naturalArmorBonus: 2,
       hitPoints: 24,
       damageVulnerabilities: ['radiant while in shadow'],
       damageResistances: ['nonmagical weapon damage'],
@@ -706,6 +740,50 @@ describe('native Creature publication', () => {
     ])
     await first.caller.mutation(publish, publicationInput(twoHandedMain))
     expect(await versionsBefore()).toHaveLength(1)
+  })
+
+  it('reads a null armor class, and refuses publication, for Equipment a Creature cannot evaluate', async () => {
+    const { t, first } = await fixture()
+    const draft = await copyDraft(first.caller, archmage.id)
+    const copied = creatureAuthoredDtoSchema.parse(draft.payload)
+    const saved = await first.caller.mutation(api.content.drafts.save, {
+      subjectKind: 'CREATURE',
+      subjectId: draft.subjectId,
+      systemId: draft.systemId,
+      label: 'Odd Shield Archmage',
+      payload: {
+        ...copied,
+        equipmentLoadout: [
+          {
+            id: crypto.randomUUID(),
+            equipmentId: unevaluableShield.id,
+            quantity: 1,
+            useState: 'OFF_HAND',
+            attuned: false,
+            actionFeatureIds: []
+          }
+        ]
+      }
+    })
+
+    const detail = await first.caller.query(details, {
+      subjectKind: 'CREATURE',
+      id: draft.subjectId,
+      view: 'draft'
+    })
+    expect(creatureResponseDtoSchema.parse(detail)?.armorClass).toBeNull()
+
+    await expect(first.caller.mutation(publish, publicationInput(saved))).rejects.toThrow(
+      `Equipment "${unevaluableShield.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
+    )
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query('authoredVersions')
+          .withIndex('by_id_version', (q) => q.eq('id', draft.subjectId))
+          .take(1)
+      )
+    ).toEqual([])
   })
 
   it('denies unauthorized or conflicting Creature publication and preserves the conflicting draft', async () => {

@@ -19,7 +19,7 @@ export const harpy: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 13
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 38,
   hitDice: {
     count: 7,

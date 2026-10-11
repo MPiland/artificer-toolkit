@@ -20,8 +20,7 @@ export const noble: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 16
   },
-  armorClass: 15,
-  armorClassNote: 'breastplate',
+  naturalArmorBonus: 0,
   hitPoints: 9,
   hitDice: {
     count: 2,

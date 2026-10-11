@@ -17,8 +17,7 @@ export const azer: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 10
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor, shield',
+  naturalArmorBonus: 4,
   hitPoints: 39,
   hitDice: {
     count: 6,

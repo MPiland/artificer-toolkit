@@ -19,8 +19,7 @@ export const couatl: CreatureAuthored = {
     WISDOM: 20,
     CHARISMA: 18
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 97,
   hitDice: {
     count: 13,

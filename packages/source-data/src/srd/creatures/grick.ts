@@ -17,8 +17,7 @@ export const grick: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 5
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 27,
   hitDice: {
     count: 6,

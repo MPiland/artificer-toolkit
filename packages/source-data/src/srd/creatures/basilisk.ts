@@ -17,8 +17,7 @@ export const basilisk: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 7
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 52,
   hitDice: {
     count: 8,

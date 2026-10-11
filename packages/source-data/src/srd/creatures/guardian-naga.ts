@@ -18,8 +18,7 @@ export const guardianNaga: CreatureAuthored = {
     WISDOM: 19,
     CHARISMA: 18
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 127,
   hitDice: {
     count: 15,

@@ -199,7 +199,7 @@ function rootDescriptor(
         field('alignmentId', value.alignmentId),
         field('speeds', value.speeds),
         field('abilityScores', value.abilityScores),
-        field('armorClass', value.armorClass),
+        field('naturalArmorBonus', value.naturalArmorBonus),
         field('hitPoints', value.hitPoints),
         field('hitDice', value.hitDice),
         field('passivePerception', value.passivePerception),

@@ -17,8 +17,7 @@ export const roper: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 6
   },
-  armorClass: 20,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 11,
   hitPoints: 93,
   hitDice: {
     count: 11,

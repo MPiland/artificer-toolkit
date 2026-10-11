@@ -19,8 +19,7 @@ export const medusa: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 15
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 127,
   hitDice: {
     count: 17,

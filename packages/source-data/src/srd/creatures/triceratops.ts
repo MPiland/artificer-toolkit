@@ -17,8 +17,7 @@ export const triceratops: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 5
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 95,
   hitDice: {
     count: 10,

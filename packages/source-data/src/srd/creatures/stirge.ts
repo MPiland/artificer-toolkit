@@ -17,8 +17,7 @@ export const stirge: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 6
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 2,
   hitDice: {
     count: 1,

@@ -27,7 +27,8 @@ const abilityOrder = [
 
 export function buildCreatureDetailModel(
   creature: CreatureAuthoredDto,
-  references: CreatureReferences
+  references: CreatureReferences,
+  armorClass: number | null | undefined
 ) {
   const legendaryActionFeature = creature.features?.find(isLegendaryActionFeature)
   const featureBuckets = getCreatureFeatureBuckets(creature.features, legendaryActionFeature)
@@ -74,7 +75,7 @@ export function buildCreatureDetailModel(
       }
     ].filter((item) => item.description !== 'None'),
     description: creature.description,
-    facts: getCreatureFacts(creature, references),
+    facts: getCreatureFacts(creature, references, armorClass),
     lairActionItems: featureBuckets.lairActions,
     legendaryActions: legendaryActionFeature
       ? {
@@ -114,7 +115,8 @@ export type CreatureDetailModel = ReturnType<typeof buildCreatureDetailModel>
 
 function getCreatureFacts(
   creature: CreatureAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'creatureTypes'>
+  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'creatureTypes'>,
+  armorClass: number | null | undefined
 ): AuthoredDetailFact[] {
   return [
     { label: 'Category', value: formatEnumLabel(creature.category) },
@@ -127,7 +129,8 @@ function getCreatureFacts(
       )
     },
     { label: 'Size', value: formatReference(creature.size, 'Size selected') },
-    { label: 'Armor Class', value: formatNumber(creature.armorClass) },
+    { label: 'Armor Class', value: formatNumber(armorClass) },
+    { label: 'Natural Armor Bonus', value: formatNumber(creature.naturalArmorBonus) },
     { label: 'Hit Points', value: formatNumber(creature.hitPoints) },
     {
       label: 'Challenge',

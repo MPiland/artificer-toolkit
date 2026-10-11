@@ -17,7 +17,7 @@ export const draftHorse: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 7
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 19,
   hitDice: {
     count: 3,

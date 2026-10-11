@@ -20,8 +20,7 @@ export const otyugh: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 6
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 114,
   hitDice: {
     count: 12,

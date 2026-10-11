@@ -17,8 +17,7 @@ export const stoneGiant: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 9
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 126,
   hitDice: {
     count: 11,

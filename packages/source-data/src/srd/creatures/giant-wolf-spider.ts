@@ -17,7 +17,7 @@ export const giantWolfSpider: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 4
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

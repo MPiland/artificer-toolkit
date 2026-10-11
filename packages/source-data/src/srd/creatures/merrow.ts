@@ -19,8 +19,7 @@ export const merrow: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 9
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 45,
   hitDice: {
     count: 6,

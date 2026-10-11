@@ -18,7 +18,7 @@ export const swarmOfRats: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 24,
   hitDice: {
     count: 7,

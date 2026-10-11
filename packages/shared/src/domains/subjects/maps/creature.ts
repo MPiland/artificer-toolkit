@@ -446,15 +446,10 @@ export const CREATURE_NODE_MAP = creatureNode.define(
         )
       )
       .set(
-        'armorClass',
-        number(['armorClass'], 'Armor Class', { section: CREATURE_SECTIONS.stats, order: 20 })
-      )
-      .set(
-        'armorClassNote',
-        text(['armorClassNote'], 'AC Note', {
-          constraints: { maximumLength: AUTHORED_LIMITS.plainTextCharacters },
+        'naturalArmorBonus',
+        number(['naturalArmorBonus'], 'Natural Armor Bonus', {
           section: CREATURE_SECTIONS.stats,
-          order: 30
+          order: 20
         })
       )
       .set(

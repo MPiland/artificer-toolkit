@@ -20,7 +20,7 @@ export const imp: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 14
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 10,
   hitDice: {
     count: 3,

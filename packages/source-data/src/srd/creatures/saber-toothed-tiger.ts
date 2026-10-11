@@ -17,7 +17,7 @@ export const saberToothedTiger: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 8
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 52,
   hitDice: {
     count: 7,

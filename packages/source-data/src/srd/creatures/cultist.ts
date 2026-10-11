@@ -17,8 +17,7 @@ export const cultist: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 12,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 9,
   hitDice: {
     count: 2,

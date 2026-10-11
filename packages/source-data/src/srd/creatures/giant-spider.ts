@@ -18,8 +18,7 @@ export const giantSpider: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 4
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 26,
   hitDice: {
     count: 4,

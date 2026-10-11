@@ -17,7 +17,7 @@ export const camel: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 5
   },
-  armorClass: 9,
+  naturalArmorBonus: 0,
   hitPoints: 15,
   hitDice: {
     count: 2,

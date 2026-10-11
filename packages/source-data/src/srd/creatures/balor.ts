@@ -19,8 +19,7 @@ export const balor: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 22
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 7,
   hitPoints: 262,
   hitDice: {
     count: 21,

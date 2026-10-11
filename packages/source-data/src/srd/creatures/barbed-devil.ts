@@ -18,8 +18,7 @@ export const barbedDevil: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 14
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 110,
   hitDice: {
     count: 13,

@@ -17,8 +17,7 @@ export const giantSeaHorse: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 5
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 16,
   hitDice: {
     count: 3,

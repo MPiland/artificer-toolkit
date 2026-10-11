@@ -20,8 +20,7 @@ export const hornedDevil: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 17
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 178,
   hitDice: {
     count: 17,

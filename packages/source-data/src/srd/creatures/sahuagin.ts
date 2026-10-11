@@ -18,8 +18,7 @@ export const sahuagin: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 9
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 22,
   hitDice: {
     count: 4,

@@ -17,7 +17,7 @@ export const tiger: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 8
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 37,
   hitDice: {
     count: 5,

@@ -17,8 +17,7 @@ export const wyvern: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 6
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 110,
   hitDice: {
     count: 13,

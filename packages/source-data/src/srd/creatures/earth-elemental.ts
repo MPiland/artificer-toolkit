@@ -18,8 +18,7 @@ export const earthElemental: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 126,
   hitDice: {
     count: 12,

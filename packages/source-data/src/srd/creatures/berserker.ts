@@ -17,8 +17,7 @@ export const berserker: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 9
   },
-  armorClass: 13,
-  armorClassNote: 'hide armor',
+  naturalArmorBonus: 0,
   hitPoints: 67,
   hitDice: {
     count: 9,

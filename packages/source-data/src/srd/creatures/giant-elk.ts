@@ -19,8 +19,7 @@ export const giantElk: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 10
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 42,
   hitDice: {
     count: 5,

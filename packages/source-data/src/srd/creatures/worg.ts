@@ -18,8 +18,7 @@ export const worg: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 8
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 26,
   hitDice: {
     count: 4,

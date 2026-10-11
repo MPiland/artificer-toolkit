@@ -17,8 +17,7 @@ export const rhinoceros: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 6
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 45,
   hitDice: {
     count: 6,

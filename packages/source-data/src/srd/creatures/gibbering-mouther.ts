@@ -20,7 +20,7 @@ export const gibberingMouther: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 6
   },
-  armorClass: 9,
+  naturalArmorBonus: 0,
   hitPoints: 67,
   hitDice: {
     count: 9,

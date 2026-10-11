@@ -18,8 +18,7 @@ export const stormGiant: CreatureAuthored = {
     WISDOM: 18,
     CHARISMA: 18
   },
-  armorClass: 16,
-  armorClassNote: 'scale mail',
+  naturalArmorBonus: 0,
   hitPoints: 230,
   hitDice: {
     count: 20,

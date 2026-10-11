@@ -18,8 +18,7 @@ export const stoneGolem: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 1
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 178,
   hitDice: {
     count: 17,

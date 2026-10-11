@@ -20,8 +20,7 @@ export const druid: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 11
   },
-  armorClass: 11,
-  armorClassNote: '16 with barkskin',
+  naturalArmorBonus: 0,
   hitPoints: 27,
   hitDice: {
     count: 5,

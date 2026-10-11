@@ -17,7 +17,7 @@ export const unicorn: CreatureAuthored = {
     WISDOM: 17,
     CHARISMA: 16
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 67,
   hitDice: {
     count: 9,

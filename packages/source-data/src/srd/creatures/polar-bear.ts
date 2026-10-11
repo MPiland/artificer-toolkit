@@ -18,8 +18,7 @@ export const polarBear: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 7
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 42,
   hitDice: {
     count: 5,

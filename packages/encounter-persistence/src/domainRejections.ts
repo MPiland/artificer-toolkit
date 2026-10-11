@@ -1,4 +1,3 @@
-import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import {
   DOMAIN_REJECTION_MESSAGES,
   type DomainRejectionErrorData,
@@ -21,13 +20,6 @@ export class EncounterDomainRejection extends Error {
     this.name = 'EncounterDomainRejection'
     this.data = data
   }
-}
-
-/** Refuses a Character action built on facts that have since changed; any other error passes through. */
-export function refuseStaleCharacterAction(error: unknown): never {
-  if (error instanceof StaleCharacterActionError)
-    rejectDomain('VERSION_STALE', 'That action is no longer available; refresh and choose again.')
-  throw error
 }
 
 /** Refuses an expected Encounter command. Integrity and unexpected failures throw plain errors. */

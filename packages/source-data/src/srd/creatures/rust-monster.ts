@@ -18,8 +18,7 @@ export const rustMonster: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 6
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 27,
   hitDice: {
     count: 5,

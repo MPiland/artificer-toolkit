@@ -17,7 +17,7 @@ export const centaur: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 11
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 45,
   hitDice: {
     count: 6,

@@ -912,38 +912,35 @@ const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, nodes, d
     )
 })
 
-const ESCAPE_CHECK_DC_NODE_MAP = escapeCheckDc.define(
-  'escapeCheckDc',
-  ({ map, nodes, cond }) => {
-    const { number, selectSingle, groupObject } = nodes
-    const local = cond.local()
-    map
-      .set(
-        'kind',
-        selectSingle(['kind'], 'DC', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'FIXED', label: 'Fixed DC' },
-            { code: 'CONTEST', label: 'Contest' }
-          ]
-        })
-      )
-      .set(
-        'value',
-        number(['value'], 'Fixed DC', {
-          constraints: { minimum: 1 },
-          showIf: local.field(['kind']).eq('FIXED')
-        })
-      )
-      .set(
-        'checks',
-        groupObject(['checks'], 'Source Checks', () => CHECK_CHOICE_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('CONTEST')
-        })
-      )
-  }
-)
+const ESCAPE_CHECK_DC_NODE_MAP = escapeCheckDc.define('escapeCheckDc', ({ map, nodes, cond }) => {
+  const { number, selectSingle, groupObject } = nodes
+  const local = cond.local()
+  map
+    .set(
+      'kind',
+      selectSingle(['kind'], 'DC', {
+        kind: 'INLINE_OPTIONS',
+        options: [
+          { code: 'FIXED', label: 'Fixed DC' },
+          { code: 'CONTEST', label: 'Contest' }
+        ]
+      })
+    )
+    .set(
+      'value',
+      number(['value'], 'Fixed DC', {
+        constraints: { minimum: 1 },
+        showIf: local.field(['kind']).eq('FIXED')
+      })
+    )
+    .set(
+      'checks',
+      groupObject(['checks'], 'Source Checks', () => CHECK_CHOICE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: local.field(['kind']).eq('CONTEST')
+      })
+    )
+})
 
 const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
   'actorRelationshipModule',

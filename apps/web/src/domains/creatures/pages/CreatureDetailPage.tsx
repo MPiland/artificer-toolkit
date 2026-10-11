@@ -107,14 +107,18 @@ export function CreatureDetailPage({
   }
 
   const item = detailState.item
-  const creatureModel = buildCreatureDetailModel(item, {
-    challengeRatings: response?.meta?.challengeRatings ?? [],
-    conditionTypes: response?.meta?.conditionTypes ?? [],
-    creatureTypes: response?.meta?.creatureTypes ?? [],
-    damageTypes: response?.meta?.damageTypes ?? [],
-    equipment: response?.meta?.equipment ?? [],
-    speeds: response?.meta?.speeds ?? []
-  })
+  const creatureModel = buildCreatureDetailModel(
+    item,
+    {
+      challengeRatings: response?.meta?.challengeRatings ?? [],
+      conditionTypes: response?.meta?.conditionTypes ?? [],
+      creatureTypes: response?.meta?.creatureTypes ?? [],
+      damageTypes: response?.meta?.damageTypes ?? [],
+      equipment: response?.meta?.equipment ?? [],
+      speeds: response?.meta?.speeds ?? []
+    },
+    response?.armorClass
+  )
   const creatureParams = buildCreatureRouteParams(
     draft?.publicId ?? response?.publicId ?? creatureId,
     item.label

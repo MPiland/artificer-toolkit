@@ -17,8 +17,7 @@ export const giantGoat: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 6
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 19,
   hitDice: {
     count: 3,

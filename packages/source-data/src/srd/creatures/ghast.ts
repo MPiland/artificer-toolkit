@@ -18,7 +18,7 @@ export const ghast: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 8
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 36,
   hitDice: {
     count: 8,

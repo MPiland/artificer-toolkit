@@ -17,8 +17,7 @@ export const ettin: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 8
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 85,
   hitDice: {
     count: 10,

@@ -17,8 +17,7 @@ export const troll: CreatureAuthored = {
     WISDOM: 9,
     CHARISMA: 7
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 84,
   hitDice: {
     count: 8,

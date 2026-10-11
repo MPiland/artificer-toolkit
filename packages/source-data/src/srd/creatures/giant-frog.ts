@@ -18,7 +18,7 @@ export const giantFrog: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 18,
   hitDice: {
     count: 4,

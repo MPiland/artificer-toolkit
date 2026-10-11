@@ -68,7 +68,7 @@ import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-ru
 import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import {
   encounterActiveEffectPlan,
   prepareNativeActionEffectsPlan

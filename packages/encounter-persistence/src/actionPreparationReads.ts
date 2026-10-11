@@ -26,7 +26,8 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActionSceneInputs } from './actionSceneInputs.js'
-import { refuseStaleCharacterAction, rejectDomain } from './domainRejections.js'
+import { rejectDomain } from './domainRejections.js'
+import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import type { EncounterTurnReadTransaction } from './ports.js'

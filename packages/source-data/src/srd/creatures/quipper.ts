@@ -17,7 +17,7 @@ export const quipper: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 2
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

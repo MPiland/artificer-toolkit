@@ -16,8 +16,11 @@ import type {
   EncounterExecuteInput,
   EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
+import { shieldWoodPlus1 } from '@artificer-toolkit/source-data/srd/equipment/shield-wood-plus-1.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
+import { srdPrintedArmorClass, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
@@ -99,6 +102,22 @@ const creature = {
   ]
 }
 
+const shieldEntryId = '10000000-0000-4000-8000-000000000104'
+const shieldedCreature = {
+  ...creature,
+  equipmentLoadout: [
+    creature.equipmentLoadout[0],
+    {
+      id: shieldEntryId,
+      equipmentId: shieldWood.id,
+      quantity: 1,
+      useState: 'OFF_HAND' as const,
+      attuned: false,
+      actionFeatureIds: []
+    }
+  ]
+}
+
 function replace(input: {
   encounterId: string
   actorId: string
@@ -120,12 +139,35 @@ function replace(input: {
   }
 }
 
-async function setup() {
+// Current Equipment whose armor class modifier is not the while-equipped form a Creature can
+// evaluate, as if it had been revised after the Creature was published.
+const unevaluableShield = {
+  ...shieldWoodPlus1,
+  id: '10000000-0000-4000-8000-000000000105',
+  label: 'Unevaluable Shield',
+  modifiers: shieldWoodPlus1.modifiers?.map(
+    ({ restrictions: _restrictions, ...modifier }) => modifier
+  )
+}
+const unevaluableReason = `Equipment "${unevaluableShield.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
+
+async function seedCampaign(authored: typeof creature = creature) {
   const base = await fixture()
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
-      importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature }),
+      importedSubject({ ...authored, subjectKind: 'CREATURE', document: authored }),
+      importedSubject({
+        ...unevaluableShield,
+        subjectKind: 'EQUIPMENT',
+        document: unevaluableShield
+      }),
+      importedSubject({ ...shieldWood, subjectKind: 'EQUIPMENT', document: shieldWood }),
+      importedSubject({
+        ...shieldWoodPlus1,
+        subjectKind: 'EQUIPMENT',
+        document: shieldWoodPlus1
+      }),
       importedSubject({ ...club, subjectKind: 'EQUIPMENT', document: club }),
       importedSubject({
         ...compatibleClub,
@@ -153,15 +195,31 @@ async function setup() {
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null
   })
-  const blueprint = await base.owner.caller.mutation(createBlueprint, {
+  return { ...base, campaign }
+}
+
+function blueprintInput(
+  authored: typeof creature,
+  campaign: Awaited<ReturnType<typeof seedCampaign>>['campaign']
+) {
+  return {
     gameSystemId: campaign.gameSystemId,
     name: 'Creature equipment fixture',
     commandId: crypto.randomUUID(),
     enemies: [
-      { kind: 'CREATURE', sourceId: creature.id },
-      { kind: 'CUSTOM', label: 'Unchanged dummy', maxHitPoints: 4 }
+      { kind: 'CREATURE' as const, sourceId: authored.id },
+      { kind: 'CUSTOM' as const, label: 'Unchanged dummy', maxHitPoints: 4 }
     ]
-  })
+  }
+}
+
+async function setup(authored: typeof creature = creature) {
+  const base = await seedCampaign(authored)
+  const { campaign } = base
+  const blueprint = await base.owner.caller.mutation(
+    createBlueprint,
+    blueprintInput(authored, campaign)
+  )
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: campaign.id,
     blueprintId: blueprint.id,
@@ -437,6 +495,60 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
         { id: unchangedLoadoutEntryId, equipmentId: club.id, useState: 'OFF_HAND' }
       ]
     })
+  }, 30000)
+
+  it('recomputes the projected armor class when a +1 shield replaces the shield', async () => {
+    const { t, campaign, owner, run, creatureActor } = await setup(shieldedCreature)
+    const armorClassOf = async () => {
+      const records = await stored(t, campaign.id, run.id)
+      const state = records.actorStates.find((value) => value.id === creatureActor.id)
+      if (!state) throw new Error('Missing Creature state.')
+      return snapshotStatBlock(state)?.armorClass
+    }
+    const shieldedArmorClass = srdPrintedArmorClass(wolf) + 2
+    expect(await armorClassOf()).toBe(shieldedArmorClass)
+    await executeInRoom(
+      owner.caller,
+      replace({
+        encounterId: run.id,
+        actorId: creatureActor.id,
+        equipmentId: shieldWoodPlus1.id,
+        loadoutId: shieldEntryId
+      })
+    )
+    expect(await armorClassOf()).toBe(shieldedArmorClass + 1)
+  }, 30000)
+
+  it('refuses to admit a Creature whose current Equipment armor class cannot be evaluated', async () => {
+    const authored = {
+      ...shieldedCreature,
+      equipmentLoadout: [
+        creature.equipmentLoadout[0],
+        { ...shieldedCreature.equipmentLoadout[1], equipmentId: unevaluableShield.id }
+      ]
+    }
+    const { t, campaign, owner } = await seedCampaign(authored)
+    await expect(
+      owner.caller.mutation(createBlueprint, blueprintInput(authored, campaign))
+    ).rejects.toThrow(unevaluableReason)
+    expect(await t.run((ctx) => ctx.db.query('encounterBlueprints').take(1))).toEqual([])
+  }, 30000)
+
+  it('refuses a replacement whose armor class cannot be evaluated without writes', async () => {
+    const { t, campaign, owner, run, creatureActor } = await setup(shieldedCreature)
+    const before = await stored(t, campaign.id, run.id)
+    await expect(
+      executeInRoom(
+        owner.caller,
+        replace({
+          encounterId: run.id,
+          actorId: creatureActor.id,
+          equipmentId: unevaluableShield.id,
+          loadoutId: shieldEntryId
+        })
+      )
+    ).rejects.toThrow(RoomCommandRefusal)
+    expect(await stored(t, campaign.id, run.id)).toEqual(before)
   }, 30000)
 
   it('rejects unauthorised and unavailable Equipment replacements without writes', async () => {

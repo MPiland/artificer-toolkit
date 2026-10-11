@@ -37225,6 +37225,7 @@ export declare const api: {
         },
         {
           activeUpdatedAt: string | null;
+          armorClass?: number | null;
           draft?: {
             baseActiveUpdatedAt: string | null;
             castingTimeAmount?: number;

@@ -21,8 +21,7 @@ export const orc: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 13,
-  armorClassNote: 'hide armor',
+  naturalArmorBonus: 0,
   hitPoints: 15,
   hitDice: {
     count: 2,

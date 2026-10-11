@@ -17,8 +17,7 @@ export const veteran: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 17,
-  armorClassNote: 'splint',
+  naturalArmorBonus: 0,
   hitPoints: 58,
   hitDice: {
     count: 9,

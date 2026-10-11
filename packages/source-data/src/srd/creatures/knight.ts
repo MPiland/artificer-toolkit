@@ -20,8 +20,7 @@ export const knight: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 15
   },
-  armorClass: 18,
-  armorClassNote: 'plate',
+  naturalArmorBonus: 0,
   hitPoints: 52,
   hitDice: {
     count: 8,

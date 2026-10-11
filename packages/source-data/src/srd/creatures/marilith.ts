@@ -19,8 +19,7 @@ export const marilith: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 20
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 189,
   hitDice: {
     count: 18,

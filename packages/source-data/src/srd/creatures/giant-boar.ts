@@ -17,8 +17,7 @@ export const giantBoar: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 5
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 42,
   hitDice: {
     count: 5,

@@ -18,8 +18,7 @@ export const werebear: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 12
   },
-  armorClass: 10,
-  armorClassNote: 'in humanoid form, 11 (natural armor) in bear and hybrid form',
+  naturalArmorBonus: 0,
   hitPoints: 135,
   hitDice: {
     count: 18,

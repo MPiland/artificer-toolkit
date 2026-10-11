@@ -17,8 +17,7 @@ export const bulette: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 7,
   hitPoints: 94,
   hitDice: {
     count: 9,

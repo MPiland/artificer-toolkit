@@ -19,7 +19,7 @@ export const dustMephit: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 17,
   hitDice: {
     count: 5,

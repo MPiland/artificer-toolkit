@@ -17,8 +17,7 @@ export const hillGiant: CreatureAuthored = {
     WISDOM: 9,
     CHARISMA: 6
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 105,
   hitDice: {
     count: 10,

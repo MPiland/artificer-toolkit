@@ -17,7 +17,7 @@ export const deer: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 5
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 4,
   hitDice: {
     count: 1,

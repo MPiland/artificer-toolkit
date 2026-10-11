@@ -18,7 +18,7 @@ export const specter: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 11
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 5,

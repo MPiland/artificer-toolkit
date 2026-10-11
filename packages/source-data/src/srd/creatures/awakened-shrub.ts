@@ -17,7 +17,7 @@ export const awakenedShrub: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 6
   },
-  armorClass: 9,
+  naturalArmorBonus: 0,
   hitPoints: 10,
   hitDice: {
     count: 3,

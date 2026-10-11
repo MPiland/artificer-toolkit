@@ -79,8 +79,6 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "WISDOM": 12,
           },
           "alignmentId": "<uuid:5>",
-          "armorClass": 13,
-          "armorClassNote": "natural armor",
           "category": "BEAST",
           "challengeRatingId": "<uuid:6>",
           "conditionImmunities": [],
@@ -178,6 +176,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
           "hitPoints": 11,
           "id": "<uuid:4>",
           "label": "Wolf",
+          "naturalArmorBonus": 1,
           "passivePerception": 13,
           "proficiencies": [
             {

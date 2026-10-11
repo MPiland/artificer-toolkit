@@ -17,7 +17,7 @@ export const vulture: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 4
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 5,
   hitDice: {
     count: 1,

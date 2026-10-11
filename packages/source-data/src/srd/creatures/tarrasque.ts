@@ -20,8 +20,7 @@ export const tarrasque: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 11
   },
-  armorClass: 25,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 15,
   hitPoints: 676,
   hitDice: {
     count: 33,

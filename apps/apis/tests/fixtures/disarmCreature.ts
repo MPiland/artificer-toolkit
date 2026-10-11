@@ -1,10 +1,12 @@
 import { srdWolf as wolf } from './srdCreatures'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
+import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { toCreatureFeatureEffects } from './creatureWeaponEffects'
 
 export const disarmHeldEntryId = '10000000-0000-4000-8000-000000000201'
 export const disarmOtherEntryId = '10000000-0000-4000-8000-000000000202'
+export const disarmShieldEntryId = '10000000-0000-4000-8000-000000000204'
 
 // Pure authored records shared by transactional and real-backend Disarm proofs.
 export function createDisarmWeapon(id = '10000000-0000-4000-8000-000000000203') {
@@ -22,7 +24,7 @@ export function createDisarmWeapon(id = '10000000-0000-4000-8000-000000000203') 
   }
 }
 
-export function createDisarmCreature(weapon: typeof club, id = wolf.id) {
+export function createDisarmCreature(weapon: typeof club, id = wolf.id, withShield = false) {
   const bite = wolf.features?.find((feature) => feature.label === 'Bite')
   if (!bite) throw new Error('Missing Wolf Bite.')
   return {
@@ -63,7 +65,19 @@ export function createDisarmCreature(weapon: typeof club, id = wolf.id) {
         useState: 'CARRIED' as const,
         attuned: false,
         actionFeatureIds: []
-      }
+      },
+      ...(withShield
+        ? [
+            {
+              id: disarmShieldEntryId,
+              equipmentId: shieldWood.id,
+              quantity: 1,
+              useState: 'OFF_HAND' as const,
+              attuned: false,
+              actionFeatureIds: []
+            }
+          ]
+        : [])
     ]
   }
 }

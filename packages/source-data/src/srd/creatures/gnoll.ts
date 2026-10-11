@@ -19,8 +19,7 @@ export const gnoll: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 7
   },
-  armorClass: 15,
-  armorClassNote: 'hide armor, shield',
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 5,

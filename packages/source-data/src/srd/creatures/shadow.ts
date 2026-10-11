@@ -17,7 +17,7 @@ export const shadow: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 8
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 16,
   hitDice: {
     count: 3,

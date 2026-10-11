@@ -19,8 +19,7 @@ export const kraken: CreatureAuthored = {
     WISDOM: 18,
     CHARISMA: 20
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 472,
   hitDice: {
     count: 27,

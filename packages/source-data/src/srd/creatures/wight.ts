@@ -18,8 +18,7 @@ export const wight: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 15
   },
-  armorClass: 14,
-  armorClassNote: 'studded leather',
+  naturalArmorBonus: 0,
   hitPoints: 45,
   hitDice: {
     count: 6,

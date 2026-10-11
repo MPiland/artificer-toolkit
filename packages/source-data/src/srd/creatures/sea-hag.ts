@@ -19,8 +19,7 @@ export const seaHag: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 13
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 52,
   hitDice: {
     count: 7,

@@ -20,8 +20,7 @@ export const glabrezu: CreatureAuthored = {
     WISDOM: 17,
     CHARISMA: 16
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 157,
   hitDice: {
     count: 15,

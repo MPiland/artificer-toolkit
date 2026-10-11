@@ -18,7 +18,7 @@ export const ape: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 19,
   hitDice: {
     count: 3,

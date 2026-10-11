@@ -17,8 +17,7 @@ export const scout: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 11
   },
-  armorClass: 13,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 16,
   hitDice: {
     count: 3,

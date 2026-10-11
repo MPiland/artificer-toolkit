@@ -17,8 +17,7 @@ export const boar: CreatureAuthored = {
     WISDOM: 9,
     CHARISMA: 5
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 11,
   hitDice: {
     count: 2,

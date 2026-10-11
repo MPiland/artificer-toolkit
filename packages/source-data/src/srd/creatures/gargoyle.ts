@@ -18,8 +18,7 @@ export const gargoyle: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 7
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 52,
   hitDice: {
     count: 7,

@@ -18,8 +18,7 @@ export const waterElemental: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 8
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 114,
   hitDice: {
     count: 12,

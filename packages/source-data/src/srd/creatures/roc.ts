@@ -17,8 +17,7 @@ export const roc: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 9
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 248,
   hitDice: {
     count: 16,

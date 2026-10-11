@@ -86,8 +86,8 @@ export interface CreatureAuthored extends CreatureBaseAuthored {
   size: SizeCode
 
   abilityScores: Record<AbilityCode, number>
-  armorClass: number
-  armorClassNote?: string
+  /** Armor class added to the loadout's armor formula; the Creature's armor class is computed. */
+  naturalArmorBonus: number
   hitPoints: number
   hitDice?: DiceExpression
 

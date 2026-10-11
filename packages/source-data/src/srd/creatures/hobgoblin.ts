@@ -18,8 +18,7 @@ export const hobgoblin: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 9
   },
-  armorClass: 18,
-  armorClassNote: 'chain mail, shield',
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

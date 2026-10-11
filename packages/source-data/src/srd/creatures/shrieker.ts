@@ -18,7 +18,7 @@ export const shrieker: CreatureAuthored = {
     WISDOM: 3,
     CHARISMA: 1
   },
-  armorClass: 5,
+  naturalArmorBonus: 0,
   hitPoints: 13,
   hitDice: {
     count: 3,

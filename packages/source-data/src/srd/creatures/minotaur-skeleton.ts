@@ -19,8 +19,7 @@ export const minotaurSkeleton: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 5
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 67,
   hitDice: {
     count: 9,

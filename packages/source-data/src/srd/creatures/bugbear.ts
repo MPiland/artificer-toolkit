@@ -18,8 +18,7 @@ export const bugbear: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 9
   },
-  armorClass: 16,
-  armorClassNote: 'hide armor, shield',
+  naturalArmorBonus: 0,
   hitPoints: 27,
   hitDice: {
     count: 5,

@@ -17,8 +17,7 @@ export const nightmare: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 15
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 68,
   hitDice: {
     count: 8,

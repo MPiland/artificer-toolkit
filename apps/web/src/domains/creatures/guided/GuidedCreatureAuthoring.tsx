@@ -106,8 +106,10 @@ export const GuidedCreatureAuthoring = withForm({
         ) : null}
         {step === 1 ? (
           <div className={styles.fields}>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['armorClass'])}>
-              {(field) => <field.NumberField label='Armor Class' minimum={0} required />}
+            <form.AppField
+              name={toTypedAuthoringFieldName<object>(undefined, ['naturalArmorBonus'])}
+            >
+              {(field) => <field.NumberField label='Natural armor bonus' minimum={0} required />}
             </form.AppField>
             <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['hitPoints'])}>
               {(field) => <field.NumberField label='Hit Points' minimum={1} required />}
@@ -208,7 +210,10 @@ export const GuidedCreatureAuthoring = withForm({
           <Stack gap='md'>
             <dl className={styles.summary}>
               <Summary label='Name' value={values.label || 'Untitled Creature'} />
-              <Summary label='Armor Class' value={String(values.armorClass ?? '—')} />
+              <Summary
+                label='Natural armor bonus'
+                value={String(values.naturalArmorBonus ?? '—')}
+              />
               <Summary label='Hit Points' value={String(values.hitPoints ?? '—')} />
               <Summary label='Features and actions' value={String(values.features.length)} />
             </dl>
@@ -237,7 +242,8 @@ function readCreatureValues(values: object) {
   const count = (key: string) => (Array.isArray(record[key]) ? record[key].length : 0)
   return {
     advancedCount: count('details') + count('proficiencies'),
-    armorClass: typeof record.armorClass === 'number' ? record.armorClass : undefined,
+    naturalArmorBonus:
+      typeof record.naturalArmorBonus === 'number' ? record.naturalArmorBonus : undefined,
     features: Array.isArray(record.features) ? (record.features as FeatureDto[]) : [],
     hitPoints: typeof record.hitPoints === 'number' ? record.hitPoints : undefined,
     label: typeof record.label === 'string' ? record.label.trim() : ''

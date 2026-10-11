@@ -17,7 +17,7 @@ export const commoner: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 10
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 4,
   hitDice: {
     count: 1,

@@ -85,7 +85,7 @@ function creature(features: unknown[]) {
       WISDOM: 12,
       CHARISMA: 6
     },
-    armorClass: 13,
+    naturalArmorBonus: 1,
     hitPoints: 11,
     speeds: [],
     features

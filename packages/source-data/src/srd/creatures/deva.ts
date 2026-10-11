@@ -17,8 +17,7 @@ export const deva: CreatureAuthored = {
     WISDOM: 20,
     CHARISMA: 20
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 136,
   hitDice: {
     count: 16,

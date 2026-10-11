@@ -5,7 +5,9 @@ import {
 import { encounterCreatureEquipmentReplacementSchema } from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import {
+  assertCreatureLoadoutArmorClass,
   assertCreatureLoadoutHands,
+  parseCreatureArmorClassInputs,
   pinCreatureEquipmentSources,
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -13,6 +15,7 @@ import {
 import { assertEncounterCreatureEquipmentLoadoutCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscovery'
 import type { EncounterExecuteInput } from '@artificer-toolkit/schema/api/encounters'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { readCreatureEquipmentRecords } from './creatureEquipmentRecords.js'
 import type { EncounterPersistenceTransaction } from './ports.js'
 
 export async function replaceActorEquipment(
@@ -33,21 +36,21 @@ export async function replaceActorEquipment(
   const entry = loadout.find((candidate) => candidate.id === input.loadoutEntryId)
   if (!entry) throw new Error('Creature Equipment loadout entry was not found.')
   const currentSources = snapshotCreatureEquipmentSources(actor)
-  const authored = await ctx.ports.readEncounterSource(
-    userId,
-    actor.systemId,
-    input.equipmentId,
-    'EQUIPMENT'
-  )
+  const systemId = actor.systemId
+  const snapshot = requireSnapshotIdentity(actor)
+  const armorClassInputs = parseCreatureArmorClassInputs(snapshot.payload)
   const [source] = pinCreatureEquipmentSources({
     creature: {
-      systemId: actor.systemId,
+      systemId,
+      ...armorClassInputs,
       equipmentLoadout: [{ ...entry, equipmentId: input.equipmentId }]
     },
-    equipmentRecords: new Map([[input.equipmentId, { authored }]])
+    equipmentRecords: await readCreatureEquipmentRecords(
+      (id) => ctx.ports.readEncounterSource(userId, systemId, id, 'EQUIPMENT'),
+      [input.equipmentId]
+    )
   })
   if (!source) throw new Error('Creature Equipment source is unavailable.')
-  const snapshot = requireSnapshotIdentity(actor)
   const equipmentLoadoutOverride = loadout.map((current) =>
     current.id === entry.id ? { ...current, equipmentId: input.equipmentId } : current
   )
@@ -56,6 +59,8 @@ export async function replaceActorEquipment(
   )
   // The replacement may be two-handed, so the whole loadout's hands are checked again.
   assertCreatureLoadoutHands(equipmentLoadoutOverride, equipmentSources)
+  // The projection computes armor class strictly, so the whole new loadout must be evaluable.
+  assertCreatureLoadoutArmorClass(armorClassInputs, equipmentLoadoutOverride, equipmentSources)
   const next = encounterRunActorStateSchema.parse({
     ...actor,
     snapshot: { ...snapshot, equipmentLoadoutOverride, equipmentSources },

@@ -17,8 +17,7 @@ export const mammoth: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 6
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 126,
   hitDice: {
     count: 11,

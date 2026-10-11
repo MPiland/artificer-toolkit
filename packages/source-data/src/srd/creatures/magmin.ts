@@ -18,8 +18,7 @@ export const magmin: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 9,
   hitDice: {
     count: 2,

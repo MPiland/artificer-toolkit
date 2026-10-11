@@ -21,8 +21,7 @@ export const vrock: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 8
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 104,
   hitDice: {
     count: 11,

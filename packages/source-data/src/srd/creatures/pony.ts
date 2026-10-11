@@ -17,7 +17,7 @@ export const pony: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 7
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

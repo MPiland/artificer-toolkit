@@ -27,7 +27,9 @@ describe('ESCAPE_CHECK relationship module (D105)', () => {
 
   it('contests the escape against the source creature’s authored checks', () => {
     expect(
-      parse({ dc: { kind: 'CONTEST', checks: { skillIds: [athletics], abilityDefinitionIds: [] } } })
+      parse({
+        dc: { kind: 'CONTEST', checks: { skillIds: [athletics], abilityDefinitionIds: [] } }
+      })
     ).toBe(true)
     expect(
       parse({ dc: { kind: 'CONTEST', checks: { skillIds: [], abilityDefinitionIds: [] } } })

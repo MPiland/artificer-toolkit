@@ -198,7 +198,19 @@ Area path file map:
 - Disarm takes an item from either hand; `fromState` is the hand and undo restores it.
 - Local Convex was backed up, reset, deployed, reseeded (1057 subjects) and audited; the backup zip is deleted.
 
-**Next: AUTHORING-17 slice B (T2 + T3).** Add `naturalArmorBonus`, remove `armorClass` and `armorClassNote`, and compute Creature AC in `snapshotStatBlock` (`packages/rules-runtime/src/encounterProjection.ts`) from the effective loadout and pinned sources, sharing the combining formula with `systems/dnd5e/characterVitals.ts` (`resolveDnd5eShieldArmorClass`). A shield counts only in a hand. Also: companions load loadout Equipment (`characterRuleSnapshot.ts`); allow VARIANT Equipment in Creature loadouts (`encounterCreatureEquipmentSources.ts` rejects it today); make Cleaving use the effective AC (`nativeEncounterCleaving.ts` reads the raw stat block, `encounterCleavingFacts.ts` applies grants). Re-author every SRD Creature (shields OFF_HAND, armor WORN, the remainder as natural armor) with a source-data test that computed AC equals printed AC; non-SRD armor scraps become natural armor, noted in the decisions doc. Snapshots `encounterProjectionParity` and `encounterStoreConformance` pin AC. Web AC readers: `CreatureDetail.model.ts`, `GuidedCreatureAuthoring.tsx`, `creatureAuthoring.utils.ts`, `creature.fixtures.ts`, `authoredPreviewModel.ts`, `EncounterEnemyStatBlock.tsx`. Summon stat blocks and Vehicles keep their own `armorClass`. Slice C (T4) is the editor fields and the journey from a Creature edit to its instance's AC.
+**Done 2026-10-11 (AUTHORING-17 slice B, tasks T2 + T3):**
+
+- Creature `armorClass` and `armorClassNote` are gone; `naturalArmorBonus` is required. `resolveDnd5eCreatureArmorClass` (`packages/rules-runtime/src/systems/dnd5e/armorClass.ts`) shares `combineDnd5eArmorClass` with the Character path and returns `{ ok: true, armorClass } | { ok: false, equipmentId, reason }`. A shield counts only in a hand; armor only WORN; an ARMOR or SHIELD with no `armorClass` is a failure, not a default.
+- Callers: publication throws the reason; Encounter admission and loadout replacement refuse at pin time (`assertCreatureLoadoutArmorClass` in `encounterCreatureEquipmentSources.ts`, `actorEquipment.ts`); `snapshotStatBlock` and companions throw via `requireCreatureArmorClass` (an invariant after the pin check); the Creature detail read (`content/details.ts`) returns `armorClass: null`. Only the SRD while-equipped restriction is evaluable on a Creature.
+- Variant Equipment pins as its resolved base-shaped document; `sourceChecksum` is that payload's checksum. Companions load loadout Equipment through the plain-record `registry.creatureLoadoutEquipmentById`. Cleaving reads the effective AC.
+- All 317 SRD Creatures compute their printed AC (`creatureSrdArmorClass.test.ts`; oracle `SRD_CREATURE_STAT_BLOCKS`). Special cases are in the D107 addendum.
+- Found in validation: `schemaBoundary.test.ts` had been hiding a SPELLS-11 regression behind a stale dist (`lib/queries.ts` → `domainRejections` → `rules-runtime` `encounterErrors`); `refuseStaleCharacterAction` moved to `packages/encounter-persistence/src/staleCharacterAction.ts`. The web default-factory inventory was missing `checkChoice` and `escapeCheckDc` from ATTACK-7 slice B; both are registered.
+- `snapshotStatBlock` recomputes AC per call (~0.9 ms across the SRD set, `local-validation/a17b/perf.mjs`); memoize by `sourceFactsChecksum` only if projections get hot.
+- Local Convex data was wiped on 2026-10-11 to free memory (12 GB of old bundles and history). The deployment env vars were restored from `local.application.env` and the Worker's `.dev.vars`; `CONTENT_SNAPSHOT_TOKEN_SECRET` was freshly generated. The backend was redeployed, reseeded and audited.
+
+**Next: AUTHORING-17 slice C (T4).** Creature editor fields for loadout hands and the natural armor bonus, and the journey test from editing a Creature to its Encounter instance's AC; this closes AUTHORING-17.1 and 17.2.
+
+**Apis suite timing:** the full apis suite is 374 files run serially (`maxWorkers: 1`) and takes about 72 minutes. Never override `maxWorkers`; for focused runs pass explicit file paths, not folder filters.
 
 **Done 2026-10-11 (ATTACK-7 slice B, task T2):**
 
@@ -210,7 +222,7 @@ Area path file map:
 
 Continue the WSJF ranking: AUTHORING-17 (slices B and C) → SHEET-8 → ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
 
-**Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing.
+**Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing. In AUTHORING-17 slice B the agent again used Python and sed edit scripts, started four duplicate watcher loops polling the same output file, and overrode the apis `maxWorkers`; state "no watcher, sleep or poll commands; wait for the completion notice" explicitly.
 
 **Done 2026-10-08 (thirteenth session):**
 

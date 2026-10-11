@@ -17,8 +17,7 @@ export const giantScorpion: CreatureAuthored = {
     WISDOM: 9,
     CHARISMA: 3
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 52,
   hitDice: {
     count: 7,
@@ -98,9 +97,7 @@ export const giantScorpion: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(132, 7) + '__result',
                 resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  S.grappledOutcome(132, { localIndex: 1, escapeDc: 12, heldAtOnce: 2 })
-                ]
+                outcomes: [S.grappledOutcome(132, { localIndex: 1, escapeDc: 12, heldAtOnce: 2 })]
               }
             }
           ]

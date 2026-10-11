@@ -45,7 +45,7 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     systemId,
     tags: [],
     abilityScores: createDefaultAbilityScores(),
-    armorClass: 10,
+    naturalArmorBonus: 0,
     hitPoints: 1,
     speeds: [],
     senses: [],

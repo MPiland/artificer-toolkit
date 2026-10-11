@@ -42,7 +42,7 @@ describe('authored closed-vocabulary contracts', () => {
         creatureTypeId: 'creature-type-1',
         size: 'NOT_A_SIZE',
         abilityScores,
-        armorClass: 10,
+        naturalArmorBonus: 0,
         hitPoints: 10,
         speeds: []
       }

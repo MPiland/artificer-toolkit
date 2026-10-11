@@ -27,7 +27,7 @@ export const ownedMonsterFixture: CreatureAuthoredDto = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 13,
+  naturalArmorBonus: 2,
   hitPoints: 68,
   hitDice: { count: 7, die: 10, modifier: 21 },
   speeds: [{ speedId: 'walk', amount: 40, unit: 'FEET' }],
@@ -149,6 +149,7 @@ export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: ownedMonsterFixture.id,
   activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
+  armorClass: 13,
   item: ownedMonsterFixture,
   provenance: {
     kind: 'OWNED',
@@ -164,6 +165,7 @@ export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
 
 export const masterCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: 'master-owlbear',
+  armorClass: 13,
   activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {

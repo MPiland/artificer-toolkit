@@ -18,8 +18,7 @@ export const gynosphinx: CreatureAuthored = {
     WISDOM: 18,
     CHARISMA: 18
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 136,
   hitDice: {
     count: 16,

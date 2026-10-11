@@ -60,7 +60,13 @@ import { seedActiveInitiative } from './activeInitiative'
 import { setupCharacterRun } from './encounterCharacter'
 import { importedSubject } from './publication'
 
-import { createDisarmCreature, createDisarmWeapon, disarmHeldEntryId } from './disarmCreature'
+import {
+  createDisarmCreature,
+  createDisarmWeapon,
+  disarmHeldEntryId,
+  disarmShieldEntryId
+} from './disarmCreature'
+import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { setAutoRollDice, type FixtureRolls } from './rollPreferences'
 import {
   attachFixtureRoom,
@@ -69,7 +75,7 @@ import {
   readEncounterHistory,
   type RoomCaller
 } from './localRoomWorker'
-export { disarmHeldEntryId, disarmOtherEntryId } from './disarmCreature'
+export { disarmHeldEntryId, disarmOtherEntryId, disarmShieldEntryId } from './disarmCreature'
 export const getNativeActionChoices = makeFunctionReference<
   'query',
   GetEncounterActionChoicesInputDto,
@@ -84,7 +90,8 @@ export const getNativeOptionalActionChoices = makeFunctionReference<
 export async function nativeDisarmFixture(
   rolls: FixtureRolls = 'AUTO_ROLL',
   characterTarget = false,
-  characterSource = false
+  characterSource = false,
+  shieldTarget = false
 ) {
   if (characterTarget && characterSource)
     throw new Error('Disarm fixture requires a Creature participant.')
@@ -109,7 +116,7 @@ export async function nativeDisarmFixture(
   })
   const bite = wolf.features?.find((feature) => feature.label === 'Bite')
   if (!bite) throw new Error('Missing Wolf Bite.')
-  const creature = createDisarmCreature(weapon)
+  const creature = createDisarmCreature(weapon, undefined, shieldTarget)
   const optional = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
     (definition) => definition.document.kind === 'DISARM'
   )
@@ -140,7 +147,10 @@ export async function nativeDisarmFixture(
         ...dagger,
         subjectKind: 'EQUIPMENT',
         document: dagger
-      })
+      }),
+      ...(shieldTarget
+        ? [importedSubject({ ...shieldWood, subjectKind: 'EQUIPMENT', document: shieldWood })]
+        : [])
     ]
   })
   const blueprint = await base.owner.caller.mutation(
@@ -260,7 +270,11 @@ export async function nativeDisarmFixture(
       throw new Error('Public discovery did not offer the equipped Disarm action.')
     const definition = choices.optionalRules.find((value) => value.definitionId === optional.id)
     if (!definition) throw new Error('Public discovery did not offer Disarm.')
-    const heldItemId = characterTarget ? item.id : disarmHeldEntryId
+    const heldItemId = characterTarget
+      ? item.id
+      : shieldTarget
+        ? disarmShieldEntryId
+        : disarmHeldEntryId
     const descriptor = await ctx.runQuery(getNativeOptionalActionChoices, {
       encounterId: state.id,
       expectedVersion: state.version,
@@ -316,7 +330,7 @@ export async function nativeDisarmFixture(
     run,
     actor,
     target,
-    heldItemId: characterTarget ? item.id : disarmHeldEntryId,
+    heldItemId: characterTarget ? item.id : shieldTarget ? disarmShieldEntryId : disarmHeldEntryId,
     ...prepared
   }
 }

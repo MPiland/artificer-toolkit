@@ -19,8 +19,7 @@ export const winterWolf: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 8
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 75,
   hitDice: {
     count: 10,

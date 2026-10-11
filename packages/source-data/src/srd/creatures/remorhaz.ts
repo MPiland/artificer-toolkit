@@ -17,8 +17,7 @@ export const remorhaz: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 195,
   hitDice: {
     count: 17,

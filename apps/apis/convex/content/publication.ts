@@ -10,7 +10,7 @@ import { creaturePublicationDtoSchema } from '@artificer-toolkit/schema/subjects
 import { authoredSourceFacts } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { mutation } from '../lib/mutations'
-import { assertCreatureLoadoutHands } from './creatureLoadoutHands'
+import { assertCreatureLoadoutHands, readCreatureArmorClass } from './creatureLoadoutHands'
 import { compilePublicationDocument } from './publicationDocument'
 import {
   assertEquipmentRelationshipsIndexed,
@@ -48,6 +48,8 @@ export const publishDraft = mutation({
       if (!publishable.success)
         throw new Error(publishable.error.issues.map((issue) => issue.message).join(' '))
       await assertCreatureLoadoutHands(ctx, publishable.data, state.userId)
+      const armorClass = await readCreatureArmorClass(ctx, publishable.data, state.userId)
+      if (armorClass && !armorClass.ok) throw new Error(armorClass.reason)
     }
     if (subject.subjectKind === 'RACE' && subject.document.category === 'SUBRACE') {
       const { systemId, parentRaceId } = subject.document

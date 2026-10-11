@@ -18,7 +18,7 @@ export const magmaMephit: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 10
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 5,

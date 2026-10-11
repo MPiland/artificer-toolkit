@@ -18,7 +18,7 @@ export const swarmOfQuippers: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 2
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 28,
   hitDice: {
     count: 8,

@@ -18,8 +18,7 @@ export const swarmOfInsects: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 1
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 22,
   hitDice: {
     count: 5,

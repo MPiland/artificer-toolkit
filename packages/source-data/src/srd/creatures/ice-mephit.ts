@@ -18,7 +18,7 @@ export const iceMephit: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 12
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 21,
   hitDice: {
     count: 6,

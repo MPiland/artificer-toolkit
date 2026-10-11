@@ -17,7 +17,7 @@ export const giantHyena: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 45,
   hitDice: {
     count: 6,

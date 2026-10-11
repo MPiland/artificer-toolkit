@@ -56,7 +56,9 @@ const attackKey = (label: string, bonus: number, reach: number, damage: string) 
 
 /** The first printed hit damage in `SRD_CREATURE_ATTACK_DAMAGE`'s notation. */
 function printedDamage(paragraph: string) {
-  const damage = /Hit: (\d+)(?: \((\d+)d(\d+)(?: ([+\-−–]) (\d+))?\))? ([a-z]+) damage/.exec(paragraph)
+  const damage = /Hit: (\d+)(?: \((\d+)d(\d+)(?: ([+\-−–]) (\d+))?\))? ([a-z]+) damage/.exec(
+    paragraph
+  )
   if (!damage) return ''
   const [, flat, count, die, sign, modifier, type] = damage
   const expression = count
@@ -93,7 +95,10 @@ function walk(value: unknown, visit: (node: Record<string, unknown>) => boolean 
   }
 }
 
-const collect = (value: unknown, visit: (node: Record<string, unknown>, add: Visit) => boolean | void) => {
+const collect = (
+  value: unknown,
+  visit: (node: Record<string, unknown>, add: Visit) => boolean | void
+) => {
   const found: Record<string, unknown>[] = []
   walk(value, (node) => visit(node, (match) => found.push(match)))
   return found
@@ -136,7 +141,9 @@ const keyedAttacks = srdBaselineContent.subjects.creatures.flatMap((creature) =>
       const [firstDamage] = SRD_CREATURE_ATTACK_DAMAGE.get(effect.id) ?? []
       const damage = firstDamage ? `${firstDamage[0]} ${firstDamage[1]}` : ''
       const candidates =
-        printedAttacks.get(attackKey(source.label, bonus, effect.invocation.range.amount, damage)) ?? []
+        printedAttacks.get(
+          attackKey(source.label, bonus, effect.invocation.range.amount, damage)
+        ) ?? []
       return [
         {
           name,
@@ -178,8 +185,7 @@ function printedRider(paragraph: string) {
     .flatMap((sentence) =>
       SRD_CONDITION_TYPES.filter(
         (entry) =>
-          entry.code !== 'GRAPPLED' &&
-          new RegExp(`\\b${entry.label}\\b`, 'i').test(sentence)
+          entry.code !== 'GRAPPLED' && new RegExp(`\\b${entry.label}\\b`, 'i').test(sentence)
       ).map((entry) => entry.code)
     )
   return {
@@ -213,7 +219,9 @@ describe('SRD Creature grapple riders (D105)', () => {
     )
 
     expect(riders).toHaveLength(27)
-    expect(riders.filter(({ printed, authored }) => JSON.stringify(printed) !== JSON.stringify(authored))).toEqual([])
+    expect(
+      riders.filter(({ printed, authored }) => JSON.stringify(printed) !== JSON.stringify(authored))
+    ).toEqual([])
   })
 
   it('authors an Actor Relationship for every attack that prints "grappled (escape DC"', () => {
@@ -251,7 +259,10 @@ describe('SRD Creature grapple riders (D105)', () => {
     expect(held.filter(({ heldAtOnce, expected }) => heldAtOnce !== expected)).toEqual([])
     expect(
       [...HELD_AT_ONCE.keys()].filter(
-        (key) => !authoredAttacks.some(({ name, relationships }) => name === key && relationships.length > 0)
+        (key) =>
+          !authoredAttacks.some(
+            ({ name, relationships }) => name === key && relationships.length > 0
+          )
       )
     ).toEqual([])
   })

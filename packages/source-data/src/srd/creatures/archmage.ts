@@ -17,8 +17,7 @@ export const archmage: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 16
   },
-  armorClass: 12,
-  armorClassNote: '15 with mage armor',
+  naturalArmorBonus: 0,
   hitPoints: 99,
   hitDice: {
     count: 18,

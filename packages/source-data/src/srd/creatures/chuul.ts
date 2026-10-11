@@ -19,8 +19,7 @@ export const chuul: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 5
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 93,
   hitDice: {
     count: 11,

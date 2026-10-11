@@ -19,8 +19,7 @@ export const salamander: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 12
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 90,
   hitDice: {
     count: 12,

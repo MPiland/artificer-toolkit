@@ -17,8 +17,7 @@ export const blackBear: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 19,
   hitDice: {
     count: 3,

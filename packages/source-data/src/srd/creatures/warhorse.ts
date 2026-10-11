@@ -17,7 +17,7 @@ export const warhorse: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 19,
   hitDice: {
     count: 3,

@@ -18,8 +18,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 13
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 22,
   hitDice: {
     count: 4,

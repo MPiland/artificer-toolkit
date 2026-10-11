@@ -10,6 +10,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { compileInstalledCreatureRuleFacts } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { pinCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
+import { readCreatureEquipmentRecords } from './creatureEquipmentRecords.js'
 import type { EncounterAuthoredSource } from './ports.js'
 
 export async function buildEncounterBlueprintEnemies({
@@ -38,11 +39,13 @@ export async function buildEncounterBlueprintEnemies({
       damageImmunities: parsed.damageImmunities ?? [],
       conditionImmunities: parsed.conditionImmunities ?? []
     } as CreatureAuthored
-    const equipment = new Map<string, { authored: EncounterAuthoredSource }>()
-    for (const id of new Set((creature.equipmentLoadout ?? []).map((entry) => entry.equipmentId))) {
-      equipment.set(id, { authored: await readSource(id, 'EQUIPMENT') })
-    }
-    const equipmentSources = pinCreatureEquipmentSources({ creature, equipmentRecords: equipment })
+    const equipmentSources = pinCreatureEquipmentSources({
+      creature,
+      equipmentRecords: await readCreatureEquipmentRecords(
+        (id) => readSource(id, 'EQUIPMENT'),
+        (creature.equipmentLoadout ?? []).map((entry) => entry.equipmentId)
+      )
+    })
     const maxHitPoints = Math.max(creature.hitPoints, 0)
     enemies.push({
       kind: 'CREATURE',

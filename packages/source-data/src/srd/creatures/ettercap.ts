@@ -18,8 +18,7 @@ export const ettercap: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 8
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 44,
   hitDice: {
     count: 8,

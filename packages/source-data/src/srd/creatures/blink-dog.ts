@@ -17,7 +17,7 @@ export const blinkDog: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 11
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 4,

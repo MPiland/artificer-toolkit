@@ -17,9 +17,14 @@ import {
   compileClass,
   compileFeat,
   compileRace,
-  compileResolvedEquipment
+  compileResolvedEquipment,
+  type ResolvedEquipment
 } from '@artificer-toolkit/shared/subjects/compilers'
 import { compileFeature } from '@artificer-toolkit/shared/compilers'
+import {
+  requireCreatureArmorClass,
+  resolveDnd5eCreatureArmorClass
+} from '../systems/dnd5e/armorClass.js'
 import {
   createCharacterDefinitionSourceInstanceId,
   createCharacterSpellSourceKey,
@@ -247,7 +252,8 @@ function assembleSpellSources(
 
 function assembleCompanions(
   character: CharacterAuthored,
-  creaturesById: ReadonlyMap<string, CreatureAuthored> | undefined
+  creaturesById: ReadonlyMap<string, CreatureAuthored> | undefined,
+  loadoutEquipmentById: Readonly<Record<string, ResolvedEquipment>> | undefined
 ): NonNullable<CharacterBuildSnapshot['companions']> {
   if (!creaturesById) return []
   return (character.state.creatures ?? []).flatMap((instance) => {
@@ -258,7 +264,22 @@ function assembleCompanions(
         companionInstanceId: instance.id,
         creatureId: creature.id,
         abilityScores: { ...creature.abilityScores },
-        armorClass: creature.armorClass,
+        armorClass: requireCreatureArmorClass(
+          resolveDnd5eCreatureArmorClass({
+            dexterityScore: creature.abilityScores.DEXTERITY,
+            naturalArmorBonus: creature.naturalArmorBonus,
+            equipment: (creature.equipmentLoadout ?? []).map((entry) => {
+              const equipment = loadoutEquipmentById?.[entry.equipmentId]
+              if (!equipment)
+                throw new Error('A companion Creature loadout Equipment is unavailable.')
+              return {
+                id: entry.id,
+                useState: entry.useState,
+                compiled: compileResolvedEquipment(equipment)
+              }
+            })
+          })
+        ),
         maxHitPoints: creature.hitPoints,
         size: creature.size,
         alignmentId: creature.alignmentId,
@@ -341,7 +362,11 @@ export function assembleCharacterRuleSnapshot(
           ...companion,
           abilityScores: { ...companion.abilityScores }
         }))
-      : assembleCompanions(character, input.creaturesById),
+      : assembleCompanions(
+          character,
+          input.creaturesById,
+          context.registry.creatureLoadoutEquipmentById
+        ),
     adjustments: (input.adjustments ?? []).map(toCharacterMechanicalAdjustment),
     movementDisplayPreference: input.movementDisplayPreference ?? {
       mode: 'AUTO'

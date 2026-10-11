@@ -17,7 +17,7 @@ export const zombie: CreatureAuthored = {
     WISDOM: 6,
     CHARISMA: 5
   },
-  armorClass: 8,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 3,

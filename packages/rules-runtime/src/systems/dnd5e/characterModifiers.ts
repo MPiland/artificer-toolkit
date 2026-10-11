@@ -4,7 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { abilityModifier } from './abilityModifier.js'
+import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
 import {
   canonicalCharacterAbility,
   characterPolicyNumber,
@@ -141,14 +141,7 @@ export function evaluateDnd5eCharacterModifiers(
           const payload = characterPolicyRecord(characterPolicyRecord(contribution.grant).payload)
           const resolvedValue =
             group.modifierKind === 'ABILITY_MODIFIER_BONUS'
-              ? Math.max(
-                  characterPolicyNumber(payload.min ?? -999),
-                  Math.min(
-                    characterPolicyNumber(payload.max ?? 999),
-                    abilityModifierOf(payload.ability) *
-                      characterPolicyNumber(payload.multiplier ?? 1)
-                  )
-                )
+              ? resolveAbilityModifierBonus(abilityModifierOf(payload.ability), payload)
               : Array.isArray(payload.abilities) && payload.abilities.length > 0
                 ? Math.max(...payload.abilities.map(abilityModifierOf))
                 : 0

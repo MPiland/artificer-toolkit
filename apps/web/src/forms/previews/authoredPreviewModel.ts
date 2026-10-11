@@ -166,7 +166,7 @@ function createDomainSections(
           ['Type', labelForVocabularyId(system, 'creatureTypes', readString(values.creatureTypeId))]
         ]),
         createFactsSection('creature-facts', 'Stat Block', [
-          ['AC', readNumber(values.armorClass)],
+          ['Natural Armor Bonus', readNumber(values.naturalArmorBonus)],
           ['HP', formatHitPoints(values)],
           [
             'CR',

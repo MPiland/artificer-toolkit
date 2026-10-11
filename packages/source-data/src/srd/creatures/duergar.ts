@@ -99,8 +99,7 @@ export const duergar: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 9
   },
-  armorClass: 16,
-  armorClassNote: 'scale mail, shield',
+  naturalArmorBonus: 0,
   hitPoints: 26,
   hitDice: {
     count: 4,

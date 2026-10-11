@@ -21,7 +21,7 @@ export const weretiger: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 11
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 120,
   hitDice: {
     count: 16,

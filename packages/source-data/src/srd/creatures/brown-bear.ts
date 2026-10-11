@@ -17,8 +17,7 @@ export const brownBear: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 7
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 34,
   hitDice: {
     count: 4,

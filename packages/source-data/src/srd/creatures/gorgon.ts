@@ -19,8 +19,7 @@ export const gorgon: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 9,
   hitPoints: 114,
   hitDice: {
     count: 12,

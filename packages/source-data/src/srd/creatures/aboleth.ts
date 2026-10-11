@@ -21,8 +21,7 @@ export const aboleth: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 18
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 135,
   hitDice: {
     count: 18,

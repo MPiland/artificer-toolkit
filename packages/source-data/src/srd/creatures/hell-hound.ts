@@ -18,8 +18,7 @@ export const hellHound: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 6
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 45,
   hitDice: {
     count: 7,

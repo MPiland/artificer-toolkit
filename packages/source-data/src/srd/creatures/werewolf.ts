@@ -18,8 +18,7 @@ export const werewolf: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 11,
-  armorClassNote: 'in humanoid form, 12 (natural armor) in wolf or hybrid form',
+  naturalArmorBonus: 0,
   hitPoints: 58,
   hitDice: {
     count: 9,

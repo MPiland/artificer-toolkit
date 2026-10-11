@@ -19,8 +19,7 @@ export const shamblingMound: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 136,
   hitDice: {
     count: 16,

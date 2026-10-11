@@ -17,8 +17,7 @@ export const giantShark: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 126,
   hitDice: {
     count: 11,

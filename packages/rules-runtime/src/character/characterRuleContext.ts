@@ -18,6 +18,8 @@ export interface CharacterRuleRegistry {
     string,
     { equipment: ResolvedEquipment; versionId: string }
   >
+  /** Resolved Equipment of the companion Creatures' loadouts, by Equipment id. */
+  creatureLoadoutEquipmentById?: Readonly<Record<string, ResolvedEquipment>>
   feats?: readonly FeatAuthored[]
   features: readonly FeatureAuthored[]
   system: Pick<NonNullable<CharacterAssemblyRegistry['system']>, 'skills' | 'speeds'> | null

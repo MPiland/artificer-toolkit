@@ -21,7 +21,12 @@ import type {
 import { creatureQualifiedDamageDefenseDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
+import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
+import {
+  requireCreatureArmorClass,
+  resolveDnd5eCreatureArmorClass
+} from './systems/dnd5e/armorClass.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
@@ -97,12 +102,27 @@ export function snapshotStatBlock(actor: EncounterProjectionActorInput) {
         )
       )
     : null
+  const dexterityScore = abilities?.DEXTERITY
+  const naturalArmorBonus = payload.naturalArmorBonus
   return {
+    // A Creature's armor class is computed from its effective loadout, so replacing or losing
+    // armor or a shield in an Encounter changes it (D107).
     armorClass:
-      typeof payload.armorClass === 'number' &&
-      Number.isInteger(payload.armorClass) &&
-      payload.armorClass >= 0
-        ? payload.armorClass
+      dexterityScore !== undefined &&
+      typeof naturalArmorBonus === 'number' &&
+      Number.isInteger(naturalArmorBonus) &&
+      naturalArmorBonus >= 0
+        ? requireCreatureArmorClass(
+            resolveDnd5eCreatureArmorClass({
+              dexterityScore,
+              naturalArmorBonus,
+              equipment: snapshotCreatureEquipmentItems(actor).map(({ entry, source }) => ({
+                id: entry.id,
+                useState: entry.useState,
+                compiled: source.compiled
+              }))
+            })
+          )
         : null,
     abilityScores: abilities,
     speeds: Array.isArray(payload.speeds) ? payload.speeds : [],

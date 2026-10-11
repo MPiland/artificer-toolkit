@@ -18,7 +18,7 @@ export const swarmOfPoisonousSnakes: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 14,
+  naturalArmorBonus: 0,
   hitPoints: 36,
   hitDice: {
     count: 8,

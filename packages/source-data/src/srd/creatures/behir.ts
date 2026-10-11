@@ -19,8 +19,7 @@ export const behir: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 12
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 168,
   hitDice: {
     count: 16,

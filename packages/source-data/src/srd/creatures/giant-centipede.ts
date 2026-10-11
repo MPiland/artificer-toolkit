@@ -17,8 +17,7 @@ export const giantCentipede: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 3
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 4,
   hitDice: {
     count: 1,

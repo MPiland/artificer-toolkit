@@ -20,9 +20,9 @@ import {
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
-import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import {
   buildEncounterCleavingCandidate,
+  cleavingTargetArmorClass,
   nativeCleavingSourceCurrentness,
   retainedCleavingDamage,
   type CleavingContext
@@ -122,12 +122,8 @@ async function readNativeLiveCleavingCandidates(
             eligible.map(async (binding) => {
               const target = targets.get(binding.actorId)
               if (!target || target.actor.kind === 'CUSTOM') return null
-              const armorClass =
-                target.actor.kind === 'CHARACTER'
-                  ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
-                  : snapshotStatBlock(target.actor)?.armorClass
               if (
-                armorClass == null ||
+                cleavingTargetArmorClass(target) == null ||
                 (target.actor.kind === 'CREATURE' && target.actor.sourceRevision === null)
               )
                 return null

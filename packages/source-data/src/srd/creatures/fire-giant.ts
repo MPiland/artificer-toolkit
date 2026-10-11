@@ -17,8 +17,7 @@ export const fireGiant: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 13
   },
-  armorClass: 18,
-  armorClassNote: 'plate',
+  naturalArmorBonus: 0,
   hitPoints: 162,
   hitDice: {
     count: 13,

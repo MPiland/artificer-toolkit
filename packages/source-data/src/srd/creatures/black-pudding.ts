@@ -17,7 +17,7 @@ export const blackPudding: CreatureAuthored = {
     WISDOM: 6,
     CHARISMA: 1
   },
-  armorClass: 7,
+  naturalArmorBonus: 0,
   hitPoints: 85,
   hitDice: {
     count: 10,

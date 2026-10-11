@@ -18,7 +18,7 @@ export const giantOctopus: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 4
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 52,
   hitDice: {
     count: 8,

@@ -17,7 +17,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
+import { srdPrintedArmorClass, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject } from '../../tests/fixtures/publication'
@@ -105,7 +105,7 @@ describe('native Encounter Run creation', () => {
     expect(actor).toMatchObject({
       sourceId: wolf.id,
       currentHitPoints: wolf.hitPoints,
-      statBlock: { armorClass: wolf.armorClass }
+      statBlock: { armorClass: srdPrintedArmorClass(wolf) }
     })
     expect(actor?.features.map((feature) => feature.id)).toEqual(
       wolf.features?.map((feature) => feature.id) ?? []

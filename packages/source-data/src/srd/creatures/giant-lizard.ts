@@ -17,8 +17,7 @@ export const giantLizard: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 19,
   hitDice: {
     count: 3,

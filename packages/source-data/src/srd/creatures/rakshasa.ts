@@ -18,8 +18,7 @@ export const rakshasa: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 20
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 110,
   hitDice: {
     count: 13,

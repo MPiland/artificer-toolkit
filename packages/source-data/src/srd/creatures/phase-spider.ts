@@ -17,8 +17,7 @@ export const phaseSpider: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 6
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 32,
   hitDice: {
     count: 5,

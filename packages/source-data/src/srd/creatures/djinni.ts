@@ -19,8 +19,7 @@ export const djinni: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 20
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 161,
   hitDice: {
     count: 14,

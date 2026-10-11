@@ -20,8 +20,7 @@ export const boneDevil: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 16
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 142,
   hitDice: {
     count: 15,

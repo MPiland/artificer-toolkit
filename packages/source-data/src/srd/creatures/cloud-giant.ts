@@ -17,8 +17,7 @@ export const cloudGiant: CreatureAuthored = {
     WISDOM: 16,
     CHARISMA: 16
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 200,
   hitDice: {
     count: 16,

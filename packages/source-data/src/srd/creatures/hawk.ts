@@ -17,7 +17,7 @@ export const hawk: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 6
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

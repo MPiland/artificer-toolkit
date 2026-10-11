@@ -19,8 +19,7 @@ export const beardedDevil: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 11
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 52,
   hitDice: {
     count: 8,

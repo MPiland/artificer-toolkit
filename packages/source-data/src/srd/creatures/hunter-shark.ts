@@ -17,8 +17,7 @@ export const hunterShark: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 4
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 45,
   hitDice: {
     count: 6,

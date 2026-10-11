@@ -64,6 +64,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
           scalingKind: 'NONE'
         }
       }
+    case 'checkChoice':
+      return { skillIds: [], abilityDefinitionIds: [] }
+    case 'escapeCheckDc':
+      return { kind: 'FIXED', value: 10 }
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':

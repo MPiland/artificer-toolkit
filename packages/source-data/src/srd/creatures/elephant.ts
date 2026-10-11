@@ -17,8 +17,7 @@ export const elephant: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 6
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 3,
   hitPoints: 76,
   hitDice: {
     count: 8,

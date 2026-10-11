@@ -9,9 +9,44 @@ import {
   isHandSlot,
   resolveHandOccupancy
 } from '@artificer-toolkit/shared/core'
+import { compileResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
+import { resolveDnd5eCreatureArmorClass } from '@artificer-toolkit/rules-runtime/systems/dnd5e/armorClass'
 import type { QueryCtx } from '../_generated/server'
 import { canReadAuthoredRoot, readPublishedRootDocument } from './documents'
 import { compileCurrentEquipment } from './equipmentRelationships'
+
+/** The current effective Equipment of each readable loadout entry, by Equipment id. */
+async function readLoadoutEquipment(
+  ctx: QueryCtx,
+  entries: readonly { equipmentId: string }[],
+  userId: string | null
+) {
+  const effectiveByEquipmentId = new Map<
+    string,
+    Awaited<ReturnType<typeof compileCurrentEquipment>>['effective']
+  >()
+  for (const { equipmentId } of entries) {
+    if (effectiveByEquipmentId.has(equipmentId)) continue
+    const root = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (q) => q.eq('id', equipmentId))
+      .unique()
+    if (
+      !root ||
+      root.subjectKind !== 'EQUIPMENT' ||
+      !(await canReadAuthoredRoot(ctx, root, userId))
+    )
+      continue
+    const stored: EquipmentAuthoredDto = equipmentAuthoredDtoSchema.parse(
+      (await readPublishedRootDocument(ctx, root)).document
+    )
+    effectiveByEquipmentId.set(
+      equipmentId,
+      (await compileCurrentEquipment(ctx, stored, userId)).effective
+    )
+  }
+  return effectiveByEquipmentId
+}
 
 /**
  * Refuses a Creature loadout whose hands cannot hold its items. Only Equipment documents know
@@ -26,34 +61,40 @@ export async function assertCreatureLoadoutHands(
     isHandSlot(entry.useState)
   )
   if (handEntries.length === 0) return
-  const twoHandedByEquipmentId = new Map<string, boolean>()
-  for (const { equipmentId } of handEntries) {
-    if (twoHandedByEquipmentId.has(equipmentId)) continue
-    const root = await ctx.db
-      .query('authoredRoots')
-      .withIndex('by_publicId', (q) => q.eq('id', equipmentId))
-      .unique()
-    if (
-      !root ||
-      root.subjectKind !== 'EQUIPMENT' ||
-      !(await canReadAuthoredRoot(ctx, root, userId))
-    )
-      throw new Error('Readable Equipment is required for every held loadout entry.')
-    const stored: EquipmentAuthoredDto = equipmentAuthoredDtoSchema.parse(
-      (await readPublishedRootDocument(ctx, root)).document
-    )
-    const { effective } = await compileCurrentEquipment(ctx, stored, userId)
-    twoHandedByEquipmentId.set(
-      equipmentId,
-      effective.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
-    )
-  }
+  const equipment = await readLoadoutEquipment(ctx, handEntries, userId)
+  if (handEntries.some((entry) => !equipment.has(entry.equipmentId)))
+    throw new Error('Readable Equipment is required for every held loadout entry.')
   const [conflict] = resolveHandOccupancy(
     handEntries.map((entry) => ({
       id: entry.id,
       slot: entry.useState,
-      twoHanded: twoHandedByEquipmentId.get(entry.equipmentId) === true
+      twoHanded: equipment
+        .get(entry.equipmentId)!
+        .properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
     }))
   ).conflicts
   if (conflict) throw new Error(HAND_CONFLICT_MESSAGE[conflict.code])
+}
+
+/**
+ * A Creature's computed armor class (D107), or null while a loadout item is unreadable. Equipment
+ * a Creature cannot evaluate comes back as a failure result; the caller decides what it means.
+ */
+export async function readCreatureArmorClass(
+  ctx: QueryCtx,
+  creature: Pick<CreatureAuthoredDto, 'abilityScores' | 'equipmentLoadout' | 'naturalArmorBonus'>,
+  userId: string | null
+) {
+  const entries = creature.equipmentLoadout ?? []
+  const equipment = await readLoadoutEquipment(ctx, entries, userId)
+  if (entries.some((entry) => !equipment.has(entry.equipmentId))) return null
+  return resolveDnd5eCreatureArmorClass({
+    dexterityScore: creature.abilityScores.DEXTERITY,
+    naturalArmorBonus: creature.naturalArmorBonus,
+    equipment: entries.map((entry) => ({
+      id: entry.id,
+      useState: entry.useState,
+      compiled: compileResolvedEquipment(equipment.get(entry.equipmentId)!)
+    }))
+  })
 }

@@ -20,7 +20,7 @@ export const willOWisp: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 11
   },
-  armorClass: 19,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 9,

@@ -17,7 +17,7 @@ export const elk: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 6
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 13,
   hitDice: {
     count: 2,

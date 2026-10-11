@@ -21,8 +21,7 @@ export const goblin: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 8
   },
-  armorClass: 15,
-  armorClassNote: 'leather armor, shield',
+  naturalArmorBonus: 0,
   hitPoints: 7,
   hitDice: {
     count: 2,

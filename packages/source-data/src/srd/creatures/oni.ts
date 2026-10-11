@@ -17,8 +17,7 @@ export const oni: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 15
   },
-  armorClass: 16,
-  armorClassNote: 'chain mail',
+  naturalArmorBonus: 0,
   hitPoints: 110,
   hitDice: {
     count: 13,

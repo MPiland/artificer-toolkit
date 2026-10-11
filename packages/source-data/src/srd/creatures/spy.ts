@@ -18,7 +18,7 @@ export const spy: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 16
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 27,
   hitDice: {
     count: 6,

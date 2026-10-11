@@ -17,7 +17,7 @@ export const baboon: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 6
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 3,
   hitDice: {
     count: 1,

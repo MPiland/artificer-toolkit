@@ -22,8 +22,7 @@ export const chainDevil: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 14
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 85,
   hitDice: {
     count: 10,

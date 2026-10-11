@@ -17,7 +17,7 @@ export const ridingHorse: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 7
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 13,
   hitDice: {
     count: 2,

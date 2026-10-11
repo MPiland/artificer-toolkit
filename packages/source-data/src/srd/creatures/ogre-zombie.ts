@@ -17,7 +17,7 @@ export const ogreZombie: CreatureAuthored = {
     WISDOM: 6,
     CHARISMA: 5
   },
-  armorClass: 8,
+  naturalArmorBonus: 0,
   hitPoints: 85,
   hitDice: {
     count: 9,

@@ -18,7 +18,7 @@ export const violetFungus: CreatureAuthored = {
     WISDOM: 3,
     CHARISMA: 1
   },
-  armorClass: 5,
+  naturalArmorBonus: 0,
   hitPoints: 18,
   hitDice: {
     count: 4,

@@ -6,6 +6,7 @@ import type {
 
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 
+import { combineDnd5eArmorClass } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import {
@@ -93,17 +94,6 @@ export function evaluateDnd5eCharacterVitals(
       entry.modifierKind === 'OPTIONAL_ABILITY_MODIFIER_BONUS') &&
     entry.contribution.source.kind === 'EQUIPMENT_INSTANCE' &&
     entry.contribution.source.itemInstanceId === armor.itemInstanceId
-  const standardBase =
-    armor === undefined
-      ? 10 + modifierAt(input.armorClassFacts?.dexterityAbilityIndex)
-      : applicable
-          .filter((entry) => isArmorFormulaPart(entry) && entry.contribution.state === 'APPLIED')
-          .reduce((sum, entry) => sum + entry.contribution.value, armor.armorClass ?? 10)
-  const armorBase =
-    applicable
-      .filter((entry) => entry.modifierKind === 'SET_VALUE')
-      .reduce((best, entry) => Math.max(best, entry.contribution.value), standardBase) +
-    (shield?.armorClass ?? 0)
   const additive = applicable
     .filter((entry) => entry.modifierKind !== 'SET_VALUE' && !isArmorFormulaPart(entry))
     .map(({ contribution }) => ({
@@ -113,13 +103,30 @@ export function evaluateDnd5eCharacterVitals(
       state: contribution.state,
       reasonCode: contribution.reasonCode
     }))
+  const combined = combineDnd5eArmorClass({
+    armor:
+      armor === undefined
+        ? null
+        : {
+            armorClass: armor.armorClass ?? 10,
+            abilityBonuses: applicable
+              .filter(
+                (entry) => isArmorFormulaPart(entry) && entry.contribution.state === 'APPLIED'
+              )
+              .map((entry) => entry.contribution.value)
+          },
+    dexterityModifier: modifierAt(input.armorClassFacts?.dexterityAbilityIndex),
+    setValues: applicable
+      .filter((entry) => entry.modifierKind === 'SET_VALUE')
+      .map((entry) => entry.contribution.value),
+    shield: shield?.armorClass ?? 0,
+    additive: additive
+      .filter((contribution) => contribution.state === 'APPLIED')
+      .map((contribution) => contribution.value)
+  })
   const armorClass: CharacterRulePolicyOutput['derivedStats']['armorClass'] = {
-    base: armorBase,
-    effective:
-      armorBase +
-      additive
-        .filter((contribution) => contribution.state === 'APPLIED')
-        .reduce((sum, contribution) => sum + contribution.value, 0),
+    base: combined.base,
+    effective: combined.effective,
     contributions: additive,
     override: null
   }

@@ -17,8 +17,7 @@ export const manticore: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 8
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 68,
   hitDice: {
     count: 8,

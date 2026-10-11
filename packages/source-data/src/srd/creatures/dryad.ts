@@ -19,8 +19,7 @@ export const dryad: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 18
   },
-  armorClass: 11,
-  armorClassNote: '16 with barkskin',
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 5,

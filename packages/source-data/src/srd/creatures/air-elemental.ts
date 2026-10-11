@@ -21,7 +21,7 @@ export const airElemental: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 6
   },
-  armorClass: 15,
+  naturalArmorBonus: 0,
   hitPoints: 90,
   hitDice: {
     count: 12,

@@ -17,8 +17,7 @@ export const crocodile: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 19,
   hitDice: {
     count: 3,

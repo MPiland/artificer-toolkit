@@ -18,8 +18,7 @@ export const lamia: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 16
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 97,
   hitDice: {
     count: 13,

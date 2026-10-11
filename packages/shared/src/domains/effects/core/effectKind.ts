@@ -161,7 +161,8 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
   [EFFECT_KIND.ACTOR_RELATIONSHIP]: {
     code: EFFECT_KIND.ACTOR_RELATIONSHIP,
     label: 'Grappled',
-    tooltip: 'Grapples the target: how it escapes, the largest target, conditions until the grapple ends and how many it holds at once.',
+    tooltip:
+      'Grapples the target: how it escapes, the largest target, conditions until the grapple ends and how many it holds at once.',
     description:
       'Persists the grapple as one target-owned active effect, held by the source and counted per outcome against Held at Once.'
   },

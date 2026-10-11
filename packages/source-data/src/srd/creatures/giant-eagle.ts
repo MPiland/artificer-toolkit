@@ -18,7 +18,7 @@ export const giantEagle: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 10
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 26,
   hitDice: {
     count: 4,

@@ -18,8 +18,7 @@ export const thug: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 11
   },
-  armorClass: 11,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 32,
   hitDice: {
     count: 5,

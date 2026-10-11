@@ -18,7 +18,7 @@ export const invisibleStalker: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 11
   },
-  armorClass: 14,
+  naturalArmorBonus: 0,
   hitPoints: 104,
   hitDice: {
     count: 16,

@@ -17,8 +17,7 @@ export const cultFanatic: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 14
   },
-  armorClass: 13,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 33,
   hitDice: {
     count: 6,

@@ -17,7 +17,7 @@ export const eagle: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 7
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 3,
   hitDice: {
     count: 1,

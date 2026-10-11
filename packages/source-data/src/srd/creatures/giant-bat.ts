@@ -17,7 +17,7 @@ export const giantBat: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 6
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 4,

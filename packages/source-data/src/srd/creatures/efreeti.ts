@@ -18,8 +18,7 @@ export const efreeti: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 16
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 6,
   hitPoints: 200,
   hitDice: {
     count: 16,

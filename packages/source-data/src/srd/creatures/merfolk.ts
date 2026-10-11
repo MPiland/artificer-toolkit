@@ -18,7 +18,7 @@ export const merfolk: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 12
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

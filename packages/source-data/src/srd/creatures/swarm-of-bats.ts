@@ -18,7 +18,7 @@ export const swarmOfBats: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 4
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 5,

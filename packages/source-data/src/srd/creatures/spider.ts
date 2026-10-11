@@ -17,7 +17,7 @@ export const spider: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 2
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

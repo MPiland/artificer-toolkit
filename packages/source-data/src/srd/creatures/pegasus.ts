@@ -17,7 +17,7 @@ export const pegasus: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 13
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 59,
   hitDice: {
     count: 7,

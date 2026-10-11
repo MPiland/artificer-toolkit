@@ -277,19 +277,22 @@ const detailResponseExtrasDtoSchema = <TSchema extends z.ZodMiniType>(metaSchema
 
 type AuthoredDetailResponseDtoSchema<
   TItemSchema extends z.ZodMiniType,
-  TMetaSchema extends z.ZodMiniType
+  TMetaSchema extends z.ZodMiniType,
+  TExtraShape extends z.core.$ZodShape = Record<never, never>
 > = z.ZodMiniNullable<
-  z.ZodMiniObject<{
-    item: z.ZodMiniNullable<TItemSchema>
-    publicId: z.ZodMiniString
-    activeUpdatedAt: z.ZodMiniNullable<z.ZodMiniString>
-    hasDraft: z.ZodMiniBoolean
-    provenance: typeof authoredContentProvenanceDtoSchema
-    permissions: typeof authoredContentPermissionsDtoSchema
-    draft: z.ZodMiniOptional<z.ZodMiniNullable<typeof authoredDraftDtoSchema>>
-    meta: z.ZodMiniOptional<TMetaSchema>
-    validationIssues: z.ZodMiniOptional<z.ZodMiniArray<typeof authoredValidationIssueDtoSchema>>
-  }>
+  z.ZodMiniObject<
+    {
+      item: z.ZodMiniNullable<TItemSchema>
+      publicId: z.ZodMiniString
+      activeUpdatedAt: z.ZodMiniNullable<z.ZodMiniString>
+      hasDraft: z.ZodMiniBoolean
+      provenance: typeof authoredContentProvenanceDtoSchema
+      permissions: typeof authoredContentPermissionsDtoSchema
+      draft: z.ZodMiniOptional<z.ZodMiniNullable<typeof authoredDraftDtoSchema>>
+      meta: z.ZodMiniOptional<TMetaSchema>
+      validationIssues: z.ZodMiniOptional<z.ZodMiniArray<typeof authoredValidationIssueDtoSchema>>
+    } & TExtraShape
+  >
 >
 
 export const emptyDetailMetaDtoSchema = lazySchema(() => z.object({}))
@@ -411,13 +414,21 @@ export const spellResponseDtoSchema: AuthoredDetailResponseDtoSchema<
     detailResponseExtrasDtoSchema(spellDetailMetaDtoSchema)
   )
 )
+/** A Creature's armor class is computed from its loadout Equipment; null while an item is unreadable. */
+const creatureComputedArmorClassDtoSchema = lazySchema(() =>
+  z.optional(z.nullable(z.number().check(z.int())))
+)
+
 export const creatureResponseDtoSchema: AuthoredDetailResponseDtoSchema<
   typeof creatureAuthoredDtoSchema,
-  typeof creatureDetailMetaDtoSchema
+  typeof creatureDetailMetaDtoSchema,
+  { armorClass: typeof creatureComputedArmorClassDtoSchema }
 > = lazySchema(() =>
   authoredResourceResponseDtoSchema(
     creatureAuthoredDtoSchema,
-    detailResponseExtrasDtoSchema(creatureDetailMetaDtoSchema)
+    z.extend(detailResponseExtrasDtoSchema(creatureDetailMetaDtoSchema), {
+      armorClass: creatureComputedArmorClassDtoSchema
+    })
   )
 )
 export const vehicleResponseDtoSchema: AuthoredDetailResponseDtoSchema<
@@ -470,6 +481,7 @@ export const authoredDetailReadEnvelopeSchema = lazySchema(() =>
   z.nullable(
     z.extend(z.omit(backgroundResponseDtoSchema._zod.def.innerType, { item: true, meta: true }), {
       item: z.nullable(unknownObjectSchema),
+      armorClass: creatureComputedArmorClassDtoSchema,
       meta: z.optional(z.record(z.string(), z.array(detailReferenceOptionDtoSchema)))
     })
   )

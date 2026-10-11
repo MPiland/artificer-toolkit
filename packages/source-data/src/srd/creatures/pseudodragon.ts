@@ -19,8 +19,7 @@ export const pseudodragon: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 10
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 7,
   hitDice: {
     count: 2,

@@ -17,7 +17,7 @@ export const weasel: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 3
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

@@ -18,7 +18,7 @@ export const fireElemental: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 7
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 102,
   hitDice: {
     count: 12,

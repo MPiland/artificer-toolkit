@@ -17,8 +17,7 @@ export const plesiosaurus: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 5
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 68,
   hitDice: {
     count: 8,

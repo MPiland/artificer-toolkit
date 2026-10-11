@@ -224,11 +224,21 @@ export type GrappleRider = {
  * check against the printed escape DC. It takes the IDs `grappleId(creatureIndex, localIndex)`
  * through `localIndex + 3 + untilEnds.length`.
  */
-export function grappledOutcome(creatureIndex: number, rider: GrappleRider): ActorRelationshipAuthored {
+export function grappledOutcome(
+  creatureIndex: number,
+  rider: GrappleRider
+): ActorRelationshipAuthored {
   const id = (offset: number) => grappleId(creatureIndex, rider.localIndex + offset)
   const modules: ActorRelationshipModuleAuthored[] = [
     ...(rider.largestTarget
-      ? [{ id: id(2), order: 0, kind: 'TARGET_SIZE_MAXIMUM' as const, sizeCode: rider.largestTarget }]
+      ? [
+          {
+            id: id(2),
+            order: 0,
+            kind: 'TARGET_SIZE_MAXIMUM' as const,
+            sizeCode: rider.largestTarget
+          }
+        ]
       : []),
     {
       id: id(1),
@@ -248,9 +258,10 @@ export function grappledOutcome(creatureIndex: number, rider: GrappleRider): Act
     effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
     heldAtOnce: rider.heldAtOnce,
     modules: modules.map((module, order) => ({ ...module, order: order + 1 })),
-    conditions: [GRAPPLED_CONDITION_ID, ...(rider.untilEnds ?? []).map((code) =>
-      vocabularyId(SRD_CONDITION_TYPES, code)
-    )].map((conditionId, index) => ({
+    conditions: [
+      GRAPPLED_CONDITION_ID,
+      ...(rider.untilEnds ?? []).map((code) => vocabularyId(SRD_CONDITION_TYPES, code))
+    ].map((conditionId, index) => ({
       id: id(3 + index),
       effectKind: EFFECT_KIND.CONDITION,
       conditionId

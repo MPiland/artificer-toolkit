@@ -19,8 +19,7 @@ export const homunculus: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 7
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 5,
   hitDice: {
     count: 2,

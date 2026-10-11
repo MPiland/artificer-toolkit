@@ -17,7 +17,7 @@ export const griffon: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 8
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 59,
   hitDice: {
     count: 7,

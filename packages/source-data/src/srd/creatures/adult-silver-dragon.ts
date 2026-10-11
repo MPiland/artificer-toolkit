@@ -19,8 +19,7 @@ export const adultSilverDragon: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 21
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 9,
   hitPoints: 243,
   hitDice: {
     count: 18,

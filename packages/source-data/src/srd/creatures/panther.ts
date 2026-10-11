@@ -17,7 +17,7 @@ export const panther: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 7
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 13,
   hitDice: {
     count: 3,

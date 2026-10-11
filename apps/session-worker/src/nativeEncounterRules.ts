@@ -29,7 +29,7 @@ import {
   isEncounterActorDefeated,
   isEncounterTargetDying
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
   lockedRelationshipActionFacts,

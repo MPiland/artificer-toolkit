@@ -20,8 +20,7 @@ export const succubusIncubus: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 20
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 66,
   hitDice: {
     count: 12,

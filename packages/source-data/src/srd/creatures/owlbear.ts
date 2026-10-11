@@ -17,8 +17,7 @@ export const owlbear: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 13,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 59,
   hitDice: {
     count: 7,

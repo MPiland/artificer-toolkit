@@ -17,8 +17,7 @@ export const warhorseSkeleton: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 5
   },
-  armorClass: 13,
-  armorClassNote: 'barding scraps',
+  naturalArmorBonus: 2,
   hitPoints: 22,
   hitDice: {
     count: 3,

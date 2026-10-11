@@ -17,8 +17,7 @@ export const planetar: CreatureAuthored = {
     WISDOM: 22,
     CHARISMA: 25
   },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 200,
   hitDice: {
     count: 16,

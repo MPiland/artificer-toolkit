@@ -17,8 +17,7 @@ export const reefShark: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 4
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 22,
   hitDice: {
     count: 4,

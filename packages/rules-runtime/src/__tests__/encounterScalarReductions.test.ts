@@ -189,7 +189,7 @@ describe('Creature movement target', () => {
   }
   const payload = {
     size: 'MEDIUM',
-    armorClass: 12,
+    naturalArmorBonus: 1,
     abilityScores: scores,
     speeds: [],
     senses: [],

@@ -17,8 +17,7 @@ export const nightHag: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 16
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 112,
   hitDice: {
     count: 15,

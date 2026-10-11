@@ -18,7 +18,7 @@ export const ghoul: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 6
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 5,

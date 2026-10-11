@@ -17,7 +17,7 @@ export const raven: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 6
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

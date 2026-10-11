@@ -19,7 +19,7 @@ export const doppelganger: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 14
   },
-  armorClass: 14,
+  naturalArmorBonus: 0,
   hitPoints: 52,
   hitDice: {
     count: 8,

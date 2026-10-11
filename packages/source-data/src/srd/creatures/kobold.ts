@@ -18,7 +18,7 @@ export const kobold: CreatureAuthored = {
     WISDOM: 7,
     CHARISMA: 8
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 5,
   hitDice: {
     count: 2,

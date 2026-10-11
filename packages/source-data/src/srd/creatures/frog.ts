@@ -18,7 +18,7 @@ export const frog: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 3
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

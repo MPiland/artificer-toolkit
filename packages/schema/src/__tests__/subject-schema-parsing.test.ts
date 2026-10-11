@@ -556,7 +556,7 @@ describe('subject schema parsing', () => {
         WISDOM: 12,
         CHARISMA: 7
       },
-      armorClass: 12,
+      naturalArmorBonus: 1,
       hitPoints: 32,
       speeds: [{ speedId: 'walk', amount: 50, unit: 'FEET' }],
       features: [
@@ -600,7 +600,7 @@ describe('subject schema parsing', () => {
         WISDOM: 12,
         CHARISMA: 7
       },
-      armorClass: 12,
+      naturalArmorBonus: 1,
       hitPoints: 32,
       speeds: [],
       logisticsNotes: [{ value: 'Can carry a rider.' }, 'Requires a saddle.']

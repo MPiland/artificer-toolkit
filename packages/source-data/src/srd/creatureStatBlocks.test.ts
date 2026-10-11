@@ -119,8 +119,6 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
     tags: [sorted(block.tags), sorted(creature.tags?.filter((tag) => tag !== 'hover'))],
     hover: [block.hover === true, creature.tags?.includes('hover') === true],
     alignment: [block.alignmentCode, codeById.get(creature.alignmentId ?? '')],
-    armorClass: [block.armorClass, creature.armorClass],
-    armorClassNote: [block.armorClassNote, creature.armorClassNote],
     hitPoints: [block.hitPoints, creature.hitPoints],
     hitDice: [block.hitDice, hitDice],
     speeds: [printedSpeeds, speeds],

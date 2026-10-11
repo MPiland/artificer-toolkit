@@ -17,8 +17,7 @@ export const tribalWarrior: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 8
   },
-  armorClass: 12,
-  armorClassNote: 'hide armor',
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

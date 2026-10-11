@@ -17,8 +17,7 @@ export const animatedArmor: CreatureAuthored = {
     WISDOM: 3,
     CHARISMA: 1
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 8,
   hitPoints: 33,
   hitDice: {
     count: 6,

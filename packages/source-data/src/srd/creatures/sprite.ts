@@ -19,8 +19,7 @@ export const sprite: CreatureAuthored = {
     WISDOM: 13,
     CHARISMA: 11
   },
-  armorClass: 15,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 2,
   hitDice: {
     count: 1,

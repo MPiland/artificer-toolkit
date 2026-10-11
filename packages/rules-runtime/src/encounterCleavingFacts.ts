@@ -162,6 +162,21 @@ export function nativeCleavingSourceCurrentness(
   }
 }
 
+/**
+ * The armor class an attack is judged against: a Character's derived value, or a Creature's
+ * computed value with its held ARMOR_CLASS grants. Custom actors have none.
+ */
+export function cleavingTargetArmorClass(
+  target: Pick<MovementTarget, 'actor' | 'activeEffects' | 'effectiveRulePolicyOutput'>
+): number | null | undefined {
+  return target.actor.kind === 'CHARACTER'
+    ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
+    : withCreatureActiveGrantArmorClass(
+        snapshotStatBlock(target.actor)?.armorClass ?? null,
+        target.activeEffects
+      )
+}
+
 /** Calculates one eligible target from captured actor facts and current Scene geometry. */
 export function buildEncounterCleavingCandidate(input: {
   target: MovementTarget
@@ -185,13 +200,7 @@ export function buildEncounterCleavingCandidate(input: {
     isEncounterActorDefeated(target.actor, deadCharacterIdsOfTargets([target]))
   )
     return null
-  const armorClass =
-    target.actor.kind === 'CHARACTER'
-      ? target.effectiveRulePolicyOutput?.derivedStats.armorClass?.effective
-      : withCreatureActiveGrantArmorClass(
-          snapshotStatBlock(target.actor)?.armorClass ?? null,
-          target.activeEffects
-        )
+  const armorClass = cleavingTargetArmorClass(target)
   const targetActorVersion =
     target.actor.kind === 'CHARACTER'
       ? (target.characterFacts?.active.play.streamVersion ?? null)

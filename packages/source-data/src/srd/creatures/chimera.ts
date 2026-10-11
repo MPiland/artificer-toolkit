@@ -18,8 +18,7 @@ export const chimera: CreatureAuthored = {
     WISDOM: 14,
     CHARISMA: 10
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 114,
   hitDice: {
     count: 12,

@@ -20,8 +20,7 @@ export const cloaker: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 14
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 78,
   hitDice: {
     count: 12,

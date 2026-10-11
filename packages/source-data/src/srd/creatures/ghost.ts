@@ -19,7 +19,7 @@ export const ghost: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 17
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 45,
   hitDice: {
     count: 10,

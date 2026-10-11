@@ -17,7 +17,7 @@ export const giantToad: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 11,
+  naturalArmorBonus: 0,
   hitPoints: 39,
   hitDice: {
     count: 6,

@@ -17,8 +17,7 @@ export const bandit: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 10
   },
-  armorClass: 12,
-  armorClassNote: 'leather armor',
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

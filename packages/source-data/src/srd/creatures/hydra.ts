@@ -18,8 +18,7 @@ export const hydra: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 7
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 4,
   hitPoints: 172,
   hitDice: {
     count: 15,

@@ -1658,16 +1658,25 @@
             },
             {
               "text": "Every Creature's AC is computed like a Character's: worn armor with its Dex cap (or 10 + Dex unarmored), plus one held shield with its magic bonus, plus an authored natural armor bonus, plus modifiers. There is no fixed AC or AC note, and giving an instance a +1 shield or dropping its shield changes its AC.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureEquipmentVariantPin.test.ts",
+                "apps/apis/convex/encounters/equipmentCommands.test.ts",
+                "apps/apis/convex/encounters/actionDisarmSettlement.test.ts",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "apps/apis/convex/characters/context.extras.test.ts"
+              ],
               "origin": [],
+              "note": "Slice B (T2) done 2026-10-11: armorClass and armorClassNote are removed for a required naturalArmorBonus; resolveDnd5eCreatureArmorClass shares the Character formula and counts a shield only in a hand. Encounter projection, cleaving, companions and the Creature detail read use it; a +1 shield replacement raises an instance's AC and a won Disarm of its shield lowers it. Equipment whose AC modifier is not the while-equipped form is refused at publication, Encounter admission and loadout replacement; the detail read shows no AC instead of failing. The editor fields and the edit-to-instance journey are T4.",
               "id": "AUTHORING-17.2"
             },
             {
               "text": "Every SRD Creature is re-authored so its computed AC equals its printed AC (a wolf is 10 + 2 Dex + 1 natural = 13; the goblin holds a scimitar and a shield, carries a shortbow and wears leather armor); a conditional AC such as \"12 (15 with mage armor)\" authors the base value. A source-data test proves every one.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["packages/rules-runtime/src/__tests__/creatureSrdArmorClass.test.ts"],
               "origin": [],
+              "note": "Done 2026-10-11: all 317 SRD Creatures compute their printed AC. The oracle is SRD_CREATURE_STAT_BLOCKS in packages/source-data (generated from the SRD PDF), not SRD_CC_v5.1.txt. Conditional ACs author the base (archmage, mage, druid, dryad and the lycanthropes 0; ankheg 4); armor the SRD Equipment lacks is natural armor (skeleton 1, warhorse skeleton 2, frost giant 6).",
               "id": "AUTHORING-17.3"
             }
           ],
@@ -1681,13 +1690,13 @@
             {
               "id": "AUTHORING-17.T2",
               "text": "Add the natural armor bonus; remove armorClass and armorClassNote; compute Creature AC through the Character armor and shield code (characterVitals), counting a shield only in a hand.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["AUTHORING-17.2"]
             },
             {
               "id": "AUTHORING-17.T3",
               "text": "Re-author every SRD Creature (LOADOUT_BINDINGS hands, natural armor bonuses) with a source-data test that computed AC equals the printed AC in SRD_CC_v5.1.txt.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["AUTHORING-17.3"]
             },
             {

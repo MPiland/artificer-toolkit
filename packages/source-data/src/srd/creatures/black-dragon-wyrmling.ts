@@ -18,8 +18,7 @@ export const blackDragonWyrmling: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 13
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 33,
   hitDice: {
     count: 6,

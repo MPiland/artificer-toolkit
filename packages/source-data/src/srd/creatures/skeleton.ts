@@ -17,8 +17,7 @@ export const skeleton: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 5
   },
-  armorClass: 13,
-  armorClassNote: 'armor scraps',
+  naturalArmorBonus: 1,
   hitPoints: 13,
   hitDice: {
     count: 2,

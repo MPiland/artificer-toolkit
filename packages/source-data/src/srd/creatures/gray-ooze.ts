@@ -18,7 +18,7 @@ export const grayOoze: CreatureAuthored = {
     WISDOM: 6,
     CHARISMA: 2
   },
-  armorClass: 8,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 3,

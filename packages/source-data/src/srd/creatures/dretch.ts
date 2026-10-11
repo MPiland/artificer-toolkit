@@ -20,8 +20,7 @@ export const dretch: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 3
   },
-  armorClass: 11,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 1,
   hitPoints: 18,
   hitDice: {
     count: 4,

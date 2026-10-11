@@ -18,8 +18,7 @@ export const purpleWorm: CreatureAuthored = {
     WISDOM: 8,
     CHARISMA: 4
   },
-  armorClass: 18,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 10,
   hitPoints: 247,
   hitDice: {
     count: 15,

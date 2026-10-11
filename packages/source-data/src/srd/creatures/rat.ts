@@ -17,7 +17,7 @@ export const rat: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 4
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 1,
   hitDice: {
     count: 1,

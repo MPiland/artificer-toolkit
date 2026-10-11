@@ -17,7 +17,7 @@ export const mule: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 5
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 11,
   hitDice: {
     count: 2,

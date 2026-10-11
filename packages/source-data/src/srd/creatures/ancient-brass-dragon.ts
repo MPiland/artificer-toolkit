@@ -19,8 +19,7 @@ export const ancientBrassDragon: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 19
   },
-  armorClass: 20,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 10,
   hitPoints: 297,
   hitDice: {
     count: 17,

@@ -17,7 +17,7 @@ export const giantVulture: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 22,
   hitDice: {
     count: 3,

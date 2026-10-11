@@ -20,7 +20,7 @@ export const rugOfSmothering: CreatureAuthored = {
     WISDOM: 3,
     CHARISMA: 1
   },
-  armorClass: 12,
+  naturalArmorBonus: 0,
   hitPoints: 33,
   hitDice: {
     count: 6,

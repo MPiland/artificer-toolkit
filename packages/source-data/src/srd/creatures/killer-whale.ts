@@ -17,8 +17,7 @@ export const killerWhale: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 12,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 90,
   hitDice: {
     count: 12,

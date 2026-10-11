@@ -20,7 +20,7 @@ export const quasit: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 10
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 7,
   hitDice: {
     count: 3,

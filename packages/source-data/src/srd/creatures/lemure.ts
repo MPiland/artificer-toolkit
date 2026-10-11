@@ -18,7 +18,7 @@ export const lemure: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 3
   },
-  armorClass: 7,
+  naturalArmorBonus: 0,
   hitPoints: 13,
   hitDice: {
     count: 3,

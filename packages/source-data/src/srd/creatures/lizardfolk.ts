@@ -18,8 +18,7 @@ export const lizardfolk: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 15,
-  armorClassNote: 'natural armor, shield',
+  naturalArmorBonus: 3,
   hitPoints: 22,
   hitDice: {
     count: 4,

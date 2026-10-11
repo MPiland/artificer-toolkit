@@ -20,8 +20,7 @@ export const mummyLord: CreatureAuthored = {
     WISDOM: 18,
     CHARISMA: 16
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 7,
   hitPoints: 97,
   hitDice: {
     count: 13,

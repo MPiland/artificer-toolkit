@@ -18,8 +18,7 @@ export const direWolf: CreatureAuthored = {
     WISDOM: 12,
     CHARISMA: 7
   },
-  armorClass: 14,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 37,
   hitDice: {
     count: 5,

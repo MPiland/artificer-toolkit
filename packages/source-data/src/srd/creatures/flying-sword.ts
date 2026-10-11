@@ -18,8 +18,7 @@ export const flyingSword: CreatureAuthored = {
     WISDOM: 5,
     CHARISMA: 1
   },
-  armorClass: 17,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 5,
   hitPoints: 17,
   hitDice: {
     count: 5,

@@ -16,6 +16,7 @@ import {
   cleavingCarriesOn,
   cleavingDamageApplication,
   cleavingDamageEnvelope,
+  cleavingTargetArmorClass,
   type CleavingContext
 } from '../encounterCleavingFacts.js'
 import { cleavingChildOccurrenceIdentity } from '../encounterCleavingIdentity.js'
@@ -260,6 +261,12 @@ describe('Cleaving target facts', () => {
       activeEffects: [shield]
     })
     expect(next).toMatchObject({ armorClass: 17, originalAttackCanHit: false })
+  })
+
+  it('gives the worker and the candidate the same effective armor class for a Creature', () => {
+    const shield = shimmeringShieldEffect({ id: SOURCE_TOKEN_ID, holderActorId: SECOND_ID })
+    expect(cleavingTargetArmorClass(srdCreatureTarget(goblinActor))).toBe(15)
+    expect(cleavingTargetArmorClass(srdCreatureTarget(goblinActor, [shield]))).toBe(17)
   })
 
   it('judges the next target against the original attack roll, with natural 1 and 20', () => {

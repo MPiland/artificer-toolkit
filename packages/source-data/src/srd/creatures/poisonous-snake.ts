@@ -17,7 +17,7 @@ export const poisonousSnake: CreatureAuthored = {
     WISDOM: 10,
     CHARISMA: 3
   },
-  armorClass: 13,
+  naturalArmorBonus: 0,
   hitPoints: 2,
   hitDice: {
     count: 1,

@@ -20,8 +20,7 @@ export const vampire: CreatureAuthored = {
     WISDOM: 15,
     CHARISMA: 18
   },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 2,
   hitPoints: 144,
   hitDice: {
     count: 17,

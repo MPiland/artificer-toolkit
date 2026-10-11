@@ -18,8 +18,7 @@ export const ironGolem: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 1
   },
-  armorClass: 20,
-  armorClassNote: 'natural armor',
+  naturalArmorBonus: 11,
   hitPoints: 210,
   hitDice: {
     count: 20,

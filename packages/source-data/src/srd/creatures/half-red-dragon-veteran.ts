@@ -18,8 +18,7 @@ export const halfRedDragonVeteran: CreatureAuthored = {
     WISDOM: 11,
     CHARISMA: 10
   },
-  armorClass: 18,
-  armorClassNote: 'plate',
+  naturalArmorBonus: 0,
   hitPoints: 65,
   hitDice: {
     count: 10,

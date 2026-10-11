@@ -252,6 +252,23 @@ export async function prepareCharacterRuleContext(
     }
   }
 
+  // A companion Creature's armor class is computed from its loadout Equipment (D107).
+  // A plain record: the registry crosses Convex value boundaries, which cannot hold a Map.
+  const creatureLoadoutEquipmentById: Record<string, ResolvedEquipment> = {}
+  for (const creature of creaturesById.values()) {
+    for (const { equipmentId } of creature.equipmentLoadout ?? []) {
+      if (equipmentId in creatureLoadoutEquipmentById) continue
+      const published = await readers.readPublication(equipmentId)
+      if (published?.subjectKind !== 'EQUIPMENT')
+        throw new Error('A companion Creature loadout Equipment is unavailable.')
+      const ancestors = await readers.readEquipmentParents(published.document)
+      creatureLoadoutEquipmentById[equipmentId] = resolveEquipmentAuthored(
+        published.document as EquipmentAuthored,
+        (id) => ancestors.get(id) as EquipmentAuthored | undefined
+      )
+    }
+  }
+
   const wantedFeatures = new Set(character.intent.featureAcquisitions.map((row) => row.featureId))
   const features = new Map<string, FeatureAuthored>()
   function addFeatures(records: readonly FeatureAuthored[]) {
@@ -291,6 +308,7 @@ export async function prepareCharacterRuleContext(
       backgrounds,
       equipment,
       acquiredEquipmentByItemId,
+      creatureLoadoutEquipmentById,
       feats,
       features: [...features.values()]
     },

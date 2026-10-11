@@ -371,7 +371,7 @@ const seedAcolyteCreature = {
     WISDOM: 14,
     CHARISMA: 11
   },
-  armorClass: 10,
+  naturalArmorBonus: 0,
   hitPoints: 9,
   hitDice: { count: 2, die: 8, modifier: 0 },
   speeds: [

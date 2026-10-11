@@ -18,7 +18,22 @@ import {
   readDraft,
   readPublishedDocument
 } from './documents'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { readDetailMeta } from './detailMeta'
+import { readCreatureArmorClass } from './creatureLoadoutHands'
+
+async function readComputedArmorClass(
+  ctx: QueryCtx,
+  subjectKind: AuthoredDetailReadInput['subjectKind'],
+  item: unknown,
+  userId: string | null
+) {
+  if (subjectKind !== 'CREATURE') return {}
+  const creature = creatureAuthoredDtoSchema.safeParse(item)
+  if (!creature.success) return {}
+  const result = await readCreatureArmorClass(ctx, creature.data, userId)
+  return { armorClass: result?.ok ? result.armorClass : null }
+}
 
 export const get = query({
   args: zodToConvexFields(authoredDetailReadInputSchema.shape),
@@ -89,6 +104,9 @@ export async function readAuthoredDetail(
       ...(parsed.success && parsed.data
         ? { meta: await readDetailMeta(ctx, input, parsed.data, userId) }
         : {}),
+      ...(parsed.success
+        ? await readComputedArmorClass(ctx, input.subjectKind, parsed.data, userId)
+        : {}),
       ...(!parsed.success
         ? { validationIssues: toAuthoredValidationIssues(parsed.error.issues) }
         : {})
@@ -108,6 +126,9 @@ export async function readAuthoredDetail(
     permissions: { canView: true, canEdit: owned, canCopy: userId !== null, canDelete: owned },
     ...(parsed.success && parsed.data
       ? { meta: await readDetailMeta(ctx, input, parsed.data, userId) }
+      : {}),
+    ...(parsed.success
+      ? await readComputedArmorClass(ctx, input.subjectKind, parsed.data, userId)
       : {}),
     ...(!parsed.success
       ? { validationIssues: toAuthoredValidationIssues(parsed.error.issues) }

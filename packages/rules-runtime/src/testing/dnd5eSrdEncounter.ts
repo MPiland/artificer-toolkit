@@ -33,7 +33,10 @@ import {
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
 import { buildEncounterActorRuleFacts } from '../encounterActorRuleFacts.js'
-import { pinCreatureEquipmentSources } from '../encounterCreatureEquipmentSources.js'
+import {
+  pinCreatureEquipmentSources,
+  resolveEquipmentSourceRecord
+} from '../encounterCreatureEquipmentSources.js'
 import { reconcileEncounterActorRuleOutput } from '../encounterActorRuleOutput.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import {
@@ -71,12 +74,15 @@ function srdLoadoutEquipmentRecords(creature: CreatureAuthored) {
     (creature.equipmentLoadout ?? []).map(({ equipmentId }) => {
       const document = srdEquipmentById.get(equipmentId)
       if (!document) throw new Error(`SRD Equipment "${equipmentId}" is missing.`)
-      const record = {
-        document,
-        checksum: checksumRuleDocument(document),
-        version: 1,
-        versionId: SOURCE_VERSION_ID
-      }
+      const record = resolveEquipmentSourceRecord(
+        {
+          document,
+          checksum: checksumRuleDocument(document),
+          version: 1,
+          versionId: SOURCE_VERSION_ID
+        },
+        (id) => srdEquipmentById.get(id)
+      )
       return [equipmentId, { authored: record }] as const
     })
   )
