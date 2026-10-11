@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-storybook",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["workspace", "@artificer-toolkit/web", "storybook", "--no-open"],
+      "port": 6006
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["workspace", "@artificer-toolkit/web", "dev"],
+      "port": 3000
+    }
+  ]
+}

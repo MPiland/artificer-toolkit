@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-10. Start at "Done 2026-10-10" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
+**Updated:** 2026-10-11. Start at "Done 2026-10-10" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slice A is DONE (`9a2799a96`); slice B is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -133,6 +133,7 @@
 - The validation helpers `local-validation/codex-batch/vt.ps1` and `gate.ps1` now exit non-zero when any step fails. Before this they could print a failure and still exit 0.
 - Ledger 80/145 PBIs, 345/491 ACs.
 - SPELLS-18 DONE (`d70136fd3`, D104): a Creature's failed single-target save holds the action for its Legendary Resistance choice (existing `DECLINE`/`OPTION` answer and `LEGENDARY_RESISTANCE_CHOICE` summary); USE spends the charge in the action receipt and undo returns it. Ledger 82/147 PBIs, 349/495 ACs.
+- ATTACK-7 slice A DONE (`9a2799a96`, D105; closes ATTACK-7.8 and task T1): `ACTOR_RELATIONSHIP.heldAtOnce` replaces `SOURCE_EXCLUSIVE_TARGET` (holds counted per `relationshipOutcomeId`), the `ESCAPE_CHECK` module (checks; `FIXED` or `CONTEST` DC) and its editor nodes, and every SRD grapple rider authored through `grappledOutcome` in `packages/source-data/src/srd/creatures/shared.ts` (27 relationships; `creatureGrappleRiders.test.ts` parses SRD 5.1). Rug of Smothering and Cloaker stay hand-authored. Bug fixed: a relationship's conditions on a Character failed the receipt trace binding (the `relationship-state` node is only in the relationship's frozen graph); they now bind to the batch's active-effect CREATE (`docs/architecture/rules-runtime.md`, "Grappled outcomes"). The live Giant Toad hit in `srdCreatureHitRiders.test.ts` is its regression proof. Escape itself is not playable yet (slice B). Ledger 82/152 PBIs, 350/515 ACs. Source-data changes need `generate:srd:manifest` (the manifest is tracked) and a local reset before the seed accepts them; `local-validation/codex-batch/deploy-seed.mjs` runs manifest, codegen, deploy and seed with the key in env vars only.
 
 **SPELLS-7 (Fireball from a point) state, all commits green:**
 
@@ -189,7 +190,7 @@ Area path file map:
 - `packages/encounter-persistence/src/`: `actionAreaPending.ts`, `areaTargetRemoval.ts`, `actionResumeAdmission.ts` and `actionPendingPersistence.ts`.
 - `apps/session-worker/src/`: `nativeEncounterAreaRules.ts`, `roomEncounterCommands.ts`, and `test/nativeRoomAreaAction.test.ts`.
 
-SPELLS-18 is done. Continue the WSJF ranking: ATTACK-7 slices A and B, then AUTHORING-17 → SHEET-8 → ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
+SPELLS-18 and ATTACK-7 slice A are done. Continue the WSJF ranking: ATTACK-7 slice B (the Escape action against a fixed DC, on the First Aid check path; task T2), then AUTHORING-17 → SHEET-8 → ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
 
 **Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing.
 
