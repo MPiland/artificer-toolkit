@@ -100,6 +100,18 @@ const validatePbi = (pbi, seen, errors) => {
     if (!workStatuses.includes(ac.status)) errors.push(`${ac.id} has invalid status ${ac.status}`)
     if (ac.status === 'DONE' && !hasProof(ac)) errors.push(`${ac.id} is DONE without proof`)
   }
+  const acIds = new Set(pbi.acs.map((ac) => ac.id))
+  for (const task of pbi.tasks ?? []) {
+    if (typeof task.id !== 'string' || !task.id.startsWith(`${pbi.id}.T`))
+      errors.push(`Task ${task.id} must be prefixed with "${pbi.id}.T"`)
+    if (typeof task.text !== 'string' || task.text.trim().length === 0)
+      errors.push(`${task.id} has no text`)
+    if (!workStatuses.includes(task.status)) errors.push(`${task.id} has invalid status ${task.status}`)
+    if (!Array.isArray(task.closes) || task.closes.length === 0)
+      errors.push(`${task.id} closes no acceptance criteria`)
+    for (const id of task.closes ?? [])
+      if (!acIds.has(id)) errors.push(`${task.id} closes ${id}, which is not an AC of ${pbi.id}`)
+  }
   if (pbi.status === 'DONE' && !isPbiProven(pbi)) {
     errors.push(
       `${pbi.id} is DONE but breaks the definition of done (all ACs DONE with proof and journeyStatus verified)`

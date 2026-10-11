@@ -1631,6 +1631,65 @@
               "id": "AUTHORING-16.2"
             }
           ]
+        },
+        {
+          "id": "AUTHORING-17",
+          "title": "Creature AC is computed from what it wears and holds",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-10 by the product owner (D107). Introduces the hand slots (MAIN_HAND, OFF_HAND, CARRIED, WORN) and the shared hand-occupancy function that SHEET-8, ATTACK-18 and ATTACK-19 reuse. D&D Beyond keeps a fixed AC with a note; computed AC is deliberate.",
+          "acs": [
+            {
+              "text": "A Creature's authored loadout places each item in the main hand, off hand, carried or worn, with at most one item per hand and a two-handed weapon blocking the off hand; an Encounter instance copies the loadout, and the GM can change it for that instance.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Per-instance override already exists (equipmentLoadoutOverride); this changes useState from CARRIED | HELD | WORN.",
+              "id": "AUTHORING-17.1"
+            },
+            {
+              "text": "Every Creature's AC is computed like a Character's: worn armor with its Dex cap (or 10 + Dex unarmored), plus one held shield with its magic bonus, plus an authored natural armor bonus, plus modifiers. There is no fixed AC or AC note, and giving an instance a +1 shield or dropping its shield changes its AC.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "AUTHORING-17.2"
+            },
+            {
+              "text": "Every SRD Creature is re-authored so its computed AC equals its printed AC (a wolf is 10 + 2 Dex + 1 natural = 13; the goblin holds a scimitar and a shield, carries a shortbow and wears leather armor); a conditional AC such as \"12 (15 with mage armor)\" authors the base value. A source-data test proves every one.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "AUTHORING-17.3"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "AUTHORING-17.T1",
+              "text": "Loadout useState becomes MAIN_HAND | OFF_HAND | CARRIED | WORN in schema, shared and source-data; add the shared hand-occupancy function (free hand, held items, blocked off hand); migrate development data in the same change.",
+              "status": "TODO",
+              "closes": ["AUTHORING-17.1"]
+            },
+            {
+              "id": "AUTHORING-17.T2",
+              "text": "Add the natural armor bonus; remove armorClass and armorClassNote; compute Creature AC through the Character armor and shield code (characterVitals), counting a shield only in a hand.",
+              "status": "TODO",
+              "closes": ["AUTHORING-17.2"]
+            },
+            {
+              "id": "AUTHORING-17.T3",
+              "text": "Re-author every SRD Creature (LOADOUT_BINDINGS hands, natural armor bonuses) with a source-data test that computed AC equals the printed AC in SRD_CC_v5.1.txt.",
+              "status": "TODO",
+              "closes": ["AUTHORING-17.3"]
+            },
+            {
+              "id": "AUTHORING-17.T4",
+              "text": "Creature editor loadout hands and natural armor fields, and the Encounter instance AC recompute; journey test from editing a Creature to its instance's AC.",
+              "status": "TODO",
+              "closes": ["AUTHORING-17.1", "AUTHORING-17.2"]
+            }
+          ]
         }
       ]
     },
@@ -2147,6 +2206,64 @@
               "origin": [],
               "note": "Done 2026-10-08: countDatabaseIo meters a note edit outside live play (notes, groups, Build counts, head and play clocks, receipt) and held in a room (play row untouched, reloaded into the next room command); the head drops checksum and sheetStateChecksum, which assembleCharacterStructure derives. Dev data migrated by local reset and reseed (backup local-validation/convex-reset/sheet7.before.zip). User approved the Character aggregate-checksum proposal on 2026-10-06 (phase-08-2-decisions.md Resolved); proposal: local-validation/character-head-checksum-proposal.md.",
               "id": "SHEET-7.1"
+            }
+          ]
+        },
+        {
+          "id": "SHEET-8",
+          "title": "Characters hold items in their hands",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-10 by the product owner (D107). Uses the hand slots and hand-occupancy function introduced by AUTHORING-17, so Characters and Creatures share one rule.",
+          "acs": [
+            {
+              "text": "Equipping a held item puts it in the main hand, then the off hand; each hand holds at most one item; a two-handed weapon takes the main hand and blocks the off hand; a shield is held in a hand, and a Character may hold two.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SHEET-8.1"
+            },
+            {
+              "text": "The player can swap the main-hand and off-hand items; emptying the main hand moves an off-hand weapon into it, while an off-hand shield stays where it is.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SHEET-8.2"
+            },
+            {
+              "text": "A shield adds to the Character's AC only while held in a hand, and only one shield counts.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SHEET-8.3"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SHEET-8.T1",
+              "text": "Replace the Character rule snapshot's SHIELD equipped slot with MAIN_HAND and OFF_HAND (equippedStateForItem, EquippedState); migrate development data in the same change.",
+              "status": "TODO",
+              "closes": ["SHEET-8.1", "SHEET-8.3"]
+            },
+            {
+              "id": "SHEET-8.T2",
+              "text": "Sheet equip assignment, the swap control and off-hand promotion, through the shared hand-occupancy function.",
+              "status": "TODO",
+              "closes": ["SHEET-8.1", "SHEET-8.2"]
+            },
+            {
+              "id": "SHEET-8.T3",
+              "text": "Shield AC from hand occupancy in characterVitals (resolveDnd5eActiveShield).",
+              "status": "TODO",
+              "closes": ["SHEET-8.3"]
+            },
+            {
+              "id": "SHEET-8.T4",
+              "text": "Journey test: equip a sword and a shield, swap them, unequip the sword, and see the hands and AC update on the Sheet.",
+              "status": "TODO",
+              "closes": ["SHEET-8.1", "SHEET-8.2", "SHEET-8.3"]
             }
           ]
         }
@@ -3286,6 +3403,31 @@
               "id": "SCENE-3.3"
             }
           ]
+        },
+        {
+          "id": "SCENE-4",
+          "title": "Scene loot tables by check result",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-10 by the product owner. Design open: what a loot entry holds and how a found item reaches a Character's inventory.",
+          "acs": [
+            {
+              "text": "A GM authors loot tables on a Scene, each keyed to a check (for example Investigation or Perception) with non-overlapping result ranges, each range listing what it reveals.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-4.1"
+            },
+            {
+              "text": "In a live Session, a check of that kind on the Scene reveals to the roller everything in the ranges its result reaches; the GM sees the roll and what was revealed, and other players see nothing.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-4.2"
+            }
+          ]
         }
       ]
     },
@@ -4278,17 +4420,17 @@
         {
           "id": "ATTACK-7",
           "title": "Grapple and shove",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
-              "text": "Grapple replaces one attack of the Attack action against a creature within reach and no more than one size larger: the grappler's Athletics is contested by the target's choice of Athletics or Acrobatics (rolled by its controller), and a win applies Grappled owned by the grappler. A grappler without a free hand gets an overridable warning.",
+              "text": "The Grapple basic action is offered only to a Character, or a Creature of a hand-bearing type, with a free hand. It replaces one attack of the Attack action against a creature within reach and no more than one size larger: the grappler's Athletics is contested by the target's choice of Athletics or Acrobatics (rolled by its controller), and a win applies Grappled owned by the grappler, with at most 2 creatures held at once through this action. With both hands holding weapons, the actor is prompted to stow one for free; a held shield cannot be stowed this way. Each creature held occupies a hand until the grapple ends.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "D105 slice C. Refined 2026-10-10 into 7.1 and 7.3-7.8 (rul-9-rules-audit.md slice 2).",
+              "note": "D105 slice C, D106 and D107. Refined 2026-10-10 into 7.1 and 7.3-7.8 (rul-9-rules-audit.md slice 2); the Grapple Limit stat was dropped 2026-10-10 for per-outcome held-at-once counts.",
               "id": "ATTACK-7.1"
             },
             {
@@ -4332,8 +4474,8 @@
               "id": "ATTACK-7.7"
             },
             {
-              "text": "SRD grapple riders author their printed escape DC with Athletics or Acrobatics, their printed size limit and their \"until this grapple ends\" conditions, all editable in the Creature editor; a source-data test holds each rider to its stat block.",
-              "status": "TODO",
+              "text": "SRD grapple riders author a Grappled outcome with their printed escape DC (Athletics or Acrobatics), printed size limit, \"until this grapple ends\" conditions and printed held-at-once count (the Kraken's tentacles 10; two claws, pincers or tentacles 2; otherwise 1), all editable in the Creature editor. Holds are counted per outcome, and a source-data test holds each rider to its stat block.",
+              "status": "IN_PROGRESS",
               "proof": [],
               "origin": [],
               "note": "D105 slice A. Swallow and other allowlisted riders stay with ATTACK-5.",
@@ -4346,6 +4488,56 @@
               "origin": [],
               "note": "D93. After ATTACK-11 (conditional slot).",
               "id": "ATTACK-7.2"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "ATTACK-7.T1",
+              "text": "Slice A: the ESCAPE_CHECK contract (allowed skill or ability checks; FIXED or CONTEST DC), the Grappled outcome editor with held at once replacing SOURCE_EXCLUSIVE_TARGET, per-outcome hold counting by relationshipOutcomeId, and every SRD grapple rider converted with a source-data test against SRD 5.1.",
+              "status": "IN_PROGRESS",
+              "closes": ["ATTACK-7.8"]
+            },
+            {
+              "id": "ATTACK-7.T2",
+              "text": "Slice B: the Escape action against a fixed DC (room, Convex, web), on the First Aid check path.",
+              "status": "TODO",
+              "closes": ["ATTACK-7.3"]
+            },
+            {
+              "id": "ATTACK-7.T3",
+              "text": "Slice C: author the basic Grapple on ATTACK-18 (contest, Grappled on a win, held at once 2, facet restriction hand-bearing type AND FREE_HAND), the free stow prompt, a held creature occupying a hand, and the contested escape on the Disarm contest path. Needs ATTACK-18, SHEET-8 and AUTHORING-17.",
+              "status": "TODO",
+              "closes": ["ATTACK-7.1", "ATTACK-7.3"]
+            },
+            {
+              "id": "ATTACK-7.T4",
+              "text": "Slice D: release with no action, and the end sweeps (grappler can't act; movement leaves the sealed reach).",
+              "status": "TODO",
+              "closes": ["ATTACK-7.4"]
+            },
+            {
+              "id": "ATTACK-7.T5",
+              "text": "Slice E: the forced-movement directive (AWAY, TOWARD, ASIDE, ANY; EXACT or UP_TO) with the homebrew Crusher proof.",
+              "status": "TODO",
+              "closes": ["ATTACK-7.7"]
+            },
+            {
+              "id": "ATTACK-7.T6",
+              "text": "Slice F: author the Shove basic action on ATTACK-18 (prone or a 5-foot AWAY push on a win).",
+              "status": "TODO",
+              "closes": ["ATTACK-7.6"]
+            },
+            {
+              "id": "ATTACK-7.T7",
+              "text": "Slice G: drag at double movement cost unless two or more sizes smaller; blocked destinations refused; no opportunity attacks.",
+              "status": "TODO",
+              "closes": ["ATTACK-7.5"]
+            },
+            {
+              "id": "ATTACK-7.T8",
+              "text": "Engulf and \"grappled by this creature\" targeting, after ATTACK-11.",
+              "status": "TODO",
+              "closes": ["ATTACK-7.2"]
             }
           ]
         },
@@ -4737,6 +4929,118 @@
               "origin": [],
               "note": "Found 2026-10-10 in SPELLS-7 slice 5g: roll cards are TABLE or GM-private only (D62; evidenceRolls.ts never returns a private card to a player), so the player who presses Roll dice for such a creature gets no card. Needs a per-user roll-card audience, like the ISSUER timeline audience from SPELLS-7 slice 5e (rollerAsPerceivedByCaster in packages/encounter-persistence/src/ruleRollCards.ts is the area rule's one routing point).",
               "id": "ATTACK-17.5"
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-18",
+          "title": "Basic actions are authored actions",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-10 by the product owner (D106). Supersedes the closed mechanics half of Q11. ATTACK-7 slices C and F build on it.",
+          "acs": [
+            {
+              "text": "Every System basic action (Dash, Disengage, Dodge, Help, First Aid, Grapple, Shove, Hide, Ready, Search and Use an Object) is an authored action whose resolution and outcomes use the same effect model and editor as a feature's action; the catalogue stays locked in the SRD and copyable into a homebrew System, and the closed basic-action mechanic codes no longer exist.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "ATTACK-18.1"
+            },
+            {
+              "text": "Dash, Disengage, Dodge, Help and First Aid behave exactly as before: their existing room, Convex and browser proofs (D45, D46, D96, D98) pass unchanged against the authored versions.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "ATTACK-18.2"
+            },
+            {
+              "text": "A basic action is offered only to actors that meet its authored facet restrictions, and an unmet restriction is refused; a basic action with no restriction is offered to every actor. FREE_HAND is an authorable predicate, true while either hand is empty.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Restrictions use FacetAuthored and the existing sourceStateRequirements check (refusal SOURCE_REQUIREMENTS_NOT_MET). FREE_HAND reads the hand-occupancy function from AUTHORING-17.",
+              "id": "ATTACK-18.3"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "ATTACK-18.T1",
+              "text": "Map each BASIC_ACTION_MECHANIC_CODE (SPEED_MOVEMENT_BONUS, NO_OPPORTUNITY_ATTACKS, DISADVANTAGE_ON_ATTACKS_AGAINST, ALLY_ADVANTAGE, SAVE_ADVANTAGE, STABILIZE_TARGET) to an existing effect kind; add any missing kind as a reusable one, never basic-action-only.",
+              "status": "TODO",
+              "closes": ["ATTACK-18.1"]
+            },
+            {
+              "id": "ATTACK-18.T2",
+              "text": "Re-author the SRD basic-action seeds as authored actions; delete the closed code, its schema and its rules branches; migrate development data in the same change.",
+              "status": "TODO",
+              "closes": ["ATTACK-18.1", "ATTACK-18.2"]
+            },
+            {
+              "id": "ATTACK-18.T3",
+              "text": "Offer basic actions through their facet restrictions in the rules and the action drawer; add the FREE_HAND facet predicate on the hand-occupancy function.",
+              "status": "TODO",
+              "closes": ["ATTACK-18.3"]
+            },
+            {
+              "id": "ATTACK-18.T4",
+              "text": "Run the existing D45, D46, D96 and D98 proofs unchanged, plus a journey test that uses an authored basic action end to end.",
+              "status": "TODO",
+              "closes": ["ATTACK-18.2"]
+            }
+          ]
+        },
+        {
+          "id": "ATTACK-19",
+          "title": "Weapons in hand during play",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-10 by the product owner (D107). Builds on SHEET-8 and AUTHORING-17.",
+          "acs": [
+            {
+              "text": "The Attack action defaults to the main-hand weapon with full damage, and the bonus attack to the off-hand weapon, which adds no positive ability modifier to damage unless the actor has Two-Weapon Fighting; proficiency applies to both.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "ATTACK-19.1"
+            },
+            {
+              "text": "An attack draws its bound weapon into a free hand automatically. With no free hand, an actor holding creatures with the basic Grapple releases one to draw or attack, choosing which when it holds several.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "ATTACK-19.2"
+            },
+            {
+              "text": "A thrown weapon leaves its hand, and Disarm empties the disarmed item's hand; swapping weapons stays free.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Swaps stay free per encounterWieldConflict.ts. The one free object interaction per turn is not tracked (future-enhancements.md).",
+              "id": "ATTACK-19.3"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "ATTACK-19.T1",
+              "text": "Default attack weapon by hand and the off-hand damage rule, reading the existing Two-Weapon Fighting closed rules.",
+              "status": "TODO",
+              "closes": ["ATTACK-19.1"]
+            },
+            {
+              "id": "ATTACK-19.T2",
+              "text": "Auto-draw on attack and the release-on-draw prompt, both on the hand-occupancy function.",
+              "status": "TODO",
+              "closes": ["ATTACK-19.2"]
+            },
+            {
+              "id": "ATTACK-19.T3",
+              "text": "Thrown and Disarm hand transitions (extend the existing held-item transition).",
+              "status": "TODO",
+              "closes": ["ATTACK-19.3"]
             }
           ]
         }

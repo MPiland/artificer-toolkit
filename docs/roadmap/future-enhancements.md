@@ -130,6 +130,14 @@ Raised by the user on 2026-10-07 during Phase 8.2; post-beta.
 
 Players add bought items to their inventory by hand and subtract the coin themselves; there are no merchants. Candidate: a GM-run merchant (a stock list priced from the System's equipment, with optional markups) where a player buys an item and the app adds it to inventory and deducts the coins in one step. A merchant line is just the item, a quantity and a price (Arrow, quantity 20, 1 gp), so items need no sale unit. Raised by the user on 2026-10-08 during Phase 8.2 (Q21); post-launch.
 
+### Hands for spellcasting and War Caster
+
+D107 tracks what each hand holds, but spellcasting ignores it: a caster with a sword and shield can still cast a spell with somatic or material components. Candidate: an optional enforcement that requires a free hand (or a focus in hand) for those components, with War Caster lifting the somatic requirement. Optional because many tables house-rule it. Raised by the user on 2026-10-10 during ATTACK-7 design; post-launch.
+
+### One free object interaction per turn
+
+Weapon swaps and stowing are free and unlimited (D107, `encounterWieldConflict`). Candidate: track the SRD's one free object interaction per turn, so a second draw or stow costs the Use an Object action. Raised 2026-10-10 during ATTACK-7 design; post-launch.
+
 ## Other future enhancements (parked)
 
 ### Adventure Module Packages
