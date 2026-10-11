@@ -4284,12 +4284,60 @@
           "origin": [],
           "acs": [
             {
-              "text": "Grapple and shove resolve: contests, escape DC, size limits, ending on distance or incapacitation, and monster grapple riders.",
+              "text": "Grapple replaces one attack of the Attack action against a creature within reach and no more than one size larger: the grappler's Athletics is contested by the target's choice of Athletics or Acrobatics (rolled by its controller), and a win applies Grappled owned by the grappler. A grappler without a free hand gets an overridable warning.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 2 (depends on conditions).",
+              "note": "D105 slice C. Refined 2026-10-10 into 7.1 and 7.3-7.8 (rul-9-rules-audit.md slice 2).",
               "id": "ATTACK-7.1"
+            },
+            {
+              "text": "A grappled creature can use its Action to escape with one of the grapple's authored checks, against its fixed escape DC or contested by the grappler's authored check; success ends the grapple.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105 slice B (fixed DC) and C (contest).",
+              "id": "ATTACK-7.3"
+            },
+            {
+              "text": "The grappler can release a grapple at any time with no action; a grapple ends when the grappler can't act, or when any movement leaves the grappled creature outside the grappler's reach.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105 slice D.",
+              "id": "ATTACK-7.4"
+            },
+            {
+              "text": "A grappler that moves drags the creatures it grapples, at half speed unless each is two or more sizes smaller; dragged creatures provoke no opportunity attacks.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105 slice G.",
+              "id": "ATTACK-7.5"
+            },
+            {
+              "text": "Shove replaces one attack of the Attack action against a creature within reach and no more than one size larger, with the same contest; on a win the shover knocks it prone or pushes it 5 feet away.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105 slice F.",
+              "id": "ATTACK-7.6"
+            },
+            {
+              "text": "Forced movement is authored with a direction (away, toward, aside within the source's reach, or any) and an exact or up-to distance; away and toward follow the straight line from the source through the target (the mover chooses only how far, for an up-to distance), any lets the mover pick a legal unoccupied square, and it provokes no opportunity attacks. A homebrew Crusher feat (any direction, 5 feet, on a bludgeoning hit) proves the any-direction case.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105 slice E.",
+              "id": "ATTACK-7.7"
+            },
+            {
+              "text": "SRD grapple riders author their printed escape DC with Athletics or Acrobatics, their printed size limit and their \"until this grapple ends\" conditions, all editable in the Creature editor; a source-data test holds each rider to its stat block.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "D105 slice A. Swallow and other allowlisted riders stay with ATTACK-5.",
+              "id": "ATTACK-7.8"
             },
             {
               "text": "Grapple riders (\"on hit, the target is grappled, escape DC N\") and \"grappled by this creature\" targeting are authorable effects; the full Shambling Mound turn grapples a Medium or smaller target hit by both slams and then offers Engulf on it.",

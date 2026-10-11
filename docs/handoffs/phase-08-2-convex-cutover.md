@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-10. Start at "Done 2026-10-10" below. SPELLS-18 is DONE (`d70136fd3`); next is ATTACK-7.
+**Updated:** 2026-10-10. Start at "Done 2026-10-10" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
