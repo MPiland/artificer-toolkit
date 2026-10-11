@@ -1701,7 +1701,7 @@
             },
             {
               "id": "AUTHORING-17.T4",
-              "text": "Creature editor loadout hands and natural armor fields, and the Encounter instance AC recompute; journey test from editing a Creature to its instance's AC.",
+              "text": "Creature editor loadout hands and natural armor fields, and the Encounter instance AC recompute; journey test from editing a Creature to its instance's AC. Also prove red the two slice B tests written after their fix: neutralize the loadout-replacement AC check in actorEquipment.ts and the effective-AC read for a replaced shield, confirm equipmentCommands.test.ts fails for the right reason, and restore.",
               "status": "TODO",
               "closes": ["AUTHORING-17.1", "AUTHORING-17.2"]
             }
@@ -6946,6 +6946,14 @@
               "note": "Parse-once removed with its deleted code; the 21–60% CPU figure is not re-measured. Approved by the user on 2026-10-07 (needs-proof audit).",
               "origin": ["PRF-4"],
               "id": "PERF-4.3"
+            },
+            {
+              "text": "Computing Creature armor class in the Encounter projection keeps projection reads within the PERF-1 targets at the 100-actor cap; if it does not, the computed AC is cached by the actor's pinned source facts.",
+              "status": "TODO",
+              "proof": [],
+              "note": "Registered 2026-10-11 from AUTHORING-17 slice B: snapshotStatBlock recomputes AC on every call (about 0.9 ms per Creature across the SRD set, local-validation/a17b/perf.mjs). Measure it in the V15 load run before optimizing.",
+              "origin": ["AUTHORING-17"],
+              "id": "PERF-4.4"
             }
           ]
         }
