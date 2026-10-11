@@ -1,6 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const glabrezu: CreatureAuthored = {
@@ -186,11 +185,12 @@ export const glabrezu: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d10+5'
                   },
-                  {
-                    id: S.actionId(142, 209),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  },
+                  S.grappledOutcome(142, {
+                    localIndex: 1,
+                    escapeDc: 15,
+                    heldAtOnce: 2,
+                    largestTarget: S.SIZE_CODE.MEDIUM
+                  }),
                   {
                     id: S.actionId(142, 210),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

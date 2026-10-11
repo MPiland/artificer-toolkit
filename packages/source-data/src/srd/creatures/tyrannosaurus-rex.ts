@@ -54,7 +54,13 @@ export const tyrannosaurusRex: CreatureAuthored = {
           damageType: 'PIERCING',
           diceConfig: '4d12',
           ability: 'STRENGTH',
-          grapples: true
+          grapple: {
+            localIndex: 1,
+            escapeDc: 17,
+            heldAtOnce: 1,
+            largestTarget: S.SIZE_CODE.MEDIUM,
+            untilEnds: ['RESTRAINED']
+          }
         })
       ],
       order: 2

@@ -1,0 +1,271 @@
+import { readFileSync } from 'node:fs'
+import { ATTACK_TRIGGER_CODES } from '@artificer-toolkit/schema/effects/effect'
+import { describe, expect, it } from 'vitest'
+import { SRD_CREATURE_ATTACK_DAMAGE } from './creatures/attack-damage.js'
+import { srdBaselineContent } from './index.js'
+import { SRD_CONDITION_TYPES } from './vocabulary.js'
+
+/** Attacks whose rider holds more than one creature at once (D105); every other rider holds one. */
+const HELD_AT_ONCE = new Map([
+  ['Chuul: Pincer', 2],
+  ['Glabrezu: Pincer', 2],
+  ['Giant Crab: Claw', 2],
+  ['Giant Scorpion: Claw', 2],
+  ['Otyugh: Tentacle', 2],
+  ['Kraken: Tentacle', 10],
+  ['Roper: Tendril', 6]
+])
+
+const conditionCodeById = new Map(SRD_CONDITION_TYPES.map((entry) => [entry.id, entry.code]))
+const GRAPPLED_PRINT = /grappled \(escape DC/
+/** A grapple's escape DC; the cloaker prints its attached creature's DC as a Strength check. */
+const ESCAPE_DC = /(?:escape|succeeding on a) DC (\d+)/
+const SIZE_LIMIT = /\b(Tiny|Small|Medium|Large|Huge|Gargantuan)(?: creature)? or smaller\b/
+const UNTIL_GRAPPLE_ENDS = /until (?:this|the) grapple ends/i
+
+const STAT_BLOCK_TYPE_LINE = /^(?:Tiny|Small|Medium|Large|Huge|Gargantuan) .+, .+$/
+
+/**
+ * The SRD's printed paragraphs, each with the stat block heading above it (the text interleaves a
+ * few neighbouring stat blocks, so the heading narrows a paragraph's creature but never proves it).
+ * A wrapped line, even across a page's blank line, continues the paragraph before it; a line that
+ * starts with a capital begins the next.
+ */
+const printedLines = readFileSync(new URL('./SRD_CC_v5.1.txt', import.meta.url), 'utf8')
+  .split(/\r?\n/)
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0)
+const printedParagraphs = printedLines.reduce<{ text: string; heading: string }[]>(
+  (paragraphs, line, index) => {
+    const last = paragraphs[paragraphs.length - 1]
+    if (STAT_BLOCK_TYPE_LINE.test(printedLines[index + 1] ?? '')) {
+      paragraphs.push({ text: line, heading: line })
+    } else if (last && /^[a-z]/.test(line)) {
+      last.text += ` ${line}`
+    } else {
+      paragraphs.push({ text: line, heading: last?.heading ?? '' })
+    }
+    return paragraphs
+  },
+  []
+)
+
+/** An attack's label, attack bonus, reach and first hit damage ("2d6+3 PIERCING", or empty when none). */
+const attackKey = (label: string, bonus: number, reach: number, damage: string) =>
+  `${label}|${bonus}|${reach}|${damage}`
+
+/** The first printed hit damage in `SRD_CREATURE_ATTACK_DAMAGE`'s notation. */
+function printedDamage(paragraph: string) {
+  const damage = /Hit: (\d+)(?: \((\d+)d(\d+)(?: ([+\-−–]) (\d+))?\))? ([a-z]+) damage/.exec(paragraph)
+  if (!damage) return ''
+  const [, flat, count, die, sign, modifier, type] = damage
+  const expression = count
+    ? `${count}d${die}${modifier ? `${sign === '+' ? '+' : '-'}${modifier}` : ''}`
+    : flat
+  return `${expression} ${type!.toUpperCase()}`
+}
+
+/** Each printed weapon attack paragraph by its label, attack bonus, reach and first hit damage. */
+const printedAttacks = new Map<string, typeof printedParagraphs>()
+for (const paragraph of printedParagraphs) {
+  const header = /^(.+?)\. (?:Melee|Ranged) Weapon Attack: ([+-]\d+) to hit, reach (\d+) ft\./.exec(
+    paragraph.text
+  )
+  if (!header) continue
+  const key = attackKey(
+    header[1]!,
+    Number(header[2]),
+    Number(header[3]),
+    printedDamage(paragraph.text)
+  )
+  printedAttacks.set(key, [...(printedAttacks.get(key) ?? []), paragraph])
+}
+
+type Visit = (node: Record<string, unknown>) => void
+
+/** Visits every object under `value`, without entering the subtree of one `visit` returns true for. */
+function walk(value: unknown, visit: (node: Record<string, unknown>) => boolean | void) {
+  if (Array.isArray(value)) {
+    value.forEach((item) => walk(item, visit))
+  } else if (value && typeof value === 'object') {
+    const node = value as Record<string, unknown>
+    if (visit(node) !== true) Object.values(node).forEach((child) => walk(child, visit))
+  }
+}
+
+const collect = (value: unknown, visit: (node: Record<string, unknown>, add: Visit) => boolean | void) => {
+  const found: Record<string, unknown>[] = []
+  walk(value, (node) => visit(node, (match) => found.push(match)))
+  return found
+}
+
+const relationshipsIn = (value: unknown) =>
+  collect(value, (node, add) => {
+    if (node.effectKind !== 'ACTOR_RELATIONSHIP') return
+    add(node)
+    return true
+  })
+
+type Relationship = {
+  heldAtOnce: number
+  modules: { kind: string; dc?: { kind: string; value?: number }; sizeCode?: string }[]
+  conditions?: { conditionId: string }[]
+}
+
+/** Every authored attack with a printed attack bonus and reach, and the printed paragraphs sharing its key. */
+const keyedAttacks = srdBaselineContent.subjects.creatures.flatMap((creature) =>
+  (creature.features ?? [])
+    .flatMap((feature) => [feature, ...(feature.options ?? [])])
+    .flatMap((source) => {
+      const effect = (source.effects ?? []).find(
+        (candidate) =>
+          candidate.invocation.kind === 'ACTION' &&
+          ATTACK_TRIGGER_CODES.has(candidate.invocation.triggerCode ?? '')
+      )
+      const bonus = (source.rollDefinitions ?? []).find(
+        (definition) => definition.kind === 'ATTACK'
+      )?.expression.modifier
+      if (
+        !effect ||
+        effect.invocation.kind !== 'ACTION' ||
+        effect.invocation.range.rangeKind !== 'DISTANCE' ||
+        bonus === undefined
+      )
+        return []
+      const name = `${creature.label}: ${source.label}`
+      const [firstDamage] = SRD_CREATURE_ATTACK_DAMAGE.get(effect.id) ?? []
+      const damage = firstDamage ? `${firstDamage[0]} ${firstDamage[1]}` : ''
+      const candidates =
+        printedAttacks.get(attackKey(source.label, bonus, effect.invocation.range.amount, damage)) ?? []
+      return [
+        {
+          name,
+          candidates,
+          underHeading: candidates.filter((paragraph) => paragraph.heading === creature.label),
+          relationships: relationshipsIn(effect) as unknown as Relationship[]
+        }
+      ]
+    })
+)
+
+/**
+ * Attacks that share a key (a Mastiff's and a Giant Frog's bite) take the paragraph under their
+ * own Creature's heading; one whose heading the text lost takes the paragraphs no other attack owns.
+ */
+const ownedParagraphs = new Set(keyedAttacks.flatMap(({ underHeading }) => underHeading))
+const authoredAttacks = keyedAttacks.map(({ name, candidates, underHeading, relationships }) => {
+  const unowned = candidates.filter((paragraph) => !ownedParagraphs.has(paragraph))
+  return {
+    name,
+    printed: underHeading.length > 0 ? underHeading : unowned.length > 0 ? unowned : candidates,
+    relationships
+  }
+})
+
+/** What the SRD prints about one grapple-like rider, read from its paragraph. */
+function printedRider(paragraph: string) {
+  const dc = ESCAPE_DC.exec(paragraph)
+  if (!dc) return undefined
+  const dcEnd = dc.index + dc[0].length
+  const sentenceEnd = paragraph.indexOf('. ', dcEnd)
+  const sizeLimit = SIZE_LIMIT.exec(
+    paragraph.slice(0, sentenceEnd < 0 ? paragraph.length : sentenceEnd)
+  )?.[1]
+  const untilEnds = paragraph
+    .slice(dcEnd)
+    .split(/(?<=\.)\s+/)
+    .filter((sentence) => UNTIL_GRAPPLE_ENDS.test(sentence))
+    .flatMap((sentence) =>
+      SRD_CONDITION_TYPES.filter(
+        (entry) =>
+          entry.code !== 'GRAPPLED' &&
+          new RegExp(`\\b${entry.label}\\b`, 'i').test(sentence)
+      ).map((entry) => entry.code)
+    )
+  return {
+    dc: Number(dc[1]),
+    sizeLimit: sizeLimit?.toUpperCase(),
+    conditions: [...(GRAPPLED_PRINT.test(paragraph) ? ['GRAPPLED'] : []), ...untilEnds].sort()
+  }
+}
+
+function authoredRider(relationship: Relationship) {
+  const escape = relationship.modules.find((module) => module.kind === 'ESCAPE_CHECK')
+  const size = relationship.modules.find((module) => module.kind === 'TARGET_SIZE_MAXIMUM')
+  return {
+    dc: escape?.dc?.kind === 'FIXED' ? escape.dc.value : undefined,
+    sizeLimit: size?.sizeCode,
+    conditions: (relationship.conditions ?? [])
+      .map((condition) => conditionCodeById.get(condition.conditionId) ?? condition.conditionId)
+      .sort()
+  }
+}
+
+describe('SRD Creature grapple riders (D105)', () => {
+  it('authors the printed escape DC, size limit and conditions of every Actor Relationship', () => {
+    const riders = authoredAttacks.flatMap(({ name, printed, relationships }) =>
+      relationships.map((relationship) => ({
+        name,
+        printed:
+          printed.length === 1 ? printedRider(printed[0]!.text) : `${printed.length} paragraphs`,
+        authored: authoredRider(relationship)
+      }))
+    )
+
+    expect(riders).toHaveLength(27)
+    expect(riders.filter(({ printed, authored }) => JSON.stringify(printed) !== JSON.stringify(authored))).toEqual([])
+  })
+
+  it('authors an Actor Relationship for every attack that prints "grappled (escape DC"', () => {
+    const unauthored = authoredAttacks.flatMap(({ name, printed, relationships }) =>
+      printed.some((paragraph) => GRAPPLED_PRINT.test(paragraph.text)) && relationships.length === 0
+        ? [name]
+        : []
+    )
+
+    expect(unauthored).toEqual([])
+  })
+
+  it('authors an attack for every printed weapon attack that prints "grappled (escape DC"', () => {
+    const authoredParagraphs = new Set(authoredAttacks.flatMap(({ printed }) => printed))
+    const printedGrapples = [...printedAttacks.values()]
+      .flat()
+      .filter((paragraph) => GRAPPLED_PRINT.test(paragraph.text))
+
+    expect(
+      printedGrapples
+        .filter((paragraph) => !authoredParagraphs.has(paragraph))
+        .map((paragraph) => `${paragraph.heading}: ${paragraph.text.slice(0, 40)}`)
+    ).toEqual([])
+  })
+
+  it('holds the printed number of creatures at once, one unless listed', () => {
+    const held = authoredAttacks.flatMap(({ name, relationships }) =>
+      relationships.map((relationship) => ({
+        name,
+        heldAtOnce: relationship.heldAtOnce,
+        expected: HELD_AT_ONCE.get(name) ?? 1
+      }))
+    )
+
+    expect(held.filter(({ heldAtOnce, expected }) => heldAtOnce !== expected)).toEqual([])
+    expect(
+      [...HELD_AT_ONCE.keys()].filter(
+        (key) => !authoredAttacks.some(({ name, relationships }) => name === key && relationships.length > 0)
+      )
+    ).toEqual([])
+  })
+
+  it('leaves no bare Grappled condition outside an Actor Relationship', () => {
+    const grappledId = SRD_CONDITION_TYPES.find((entry) => entry.code === 'GRAPPLED')!.id
+    const bare = srdBaselineContent.subjects.creatures.filter(
+      (creature) =>
+        collect(creature, (node, add) => {
+          if (node.effectKind === 'ACTOR_RELATIONSHIP') return true
+          if (node.effectKind === 'CONDITION' && node.conditionId === grappledId) add(node)
+        }).length > 0
+    )
+
+    expect(bare.map((creature) => creature.label)).toEqual([])
+  })
+})

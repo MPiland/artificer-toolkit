@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const giantScorpion: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_SCORPION,
@@ -100,11 +99,7 @@ export const giantScorpion: CreatureAuthored = {
                 id: S.actionId(132, 7) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(132, 7),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  }
+                  S.grappledOutcome(132, { localIndex: 1, escapeDc: 12, heldAtOnce: 2 })
                 ]
               }
             }

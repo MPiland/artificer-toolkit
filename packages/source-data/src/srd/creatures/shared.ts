@@ -25,15 +25,20 @@ import {
   TRIGGER,
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
+  type ActorRelationshipAuthored,
+  type ActorRelationshipModuleAuthored,
   type CreatureAuthored,
   type FeatureAuthored,
-  type FollowUpSaveAuthored
+  type FollowUpSaveAuthored,
+  type SizeCode
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { CREATURE_IDS } from '../ids.js'
 export { SPELL_IDS } from '../ids.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
+  SRD_ACROBATICS_SKILL_ID,
+  SRD_ATHLETICS_SKILL_ID,
   SRD_CHALLENGE_RATINGS,
   SRD_CONDITION_TYPES,
   SRD_CREATURE_TYPES,
@@ -195,6 +200,64 @@ export function equipmentLoadoutId(creatureIndex: number, localIndex: number) {
   return localId(8, creatureIndex, localIndex)
 }
 
+function grappleId(creatureIndex: number, localIndex: number) {
+  return localId(9, creatureIndex, localIndex)
+}
+
+type SrdConditionCode = (typeof SRD_CONDITION_TYPES)[number]['code']
+
+/** A printed grapple rider: "grappled (escape DC N)" (D105). */
+export type GrappleRider = {
+  /** The first of this rider's IDs in the creature's grapple ID group. */
+  localIndex: number
+  escapeDc: number
+  /** How many creatures this attack holds at once: 1 unless the stat block says otherwise. */
+  heldAtOnce: number
+  /** The printed size limit ("if the target is Large or smaller"). */
+  largestTarget?: SizeCode
+  /** The printed "until this grapple ends" conditions besides Grappled. */
+  untilEnds?: readonly SrdConditionCode[]
+}
+
+/**
+ * A Grappled outcome (D105): the target escapes with its Action by an Athletics or Acrobatics
+ * check against the printed escape DC. It takes the IDs `grappleId(creatureIndex, localIndex)`
+ * through `localIndex + 3 + untilEnds.length`.
+ */
+export function grappledOutcome(creatureIndex: number, rider: GrappleRider): ActorRelationshipAuthored {
+  const id = (offset: number) => grappleId(creatureIndex, rider.localIndex + offset)
+  const modules: ActorRelationshipModuleAuthored[] = [
+    ...(rider.largestTarget
+      ? [{ id: id(2), order: 0, kind: 'TARGET_SIZE_MAXIMUM' as const, sizeCode: rider.largestTarget }]
+      : []),
+    {
+      id: id(1),
+      order: 0,
+      kind: 'ESCAPE_CHECK',
+      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+      checks: {
+        skillIds: [SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID].sort(),
+        abilityDefinitionIds: []
+      },
+      dc: { kind: 'FIXED', value: rider.escapeDc },
+      actorKinds: ['TARGET']
+    }
+  ]
+  return {
+    id: id(0),
+    effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
+    heldAtOnce: rider.heldAtOnce,
+    modules: modules.map((module, order) => ({ ...module, order: order + 1 })),
+    conditions: [GRAPPLED_CONDITION_ID, ...(rider.untilEnds ?? []).map((code) =>
+      vocabularyId(SRD_CONDITION_TYPES, code)
+    )].map((conditionId, index) => ({
+      id: id(3 + index),
+      effectKind: EFFECT_KIND.CONDITION,
+      conditionId
+    }))
+  }
+}
+
 export function skillId(code: string) {
   const entry = SRD_SKILLS.find((skill) => skill.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
@@ -347,9 +410,9 @@ export function constitutionPoisonDamageSave(input: {
 /**
  * A weapon attack action: "Melee Weapon Attack: … reach N ft." (or "Ranged … range N ft."), one
  * target, dealing `diceConfig` damage plus the ability modifier on a hit, then in printed order any
- * further damage parts ("plus 2d6 poison damage"), a grapple (a bare condition, D57 ruling 2) and a
+ * further damage parts ("plus 2d6 poison damage"), a Grappled outcome (`grappledOutcome`) and a
  * follow-up save. It takes the IDs `actionId(creatureIndex, localIndex)` through `localIndex + 4`,
- * then one more per further damage part and one for the grapple; its ATTACK roll comes from the
+ * then one more per further damage part; its ATTACK roll comes from the
  * printed bonus (attack-bonuses.ts). A swarm's bites author `halfHitPointsDiceConfig`, the dice
  * rolled while the swarm has half of its hit points or fewer.
  */
@@ -362,7 +425,7 @@ export function weaponAttack(
     halfHitPointsDiceConfig?: string
     ability: AbilityCode | null
     extraDamage?: readonly { damageType: string; diceConfig: string }[]
-    grapples?: true
+    grapple?: GrappleRider
     followUpSave?: FollowUpSaveAuthored
   } & (
     | { kind: 'MELEE'; feet: number }
@@ -381,15 +444,7 @@ export function weaponAttack(
       scalingKind: SCALING.NONE,
       diceConfig: part.diceConfig
     })),
-    ...(input.grapples
-      ? [
-          {
-            id: id(5 + extraDamage.length),
-            effectKind: EFFECT_KIND.CONDITION,
-            conditionId: GRAPPLED_CONDITION_ID
-          }
-        ]
-      : []),
+    ...(input.grapple ? [grappledOutcome(input.creatureIndex, input.grapple)] : []),
     ...(input.followUpSave ? [input.followUpSave] : [])
   ]
   const sequence = riders.length > 0

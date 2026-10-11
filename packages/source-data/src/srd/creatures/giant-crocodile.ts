@@ -59,7 +59,7 @@ export const giantCrocodile: CreatureAuthored = {
           damageType: 'PIERCING',
           diceConfig: '3d10',
           ability: 'STRENGTH',
-          grapples: true
+          grapple: { localIndex: 1, escapeDc: 16, heldAtOnce: 1, untilEnds: ['RESTRAINED'] }
         })
       ],
       order: 3

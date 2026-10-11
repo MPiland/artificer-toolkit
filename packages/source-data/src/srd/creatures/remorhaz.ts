@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const remorhaz: CreatureAuthored = {
   id: S.CREATURE_IDS.REMORHAZ,
@@ -172,30 +171,12 @@ export const remorhaz: CreatureAuthored = {
                 id: S.actionId(2620, 5) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(2620, 5),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(2620, 6),
-              order: 4,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(2620, 6) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(2620, 6),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
-                  }
+                  S.grappledOutcome(235, {
+                    localIndex: 1,
+                    escapeDc: 17,
+                    heldAtOnce: 1,
+                    untilEnds: ['RESTRAINED']
+                  })
                 ]
               }
             }

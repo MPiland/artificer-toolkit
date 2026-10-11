@@ -3,9 +3,11 @@ import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
 import { EFFECT_KIND, type MeasurementUnitCode } from '#core'
 
+/** The checks a creature may choose from: any listed skill check or ability check (D105). */
+export type CheckChoiceAuthored = { skillIds: string[]; abilityDefinitionIds: string[] }
+
 export type ActorRelationshipModuleAuthored =
   | { id: string; order: number; kind: 'TARGET_SIZE_MAXIMUM'; sizeCode: string }
-  | { id: string; order: number; kind: 'SOURCE_EXCLUSIVE_TARGET'; maximum: 1 }
   | {
       id: string
       order: number
@@ -32,8 +34,8 @@ export type ActorRelationshipModuleAuthored =
       order: number
       kind: 'ESCAPE_CHECK'
       activation: ActivationAuthored
-      abilityDefinitionId: string
-      fixedDc: number
+      checks: CheckChoiceAuthored
+      dc: { kind: 'FIXED'; value: number } | { kind: 'CONTEST'; checks: CheckChoiceAuthored }
       actorKinds: Array<'TARGET' | 'CREATURE_WITHIN_REACH'>
     }
   | {
@@ -54,6 +56,8 @@ export type ActorRelationshipModuleAuthored =
 export type ActorRelationshipAuthored = {
   id: string
   effectKind: typeof EFFECT_KIND.ACTOR_RELATIONSHIP
+  /** The most creatures this outcome holds at once, counted per outcome (D105). */
+  heldAtOnce: number
   modules: ActorRelationshipModuleAuthored[]
   /** Existing condition documents owned by this target relationship. */
   conditions?: ConditionAuthored[]

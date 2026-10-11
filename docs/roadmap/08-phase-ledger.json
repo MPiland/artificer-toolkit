@@ -4475,10 +4475,16 @@
             },
             {
               "text": "SRD grapple riders author a Grappled outcome with their printed escape DC (Athletics or Acrobatics), printed size limit, \"until this grapple ends\" conditions and printed held-at-once count (the Kraken's tentacles 10; two claws, pincers or tentacles 2; otherwise 1), all editable in the Creature editor. Holds are counted per outcome, and a source-data test holds each rider to its stat block.",
-              "status": "IN_PROGRESS",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/source-data/src/srd/creatureGrappleRiders.test.ts",
+                "packages/schema/src/__tests__/actor-relationship-escape-check.test.ts",
+                "packages/shared/src/__tests__/authoring-node-map-visibility.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterActionEffectBaseline.test.ts",
+                "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts"
+              ],
               "origin": [],
-              "note": "D105 slice A. Swallow and other allowlisted riders stay with ATTACK-5.",
+              "note": "D105 slice A. Swallow and other allowlisted riders stay with ATTACK-5. The live Giant Toad hit is the regression proof that a relationship's conditions on a Character bind to the receipt's active-effect CREATE (they failed the trace binding before).",
               "id": "ATTACK-7.8"
             },
             {
@@ -4494,7 +4500,7 @@
             {
               "id": "ATTACK-7.T1",
               "text": "Slice A: the ESCAPE_CHECK contract (allowed skill or ability checks; FIXED or CONTEST DC), the Grappled outcome editor with held at once replacing SOURCE_EXCLUSIVE_TARGET, per-outcome hold counting by relationshipOutcomeId, and every SRD grapple rider converted with a source-data test against SRD 5.1.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-7.8"]
             },
             {

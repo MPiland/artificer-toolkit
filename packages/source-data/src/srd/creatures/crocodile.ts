@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const crocodile: CreatureAuthored = {
   id: S.CREATURE_IDS.CROCODILE,
@@ -99,11 +98,12 @@ export const crocodile: CreatureAuthored = {
                 id: S.actionId(73, 4) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(73, 4),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  }
+                  S.grappledOutcome(73, {
+                    localIndex: 1,
+                    escapeDc: 12,
+                    heldAtOnce: 1,
+                    untilEnds: ['RESTRAINED']
+                  })
                 ]
               }
             }

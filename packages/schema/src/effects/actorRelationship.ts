@@ -16,6 +16,25 @@ const moduleBase = lazySchemaParts(() => ({
 const uuidList = lazySchema(() =>
   authoredNestedCollectionSchema(postgresUuidSchema).check(z.minLength(1))
 )
+const sortedUniqueUuids = lazySchema(() =>
+  authoredNestedCollectionSchema(postgresUuidSchema).check(
+    z.superRefine((ids: string[], ctx) => {
+      if (ids.some((id, index) => index > 0 && ids[index - 1]! >= id))
+        ctx.addIssue({ code: 'custom', message: 'Check identities must be unique and sorted.' })
+    })
+  )
+)
+/** The checks a creature may choose from: any listed skill check or ability check (D105). */
+const checkChoiceDtoSchema = lazySchema(() =>
+  z
+    .object({ skillIds: sortedUniqueUuids, abilityDefinitionIds: sortedUniqueUuids })
+    .check(
+      z.refine(
+        (value) => value.skillIds.length + value.abilityDefinitionIds.length > 0,
+        'Name at least one allowed check.'
+      )
+    )
+)
 
 export const actorRelationshipModuleDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -23,11 +42,6 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       ...moduleBase(),
       kind: z.literal('TARGET_SIZE_MAXIMUM'),
       sizeCode: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80))
-    }),
-    z.object({
-      ...moduleBase(),
-      kind: z.literal('SOURCE_EXCLUSIVE_TARGET'),
-      maximum: z.literal(1)
     }),
     z.object({
       ...moduleBase(),
@@ -51,8 +65,14 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       ...moduleBase(),
       kind: z.literal('ESCAPE_CHECK'),
       activation: activationDtoSchema,
-      abilityDefinitionId: postgresUuidSchema,
-      fixedDc: z.number().check(z.int()).check(z.positive()),
+      checks: checkChoiceDtoSchema,
+      dc: z.discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('FIXED'),
+          value: z.number().check(z.int()).check(z.positive())
+        }),
+        z.object({ kind: z.literal('CONTEST'), checks: checkChoiceDtoSchema })
+      ]),
       actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
         z.minLength(1)
       )
@@ -77,6 +97,8 @@ export const actorRelationshipDtoSchema = lazySchema(() =>
     .object({
       id: authoredIdentifierSchema,
       effectKind: z.literal('ACTOR_RELATIONSHIP'),
+      /** The most creatures this outcome holds at once, counted per outcome (D105). */
+      heldAtOnce: z.number().check(z.int()).check(z.gte(1)),
       modules: authoredNestedCollectionSchema(actorRelationshipModuleDtoSchema)
         .check(z.minLength(1))
         .check(z.maxLength(32)),

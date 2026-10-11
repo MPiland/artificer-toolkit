@@ -55,7 +55,7 @@ type RelationshipDefinition = Extract<
   { schemaVersion: 2 }
 >
 
-function rugSmotherCapability() {
+function rugSmotherCapability(heldAtOnce = 1) {
   const compiledEffect = compileEffect({
     id: rugIds.effect,
     order: 1,
@@ -80,18 +80,13 @@ function rugSmotherCapability() {
             {
               id: rugIds.relationship,
               effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
+              heldAtOnce,
               modules: [
                 {
                   id: rugIds.moduleA,
                   order: 1,
                   kind: 'TARGET_SIZE_MAXIMUM',
                   sizeCode: 'MEDIUM'
-                },
-                {
-                  id: rugIds.moduleB,
-                  order: 2,
-                  kind: 'SOURCE_EXCLUSIVE_TARGET',
-                  maximum: 1
                 },
                 {
                   id: rugIds.moduleC,
@@ -174,8 +169,8 @@ function rugSmotherCapability() {
   } satisfies EncounterFeatureActionCapabilityDescriptor
 }
 
-function fixturePlan(authoredPath: 'ON_HIT' | 'ON_CRIT' = 'ON_HIT') {
-  const fixture = rugSmotherCapability()
+function fixturePlan(authoredPath: 'ON_HIT' | 'ON_CRIT' = 'ON_HIT', heldAtOnce = 1) {
+  const fixture = rugSmotherCapability(heldAtOnce)
   const capability = {
     ...fixture,
     compiledEffect: {
@@ -251,9 +246,14 @@ function relationshipDefinition(result: ReturnType<typeof planWith>) {
 function planWith(
   activeEffects: readonly ActiveRuleEffectRecord[],
   conditionIds: readonly string[],
-  input: { authoredPath?: 'ON_HIT' | 'ON_CRIT'; resultPath?: 'ON_HIT' | 'ON_CRIT' } = {}
+  input: {
+    authoredPath?: 'ON_HIT' | 'ON_CRIT'
+    resultPath?: 'ON_HIT' | 'ON_CRIT'
+    heldAtOnce?: number
+    otherHolds?: ReadonlyArray<readonly [string, readonly ActiveRuleEffectRecord[]]>
+  } = {}
 ) {
-  const { plan, published } = fixturePlan(input.authoredPath)
+  const { plan, published } = fixturePlan(input.authoredPath, input.heldAtOnce)
   return prepareEncounterActionEffectPlans({
     encounterId: ids.encounter,
     occurrenceId: ids.occurrence,
@@ -269,7 +269,7 @@ function planWith(
       lifetimeScope: 'ENCOUNTER',
       activeEffects
     },
-    activeEffectsByActorId: new Map([[ids.target, activeEffects]]),
+    activeEffectsByActorId: new Map([[ids.target, activeEffects], ...(input.otherHolds ?? [])]),
     activeEffectPlan: plan,
     published,
     execution: execution(),
@@ -344,5 +344,56 @@ describe('encounter action effect condition baselines', () => {
         expect.objectContaining({ authoredPath: 'ON_CRIT', resolvedPath: 'ON_CRIT' })
       ])
     )
+  })
+})
+
+describe('encounter Grappled outcome held at once', () => {
+  const heldA = '00000000-0000-4000-8000-000000000911'
+  const heldB = '00000000-0000-4000-8000-000000000912'
+  const otherOutcome = '00000000-0000-4000-8000-000000000913'
+
+  function holdBySource(actorId: string, relationshipOutcomeId?: string) {
+    const effect = relationshipEffect(relationshipDefinition(planWith([], [])), false)
+    if (effect.definition.origin.kind !== 'ENCOUNTER')
+      throw new Error('Expected Encounter relationship origin.')
+    const hold: ActiveRuleEffectRecord = {
+      ...effect,
+      id: `00000000-0000-4000-8000-0000000009${actorId.slice(-2)}`,
+      owner: { ...effect.owner, targetActorId: actorId },
+      definition: {
+        ...effect.definition,
+        origin: { ...effect.definition.origin, sourceActorId: ids.source },
+        stateContributions: effect.definition.stateContributions.map((contribution) =>
+          contribution.kind === 'ACTOR_RELATIONSHIP' && relationshipOutcomeId
+            ? { ...contribution, relationshipOutcomeId }
+            : contribution
+        )
+      }
+    }
+    return [actorId, [hold]] as const
+  }
+
+  it('holds as many creatures as its held-at-once count and refuses one more', () => {
+    expect(
+      planWith([], [], { heldAtOnce: 2, otherHolds: [holdBySource(heldA)] }).recurringEffect
+    ).not.toBeNull()
+    expect(
+      planWith([], [], {
+        heldAtOnce: 2,
+        otherHolds: [holdBySource(heldA), holdBySource(heldB)]
+      }).recurringEffect
+    ).toBeNull()
+  })
+
+  it('refuses a second creature when it holds one at once', () => {
+    expect(planWith([], [], { otherHolds: [holdBySource(heldA)] }).recurringEffect).toBeNull()
+  })
+
+  it('counts only holds made by the same outcome', () => {
+    expect(
+      planWith([], [], {
+        otherHolds: [holdBySource(heldA, otherOutcome), holdBySource(heldB, otherOutcome)]
+      }).recurringEffect
+    ).not.toBeNull()
   })
 })

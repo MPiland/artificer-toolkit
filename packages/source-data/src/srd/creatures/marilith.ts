@@ -239,6 +239,13 @@ export const marilith: CreatureAuthored = {
                       }
                     ]
                   },
+                  S.grappledOutcome(192, {
+                    localIndex: 1,
+                    escapeDc: 19,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.MEDIUM,
+                    untilEnds: ['RESTRAINED']
+                  }),
                   {
                     id: S.actionId(192, 968),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

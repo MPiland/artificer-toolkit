@@ -94,7 +94,13 @@ export const otyugh: CreatureAuthored = {
           diceConfig: '1d8',
           ability: 'STRENGTH',
           extraDamage: [{ damageType: 'PIERCING', diceConfig: '1d8' }],
-          grapples: true
+          grapple: {
+            localIndex: 1,
+            escapeDc: 13,
+            heldAtOnce: 2,
+            largestTarget: S.SIZE_CODE.MEDIUM,
+            untilEnds: ['RESTRAINED']
+          }
         })
       ],
       order: 4

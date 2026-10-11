@@ -112,11 +112,8 @@ export function prepareEncounterActionEffectPlans(input: {
                     kind: 'CONDITION_APPLY' as const,
                     targetActorId: input.target.actorId,
                     conditionId: contribution.conditionId,
-                    sourceNodeId:
-                      recurringEffect.definition.frozenGraph.sourceEntryBindings?.find(
-                        (binding) =>
-                          binding.sourceEntryId === recurringEffect.definition.compiledEntryId
-                      )?.nodeId ?? recurringEffect.definition.frozenGraphNodeId,
+                    // The relationship's own active effect receipt binds these conditions.
+                    sourceNodeId: recurringEffect.definition.frozenGraphNodeId,
                     sourceOperationKey: 'dnd5e.actor-relationship-state',
                     authoredPath,
                     resolvedPath: input.d20!.resultPath
@@ -201,13 +198,15 @@ function prepareRecurringActiveEffect(
             : []
         )
     )
-    if (
-      relationshipContribution.modules.some(
-        (module) => module.kind === 'SOURCE_EXCLUSIVE_TARGET'
-      ) &&
-      sameSourceRelationships.some(({ actorId }) => actorId !== input.target.actorId)
+    const heldByOutcome = new Set(
+      sameSourceRelationships.flatMap(({ actorId, contribution }) =>
+        actorId !== input.target.actorId &&
+        contribution.relationshipOutcomeId === relationshipContribution.relationshipOutcomeId
+          ? [actorId]
+          : []
+      )
     )
-      return null
+    if (heldByOutcome.size >= relationshipContribution.heldAtOnce) return null
     if (
       relationshipContribution.modules.some(
         (module) =>

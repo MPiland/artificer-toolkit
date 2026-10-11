@@ -165,11 +165,12 @@ export const chuul: CreatureAuthored = {
                 id: S.actionId(63, 7) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(63, 7),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  }
+                  S.grappledOutcome(63, {
+                    localIndex: 1,
+                    escapeDc: 14,
+                    heldAtOnce: 2,
+                    largestTarget: S.SIZE_CODE.LARGE
+                  })
                 ]
               }
             }

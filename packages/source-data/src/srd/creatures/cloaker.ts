@@ -315,6 +315,7 @@ export const cloaker: CreatureAuthored = {
                   {
                     id: S.actionId(9141, 105),
                     effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
+                    heldAtOnce: 1,
                     modules: [
                       {
                         id: S.actionId(9141, 106),
@@ -348,8 +349,11 @@ export const cloaker: CreatureAuthored = {
                         order: 6,
                         kind: 'ESCAPE_CHECK',
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-                        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
-                        fixedDc: 16,
+                        checks: {
+                          skillIds: [],
+                          abilityDefinitionIds: [SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH]
+                        },
+                        dc: { kind: 'FIXED', value: 16 },
                         actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH']
                       },
                       {

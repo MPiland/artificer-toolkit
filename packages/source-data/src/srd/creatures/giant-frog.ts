@@ -130,6 +130,12 @@ export const giantFrog: CreatureAuthored = {
                 id: S.actionId(124, 4) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
+                  S.grappledOutcome(124, {
+                    localIndex: 1,
+                    escapeDc: 11,
+                    heldAtOnce: 1,
+                    untilEnds: ['RESTRAINED']
+                  }),
                   {
                     id: S.actionId(124, 4),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

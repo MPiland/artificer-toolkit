@@ -65,6 +65,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   /** Target-owned relationship state selected by the System from the exact action outcome. */
   actorRelationshipContribution?: null | {
     relationshipOutcomeId: string
+    /** The most creatures the source holds at once through this outcome. */
+    heldAtOnce: number
     modules: readonly ActorRelationshipModuleAuthored[]
     /** Concrete state selected at settlement; conditional state is omitted unless evidenced. */
     conditionIds: readonly string[]

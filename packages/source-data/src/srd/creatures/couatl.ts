@@ -284,16 +284,13 @@ export const couatl: CreatureAuthored = {
                 id: S.actionId(8048, 11) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(8048, 11),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  },
-                  {
-                    id: S.actionId(71, 207),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
-                  },
+                  S.grappledOutcome(71, {
+                    localIndex: 1,
+                    escapeDc: 15,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.MEDIUM,
+                    untilEnds: ['RESTRAINED']
+                  }),
                   {
                     id: S.actionId(71, 208),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

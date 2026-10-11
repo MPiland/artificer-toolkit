@@ -166,6 +166,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
       z.nullable(
         z.strictObject({
           relationshipOutcomeId: serverUuidIdentityDtoSchema,
+          heldAtOnce: z.number().check(z.int()).check(z.gte(1)),
           modules: z
             .array(actorRelationshipModuleDtoSchema)
             .check(z.minLength(1))

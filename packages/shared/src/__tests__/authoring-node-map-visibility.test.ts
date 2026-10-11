@@ -171,6 +171,41 @@ describe('authoring node map visibility', () => {
     ).toBe(false)
   })
 
+  it('edits a Grappled outcome: held at once, escape checks and a fixed or contested DC (D105)', () => {
+    const outcome = groupMap(groupMap(PATH_NODE_MAP.nodes.resultBlock)('outcomes'))
+    const heldAtOnceNode = outcome('actorRelationshipHeldAtOnce')
+    const modulesNode = outcome('actorRelationshipModules')
+
+    expect(isVisible(heldAtOnceNode, { effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP })).toBe(true)
+    expect(isVisible(heldAtOnceNode, { effectKind: EFFECT_KIND.CONDITION })).toBe(false)
+    expectNumberMinimum(heldAtOnceNode, 1)
+    expect(isVisible(modulesNode, { effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP })).toBe(true)
+
+    const moduleNode = groupMap(modulesNode)
+    const kindNode = moduleNode('kind')
+    if (kindNode.kind !== 'INPUT' || kindNode.source?.kind !== 'INLINE_OPTIONS') {
+      throw new Error('Expected module kind to be an inline select')
+    }
+    const kindCodes = kindNode.source.options?.map((option) => option.code)
+    expect(kindCodes).toContain('ESCAPE_CHECK')
+    expect(kindCodes).not.toContain('SOURCE_EXCLUSIVE_TARGET')
+    for (const key of ['activation', 'checks', 'dc', 'actorKinds']) {
+      expect(isVisible(moduleNode(key), { kind: 'ESCAPE_CHECK' })).toBe(true)
+      expect(isVisible(moduleNode(key), { kind: 'TARGET_SIZE_MAXIMUM' })).toBe(false)
+    }
+
+    const checksNode = moduleNode('checks')
+    const checkMap = typeof checksNode.nodes === 'function' ? checksNode.nodes() : checksNode.nodes
+    expect(Object.keys(checkMap?.nodes ?? {})).toEqual(['skillIds', 'abilityDefinitionIds'])
+
+    const dcNode = groupMap(moduleNode('dc'))
+    expect(isVisible(dcNode('value'), { kind: 'FIXED' })).toBe(true)
+    expect(isVisible(dcNode('value'), { kind: 'CONTEST' })).toBe(false)
+    expectNumberMinimum(dcNode('value'), 1)
+    expect(isVisible(dcNode('checks'), { kind: 'CONTEST' })).toBe(true)
+    expect(isVisible(dcNode('checks'), { kind: 'FIXED' })).toBe(false)
+  })
+
   it('mirrors nonnegative bonus controls without constraining penalties', () => {
     const payloadNode = MODIFIER_GRANT_NODE_MAP.nodes.payload
 
@@ -192,6 +227,28 @@ describe('authoring node map visibility', () => {
 
 function isVisible(node: { showIf?: ConditionIfExpr }, values: Record<string, unknown>) {
   return node.showIf ? evaluateConditionIf(node.showIf, { values }) : true
+}
+
+type VisibilityNode = {
+  kind: string
+  showIf?: ConditionIfExpr
+  type?: string
+  constraints?: { minimum?: number }
+  source?: { kind: string; options?: readonly { code: string }[] }
+  nodes?: VisibilityNodeMap | (() => VisibilityNodeMap)
+}
+type VisibilityNodeMap = { nodes: Record<string, VisibilityNode> }
+
+function groupMap(node: VisibilityNode | undefined) {
+  if (!node || node.kind !== 'GROUP' || !node.nodes) {
+    throw new Error('Expected a group node')
+  }
+  const map = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+  return (key: string) => {
+    const child = map.nodes[key]
+    if (!child) throw new Error(`Expected a ${key} node`)
+    return child
+  }
 }
 
 function expectNumberMinimum(

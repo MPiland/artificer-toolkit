@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const octopus: CreatureAuthored = {
@@ -115,11 +114,7 @@ export const octopus: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     amount: 1
                   },
-                  {
-                    id: S.actionId(208, 931),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  },
+                  S.grappledOutcome(208, { localIndex: 1, escapeDc: 10, heldAtOnce: 1 }),
                   {
                     id: S.actionId(208, 938),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

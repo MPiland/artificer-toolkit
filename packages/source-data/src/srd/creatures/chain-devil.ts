@@ -145,16 +145,12 @@ export const chainDevil: CreatureAuthored = {
                       }
                     ]
                   },
-                  {
-                    id: S.actionId(61, 110),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  },
-                  {
-                    id: S.actionId(61, 111),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
-                  },
+                  S.grappledOutcome(61, {
+                    localIndex: 1,
+                    escapeDc: 14,
+                    heldAtOnce: 1,
+                    untilEnds: ['RESTRAINED']
+                  }),
                   {
                     id: S.actionId(61, 112),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

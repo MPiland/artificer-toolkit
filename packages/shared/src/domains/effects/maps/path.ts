@@ -2,6 +2,7 @@ import type {
   ApplyGrantAuthored,
   ActorRelationshipAuthored,
   ActorRelationshipModuleAuthored,
+  CheckChoiceAuthored,
   ConditionAuthored,
   DamageAuthored,
   FollowUpSaveAuthored,
@@ -104,6 +105,9 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
+type EscapeCheckDcNode = AllUnionFields<
+  Extract<ActorRelationshipModuleAuthored, { kind: 'ESCAPE_CHECK' }>['dc']
+>
 type FollowUpSaveRepeatRollInfluenceWhenNode = FollowUpSaveRepeatRollInfluenceAuthored['when']
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
@@ -231,6 +235,8 @@ const hitPointMaximumReductionAmountSource =
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
 const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
 const actionEffectId = buildNodeMap<{ value: string }>()
+const checkChoice = buildNodeMap<CheckChoiceAuthored>()
+const escapeCheckDc = buildNodeMap<EscapeCheckDcNode>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
 const followUpSaveRepeatRollInfluenceWhen = buildNodeMap<FollowUpSaveRepeatRollInfluenceWhenNode>()
@@ -886,6 +892,59 @@ const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfl
   }
 )
 
+const CHECK_CHOICE_NODE_MAP = checkChoice.define('checkChoice', ({ map, nodes, data }) => {
+  const { selectMulti } = nodes
+  const { table } = data
+  map
+    .set(
+      'skillIds',
+      selectMulti(['skillIds'], 'Skill Checks', {
+        kind: 'DATA',
+        relationship: table('skills', { selectColumns: ['id', 'label'] })
+      })
+    )
+    .set(
+      'abilityDefinitionIds',
+      selectMulti(['abilityDefinitionIds'], 'Ability Checks', {
+        kind: 'DATA',
+        relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+      })
+    )
+})
+
+const ESCAPE_CHECK_DC_NODE_MAP = escapeCheckDc.define(
+  'escapeCheckDc',
+  ({ map, nodes, cond }) => {
+    const { number, selectSingle, groupObject } = nodes
+    const local = cond.local()
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'DC', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'FIXED', label: 'Fixed DC' },
+            { code: 'CONTEST', label: 'Contest' }
+          ]
+        })
+      )
+      .set(
+        'value',
+        number(['value'], 'Fixed DC', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['kind']).eq('FIXED')
+        })
+      )
+      .set(
+        'checks',
+        groupObject(['checks'], 'Source Checks', () => CHECK_CHOICE_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['kind']).eq('CONTEST')
+        })
+      )
+  }
+)
+
 const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
   'actorRelationshipModule',
   ({ map, nodes, cond, logic, data }) => {
@@ -911,7 +970,6 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
           kind: 'INLINE_OPTIONS',
           options: [
             { code: 'TARGET_SIZE_MAXIMUM', label: 'Target Size Maximum' },
-            { code: 'SOURCE_EXCLUSIVE_TARGET', label: 'Source Exclusive Target' },
             { code: 'SOURCE_ACTION_TARGET_RESTRICTION', label: 'Source Action Restriction' },
             { code: 'SOURCE_ATTACK_ROLL_INFLUENCE', label: 'Source Attack Influence' },
             { code: 'SOURCE_FOLLOWS_TARGET', label: 'Source Follows Target' },
@@ -930,13 +988,6 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
           { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
           { showIf: local.field(['kind']).eq('TARGET_SIZE_MAXIMUM') }
         )
-      )
-      .set(
-        'maximum',
-        number(['maximum'], 'Maximum Targets', {
-          constraints: { minimum: 1, maximum: 1 },
-          showIf: local.field(['kind']).eq('SOURCE_EXCLUSIVE_TARGET')
-        })
       )
       .set(
         'actionEffectIds',
@@ -978,21 +1029,16 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         })
       )
       .set(
-        'abilityDefinitionId',
-        selectSingle(
-          ['abilityDefinitionId'],
-          'Ability',
-          {
-            kind: 'DATA',
-            relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
-          },
-          { showIf: local.field(['kind']).eq('ESCAPE_CHECK') }
-        )
+        'checks',
+        groupObject(['checks'], 'Escape Checks', () => CHECK_CHOICE_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
+        })
       )
       .set(
-        'fixedDc',
-        number(['fixedDc'], 'DC', {
-          constraints: { minimum: 1 },
+        'dc',
+        groupObject(['dc'], 'Escape DC', () => ESCAPE_CHECK_DC_NODE_MAP, {
+          presentation: 'inline',
           showIf: local.field(['kind']).eq('ESCAPE_CHECK')
         })
       )
@@ -1200,6 +1246,13 @@ function registerOutcomeFields(
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
         }
       )
+    )
+    .set(
+      'actorRelationshipHeldAtOnce',
+      number(['heldAtOnce'], 'Held at Once', {
+        constraints: { minimum: 1 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
+      })
     )
     .set(
       'actorRelationshipModules',

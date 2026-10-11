@@ -704,6 +704,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     initialRemaining: null,
     actorRelationshipContribution: {
       relationshipOutcomeId: relationship.id,
+      heldAtOnce: relationship.heldAtOnce,
       modules,
       conditionIds,
       capabilitySuppressions

@@ -133,7 +133,7 @@ export const kraken: CreatureAuthored = {
       id: S.featureId(180, 6),
       label: 'Tentacle',
       description:
-        'Tentacle. Melee Weapon Attack: +17 to hit, reach 30 ft., one target. Hit: 20 (3d6 + 10) bludgeoning damage, and the target is grappled (escape DC 18).',
+        'Tentacle. Melee Weapon Attack: +17 to hit, reach 30 ft., one target. Hit: 20 (3d6 + 10) bludgeoning damage, and the target is grappled (escape DC 18). Until this grapple ends, the target is restrained. The kraken has ten tentacles, each of which can grapple one target.',
       effects: [
         {
           id: S.actionId(9001, 1),
@@ -163,7 +163,7 @@ export const kraken: CreatureAuthored = {
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(9001, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(9001, 3),
@@ -180,7 +180,13 @@ export const kraken: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
+                  },
+                  S.grappledOutcome(180, {
+                    localIndex: 1,
+                    escapeDc: 18,
+                    heldAtOnce: 10,
+                    untilEnds: ['RESTRAINED']
+                  })
                 ]
               }
             }

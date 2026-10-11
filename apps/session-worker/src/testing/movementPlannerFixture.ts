@@ -152,6 +152,7 @@ export const incapacitatingReactionWolf: CreatureAuthored = (() => {
                     {
                       id: testUuid(0x7101),
                       effectKind: 'ACTOR_RELATIONSHIP' as const,
+                      heldAtOnce: 1,
                       modules: [
                         {
                           id: testUuid(0x7102),

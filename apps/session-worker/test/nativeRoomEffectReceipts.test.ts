@@ -204,6 +204,7 @@ const bindingBite = withBite(biteWolf('ATTACK'), (bite) => ({
                 {
                   id: '00000000-0000-4000-8000-0000000007c8',
                   effectKind: 'ACTOR_RELATIONSHIP' as const,
+                  heldAtOnce: 1,
                   modules: [
                     {
                       id: '00000000-0000-4000-8000-0000000007c9',

@@ -1,6 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const ankheg: CreatureAuthored = {
   id: S.CREATURE_IDS.ANKHEG,
@@ -124,11 +123,12 @@ export const ankheg: CreatureAuthored = {
                 id: S.actionId(26, 6) + '__result',
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(26, 6),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  }
+                  S.grappledOutcome(26, {
+                    localIndex: 1,
+                    escapeDc: 13,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.LARGE
+                  })
                 ]
               }
             }

@@ -1,5 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID } from '../vocabulary.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
@@ -104,18 +104,13 @@ export const rugOfSmothering: CreatureAuthored = {
                   {
                     id: S.actionId(7705, 3),
                     effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
+                    heldAtOnce: 1,
                     modules: [
                       {
                         id: S.actionId(7705, 4),
                         order: 1,
                         kind: 'TARGET_SIZE_MAXIMUM',
                         sizeCode: S.SIZE_CODE.MEDIUM
-                      },
-                      {
-                        id: S.actionId(7705, 5),
-                        order: 2,
-                        kind: 'SOURCE_EXCLUSIVE_TARGET',
-                        maximum: 1
                       },
                       {
                         id: S.actionId(7705, 6),
@@ -128,8 +123,11 @@ export const rugOfSmothering: CreatureAuthored = {
                         order: 4,
                         kind: 'ESCAPE_CHECK',
                         activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-                        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
-                        fixedDc: 13,
+                        checks: {
+                          skillIds: [SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID].sort(),
+                          abilityDefinitionIds: []
+                        },
+                        dc: { kind: 'FIXED', value: 13 },
                         actorKinds: ['TARGET']
                       },
                       {

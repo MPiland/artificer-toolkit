@@ -162,7 +162,7 @@ export const tarrasque: CreatureAuthored = {
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(2982, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(2982, 3),
@@ -171,7 +171,13 @@ export const tarrasque: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '4d12+10'
-                  }
+                  },
+                  S.grappledOutcome(268, {
+                    localIndex: 1,
+                    escapeDc: 20,
+                    heldAtOnce: 1,
+                    untilEnds: ['RESTRAINED']
+                  })
                 ]
               }
             }

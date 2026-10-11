@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const giantOctopus: CreatureAuthored = {
@@ -114,16 +113,12 @@ export const giantOctopus: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d6+3'
                   },
-                  {
-                    id: S.actionId(128, 207),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('GRAPPLED')
-                  },
-                  {
-                    id: S.actionId(128, 208),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
-                  },
+                  S.grappledOutcome(128, {
+                    localIndex: 1,
+                    escapeDc: 16,
+                    heldAtOnce: 1,
+                    untilEnds: ['RESTRAINED']
+                  }),
                   {
                     id: S.actionId(128, 209),
                     effectKind: S.EFFECT_KIND.CLOSED_RULE,

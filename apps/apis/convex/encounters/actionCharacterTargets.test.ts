@@ -170,6 +170,7 @@ async function setup(
                               {
                                 id: '00000000-0000-4000-8000-000000000092',
                                 effectKind: 'ACTOR_RELATIONSHIP' as const,
+                                heldAtOnce: 1,
                                 modules: [
                                   {
                                     id: '00000000-0000-4000-8000-000000000093',

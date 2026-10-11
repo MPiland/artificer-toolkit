@@ -78,7 +78,13 @@ export const behir: CreatureAuthored = {
           diceConfig: '2d10',
           ability: 'STRENGTH',
           extraDamage: [{ damageType: 'SLASHING', diceConfig: '2d10+6' }],
-          grapples: true
+          grapple: {
+            localIndex: 1,
+            escapeDc: 16,
+            heldAtOnce: 1,
+            largestTarget: S.SIZE_CODE.LARGE,
+            untilEnds: ['RESTRAINED']
+          }
         })
       ],
       order: 3

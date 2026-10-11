@@ -103,7 +103,7 @@ export const salamander: CreatureAuthored = {
           diceConfig: '2d6',
           ability: 'STRENGTH',
           extraDamage: [{ damageType: 'FIRE', diceConfig: '2d6' }],
-          grapples: true
+          grapple: { localIndex: 1, escapeDc: 14, heldAtOnce: 1, untilEnds: ['RESTRAINED'] }
         })
       ],
       order: 5

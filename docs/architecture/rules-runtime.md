@@ -585,6 +585,15 @@ reaches that path (a critical hit reaches both). A TEST/OUTCOME action accepts g
 (`encounterActiveGrantCapabilitySuppressions`, read by `resolveEncounterRuleCapabilityStates` beside
 relationship suppressions), so its holder is offered no movement reaction while the grant lasts.
 
+**Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
+`ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`
+modules. Holds are counted per `relationshipOutcomeId`: planning refuses a new hold when the source already
+holds `heldAtOnce` other actors through that outcome. The effect planner applies the relationship's
+conditions from its frozen `relationship-state` graph, which is not part of the action trace, so a
+Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_APPLY` applications to the
+batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
+kernel trace.
+
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
 modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds

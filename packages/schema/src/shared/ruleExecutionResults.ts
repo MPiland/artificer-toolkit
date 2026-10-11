@@ -423,6 +423,22 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
         let priorTraceIndex = -1
         const boundTraceIndexes = new Set<number>()
         for (const application of batch.applications) {
+          if (application.sourceOperationKey === 'dnd5e.actor-relationship-state') {
+            // The effect planner applies a relationship's conditions from its frozen graph, which
+            // lives in the relationship's active effect, not the action trace (D105).
+            const relationshipEffect = batch.activeEffectTransitions[0]
+            if (
+              application.kind !== 'CONDITION_APPLY' ||
+              !relationshipEffect ||
+              relationshipEffect.frozenGraphNodeId !== application.sourceNodeId ||
+              application.resolvedPath !== batch.d20?.resultPath
+            )
+              context.addIssue({
+                code: 'custom',
+                message: 'Character mechanics application trace binding is invalid.'
+              })
+            continue
+          }
           const matches = value.evidence.trace
             .map((trace, index) => ({ trace, index }))
             .filter(({ trace }) => {
