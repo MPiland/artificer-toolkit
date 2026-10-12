@@ -24,10 +24,21 @@ Scope: PLATFORM-1, PLATFORM-4, ACCOUNTS-1, 2, 3, 5, 8 (missing journey proofs), 
 
 Proofs: `auth-browser`, `profile-browser` (ACCOUNTS-1, 5, 8), `developmentFoundation.ts` (PLATFORM-1, ACCOUNTS-2), RELEASE-6 (`campaign-membership-browser` and the scene-live diagnostics).
 
+Lane 1 approved the batch on 2026-10-12, provided the shared validation lock is held for the whole run. The ignored runner `local-validation/lane2/live.ps1` does this:
+1. Checks that :3000 and :8787 are free, then takes the lock.
+2. Builds the web app with `--mode proof` and serves it with `vite preview` on :3000.
+3. Starts the Worker on :8787 with the main checkout's `apps/session-worker/.dev.vars` (path only).
+4. Runs the foundation smoke and the four proofs through `scripts/runLocalConvexProof.ps1`, with `YARN_INJECT_ENVIRONMENT_FILES` set to the main checkout's `local.application.env`.
+5. Stops only the processes it started and releases the lock.
+
+Blocked: the session's permission classifier denied running it, so it needs the user's permission or a run by lane 1.
+
+PLATFORM-1.1 proof per lane 1: `local-validation/attack18b/codegen.log` (08:33, source eee255079), from the same push as the current local deploy (`local-validation/attack18b/deploy.log`).
+
 ## Status
 
-- PLATFORM-4 DONE: new authored-art cleanup journey in `authoredAssets.test.ts` (9/9), plus the existing avatar and portrait journeys.
-- ACCOUNTS-2, ACCOUNTS-3 DONE: `apps/apis/convex/accountJourneys.test.ts` (2/2) drives the real Better Auth handler: closed-flag rejection with no account or email, and signup → emailed link → verify → email and username login → bearer JWT exchange verified against JWKS → protected read → sign-out and revoked exchange. The test unsets `PUBLIC_SIGN_UP_ENABLED` because the local process env can carry it.
+- PLATFORM-4 DONE: new authored-art cleanup journey in `authoredAssets.test.ts`, plus an owner-binding upload test across all eight authored kinds (17/17), plus the existing avatar and portrait journeys. Cleanup asserts charged bytes and variants are non-empty before release.
+- ACCOUNTS-2, ACCOUNTS-3 DONE: `apps/apis/convex/accountJourneys.test.ts` (3/3) drives the real Better Auth handler: closed-flag rejection with no account or email, and signup → emailed link → verify → email and username login → bearer JWT exchange verified against JWKS → protected read → sign-out and revoked exchange; and emailed-code recovery (new password signs in, old password and old session refused). These run the real handler in-process (convex-test), not over a local socket; ACCOUNTS-3.1 says so in its ledger note. The test unsets `PUBLIC_SIGN_UP_ENABLED` because the local process env can carry it.
 - ACCOUNTS-1 native bearer leg is proved in the same file; its SSR leg, ACCOUNTS-5, ACCOUNTS-8 and PLATFORM-1 wait on the live batch.
 - PLATFORM-12.1 in progress (two disjoint subagent slices; vtt violations to be listed here).
 - PLATFORM-14.1 pending: three full web runs after PLATFORM-12.1 lands.

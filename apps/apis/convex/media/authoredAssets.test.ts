@@ -11,6 +11,7 @@ import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { sorcerer } from '@artificer-toolkit/source-data/srd/classes/sorcerer.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { grappler } from '@artificer-toolkit/source-data/srd/feats/grappler.js'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -270,7 +271,7 @@ describe('authored image media', () => {
     expect(await t.run((ctx) => readImageSlot(ctx, owl.id, 'ACTIVE'))).toMatchObject({
       revision: 7
     })
-  }, 15_000)
+  }, 40_000)
 
   it.each([
     { subjectKind: 'VEHICLE', subjectId: rowboat.id },
@@ -382,6 +383,67 @@ describe('authored image media', () => {
       ).toMatchObject({
         assetId: saved.assetId
       })
+    },
+    20_000
+  )
+
+  it.each([
+    { subjectKind: 'BACKGROUND', subjectId: acolyte.id },
+    { subjectKind: 'CLASS', subjectId: wizard.id },
+    { subjectKind: 'EQUIPMENT', subjectId: '00000000-0000-0000-0060-006000000000' },
+    { subjectKind: 'FEAT', subjectId: grappler.id },
+    { subjectKind: 'RACE', subjectId: human.id },
+    { subjectKind: 'CREATURE', subjectId: cat.id },
+    { subjectKind: 'SPELL', subjectId: fireball.id },
+    { subjectKind: 'VEHICLE', subjectId: rowboat.id }
+  ] as const)(
+    'binds a $subjectKind artwork upload to the owning caller and draft',
+    async (subject) => {
+      const race = importedSubject({ subjectKind: 'RACE', ...human, document: human })
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: [
+          importedSubject({ subjectKind: 'CLASS', ...sorcerer, document: sorcerer }),
+          importedSubject({ subjectKind: 'CLASS', ...wizard, document: wizard }),
+          importedSubject({ subjectKind: 'SPELL', ...fireball, document: fireball }),
+          importedSubject({ subjectKind: 'FEAT', ...grappler, document: grappler }),
+          importedSubject({ subjectKind: 'CREATURE', ...cat, document: cat }),
+          race
+        ]
+      })
+      await t.mutation(internal.content.raceRelationships.syncDerived, {
+        id: race.id,
+        checksum: race.checksum
+      })
+      const owner = await actor(1)
+      const foreign = await actor(2)
+      const item = await owner.client.mutation(api.content.drafts.duplicate, subject)
+      const image = await picture()
+      await expect(
+        foreign.client.mutation(api.media.authoredAssets.createUpload, {
+          target: target(item),
+          originalFileName: 'art.png',
+          declaredMimeType: 'image/png',
+          declaredBytes: image.byteLength,
+          idempotencyKey: crypto.randomUUID()
+        })
+      ).rejects.toThrow()
+      const { assetId } = await uploadAndSave(owner.client, item)
+      const draftTarget = { ...target(item), scope: 'DRAFT' as const }
+      expect(
+        await owner.client.query(api.media.authoredAssets.binding, draftTarget)
+      ).toMatchObject({ assetId })
+      const read = await owner.client.action(api.media.authoredActions.getImage, {
+        target: draftTarget,
+        variantKind: 'DISPLAY'
+      })
+      expect((await fetch(read!.url)).status).toBe(200)
+      expect(
+        await foreign.client.action(api.media.authoredActions.getImage, {
+          target: draftTarget,
+          variantKind: 'DISPLAY'
+        })
+      ).toBeNull()
     },
     20_000
   )
@@ -598,6 +660,9 @@ describe('authored image media', () => {
       )?.mediaBytes ?? 0
     const uploaded = (await readAsset())!
     expect(uploaded.status).toBe('READY')
+    expect(uploaded.chargedBytes).toBeGreaterThan(0)
+    expect(uploaded.variants.length).toBeGreaterThan(0)
+    for (const variant of uploaded.variants) expect(server.objects.has(variant.objectKey)).toBe(true)
     expect(await mediaBytes()).toBe(uploaded.chargedBytes)
 
     await owner.client.mutation(

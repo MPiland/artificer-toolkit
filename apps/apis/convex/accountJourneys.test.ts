@@ -170,4 +170,48 @@ describe('account journeys through the Better Auth HTTP handler', () => {
     await expect(caller.query(api.account.identity, {})).rejects.toThrow('Unauthenticated')
     expect((await request('convex/token', { bearer: sessionToken })).status).toBe(401)
   })
+
+  it('recovers a verified account by emailed code: the new password signs in, the old one and old sessions fail', async () => {
+    vi.stubEnv('PUBLIC_SIGN_UP_ENABLED', 'true')
+    const { request, deliveries } = await backend()
+    const signup = signupInput()
+    expect((await request('sign-up/email', { body: signup })).status).toBe(200)
+    const confirmation = new URL(
+      (await deliveries(signup.email)).filter((delivery) => delivery.action === 'signup').at(-1)!
+        .actionUrl
+    )
+    expect((await request(`${confirmation.pathname}${confirmation.search}`)).status).toBe(302)
+    const before = await request('sign-in/email', { body: signup })
+    expect(before.status).toBe(200)
+    const oldSession = before.body?.token
+    if (typeof oldSession !== 'string') throw new Error('Login returned no session.')
+
+    expect(
+      (await request('email-otp/request-password-reset', { body: { email: signup.email } })).status
+    ).toBe(200)
+    const recovery = (await deliveries(signup.email)).filter(
+      (delivery) => delivery.action === 'recovery'
+    )
+    expect(recovery).toHaveLength(1)
+    const link = new URL(recovery[0]!.actionUrl)
+    expect(`${link.origin}${link.pathname}`).toBe(`${appOrigin}/verify-password-reset`)
+    expect(link.searchParams.get('email')).toBe(signup.email)
+    const otp = recovery[0]!.token
+    if (typeof otp !== 'string') throw new Error('Recovery email carried no code.')
+
+    const newPassword = 'Local-journey-recovered-8175!'
+    expect(
+      (
+        await request('email-otp/reset-password', {
+          body: { email: signup.email, otp, password: newPassword }
+        })
+      ).status
+    ).toBe(200)
+    expect((await request('sign-in/email', { body: signup })).status).toBe(401)
+    expect((await request('convex/token', { bearer: oldSession })).status).toBe(401)
+    expect(
+      (await request('sign-in/email', { body: { email: signup.email, password: newPassword } }))
+        .status
+    ).toBe(200)
+  })
 })
