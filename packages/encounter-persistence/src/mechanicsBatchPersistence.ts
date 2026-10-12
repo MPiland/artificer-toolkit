@@ -1,5 +1,5 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
-import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type {
   ReceiptApplications,
