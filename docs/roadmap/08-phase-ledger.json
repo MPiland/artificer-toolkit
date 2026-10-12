@@ -676,10 +676,9 @@
         {
           "id": "ACCOUNTS-2",
           "title": "Signup stays closed unless the server opens it",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/auth.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "The closed default flag is tested; a rejected real signup attempt is not.",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/accountJourneys.test.ts", "apps/apis/convex/auth.test.ts"],
+          "journeyStatus": "verified",
           "origin": ["F04"],
           "acs": [
             {
@@ -701,13 +700,13 @@
         {
           "id": "ACCOUNTS-3",
           "title": "Create an account with a verified email",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
+            "apps/apis/convex/accountJourneys.test.ts",
             "apps/apis/convex/auth.test.ts",
             "apps/web/tests/e2e/app/authConfirmation.spec.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "Verification links and the confirmation page are tested separately; there is no single signup-to-verified-session run.",
+          "journeyStatus": "verified",
           "origin": ["F05"],
           "acs": [
             {
