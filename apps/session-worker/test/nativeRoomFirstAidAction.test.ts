@@ -9,6 +9,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_MEDICINE_SKILL_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -23,7 +24,10 @@ const WOLF_ID = testUuid(0xf00)
 const FIGHTER_ACTOR_ID = testUuid(0xf01)
 const FIGHTER_ID = testUuid(0xf02)
 /** The hostile Wolf's touch cannot be measured in a room without a Scene, as for the Healer's Kit. */
-const TOUCH_WITHOUT_SCENE = ['TARGET_DISPOSITION', 'TARGET_RANGE_UNCHECKED']
+const TOUCH_WITHOUT_SCENE: EncounterRuleWarningCodeDto[] = [
+  'TARGET_DISPOSITION',
+  'TARGET_RANGE_UNCHECKED'
+]
 const firstAidDefinition = SRD_BASIC_ACTION_DEFINITIONS.find(
   ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
 )
@@ -74,7 +78,7 @@ function firstAidRoom(options: { currentHitPoints?: number; autoRoll: boolean; f
 
 async function useFirstAid(
   room: Awaited<ReturnType<typeof firstAidRoom>>,
-  acknowledgedWarnings: string[] = TOUCH_WITHOUT_SCENE
+  acknowledgedWarnings: EncounterRuleWarningCodeDto[] = TOUCH_WITHOUT_SCENE
 ) {
   return room.startAction(
     FIGHTER_ACTOR_ID,
