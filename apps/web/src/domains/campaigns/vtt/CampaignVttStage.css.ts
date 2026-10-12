@@ -235,6 +235,23 @@ export const canvasInstruction = style({
   }
 })
 
+export const tokenStatusPanel = style({
+  '@layer': {
+    [app]: {
+      position: 'absolute',
+      insetInlineStart: foundationVars.space[3],
+      insetBlockStart: foundationVars.space[3],
+      zIndex: 2,
+      maxInlineSize: 'min(18rem, calc(100% - 2rem))',
+      padding: `${foundationVars.space[1]} ${foundationVars.space[2]}`,
+      borderRadius: foundationVars.radius.md,
+      background: 'rgba(7, 9, 11, 0.86)',
+      color: '#ffffff',
+      pointerEvents: 'none'
+    }
+  }
+})
+
 export const empty = style({
   '@layer': {
     [app]: {

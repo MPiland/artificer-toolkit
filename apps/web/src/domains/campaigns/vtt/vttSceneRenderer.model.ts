@@ -58,6 +58,22 @@ export interface VttSceneTokenDragUpdate {
   tool: string
 }
 
+/** Where a status comes from. The Encounter data carries no harmful or beneficial polarity. */
+export type VttStatusCategory = 'CONCENTRATION' | 'CONDITION' | 'EFFECT' | 'OTHER'
+
+/** The most segments the outer ring draws; beyond it the last segment marks the overflow. */
+export const maxStatusSegments = 8
+export const statusCategoryColours: Record<VttStatusCategory, number> = {
+  CONCENTRATION: 0x20c997,
+  CONDITION: 0xffd43b,
+  // A grant draws as "other" until its polarity is derived from its modifiers (lane 1 ruling, 1.2).
+  EFFECT: 0xced4da,
+  OTHER: 0xced4da
+}
+export const statusOverflowColour = 0xffffff
+/** Workshop Teal (DESIGN.md): technical selection. */
+export const selectionOutlineColor = 0x0891b2
+
 export interface VttTokenPresentation {
   accessibleDescription: string
   artUrl: string | null
@@ -67,10 +83,10 @@ export interface VttTokenPresentation {
   marked: boolean
   outlineColor: number
   statuses: Array<{
+    category: VttStatusCategory
     id: string
-    kind: 'CONDITION' | 'EFFECT' | 'HEALTH' | 'INJURY' | 'MORALE' | 'REACTION'
+    kind: 'CONCENTRATION' | 'CONDITION' | 'EFFECT' | 'HEALTH' | 'INJURY' | 'MORALE' | 'REACTION'
     label: string
-    shortLabel: string
   }>
 }
 
@@ -400,27 +416,24 @@ type SceneIllumination = CampaignSceneStateDto['ambientIllumination']
 type SceneDarknessZone = CampaignSceneStateDto['darknessZones'][number]
 type SceneLight = CampaignSceneStateDto['lights'][number]
 
-/** How strongly the ambient illumination darkens the whole map; BRIGHT leaves it untouched. */
-export function ambientDarknessOpacity(illumination: SceneIllumination): number {
-  if (illumination === 'MAGICAL_DARKNESS') return 0.8
-  if (illumination === 'ORDINARY_DARKNESS') return 0.55
-  if (illumination === 'DIM') return 0.3
-  return 0
-}
+/** Overlay alpha that stands for DIM light; BRIGHT is 0 and both kinds of darkness are 1. */
+export const dimOverlayAlpha = 0.5
+
+/** The darkest the GM's see-all view draws darkness, so the whole map stays readable. */
+export const gmDarknessCapAlpha = 0.6
 
 /**
- * The fill of the bright core and of the whole dim reach of a light. Against a darkened map the
- * glow is doubled so lights visibly push the darkness back.
+ * The alpha of the black darkness overlay that encodes an illumination class at a point. One
+ * overlay carries the whole of D108's precedence, so the class is read straight off the pixel.
  */
-export function lightGlowAlphas(
-  light: Pick<SceneLight, 'intensity'>,
-  ambient: SceneIllumination
-): { bright: number; dim: number } {
-  const boost = ambient === 'BRIGHT' ? 1 : 2
-  return {
-    bright: Math.min(0.6, Math.max(0.08, light.intensity * 0.22) * boost),
-    dim: Math.min(0.4, Math.max(0.04, light.intensity * 0.12) * boost)
-  }
+export function illuminationOverlayAlpha(illumination: SceneIllumination): number {
+  if (illumination === 'BRIGHT') return 0
+  return illumination === 'DIM' ? dimOverlayAlpha : 1
+}
+
+/** The low-alpha colour tint a light lays over its bright core and its dim reach. */
+export function lightTintAlpha(light: Pick<SceneLight, 'intensity'>): number {
+  return Math.min(0.2, Math.max(0.04, light.intensity * 0.12))
 }
 
 /** The bright core never exceeds the dim reach; the visibility polygon is built to the larger. */
@@ -452,30 +465,17 @@ export function clampPolygonToRadius(
 }
 
 export interface VttDarknessZoneStyle {
-  /** Only magical darkness shuts out light; lights shine into every other zone. */
-  blocksLight: boolean
-  fillAlpha: number
   /** Dotted arcane outline of magical darkness. */
   illuminationOutline: { dash: number; gap: number; width: number } | null
   /** Non-colour obscurement cue: dashed for light, solid and heavier for heavy. */
   obscurementOutline: { dash: number | null; gap: number; width: number } | null
 }
 
-/** How a darkness zone is drawn: its illumination sets the fill, its obscurement the outline. */
+/** The non-colour cues of a darkness zone: its illumination and obscurement each get an outline. */
 export function darknessZoneStyle(
-  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement' | 'opacity'>
+  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>
 ): VttDarknessZoneStyle {
-  const fillAlpha =
-    zone.mechanicalIllumination === 'MAGICAL_DARKNESS'
-      ? 0.92
-      : zone.mechanicalIllumination === 'ORDINARY_DARKNESS'
-        ? 0.75
-        : zone.mechanicalIllumination === 'DIM'
-          ? 0.4
-          : zone.opacity
   return {
-    blocksLight: zone.mechanicalIllumination === 'MAGICAL_DARKNESS',
-    fillAlpha,
     illuminationOutline:
       zone.mechanicalIllumination === 'MAGICAL_DARKNESS' ? { dash: 3, gap: 9, width: 3 } : null,
     obscurementOutline:
@@ -485,6 +485,20 @@ export function darknessZoneStyle(
           ? { dash: 22, gap: 14, width: 3 }
           : null
   }
+}
+
+/** Points along an ellipse from one angle to another, clockwise from the top when started at -90 degrees. */
+export function ellipseArcPoints(
+  radiusX: number,
+  radiusY: number,
+  startRadians: number,
+  endRadians: number
+): ScenePoint[] {
+  const steps = Math.max(2, Math.ceil(Math.abs(endRadians - startRadians) / 0.12))
+  return Array.from({ length: steps + 1 }, (_, index) => {
+    const angle = startRadians + ((endRadians - startRadians) * index) / steps
+    return { x: radiusX * Math.cos(angle), y: radiusY * Math.sin(angle) }
+  })
 }
 
 /** The segments of a dashed closed outline, walked around the polygon with a continuous pattern. */

@@ -27,14 +27,3 @@ The SRD says a creature moving at half speed through caltrops doesn't need to sa
 **Recommendation:** the toggle, because the player makes the choice and the cost shows up on the move.
 
 **Answer:**
-
-### Q3. Token rings: show disposition or control? (VTT_UI-1.1, blocks that AC only)
-
-A token's ring is green when the viewer controls its actor and white otherwise. The [VTT mockup](../mockups/phase-08-vtt-production-tracer.png) instead rings tokens by side (red, blue, purple), like Foundry's disposition colours. Disposition (D13) is already sent to players.
-
-- **Disposition rings:** red Hostile, blue Friendly, purple Neutral, with the current turn kept as the teal halo; "yours" moves to the token's description and selection.
-- **Keep control rings:** players spot their own token at a glance, but sides show only in the tracker.
-
-**Recommendation:** disposition rings, because they match the mockup and the Foundry baseline, and targeting and flanking already read disposition (D17).
-
-**Answer:**

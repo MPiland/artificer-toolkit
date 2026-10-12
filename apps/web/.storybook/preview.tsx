@@ -24,6 +24,7 @@ import '@mantine/tiptap/styles.layer.css'
 // Stories supply explicit native fixtures; never construct a live client through a class spy.
 sb.mock(import('convex/react'))
 sb.mock(import('convex-helpers/react'), { spy: true })
+sb.mock(import('../src/domains/campaigns/vtt/vttSceneRenderer.ts'), { spy: true })
 
 async function unavailableConvexCall(): Promise<never> {
   throw new Error('Convex calls require an explicit Storybook fixture.')

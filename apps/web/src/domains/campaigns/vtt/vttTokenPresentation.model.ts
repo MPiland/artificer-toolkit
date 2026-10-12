@@ -8,7 +8,7 @@ import {
   activeGrantLabel,
   activeGrantTimeLeft
 } from '../../../components/activeGrants/activeGrantDisplay'
-import type { VttTokenPresentation } from './vttSceneRenderer.model'
+import type { VttStatusCategory, VttTokenPresentation } from './vttSceneRenderer.model'
 
 const healthColours = {
   BLOODIED: 0xe8590c,
@@ -17,6 +17,25 @@ const healthColours = {
   WOUNDED: 0xf08c00
 } as const
 const DEFEATED_COLOUR = 0x495057
+
+/** The token's inner ring shows the actor's disposition; a token with no actor keeps white. */
+export const dispositionRingColours = {
+  FRIENDLY: 0x339af0,
+  HOSTILE: 0xff6b6b,
+  NEUTRAL: 0xcc5de8
+} as const
+const NO_DISPOSITION_RING_COLOUR = 0xffffff
+
+type StatusKind = VttTokenPresentation['statuses'][number]['kind']
+const statusCategories: Record<StatusKind, VttStatusCategory> = {
+  CONCENTRATION: 'CONCENTRATION',
+  CONDITION: 'CONDITION',
+  EFFECT: 'EFFECT',
+  HEALTH: 'OTHER',
+  INJURY: 'CONDITION',
+  MORALE: 'CONDITION',
+  REACTION: 'OTHER'
+}
 
 const fallbackColours = [0x1971c2, 0x2f9e44, 0x6741d9, 0x0b7285, 0x9c36b5, 0xc2255c] as const
 
@@ -50,7 +69,18 @@ export function buildVttTokenPresentations(input: {
               'EFFECT',
               `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
             )
-          )
+          ),
+          ...(actor.concentration
+            ? [
+                statusFromValues(
+                  'concentration',
+                  'CONCENTRATION',
+                  actor.concentration.label
+                    ? `Concentrating: ${actor.concentration.label}`
+                    : 'Concentrating'
+                )
+              ]
+            : [])
         ]
       : []
     const healthBand = actor ? healthBands.get(actor.id) : undefined
@@ -58,29 +88,26 @@ export function buildVttTokenPresentations(input: {
     // hurt the rest are.
     const defeated = actor?.defeated === true
     if (actor && defeated)
-      statuses.push({
-        id: 'health:defeated',
-        kind: 'HEALTH',
-        label: actor.kind === 'CHARACTER' ? 'Dead' : 'Defeated',
-        shortLabel: '×'
-      })
+      statuses.push(
+        statusFromValues(
+          'health:defeated',
+          'HEALTH',
+          actor.kind === 'CHARACTER' ? 'Dead' : 'Defeated'
+        )
+      )
     else if (healthBand && healthBand !== 'HEALTHY') {
-      statuses.push({
-        id: `health:${healthBand}`,
-        kind: 'HEALTH',
-        label: titleCase(healthBand),
-        shortLabel: '!'
-      })
+      statuses.push(statusFromValues(`health:${healthBand}`, 'HEALTH', titleCase(healthBand)))
     }
     const pendingReaction = input.pending?.kind === 'MOVEMENT_REACTION' ? input.pending : null
     const reactionAvailable = pendingReaction?.choice.reactorTokenId === token.id
     if (reactionAvailable) {
-      statuses.push({
-        id: `reaction:${pendingReaction.occurrenceId}`,
-        kind: 'REACTION',
-        label: 'Reaction available',
-        shortLabel: 'R'
-      })
+      statuses.push(
+        statusFromValues(
+          `reaction:${pendingReaction.occurrenceId}`,
+          'REACTION',
+          'Reaction available'
+        )
+      )
     }
     statuses.sort(compareStatuses)
 
@@ -95,7 +122,8 @@ export function buildVttTokenPresentations(input: {
         token.label,
         actor ? titleCase(actor.kind) : 'Scene token',
         isCurrent ? 'Current turn' : null,
-        statusDescription || null
+        statusDescription || null,
+        controlled ? 'Yours' : null
       ]
         .filter(Boolean)
         .join('. '),
@@ -110,7 +138,7 @@ export function buildVttTokenPresentations(input: {
             }
           : null,
       marked: isCurrent,
-      outlineColor: isCurrent ? 0x22b8cf : controlled ? 0x51cf66 : 0xffffff,
+      outlineColor: actor ? dispositionRingColours[actor.disposition] : NO_DISPOSITION_RING_COLOUR,
       statuses
     }
   }
@@ -145,16 +173,10 @@ function actorConditionStatuses(conditions: unknown): VttTokenPresentation['stat
 
 function statusFromValues(
   id: string,
-  kind: VttTokenPresentation['statuses'][number]['kind'],
+  kind: StatusKind,
   label: string
 ): VttTokenPresentation['statuses'][number] {
-  const normalized = label.trim()
-  return {
-    id,
-    kind,
-    label: normalized,
-    shortLabel: normalized.slice(0, 1).toUpperCase()
-  }
+  return { category: statusCategories[kind], id, kind, label: label.trim() }
 }
 
 function statusKind(value: unknown): VttTokenPresentation['statuses'][number]['kind'] {
@@ -174,11 +196,12 @@ function compareStatuses(
 ): number {
   const priority = {
     REACTION: 0,
-    INJURY: 1,
-    MORALE: 2,
-    CONDITION: 3,
-    EFFECT: 4,
-    HEALTH: 5
+    CONCENTRATION: 1,
+    INJURY: 2,
+    MORALE: 3,
+    CONDITION: 4,
+    EFFECT: 5,
+    HEALTH: 6
   } as const
   return priority[left.kind] - priority[right.kind] || left.label.localeCompare(right.label)
 }

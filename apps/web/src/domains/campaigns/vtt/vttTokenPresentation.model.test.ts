@@ -5,7 +5,11 @@ import {
   tabletopLiveScene,
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
-import { buildVttTokenPresentations, deterministicTokenColour } from './vttTokenPresentation.model'
+import {
+  buildVttTokenPresentations,
+  deterministicTokenColour,
+  dispositionRingColours
+} from './vttTokenPresentation.model'
 
 describe('VTT token presentation model', () => {
   it('uses projected System state, stable ordering, and explicit current-turn precedence', () => {
@@ -33,7 +37,7 @@ describe('VTT token presentation model', () => {
     })[scene.tokens[0]!.id]!
 
     expect(result.fillColor).toBe(0xc92a2a)
-    expect(result.outlineColor).toBe(0x22b8cf)
+    expect(result.outlineColor).toBe(dispositionRingColours[actor.disposition])
     expect(result.halo?.label).toBe('Current turn')
     expect(result.statuses.map((status) => status.kind)).toEqual([
       'INJURY',
@@ -126,7 +130,7 @@ describe('VTT token presentation model', () => {
 
     for (const result of [gm, player]) {
       expect(result.statuses.filter((status) => status.kind === 'HEALTH')).toEqual([
-        { id: 'health:defeated', kind: 'HEALTH', label: 'Defeated', shortLabel: '×' }
+        { category: 'OTHER', id: 'health:defeated', kind: 'HEALTH', label: 'Defeated' }
       ])
       expect(result.fillColor).toBe(0x495057)
       expect(result.accessibleDescription).toContain('Defeated')
@@ -163,17 +167,45 @@ describe('VTT token presentation model', () => {
     })
     for (const result of [gm, player]) {
       expect(result.statuses.filter((status) => status.kind === 'HEALTH')).toEqual([
-        { id: 'health:defeated', kind: 'HEALTH', label: 'Dead', shortLabel: '×' }
+        { category: 'OTHER', id: 'health:defeated', kind: 'HEALTH', label: 'Dead' }
       ])
       expect(result.accessibleDescription).toContain('Dead')
     }
   })
 
-  it('outlines bound tokens by actor control, not Scene token controllers', () => {
+  it('rings a token by its actor disposition, white without an actor, whoever controls it', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!
     const actor = tabletopGmEncounter.actors[1]!
-    const outline = (controlled: boolean) =>
+    const ring = (disposition: 'FRIENDLY' | 'HOSTILE' | 'NEUTRAL' | null, controlled: boolean) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: disposition ? new Map([[token.id, actor.id]]) : new Map(),
+        boundTokenControl: new Map([[token.id, controlled]]),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: {
+          ...tabletopGmEncounter,
+          actors: tabletopGmEncounter.actors.map((candidate) =>
+            candidate.id === actor.id && disposition ? { ...candidate, disposition } : candidate
+          )
+        },
+        pending: null,
+        scene
+      })[token.id]!.outlineColor
+
+    for (const disposition of ['FRIENDLY', 'HOSTILE', 'NEUTRAL'] as const) {
+      expect(ring(disposition, false)).toBe(dispositionRingColours[disposition])
+      expect(ring(disposition, true)).toBe(ring(disposition, false))
+    }
+    expect(new Set(Object.values(dispositionRingColours)).size).toBe(3)
+    expect(ring(null, true)).toBe(0xffffff)
+    expect(ring(null, false)).toBe(0xffffff)
+  })
+
+  it('says Yours in the description for a token the viewer controls through its actor', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const actor = tabletopGmEncounter.actors[1]!
+    const description = (controlled: boolean) =>
       buildVttTokenPresentations({
         actorIdByTokenId: new Map([[token.id, actor.id]]),
         boundTokenControl: new Map([[token.id, controlled]]),
@@ -181,10 +213,10 @@ describe('VTT token presentation model', () => {
         encounter: tabletopGmEncounter,
         pending: null,
         scene
-      })[token.id]!.outlineColor
+      })[token.id]!.accessibleDescription
 
-    expect(outline(false)).toBe(0xffffff)
-    expect(outline(true)).toBe(0x51cf66)
+    expect(description(true)).toContain('Yours')
+    expect(description(false)).not.toContain('Yours')
   })
 
   it('shows active grants on a token with their source and time left, naming a hidden source neutrally', () => {
@@ -225,6 +257,45 @@ describe('VTT token presentation model', () => {
       expect.objectContaining({ label: 'Hidden source, Until ended' })
     ])
     expect(result.accessibleDescription).toContain('Aid, 4 rounds left')
+  })
+
+  it('categorises statuses by what the Encounter data says they are, with Concentration among them', () => {
+    const actor = {
+      ...tabletopGmEncounter.actors[0]!,
+      activeGrants: [
+        {
+          effectId: '55555555-5555-4555-8555-555555555501',
+          label: 'Aid',
+          sourceHidden: false,
+          remainingTicks: 4,
+          expiresAtCampaignMinute: null
+        }
+      ],
+      concentration: { label: 'Bless', sourceHidden: false },
+      conditions: [
+        { id: 'condition', kind: 'CONDITION', label: 'Restrained' },
+        { id: 'injury', kind: 'INJURY', label: 'Lingering wound' }
+      ]
+    }
+    const scene = sceneForActor()
+    const result = buildVttTokenPresentations({
+      actorIdByTokenId: new Map([[scene.tokens[0]!.id, actor.id]]),
+      boundTokenControl: new Map(),
+      currentUserId: scene.tokens[0]!.controlledByUserIds[0]!,
+      encounter: {
+        ...tabletopGmEncounter,
+        actors: [actor, ...tabletopGmEncounter.actors.slice(1)]
+      },
+      pending: null,
+      scene
+    })[scene.tokens[0]!.id]!
+
+    expect(result.statuses.map((status) => [status.label, status.category])).toEqual([
+      ['Concentrating: Bless', 'CONCENTRATION'],
+      ['Lingering wound', 'CONDITION'],
+      ['Restrained', 'CONDITION'],
+      ['Aid, 4 rounds left', 'EFFECT']
+    ])
   })
 
   it('derives fallback colours deterministically', () => {

@@ -55,6 +55,12 @@ import {
   tabletopPlayerEncounter
 } from './CampaignTabletop.stories.fixtures'
 import { CampaignTabletopWindow } from './CampaignTabletopWindow'
+import {
+  drawnToken,
+  expectDrawnPresentation,
+  latestStageRenderer
+} from './vttSceneRenderer.assertions'
+import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
   HttpResponse.json({ token: 'story-convex-access-token' })
@@ -310,6 +316,38 @@ export const PlayerWindow: Story = {
   }
 }
 
+// The real presentation of the Warden for one viewer, built by the product's own function.
+function wardenPresentationFor(
+  role: CampaignDetailDto['role'],
+  encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+) {
+  const scene = projectScene(role, presentedTokensFixtures.liveScene)
+  const wardenToken = scene.tokens[1]!
+  const presentation = buildVttTokenPresentations({
+    actorIdByTokenId: new Map([[wardenToken.id, wardenId]]),
+    boundTokenControl: new Map(),
+    currentUserId: tabletopCurrentUserId,
+    encounter,
+    pending: null,
+    scene
+  })[wardenToken.id]!
+  return { presentation, wardenToken }
+}
+
+// The renderer's live display objects for the Warden match the real presentation for that viewer.
+async function expectDrawnWardenPresentation(
+  role: CampaignDetailDto['role'],
+  encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
+): Promise<void> {
+  const { presentation, wardenToken } = wardenPresentationFor(role, encounter)
+  await expect(presentation.statuses.length).toBeGreaterThan(0)
+  const renderer = await latestStageRenderer()
+  await waitFor(() => expect(renderer.getDiagnostics().tokens.length).toBeGreaterThan(0))
+  await waitFor(async () =>
+    expectDrawnPresentation(drawnToken(renderer.getDiagnostics(), wardenToken.id), presentation)
+  )
+}
+
 // VTT_UI-1 journey: the scene canvas describes each token's statuses and the current turn.
 export const GmSeesTokenStatuses: Story = {
   args: {
@@ -333,6 +371,71 @@ export const GmSeesTokenStatuses: Story = {
     await expect(description).toContain('Frightened')
     // The GM also sees how hurt the Warden is.
     await expect(description).toContain('Wounded')
+    await expectDrawnWardenPresentation('OWNER', presentedTokensFixtures.gmEncounter)
+  }
+}
+
+// The outer ring shows at most eight segments; focusing a token in the controls names every status.
+export const FocusingATokenListsEveryStatus: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      presentedTokensFixtures.gmEncounter
+    )
+    await expect(presentation.statuses.length).toBeGreaterThan(0)
+    await expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    focusItem.focus()
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    for (const status of presentation.statuses) {
+      await expect(within(list).getByText(status.label)).toBeVisible()
+    }
+    focusItem.blur()
+    await waitFor(() =>
+      expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
+    )
+  }
+}
+
+export const GmPreviewsATokenView: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { wardenToken } = wardenPresentationFor('OWNER', presentedTokensFixtures.gmEncounter)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const controls = within(sceneControls)
+    // Mantine fixes menu items to role menuitem, which cannot carry a pressed or checked state,
+    // so the item's own words say whether the preview is on.
+    await userEvent.click(
+      await controls.findByRole('menuitem', { name: `Preview view ${wardenToken.label}` })
+    )
+    const stop = await controls.findByRole('menuitem', {
+      name: `Stop previewing ${wardenToken.label}`
+    })
+    await expect(controls.getAllByRole('menuitem', { name: /^Stop previewing/ })).toHaveLength(1)
+    await userEvent.click(stop)
+    await expect(
+      await controls.findByRole('menuitem', { name: `Preview view ${wardenToken.label}` })
+    ).toBeVisible()
   }
 }
 
@@ -357,6 +460,7 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
     await expect(description).toContain('Poisoned')
     await expect(description).toContain('Frightened')
     await expect(description).not.toContain('Wounded')
+    await expectDrawnWardenPresentation('PLAYER', presentedTokensFixtures.playerEncounter)
   }
 }
 
