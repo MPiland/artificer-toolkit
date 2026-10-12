@@ -27,3 +27,14 @@ The SRD says a creature moving at half speed through caltrops doesn't need to sa
 **Recommendation:** the toggle, because the player makes the choice and the cost shows up on the move.
 
 **Answer:**
+
+### Q4. Who can see a player's profile? (ACCOUNTS-8, blocks closing it)
+
+ACCOUNTS-8 is called "Control who sees my profile", but there is nothing to control: only the owner can read their own profile (ACs 8.1 to 8.3). Other players see only the public social profile they choose to publish. The open journey gap asks for a test of "each privacy setting", and none exists to test.
+
+- **Owner-only is the scope:** rename the PBI to match, close the gap with the existing `profile-browser` proof, and add nothing.
+- **Add a visibility setting:** register a new PBI, for example "Profile visible to: only me / my Campaign members / everyone". Every read path then needs that rule enforced, and each option needs its own proof.
+
+**Recommendation:** owner-only for now. Social profiles already handle opt-in public visibility, and a second visibility model would duplicate that and widen the privacy surface before alpha. If you want Campaign members to see more, that belongs on the social profile.
+
+**Answer:**

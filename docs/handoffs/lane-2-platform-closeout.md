@@ -18,7 +18,11 @@ Scope: PLATFORM-1, PLATFORM-4, ACCOUNTS-1, 2, 3, 5, 8 (missing journey proofs), 
 
 ## Open question for the product owner
 
-- ACCOUNTS-8 is titled "Control who sees my profile", but no visibility setting exists and the ACs only require caller-only profiles. Is a visibility setting wanted (new PBI), or is caller-only the intended scope?
+- ACCOUNTS-8 visibility setting: moved to Q4 in [phase-08-2-open-questions.md](phase-08-2-open-questions.md).
+
+## Known worktree limitation
+
+Full web unit runs cannot reach 0 failures in a Claude worktree. `node_modules/@mantine/notifications` is a junction into the main checkout, so Vite refuses `__root.tsx`'s `?url` CSS import from outside the worktree root, and the two `src/routes` suites fail at load. Lane 1 runs PLATFORM-14.1 in the main checkout on the merged source with `scripts/runWebUnitRuns.ps1`, recording into `docs/validation/platform-14-web-unit-runs.md`. `fs.allow` is intentionally left unchanged.
 
 ## Live batch (needs lane 1's go-ahead)
 
@@ -40,5 +44,32 @@ PLATFORM-1.1 proof per lane 1: `local-validation/attack18b/codegen.log` (08:33, 
 - PLATFORM-4 DONE: new authored-art cleanup journey in `authoredAssets.test.ts`, plus an owner-binding upload test across all eight authored kinds (17/17), plus the existing avatar and portrait journeys. Cleanup asserts charged bytes and variants are non-empty before release.
 - ACCOUNTS-2, ACCOUNTS-3 DONE: `apps/apis/convex/accountJourneys.test.ts` (3/3) drives the real Better Auth handler: closed-flag rejection with no account or email, and signup → emailed link → verify → email and username login → bearer JWT exchange verified against JWKS → protected read → sign-out and revoked exchange; and emailed-code recovery (new password signs in, old password and old session refused). These run the real handler in-process (convex-test), not over a local socket; ACCOUNTS-3.1 says so in its ledger note. The test unsets `PUBLIC_SIGN_UP_ENABLED` because the local process env can carry it.
 - ACCOUNTS-1 native bearer leg is proved in the same file; its SSR leg, ACCOUNTS-5, ACCOUNTS-8 and PLATFORM-1 wait on the live batch.
-- PLATFORM-12.1 in progress (two disjoint subagent slices; vtt violations to be listed here).
-- PLATFORM-14.1 pending: three full web runs after PLATFORM-12.1 lands.
+- PLATFORM-12.1 in progress: web test mocks name functions through generated `api` refs, and fixtures and story data parse through DTO schemas (`fixtureContracts.test.ts` covers the shared fixtures). The Sheet rest stories are moving to the real rules-runtime projection.
+
+## PLATFORM-12.1: excluded `campaigns/vtt` violations (owned by the VTT lane)
+
+String function names in mocks:
+- `CampaignScenePreparation.test.tsx` lines 130 and 137 (`media/vttMapActions:finalize`, `getDelivery`)
+- `CampaignTabletopWindow.stories.tsx` line 367 (`characters/sheetSlices:get`)
+- `useCampaignChatRoom.test.tsx` lines 27 and 28 (`campaigns/rolls:executePrivate`, `reveal`)
+
+DTO literals not parsed through their schema (count per file):
+
+| File | Literals |
+|---|---|
+| `CampaignTabletop.stories.fixtures.ts` | 9 |
+| `CampaignTabletopActionDrawer.stories.tsx` | 8 |
+| `CampaignTabletopActionDrawer.test.tsx` | 6 |
+| `CampaignTabletopDecisionDrawer.stories.tsx` | 7 |
+| `CampaignTabletopDecisionDrawer.test.tsx` | 10 |
+| `CampaignTabletopWindow.stories.tsx` | 7 |
+| `CampaignVttPresentation.stories.tsx` | 1 |
+| `CampaignVttMovement.stories.tsx` | 1 |
+| `CampaignVttStage.model.test.ts` | 1 |
+| `liveSessionClient.test.ts` | 8 |
+| `useCampaignLiveSession.test.tsx` | 2 |
+| `useRoomEncounterRead.test.tsx` | 2 |
+| `vttLoadFixture.data.ts` | 2 |
+
+Product code outside the vtt folder: `apps/web/src/data/campaigns/encounterActions.ts` builds its reference with `makeFunctionReference('encounters/actionChoices:get')` instead of the generated `api` ref. This was left alone because it is product code tied to `apps/apis/convex/encounters` (lane 1).
+- PLATFORM-14.1 pending: three full web runs after PLATFORM-12.1 lands. Known blocker in this worktree: `src/routes/-routerContextSecurity.test.ts` and `src/routes/-sessionConvergence.integration.test.tsx` fail at load with Vite `Denied ID D:/dev/artificer-toolkit/node_modules/@mantine/notifications/styles.layer.css?url`. It also happens at baseline with lane 2's edits set aside, so it predates them. Cause: in this worktree, `node_modules/@mantine/notifications` is a junction into the main checkout's `node_modules`. Its realpath therefore falls outside the worktree's Vite root, and Vite refuses `__root.tsx`'s `?url` import. This comes from the worktree install, not from product code, so the full runs need a checkout whose `node_modules` sits inside its root (the main checkout, or this branch after merge).
