@@ -60,7 +60,7 @@ import {
   expectDrawnPresentation,
   latestStageRenderer
 } from './vttSceneRenderer.assertions'
-import { gmDarknessCapAlpha } from './vttSceneRenderer.model'
+import { gmDarknessCapAlpha, selectionOutlineColor } from './vttSceneRenderer.model'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
@@ -407,6 +407,73 @@ export const FocusingATokenListsEveryStatus: Story = {
     await waitFor(() =>
       expect(page.queryByRole('region', { name: `${wardenToken.label} statuses` })).toBeNull()
     )
+  }
+}
+
+// Presses the canvas centre, where focusing a token puts it, or a corner, which is empty map there.
+async function pressStage(canvas: HTMLElement, where: 'centre' | 'corner'): Promise<void> {
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  const bounds = canvas.getBoundingClientRect()
+  const point =
+    where === 'centre'
+      ? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }
+      : { x: bounds.left + 4, y: bounds.top + 4 }
+  const pointer = { clientX: point.x, clientY: point.y, pointerId: 1, pointerType: 'mouse' }
+  fireEvent.pointerDown(canvas, { ...pointer, button: 0, buttons: 1 })
+  fireEvent.pointerUp(canvas, { ...pointer, button: 0, buttons: 0 })
+}
+
+// VTT_UI-1.1 journey: the SELECT tool selects any token on the canvas or from the Scene controls.
+export const SelectingATokenOutlinesIt: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const scene = projectScene('PLAYER', presentedTokensFixtures.liveScene)
+    // The player moves Ember; the Warden is not theirs, so selecting it must still work.
+    const [ember, warden] = [scene.tokens[0]!, scene.tokens[1]!]
+    await expect(ember.controlledByUserIds).toContain(tabletopCurrentUserId)
+    await expect(warden.controlledByUserIds).not.toContain(tabletopCurrentUserId)
+    const selectedIds = () =>
+      renderer
+        .getDiagnostics()
+        .tokens.filter((token) => token.selection)
+        .map((token) => token.id)
+
+    renderer.focusPoint(ember.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(selectedIds()).toEqual([ember.id]))
+    await expect(drawnToken(renderer.getDiagnostics(), ember.id).selection?.color).toBe(
+      selectionOutlineColor
+    )
+    await waitFor(() =>
+      expect(stage.getAttribute('aria-description')).toMatch(
+        new RegExp(`${ember.label}[^;]*, selected`)
+      )
+    )
+    await expect(stage.getAttribute('aria-description')?.match(/, selected/g)).toHaveLength(1)
+
+    renderer.focusPoint(warden.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(selectedIds()).toEqual([warden.id]))
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(selectedIds()).toEqual([]))
+    await expect(stage.getAttribute('aria-description')).not.toContain(', selected')
+
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.click(
+      await within(sceneControls).findByRole('menuitem', { name: `Focus ${ember.label}` })
+    )
+    await waitFor(() => expect(selectedIds()).toEqual([ember.id]))
   }
 }
 

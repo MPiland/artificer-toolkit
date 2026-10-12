@@ -68,11 +68,12 @@ The reaction-state part of 2.1 is presentable now: a pending movement reaction a
   - Hover bug found and fixed: the Stage renders on demand, so a move before the pending frame hit-tested stale transforms and lost the hover (and the status list). A window capture listener now renders a pending frame before Pixi handles a press or move. Regression story `HoveringATokenRebuiltBeforeTheNextFrameReportsIt` (red `hover-6`).
   - Status categories are by origin until polarity is derived; EFFECT draws in the neutral colour (lane 1 ruling).
 - Lane 1 review fixes for 7fe4a224c: light tint and visual zone alpha read from drawn output; GM preview vision through the Stage; the preview is derived from the Scene, so it ends when its token leaves (bug, red `rv-item3-red`); a Player with no seeing token sees a black map (bug, red `rv-bugs-red`); hues pinned literally; inner ring bounds asserted and the outer ring kept off the footprint edge (red `rv-bugs-red`); closed and open door stories; drawVision memoized; the pending-frame render is gated by a `framePending` flag (red with the render disabled `rv-hover-red`); canvas hover lists statuses. `latestStageRenderer` stays async: the spy records the async factory's Promise. Green `rv-final-1`/`rv-final-2` (52/52 twice), `rv-unit`.
+- Selection slice (1.1): the Select tool selects any token on the canvas or through Scene controls Focus, and an empty-map press clears it. A press on a token the member cannot move still reaches the map (so it can ping) without clearing the selection. Green `sel-green-a`/`sel-green-b` (vtt stories 85/85 twice), `sel-unit` 200/200, `sel-tc`, `sel-tcs`; red `sel-red`, `sel-guard-red`.
 
 ## Queue
 
-1. Token selection state in the Stage (wires the selection outline for 1.1 and the selected token for 3.4 / Q6).
+1. Senses: restore the parked `boundTokenControl` projection patch, then 3.4 senses rendering (Q6 uses the selected token).
 2. Status polarity, after slice C: a pure rules-runtime function over each grant's modifiers (helpful, harmful or mixed for the holder), carried on `activeGrantListing`; conditions HARMFUL; tests over real SRD grants (Bless, Bane, Help, Dodge, a mixed one) and a projection test; the ring then uses it.
 3. PLATFORM-12.1 for campaigns/vtt: mocks name functions through generated api refs, fixtures parse through their DTO schemas (lane 2's 68feaa446 pattern).
-4. 3.4 senses rendering (after slice C), then 4.1 and 4.2.
+4. 4.1 and 4.2.
 5. 3.1 range and target (after slice C).

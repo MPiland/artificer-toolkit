@@ -125,6 +125,7 @@ export function CampaignVttStage({
   // The token whose view the GM previews, and the token whose statuses are listed on screen.
   const [chosenPreviewTokenId, setChosenPreviewTokenId] = useState<string | null>(null)
   const [inspectedTokenId, setInspectedTokenId] = useState<string | null>(null)
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
   // The speed type the member chose for an actor's movement; it applies to that actor only.
@@ -515,6 +516,10 @@ export function CampaignVttStage({
       areaShape && areaOrigin && !areaAim ? [pointAreaOverlay(areaShape, areaOrigin)] : undefined,
     [areaAim, areaOrigin, areaShape]
   )
+  // A selection whose token left the Scene counts as no selection.
+  const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
+    ? selectedTokenId
+    : null
   rendererUpdateRef.current = renderedScene
     ? {
         areaAim,
@@ -526,6 +531,7 @@ export function CampaignVttStage({
         previewTokenId: campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null,
         role: gmPreviewUserId ? 'PLAYER' : campaign.role,
         scene: renderedScene,
+        selectedTokenId: selectedSceneTokenId,
         tokenPresentations,
         tool
       }
@@ -725,6 +731,7 @@ export function CampaignVttStage({
       },
       onTokenCommit: (tokenId, position) => commitTokenMoveRef.current(tokenId, position),
       onTokenHover: setInspectedTokenId,
+      onTokenSelect: setSelectedTokenId,
       onTokenPreview: (tokenId, position) =>
         transientRef.current({ kind: 'TOKEN_DRAG_PREVIEW', position, tokenId })
     }).then((nextRenderer) => {
@@ -758,6 +765,7 @@ export function CampaignVttStage({
     mapDelivery.data,
     previewTokenId,
     scene,
+    selectedSceneTokenId,
     tokenPresentations,
     tool
   ])
@@ -1233,12 +1241,14 @@ export function CampaignVttStage({
             previewTokenId={previewTokenId}
             role={campaign.role}
             scene={scene}
+            selectedTokenId={selectedSceneTokenId}
             renderer={renderer}
             onDoorState={setDoorState}
             onFogLayer={setFogLayer}
             onMeasurement={commitMeasurement}
             onMeasurementRemove={removeMeasurement}
             onInspectToken={setInspectedTokenId}
+            onSelectToken={setSelectedTokenId}
             onPreviewToken={setChosenPreviewTokenId}
             onTokenMove={(tokenId, position) => {
               const token = scene.tokens.find((candidate) => candidate.id === tokenId)
@@ -1410,11 +1420,13 @@ function SceneObjectMenu({
   onInspectToken,
   onMeasurementRemove,
   onPreviewToken,
+  onSelectToken,
   onTokenMove,
   previewTokenId,
   renderer,
   role,
-  scene
+  scene,
+  selectedTokenId
 }: {
   boundTokenControl: ReadonlyMap<string, boolean>
   currentUserId: string
@@ -1425,8 +1437,10 @@ function SceneObjectMenu({
   onInspectToken: (tokenId: string | null) => void
   onMeasurementRemove: (measurementId: string) => void
   onPreviewToken: (tokenId: string | null) => void
+  onSelectToken: (tokenId: string | null) => void
   onTokenMove: (tokenId: string, position: ScenePoint) => void
   previewTokenId: string | null
+  selectedTokenId: string | null
   renderer: RefObject<VttSceneRenderer | null>
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto
@@ -1472,7 +1486,13 @@ function SceneObjectMenu({
               <Fragment key={token.id}>
                 <Menu.Item
                   onBlur={() => onInspectToken(null)}
-                  onClick={() => renderer.current?.focusPoint(token.position)}
+                  rightSection={
+                    selectedTokenId === token.id ? <Check aria-hidden size={14} /> : null
+                  }
+                  onClick={() => {
+                    onSelectToken(token.id)
+                    renderer.current?.focusPoint(token.position)
+                  }}
                   onFocus={() => onInspectToken(token.id)}
                   onMouseEnter={() => onInspectToken(token.id)}
                   onMouseLeave={() => onInspectToken(null)}

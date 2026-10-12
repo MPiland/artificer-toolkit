@@ -6741,7 +6741,7 @@
               "status": "IN_PROGRESS",
               "proof": [],
               "origin": ["G4-TOKEN-IDENTITY"],
-              "note": "Q3 answered (lane 1): the inner ring shows disposition, drawn and proved per disposition; control no longer changes the ring and \"Yours\" is in the description. Art presentation proved by CampaignVttPresentation TokenArtIsPresented. Open: the Stage has no token selection state, so the Workshop Teal selection outline is drawn by the renderer but not wired; selection is lane 3's next slice (Q6 needs it too).",
+              "note": "Q3 answered (lane 1): the inner ring shows disposition, drawn and proved per disposition; control no longer changes the ring and \"Yours\" is in the description. Art presentation proved by CampaignVttPresentation TokenArtIsPresented. Selection wired (lane 3): with the Select tool, a press on any token selects it (control is not required), a press on the empty map clears it, and Focus in Scene controls selects that token; the selection is derived from the Scene so it ends when its token leaves. The Workshop Teal outline and the \", selected\" description are proved by CampaignTabletopWindow SelectingATokenOutlinesIt; red `sel-red` (Stage wiring absent) and `sel-guard-red` (a press on a token the member cannot move cleared the selection). Ready for acceptance.",
               "id": "VTT_UI-1.1"
             },
             {
