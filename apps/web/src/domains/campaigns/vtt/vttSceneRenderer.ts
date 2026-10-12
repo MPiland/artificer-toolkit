@@ -101,6 +101,8 @@ interface VttSceneRendererCallbacks {
   onTokenCommit: (tokenId: string, path: ScenePoint[]) => void
   /** The pointer entered a token, or left it (null). */
   onTokenHover?: (tokenId: string | null) => void
+  /** The SELECT tool pressed a token (any token), or the empty map (null). */
+  onTokenSelect?: (tokenId: string | null) => void
   onTokenPreview: (tokenId: string, position: ScenePoint) => void
 }
 
@@ -1326,8 +1328,8 @@ export async function createVttSceneRenderer(
     renderedTokenPresentations = presentations ?? null
     renderedSelectedTokenId = selectedTokenId
     const descriptions = scene.tokens.flatMap((token) => {
-      const description = presentations?.[token.id]?.accessibleDescription
-      return description ? [description] : [token.label]
+      const description = presentations?.[token.id]?.accessibleDescription || token.label
+      return [token.id === selectedTokenId ? `${description}, selected` : description]
     })
     tokenSummary = descriptions.length
       ? `Visible tokens: ${descriptions.join('; ')}`
@@ -1430,7 +1432,10 @@ export async function createVttSceneRenderer(
     }
     addStatusRing(visual, token, presentation?.statuses ?? [])
     visual.on('pointerdown', (event) => {
-      if (!tokenCanMove(token) || current?.tool !== 'SELECT' || current.areaAim) return
+      if (current?.tool !== 'SELECT' || current.areaAim) return
+      callbacks.onTokenSelect?.(token.id)
+      // A token the member cannot move still lets the press reach the map, so it can ping there.
+      if (!tokenCanMove(token)) return
       event.stopPropagation()
       const point = worldPoint(event)
       drag = {
@@ -1810,6 +1815,10 @@ export async function createVttSceneRenderer(
       gestureStart = point
       gesturePath = [point]
       return
+    }
+    // A press on the empty map clears the selection; one on a token has already selected it.
+    if (event.button === 0 && current.tool === 'SELECT' && event.target?.parent !== tokenLayer) {
+      callbacks.onTokenSelect?.(null)
     }
     // A primary press on the map outside another gesture pings once held in place.
     if (event.button === 0) pingPress.start({ x: event.global.x, y: event.global.y }, point)
