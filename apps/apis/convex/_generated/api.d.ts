@@ -31,7 +31,21 @@ export declare const api: {
       "query",
       "public",
       {},
-      { bio: null | string; username: null | string }
+      {
+        bio: null | string;
+        username: null | string;
+        visibility: "PRIVATE" | "PUBLIC";
+      }
+    >;
+    publicProfile: FunctionReference<
+      "query",
+      "public",
+      { username: string },
+      null | {
+        avatarRevision: number | null;
+        bio: string | null;
+        username: string;
+      }
     >;
     rollPreferences: FunctionReference<
       "query",
@@ -77,11 +91,21 @@ export declare const api: {
       { gmRollVisibility: "PUBLIC" | "PRIVATE" },
       null
     >;
+    setProfileVisibility: FunctionReference<
+      "mutation",
+      "public",
+      { visibility: "PRIVATE" | "PUBLIC" },
+      null
+    >;
     updateProfile: FunctionReference<
       "mutation",
       "public",
       { bio: null | string; username?: string },
-      { bio: null | string; username: null | string }
+      {
+        bio: null | string;
+        username: null | string;
+        visibility: "PRIVATE" | "PUBLIC";
+      }
     >;
   };
   accountEntitlements: {
@@ -136033,6 +136057,23 @@ export declare const api: {
           width: number;
         } | null
       >;
+      getProfileAvatarImage: FunctionReference<
+        "action",
+        "public",
+        { username: string; variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL" },
+        {
+          altText: string | null;
+          assetId: string;
+          crop: { height: number; width: number; x: number; y: number } | null;
+          expiresAt: string;
+          height: number;
+          isDecorative: boolean;
+          mimeType: "image/jpeg" | "image/png" | "image/webp";
+          url: string;
+          variantKind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+          width: number;
+        } | null
+      >;
       saveAvatar: FunctionReference<
         "action",
         "public",
@@ -140090,7 +140131,11 @@ export declare const internal: {
       "mutation",
       "internal",
       { bio: string | null; username?: string },
-      { bio: string | null; username: string | null }
+      {
+        bio: string | null;
+        username: string | null;
+        visibility: "PRIVATE" | "PUBLIC";
+      }
     >;
   };
   accountUsage: {
@@ -144299,6 +144344,109 @@ export declare const internal: {
         "query",
         "internal",
         {},
+        null | {
+          asset: {
+            chargedBytes: number;
+            cleanupAt: number | null;
+            contentHash: string | null;
+            cropThumbnails: Array<{
+              crop: { height: number; width: number; x: number; y: number };
+              cropHash: string;
+              variant: {
+                byteSize: number;
+                height: number;
+                kind: "THUMBNAIL";
+                mimeType: "image/webp";
+                objectKey: string;
+                width: number;
+              };
+            }>;
+            id: string;
+            operation: {
+              binding:
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "ACCOUNT_AVATAR";
+                  }
+                | {
+                    characterId: string;
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    expectedRevision: number;
+                    type: "CHARACTER_PORTRAIT";
+                  }
+                | {
+                    crop: {
+                      height: number;
+                      width: number;
+                      x: number;
+                      y: number;
+                    };
+                    draftId: string;
+                    expectedRevision: number;
+                    subjectId: string;
+                    subjectKind:
+                      | "BACKGROUND"
+                      | "CLASS"
+                      | "CREATURE"
+                      | "EQUIPMENT"
+                      | "FEAT"
+                      | "RACE"
+                      | "SPELL"
+                      | "VEHICLE";
+                    type: "AUTHORED_IMAGE";
+                  }
+                | null;
+              expiresAt: number;
+              id: string;
+              outputs: Array<{
+                kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+                objectKey: string;
+              }>;
+            } | null;
+            ownerUserId: string;
+            profileClass: "CONTENT_ART";
+            rawObjectKey: string | null;
+            status:
+              | "PENDING_UPLOAD"
+              | "PROCESSING"
+              | "READY"
+              | "REJECTED"
+              | "DELETED";
+            storageAssetId: string;
+            upload: {
+              declaredBytes: number;
+              declaredMimeType: "image/jpeg" | "image/png" | "image/webp";
+              idempotencyKey: string;
+              originalFileName: string;
+            };
+            uploadExpiresAt: number;
+            variants: Array<{
+              byteSize: number;
+              height: number;
+              kind: "SOURCE" | "DISPLAY" | "THUMBNAIL";
+              mimeType: "image/webp";
+              objectKey: string;
+              width: number;
+            }>;
+          };
+          crop: { height: number; width: number; x: number; y: number } | null;
+        }
+      >;
+      readProfileAvatar: FunctionReference<
+        "query",
+        "internal",
+        { username: string },
         null | {
           asset: {
             chargedBytes: number;
