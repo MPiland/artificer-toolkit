@@ -26,6 +26,7 @@ import {
   sceneTokenAppearanceKey,
   shouldReloadVttMap,
   stableVttMapPartIds,
+  statusCategoryColours,
   visibleGridLinePositions
 } from './vttSceneRenderer.model'
 
@@ -395,6 +396,18 @@ describe('VTT lighting model', () => {
     expect(lightTintAlpha({ intensity: 0.9 })).toBeGreaterThan(lightTintAlpha({ intensity: 0.3 }))
     expect(lightTintAlpha({ intensity: 5 })).toBeLessThanOrEqual(0.2)
     expect(lightTintAlpha({ intensity: 0 })).toBeGreaterThan(0)
+  })
+
+  it('colours condition, concentration and other statuses distinctly and draws an effect as other', () => {
+    expect(
+      new Set([
+        statusCategoryColours.CONDITION,
+        statusCategoryColours.CONCENTRATION,
+        statusCategoryColours.OTHER
+      ]).size
+    ).toBe(3)
+    // Lane 1 ruling: an EFFECT stays neutral until its polarity is derived.
+    expect(statusCategoryColours.EFFECT).toBe(statusCategoryColours.OTHER)
   })
 
   it('never lets the bright radius exceed the dim reach', () => {

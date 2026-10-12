@@ -13,7 +13,8 @@ import {
   countDarknessZones,
   describeDarknessZone,
   gmDarknessCapAlpha,
-  illuminationOverlayAlpha
+  illuminationOverlayAlpha,
+  lightTintAlpha
 } from './vttSceneRenderer.model'
 
 type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
@@ -225,6 +226,23 @@ export const BrightAndDimLights: Story = {
       visionCount: 0
     })
     expect(description).not.toContain('Lighting.')
+    // The drawn tint layer: the first light's dim reach then its bright core, the second's core,
+    // each one polygon filled in the light's colour at the faint tint alpha.
+    const [first, second] = brightAndDimScene.lights as [Light, Light]
+    const expectedTints = [
+      { light: first, radius: 'dim' },
+      { light: first, radius: 'bright' },
+      { light: second, radius: 'bright' }
+    ] as const
+    expect(lighting.lightTints).toHaveLength(expectedTints.length)
+    for (const [index, { light, radius }] of expectedTints.entries()) {
+      const tint = lighting.lightTints[index]!
+      expect(tint.radius).toBe(radius)
+      expect(tint.color).toBe(Number.parseInt(light.color.slice(1), 16))
+      expect(tint.alpha).toBeCloseTo(lightTintAlpha(light), 5)
+      expect(tint.alpha).toBeLessThanOrEqual(0.2)
+      expect(tint.polygonCount).toBe(1)
+    }
   }
 }
 
@@ -383,6 +401,53 @@ export const WallBlocksALightInTheDrawnOverlay: Story = {
   }
 }
 
+const doorId = '77777777-7777-4777-8777-777777777892'
+const litRoomBehindADoor = (state: 'CLOSED' | 'OPEN') =>
+  ({
+    ...darkRoom,
+    barriers: [
+      {
+        a: { x: 500, y: 200 },
+        b: { x: 500, y: 700 },
+        blocksLightWhenClosed: true,
+        blocksMovementWhenClosed: true,
+        id: doorId,
+        initialState: 'CLOSED',
+        kind: 'DOOR',
+        openAngleDegrees: 90
+      }
+    ],
+    doorStates: { [doorId]: state },
+    lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 150, 300)]
+  }) satisfies CampaignSceneStateDto
+const closedDoorScene = litRoomBehindADoor('CLOSED')
+const openDoorScene = litRoomBehindADoor('OPEN')
+// Beside the light, then within its reach but on the far side of the door.
+const doorPoints = [
+  { x: 450, y: 450 },
+  { x: 540, y: 450 }
+]
+
+export const ClosedDoorBlocksALightInTheDrawnOverlay: Story = {
+  args: { samplePoints: doorPoints, scene: closedDoorScene },
+  play: async ({ canvasElement }) => {
+    const { samples } = await readLighting(canvasElement)
+    expectSamplesMatchResolver(closedDoorScene, samples, doorPoints)
+    expect(samples[0]!.alpha).toBeCloseTo(0, 1)
+    expect(samples[1]!.alpha).toBeGreaterThan(0.95)
+  }
+}
+
+export const OpenDoorLetsALightThrough: Story = {
+  args: { samplePoints: doorPoints, scene: openDoorScene },
+  play: async ({ canvasElement }) => {
+    const { samples } = await readLighting(canvasElement)
+    expectSamplesMatchResolver(openDoorScene, samples, doorPoints)
+    expect(samples[0]!.alpha).toBeCloseTo(0, 1)
+    expect(samples[1]!.alpha).toBeCloseTo(0, 1)
+  }
+}
+
 export const MagicalAmbientDarknessIgnoresLights: Story = {
   args: {
     samplePoints: [{ x: 400, y: 450 }],
@@ -446,6 +511,8 @@ export const DarknessZoneKinds: Story = {
     expect(description).toContain('Ambient: Dim light')
     for (const zone of darknessKinds) expect(description).toContain(describeDarknessZone(zone))
     expect(description).toContain('Magical darkness')
+    // The visual-only zone's drawn fill carries the zone's own opacity.
+    expect(lighting.visualZoneAlphas).toEqual([darknessKinds[3]!.opacity])
   }
 }
 
@@ -567,6 +634,16 @@ export const GmPreviewsOneTokensView: Story = {
     expect(samples.map((sample) => sample.masked)).toEqual([false, true, true])
     expect(lighting.visionCount).toBe(1)
     expect(description).toContain(`Vision: ${warden.label}`)
+  }
+}
+
+export const PlayerWithoutASeeingTokenSeesABlackMap: Story = {
+  // Ember has no vision here: a Player's sight comes only from their own seeing tokens.
+  args: { role: 'PLAYER', samplePoints: previewPoints, scene: emptyScene },
+  play: async ({ canvasElement }) => {
+    const { lighting, samples } = await readLighting(canvasElement)
+    expect(lighting.visionCount).toBe(0)
+    expect(samples.map((sample) => sample.masked)).toEqual([true, true, true])
   }
 }
 

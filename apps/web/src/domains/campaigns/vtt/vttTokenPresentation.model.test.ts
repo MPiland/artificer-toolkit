@@ -37,7 +37,8 @@ describe('VTT token presentation model', () => {
     })[scene.tokens[0]!.id]!
 
     expect(result.fillColor).toBe(0xc92a2a)
-    expect(result.outlineColor).toBe(dispositionRingColours[actor.disposition])
+    expect(actor.disposition).toBe('FRIENDLY')
+    expect(result.outlineColor).toBe(0x339af0)
     expect(result.halo?.label).toBe('Current turn')
     expect(result.statuses.map((status) => status.kind)).toEqual([
       'INJURY',
@@ -192,13 +193,31 @@ describe('VTT token presentation model', () => {
         scene
       })[token.id]!.outlineColor
 
+    const expectedRing = { FRIENDLY: 0x339af0, HOSTILE: 0xff6b6b, NEUTRAL: 0xcc5de8 } as const
     for (const disposition of ['FRIENDLY', 'HOSTILE', 'NEUTRAL'] as const) {
-      expect(ring(disposition, false)).toBe(dispositionRingColours[disposition])
+      expect(ring(disposition, false)).toBe(expectedRing[disposition])
       expect(ring(disposition, true)).toBe(ring(disposition, false))
     }
     expect(new Set(Object.values(dispositionRingColours)).size).toBe(3)
     expect(ring(null, true)).toBe(0xffffff)
     expect(ring(null, false)).toBe(0xffffff)
+  })
+
+  it('reads as red for Hostile, blue for Friendly and purple for Neutral', () => {
+    const channels = (colour: number) => ({
+      blue: colour & 0xff,
+      green: (colour >> 8) & 0xff,
+      red: (colour >> 16) & 0xff
+    })
+    const hostile = channels(dispositionRingColours.HOSTILE)
+    expect(hostile.red).toBeGreaterThan(hostile.green + 64)
+    expect(hostile.red).toBeGreaterThan(hostile.blue + 64)
+    const friendly = channels(dispositionRingColours.FRIENDLY)
+    expect(friendly.blue).toBeGreaterThan(friendly.red + 64)
+    expect(friendly.blue).toBeGreaterThan(friendly.green + 32)
+    const neutral = channels(dispositionRingColours.NEUTRAL)
+    expect(neutral.red).toBeGreaterThan(neutral.green + 64)
+    expect(neutral.blue).toBeGreaterThan(neutral.green + 64)
   })
 
   it('says Yours in the description for a token the viewer controls through its actor', () => {

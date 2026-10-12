@@ -481,7 +481,9 @@ export const HoveringATokenRebuiltBeforeTheNextFrameReportsIt: Story = {
     const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
     const token = movementScene.tokens[0]!
     await nextFrame()
-    // The appearance change rebuilds the token visual; the pointer arrives before the frame that places it.
+    // The appearance change rebuilds the token visual and leaves a frame pending. The pointer move
+    // follows in the same synchronous block, so no frame can run first: only the Stage's own
+    // render of the pending frame lets Pixi hit-test the rebuilt token.
     fireEvent.click(canvas.getByRole('button', { name: 'Change token appearance' }))
     await movePointer(rendererCanvas, nextPointerId++, token.position)
     await waitFor(() => expect(canvas.getByTestId('movement-hover')).toHaveTextContent(token.id))

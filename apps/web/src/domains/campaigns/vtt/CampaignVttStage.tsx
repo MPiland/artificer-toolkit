@@ -123,7 +123,7 @@ export function CampaignVttStage({
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
   // The token whose view the GM previews, and the token whose statuses are listed on screen.
-  const [previewTokenId, setPreviewTokenId] = useState<string | null>(null)
+  const [chosenPreviewTokenId, setChosenPreviewTokenId] = useState<string | null>(null)
   const [inspectedTokenId, setInspectedTokenId] = useState<string | null>(null)
   // GM pings, rulers, drag ghosts and fog drafts stay private unless the GM shares them.
   const [sharePreviews, setSharePreviews] = useState(false)
@@ -285,6 +285,10 @@ export function CampaignVttStage({
   })
   const presented = useCampaignPresentedScene(campaign.id, live.recipientState)
   const scene = live.recipientState?.scene ?? undefined
+  // The chosen preview applies only while that Token is on the presented Scene.
+  const previewTokenId = scene?.tokens.some((token) => token.id === chosenPreviewTokenId)
+    ? chosenPreviewTokenId
+    : null
   const sceneBindingInput =
     activeEncounter && scene ? { encounterId: activeEncounter.id, sceneId: scene.id } : null
   const roomSceneBinding = useRoomEncounterRead({
@@ -1235,7 +1239,7 @@ export function CampaignVttStage({
             onMeasurement={commitMeasurement}
             onMeasurementRemove={removeMeasurement}
             onInspectToken={setInspectedTokenId}
-            onPreviewToken={setPreviewTokenId}
+            onPreviewToken={setChosenPreviewTokenId}
             onTokenMove={(tokenId, position) => {
               const token = scene.tokens.find((candidate) => candidate.id === tokenId)
               if (token) commitTokenMove(tokenId, [token.position, position])

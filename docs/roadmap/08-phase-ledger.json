@@ -6648,7 +6648,7 @@
               "status": "IN_PROGRESS",
               "proof": [],
               "origin": ["G4-STATUS-PRESENTATION"],
-              "note": "Two rings (decision Q3): an outer segmented status ring (model order, at most 8 segments, the last marks overflow at 9+), inset inside the footprint, and a DOM status list on hover or focus. Proved against drawn output (segment count and category colours, overflow, ring bounds of neighbouring 1x1 and large tokens, the hover list) in the presentation, movement and window stories. Not accepted: polarity is derived next (lane 1 ruling: a pure rules-runtime function over each grant's modifiers, carried on activeGrantListing; conditions HARMFUL), after ATTACK-18 slice C; until then EFFECT draws in the neutral colour.",
+              "note": "Two rings (decision Q3): an outer segmented status ring (model order, at most 8 segments, the last marks overflow at 9+), inset inside the footprint, and a DOM status list on hover or focus. Proved against drawn output (segment count and category colours, overflow, inner and outer ring bounds of neighbouring 1x1 and large tokens) in the presentation and window stories; category hues pinned literally in the model tests. Status list paths proved: canvas hover lists a token's statuses and leaving hides them (window HoveringATokenOnTheCanvasListsItsStatuses), and keyboard focus on a token's Focus item in Scene controls (FocusingATokenListsEveryStatus). Not proved yet: mouse hover on that menu item, and the list for the selected token (selection is the next slice). Not accepted: polarity is derived next (lane 1 ruling: a pure rules-runtime function over each grant's modifiers, carried on activeGrantListing; conditions HARMFUL), after ATTACK-18 slice C; until then EFFECT draws in the neutral colour.",
               "id": "VTT_UI-1.2"
             },
             {
@@ -6697,13 +6697,14 @@
             },
             {
               "text": "Light and map colour are rendered from the Scene. The ambient illumination sets the base: BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses. Each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art. Magical darkness stays black inside light except to senses that pierce it. Obscurement draws as its own layer. The GM sees everything and can preview a chosen token's view.",
-              "status": "DONE",
+              "status": "IN_PROGRESS",
               "proof": [
                 "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx",
                 "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts"
               ],
               "origin": ["G4-PERCEPTION"],
-              "note": "D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, and a wall blocking a light. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
+              "note": "D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); a visual-only zone draws at its opacity. A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
               "id": "VTT_UI-3.2"
             },
             {

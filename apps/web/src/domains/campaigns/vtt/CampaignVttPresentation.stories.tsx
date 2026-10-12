@@ -455,6 +455,22 @@ export const OuterRingsStayWithinNeighbouringFootprints: Story = {
       await expect(drawn.outerRing.height).toBeLessThanOrEqual(token.height)
     }
     await expect(small!.right).toBeLessThanOrEqual(large!.left)
+    // Both rings sit strictly inside the footprint, the status ring clear of its edge, and the
+    // inner disposition ring inside the status ring.
+    for (const { drawn, token } of [small!, large!]) {
+      const halfWidth = token.width / 2
+      const halfHeight = token.height / 2
+      const { innerRing, outerRing } = drawn
+      await expect(outerRing.x).toBeGreaterThan(-halfWidth)
+      await expect(outerRing.x + outerRing.width).toBeLessThan(halfWidth)
+      await expect(outerRing.y).toBeGreaterThan(-halfHeight)
+      await expect(outerRing.y + outerRing.height).toBeLessThan(halfHeight)
+      await expect(innerRing.width).toBeGreaterThan(0)
+      await expect(innerRing.x).toBeGreaterThan(outerRing.x)
+      await expect(innerRing.x + innerRing.width).toBeLessThan(outerRing.x + outerRing.width)
+      await expect(innerRing.y).toBeGreaterThan(outerRing.y)
+      await expect(innerRing.y + innerRing.height).toBeLessThan(outerRing.y + outerRing.height)
+    }
   }
 }
 
