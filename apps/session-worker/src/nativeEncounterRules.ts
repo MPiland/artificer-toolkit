@@ -30,9 +30,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
-import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
-import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import {
   snapshotCreatureTypeId,
@@ -353,11 +352,6 @@ export async function planNativeLiveEncounterAction(
         })
       }
     : null
-  // An ally's Help (basic action, Q11) gives this actor's next attack roll advantage.
-  const allyAdvantage = encounterBasicActionAllyAdvantage({
-    actors,
-    attackerId: command.actorId
-  })
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor: actors.find((actor) => actor.id === command.actorId)!,
@@ -398,26 +392,14 @@ export async function planNativeLiveEncounterAction(
           }
         })
       }),
-    loadRelationshipFacts: nativeLiveRelationshipFacts({
-      activeEffectsByActorId,
-      allyAdvantage
-    })
+    loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }).catch(refuseStaleCharacterAction)
   refuseLegendaryWindowAction(prepared)
-  // Only an attack roll uses the advantage; a saving-throw action leaves it for the next attack.
-  const allyAdvantageUses =
-    allyAdvantage && typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? [
-          {
-            helperActorId: allyAdvantage.helperActorId,
-            effect: allyAdvantage.effect
-          }
-        ]
-      : []
-  // An attack roll also uses up the attacker's one-roll grants (Vicious Mockery's disadvantage).
+  // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
+  // a saving-throw action leaves them for the next attack.
   const consumedGrants =
     typeof prepared.binding.actionMechanic.attackBonus === 'number'
-      ? attackRollConsumableGrants(activeEffectsByActorId.get(prepared.actor.id) ?? [])
+      ? consumableGrants(activeEffectsByActorId.get(prepared.actor.id) ?? [], 'ON_ATTACK_ROLL')
       : []
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
@@ -573,7 +555,6 @@ export async function planNativeLiveEncounterAction(
     sceneContext,
     currentnessChecksum,
     activeEffectsByActorId,
-    allyAdvantageUses,
     consumedGrants,
     dependencies,
     revisions
@@ -808,7 +789,6 @@ export function buildNativeLiveEncounterActionCommitInput(
     pendingConcentration: plan.concentration.pending,
     concentrationEnds: plan.concentration.concentrationEnds,
     cleaving: plan.cleaving,
-    allyAdvantageUses: plan.allyAdvantageUses,
     consumedGrants: plan.consumedGrants
   })
 }

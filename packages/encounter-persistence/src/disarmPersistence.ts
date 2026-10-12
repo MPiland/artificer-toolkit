@@ -32,7 +32,6 @@ import { readNativeDisarmPending } from './actionDisarmPending.js'
 import { settleDisarm } from './disarmSettlement.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
 import { readDisarmAdmission } from './disarmAdmission.js'
-import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { changedFields, readRunActors } from './documents.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -224,22 +223,14 @@ export async function persistEncounterDisarmCommit(
   })
   if (checksumRuleDocument(settled.applicationOutputs) !== checksumRuleDocument(outputs))
     throw new Error('Live Session Disarm settlement mismatch.')
-  const nextActors = await consumeEncounterAllyAdvantages(ctx, {
-    actors: actors.map((actor) =>
-      actor.id === settled.actor.id
-        ? settled.actor
-        : actor.id === settled.target.id
-          ? settled.target
-          : actor
-    ),
-    uses: input.allyAdvantageUses,
-    rollerActorIds: [root.actorId, targetActorId]
-  })
-  await deleteConsumedGrants(ctx, {
-    actor: settled.actor,
-    encounterId: state.id,
-    grants: input.consumedGrants
-  })
+  const nextActors = actors.map((actor) =>
+    actor.id === settled.actor.id
+      ? settled.actor
+      : actor.id === settled.target.id
+        ? settled.target
+        : actor
+  )
+  await deleteConsumedGrants(ctx, input.consumedGrants)
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,
@@ -325,9 +316,9 @@ export async function persistEncounterDisarmCommit(
       label: 'Disarm',
       // Disarm has no "Do it anyway"; its checks stay hard.
       ruleOverrides: [],
-      allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,
       addedConcentrationCasterId: null,
+      speedBonusTurn: null,
       commandFingerprint: fingerprint,
       actorUserId: admission.initiatorUserId,
       version: nextState.version,

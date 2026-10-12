@@ -355,7 +355,7 @@ export function withHolderStateGrantSaves(
 }
 
 /** The canonical contributors of a d20 with `added` merged in, and the roll mode they resolve to. */
-function mergedRollContributors(
+export function mergedRollContributors(
   existing: readonly EncounterRelationshipD20Contributor[],
   added: readonly EncounterRelationshipD20Contributor[]
 ) {
@@ -448,6 +448,40 @@ export function creatureActiveGrantAttackContributors(
           ]
         : []
     )
+  )
+}
+
+/**
+ * A Creature's active ability-check advantage and disadvantage grants (Help), as roll
+ * contributors. A grant with no ability covers every check; one that names an ability applies
+ * only when that ability is the check's `abilityCode`. A Character folds the same grants through
+ * its own policy instead.
+ */
+export function creatureActiveGrantCheckContributors(
+  holderActorId: string,
+  abilityCode: string | null,
+  effects: readonly ActiveRuleEffectRecord[]
+): EncounterRelationshipD20Contributor[] {
+  return listEncounterActiveGrants(effects).flatMap(({ effectId, modifiers }) =>
+    modifiers.flatMap((modifier) => {
+      const grantAbility = record(modifier.domain)?.ability ?? null
+      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+        modifier.valueDomainCode === 'ABILITY_CHECK' &&
+        (grantAbility === null || grantAbility === abilityCode) &&
+        record(modifier.grant)?.scope === 'GLOBAL'
+        ? [
+            {
+              sourceId: createCharacterMechanicSourceKey({
+                kind: 'ACTIVE_EFFECT',
+                activeEffectId: effectId
+              }),
+              grantId: modifier.grantId,
+              domainKey: `active-grant:${holderActorId}`,
+              influence: modifier.modifierKind
+            }
+          ]
+        : []
+    })
   )
 }
 

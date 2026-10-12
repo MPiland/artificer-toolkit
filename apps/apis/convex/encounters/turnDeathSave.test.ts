@@ -18,10 +18,14 @@ import {
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { healersKit } from '@artificer-toolkit/source-data/srd/equipment/healers-kit.js'
+import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
+import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import {
   checkpointLiveRoom,
   executeInRoom,
@@ -424,6 +428,47 @@ async function firstAidCards(fixture: Fixture) {
   return cards.filter((card) => card.source.label === 'First Aid: Wisdom (Medicine)')
 }
 
+/** The Active Effects a Run Character holds (a Help grant), as the room last published them. */
+async function heldEffects(fixture: Fixture, characterId: string) {
+  await checkpointLiveRoom(fixture.campaign.id)
+  return fixture.t.run((ctx) =>
+    createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list({
+      kind: 'CHARACTER',
+      characterId
+    })
+  )
+}
+
+/** The hostile Creature Helps the ally at its turn, overriding the warnings that raises. */
+async function creatureHelpsAlly(fixture: Fixture, from: CommandResult) {
+  await fixture.t.mutation(internal.content.import.importDefinitions, {
+    contentSourceId: SRD_CONTENT_SOURCE.id,
+    definitions: SRD_BASIC_ACTION_DEFINITIONS
+  })
+  await invalidateRoomInputs(fixture.campaign.id, ['PLAY'])
+  await checkpointLiveRoom(fixture.campaign.id)
+  const help = (
+    await fixture.owner.caller.query(api.encounters.actionChoices.get, {
+      encounterId: fixture.run.id,
+      expectedVersion: from.projection.version,
+      actorId: fixture.enemy.id
+    })
+  )?.basicActionChoices.find(({ label }) => label === 'Help')
+  if (!help) throw new Error('The Creature is not offered Help.')
+  return execute(fixture, (base) => ({
+    ...base,
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: ['TARGET_DISPOSITION', 'ACTION_ECONOMY_UNAVAILABLE'],
+    expectedVersion: from.projection.version,
+    actorId: fixture.enemy.id,
+    actionId: help.id,
+    target: { kind: 'ACTOR', actorId: allyOf(fixture).id },
+    optionalCombatIntent: null,
+    sceneContext: null
+  }))
+}
+
 /** The ally, a GM-controlled Character, rolls by hand or automatically, as its preference says. */
 async function allyRollsAutomatically(fixture: Fixture, automatic: boolean) {
   await setAutoRollDice(fixture.t, fixture.owner.userId, automatic)
@@ -538,6 +583,9 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(stabilized.occurrence?.status).toBe('COMPLETE')
     expect(await saves(fixture)).toEqual({ successes: 0, failures: 0, stable: true })
     expect(await firstAidCards(fixture)).toHaveLength(1)
+    // First Aid leaves no lasting effect on either Character.
+    expect(await heldEffects(fixture, allyOf(fixture).sourceId!)).toEqual([])
+    expect(await heldEffects(fixture, fixture.character.id)).toEqual([])
 
     await execute(fixture, (base) => ({
       ...base,
@@ -547,6 +595,66 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     expect(await saves(fixture)).toEqual(dying)
     expect(await firstAidCards(fixture)).toHaveLength(1)
   }, 120000)
+
+  it('warns only about the unchecked touch range for a valid dying target', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, true)
+    const refused = JSON.stringify(
+      await execute(fixture, (base) => ({
+        ...base,
+        type: 'USE_BASIC_ACTION',
+        expectedVersion: atAlly.projection.version,
+        actorId: allyOf(fixture).id,
+        definitionId: SRD_BASIC_ACTION_IDS.FIRST_AID,
+        targetActorId: fixture.hero.id,
+        acknowledgedWarnings: []
+      })).then(
+        () => null,
+        (caught: unknown) => caught
+      )
+    )
+    expect(refused).toContain('TARGET_RANGE_UNCHECKED')
+    expect(refused).not.toContain('TARGET_NOT_DYING')
+    expect(refused).not.toContain('TARGET_DISPOSITION')
+    expect(refused).not.toContain('ACTION_ECONOMY_UNAVAILABLE')
+  }, 120000)
+
+  it('a Help on the helper is used up by the check, still named on the roll, and GM undo gives it back (ATTACK-18)', async () => {
+    const { fixture, bitten } = await dyingCharacter('AUTO_ROLL', true)
+    await allyRollsAutomatically(fixture, false)
+    const ally = allyOf(fixture)
+    await queueRoomRolls(fixture.campaign.id, { rolls: [], repeat: draw(12) })
+    const helped = await creatureHelpsAlly(fixture, bitten)
+    const helpBefore = await heldEffects(fixture, ally.sourceId!)
+    expect(helpBefore).toHaveLength(1)
+    const atAlly = await toActorTurn(fixture, helped, ally.id)
+
+    const paused = await useFirstAid(fixture, atAlly)
+    expect(pendingRoll(paused).pending.request.rollMode).toBe('ADVANTAGE')
+    expect(await heldEffects(fixture, ally.sourceId!)).toEqual([])
+    await checkpointLiveRoom(fixture.campaign.id)
+    await expect(
+      fixture.owner.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+        encounterId: fixture.run.id
+      })
+    ).resolves.toMatchObject({
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
+    })
+
+    const settled = await answerFirstAid(fixture, paused, (requestId) => ({
+      kind: 'ENTER_DICE',
+      requestId,
+      rawFaces: [20, 20],
+      rollMode: 'ADVANTAGE'
+    }))
+    expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+    await execute(fixture, (base) => ({
+      ...base,
+      type: 'REVERT_LAST_ACTION',
+      expectedVersion: settled.projection.version
+    }))
+    expect(await heldEffects(fixture, ally.sourceId!)).toEqual(helpBefore)
+  }, 180000)
 
   it('warns, overridably, for a hero that is not dying, and then rolls nothing', async () => {
     const { fixture, bitten } = await dyingCharacter('AUTO_ROLL', true)

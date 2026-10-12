@@ -52,7 +52,7 @@ const definition: ActiveRuleEffectDefinitionDto = {
   perceptionContributions: [],
   recurrence: {
     recurrenceStage: 'NONE',
-    consumeOnFirstEvent: null,
+    consumeOnFirstEvents: [],
     endOnEvents: [],
     lifetimeScope: 'ENCOUNTER',
     expiration: {

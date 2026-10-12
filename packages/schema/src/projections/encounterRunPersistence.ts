@@ -4,10 +4,7 @@ import { MAX_ENCOUNTER_ACTORS, authoredIdentifierSchema } from '../shared/author
 import { projectionChecksumSchema } from './identity.js'
 import { encounterCreatureEquipmentReplacementSchema } from './encounterCreatureEquipment.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
-import {
-  encounterAllyAdvantageUsesDtoSchema,
-  encounterBasicActionEffectsDtoSchema
-} from '../shared/basicActions.js'
+import {} from '../shared/basicActions.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { rollRecordDtoSchema } from '../api/rolls.js'
@@ -263,9 +260,7 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       optionalCombatSnapshotChecksum: projectionChecksumSchema,
       /** Warnings the submitter overrode ("Do it anyway"); the GM timeline badges each one. */
       ruleOverrides: encounterRuleWarningsDtoSchema,
-      /** The ally advantages (Help) the action's rolls used; its undo gives them back. */
-      allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
-      /** The attacker's grants this attack roll used up; its undo gives them back. */
+      /** The grants (Vicious Mockery, Help) this action's rolls used up; its undo gives them back. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
@@ -302,9 +297,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       receipt: z.strictObject({
         actorId: postgresUuidSchema,
         actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
-        effects: encounterBasicActionEffectsDtoSchema,
-        /** The Help a check-making action used (a used Help is consumed); undo gives it back. */
-        allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
+        /** The helper's one-check grants (Help) the check used up; undo gives them back. */
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
         /** The action's d20 check occurrence, pending or settled; null for an action with no check. */
         checkOccurrenceId: z.nullable(postgresUuidSchema)
       })
@@ -318,6 +314,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       receipt: z.strictObject({
         actorId: postgresUuidSchema,
         actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        /** The holder's one-check grants (Help) the check used up; undo gives them back. */
+        consumedGrants: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
         /** The escape's d20 check occurrence, pending or settled. */
         checkOccurrenceId: postgresUuidSchema
       })

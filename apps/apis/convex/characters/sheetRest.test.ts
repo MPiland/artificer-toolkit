@@ -173,7 +173,7 @@ function reductionDefinition(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }

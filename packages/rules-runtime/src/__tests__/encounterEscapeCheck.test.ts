@@ -36,6 +36,7 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { prepareFixtureSheet, readyFighterFixture } from '../testing/characterContextFixtures.js'
+import { helpEffect } from './antitoxinEffectFixture.js'
 import { GOBLIN, activeEffect } from './encounterActiveEffectFixtures.js'
 
 const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
@@ -180,6 +181,25 @@ describe('Escape check', () => {
     expect(encounterEscapeCheckLabel(system, ATHLETICS)).toBe('Strength (Athletics)')
     expect(encounterEscapeCheckLabel(system, STRENGTH)).toBe('Strength')
     expect(() => encounterEscapeCheckLabel(system, testUuid(77))).toThrow()
+  })
+
+  it('rolls with advantage while the holder carries a Help, naming the Help as the source', () => {
+    const grapple = grappled(holder.id)
+    const help = helpEffect({ id: testUuid(30), holderActorId: holder.id })
+    expect(prepare({ effect: grapple }).d20.rollMode).toBe('NORMAL')
+    const helped = prepareEncounterEscapeCheck({
+      gameSystemId: SRD_SYSTEM_ID,
+      commandId: COMMAND_ID,
+      commandFingerprint: 'b'.repeat(64),
+      system,
+      holder: srdCreatureTarget(holder, [grapple, help]),
+      activeEffectId: grapple.id,
+      checkDefinitionId: ATHLETICS
+    })
+    expect(helped.d20.rollMode).toBe('ADVANTAGE')
+    expect(helped.d20.contributors).toMatchObject([
+      { sourceId: `ACTIVE_EFFECT:${help.id}`, influence: 'ADVANTAGE' }
+    ])
   })
 
   it('finds the fixed-DC escape a holder can attempt, and no other', () => {

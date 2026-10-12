@@ -146,7 +146,7 @@ export async function persistEncounterTurnEffects(
         definition.frozenGraph.sourceEntryBindings ?? []
       ) ||
       definition.frozenGraph.source.gameSystemId !== state.gameSystemId ||
-      recurrence.consumeOnFirstEvent !== null ||
+      recurrence.consumeOnFirstEvents.length !== 0 ||
       recurrence.endOnEvents.length !== 0 ||
       (recurrence.expiration.kind === 'TICKS' &&
         (recurrence.expiration.decrementStage !== boundary.stage ||

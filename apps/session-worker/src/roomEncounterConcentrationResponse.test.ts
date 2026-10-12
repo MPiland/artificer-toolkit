@@ -313,7 +313,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
-        consumeOnFirstEvent: null,
+        consumeOnFirstEvents: [],
         endOnEvents: [],
         lifetimeScope: 'ENCOUNTER',
         expiration: {

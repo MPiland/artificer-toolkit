@@ -453,8 +453,8 @@ export async function prepareStoredDisarm(
     prepared,
     sceneContext,
     selection,
-    actionEconomy,
-    defenderAllyAdvantage: null
+    system: await tx.ports.requireSystem(state.gameSystemId),
+    actionEconomy
   })
   return { prepared, contest, graph, actionEconomy, currentnessChecksum, sceneContext }
 }

@@ -20,7 +20,6 @@ import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
 import { readRunActors } from './documents.js'
 import { sourceSpendMutation, settleActionSourceSpend } from './actionSourceSpend.js'
 import { completeActionOccurrence, recordActionRoot } from './actionCommitRecords.js'
-import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus } from './turnMovement.js'
@@ -269,18 +268,8 @@ export async function persistEncounterActionCommit(
     actors: nextActors,
     occurredAt: input.occurredAt
   })
-  // The helper's ally advantage (Help) this attack used ends now.
-  nextActors = await consumeEncounterAllyAdvantages(ctx, {
-    actors: nextActors,
-    uses: input.allyAdvantageUses,
-    rollerActorIds: [source.id]
-  })
-  // The attacker's one-roll grants (Vicious Mockery's disadvantage) end with the roll.
-  await deleteConsumedGrants(ctx, {
-    actor: source,
-    encounterId: state.id,
-    grants: input.consumedGrants
-  })
+  // The one-roll grants the rolls used up (Vicious Mockery's disadvantage, Help) end with the roll.
+  await deleteConsumedGrants(ctx, input.consumedGrants)
   const sourceVersion =
     sourceMechanics?.characterStreamVersion ??
     (source.kind === 'CHARACTER' && source.id !== target.id
@@ -364,7 +353,6 @@ export async function persistEncounterActionCommit(
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
-      allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,
       addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
       speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null

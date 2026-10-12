@@ -119,7 +119,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'ENCOUNTER',
       expiration: {

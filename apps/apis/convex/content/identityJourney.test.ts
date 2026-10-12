@@ -11,7 +11,6 @@ import type {
 } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredDraftResult } from '@artificer-toolkit/schema/api/authoredDrafts'
 import { authoredPublishDraftInputSchema } from '@artificer-toolkit/schema/api/authoredPublication'
-import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import type { SystemLookupInputDto, SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { collectReferenceIds } from '@artificer-toolkit/shared/utils'

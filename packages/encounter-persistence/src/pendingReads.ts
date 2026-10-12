@@ -119,8 +119,12 @@ export async function readPendingRunDecision(
     return controlledActorIds.has(
       context.kind === 'ENCOUNTER_ESCAPE_CHECK' ? context.actorId : context.helperActorId
     )
-      ? withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
-          projectNativeBasicActionCheckPending(occurrence, pendingSnapshot, reasons)
+      ? withEncounterRollModeReasons(
+          ctx,
+          row,
+          membership,
+          (reasons) => projectNativeBasicActionCheckPending(occurrence, pendingSnapshot, reasons),
+          context.consumedGrants
         )
       : null
   if (

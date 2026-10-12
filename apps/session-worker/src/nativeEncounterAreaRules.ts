@@ -65,7 +65,6 @@ import {
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
@@ -199,7 +198,6 @@ async function prepareAreaTarget(
     base: Awaited<ReturnType<typeof prepareAreaScene>>
     actor: EncounterRunActorState
     token: Awaited<ReturnType<typeof prepareAreaScene>>['scene']['tokens'][number]
-    allyAdvantage: ReturnType<typeof encounterBasicActionAllyAdvantage>
   }
 ) {
   const { base, actor, token, command, state, actors } = input
@@ -229,8 +227,7 @@ async function prepareAreaTarget(
       loadSource: async (source) =>
         resolveEncounterActionSource({ ...source, system: input.system }),
       loadRelationshipFacts: nativeLiveRelationshipFacts({
-        activeEffectsByActorId: input.activeEffectsByActorId,
-        allyAdvantage: input.allyAdvantage
+        activeEffectsByActorId: input.activeEffectsByActorId
       })
     }).catch(refuseStaleCharacterAction)
   }
@@ -248,11 +245,7 @@ function prepareAreaCaster(
     ...input,
     base,
     actor: base.caster,
-    token: base.scene.sourceToken,
-    allyAdvantage: encounterBasicActionAllyAdvantage({
-      actors: input.actors,
-      attackerId: base.caster.id
-    })
+    token: base.scene.sourceToken
   })
 }
 
@@ -304,13 +297,9 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       perceivedByCaster.add(actor.id)
   }
 
-  const allyAdvantage = encounterBasicActionAllyAdvantage({
-    actors,
-    attackerId: caster.id
-  })
   const preparedTargets = []
   for (const { actor, token } of caught)
-    preparedTargets.push(await prepareAreaTarget({ ...input, base, actor, token, allyAdvantage }))
+    preparedTargets.push(await prepareAreaTarget({ ...input, base, actor, token }))
   // An area that catches nobody still spends the action: its checks run against the caster's own
   // preparation of it.
   const lead = preparedTargets[0] ?? (await prepareAreaCaster(input, base))
@@ -656,11 +645,7 @@ async function revalidateAreaTarget(
     ...input,
     base,
     actor,
-    token,
-    allyAdvantage: encounterBasicActionAllyAdvantage({
-      actors,
-      attackerId: base.caster.id
-    })
+    token
   })
   refuseLegendaryWindowAction(target.prepared)
   const evaluation = await evaluateNativeLiveActionEconomy({

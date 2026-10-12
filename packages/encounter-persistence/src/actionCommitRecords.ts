@@ -77,12 +77,7 @@ export async function recordActionRoot(
     result: EncounterCommandResultDto
     commandFields: Pick<
       Extract<z.infer<typeof encounterStoredRunCommandSchema>, { commandType: 'RESOLVE_ACTION' }>,
-      | 'label'
-      | 'ruleOverrides'
-      | 'allyAdvantageUses'
-      | 'consumedGrants'
-      | 'addedConcentrationCasterId'
-      | 'speedBonusTurn'
+      'label' | 'ruleOverrides' | 'consumedGrants' | 'addedConcentrationCasterId' | 'speedBonusTurn'
     > &
       Partial<
         Pick<

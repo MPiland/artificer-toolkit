@@ -1,11 +1,7 @@
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import {
-  lockedRelationshipActionFacts,
-  mergeCanonicalD20Contributors
-} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
-import type { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -13,24 +9,17 @@ type Relationship = Parameters<
   Parameters<typeof prepareEncounterActionMechanics>[0]['loadRelationshipFacts']
 >[0]
 
-/**
- * The relationship facts an action's d20s read: the locked ones between the two actors, and an ally's
- * Help (basic action, Q11) when the actor has one waiting.
- */
+/** The relationship facts an action's d20s read: the locked ones between the two actors. */
 export function nativeLiveRelationshipFacts(input: {
   activeEffectsByActorId: Relationship['activeEffectsByActorId']
-  allyAdvantage: ReturnType<typeof encounterBasicActionAllyAdvantage>
 }) {
   return async (relationship: Relationship) =>
-    mergeCanonicalD20Contributors(
-      lockedRelationshipActionFacts({
-        actionEffectId: relationship.actionEffectId,
-        sourceActorId: relationship.sourceActorId,
-        targetActorId: relationship.targetActorId,
-        targets: { activeEffectsByActorId: input.activeEffectsByActorId }
-      }),
-      input.allyAdvantage ? [input.allyAdvantage.contributor] : []
-    )
+    lockedRelationshipActionFacts({
+      actionEffectId: relationship.actionEffectId,
+      sourceActorId: relationship.sourceActorId,
+      targetActorId: relationship.targetActorId,
+      targets: { activeEffectsByActorId: input.activeEffectsByActorId }
+    })
 }
 
 /** A Legendary Action is taken only in its own window, never as an ordinary action. */

@@ -24,7 +24,7 @@ import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-ru
 import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import { readMovementResolution } from './sceneGeometryDocuments.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
-import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
+import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
 import type { persistLiveMovementReaction } from './liveMovementReactionPersistence.js'
@@ -327,11 +327,8 @@ export async function persistMovementSettlements(
         consumption: step.consumption,
         overridden: false
       })
-      actors = await consumeEncounterAllyAdvantages(ctx, {
-        actors: actors.map((entry) => (entry.id === next.id ? next : entry)),
-        uses: step.allyAdvantageUses,
-        rollerActorIds: [passage.audit.sourceActorId, passage.audit.blockerActorId]
-      })
+      await deleteConsumedGrants(ctx, step.consumedGrants)
+      actors = actors.map((entry) => (entry.id === next.id ? next : entry))
       passageSettled = true
     } else if (step.kind === 'CONCENTRATION_END') {
       const expected = ends.shift()

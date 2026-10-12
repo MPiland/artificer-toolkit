@@ -194,6 +194,7 @@ export async function planNativeLiveEscape(
       occurredAt: new Date().toISOString(),
       actionEconomy,
       ruleOverrides: warnings,
+      consumedGrants: context.consumedGrants,
       check,
       rules: reconcileEncounterActorRuleOutput(
         evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),

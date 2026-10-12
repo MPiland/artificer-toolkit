@@ -1,79 +1,20 @@
 import {
   basicActionReusableDefinitionDocumentDtoSchema,
-  encounterBasicActionEffectsDtoSchema,
-  type BasicActionReusableDefinitionDocumentDto,
-  type EncounterAllyAdvantageUseDto,
-  type EncounterBasicActionEffectDto
+  type BasicActionReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/basicActions'
-import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
-import {
-  encounterRunActorStateSchema,
-  type EncounterRunActorState,
-  type EncounterRunState
+import type {
+  EncounterRunActorState,
+  EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { actionEconomyCapabilityRegistry } from './actionEconomyCapabilityRegistry.default.js'
 import { activeEffectCapabilitySuppressions } from './encounterActionEconomy.js'
-import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   resolveRuleCapabilityState,
   type CurrentReusableDefinitionSource
 } from './ruleCapabilityStateService.js'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
-import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
-
-type ActorResources = Pick<EncounterRunActorState, 'resources'>
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-/** The basic-action effects an actor's Run resources hold (Q11). */
-export function encounterBasicActionEffects(
-  actor: ActorResources
-): EncounterBasicActionEffectDto[] {
-  const resources = isRecord(actor.resources) ? actor.resources : null
-  return resources?.basicActionEffects === undefined
-    ? []
-    : encounterBasicActionEffectsDtoSchema.parse(resources.basicActionEffects)
-}
-
-/** Replaces an actor's basic-action effects; an actor with none keeps no entry. */
-export function withEncounterBasicActionEffects(
-  actor: EncounterRunActorState,
-  effects: readonly EncounterBasicActionEffectDto[]
-): EncounterRunActorState {
-  const { basicActionEffects: _replaced, ...resources } = isRecord(actor.resources)
-    ? actor.resources
-    : {}
-  return encounterRunActorStateSchema.parse({
-    ...actor,
-    resources: effects.length
-      ? { ...resources, basicActionEffects: encounterBasicActionEffectsDtoSchema.parse(effects) }
-      : resources
-  })
-}
-
-/**
- * The basic action's d20 contributor: its source id names the catalogue entry, so the derived-mode
- * reason reads the entry's label (Dodge, Help).
- */
-function basicActionContributor(
-  definitionId: string,
-  holderId: string,
-  influence: EncounterRelationshipD20Contributor['influence']
-): EncounterRelationshipD20Contributor {
-  return {
-    sourceId: `basic-action:${definitionId}`,
-    grantId: null,
-    domainKey: `basic-action:${holderId}`,
-    influence
-  }
-}
 
 /** Whether the System's actor-action capability is suppressed for the target (Speed is ignored). */
 export async function encounterActorCannotAct(input: {
@@ -92,84 +33,6 @@ export async function encounterActorCannotAct(input: {
     activeEffectSuppressions: activeEffectCapabilitySuppressions(input.activeEffects)
   })
   return state.capabilities[0]?.available === false
-}
-
-/** Adds one contributor to a d20's canonical contributors and derives the resulting roll mode. */
-export function withEncounterD20Contributor(
-  contributors: readonly EncounterRelationshipD20Contributor[],
-  contributor: EncounterRelationshipD20Contributor
-): { contributors: EncounterRelationshipD20Contributor[]; rollMode: EncounterD20RollMode } {
-  const merged = [...contributors, contributor].sort(compareCanonicalD20Contributors)
-  const advantage = merged.some((entry) => entry.influence === 'ADVANTAGE')
-  const disadvantage = merged.some((entry) => entry.influence === 'DISADVANTAGE')
-  return {
-    contributors: merged,
-    rollMode: advantage === disadvantage ? 'NORMAL' : advantage ? 'ADVANTAGE' : 'DISADVANTAGE'
-  }
-}
-
-/**
- * Help: the ally advantage the attacker's next attack roll uses, from the helper with the lowest id
- * when several helped. The attack's commit removes it from that helper (`withoutAllyAdvantage`).
- */
-export function encounterBasicActionAllyAdvantage(input: {
-  actors: readonly EncounterRunActorState[]
-  attackerId: string
-}) {
-  for (const helper of [...input.actors].sort((left, right) => left.id.localeCompare(right.id))) {
-    const effect = encounterBasicActionEffects(helper).find(
-      (candidate) =>
-        candidate.mechanic === 'ALLY_ADVANTAGE' && candidate.allyActorId === input.attackerId
-    )
-    if (effect)
-      return {
-        helperActorId: helper.id,
-        effect,
-        contributor: basicActionContributor(effect.definitionId, helper.id, 'ADVANTAGE')
-      }
-  }
-  return null
-}
-
-/**
- * The Helps a settled roll's participants used: each participant whose contributors include its
- * current ally advantage. Their commit removes them from the helpers.
- */
-export function encounterAllyAdvantageUses(input: {
-  actors: readonly EncounterRunActorState[]
-  participants: readonly {
-    actorId: string
-    contributors: readonly EncounterRelationshipD20Contributor[]
-  }[]
-}): EncounterAllyAdvantageUseDto[] {
-  return input.participants.flatMap((participant) => {
-    const help = encounterBasicActionAllyAdvantage({
-      actors: input.actors,
-      attackerId: participant.actorId
-    })
-    return help &&
-      participant.contributors.some(
-        (contributor) =>
-          checksumCanonicalJson(contributor) === checksumCanonicalJson(help.contributor)
-      )
-      ? [{ helperActorId: help.helperActorId, effect: help.effect }]
-      : []
-  })
-}
-/** Removes the one ally advantage an attack used from its helper. */
-export function withoutEncounterAllyAdvantage(
-  helper: EncounterRunActorState,
-  used: EncounterBasicActionEffectDto
-): EncounterRunActorState {
-  const effects = encounterBasicActionEffects(helper)
-  const index = effects.findIndex(
-    (effect) => checksumCanonicalJson(effect) === checksumCanonicalJson(used)
-  )
-  if (index < 0) throw new Error('The ally advantage was already used.')
-  return withEncounterBasicActionEffects(
-    helper,
-    effects.filter((_effect, position) => position !== index)
-  )
 }
 
 /** A published basic-action catalogue entry of the Run's System. */
@@ -192,49 +55,18 @@ export function requireEncounterBasicActionDefinition(
   return { definition, document: document.data }
 }
 
-/**
- * Plans one basic action for the current actor: the effects it gains and the Assisted warnings of
- * its target choice. Its allowance is evaluated by the caller.
- */
-export function planEncounterBasicAction(input: {
-  state: Pick<EncounterRunState, 'turnSequence'>
+/** Checks that a mechanic-driven basic action got the target it needs (First Aid's dying Character). */
+export function requireEncounterBasicActionTarget(input: {
   actor: EncounterRunActorState
   target: EncounterRunActorState | null
   document: BasicActionReusableDefinitionDocumentDto
 }) {
-  const { state, actor, target, document } = input
+  const { actor, target, document } = input
   if (document.effects.length > 0)
     throw new Error('This basic action is authored and resolves as an action.')
-  const helps = document.mechanics.includes('ALLY_ADVANTAGE')
   const stabilizes = document.mechanics.includes('STABILIZE_TARGET')
-  if ((helps || stabilizes) !== (target !== null) || target?.id === actor.id)
+  if (stabilizes !== (target !== null) || target?.id === actor.id)
     throw new Error(
-      helps
-        ? 'Choose an ally to help.'
-        : stabilizes
-          ? 'Choose a creature to stabilize.'
-          : 'This basic action has no target.'
+      stabilizes ? 'Choose a creature to stabilize.' : 'This basic action has no target.'
     )
-  const effects: EncounterBasicActionEffectDto[] = helps
-    ? [
-        {
-          definitionId: document.id,
-          mechanic: 'ALLY_ADVANTAGE',
-          turnSequence: state.turnSequence,
-          allyActorId: target!.id
-        }
-      ]
-    : []
-  const warnings: EncounterRuleWarningDto[] =
-    helps && encounterActorRelationship(actor.disposition, target!.disposition) === 'HOSTILE'
-      ? [{ code: 'TARGET_DISPOSITION', message: 'This helps an enemy.' }]
-      : []
-  return {
-    effects,
-    warnings,
-    actor: withEncounterBasicActionEffects(actor, [
-      ...encounterBasicActionEffects(actor),
-      ...effects
-    ])
-  }
 }

@@ -7,6 +7,7 @@ import {
   type EncounterCommandResultDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { discoverEncounterFeatureActionCapabilities } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import {
   SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -72,6 +73,8 @@ async function setup(input: {
   creatureHitPoints?: number
   /** Hides the Creature from players, as a hidden token. */
   hidden?: boolean
+  /** Seeds the SRD basic actions (Help) into the Run's content. */
+  basicActions?: boolean
 }) {
   const base = await setupCharacterRun()
   await attachRoomWorker(base.t)
@@ -86,6 +89,11 @@ async function setup(input: {
         definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID || conditionIds.includes(definition.id)
     )
   })
+  if (input.basicActions)
+    await base.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: SRD_BASIC_ACTION_DEFINITIONS
+    })
   await base.t.mutation(internal.content.import.importSubjects, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [
@@ -586,13 +594,23 @@ describe('seeded SRD Creature hit riders in the room', () => {
 
   describe('escaping the Giant Toad’s grapple (ATTACK-7.3)', () => {
     /** The Toad grapples and restrains the Character, whose turn comes next. */
-    async function grappledOnItsTurn({ hidden = false } = {}) {
+    /** `beforeAdvance` acts on the Toad's turn after its bite and returns the Run's new version. */
+    async function grappledOnItsTurn({
+      hidden = false,
+      basicActions = false,
+      beforeAdvance
+    }: {
+      hidden?: boolean
+      basicActions?: boolean
+      beforeAdvance?: (base: Fixture, version: number) => Promise<number>
+    } = {}) {
       const base = await setup({
         creature: 'Giant Toad',
         feature: 'Bite',
         conditionCodes: ['GRAPPLED', 'RESTRAINED'],
         playerAutoRoll: false,
-        hidden
+        hidden,
+        basicActions
       })
       // A natural 19 hits; both damage dice roll 1.
       await rollFaces(base, [18, 0, 0])
@@ -603,7 +621,9 @@ describe('seeded SRD Creature hit riders in the room', () => {
           type: 'ADVANCE_TURN',
           encounterId: base.run.id,
           commandId: crypto.randomUUID(),
-          expectedVersion: bitten.projection.version
+          expectedVersion: beforeAdvance
+            ? await beforeAdvance(base, bitten.projection.version)
+            : bitten.projection.version
         }
       })
       await checkpointRoom(base.campaign.id)
@@ -688,6 +708,121 @@ describe('seeded SRD Creature hit riders in the room', () => {
       expect(await escapeChoice(base, freed.projection.version)).toEqual([])
     }, 60000)
 
+    /**
+     * The Toad Helps the Character after its bite; both warnings are overridden, since the Toad is
+     * hostile to the Character and has no Action left.
+     */
+    async function toadHelps(toadBase: Fixture, bittenVersion: number) {
+      await checkpointRoom(toadBase.campaign.id)
+      const help = (
+        await toadBase.owner.caller.query(api.encounters.actionChoices.get, {
+          encounterId: toadBase.run.id,
+          expectedVersion: bittenVersion,
+          actorId: toadBase.command.actorId
+        })
+      )?.basicActionChoices.find(({ label }) => label === 'Help')
+      if (!help) throw new Error('The Toad is not offered Help.')
+      const helped = await executeInRoom(toadBase.owner.caller, {
+        command: {
+          type: 'RESOLVE_ACTION',
+          acceptedWieldConflict: null,
+          acknowledgedWarnings: ['TARGET_DISPOSITION', 'ACTION_ECONOMY_UNAVAILABLE'],
+          encounterId: toadBase.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: bittenVersion,
+          actorId: toadBase.command.actorId,
+          actionId: help.id,
+          target: { kind: 'ACTOR', actorId: toadBase.target.id },
+          optionalCombatIntent: null,
+          sceneContext: null
+        }
+      })
+      return helped.projection.version
+    }
+
+    /** The Help grants holding the Character. */
+    async function helps(base: Fixture) {
+      return (await characterEffects(base)).filter(
+        ({ definition }) =>
+          definition.schemaVersion === 2 &&
+          definition.stateContributions.some(({ kind }) => kind === 'MODIFIER_GRANT')
+      )
+    }
+
+    function escapeAthletics(base: Fixture, version: number, activeEffectId: string) {
+      return {
+        command: {
+          type: 'ESCAPE_RELATIONSHIP' as const,
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: version,
+          actorId: base.target.id,
+          activeEffectId,
+          checkDefinitionId: SRD_ATHLETICS_SKILL_ID,
+          acknowledgedWarnings: []
+        }
+      }
+    }
+
+    it('rolls a Helped escape with advantage and uses the Help up (ATTACK-18)', async () => {
+      const { base, version } = await grappledOnItsTurn({
+        basicActions: true,
+        beforeAdvance: toadHelps
+      })
+      expect(await helps(base)).toHaveLength(1)
+      const [hold] = await holds(base)
+
+      const prompted = await executeInRoom(
+        base.player.caller,
+        escapeAthletics(base, version, hold!.id)
+      )
+      expect(prompted.occurrence?.pending).toMatchObject({
+        kind: 'D20_EVIDENCE',
+        request: { rollMode: 'ADVANTAGE' }
+      })
+      // The check starts the roll, so the Help is used up whatever the d20 shows.
+      expect(await helps(base)).toEqual([])
+      // The used-up Help still names the advantage it gave.
+      await checkpointRoom(base.campaign.id)
+      await expect(
+        base.player.caller.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: base.run.id
+        })
+      ).resolves.toMatchObject({
+        request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
+      })
+      await executeInRoom(base.player.caller, answerSave(base, prompted, 20))
+      await checkpointRoom(base.campaign.id)
+      expect(await holds(base)).toEqual([])
+    }, 60000)
+
+    it("the GM's undo of a failed Helped escape gives the Help back exactly (ATTACK-18)", async () => {
+      const { base, version } = await grappledOnItsTurn({
+        basicActions: true,
+        beforeAdvance: toadHelps
+      })
+      const helpedBefore = await helps(base)
+      expect(helpedBefore).toHaveLength(1)
+      const [hold] = await holds(base)
+      const prompted = await executeInRoom(
+        base.player.caller,
+        escapeAthletics(base, version, hold!.id)
+      )
+      const failed = await executeInRoom(base.player.caller, answerSave(base, prompted, 1))
+      expect(failed.occurrence?.status).toBe('COMPLETE')
+      expect(await helps(base)).toEqual([])
+
+      await executeInRoom(base.owner.caller, {
+        command: {
+          type: 'REVERT_LAST_ACTION',
+          encounterId: base.run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: failed.projection.version
+        }
+      })
+      expect(await helps(base)).toEqual(helpedBefore)
+      expect(await holds(base)).toHaveLength(1)
+    }, 60000)
     it('does not name a grappler the player cannot see (D100)', async () => {
       const { base, version } = await grappledOnItsTurn({ hidden: true })
       expect(await escapeChoice(base, version)).toMatchObject([{ label: 'Escape a grapple' }])

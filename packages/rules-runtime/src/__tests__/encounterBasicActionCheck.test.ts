@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import type { BasicActionReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/basicActions'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   SRD_MEDICINE_SKILL_ID,
@@ -16,7 +15,6 @@ import {
   prepareEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '../encounterBasicActionCheck.js'
-import { planEncounterBasicAction } from '../encounterBasicActions.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import {
   SRD_SYSTEM_ID,
@@ -26,14 +24,14 @@ import {
   creatureRuleFacts,
   srdCreatureActor,
   srdCreatureTarget,
-  srdEncounterState,
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
+import { helpEffect } from './antitoxinEffectFixture.js'
 import { GOBLIN } from './encounterActiveEffectFixtures.js'
 
 const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
 const FIRST_AID_ID = '00000000-0000-4000-8000-000000000b09'
-const HELP_ID = '00000000-0000-4000-8000-000000000b04'
+const HELP_EFFECT_ID = '00000000-0000-4000-8000-00000000c0c1'
 const OCCURRENCE_ID = testUuid(900)
 const COMMAND_ID = testUuid(901)
 const CHECK = { checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
@@ -71,7 +69,6 @@ function helperActor(
 const helper = helperActor(testUuid(1))
 const ally = helperActor(testUuid(2))
 const hero = characterActor({ id: testUuid(3), characterId: testUuid(4) })
-const state = srdEncounterState({ actors: [helper, ally, hero], currentActorId: helper.id })
 
 /**
  * The Character target at a given hit point state. Its Character facts are platform data this
@@ -97,35 +94,21 @@ function prepare(overrides: Partial<Parameters<typeof prepareEncounterBasicActio
     commandId: COMMAND_ID,
     commandFingerprint: 'b'.repeat(64),
     definition: DEFINITION,
+    system,
     check: CHECK,
     checkLabel: encounterBasicActionCheckLabel(system, SRD_MEDICINE_SKILL_ID),
     helper: srdCreatureTarget(helper),
     target: dyingHero(),
-    actors: [helper, ally, hero],
     ...overrides
   })
 }
 
-/** A Help the ally took, aimed at the helper (Q11). */
-function helpedHelper() {
-  const help: BasicActionReusableDefinitionDocumentDto = {
-    schemaVersion: 1,
-    kind: 'BASIC_ACTION',
-    id: HELP_ID,
-    gameSystemId: SRD_SYSTEM_ID,
-    rulesText: 'Help.',
-    actionCost: 'ACTION',
-    mechanics: ['ALLY_ADVANTAGE'],
-    restrictions: null,
-    effects: [],
-    check: null
+/** The First Aid helper holding the Help grant an ally's Help action planned for it. */
+function helpedHelper(): MovementTarget {
+  return {
+    ...srdCreatureTarget(helper),
+    activeEffects: [helpEffect({ id: HELP_EFFECT_ID, holderActorId: helper.id })]
   }
-  return planEncounterBasicAction({
-    state,
-    actor: ally,
-    target: helper,
-    document: help
-  }).actor
 }
 
 async function settle(
@@ -172,7 +155,7 @@ describe('First Aid check', () => {
       check: { ...CHECK, label: 'Wisdom (Medicine)' },
       d20: { rollMode: 'NORMAL', modifier: 3 }
     })
-    expect(prepared.allyAdvantageUses).toEqual([])
+    expect(prepared.context.consumedGrants).toEqual([])
     expect(encounterBasicActionCheckTrigger(prepared.context)).toEqual({
       kind: 'BASIC_ACTION_CHECK',
       actionLabel: 'First Aid',
@@ -203,13 +186,11 @@ describe('First Aid check', () => {
     expect(prepare({ target: srdCreatureTarget(ally) })).toBeNull()
   })
 
-  it('applies the Help the ally took: advantage, and the Help is reported as used', () => {
+  it('applies the Help grant the helper holds: advantage, and the grant is reported as used', () => {
     const helped = helpedHelper()
-    const prepared = prepare({ actors: [helper, helped, hero] })!
+    const prepared = prepare({ helper: helped })!
     expect(prepared.context.d20.rollMode).toBe('ADVANTAGE')
-    expect(prepared.allyAdvantageUses).toEqual([
-      { helperActorId: ally.id, effect: expect.objectContaining({ mechanic: 'ALLY_ADVANTAGE' }) }
-    ])
+    expect(prepared.context.consumedGrants).toEqual(helped.activeEffects)
   })
 
   it('reaching the DC stabilizes and a miss changes nothing', async () => {
@@ -233,7 +214,7 @@ describe('First Aid check', () => {
   })
 
   it('advantage keeps the higher of two entered dice', async () => {
-    const prepared = prepare({ actors: [helper, helpedHelper(), hero] })!
+    const prepared = prepare({ helper: helpedHelper() })!
     const rolled = await settle(prepared, [2, 9])
     expect(rolled.evaluated.d20).toMatchObject({
       selectedNatural: 9,

@@ -66,6 +66,7 @@ export function plannedGrantEffect(input: {
       targetActorId: input.holderActorId
     },
     createdOrdinal: 1,
+    consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
     stateContributions: [
       {
         kind: 'MODIFIER_GRANT',
@@ -95,6 +96,16 @@ export function dodgeEffect(input: { id: string; holderActorId: string }) {
     ...input,
     effect: dodge?.document.effects[0],
     sourceLabel: dodge?.label ?? 'Dodge'
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Help action, held by the helped actor. */
+export function helpEffect(input: { id: string; holderActorId: string }) {
+  const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
+  return plannedGrantEffect({
+    ...input,
+    effect: help?.document.effects[0],
+    sourceLabel: help?.label ?? 'Help'
   })
 }
 

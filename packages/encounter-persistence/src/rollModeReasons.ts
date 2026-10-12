@@ -4,6 +4,7 @@ import {
   type EncounterD20Contributor,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { readCharacterEffect, readEncounterEffect } from './effectStore.js'
 import { readRunActors, readRunState } from './documents.js'
 import type { EncounterDocument } from './store.js'
@@ -31,7 +32,8 @@ async function readIdentityLabel(
 async function readContributorSource(
   ctx: EncounterReadTransaction,
   contributor: EncounterD20Contributor,
-  conditionLabels: ReadonlyMap<string, string>
+  conditionLabels: ReadonlyMap<string, string>,
+  consumedGrants: readonly ActiveRuleEffectRecord[]
 ): Promise<{ label: string | null; actorIds: readonly string[]; hidden?: boolean }> {
   const parts = contributor.sourceId.split(':').map((part) => decodeURIComponent(part))
   if (
@@ -50,9 +52,12 @@ async function readContributorSource(
           .query('characterActiveRuleEffects')
           .withIndex('by_publicId', (q) => q.eq('id', effectId))
           .unique()
+    // A grant its roll used up is gone from the stores; the command that consumed it kept its record.
     const effect = encounterRow
       ? readEncounterEffect(encounterRow)
-      : characterRow && readCharacterEffect(characterRow)
+      : characterRow
+        ? readCharacterEffect(characterRow)
+        : consumedGrants.find((grant) => grant.id === effectId)
     if (!effect) return { label: null, actorIds: [] }
     const origin = effect.definition.origin
     // A modifier grant froze its granting item's label; the authored effect id has none.
@@ -105,12 +110,15 @@ function contributorKey(contributor: EncounterD20Contributor) {
  * builder runs once to collect the contributors it reports, their source labels are read, and it
  * runs again with those labels. A player never reads the label of a contributor that comes from an
  * actor hidden from players; its advantage or disadvantage still applies under a generic reason.
+ * consumedGrants are the one-roll grants the pending roll's command already used up: their rows
+ * are deleted, so their records name them.
  */
 export async function withEncounterRollModeReasons<T>(
   ctx: EncounterReadTransaction,
   run: EncounterDocument<'encounterRuns'>,
   membership: Pick<EncounterDocument<'campaignMemberships'>, 'role'>,
-  build: (reasons: EncounterRollModeReasons) => T
+  build: (reasons: EncounterRollModeReasons) => T,
+  consumedGrants: readonly ActiveRuleEffectRecord[] = []
 ): Promise<T> {
   const contributors: EncounterD20Contributor[] = []
   const unlabeled = build(collectEncounterRollModeContributors(contributors))
@@ -130,7 +138,7 @@ export async function withEncounterRollModeReasons<T>(
   const labels = new Map<string, string>()
   const hiddenContributors = new Set<string>()
   for (const contributor of contributors) {
-    const source = await readContributorSource(ctx, contributor, conditionLabels)
+    const source = await readContributorSource(ctx, contributor, conditionLabels, consumedGrants)
     if (source.label) labels.set(contributor.sourceId, source.label)
     if (
       (source.hidden && membership.role !== 'OWNER') ||

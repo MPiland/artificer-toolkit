@@ -27,7 +27,7 @@ import {
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import {
-  planEncounterBasicAction,
+  requireEncounterBasicActionTarget,
   requireEncounterBasicActionDefinition
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -94,7 +94,7 @@ export async function planNativeLiveBasicAction(
     state,
     (await capture({ kind: 'DEFINITION', definitionId: root.definitionId })).definition
   )
-  const planned = planEncounterBasicAction({ state, actor, target, document })
+  requireEncounterBasicActionTarget({ actor, target, document })
   if (document.check && actor.kind === 'CUSTOM')
     throw new EncounterValidationError('A custom actor has no check to make.')
   const prepare = async (entry: typeof actor) => {
@@ -123,7 +123,6 @@ export async function planNativeLiveBasicAction(
   const stabilizeTarget = document.check && target ? await prepare(target) : null
   const warnings = [
     ...encounterActionEconomyWarnings(economy, document.actionCost),
-    ...planned.warnings,
     ...(actorTarget && stabilizeTarget
       ? encounterBasicActionStabilizeWarnings({ actor, target: stabilizeTarget })
       : [])
@@ -138,11 +137,11 @@ export async function planNativeLiveBasicAction(
   const actionEconomy = economy?.consumption ?? null
   const settled = actionEconomy
     ? consumeEncounterActionEconomy({
-        actor: planned.actor,
+        actor,
         consumption: actionEconomy,
         overridden: overridesActionEconomy(warnings)
       })
-    : planned.actor
+    : actor
   const facts = buildEncounterActorRuleFacts({ actors })
   const nextActors = actors.map((entry) => (entry.id === settled.id ? settled : entry))
   const nextFacts = buildEncounterActorRuleFacts({ actors: nextActors })
@@ -158,11 +157,11 @@ export async function planNativeLiveBasicAction(
             checksum: definition.checksum,
             label: definition.label
           },
+          system,
           check: document.check,
           checkLabel: encounterBasicActionCheckLabel(system, document.check.checkDefinitionId),
           helper: actorTarget,
-          target: stabilizeTarget,
-          actors
+          target: stabilizeTarget
         })
       : null
   let check: LiveSessionEncounterBasicActionCommitInput['check'] = null
@@ -255,8 +254,7 @@ export async function planNativeLiveBasicAction(
       },
       actionEconomy,
       ruleOverrides: warnings,
-      effects: planned.effects,
-      allyAdvantageUses: prepared?.allyAdvantageUses ?? [],
+      consumedGrants: prepared?.context.consumedGrants ?? [],
       check,
       rules: reconcileEncounterActorRuleOutput(
         evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),

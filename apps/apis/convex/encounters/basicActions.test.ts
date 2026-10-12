@@ -13,7 +13,6 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
@@ -58,8 +57,6 @@ const pendingRuleOccurrence = makeFunctionReference<
   { encounterId: string },
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
-
-const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
 
 /** The player-control Run with the System's rule states (conditions, capabilities) and catalogue. */
 async function basicActionFixture(options: Parameters<typeof playerControlFixture>[0] = {}) {
@@ -124,6 +121,19 @@ async function resolveBasicAction(
     sceneContext: null,
     ...overrides
   }
+}
+
+/** The helper's Help on the ally (an authored basic action aimed at another creature). */
+async function resolveHelp(
+  base: PlayerControlFixture,
+  helperId: string,
+  allyId: string,
+  overrides: Partial<ResolveEncounterActionInputDto> = {}
+) {
+  return resolveBasicAction(base, helperId, 'Help', {
+    target: { kind: 'ACTOR', actorId: allyId },
+    ...overrides
+  })
 }
 
 /** The Active Effects the Encounter actor holds (Dodge's grant while it lasts). */
@@ -311,14 +321,12 @@ describe('basic combat actions in the room (Q11)', () => {
     // Mechanic entries keep the closed USE_BASIC_ACTION path; authored ones are ordinary actions.
     expect(
       choices?.basicActions.map(({ label, actionCost, target }) => [label, actionCost, target])
-    ).toEqual([
-      ['First Aid', 'ACTION', 'DYING_CHARACTER'],
-      ['Help', 'ACTION', 'ALLY']
-    ])
+    ).toEqual([['First Aid', 'ACTION', 'DYING_CHARACTER']])
     expect(choices?.basicActionChoices.map(({ label }) => label)).toEqual([
       'Dash',
       'Disengage',
       'Dodge',
+      'Help',
       'Hide',
       'Ready',
       'Search',
@@ -330,7 +338,6 @@ describe('basic combat actions in the room (Q11)', () => {
     const result = await base.gm(await resolveBasicAction(base, base.companion.id, 'Hide'))
     expect(result.projection.version).toBe(before + 1)
     const companion = await actorState(base, base.companion.id)
-    expect(encounterBasicActionEffects(companion)).toEqual([])
     expect(await activeEffectCount(base, base.companion.id)).toBe(0)
     expect(await turnBudget(base, base.companion.id)).toBe(budgetBefore)
     expect(encounterRuleUsageUsed(companion, SRD_ACTION_ALLOWANCE_DEFINITION_ID)).toBe(1)
@@ -348,7 +355,6 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(await budget()).toBe(walking! * 2)
     // The bonus lives in this turn's budget only; Dash leaves no lasting effect.
     expect(await activeEffectCount(base, base.companion.id)).toBe(0)
-    expect(encounterBasicActionEffects(await actorState(base, base.companion.id))).toEqual([])
     expect(
       encounterRuleUsageUsed(
         await actorState(base, base.companion.id),
@@ -387,7 +393,9 @@ describe('basic combat actions in the room (Q11)', () => {
     const base = await basicActionFixture()
     const atEnemy = { target: { kind: 'ACTOR' as const, actorId: base.enemy.id } }
     await expect(
-      domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Disengage', atEnemy)))
+      domainRejection(
+        base.gm(await resolveBasicAction(base, base.companion.id, 'Disengage', atEnemy))
+      )
     ).resolves.toMatchObject({
       reason: 'RULE_WARNINGS',
       warnings: [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
@@ -525,23 +533,20 @@ describe('basic combat actions in the room (Q11)', () => {
     expect((await d20Pending(base)).request.rollMode).toBe('DISADVANTAGE')
   })
 
-  it("Help gives the ally's next attack roll advantage once", async () => {
+  it("Help gives the ally's next attack roll advantage once and leaves the helper unaffected", async () => {
     const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
     await setCurrentActor(base, base.enemy.id)
-    await base.gm(
-      await useBasicAction(base, {
-        actorId: base.enemy.id,
-        definitionId: help!.id,
-        targetActorId: base.companion.id
-      })
-    )
+    await base.gm(await resolveHelp(base, base.enemy.id, base.companion.id))
+    expect(await activeEffectCount(base, base.enemy.id)).toBe(0)
+    expect(await activeEffectCount(base, base.character.id)).toBe(0)
+    expect(await activeEffectCount(base, base.companion.id)).toBe(1)
     await setCurrentActor(base, base.companion.id)
 
     await base.gm(await base.bite(base.companion.id, base.enemy.id))
     const first = await d20Pending(base)
     expect(first.request).toMatchObject({ rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] })
     await base.gm(enterFaces(base, first))
-    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
 
     await base.gm(
       await base.bite(base.companion.id, base.enemy.id, {
@@ -589,24 +594,25 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(await storedGrants(base, base.companion.id)).toEqual([dodgeGrant])
   })
 
-  it('undoing an attack that used a Help gives the Help back to its helper', async () => {
+  it('undoing an attack that used a Help gives the Help back to the ally', async () => {
     const base = await basicActionFixture({ bite: 'ATTACK' })
     await setCurrentActor(base, base.enemy.id)
-    await base.gm(
-      await useBasicAction(base, {
-        actorId: base.enemy.id,
-        definitionId: help!.id,
-        targetActorId: base.companion.id
-      })
-    )
-    const helped = encounterBasicActionEffects(await actorState(base, base.enemy.id))
+    await base.gm(await resolveHelp(base, base.enemy.id, base.companion.id))
+    const helped = await activeEffects(base, base.companion.id)
     expect(helped).toHaveLength(1)
+    const helpedGrants = await storedGrants(base, base.companion.id)
     await setCurrentActor(base, base.companion.id)
     await base.gm(await base.bite(base.companion.id, base.enemy.id))
-    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual([])
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
 
     await revertLastAction(base)
-    expect(encounterBasicActionEffects(await actorState(base, base.enemy.id))).toEqual(helped)
+    expect(await storedGrants(base, base.companion.id)).toEqual(helpedGrants)
+    expect(
+      (await activeEffects(base, base.companion.id)).map(({ id, definitionJson }) => [
+        id,
+        definitionJson
+      ])
+    ).toEqual(helped.map(({ id, definitionJson }) => [id, definitionJson]))
     expect(
       encounterRuleUsageUsed(
         await actorState(base, base.companion.id),
@@ -615,11 +621,54 @@ describe('basic combat actions in the room (Q11)', () => {
     ).toBe(0)
   })
 
-  it('Help needs a chosen ally, and a player may help only an actor they can see', async () => {
+  it("an unused Help survives the ally's turn and the helper's end of turn, and ends when the helper's next turn starts", async () => {
+    const base = await basicActionFixture()
+    await setCurrentActor(base, base.enemy.id)
+    await base.gm(await resolveHelp(base, base.enemy.id, base.companion.id))
+    expect(await activeEffectCount(base, base.companion.id)).toBe(1)
+
+    let turn = await advanceTurn(base)
+    let sawAllyTurn = false
+    for (let steps = 0; turn.projection.currentActorId !== base.enemy.id; steps += 1) {
+      if (steps > 6) throw new Error('The turn order never returned to the helper.')
+      sawAllyTurn ||= turn.projection.currentActorId === base.companion.id
+      // The grant is still held through the helper's end of turn and the ally's whole turn.
+      expect(await activeEffectCount(base, base.companion.id)).toBe(1)
+      turn = await advanceTurn(base)
+    }
+    expect(sawAllyTurn).toBe(true)
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
+  })
+  it("undoing a Help removes the grant and returns the helper's Action", async () => {
+    const base = await basicActionFixture()
+    await setCurrentActor(base, base.enemy.id)
+    await base.gm(await resolveHelp(base, base.enemy.id, base.companion.id))
+    expect(await activeEffectCount(base, base.companion.id)).toBe(1)
+    expect(
+      encounterRuleUsageUsed(
+        await actorState(base, base.enemy.id),
+        SRD_ACTION_ALLOWANCE_DEFINITION_ID
+      )
+    ).toBe(1)
+
+    await revertLastAction(base)
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
+    expect(
+      encounterRuleUsageUsed(
+        await actorState(base, base.enemy.id),
+        SRD_ACTION_ALLOWANCE_DEFINITION_ID
+      )
+    ).toBe(0)
+  })
+
+  it('Help warns when aimed at oneself, and a player may help only an actor they can see', async () => {
     const base = await basicActionFixture()
     await expect(
-      base.gm(await useBasicAction(base, { actorId: base.companion.id, definitionId: help!.id }))
-    ).rejects.toThrow()
+      domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Help')))
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'TARGET_DISPOSITION', message: 'This action targets another creature.' }]
+    })
     await expect(
       domainRejection(
         base.gm(
@@ -644,14 +693,33 @@ describe('basic combat actions in the room (Q11)', () => {
     await expect(
       domainRejection(
         executeInRoom(base.other.caller, {
-          command: await useBasicAction(base, {
-            actorId: base.companion.id,
-            definitionId: help!.id,
-            targetActorId: base.lurker.id
-          })
+          command: await resolveHelp(base, base.companion.id, base.lurker.id)
         })
       )
     ).resolves.toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
+  })
+
+  it('Help on a hostile target warns, and "Do it anyway" applies the grant to it alone', async () => {
+    const base = await basicActionFixture()
+    await setCurrentActor(base, base.character.id)
+    await expect(
+      domainRejection(base.gm(await resolveHelp(base, base.character.id, base.companion.id)))
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' }]
+    })
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
+
+    await base.gm(
+      await resolveHelp(base, base.character.id, base.companion.id, {
+        acknowledgedWarnings: ['TARGET_DISPOSITION']
+      })
+    )
+    expect(await storedGrants(base, base.companion.id)).toMatchObject([
+      { grants: [{ sourceLabel: 'Help' }] }
+    ])
+    expect(await activeEffectCount(base, base.character.id)).toBe(0)
+    expect(await activeEffectCount(base, base.enemy.id)).toBe(0)
   })
 
   it('refuses First Aid, whose action carries a check, in a Manual Run (ENCOUNTER-2)', async () => {

@@ -31,7 +31,6 @@ import {
 } from './ruleExecutionPrimitives.js'
 import { turnResolutionCommandDtoSchema } from './ruleExecutionTurnCommands.js'
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
-import { encounterBasicActionEffectsDtoSchema } from './basicActions.js'
 
 const initiativePendingOrderDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -102,9 +101,6 @@ export const encounterInitiativePendingContextDtoSchema = lazySchema(() =>
         ),
         stagedActionEconomyRefreshes: z.optional(
           z.array(turnActionEconomyRefreshDtoSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-        ),
-        stagedBasicActionExpiry: z.optional(
-          encounterBasicActionEffectsDtoSchema.check(z.minLength(1))
         ),
         completedRechargePlan: z.optional(
           z.nullable(z.lazy(() => completedTurnRechargePlanDtoSchema))

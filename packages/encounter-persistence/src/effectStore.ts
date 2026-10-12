@@ -475,6 +475,8 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       lifecycle: ActiveRuleEffectLifecycleDto
       maintainedEffectStateId?: string | null
       occurredAt?: string
+      /** An undo gives back the exact record it consumed: its ordinal, version and timestamps. */
+      restoredFrom?: ActiveRuleEffectRecord
     }): Promise<ActiveRuleEffectRecord> {
       const id = serverUuidIdentityDtoSchema.parse(input.id)
       const owner = ownerFor(input.owner)
@@ -527,7 +529,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
               .withIndex('by_publicId', (q) => q.eq('id', id))
               .unique()
       if (duplicate) throw new Error('Active rule effect ID already exists.')
-      const effect = prepareActiveRuleEffectRecord({
+      const prepared = prepareActiveRuleEffectRecord({
         id,
         owner,
         definition,
@@ -536,6 +538,15 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
         currentEffects: current,
         occurredAt: input.occurredAt ?? new Date().toISOString()
       })
+      const effect = input.restoredFrom
+        ? {
+            ...prepared,
+            createdOrdinal: input.restoredFrom.createdOrdinal,
+            version: input.restoredFrom.version,
+            createdAt: input.restoredFrom.createdAt,
+            updatedAt: input.restoredFrom.updatedAt
+          }
+        : prepared
       const common = {
         id: effect.id,
         maintainedEffectStateId: effect.maintainedEffectStateId,

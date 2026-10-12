@@ -29,7 +29,7 @@ export type PathLifecycleAuthored = {
   recurringKind?: PathLifecycleRecurringKind
   /** Whose turn boundary counts a timed effect down; absent means the target's end of turn. */
   turnAnchor?: { actor: PathLifecycleTurnActor; boundary: PathLifecycleTurnBoundary }
-  consumeOnFirstEvent?: PathLifecycleConsumeEvent
+  consumeOnFirstEvents?: PathLifecycleConsumeEvent[]
   endOnEvents?: PathLifecycleEndEvent[]
 }
 

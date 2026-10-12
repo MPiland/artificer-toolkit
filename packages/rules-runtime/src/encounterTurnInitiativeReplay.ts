@@ -74,7 +74,6 @@ export async function restoreEncounterInitiativeTurnActors<
     root.legendaryActionQueue ||
     root.stagedLegendaryActionRefreshes ||
     root.stagedActionEconomyRefreshes ||
-    root.stagedBasicActionExpiry ||
     root.completedRechargePlan !== undefined ||
     root.completedDeathSavePlan !== undefined
   )

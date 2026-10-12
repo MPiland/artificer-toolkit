@@ -1,6 +1,8 @@
-import { withEncounterD20Contributor } from './encounterBasicActions.js'
+import {
+  creatureActiveGrantCheckContributors,
+  mergedRollContributors
+} from './encounterActiveGrants.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
-import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type {
   OptionalCombatPassageChoicePendingContextDto,
   ServerOptionalCombatContestPendingApplicationContextDto
@@ -19,11 +21,15 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { toCharacterInitiativeActorFacts } from './character/characterInitiativeFacts.js'
+import {
+  characterCheckSkillId,
+  toCharacterInitiativeActorFacts
+} from './character/characterInitiativeFacts.js'
 import { createEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './systems/dnd5e/identity.js'
 import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
 import { prepareDnd5eOptionalCombatContestPendingContext } from './systems/dnd5e/optionalCombatContestPendingContext.js'
 import {
@@ -39,8 +45,6 @@ type PassageReads<TCharacterFacts extends CharacterMovementFacts> = {
     activation: { code: string; amount: number }
     target: MovementTarget<TCharacterFacts>
   }) => Promise<EncounterActionEconomyConsumption | null>
-  /** An ally's Help (basic action, Q11) the actor's next check uses, if any. */
-  allyAdvantage: (actorId: string) => EncounterRelationshipD20Contributor | null
 }
 
 const sizeRankTable = { TINY: 0, SMALL: 1, MEDIUM: 2, LARGE: 3, HUGE: 4, GARGANTUAN: 5 } as const
@@ -85,6 +89,28 @@ function characterAbilityCheck(
 }
 
 /**
+ * The ability code a check is made with: the ability itself, or the skill's governing ability in
+ * the System. Active check grants that name an ability apply by it.
+ */
+export function checkAbilityCode(
+  system: SystemAuthoredDto,
+  checkKind: 'SKILL' | 'ABILITY',
+  checkDefinitionId: string
+): string | null {
+  const abilityId =
+    checkKind === 'ABILITY'
+      ? checkDefinitionId
+      : 'schemaVersion' in system && system.schemaVersion === 4
+        ? system.skills.find((skill) => skill.id === checkDefinitionId)
+            ?.governingAbilityDefinitionId
+        : null
+  return (
+    Object.entries(DND5E_ABILITY_DEFINITION_ID_BY_CODE).find(([, id]) => id === abilityId)?.[0] ??
+    null
+  )
+}
+
+/**
  * An actor's modifier, contributors and roll mode for one System check: a skill check, or an
  * ability check named by its ability definition.
  */
@@ -93,6 +119,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
   checkKind: 'SKILL' | 'ABILITY'
   checkDefinitionId: string
   gameSystemId: string
+  system: SystemAuthoredDto
   targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
 }): ContestFacts {
   const target = input.targets.get(input.actorId)
@@ -116,12 +143,13 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       registry: facts.ruleEvaluation.registry,
       rulePolicyOutput: policy
     })
+    const skillId = characterCheckSkillId(facts.ruleEvaluation.registry, input.checkDefinitionId)
     const check =
       input.checkKind === 'SKILL'
         ? {
             modifier: initiative.checkTotals[input.checkDefinitionId],
-            evidence: policy.rollContributorEvidence.skillChecks[input.checkDefinitionId],
-            rollMode: policy.rollModes.skillChecks[input.checkDefinitionId]
+            evidence: skillId ? policy.rollContributorEvidence.skillChecks[skillId] : undefined,
+            rollMode: skillId ? policy.rollModes.skillChecks[skillId] : undefined
           }
         : characterAbilityCheck(facts, policy, input.checkDefinitionId)
     return withConditions({
@@ -162,11 +190,19 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
         : abilityScore === undefined
           ? undefined
           : abilityModifier(abilityScore)
+    const granted = mergedRollContributors(
+      [],
+      creatureActiveGrantCheckContributors(
+        target.actor.id,
+        checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId),
+        target.activeEffects
+      )
+    )
     return withConditions({
       controllerCharacterId: null,
-      contributors: [],
+      contributors: granted.contributors,
       modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
-      rollMode: 'NORMAL',
+      rollMode: granted.rollMode,
       size: sizeCodeSchema.parse(target.actor.snapshot.payload.size)
     })
   }
@@ -220,22 +256,14 @@ export async function prepareEncounterMovementPassageContest<
     target: source
   })
   if (!economy) throw new Error('Movement passage allowance is unavailable.')
-  const { blocker } = passageActors(input)
-  return prepareMovementPassageContest(input, economy, {
-    initiator: reads.allyAdvantage(source.actor.id),
-    defender: reads.allyAdvantage(blocker.actor.id)
-  })
+  return prepareMovementPassageContest(input, economy, system)
 }
 
 /** All options in one read-only choice share the same current allowance observations. */
 function prepareMovementPassageContest<TCharacterFacts extends CharacterMovementFacts>(
   input: PassageContestInput<TCharacterFacts>,
   economy: EncounterActionEconomyConsumption,
-  /** Each participant's Help (basic action, Q11) for its check. */
-  help: {
-    initiator: EncounterRelationshipD20Contributor | null
-    defender: EncounterRelationshipD20Contributor | null
-  }
+  system: SystemAuthoredDto
 ): ServerOptionalCombatContestPendingApplicationContextDto {
   const option = input.choice.options.find((candidate) => candidate.optionId === input.optionId)
   if (!option) throw new Error('Movement passage option is unavailable.')
@@ -256,6 +284,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     checkKind: 'SKILL',
     checkDefinitionId: '00000000-0000-0000-0000-000000000000',
     gameSystemId: input.state.gameSystemId,
+    system,
     targets: input.targets
   }).size
   const blockerSize = actorContestFacts({
@@ -263,6 +292,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     checkKind: 'SKILL',
     checkDefinitionId: '00000000-0000-0000-0000-000000000000',
     gameSystemId: input.state.gameSystemId,
+    system,
     targets: input.targets
   }).size
   const preliminary =
@@ -280,6 +310,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     checkKind: 'SKILL',
     checkDefinitionId: preliminary.proposal.contest.initiatorCheckDefinitionId,
     gameSystemId: input.state.gameSystemId,
+    system,
     targets: input.targets
   })
   const defender = actorContestFacts({
@@ -287,6 +318,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     checkKind: 'SKILL',
     checkDefinitionId: preliminary.proposal.contest.targetCheckDefinitionId,
     gameSystemId: input.state.gameSystemId,
+    system,
     targets: input.targets
   })
   if (initiator.modifier === null || defender.modifier === null)
@@ -340,14 +372,6 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     )
     initiatorRollMode = overrun.result.proposal.contest.initiatorMode
   }
-  if (help.initiator) {
-    const helped = withEncounterD20Contributor(initiatorContributors, help.initiator)
-    initiatorContributors = helped.contributors
-    initiatorRollMode = helped.rollMode
-  }
-  const defenderRoll = help.defender
-    ? withEncounterD20Contributor(defender.contributors, help.defender)
-    : { contributors: defender.contributors, rollMode: defender.rollMode }
   const graph = createDnd5eOptionalCombatContestGraph(proposal.pin)
   return prepareDnd5eOptionalCombatContestPendingContext({
     actionKind: option.ruleKind,
@@ -401,9 +425,9 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     defender: {
       actorId: blocker.actor.id,
       requestNodeId: 'target_d20',
-      rollMode: defenderRoll.rollMode,
-      contributors: defenderRoll.contributors,
-      contributorChecksum: checksumRuleDocument(defenderRoll.contributors),
+      rollMode: defender.rollMode,
+      contributors: defender.contributors,
+      contributorChecksum: checksumRuleDocument(defender.contributors),
       modifier: defender.modifier,
       checkDefinitionId: proposal.contest.targetCheckDefinitionId
     },
@@ -435,7 +459,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
 export async function availableEncounterMovementPassageChoice<
   TCharacterFacts extends CharacterMovementFacts
 >(
-  reads: Omit<PassageReads<TCharacterFacts>, 'allyAdvantage'>,
+  reads: PassageReads<TCharacterFacts>,
   input: PassagePreparationInput<TCharacterFacts>
 ): Promise<OptionalCombatPassageChoicePendingContextDto | null> {
   if (input.state.automationMode === 'MANUAL' || !input.state.optionalCombatSnapshotChecksum)
@@ -498,8 +522,9 @@ export async function availableEncounterMovementPassageChoice<
       source.actor.kind === 'CHARACTER' ? (source.characterFacts?.active.id ?? null) : null,
     options
   })
+  let system: SystemAuthoredDto
   try {
-    const system = await reads.loadSystem()
+    system = await reads.loadSystem()
     if (system.id !== input.state.gameSystemId) return null
   } catch {
     return null
@@ -517,8 +542,7 @@ export async function availableEncounterMovementPassageChoice<
           targets: input.targets
         },
         economy.prepared,
-        // Help changes only a check's roll mode, never whether an option can be taken.
-        { initiator: null, defender: null }
+        system
       )
       executable.add(option.optionId)
     } catch {

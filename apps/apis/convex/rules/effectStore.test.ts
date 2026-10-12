@@ -86,7 +86,7 @@ function ownerDefinition(characterId: string): ActiveRuleEffectDefinitionDto {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
-      consumeOnFirstEvent: null,
+      consumeOnFirstEvents: [],
       endOnEvents: [],
       lifetimeScope: 'OWNER',
       expiration: { kind: 'INDEFINITE' }

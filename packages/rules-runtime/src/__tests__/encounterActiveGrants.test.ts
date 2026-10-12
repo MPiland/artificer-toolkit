@@ -1,18 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import {
   SRD_ABILITIES,
   SRD_ABILITY_DEFINITION_IDS,
+  SRD_ACROBATICS_SKILL_ID,
+  SRD_ATHLETICS_SKILL_ID,
   SRD_DAMAGE_TYPES,
   SRD_DARKVISION_SENSE_ID,
   SRD_SPEEDS,
-  SRD_SYSTEM_ID
+  SRD_SYSTEM_ID,
+  srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
   creatureActiveGrantAttackContributors,
+  creatureActiveGrantCheckContributors,
   effectiveHitPointMaximum,
   encounterGrantsOpportunityAttackImmunity,
   withActiveGrantSpeeds,
@@ -20,6 +25,7 @@ import {
 } from '../encounterActiveGrants.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
+import { checkAbilityCode } from '../encounterMovementPassagePreparation.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
@@ -29,6 +35,7 @@ import {
   antitoxinEffect,
   darkvisionEffect,
   disengageEffect,
+  helpEffect,
   heroismEffect,
   longstriderEffect,
   protectionFromEnergyEffect,
@@ -38,6 +45,7 @@ import {
 import { evaluateSrdCharacter, vocabulary } from './dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
+const srdSystem = systemAuthoredDtoSchema.parse(srdSystemRecord)
 const { CONSTITUTION, WISDOM } = SRD_ABILITY_DEFINITION_IDS
 const HOLDER_ID = '00000000-0000-4000-8000-00000000c201'
 const CAMPAIGN_ID = '00000000-0000-4000-8000-00000000c202'
@@ -224,6 +232,61 @@ describe('Creature holder of an active grant', () => {
     }
     expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', [antitoxin()])).toEqual([])
   })
+
+  it('rolls its ability checks with the advantage of a Help, and only an ability check', () => {
+    const help = helpEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    const contributor = {
+      sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`,
+      domainKey: `active-grant:${HOLDER_ID}`,
+      influence: 'ADVANTAGE'
+    }
+    // An ability-less check grant applies to a skill check (null) and to any ability's check.
+    expect(creatureActiveGrantCheckContributors(HOLDER_ID, null, [help])).toMatchObject([
+      contributor
+    ])
+    expect(creatureActiveGrantCheckContributors(HOLDER_ID, 'STRENGTH', [help])).toMatchObject([
+      contributor
+    ])
+    // A save grant (Antitoxin) and no grant at all leave the check alone.
+    expect(creatureActiveGrantCheckContributors(HOLDER_ID, null, [antitoxin()])).toEqual([])
+    expect(creatureActiveGrantCheckContributors(HOLDER_ID, null, [])).toEqual([])
+    // The attack reader reads the Help's attack modifier, never its check modifier.
+    expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', [help])).toHaveLength(1)
+  })
+
+  it('applies a Strength check grant to its Athletics skill check, and to no other skill', () => {
+    const help = helpEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    if (help.definition.schemaVersion !== 2) throw new Error('Expected a modifier grant.')
+    const strengthHelp = {
+      ...help,
+      definition: {
+        ...help.definition,
+        stateContributions: help.definition.stateContributions.map((contribution) =>
+          contribution.kind === 'MODIFIER_GRANT'
+            ? {
+                ...contribution,
+                modifiers: contribution.modifiers.map((modifier) =>
+                  modifier.valueDomainCode === 'ABILITY_CHECK'
+                    ? { ...modifier, domain: { ability: 'STRENGTH' } }
+                    : modifier
+                )
+              }
+            : contribution
+        )
+      }
+    }
+    const check = (skillId: string) =>
+      creatureActiveGrantCheckContributors(
+        HOLDER_ID,
+        checkAbilityCode(srdSystem, 'SKILL', skillId),
+        [strengthHelp]
+      )
+    expect(check(SRD_ATHLETICS_SKILL_ID)).toMatchObject([{ influence: 'ADVANTAGE' }])
+    expect(check(SRD_ACROBATICS_SKILL_ID)).toEqual([])
+    expect(checkAbilityCode(srdSystem, 'ABILITY', SRD_ABILITY_DEFINITION_IDS.STRENGTH)).toBe(
+      'STRENGTH'
+    )
+  })
 })
 
 describe('opportunity attack immunity from active grants', () => {
@@ -270,6 +333,23 @@ describe('Character holder of an active grant', () => {
     expect(armorClass(withCharacterActiveGrants(fighter.facts, [shield]))).toBe(
       armorClass(fighter.facts) + 2
     )
+  })
+
+  it('folds a Help into a Character ability checks, skill checks and attack rolls', () => {
+    const policy = resolveCharacterRulePolicyRollModes(
+      evaluateDnd5e2014CharacterPolicy(
+        withCharacterActiveGrants(fighter.facts, [
+          helpEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+        ])
+      ),
+      vocabulary
+    )
+    expect(policy.rollModes.abilityChecks.STRENGTH).toBe('ADVANTAGE')
+    expect(policy.rollModes.skillChecks.athletics).toBe('ADVANTAGE')
+    expect(policy.rollContributorEvidence.skillChecks.athletics).toMatchObject([
+      { sourceId: `ACTIVE_EFFECT:${EFFECT_ID}`, influence: 'ADVANTAGE' }
+    ])
+    expect(policy.rollModes.attacks.MELEE).toBe('ADVANTAGE')
   })
 
   it('folds resistance, an immunity and attack disadvantage into its policy', () => {

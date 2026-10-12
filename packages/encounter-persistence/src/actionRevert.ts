@@ -27,10 +27,6 @@ import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runti
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { characterZeroHitPointsConditionId } from '@artificer-toolkit/rules-runtime/characterZeroHitPoints'
-import {
-  encounterBasicActionEffects,
-  withEncounterBasicActionEffects
-} from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
@@ -470,18 +466,6 @@ export async function revertLastEncounterAction(
     updateActor(source.id, { resources: restored.resources })
   }
 
-  // Ally advantages (Help) the action's rolls used go back to their helpers.
-  for (const help of root.allyAdvantageUses) {
-    const helper = actorsById.get(help.helperActorId)
-    if (!helper) unavailable('The helper left the Encounter; adjust manually.')
-    updateActor(helper.id, {
-      resources: withEncounterBasicActionEffects(helper, [
-        ...encounterBasicActionEffects(helper),
-        help.effect
-      ]).resources
-    })
-  }
-
   // A Dash's speed bonus leaves the turn's movement record.
   if (root.speedBonusTurn)
     await removeTurnSpeedBonus(ctx, {
@@ -496,12 +480,8 @@ export async function revertLastEncounterAction(
         (id) => id !== root.addedConcentrationCasterId
       )
     })
-  // The attacker's grants the roll used up come back with their remaining count.
-  await restoreConsumedGrants(ctx, {
-    actor: source,
-    encounterId: state.id,
-    grants: root.consumedGrants
-  })
+  // The grants the action's rolls used up come back with their remaining count.
+  await restoreConsumedGrants(ctx, root.consumedGrants)
 
   const updatedAt = new Date().toISOString()
   for (const [characterId, inverse] of characterInverses)
@@ -600,8 +580,8 @@ async function commitRevert(
 }
 
 /**
- * Undoes the Run's last basic action (Q11) exactly from its receipt: the effects it added (still
- * the actor's latest) and its allowance use.
+ * Undoes the Run's last basic action (Q11) exactly from its receipt: its allowance use and the
+ * grants its check used up.
  */
 async function revertBasicAction(
   ctx: EncounterCharacterWriteTransaction,
@@ -612,31 +592,9 @@ async function revertBasicAction(
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
   if (!actor) unavailable('The actor left the Encounter; adjust manually.')
-  const effects = encounterBasicActionEffects(actor)
-  const kept = effects.slice(0, effects.length - receipt.effects.length)
-  if (checksumCanonicalJson(effects.slice(kept.length)) !== checksumCanonicalJson(receipt.effects))
-    unavailable(`${actor.label}'s basic-action effects changed; adjust manually.`)
-  const restored = returnSpentActionEconomy(
-    withEncounterBasicActionEffects(actor, kept),
-    receipt.actionEconomy
-  )
-  // The Help the check used goes back to its helpers.
-  const restoredActors = new Map(actors.map((entry) => [entry.id, entry]))
-  restoredActors.set(actor.id, restored)
-  for (const help of receipt.allyAdvantageUses) {
-    const helper = restoredActors.get(help.helperActorId)
-    if (!helper) unavailable('The helper left the Encounter; adjust manually.')
-    restoredActors.set(
-      helper.id,
-      encounterRunActorStateSchema.parse({
-        ...helper,
-        resources: withEncounterBasicActionEffects(helper, [
-          ...encounterBasicActionEffects(helper),
-          help.effect
-        ]).resources
-      })
-    )
-  }
+  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  // The Help the check used goes back to its holder.
+  await restoreConsumedGrants(ctx, receipt.consumedGrants)
   const updatedAt = new Date().toISOString()
   const stabilized = receipt.checkOccurrenceId
     ? await readBasicActionCheckStabilize(ctx, {
@@ -664,7 +622,7 @@ async function revertBasicAction(
   return commitRevert(ctx, {
     ...input,
     actors,
-    nextActors: actors.map((entry) => restoredActors.get(entry.id)!),
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
     updatedAt
   })
 }
@@ -705,6 +663,8 @@ async function revertEscape(
   const actor = actors.find((entry) => entry.id === receipt.actorId)
   if (!actor) unavailable('The actor left the Encounter; adjust manually.')
   const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  // The Help the check used goes back to its holder.
+  await restoreConsumedGrants(ctx, receipt.consumedGrants)
   return commitRevert(ctx, {
     ...input,
     actors,

@@ -739,7 +739,7 @@ describe('effect schema parsing', () => {
             {
               lifecycle: {
                 recurringKind: 'NONE',
-                consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+                consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
                 endOnEvents: ['ON_CAST_SPELL']
               }
             }
@@ -752,14 +752,14 @@ describe('effect schema parsing', () => {
           outcomes?: Array<{
             effectKind?: string
           }>
-          lifecycle?: { consumeOnFirstEvent?: string }
+          lifecycle?: { consumeOnFirstEvents?: string[] }
         }
       }>
     }
 
     expect(parsed.paths?.[0]?.resultBlock).toMatchObject({
       outcomes: [{ effectKind: 'DAMAGE' }, { effectKind: 'FORCED_MOVEMENT' }],
-      lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
     }) as unknown as ParsedEffectForAssertions
   })
 

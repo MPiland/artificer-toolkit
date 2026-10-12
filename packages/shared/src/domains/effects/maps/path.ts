@@ -325,8 +325,8 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         })
       )
       .set(
-        'consumeOnFirstEvent',
-        selectSingle(['consumeOnFirstEvent'], 'Consume On First Event', {
+        'consumeOnFirstEvents',
+        selectMulti(['consumeOnFirstEvents'], 'Consume On First Event', {
           kind: 'INLINE_OPTIONS',
           options: PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS
         })

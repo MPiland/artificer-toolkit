@@ -9,6 +9,22 @@ import type {
   CharacterMechanicsProjection
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 
+/** A System check's code as the Character rule policy keys its skills. */
+function policySkillId(code: string) {
+  return code.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
+}
+
+/** The Character rule policy's skill key for a System check definition, when it is a skill. */
+export function characterCheckSkillId(
+  registry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry'] | undefined,
+  checkDefinitionId: string
+): string | null {
+  const check = (registry as CharacterAssemblyRegistry | undefined)?.system?.skills?.find(
+    ({ id }) => id === checkDefinitionId
+  )
+  return check?.code ? policySkillId(check.code) : null
+}
+
 /**
  * Extracts exact actor facts from the same compiled authored snapshot that is
  * pinned into a Character mechanics projection. The shared engine carries
@@ -57,7 +73,7 @@ export function toCharacterInitiativeActorFacts(input: {
         throw new Error(`System check definition "${check.id}" has no governing ability.`)
       }
       const governingAbility = abilitiesById.get(check.governingAbilityDefinitionId)
-      const skillId = check.code?.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
+      const skillId = check.code ? policySkillId(check.code) : undefined
       const skill = skillId ? skillsById.get(skillId) : undefined
       if (
         !skillId ||

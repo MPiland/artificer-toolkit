@@ -785,7 +785,7 @@ describe('effect compiler', () => {
             resultKind: 'SEQUENCE' as const,
             lifecycle: {
               recurringKind: 'NONE',
-              consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+              consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
               endOnEvents: ['ON_CAST_SPELL']
             },
             outcomes: [
@@ -809,7 +809,7 @@ describe('effect compiler', () => {
       pathCode: PATH_CODE.ON_SAVE_FAIL,
       lifecycle: {
         recurringKind: 'NONE',
-        consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+        consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
         endOnEvents: ['ON_CAST_SPELL']
       },
       outcome: {

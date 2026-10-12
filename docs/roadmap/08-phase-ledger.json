@@ -906,6 +906,14 @@
               "proof": [".codex/validation/phase82-foundation/profile-web-review.md"],
               "origin": ["F10.3"],
               "id": "ACCOUNTS-8.3"
+            },
+            {
+              "text": "The owner sets their profile to Private (the default) or Public. Private: only the owner can read it. Public: any signed-in account can open the owner's profile page and see its public fields (username, avatar and bio; account details such as email stay owner-only). Switching back to Private removes access at once, and a two-account journey proves what the other account sees under each setting. The minimal identity shown on Social listings and applications is unchanged.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-12 from Q4: owner-only by default, plus a public/private setting like most social apps. Which fields are public is decided at implementation from the profile DTO and recorded in the decisions doc.",
+              "id": "ACCOUNTS-8.4"
             }
           ]
         },
@@ -3528,6 +3536,38 @@
               "id": "SCENE-4.2"
             }
           ]
+        },
+        {
+          "id": "SCENE-5",
+          "title": "One shared table screen for players in the same room",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Registered 2026-10-12 by the product owner: players at one physical table share a TV running the VTT, and one person moves every party token. Foundry has no dedicated mode (a shared player account owns all party tokens and sees their combined vision). Q5 and Q6 resolved 2026-10-12 (phase-08-2-decisions.md#resolved): table mode chosen at Session launch, shared screen acts for covered Characters, main-Character vision with single-token selection override. Depends on VTT_UI-3.4 for per-Character senses.",
+          "acs": [
+            {
+              "text": "When the GM launches a Session they choose how the table plays: each player on their own device, or one shared table screen covering chosen player Characters with one of them as the main Character. The shared screen sees the Scene through the main Character's senses; selecting a single covered token switches the view to that token's senses, and clearing or multi-selecting returns to the main Character. It never sees what the Character it is viewing through cannot see.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.1"
+            },
+            {
+              "text": "The shared table screen acts for every covered Character: it moves their tokens (outside an Encounter any of them, in an Encounter the one whose turn it is), chooses their actions and answers their roll prompts; every other client converges as for any player command.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.2"
+            },
+            {
+              "text": "Private information for one covered Character (its own hidden rolls, whispers, GM notes to that player) is not shown on the table screen; the owning player still sees it on their own device.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "SCENE-5.3"
+            }
+          ]
         }
       ]
     },
@@ -5080,7 +5120,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature.",
+              "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature. Help follows the same rule (slice C): aimed at an enemy it warns \"This action needs a willing target.\" and aimed at the helper itself it warns \"This action targets another creature.\", both overridable TARGET_DISPOSITION warnings.",
               "id": "ATTACK-18.2"
             },
             {
@@ -5117,7 +5157,8 @@
             {
               "id": "ATTACK-18.T4",
               "text": "Slice C: Help is an ally grant consumed by the first attack roll or ability check (consumeOnFirstEvents, ON_ABILITY_CHECK) and ending at the helper's next turn; allyAdvantageUses is deleted.",
-              "status": "TODO",
+              "status": "DONE",
+              "note": "Done 2026-10-12. Help is an authored APPLY_GRANT (WILLING single target, excludesSelf) with ATTACK_ROLL and ability-less ABILITY_CHECK advantage, ending at the helper's next START_OF_TURN and used up by the first attack roll or check. Every check path (Escape, First Aid, passage, Disarm attacker and defender) reads and consumes ON_ABILITY_CHECK grants for Characters and Creatures; a Creature skill check uses the System skill's governing ability. Consumed grants are frozen on the pending check context so the reason survives, and GM undo restores the exact record (ordinal, version, timestamps). Bugs fixed with regressions: Disarm ignored a Creature initiator's grants, Character skill-check grants were never read, the Disarm record lacked speedBonusTurn, undo restored a fresh record. ALLY_ADVANTAGE, basicActionEffects and allyAdvantage are deleted; the ALLY choice target and its web drawer go in slice E. Logs: local-validation/attack18c.",
               "closes": ["ATTACK-18.1", "ATTACK-18.2"]
             },
             {
@@ -6047,7 +6088,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. How the table declares moving at half speed to avoid it is an open question.",
+              "note": "Was SPELLS-7.2 (registered from the SPELLS-5 refinement, D99: an area APPLY_GRANT), widened on 2026-10-10 to the whole item. It needs a production spatial-effect creator (only test fixtures create them today) and an ON_HIT_POINTS_REGAINED end reader. First check that the MANIFEST ZONE outcome compiles. Moving at half speed to avoid the save is offered in the drag path preview when the path enters the field: Move carefully (double cost, no save) or Move normally (save on entry) (Q2, resolved 2026-10-12).",
               "id": "SPELLS-17.1"
             }
           ]
@@ -6089,6 +6130,24 @@
               "origin": [],
               "note": "Registered 2026-10-10 from SPELLS-7 slice 5d, which refuses these at open and commit (refuseAreaEffectOutcomes in apps/session-worker/src/nativeEncounterAreaRules.ts: stateEffect, recurringEffect, relationshipConditionApplications, maintenance). One maintained effect must span every caught creature under one Concentration. Depends on SPELLS-7.",
               "id": "SPELLS-19.1"
+            }
+          ]
+        },
+        {
+          "id": "SPELLS-20",
+          "title": "Auras that move with their source",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "An aura (Spirit Guardians, a paladin's Aura of Protection, a creature's damaging aura) is an authored spatial effect centered on its source that moves with it and applies its authored outcome to the creatures inside it; the encounter projection carries each aura's radius and label to the viewers allowed to see its source, so the map can draw it.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-12 from lane 3 (VTT_UI-3.1): auras exist only as closed rule kinds, with no geometry any client receives, so the aura preview is blocked on this PBI. Builds on the production spatial-effect creator from SPELLS-17.",
+              "id": "SPELLS-20.1"
             }
           ]
         }
@@ -6636,7 +6695,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Token art, identity and colour precedence are presented correctly.",
+              "text": "Token art, identity and colour precedence are presented correctly: the ring shows disposition (red Hostile, blue Friendly, purple Neutral), selection has its own outline distinct from the ring and the turn and reaction halos, and \"yours\" is carried by the description and selection rather than ring colour (Q3).",
               "status": "TODO",
               "proof": [],
               "origin": ["G4-TOKEN-IDENTITY"],
@@ -6644,11 +6703,11 @@
               "id": "VTT_UI-1.1"
             },
             {
-              "text": "Conditions, halos, ordering and overflow are presented on tokens.",
+              "text": "Conditions, Concentration and effects are presented as a segmented outer ring around the token's disposition border: one segment per active status, coloured by category (harmful condition, Concentration, beneficial effect, other), in model order, at most eight with the last marking overflow; hover, focus or selection lists every status by icon and name; the token is inset within its footprint so the outer ring never overlaps a neighbour; turn and reaction halos stay distinct from both rings (Q3).",
               "status": "TODO",
               "proof": [],
               "origin": ["G4-STATUS-PRESENTATION"],
-              "note": "Implemented in vttTokenPresentation.model.ts and CampaignVttPresentation stories; not accepted.",
+              "note": "Implemented in vttTokenPresentation.model.ts and CampaignVttPresentation stories; not accepted. Integration-owner ruling 2026-10-12: harmful and beneficial come from a polarity derived in rules-runtime from each grant's modifiers relative to its holder (an all-beneficial grant is beneficial; an all-harmful grant is harmful; a mixed or neutral grant is other), never an authored flag. Conditions are harmful. The derived polarity is carried on the active grant listing. Until it lands, an effect draws in the neutral colour, so nothing is mislabelled; this AC stays open until then.",
               "id": "VTT_UI-1.2"
             },
             {
@@ -6696,12 +6755,20 @@
               "id": "VTT_UI-3.1"
             },
             {
-              "text": "Light, darkness, obscurement and senses are rendered.",
+              "text": "Light and map colour are rendered from the Scene: the ambient illumination sets the base (BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses); each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art; magical darkness stays black inside light except to senses that pierce it; obscurement draws as its own layer; the GM sees everything and can preview a chosen token's view.",
               "status": "TODO",
               "proof": [],
               "origin": ["G4-PERCEPTION"],
-              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering.",
+              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws.",
               "id": "VTT_UI-3.2"
+            },
+            {
+              "text": "A token's senses are rendered for the players who see through it: within darkvision range darkness shows as dim light in shades of grey and dim light shows as bright in full colour; beyond the range normal light rules apply; blindsight and tremorsense reveal within range regardless of light and truesight sees through magical darkness; the view draws the senses of one token at a time: the single selected token, otherwise the viewer's main Character (Q6, SCENE-5).",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Split from VTT_UI-3.2 on 2026-10-12 (product owner: a dwarf with darkvision in a cave sees grey within 60 ft and black beyond). roomSceneVision already folds sense grants in; the per-area sense and illumination contract to the client may be missing (lane 3 reports the gap).",
+              "id": "VTT_UI-3.4"
             },
             {
               "text": "Footprints, large tokens, dragging and rotation behave correctly.",
@@ -6736,6 +6803,31 @@
               "origin": ["G3-EVIDENCE-A11Y"],
               "note": "Original PARTIAL: keyboard, screen-reader and selector coverage has no 8.2 criterion.",
               "id": "VTT_UI-4.2"
+            }
+          ]
+        },
+        {
+          "id": "VTT_UI-5",
+          "title": "Creatures see with their stat-block senses",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "note": "Split from VTT_UI-3.4 on 2026-10-12 (D108). Creature senses are free-text display strings today (subjects/creature.ts, snapshotStatBlock), and roomSceneVision binds Character actors only. Until this lands, the GM's preview of a Creature's view shows only its authored token sight.",
+          "acs": [
+            {
+              "text": "Creature senses are authored as structured entries (sense definition and range) on the Creature and its stat block, and every SRD Creature's senses are migrated to them; a source-data test proves the structured senses match the printed ones.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "VTT_UI-5.1"
+            },
+            {
+              "text": "A Creature token on a Scene carries its senses like a Character token, derived by the same function, so the GM's preview of its view and combat perception both use them.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "id": "VTT_UI-5.2"
             }
           ]
         }

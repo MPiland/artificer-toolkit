@@ -517,16 +517,18 @@ describe('native reusable definitions', () => {
 
   it('authors and publishes a basic-action catalogue entry through the ordinary flow (Q11)', async () => {
     const { a } = await fixture()
-    const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)!
+    const firstAid = SRD_BASIC_ACTION_DEFINITIONS.find(
+      ({ id }) => id === SRD_BASIC_ACTION_IDS.FIRST_AID
+    )!
     const published = await publishDocument(a, 'basic-action', {
-      ...help.document,
-      rulesText: 'Rally: aid an ally as a bonus action.',
+      ...firstAid.document,
+      rulesText: 'Patch up an ally as a bonus action.',
       actionCost: 'BONUS_ACTION'
     })
     expect(published.current?.document).toMatchObject({
       kind: 'BASIC_ACTION',
       actionCost: 'BONUS_ACTION',
-      mechanics: ['ALLY_ADVANTAGE']
+      mechanics: ['STABILIZE_TARGET']
     })
     const created = await a.mutation(create, {
       gameSystemId: srdSystemRecord.id,

@@ -72,7 +72,7 @@ function reactionRoom() {
     seed: seedModifierGrant({
       sourceActorId: MOVER_ID,
       holderActorId: REACTOR_ID,
-      lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
     })
   })
 }

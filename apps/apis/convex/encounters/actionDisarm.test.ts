@@ -7,7 +7,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { snapshotCreatureEquipmentLoadout } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
-import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -413,45 +412,84 @@ describe('room Disarm commands', () => {
     expect(heldItemDisarmed(base, await records(base))).toBe(true)
   }, 30000)
 
-  it('a Help gives the Disarm attack roll advantage, used once (Q11)', async () => {
-    const base = await nativeDisarmFixture('PROMPT')
-    const helper = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
-    const help = SRD_BASIC_ACTION_DEFINITIONS.find((definition) => definition.label === 'Help')
-    if (!helper || !help) throw new Error('Missing the Help fixture.')
+  /** The Run's version as Convex holds it once the room checkpoints. */
+  async function runVersion(base: Base) {
+    const { run } = await records(base)
+    if (!run) throw new Error('Missing Disarm Run.')
+    return run.version
+  }
+
+  async function setCurrentActor(base: Base, actorId: string) {
+    return disarmInRoom(base.owner, {
+      type: 'SET_CURRENT_ACTOR',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await runVersion(base),
+      actorId
+    })
+  }
+
+  /** The helper Helps the target through the real room, overriding Assisted mode's hostile-target warning. */
+  async function help(base: Base, helperId: string, targetId: string) {
     await base.t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
       definitions: SRD_BASIC_ACTION_DEFINITIONS
     })
-    const version = async () => {
-      const { run } = await records(base)
-      if (!run) throw new Error('Missing Disarm Run.')
-      return run.version
-    }
-    const setCurrentActor = async (actorId: string) =>
-      disarmInRoom(base.owner, {
-        type: 'SET_CURRENT_ACTOR',
+    await setCurrentActor(base, helperId)
+    await checkpointLiveRoom(base.campaign.id)
+    const choice = (
+      await base.owner.caller.query(api.encounters.actionChoices.get, {
         encounterId: base.run.id,
-        commandId: crypto.randomUUID(),
-        expectedVersion: await version(),
-        actorId
+        expectedVersion: await runVersion(base),
+        actorId: helperId
       })
-    await setCurrentActor(helper.id)
-    // The Character helps an enemy Creature, which Assisted mode warns about first.
+    )?.basicActionChoices.find((entry) => entry.label === 'Help')
+    if (!choice) throw new Error('The helper is not offered Help.')
     await disarmInRoom(base.owner, {
-      type: 'USE_BASIC_ACTION',
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
       encounterId: base.run.id,
       commandId: crypto.randomUUID(),
-      expectedVersion: await version(),
-      actorId: helper.id,
-      definitionId: help.id,
-      targetActorId: base.actor.id,
+      expectedVersion: await runVersion(base),
+      actorId: helperId,
+      actionId: choice.id,
+      target: { kind: 'ACTOR', actorId: targetId },
+      optionalCombatIntent: null,
+      sceneContext: null,
       acknowledgedWarnings: ['TARGET_DISPOSITION']
     })
-    await setCurrentActor(base.actor.id)
+  }
+
+  /** The Active Effects the actor holds, as Convex stores them once the room checkpoints. */
+  async function heldGrants(base: Base, actorId: string) {
+    await checkpointLiveRoom(base.campaign.id)
+    const actor = base.run.actors.find((entry) => entry.id === actorId)
+    return base.t.run(async (ctx) =>
+      actor?.kind === 'CHARACTER'
+        ? ctx.db
+            .query('characterActiveRuleEffects')
+            .withIndex('by_characterId_id', (q) => q.eq('characterId', base.character.id))
+            .collect()
+        : ctx.db
+            .query('encounterActiveRuleEffects')
+            .withIndex('by_encounterId_targetActorId_id', (q) =>
+              q.eq('encounterId', base.run.id).eq('targetActorId', actorId)
+            )
+            .collect()
+    )
+  }
+
+  it('a Help gives the Disarm attack roll advantage, used once (Q11)', async () => {
+    const base = await nativeDisarmFixture('PROMPT')
+    const helper = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
+    if (!helper) throw new Error('Missing the Help fixture.')
+    await help(base, helper.id, base.actor.id)
+    expect(await heldGrants(base, base.actor.id)).toHaveLength(1)
+    await setCurrentActor(base, base.actor.id)
     const command = {
       ...base.command,
       commandId: crypto.randomUUID(),
-      expectedVersion: await version()
+      expectedVersion: await runVersion(base)
     }
     const helped = { ...base, command }
     const started = await disarmInRoom(base.owner, command)
@@ -464,7 +502,79 @@ describe('room Disarm commands', () => {
     if (defender?.kind !== 'D20_EVIDENCE') throw new Error('Missing the defender request.')
     expect(defender.request.rollMode).toBe('NORMAL')
     await disarmInRoom(base.owner, evidence(helped, answered, 1))
-    expect(encounterBasicActionEffects(actorState(await records(base), helper.id))).toEqual([])
+    expect(await heldGrants(base, base.actor.id)).toHaveLength(0)
+  }, 30000)
+
+  it('a Help on the defending Creature gives its Disarm check advantage, used once and not the attack (ATTACK-18)', async () => {
+    const base = await nativeDisarmFixture('PROMPT')
+    const helper = base.run.actors.find((actor) => actor.kind === 'CHARACTER')
+    if (!helper) throw new Error('Missing the Help fixture.')
+    await help(base, helper.id, base.target.id)
+    expect(await heldGrants(base, base.target.id)).toHaveLength(1)
+    await setCurrentActor(base, base.actor.id)
+    const command = {
+      ...base.command,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await runVersion(base)
+    }
+    const helped = { ...base, command }
+    const started = await disarmInRoom(base.owner, command)
+    await expect(pendingFor(base, base.owner)).resolves.toMatchObject({
+      rollerActorId: base.actor.id,
+      request: { rollMode: 'NORMAL' }
+    })
+    const answered = await disarmInRoom(base.owner, evidence(helped, started, 20))
+    await expect(pendingFor(base, base.owner)).resolves.toMatchObject({
+      rollerActorId: base.target.id,
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
+    })
+    await disarmInRoom(base.owner, evidence(helped, answered, 1))
+    expect(await heldGrants(base, base.target.id)).toHaveLength(0)
+  }, 30000)
+
+  it('a Help on the defending Character gives its Disarm check advantage, used once (ATTACK-18)', async () => {
+    const base = await nativeDisarmFixture('PROMPT', true)
+    const helper = base.run.actors.find(
+      (actor) => actor.kind === 'CREATURE' && actor.id !== base.actor.id
+    )
+    if (!helper) throw new Error('Missing the Help fixture.')
+    await help(base, helper.id, base.target.id)
+    expect(await heldGrants(base, base.target.id)).toHaveLength(1)
+    await setCurrentActor(base, base.actor.id)
+    await setAutoRollDice(base.t, base.owner.userId, true)
+    await invalidateRoomInputs(base.campaign.id, ['PREFERENCES'])
+    await queueRoomRolls(base.campaign.id, { rolls: [19] })
+    const command = {
+      ...base.command,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await runVersion(base)
+    }
+    await disarmInRoom(base.owner, command)
+    // The Creature initiator auto-rolled; the Character's own d20 waits on its player, helped.
+    const pending = await pendingFor(base, base.player)
+    if (pending?.kind !== 'D20_EVIDENCE') throw new Error('Missing the defender request.')
+    expect(pending).toMatchObject({
+      rollerActorId: base.target.id,
+      request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
+    })
+    // The Character's d20 settles the contest and uses the Help up.
+    const answered = await disarmInRoom(base.player, {
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: base.run.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: command.expectedVersion,
+      correlationId: null,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: pending.request.requestId,
+        rawFaces: [10, 10],
+        rollMode: pending.request.rollMode
+      }
+    })
+    expect(answered.occurrence).toMatchObject({ status: 'COMPLETE' })
+    expect(await heldGrants(base, base.target.id)).toHaveLength(0)
   }, 30000)
 
   it('refuses stale selections and changed pending participants without writes', async () => {

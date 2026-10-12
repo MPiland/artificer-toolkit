@@ -27,17 +27,13 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
-import { attackRollConsumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { consumableGrants } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import {
   resolveEncounterD20Answer,
   withEncounterAppRoll
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { executeEncounterOptionalContestAction } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
-import {
-  lockedRelationshipActionFacts,
-  mergeCanonicalD20Contributors
-} from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
-import { encounterBasicActionAllyAdvantage } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
+import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { encounterSceneGridPolicyRegistry } from '@artificer-toolkit/rules-runtime/sceneGridPolicyRegistry'
@@ -122,10 +118,6 @@ export async function planNativeLiveDisarm(
       definitionId: intent.definitionId
     }
   })
-  // An ally's Help (basic action, Q11) gives the initiator's attack roll or the defender's check
-  // advantage; the Disarm's commit uses each up.
-  const initiatorHelp = encounterBasicActionAllyAdvantage({ actors, attackerId: actor.id })
-  const defenderHelp = encounterBasicActionAllyAdvantage({ actors, attackerId: target.id })
   const prepared = await prepareEncounterActionMechanics({
     state,
     actor,
@@ -137,15 +129,12 @@ export async function planNativeLiveDisarm(
     movementTargets,
     loadSource: async (input) => resolveEncounterActionSource({ ...input, system }),
     loadRelationshipFacts: async (input) =>
-      mergeCanonicalD20Contributors(
-        lockedRelationshipActionFacts({
-          actionEffectId: input.actionEffectId,
-          sourceActorId: input.sourceActorId,
-          targetActorId: input.targetActorId,
-          targets: { activeEffectsByActorId }
-        }),
-        initiatorHelp ? [initiatorHelp.contributor] : []
-      )
+      lockedRelationshipActionFacts({
+        actionEffectId: input.actionEffectId,
+        sourceActorId: input.sourceActorId,
+        targetActorId: input.targetActorId,
+        targets: { activeEffectsByActorId }
+      })
   })
   const scene = root.sceneContext
     ? (
@@ -211,8 +200,8 @@ export async function planNativeLiveDisarm(
     prepared,
     sceneContext,
     selection,
+    system,
     actionEconomy,
-    defenderAllyAdvantage: defenderHelp?.contributor ?? null,
     ...(priorContext ? { priorContest: priorContext.contest } : {})
   })
   if (priorContext && preparation.currentnessChecksum !== priorContext.currentnessChecksum)
@@ -367,11 +356,12 @@ export async function planNativeLiveDisarm(
       ...planned,
       occurredAt: new Date().toISOString(),
       contest,
-      allyAdvantageUses: [initiatorHelp, defenderHelp].flatMap((help) =>
-        help ? [{ helperActorId: help.helperActorId, effect: help.effect }] : []
-      ),
-      // The initiator's attack roll uses up its one-roll grants (Vicious Mockery's disadvantage).
-      consumedGrants: attackRollConsumableGrants(activeEffectsByActorId.get(actor.id) ?? []),
+      // The initiator's attack roll and the defender's check use up their one-roll grants
+      // (Vicious Mockery's disadvantage, a Help's advantage).
+      consumedGrants: [
+        ...consumableGrants(activeEffectsByActorId.get(actor.id) ?? [], 'ON_ATTACK_ROLL'),
+        ...consumableGrants(activeEffectsByActorId.get(target.id) ?? [], 'ON_ABILITY_CHECK')
+      ],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,

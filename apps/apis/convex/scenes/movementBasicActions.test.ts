@@ -9,15 +9,11 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import {
-  SRD_BASIC_ACTION_DEFINITIONS,
-  SRD_BASIC_ACTION_IDS
-} from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -38,7 +34,6 @@ import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 useLocalRoomWorker()
 
-const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
 const actionChoices = makeFunctionReference<
   'query',
   GetEncounterActionChoicesInputDto,
@@ -77,26 +72,13 @@ async function gm(base: Pick<MoverTurn, 'owner'>, command: EncounterCommandInput
   return executeInRoom(base.owner.caller, { command })
 }
 
-async function basicAction(
+/** RESOLVE_ACTION for one of the actor's authored basic actions, aimed at itself unless a target is given. */
+async function resolveBasicAction(
   base: MoverTurn,
   actorId: string,
-  definitionId: string,
-  targetActorId: string | null = null
+  label: string,
+  targetActorId = actorId
 ) {
-  return gm(base, {
-    type: 'USE_BASIC_ACTION',
-    encounterId: base.run.id,
-    commandId: crypto.randomUUID(),
-    expectedVersion: await runVersion(base),
-    actorId,
-    definitionId,
-    targetActorId,
-    acknowledgedWarnings: []
-  })
-}
-
-/** RESOLVE_ACTION for one of the actor's authored basic actions (a self-targeted action). */
-async function resolveBasicAction(base: MoverTurn, actorId: string, label: string) {
   const expectedVersion = await runVersion(base)
   const choices = await base.owner.caller.query(actionChoices, {
     encounterId: base.run.id,
@@ -113,7 +95,7 @@ async function resolveBasicAction(base: MoverTurn, actorId: string, label: strin
     commandId: crypto.randomUUID(),
     expectedVersion,
     actorId,
-    target: { kind: 'ACTOR', actorId },
+    target: { kind: 'ACTOR', actorId: targetActorId },
     actionId: choice.id,
     optionalCombatIntent: null,
     sceneContext: null
@@ -156,18 +138,6 @@ async function advanceTurn(base: MoverTurn) {
     commandId: crypto.randomUUID(),
     expectedVersion: await runVersion(base)
   })
-}
-
-async function effectsOf(base: MoverTurn, actorId: string) {
-  await checkpointLiveRoom(base.campaign.id)
-  const row = await base.t.run((ctx) =>
-    ctx.db
-      .query('encounterRunActors')
-      .withIndex('by_encounterId_id', (q) => q.eq('encounterId', base.run.id).eq('id', actorId))
-      .unique()
-  )
-  if (!row) throw new Error('Missing reaction actor.')
-  return encounterBasicActionEffects(readStoredRunActor(row))
 }
 
 /** Answers the room's pending movement decision as the GM. */
@@ -280,7 +250,7 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
   if (!helper) throw new Error('Missing the reactor ally.')
   await setAutoRollDice(base.t, base.owner.userId, false)
   await invalidateRoomInputs(base.campaign.id, ['PREFERENCES'])
-  await basicAction(base, helper.id, help!.id, base.reactor.id)
+  await resolveBasicAction(base, helper.id, 'Help', base.reactor.id)
   await setCurrentActor(base, base.mover.id)
 
   const choice = (await moveAwayFromReactor(base)).occurrence?.pending
@@ -297,7 +267,7 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
     kind: 'D20_EVIDENCE',
     request: { rollMode: 'ADVANTAGE', derivedRollModeReasons: ['Help'] }
   })
-  expect(await effectsOf(base, helper.id)).toHaveLength(1)
+  expect(await activeEffectCount(base, base.reactor.id)).toBe(1)
 
   await answer(base, attack, {
     kind: 'ENTER_DICE',
@@ -305,7 +275,7 @@ it("an ally's Help gives the reactor's opportunity attack advantage, used once (
     rawFaces: [1, 1],
     rollMode: 'ADVANTAGE'
   })
-  expect(await effectsOf(base, helper.id)).toEqual([])
+  expect(await activeEffectCount(base, base.reactor.id)).toBe(0)
 })
 
 /** The mover's Hit Points after the reactor's opportunity attack (natural 20, minimal damage dice). */
