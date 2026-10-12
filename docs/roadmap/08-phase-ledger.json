@@ -6645,12 +6645,8 @@
             },
             {
               "text": "Conditions, halos, ordering and overflow are presented on tokens.",
-              "status": "DONE",
-              "proof": [
-                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts",
-                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"
-              ],
+              "status": "IN_PROGRESS",
+              "proof": [],
               "origin": ["G4-STATUS-PRESENTATION"],
               "note": "Presentation stories build from the real presentation model over Encounter data: ordering, overflow, reaction halo over current turn, defeated. Window journeys GmSeesTokenStatuses and PlayerSeesTokenStatusesWithoutGmHealth. Journey stays partial: 1.1 waits on open question Q3, 1.3 is held.",
               "id": "VTT_UI-1.2"
@@ -6696,27 +6692,34 @@
               "status": "TODO",
               "proof": [],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target wait on ATTACK-18 slice C (numeric range on the action choice, lane 1 option A). Path preview proof pending.",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target wait on ATTACK-18 slice C (numeric range on the action choice, lane 1 option A). Path: the drag already previews the token position and keeps its waypoints (PathPreviewDuringDrag), but no route line is drawn yet; lane 3 builds it with the 3.2 renderer rework.",
               "id": "VTT_UI-3.1"
             },
             {
-              "text": "Light, darkness, obscurement and senses are rendered.",
-              "status": "DONE",
-              "proof": [
-                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts",
-                "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx"
-              ],
+              "text": "Light and map colour are rendered from the Scene. The ambient illumination sets the base: BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses. Each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art. Magical darkness stays black inside light except to senses that pierce it. Obscurement draws as its own layer. The GM sees everything and can preview a chosen token's view.",
+              "status": "IN_PROGRESS",
+              "proof": [],
               "origin": ["G4-PERCEPTION"],
-              "note": "Bright and dim light, ambient darkness, dim/ordinary/magical darkness zones (only magical darkness shuts out light), light and heavy obscurement outlines, and the controlled Token's vision cones, each also described for screen readers.",
+              "note": "Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. The GM's Creature-token preview shows authored token sight until VTT_UI-5 brings stat-block senses.",
               "id": "VTT_UI-3.2"
             },
             {
               "text": "Footprints, large tokens, dragging and rotation behave correctly.",
+              "status": "DONE",
+              "proof": [
+                "apps/web/src/domains/campaigns/vtt/CampaignVttMovement.stories.tsx"
+              ],
+              "origin": ["G4-FOOTPRINTS"],
+              "note": "Real renderer in Chromium, read through getDiagnostics(): a presented token's drag survives renderer updates (c6feedc48); a 140x140 token draws a 140x140 footprint, keeps the off-centre grab offset, clamps by half its footprint at both map edges and stops at a wall; rotation turns only the facing indicator. Barrier checks use the token centre (current rule).",
+              "id": "VTT_UI-3.3"
+            },
+            {
+              "text": "A token's senses are rendered for the players who see through it. Within darkvision range, darkness shows as dim light in shades of grey, and dim light shows as bright in full colour. Beyond the range, normal light rules apply. Blindsight and tremorsense reveal within range regardless of light, and truesight sees through magical darkness. The view draws the senses of one token at a time: the single selected token, otherwise the viewer's main Character.",
               "status": "TODO",
               "proof": [],
-              "origin": ["G4-FOOTPRINTS"],
-              "note": "Original PARTIAL: presentation behaviours unspecified.",
-              "id": "VTT_UI-3.3"
+              "origin": ["G4-PERCEPTION"],
+              "note": "Split from 3.2 (D108). Covers Character senses and authored token sight; Creature senses are VTT_UI-5. Senses on the scene token (schema, rules-runtime, worker projection by actor control per ADR 0034, web); Q6 main-Character view. The projection change waits for ATTACK-18 slice C; senses commit together with it.",
+              "id": "VTT_UI-3.4"
             }
           ]
         },

@@ -36,6 +36,17 @@ The reaction-state part of 2.1 is presentable now: a pending movement reaction a
   1. Contract: a numeric range on the encounter action choice, as a discriminated union covering self, touch or reach (melee reach as the distance) and ranged normal/long, in the existing scene distance unit. It comes from the same compiled target policy that produces `rangeLabel`, and `rangeLabel` is then derived from it. Strict schema, schema tests, and a rules-runtime producer test on real SRD actions (a reach weapon, a longbow, a self action).
   2. Drawer: one callback prop plus an effect (the `onAreaShapeChange` pattern); the stage draws the existing RANGE and TARGET overlays.
 
+- **Resolved by D108 (lane 1): 3.2 and 3.4 are unfrozen and owned by lane 3 end to end.**
+  - Precedence at a point: ambient, then dim and ordinary zones darken (darker wins), then lights brighten (brighter wins), then magical darkness forces MAGICAL_DARKNESS. This lands with the shared `resolveSceneIlluminationAt` extraction.
+  - The senses shape is approved, including creature senses from the stat block.
+  - Q6: the view draws one token's senses: the single selected token, otherwise the viewer's main Character.
+  - 1.2 and 3.2 are back to IN_PROGRESS until rendered-output diagnostics prove them (lane 1 audit of 6568f57eb).
+  - The record below is kept as history.
+- **VTT_UI-3.2 (light and colour) and 3.4 (senses), refined by the PO: frozen on a contract gap, sent to lane 1.**
+  - The client gets no per-sense ranges. Darkvision folds into `vision.dimRange`, and blindsight, tremorsense and truesight are dropped. Creature tokens get no senses.
+  - No per-area illumination class reaches the client.
+  - Proposed: `senses: {senseId, label, range, channel, illuminationAccess}[]` on the scene token, plus a shared pure `resolveSceneIlluminationAt` extracted from `resolveSceneCombatPerceptionEnvironment`.
+  - Conflict: 6568f57eb draws lights over ordinary darkness, but the shared resolver lets any darkness zone win over light. Waiting on the PO's rule; the render is reverted in the rework.
 - **VTT_UI-3.1 aura and trap previews: BLOCKED, sequenced, not cut.** Traps and placed zones come with SPELLS-17; aura geometry has no producing effect model yet, and lane 1 registers it as its own PBI. No speculative `auras` or `traps` DTOs: the preview UI is built against the real contract once it lands.
 
 ## Progress
@@ -48,3 +59,14 @@ The reaction-state part of 2.1 is presentable now: a pending movement reaction a
   - Review fixes, red first: vision redraws when only actor control changes (red `local-validation/lane3/logs/red-3.2-control.log`); lights shine into ordinary darkness, only magical darkness sits above them.
   - Green: `local-validation/lane3/logs/green-3.2-unit.log` (30/30), `green-batch1-stories.log` and `green-window.log`, `typecheck-batch1.log` (app and tests) and `typecheck-stories-batch1.log`.
   - Pre-existing failure, not this lane's: `PlayerSeesShownScene` (PLT-8, D87) fails `toBeVisible` on the shown map frame with the HEAD renderer too (`baseline-window-head-renderer.log`).
+- D108 illumination precedence: `resolveSceneIlluminationAt` in shared, used by `resolveSceneCombatPerceptionEnvironment`. Red `local-validation/lane3/logs/d108-red.log` (torch inside ordinary darkness resolved ORDINARY_DARKNESS); green `d108-green-clean.log` (shared plus the rules-runtime attack and movement-passage callers, 50/50).
+- `PlayerSeesShownScene` cause: a test timing fault, not a product bug. The story asserted `toBeVisible` on the first frame of the Mantine Modal's enter fade (the modal section has opacity 0 then; `findByRole` resolves before the fade ends). Now it waits for the same assertion. Red `shown-red-debug.log`, green `clean-stories.log`.
+- VTT_UI-3.3 DONE: footprint, off-centre grab, edge clamps, barrier stop and rotation, proved through new renderer diagnostics (`activeDrag`, per-token `tokens`). Red `slice33-red.log`, green `clean-stories.log` (16/16 with the window stories).
+- Senses (3.4) work is green but held as a scratchpad patch until ATTACK-18 slice C lands; it commits with the `boundTokenControl` projection change.
+
+## Queue
+
+1. Renderer: 1.2 drawn-output diagnostics; 3.2 rework (D108 layering, lights erase darkness, DARK black, no vision wash, GM see-all and token-view preview, barriers story, pixel samples against `resolveSceneIlluminationAt`); 3.1 drawn route line during a drag.
+2. PLATFORM-12.1 for campaigns/vtt: mocks name functions through generated api refs, fixtures parse through their DTO schemas (lane 2's 68feaa446 pattern).
+3. 3.4 senses rendering (after slice C), then 4.1 and 4.2.
+4. 3.1 range and target (after slice C).

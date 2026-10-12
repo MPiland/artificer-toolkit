@@ -118,6 +118,8 @@ export interface VttSceneRenderer {
   fit: () => void
   focusPoint: (point: ScenePoint) => void
   getDiagnostics: () => {
+    /** The in-progress token drag: its path length and where the dragged token is drawn. */
+    activeDrag: { pointCount: number; position: ScenePoint } | null
     doorVisualCreateCount: number
     facingIndicatorCount: number
     fogRenderCount: number
@@ -136,6 +138,14 @@ export interface VttSceneRenderer {
     tokenOverflowCount: number
     tokenStatusCount: number
     tokenVisualCount: number
+    /** What is drawn per Token: its body footprint, position and rotations (the body stays upright). */
+    tokens: {
+      facingRotationDegrees: number | null
+      footprint: { height: number; width: number }
+      id: string
+      position: ScenePoint
+      rotationDegrees: number
+    }[]
     transientVisualCount: number
     zoomScale: number
   }
@@ -163,6 +173,8 @@ const colors = {
 
 const transientVisualLifetimeMs = 1_200
 const visibleTokenStatusLimit = 4
+const tokenBodyLabel = 'token-body'
+const tokenFacingLabel = 'token-facing'
 const zoomFactor = 1.1
 
 function isBarrierTool(
@@ -1171,6 +1183,7 @@ export async function createVttSceneRenderer(
     const body = new pixi.Graphics()
       .ellipse(0, 0, token.width / 2, token.height / 2)
       .fill({ color: presentation?.fillColor ?? colors.token })
+    body.label = tokenBodyLabel
     visual.addChild(body)
     visual.addChild(
       new pixi.Graphics()
@@ -1223,6 +1236,7 @@ export async function createVttSceneRenderer(
           .fill(0xffffff)
           .stroke({ color: 0x101315, width: 2 })
       )
+      facing.label = tokenFacingLabel
       facing.rotation = (token.rotationDegrees * Math.PI) / 180
       visual.addChild(facing)
     }
@@ -1905,6 +1919,9 @@ export async function createVttSceneRenderer(
     focusPoint,
     getDiagnostics() {
       return {
+        activeDrag: drag
+          ? { pointCount: drag.path.length, position: { x: drag.visual.x, y: drag.visual.y } }
+          : null,
         doorVisualCreateCount,
         facingIndicatorCount: [...tokenVisuals.values()].filter(
           (entry) => entry.presentation?.facing
@@ -1931,6 +1948,17 @@ export async function createVttSceneRenderer(
           0
         ),
         tokenVisualCount: tokenVisuals.size,
+        tokens: [...tokenVisuals].map(([id, { visual }]) => {
+          const body = visual.getChildByLabel(tokenBodyLabel)?.getLocalBounds()
+          const facing = visual.getChildByLabel(tokenFacingLabel)
+          return {
+            facingRotationDegrees: facing ? (facing.rotation * 180) / Math.PI : null,
+            footprint: { height: body?.height ?? 0, width: body?.width ?? 0 },
+            id,
+            position: { x: visual.x, y: visual.y },
+            rotationDegrees: visual.angle
+          }
+        }),
         transientVisualCount: transientVisuals.size + pings.size,
         zoomScale: world.scale.x
       }
