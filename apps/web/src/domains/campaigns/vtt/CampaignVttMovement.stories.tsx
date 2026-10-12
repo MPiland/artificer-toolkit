@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { expect, fireEvent, waitFor, within } from 'storybook/test'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
@@ -21,15 +21,71 @@ const movementScene = {
   tokens: [tabletopLiveScene.tokens[0]!]
 } satisfies CampaignSceneStateDto
 
+const largeTokenSize = tabletopLiveScene.grid.cellSize * 2
+
+// A 2x2 token on the open map, so only the map edge constrains it.
+const largeTokenScene = {
+  ...movementScene,
+  barriers: [],
+  tokens: [
+    {
+      ...tabletopLiveScene.tokens[0]!,
+      height: largeTokenSize,
+      position: { x: 300, y: 300 },
+      width: largeTokenSize
+    }
+  ]
+} satisfies CampaignSceneStateDto
+
+// The same 2x2 token beside the wall in movementScene.
+const largeTokenBesideWallScene = {
+  ...movementScene,
+  tokens: [{ ...largeTokenScene.tokens[0], position: { x: 300, y: 230 } }]
+} satisfies CampaignSceneStateDto
+
+const rotatedLargeTokenScene = {
+  ...largeTokenScene,
+  tokens: [{ ...largeTokenScene.tokens[0], rotationDegrees: 135 }]
+} satisfies CampaignSceneStateDto
+
 let nextPointerId = 1
 
-function MovementFixture() {
+type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
+
+function MovementFixture({
+  facing = false,
+  scene = movementScene
+}: {
+  facing?: boolean
+  scene?: CampaignSceneStateDto
+}) {
   const host = useRef<HTMLDivElement | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
   const [ready, setReady] = useState(false)
+  const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null)
+  const [diagnosticsReads, setDiagnosticsReads] = useState(0)
+  const [appearanceChanged, setAppearanceChanged] = useState(false)
+  const [sceneRevision, setSceneRevision] = useState(0)
+  const tokenPresentations = useMemo(
+    () =>
+      appearanceChanged || facing
+        ? {
+            [scene.tokens[0]!.id]: {
+              accessibleDescription: 'Moved token.',
+              artUrl: null,
+              facing,
+              fillColor: 0x1971c2,
+              halo: null,
+              marked: false,
+              outlineColor: 0xffffff,
+              statuses: []
+            }
+          }
+        : undefined,
+    [appearanceChanged, facing, scene]
+  )
   const [preview, setPreview] = useState<ScenePoint | null>(null)
   const [committedPath, setCommittedPath] = useState<ScenePoint[] | null>(null)
-  const [appearanceChanged, setAppearanceChanged] = useState(false)
 
   useEffect(() => {
     if (!host.current) return
@@ -57,7 +113,8 @@ function MovementFixture() {
         mapDelivery: null,
         mode: 'PLAY',
         role: 'PLAYER',
-        scene: movementScene,
+        scene,
+        tokenPresentations,
         tool: 'SELECT'
       })
       setReady(true)
@@ -77,24 +134,12 @@ function MovementFixture() {
       mapDelivery: null,
       mode: 'PLAY',
       role: 'PLAYER',
-      scene: movementScene,
-      tokenPresentations: appearanceChanged
-        ? {
-            [movementScene.tokens[0]!.id]: {
-              accessibleDescription: 'Moved token.',
-              artUrl: null,
-              facing: false,
-              fillColor: 0x1971c2,
-              halo: null,
-              marked: false,
-              outlineColor: 0xffffff,
-              statuses: []
-            }
-          }
-        : undefined,
+      scene,
+      tokenPresentations,
       tool: 'SELECT'
     })
-  }, [appearanceChanged])
+    // A revision re-sends equal inputs, as live presence and chat updates do mid-drag.
+  }, [scene, sceneRevision, tokenPresentations])
 
   return (
     <section aria-label='Movement path fixture' style={{ display: 'grid', gap: 12, padding: 16 }}>
@@ -108,8 +153,24 @@ function MovementFixture() {
       <output aria-live='polite' data-testid='movement-commit'>
         {committedPath ? JSON.stringify(committedPath) : 'No committed movement.'}
       </output>
+      <output aria-live='polite' data-reads={diagnosticsReads} data-testid='movement-diagnostics'>
+        {diagnostics ? JSON.stringify(diagnostics) : 'No diagnostics read.'}
+      </output>
+      <button
+        type='button'
+        onClick={() => {
+          if (!renderer.current) return
+          setDiagnostics(renderer.current.getDiagnostics())
+          setDiagnosticsReads((reads) => reads + 1)
+        }}
+      >
+        Read diagnostics
+      </button>
       <button type='button' onClick={() => setAppearanceChanged(true)}>
         Change token appearance
+      </button>
+      <button type='button' onClick={() => setSceneRevision((revision) => revision + 1)}>
+        Resend scene
       </button>
     </section>
   )
@@ -184,6 +245,218 @@ export const AppearanceChangeDrag: Story = {
   }
 }
 
+export const PresentedTokenDragSurvivesUpdate: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    await fireEvent.click(canvas.getByRole('button', { name: 'Change token appearance' }))
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const from = sceneToClient(rendererCanvas, movementScene.tokens[0]!.position)
+    const middle = sceneToClient(rendererCanvas, { x: 380, y: 230 })
+    const to = sceneToClient(rendererCanvas, { x: 420, y: 230 })
+    const pointerId = nextPointerId++
+    await nextFrame()
+    fireEvent.pointerDown(rendererCanvas, {
+      button: 0,
+      buttons: 1,
+      clientX: from.x,
+      clientY: from.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+    await nextFrame()
+    fireEvent.pointerMove(rendererCanvas, {
+      buttons: 1,
+      clientX: middle.x,
+      clientY: middle.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+    await nextFrame()
+    await fireEvent.click(canvas.getByRole('button', { name: 'Resend scene' }))
+    await nextFrame()
+    fireEvent.pointerMove(rendererCanvas, {
+      buttons: 1,
+      clientX: to.x,
+      clientY: to.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+    await nextFrame()
+    fireEvent.pointerUp(rendererCanvas, {
+      button: 0,
+      buttons: 0,
+      clientX: to.x,
+      clientY: to.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path[0]).toEqual(movementScene.tokens[0]!.position)
+    expect(path.at(-1)?.x).toBeCloseTo(420)
+    expect(path.at(-1)?.y).toBeCloseTo(230)
+  }
+}
+
+export const PathPreviewDuringDrag: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const token = movementScene.tokens[0]!
+    const pointerId = await pressToken(rendererCanvas, token.position)
+    await expect((await readDiagnostics(canvas)).activeDrag).toEqual({
+      pointCount: 1,
+      position: token.position
+    })
+
+    // The wall forces a bend: the straight line from the origin to the last point is blocked.
+    for (const waypoint of [
+      { x: 450, y: 100 },
+      { x: 550, y: 100 },
+      { x: 650, y: 230 }
+    ]) {
+      await movePointer(rendererCanvas, pointerId, waypoint)
+    }
+    const midDrag = (await readDiagnostics(canvas)).activeDrag
+    expect(midDrag?.pointCount).toBe(3)
+    expect(midDrag?.position.x).toBeCloseTo(650)
+    expect(midDrag?.position.y).toBeCloseTo(230)
+    expect(canvas.getByTestId('movement-preview')).toHaveTextContent('"x":650')
+    expect(canvas.getByTestId('movement-commit')).toHaveTextContent('No committed movement.')
+
+    releasePointer(rendererCanvas, pointerId, { x: 650, y: 230 })
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    expect((await readDiagnostics(canvas)).activeDrag).toBeNull()
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path).toHaveLength(midDrag?.pointCount ?? -1)
+    expect(path[0]).toEqual(token.position)
+    expect(path.at(-1)?.x).toBeCloseTo(650)
+    expect(path.at(-1)?.y).toBeCloseTo(230)
+  }
+}
+
+const largeToken = largeTokenScene.tokens[0]
+
+export const LargeTokenFootprintAndOffCentreGrab: Story = {
+  args: { scene: largeTokenScene },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    expect((await readDiagnostics(canvas)).tokens).toEqual([
+      expect.objectContaining({
+        footprint: { height: largeTokenSize, width: largeTokenSize },
+        position: largeToken.position
+      })
+    ])
+
+    // Grab 40 units right and below the centre: still inside the 140-unit footprint, not at the centre.
+    const grab = { x: largeToken.position.x + 40, y: largeToken.position.y + 40 }
+    const pointerId = await pressToken(rendererCanvas, grab)
+    await movePointer(rendererCanvas, pointerId, { x: grab.x + 100, y: grab.y })
+    releasePointer(rendererCanvas, pointerId, { x: grab.x + 100, y: grab.y })
+
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    // The grab offset is kept, so the token centre moves by the pointer delta rather than snapping to it.
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path[0]).toEqual(largeToken.position)
+    expect(path.at(-1)?.x).toBeCloseTo(largeToken.position.x + 100)
+    expect(path.at(-1)?.y).toBeCloseTo(largeToken.position.y)
+  }
+}
+
+export const LargeTokenClampsAtBottomRightEdge: Story = {
+  args: { scene: largeTokenScene },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const pointerId = await pressToken(rendererCanvas, largeToken.position)
+    // The map corner is the farthest point still inside the canvas; the token centre must stop short of it.
+    const mapCorner = { x: largeTokenScene.map.width, y: largeTokenScene.map.height }
+    await movePointer(rendererCanvas, pointerId, mapCorner)
+    releasePointer(rendererCanvas, pointerId, mapCorner)
+
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    // The centre stops half a footprint inside the edge, so the whole token stays on the map.
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path.at(-1)?.x).toBeCloseTo(largeTokenScene.map.width - largeTokenSize / 2)
+    expect(path.at(-1)?.y).toBeCloseTo(largeTokenScene.map.height - largeTokenSize / 2)
+  }
+}
+
+export const LargeTokenClampsAtTopLeftEdge: Story = {
+  args: { scene: largeTokenScene },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const pointerId = await pressToken(rendererCanvas, largeToken.position)
+    const mapCorner = { x: 0, y: 0 }
+    await movePointer(rendererCanvas, pointerId, mapCorner)
+    releasePointer(rendererCanvas, pointerId, mapCorner)
+
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path.at(-1)?.x).toBeCloseTo(largeTokenSize / 2)
+    expect(path.at(-1)?.y).toBeCloseTo(largeTokenSize / 2)
+  }
+}
+
+export const LargeTokenDragStopsAtBarrier: Story = {
+  args: { scene: largeTokenBesideWallScene },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const origin = largeTokenBesideWallScene.tokens[0].position
+    const pointerId = await pressToken(rendererCanvas, origin)
+    // Straight across the wall at x = 500, which spans y 150 to 400.
+    const pastWall = { x: 700, y: origin.y }
+    await movePointer(rendererCanvas, pointerId, pastWall)
+
+    // The token never crosses: it stays where it last had a clear move and no movement is previewed.
+    await expect((await readDiagnostics(canvas)).activeDrag).toEqual({
+      pointCount: 1,
+      position: origin
+    })
+    expect(canvas.getByTestId('movement-preview')).toHaveTextContent('No movement preview.')
+
+    releasePointer(rendererCanvas, pointerId, pastWall)
+    await nextFrame()
+    expect(canvas.getByTestId('movement-commit')).toHaveTextContent('No committed movement.')
+    expect((await readDiagnostics(canvas)).tokens[0]?.position).toEqual(origin)
+  }
+}
+
+export const RotationTurnsOnlyTheFacingIndicator: Story = {
+  args: { facing: true, scene: rotatedLargeTokenScene },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    const [drawn] = (await readDiagnostics(canvas)).tokens
+    expect(drawn?.facingRotationDegrees).toBeCloseTo(
+      rotatedLargeTokenScene.tokens[0].rotationDegrees
+    )
+    // The token itself, with its art and label, stays upright at its footprint.
+    expect(drawn?.rotationDegrees).toBe(0)
+    expect(drawn?.footprint).toEqual({ height: largeTokenSize, width: largeTokenSize })
+  }
+}
+
 function sceneToClient(canvas: HTMLElement, point: ScenePoint): ScenePoint {
   const bounds = canvas.getBoundingClientRect()
   const scale =
@@ -228,6 +501,58 @@ async function drag(canvas: HTMLElement, points: ScenePoint[]): Promise<void> {
     pointerId,
     pointerType: 'mouse'
   })
+}
+
+async function pressToken(canvas: HTMLElement, scenePoint: ScenePoint): Promise<number> {
+  const point = sceneToClient(canvas, scenePoint)
+  const pointerId = nextPointerId++
+  await nextFrame()
+  fireEvent.pointerDown(canvas, {
+    button: 0,
+    buttons: 1,
+    clientX: point.x,
+    clientY: point.y,
+    pointerId,
+    pointerType: 'mouse'
+  })
+  await nextFrame()
+  return pointerId
+}
+
+async function movePointer(
+  canvas: HTMLElement,
+  pointerId: number,
+  scenePoint: ScenePoint
+): Promise<void> {
+  const point = sceneToClient(canvas, scenePoint)
+  fireEvent.pointerMove(canvas, {
+    buttons: 1,
+    clientX: point.x,
+    clientY: point.y,
+    pointerId,
+    pointerType: 'mouse'
+  })
+  await nextFrame()
+}
+
+function releasePointer(canvas: HTMLElement, pointerId: number, scenePoint: ScenePoint): void {
+  const point = sceneToClient(canvas, scenePoint)
+  fireEvent.pointerUp(canvas, {
+    button: 0,
+    buttons: 0,
+    clientX: point.x,
+    clientY: point.y,
+    pointerId,
+    pointerType: 'mouse'
+  })
+}
+
+async function readDiagnostics(canvas: ReturnType<typeof within>): Promise<Diagnostics> {
+  const output = canvas.getByTestId('movement-diagnostics')
+  const readsBefore = output.dataset.reads
+  await fireEvent.click(canvas.getByRole('button', { name: 'Read diagnostics' }))
+  await waitFor(() => expect(output.dataset.reads).not.toBe(readsBefore))
+  return JSON.parse(output.textContent ?? '{}') as Diagnostics
 }
 
 function nextFrame(): Promise<void> {

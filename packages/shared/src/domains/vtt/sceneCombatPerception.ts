@@ -173,6 +173,39 @@ function strongerObscurement(
 }
 
 /**
+ * Illumination and obscurement at one Scene point (D108). Illumination precedence: ambient light;
+ * then DIM / ORDINARY_DARKNESS zones darken it (darker wins); then lights that reach the point
+ * (cone, radii, barriers) brighten it (brighter wins); MAGICAL_DARKNESS (ambient or zone) applies last and
+ * forces MAGICAL_DARKNESS. Obscurement is the strongest zone obscurement at the point.
+ */
+export function resolveSceneIlluminationAt(
+  scene: PerceptionSceneState,
+  point: ScenePoint,
+  barrierIndex: SceneBarrierIndex
+): { illumination: CombatPerceptionIllumination; obscurement: CombatPerceptionObscurement } {
+  const zones = scene.darknessZones.filter((zone) => scenePointInPolygon(point, zone.polygon))
+  let illumination = scene.ambientIllumination
+  let obscurement: CombatPerceptionObscurement = 'NONE'
+  for (const zone of zones) {
+    if (zone.mechanicalIllumination && zone.mechanicalIllumination !== 'MAGICAL_DARKNESS')
+      illumination = darkerIllumination(illumination, zone.mechanicalIllumination)
+    if (zone.mechanicalObscurement)
+      obscurement = strongerObscurement(obscurement, zone.mechanicalObscurement)
+  }
+  for (const light of scene.lights) {
+    if (!canLightPassBetween(scene, light.position, point, barrierIndex)) continue
+    const candidate = illuminationFromLight(light, point)
+    if (candidate) illumination = brighterIllumination(illumination, candidate)
+  }
+  if (
+    scene.ambientIllumination === 'MAGICAL_DARKNESS' ||
+    zones.some((zone) => zone.mechanicalIllumination === 'MAGICAL_DARKNESS')
+  )
+    illumination = 'MAGICAL_DARKNESS'
+  return { illumination, obscurement }
+}
+
+/**
  * Derives portable combat-perception environment facts from authoritative Scene state.
  * Token presentation (`hidden`), fog, labels, and viewer projections are deliberately absent.
  * Illumination/obscurement are sampled at the subject anchor; distance uses occupied footprints.
@@ -192,21 +225,11 @@ export function resolveSceneCombatPerceptionEnvironment(input: {
     input.subject.position,
     barrierIndex
   )
-  let illumination = input.scene.ambientIllumination
-  for (const light of input.scene.lights) {
-    if (!canLightPassBetween(input.scene, light.position, input.subject.position, barrierIndex))
-      continue
-    const candidate = illuminationFromLight(light, input.subject.position)
-    if (candidate) illumination = brighterIllumination(illumination, candidate)
-  }
-  let obscurement: CombatPerceptionObscurement = 'NONE'
-  for (const zone of input.scene.darknessZones) {
-    if (!scenePointInPolygon(input.subject.position, zone.polygon)) continue
-    if (zone.mechanicalIllumination)
-      illumination = darkerIllumination(illumination, zone.mechanicalIllumination)
-    if (zone.mechanicalObscurement)
-      obscurement = strongerObscurement(obscurement, zone.mechanicalObscurement)
-  }
+  const { illumination, obscurement } = resolveSceneIlluminationAt(
+    input.scene,
+    input.subject.position,
+    barrierIndex
+  )
   const suppressedChannels = new Set(input.suppressedChannels)
   if (!visualLineOfSight) suppressedChannels.add('VISUAL')
   return {

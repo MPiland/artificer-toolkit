@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import { SceneBarrierIndex } from '../domains/vtt/geometry.js'
 import type { CampaignSceneState, SceneToken } from '../domains/vtt/scene.js'
 import {
   measureSceneTokenFootprintDistance,
-  resolveSceneCombatPerceptionEnvironment
+  resolveSceneCombatPerceptionEnvironment,
+  resolveSceneIlluminationAt
 } from '../domains/vtt/sceneCombatPerception.js'
 
 const grid = {
@@ -197,6 +199,108 @@ describe('Scene combat-perception environment', () => {
         })
       )
     ).toMatchObject({ illumination: 'MAGICAL_DARKNESS', obscurement: 'HEAVY' })
+  })
+
+  describe('illumination precedence at a point (D108)', () => {
+    const observer = token({ x: 50, y: 450 })
+    const torch = {
+      brightRadius: 100,
+      color: '#ffffff',
+      dimRadius: 300,
+      id: crypto.randomUUID(),
+      intensity: 1,
+      kind: 'POINT',
+      position: { x: 50, y: 50 }
+    } as const
+    const zonePolygon = {
+      points: [
+        { x: 0, y: 0 },
+        { x: 600, y: 0 },
+        { x: 600, y: 100 },
+        { x: 0, y: 100 }
+      ]
+    }
+    const zoneOf = (mechanicalIllumination: 'DIM' | 'ORDINARY_DARKNESS' | 'MAGICAL_DARKNESS') => ({
+      id: crypto.randomUUID(),
+      mechanicalIllumination,
+      mechanicalObscurement: null,
+      opacity: 1,
+      polygon: zonePolygon
+    })
+    const illuminationAt = (x: number, environment: ReturnType<typeof scene>) =>
+      resolve(observer, token({ x, y: 50 }), environment).illumination
+
+    it('lets a torch light a point inside an ordinary darkness zone by its radii', () => {
+      const environment = scene({
+        darknessZones: [zoneOf('ORDINARY_DARKNESS')],
+        lights: [torch]
+      })
+
+      expect(illuminationAt(100, environment)).toBe('BRIGHT')
+      expect(illuminationAt(250, environment)).toBe('DIM')
+      expect(illuminationAt(450, environment)).toBe('ORDINARY_DARKNESS')
+    })
+
+    it('lets a torch light an unlit cave outside any zone', () => {
+      const environment = scene({ ambientIllumination: 'ORDINARY_DARKNESS', lights: [torch] })
+
+      expect(illuminationAt(100, environment)).toBe('BRIGHT')
+      expect(illuminationAt(250, environment)).toBe('DIM')
+      expect(illuminationAt(450, environment)).toBe('ORDINARY_DARKNESS')
+    })
+
+    it('keeps magical darkness over a torch, even within its bright radius', () => {
+      const environment = scene({
+        darknessZones: [zoneOf('MAGICAL_DARKNESS')],
+        lights: [torch]
+      })
+
+      expect(illuminationAt(100, environment)).toBe('MAGICAL_DARKNESS')
+    })
+
+    it('keeps a magically dark Scene dark under a torch, even within its bright radius', () => {
+      const environment = scene({ ambientIllumination: 'MAGICAL_DARKNESS', lights: [torch] })
+
+      expect(illuminationAt(100, environment)).toBe('MAGICAL_DARKNESS')
+      expect(illuminationAt(250, environment)).toBe('MAGICAL_DARKNESS')
+    })
+
+    it('darkens bright ambient light to dim inside a dim zone with no light', () => {
+      expect(illuminationAt(100, scene({ darknessZones: [zoneOf('DIM')] }))).toBe('DIM')
+    })
+
+    it('leaves the zone darkness when a wall stops the torch light', () => {
+      const wall = {
+        a: { x: 150, y: 0 },
+        b: { x: 150, y: 100 },
+        blocksLight: true,
+        blocksMovement: true,
+        id: crypto.randomUUID(),
+        kind: 'WALL'
+      } as const
+      const environment = scene({
+        barriers: [wall],
+        darknessZones: [zoneOf('ORDINARY_DARKNESS')],
+        lights: [torch]
+      })
+
+      expect(illuminationAt(250, environment)).toBe('ORDINARY_DARKNESS')
+    })
+
+    it('resolves the same illumination and obscurement for a bare point', () => {
+      const environment = scene({
+        darknessZones: [{ ...zoneOf('ORDINARY_DARKNESS'), mechanicalObscurement: 'LIGHT' }],
+        lights: [torch]
+      })
+
+      expect(
+        resolveSceneIlluminationAt(
+          environment,
+          { x: 100, y: 50 },
+          new SceneBarrierIndex(environment.barriers)
+        )
+      ).toEqual({ illumination: 'BRIGHT', obscurement: 'LIGHT' })
+    })
   })
 
   it('retains only canonical channel facts and requires shared-surface authority explicitly', () => {

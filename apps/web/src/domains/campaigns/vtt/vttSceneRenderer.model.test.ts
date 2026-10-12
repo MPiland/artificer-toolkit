@@ -2,11 +2,20 @@ import { describe, expect, it } from 'vitest'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
+  ambientDarknessOpacity,
   buildVttFogMask,
   canPreserveSceneTokenDrag,
+  clampPolygonToRadius,
+  countDarknessZones,
+  darknessZoneStyle,
+  dashedPolygonSegments,
+  describeDarknessZone,
+  describeSceneLighting,
   formatSceneMeasurement,
   hasCommittedSceneTokenPositionChanged,
   interpolateScenePoint,
+  lightGlowAlphas,
+  lightRadii,
   pointAreaOverlay,
   positionVttMapTiles,
   resolveVttMapLoadDecision,
@@ -360,6 +369,140 @@ describe('VTT scene renderer model', () => {
         requiredPartIds: parts
       })
     ).toBe('RESET')
+  })
+})
+
+describe('VTT lighting model', () => {
+  const zone = (
+    mechanicalIllumination: CampaignSceneStateDto['darknessZones'][number]['mechanicalIllumination'],
+    mechanicalObscurement: CampaignSceneStateDto['darknessZones'][number]['mechanicalObscurement'],
+    opacity = 0.5
+  ) => ({ mechanicalIllumination, mechanicalObscurement, opacity })
+
+  it('darkens the map more as the ambient illumination falls, and not at all when bright', () => {
+    expect(ambientDarknessOpacity('BRIGHT')).toBe(0)
+    expect(ambientDarknessOpacity('DIM')).toBeGreaterThan(0)
+    expect(ambientDarknessOpacity('ORDINARY_DARKNESS')).toBeGreaterThan(
+      ambientDarknessOpacity('DIM')
+    )
+    expect(ambientDarknessOpacity('MAGICAL_DARKNESS')).toBeGreaterThan(
+      ambientDarknessOpacity('ORDINARY_DARKNESS')
+    )
+  })
+
+  it('draws the bright core stronger than the dim reach, and both stronger against a dark map', () => {
+    const light = { intensity: 0.8 }
+    const bright = lightGlowAlphas(light, 'BRIGHT')
+    const dark = lightGlowAlphas(light, 'ORDINARY_DARKNESS')
+    expect(bright.bright).toBeGreaterThan(bright.dim)
+    expect(dark.bright).toBeGreaterThan(bright.bright)
+    expect(dark.dim).toBeGreaterThan(bright.dim)
+  })
+
+  it('never lets the bright radius exceed the dim reach', () => {
+    expect(lightRadii({ brightRadius: 100, dimRadius: 250 })).toEqual({ bright: 100, dim: 250 })
+    expect(lightRadii({ brightRadius: 300, dimRadius: 200 })).toEqual({ bright: 300, dim: 300 })
+  })
+
+  it('clamps a visibility polygon radially without moving points already inside the radius', () => {
+    const origin = { x: 100, y: 100 }
+    const clamped = clampPolygonToRadius(
+      [origin, { x: 140, y: 100 }, { x: 100, y: 500 }, { x: -200, y: 100 }],
+      origin,
+      100
+    )
+    expect(clamped[0]).toEqual(origin)
+    expect(clamped[1]).toEqual({ x: 140, y: 100 })
+    expect(clamped[2]).toEqual({ x: 100, y: 200 })
+    expect(clamped[3]).toEqual({ x: 0, y: 100 })
+  })
+
+  it('styles a zone by illumination and gives each obscurement a non-colour outline', () => {
+    const magical = darknessZoneStyle(zone('MAGICAL_DARKNESS', null))
+    const ordinary = darknessZoneStyle(zone('ORDINARY_DARKNESS', null))
+    const dim = darknessZoneStyle(zone('DIM', null))
+    expect(magical.fillAlpha).toBeGreaterThan(ordinary.fillAlpha)
+    expect(ordinary.fillAlpha).toBeGreaterThan(dim.fillAlpha)
+    expect(magical.illuminationOutline).not.toBeNull()
+    expect(ordinary.illuminationOutline).toBeNull()
+    // Only magical darkness shuts out light.
+    expect([magical, ordinary, dim].map((style) => style.blocksLight)).toEqual([true, false, false])
+    expect(darknessZoneStyle(zone(null, null, 0.62)).fillAlpha).toBe(0.62)
+
+    const lightObscured = darknessZoneStyle(zone(null, 'LIGHT')).obscurementOutline
+    const heavyObscured = darknessZoneStyle(zone(null, 'HEAVY')).obscurementOutline
+    expect(lightObscured?.dash).not.toBeNull()
+    expect(heavyObscured?.dash).toBeNull()
+    expect(darknessZoneStyle(zone(null, null)).obscurementOutline).toBeNull()
+  })
+
+  it('walks a dashed outline around a closed polygon with the pattern continuing across corners', () => {
+    const square = [
+      { x: 0, y: 0 },
+      { x: 20, y: 0 },
+      { x: 20, y: 20 },
+      { x: 0, y: 20 }
+    ]
+    const segments = dashedPolygonSegments(square, 5, 5)
+    expect(segments).toHaveLength(8)
+    expect(segments[0]).toEqual([
+      { x: 0, y: 0 },
+      { x: 5, y: 0 }
+    ])
+    const dashedLength = segments.reduce(
+      (total, [from, to]) => total + Math.hypot(to.x - from.x, to.y - from.y),
+      0
+    )
+    expect(dashedLength).toBeCloseTo(40)
+  })
+
+  it('describes darkness in words that do not depend on colour', () => {
+    expect(describeDarknessZone(zone('MAGICAL_DARKNESS', 'HEAVY'))).toBe(
+      'Magical darkness, heavily obscured'
+    )
+    expect(describeDarknessZone(zone('DIM', null))).toBe('Dim light')
+    expect(describeDarknessZone(zone(null, 'LIGHT'))).toBe('Lightly obscured')
+    expect(describeDarknessZone(zone(null, null))).toBe('Visual darkness')
+  })
+
+  it('summarizes the lighting only when it departs from bright light', () => {
+    expect(
+      describeSceneLighting({ ambientIllumination: 'BRIGHT', darknessZones: [] }, [])
+    ).toBeNull()
+    const summary = describeSceneLighting(
+      {
+        ambientIllumination: 'DIM',
+        darknessZones: [
+          {
+            id: 'zone',
+            ...zone('MAGICAL_DARKNESS', 'HEAVY'),
+            polygon: { points: [] }
+          }
+        ]
+      },
+      ['Ember']
+    )
+    expect(summary).toContain('Ambient: Dim light')
+    expect(summary).toContain('Magical darkness, heavily obscured')
+    expect(summary).toContain('Vision: Ember')
+  })
+
+  it('counts zones by illumination and obscurement', () => {
+    expect(
+      countDarknessZones([
+        zone('MAGICAL_DARKNESS', 'HEAVY'),
+        zone('ORDINARY_DARKNESS', 'LIGHT'),
+        zone('DIM', null),
+        zone(null, null)
+      ])
+    ).toEqual({
+      dim: 1,
+      heavyObscured: 1,
+      lightObscured: 1,
+      magical: 1,
+      ordinary: 1,
+      unspecified: 1
+    })
   })
 })
 

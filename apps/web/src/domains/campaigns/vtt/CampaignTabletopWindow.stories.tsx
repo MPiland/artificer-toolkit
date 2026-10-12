@@ -10,7 +10,9 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
 import {
   encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
+  type EncounterCommandResultDto,
+  type EncounterGmProjectionDto,
+  type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import {
   sceneFogAppendInputSchema,
@@ -308,6 +310,56 @@ export const PlayerWindow: Story = {
   }
 }
 
+// VTT_UI-1 journey: the scene canvas describes each token's statuses and the current turn.
+export const GmSeesTokenStatuses: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const description = await waitFor(() => {
+      const value = page
+        .getByRole('img', { name: 'Interactive campaign scene' })
+        .getAttribute('aria-description')
+      if (!value?.includes('Vault Warden. Creature')) throw new Error('Tokens not yet described.')
+      return value
+    })
+    await expect(description).toContain('Vault Warden. Creature. Current turn.')
+    await expect(description).toContain('Poisoned')
+    await expect(description).toContain('Frightened')
+    // The GM also sees how hurt the Warden is.
+    await expect(description).toContain('Wounded')
+  }
+}
+
+export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, presentedTokensFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const description = await waitFor(() => {
+      const value = page
+        .getByRole('img', { name: 'Interactive campaign scene' })
+        .getAttribute('aria-description')
+      if (!value?.includes('Vault Warden. Creature')) throw new Error('Tokens not yet described.')
+      return value
+    })
+    await expect(description).toContain('Vault Warden. Creature. Current turn.')
+    await expect(description).toContain('Poisoned')
+    await expect(description).toContain('Frightened')
+    await expect(description).not.toContain('Wounded')
+  }
+}
+
 // D87: the GM shows another Scene's map to players without changing the presented Scene.
 export const GmShowsSceneToPlayers: Story = {
   args: {
@@ -339,9 +391,9 @@ export const PlayerSeesShownScene: Story = {
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
     const viewer = await page.findByRole('dialog', { name: shownScene.sceneName })
-    await expect(
-      await within(viewer).findByRole('img', { name: `Map of ${shownScene.sceneName}` })
-    ).toBeVisible()
+    const map = await within(viewer).findByRole('img', { name: `Map of ${shownScene.sceneName}` })
+    // The Modal fades in; the map is visible once that enter transition has finished.
+    await waitFor(() => expect(map).toBeVisible())
     await expect(page.queryByRole('button', { name: 'Show to players' })).not.toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
     await waitFor(() =>
@@ -350,10 +402,51 @@ export const PlayerSeesShownScene: Story = {
   }
 }
 
+type TabletopFixtures = {
+  gmEncounter: EncounterGmProjectionDto
+  liveScene: CampaignSceneStateDto
+  playerEncounter: EncounterPlayerProjectionDto
+}
+
+const defaultTabletopFixtures: TabletopFixtures = {
+  gmEncounter: tabletopGmEncounter,
+  liveScene: tabletopLiveScene,
+  playerEncounter: tabletopPlayerEncounter
+}
+
+// VTT_UI-1 journey data: the Warden is in plain view, takes the current turn and carries conditions.
+const wardenConditions = [
+  { id: 'poisoned', kind: 'CONDITION', label: 'Poisoned' },
+  { id: 'frightened', kind: 'CONDITION', label: 'Frightened' }
+]
+const wardenId = tabletopGmEncounter.actors[1]!.id
+const presentedTokensFixtures: TabletopFixtures = {
+  gmEncounter: {
+    ...tabletopGmEncounter,
+    actors: tabletopGmEncounter.actors.map((actor) =>
+      actor.id === wardenId ? { ...actor, conditions: wardenConditions } : actor
+    ),
+    currentActorId: wardenId
+  },
+  liveScene: {
+    ...tabletopLiveScene,
+    fogMode: 'OFF',
+    tokens: tabletopLiveScene.tokens.map((token) => ({ ...token, hidden: false }))
+  },
+  playerEncounter: {
+    ...tabletopPlayerEncounter,
+    actors: tabletopPlayerEncounter.actors.map((actor) =>
+      actor.id === wardenId ? { ...actor, conditions: wardenConditions } : actor
+    ),
+    currentActorId: wardenId
+  }
+}
+
 function renderWindow(
   args: ComponentProps<typeof CampaignTabletopWindow>,
   campaign: CampaignDetailDto,
-  showing: CampaignSceneShowingDto | null = null
+  showing: CampaignSceneShowingDto | null = null,
+  fixtures: TabletopFixtures = defaultTabletopFixtures
 ): JSX.Element {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -368,8 +461,8 @@ function renderWindow(
     queryFn: async () => null
   })
   queryClient.setQueryData(getCampaignDetail(tabletopCampaignId).queryKey, campaign)
-  const encounter = campaign.role === 'OWNER' ? tabletopGmEncounter : tabletopPlayerEncounter
-  const scene = projectScene(campaign.role)
+  const encounter = campaign.role === 'OWNER' ? fixtures.gmEncounter : fixtures.playerEncounter
+  const scene = projectScene(campaign.role, fixtures.liveScene)
   const header = recipientHeader(scene)
   const nativeActorTokenBindings = scene.tokens.slice(1).flatMap((token, index) => {
     const actor = encounter.actors[index + 1]
@@ -640,10 +733,13 @@ function renderWindow(
   )
 }
 
-function projectScene(role: CampaignDetailDto['role']): CampaignSceneStateDto {
+function projectScene(
+  role: CampaignDetailDto['role'],
+  liveScene: CampaignSceneStateDto = tabletopLiveScene
+): CampaignSceneStateDto {
   return role === 'OWNER'
-    ? tabletopLiveScene
-    : projectSceneForViewer(tabletopLiveScene, {
+    ? liveScene
+    : projectSceneForViewer(liveScene, {
         role: 'PLAYER',
         userId: tabletopCurrentUserId
       })
