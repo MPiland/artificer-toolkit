@@ -16,9 +16,9 @@ Scope: PLATFORM-1, PLATFORM-4, ACCOUNTS-1, 2, 3, 5, 8 (missing journey proofs), 
 | ACCOUNTS-5 | successful login to the requested path | `profile-browser` signs in from `/systems?redirect` back to `/systems`, then by username, and isolates accounts in one browser. | `profile-browser` in the live batch. |
 | ACCOUNTS-8 | "each privacy setting" | There is no profile visibility setting: profiles are caller-only (ACs 8.1 to 8.3). The gap text asks for a feature the ACs do not define. | `profile-browser` in the live batch; question recorded below. |
 
-## Open question for the product owner
+## ACCOUNTS-8.4: profile visibility
 
-- ACCOUNTS-8 visibility setting: moved to Q4 in [phase-08-2-open-questions.md](phase-08-2-open-questions.md).
+The product owner answered Q4 (it is kept in lane 1's open-questions doc): profiles are Private by default with a Public setting. Lane 1 registered ACCOUNTS-8.4; the rule and the public fields are D108 in [phase-08-2-decisions.md](phase-08-2-decisions.md). Lane 2 builds the schema DTO, the Convex query and auth, the settings control, the public profile page and the two-account journey. The live browser leg runs after merge on lane 1's side, in the `profile-browser` mode.
 
 ## Known worktree limitation
 

@@ -208,6 +208,49 @@ export async function verifyAuthenticatedBrowserSession(input: {
         profile.other.bio
       )
       await expect(page.getByText(profile.bio, { exact: true })).toHaveCount(0)
+
+      // Profile visibility: Private by default, Public to any signed-in account, Private again at once.
+      const primaryProfilePath = `${origin}/profiles/${profile.username.toLowerCase()}`
+      const unavailable = page.getByText("This profile is private or doesn't exist.", {
+        exact: true
+      })
+      async function viewPrimaryProfile() {
+        stage = 'view public profile'
+        await page.goto(primaryProfilePath, { waitUntil: 'domcontentloaded', timeout: 90000 })
+      }
+      async function expectPrimaryProfilePrivate() {
+        await viewPrimaryProfile()
+        await expect(unavailable).toBeVisible({ timeout: 30000 })
+        await expect(page.getByText(profile.bio, { exact: true })).toHaveCount(0)
+      }
+      async function setPrimaryVisibility(visibility: 'Private' | 'Public') {
+        await signOut()
+        await signIn(profile.username.toLowerCase(), input.password)
+        await openProfile()
+        stage = `set ${visibility} profile visibility`
+        await page
+          .getByRole('radiogroup', { name: 'Profile visibility', exact: true })
+          .getByText(visibility, { exact: true })
+          .click()
+        await expect(page.getByRole('radio', { name: visibility, exact: true })).toBeChecked()
+        await expect(
+          page.getByRole('link', { name: 'View public profile', exact: true })
+        ).toHaveCount(visibility === 'Public' ? 1 : 0, { timeout: 30000 })
+        await signOut()
+        await signIn(profile.other.username, profile.other.password)
+      }
+      await expectPrimaryProfilePrivate()
+      await setPrimaryVisibility('Public')
+      await viewPrimaryProfile()
+      await expect(
+        page.getByRole('heading', { level: 1, name: profile.username.toUpperCase(), exact: true })
+      ).toBeVisible({ timeout: 30000 })
+      await expect(page.getByText(profile.bio, { exact: true })).toBeVisible()
+      expect(await page.content()).not.toContain(input.email)
+      await setPrimaryVisibility('Private')
+      await expectPrimaryProfilePrivate()
+      await openProfile()
+
       await page.setViewportSize({ width: 390, height: 844 })
       await expect(page.getByRole('button', { name: 'Save profile', exact: true })).toBeVisible()
       await page.screenshot({
@@ -215,7 +258,7 @@ export async function verifyAuthenticatedBrowserSession(input: {
       })
       await signOut()
       console.log(
-        'Username collision, rename/case preservation, username login and same-browser account isolation passed.'
+        'Username collision, rename/case preservation, username login, profile visibility and same-browser account isolation passed.'
       )
     }
     stage = 'protected redirect after sign out'

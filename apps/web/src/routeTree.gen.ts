@@ -40,6 +40,7 @@ import { Route as AuthedFeatsFeatPublicIdRouteImport } from './routes/_authed/fe
 import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 import { Route as AuthedLibraryImportRouteImport } from './routes/_authed/library/import'
+import { Route as AuthedProfilesUsernameRouteImport } from './routes/_authed/profiles/$username'
 import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
 import { Route as AuthedRacesRacePublicIdRouteImport } from './routes/_authed/races/$racePublicId'
 import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
@@ -260,6 +261,11 @@ const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
 const AuthedLibraryImportRoute = AuthedLibraryImportRouteImport.update({
   id: '/library/import',
   path: '/library/import',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedProfilesUsernameRoute = AuthedProfilesUsernameRouteImport.update({
+  id: '/profiles/$username',
+  path: '/profiles/$username',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedRacesIndexRoute = AuthedRacesIndexRouteImport.update({
@@ -646,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
   '/library/import': typeof AuthedLibraryImportRoute
+  '/profiles/$username': typeof AuthedProfilesUsernameRoute
   '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
   '/settings/account': typeof AuthedSettingsAccountRoute
@@ -737,6 +744,7 @@ export interface FileRoutesByTo {
   '/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
   '/library/import': typeof AuthedLibraryImportRoute
+  '/profiles/$username': typeof AuthedProfilesUsernameRoute
   '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
   '/settings/account': typeof AuthedSettingsAccountRoute
@@ -828,6 +836,7 @@ export interface FileRoutesById {
   '/_authed/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/_authed/feats/new': typeof AuthedFeatsNewRoute
   '/_authed/library/import': typeof AuthedLibraryImportRoute
+  '/_authed/profiles/$username': typeof AuthedProfilesUsernameRoute
   '/_authed/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/_authed/races/new': typeof AuthedRacesNewRoute
   '/_authed/settings/account': typeof AuthedSettingsAccountRoute
@@ -923,6 +932,7 @@ export interface FileRouteTypes {
     | '/feats/$featPublicId'
     | '/feats/new'
     | '/library/import'
+    | '/profiles/$username'
     | '/races/$racePublicId'
     | '/races/new'
     | '/settings/account'
@@ -1014,6 +1024,7 @@ export interface FileRouteTypes {
     | '/feats/$featPublicId'
     | '/feats/new'
     | '/library/import'
+    | '/profiles/$username'
     | '/races/$racePublicId'
     | '/races/new'
     | '/settings/account'
@@ -1104,6 +1115,7 @@ export interface FileRouteTypes {
     | '/_authed/feats/$featPublicId'
     | '/_authed/feats/new'
     | '/_authed/library/import'
+    | '/_authed/profiles/$username'
     | '/_authed/races/$racePublicId'
     | '/_authed/races/new'
     | '/_authed/settings/account'
@@ -1400,6 +1412,13 @@ declare module '@tanstack/react-router' {
       path: '/library/import'
       fullPath: '/library/import'
       preLoaderRoute: typeof AuthedLibraryImportRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/profiles/$username': {
+      id: '/_authed/profiles/$username'
+      path: '/profiles/$username'
+      fullPath: '/profiles/$username'
+      preLoaderRoute: typeof AuthedProfilesUsernameRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/races/': {
@@ -2201,6 +2220,7 @@ interface AuthedRouteChildren {
   AuthedFeatsFeatPublicIdRoute: typeof AuthedFeatsFeatPublicIdRouteWithChildren
   AuthedFeatsNewRoute: typeof AuthedFeatsNewRoute
   AuthedLibraryImportRoute: typeof AuthedLibraryImportRoute
+  AuthedProfilesUsernameRoute: typeof AuthedProfilesUsernameRoute
   AuthedRacesRacePublicIdRoute: typeof AuthedRacesRacePublicIdRouteWithChildren
   AuthedRacesNewRoute: typeof AuthedRacesNewRoute
   AuthedSpellsSpellPublicIdRoute: typeof AuthedSpellsSpellPublicIdRouteWithChildren
@@ -2247,6 +2267,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedFeatsFeatPublicIdRoute: AuthedFeatsFeatPublicIdRouteWithChildren,
   AuthedFeatsNewRoute: AuthedFeatsNewRoute,
   AuthedLibraryImportRoute: AuthedLibraryImportRoute,
+  AuthedProfilesUsernameRoute: AuthedProfilesUsernameRoute,
   AuthedRacesRacePublicIdRoute: AuthedRacesRacePublicIdRouteWithChildren,
   AuthedRacesNewRoute: AuthedRacesNewRoute,
   AuthedSpellsSpellPublicIdRoute: AuthedSpellsSpellPublicIdRouteWithChildren,

@@ -4,6 +4,7 @@ import * as zMini from 'zod/mini'
 
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { v } from 'convex/values'
+import { publicProfileInputSchema } from '@artificer-toolkit/schema/api/account'
 import {
   avatarBindingSchema,
   avatarSaveInputSchema,
@@ -78,6 +79,21 @@ export const getAvatarImage = action({
     const image: MediaReferencedImage | null = await ctx.runQuery(
       internal.media.assets.readAvatar,
       {}
+    )
+    return deliverReferencedImage(ctx, image, variantKind, false)
+  }
+})
+
+export const getProfileAvatarImage = action({
+  args: {
+    ...zodToConvexFields(publicProfileInputSchema.shape),
+    variantKind: zodToConvex(mediaVariantKindSchema)
+  },
+  returns: zodToConvex(zMini.nullable(signedImageDeliveryDtoSchema)),
+  handler: async (ctx, { variantKind, ...profile }): Promise<SignedImageDeliveryDto | null> => {
+    const image: MediaReferencedImage | null = await ctx.runQuery(
+      internal.media.assets.readProfileAvatar,
+      publicProfileInputSchema.parse(profile)
     )
     return deliverReferencedImage(ctx, image, variantKind, false)
   }

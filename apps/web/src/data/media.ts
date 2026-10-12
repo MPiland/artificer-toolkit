@@ -120,6 +120,17 @@ export function useMediaImage(
   }
 }
 
+/** Another account's avatar. The revision keys the cache, so a changed avatar refetches. */
+export function useProfileAvatarImage(username: string, avatarRevision: number | null) {
+  const getProfileAvatarImage = useAction(api.media.avatarActions.getProfileAvatarImage)
+  return useQuery({
+    queryKey: ['media', 'profile-avatar', username.toLowerCase(), avatarRevision],
+    queryFn: () => getProfileAvatarImage({ username, variantKind: 'THUMBNAIL' }),
+    enabled: avatarRevision !== null,
+    staleTime: 4 * 60_000
+  })
+}
+
 /** "My images": the viewer's own ready images of one class, newest first. */
 export function useMediaLibrary(profileClass: MediaProfileClass, enabled = true) {
   return usePaginatedQuery(api.media.library.list, enabled ? { profileClass } : 'skip', {
