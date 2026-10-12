@@ -14,11 +14,11 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { effectiveHitPointMaximum } from '../character/activeEffectGrantTotals.js'
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import {
   creatureActiveGrantAttackContributors,
   creatureActiveGrantCheckContributors,
-  effectiveHitPointMaximum,
   encounterGrantsOpportunityAttackImmunity,
   withActiveGrantSpeeds,
   withCharacterActiveGrants

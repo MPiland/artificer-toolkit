@@ -13,7 +13,7 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import { effectiveHitPointMaximum } from './encounterActiveGrants.js'
+import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
