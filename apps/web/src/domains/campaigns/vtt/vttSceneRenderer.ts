@@ -1067,7 +1067,7 @@ export async function createVttSceneRenderer(
       event.stopPropagation()
       const point = worldPoint(event)
       drag = {
-        appearanceKey: sceneTokenAppearanceKey(token),
+        appearanceKey: sceneTokenAppearanceKey(token, presentation),
         last: { x: visual.x, y: visual.y },
         offset: { x: point.x - visual.x, y: point.y - visual.y },
         origin: { x: token.position.x, y: token.position.y },

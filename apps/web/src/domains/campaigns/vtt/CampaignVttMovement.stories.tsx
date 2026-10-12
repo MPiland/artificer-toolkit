@@ -30,6 +30,7 @@ function MovementFixture() {
   const [preview, setPreview] = useState<ScenePoint | null>(null)
   const [committedPath, setCommittedPath] = useState<ScenePoint[] | null>(null)
   const [appearanceChanged, setAppearanceChanged] = useState(false)
+  const [sceneRevision, setSceneRevision] = useState(0)
 
   useEffect(() => {
     if (!host.current) return
@@ -94,7 +95,8 @@ function MovementFixture() {
         : undefined,
       tool: 'SELECT'
     })
-  }, [appearanceChanged])
+    // A revision re-sends equal inputs, as live presence and chat updates do mid-drag.
+  }, [appearanceChanged, sceneRevision])
 
   return (
     <section aria-label='Movement path fixture' style={{ display: 'grid', gap: 12, padding: 16 }}>
@@ -110,6 +112,9 @@ function MovementFixture() {
       </output>
       <button type='button' onClick={() => setAppearanceChanged(true)}>
         Change token appearance
+      </button>
+      <button type='button' onClick={() => setSceneRevision((revision) => revision + 1)}>
+        Resend scene
       </button>
     </section>
   )
@@ -174,6 +179,63 @@ export const AppearanceChangeDrag: Story = {
     const from = sceneToClient(rendererCanvas, movementScene.tokens[0]!.position)
     const to = sceneToClient(rendererCanvas, { x: 420, y: 230 })
     await drag(rendererCanvas, [from, to])
+    await waitFor(() =>
+      expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
+    )
+    const path = committedPath(canvas.getByTestId('movement-commit').textContent)
+    expect(path[0]).toEqual(movementScene.tokens[0]!.position)
+    expect(path.at(-1)?.x).toBeCloseTo(420)
+    expect(path.at(-1)?.y).toBeCloseTo(230)
+  }
+}
+
+export const PresentedTokenDragSurvivesUpdate: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
+    await fireEvent.click(canvas.getByRole('button', { name: 'Change token appearance' }))
+    const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
+    const from = sceneToClient(rendererCanvas, movementScene.tokens[0]!.position)
+    const middle = sceneToClient(rendererCanvas, { x: 380, y: 230 })
+    const to = sceneToClient(rendererCanvas, { x: 420, y: 230 })
+    const pointerId = nextPointerId++
+    await nextFrame()
+    fireEvent.pointerDown(rendererCanvas, {
+      button: 0,
+      buttons: 1,
+      clientX: from.x,
+      clientY: from.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+    await nextFrame()
+    fireEvent.pointerMove(rendererCanvas, {
+      buttons: 1,
+      clientX: middle.x,
+      clientY: middle.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+    await nextFrame()
+    await fireEvent.click(canvas.getByRole('button', { name: 'Resend scene' }))
+    await nextFrame()
+    fireEvent.pointerMove(rendererCanvas, {
+      buttons: 1,
+      clientX: to.x,
+      clientY: to.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+    await nextFrame()
+    fireEvent.pointerUp(rendererCanvas, {
+      button: 0,
+      buttons: 0,
+      clientX: to.x,
+      clientY: to.y,
+      pointerId,
+      pointerType: 'mouse'
+    })
+
     await waitFor(() =>
       expect(canvas.getByTestId('movement-commit')).not.toHaveTextContent('No committed')
     )
