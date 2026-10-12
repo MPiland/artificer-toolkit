@@ -1,7 +1,6 @@
 import {
   ABILITY_CODE,
   ACTIVATION_CODE,
-  ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -25,14 +24,38 @@ import {
   TRIGGER,
   VALUE_DOMAIN_CODE
 } from '@artificer-toolkit/shared'
+import {
+  fixedMeleeWeaponEffect as sharedFixedMeleeWeaponEffect,
+  finesseWeaponModifiers as sharedFinesseWeaponModifiers,
+  finesseWeaponWithRangedModifiers as sharedFinesseWeaponWithRangedModifiers,
+  heavyArmorStrengthModifier as sharedHeavyArmorStrengthModifier,
+  heavyMeleeWeaponModifiers as sharedHeavyMeleeWeaponModifiers,
+  heavyRangedWeaponModifiers as sharedHeavyRangedWeaponModifiers,
+  lightArmorModifiers as sharedLightArmorModifiers,
+  magicArmorModifiers as sharedMagicArmorModifiers,
+  mediumArmorModifiers as sharedMediumArmorModifiers,
+  meleeMagicWeaponModifiers as sharedMeleeMagicWeaponModifiers,
+  meleeReachWeaponEffects as sharedMeleeReachWeaponEffects,
+  meleeVersatileWeaponEffects as sharedMeleeVersatileWeaponEffects,
+  meleeWeaponAbilityModifiers as sharedMeleeWeaponAbilityModifiers,
+  meleeWeaponEffects as sharedMeleeWeaponEffects,
+  rangedFixedDamageWeaponEffects as sharedRangedFixedDamageWeaponEffects,
+  rangedMagicWeaponModifiers as sharedRangedMagicWeaponModifiers,
+  rangedWeaponAbilityModifiers as sharedRangedWeaponAbilityModifiers,
+  rangedWeaponEffects as sharedRangedWeaponEffects,
+  stealthDisadvantageModifier as sharedStealthDisadvantageModifier,
+  thrownMagicWeaponModifiers as sharedThrownMagicWeaponModifiers,
+  thrownVersatileWeaponEffects as sharedThrownVersatileWeaponEffects,
+  thrownWeaponAbilityModifiers as sharedThrownWeaponAbilityModifiers,
+  thrownWeaponEffects as sharedThrownWeaponEffects
+} from '@artificer-toolkit/shared'
 import type {
   AbilityCode,
   ClosedRuleKind,
+  EquipmentChildId,
   EquipmentEffectAuthored,
   EquipmentGrip,
-  FacetConditionAuthored,
-  ModifierGrantAuthored,
-  SizeCode
+  ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
 import {
   SRD_CONDITION_TYPES,
@@ -154,17 +177,7 @@ export function skillId(code: string): string {
 }
 
 export function stealthDisadvantageModifier(equipmentId: string, order = 1): ModifierGrantAuthored {
-  return {
-    id: equipmentChildId(equipmentId, 0x350, 1),
-    grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
-    domain: { skillId: skillId('STEALTH') },
-    modifierKind: MODIFIER_KIND.DISADVANTAGE,
-    scope: MODIFIER_SCOPE_KIND.GLOBAL,
-    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    restrictions: whileEquippedRestriction(equipmentId, 0x350),
-    order
-  }
+  return sharedStealthDisadvantageModifier(srdChildId(equipmentId), skillId('STEALTH'), order)
 }
 
 export function passiveEquipmentClosedRuleEffect(
@@ -312,31 +325,6 @@ export function lightSourceEffect(
   }
 }
 
-export function fixedMeleeWeaponEffect(
-  equipmentId: string,
-  damageTypeCode: string,
-  amount: number,
-  grip: EquipmentGrip,
-  order = 1,
-  bucket = 0x220
-): EquipmentEffectAuthored {
-  return {
-    id: equipmentChildId(equipmentId, bucket, 1),
-    order,
-    grip,
-    invocation: {
-      kind: 'ACTION',
-      triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-      activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-      range: meleeRange(equipmentId, bucket),
-      targeting: {
-        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-        dispositionKind: TARGET_DISPOSITION_KIND.ANY
-      }
-    },
-    paths: [fixedDamagePath(equipmentId, bucket + 2, damageTypeCode, amount)]
-  }
-}
 export function speedId(code: string): string {
   const entry = SRD_SPEEDS.find((speed) => speed.code === code)
   if (!entry)
@@ -349,680 +337,113 @@ export function equipmentChildId(equipmentId: string, bucket: number, index: num
   const indexHex = index.toString(16).padStart(12, '0')
   return `${equipmentDomain.padStart(8, '0')}-0000-${bucketHex}-${equipmentSuffix.slice(0, 4)}-${indexHex}`
 }
-function whileEquippedRestriction(equipmentId: string, grantIndex: number) {
-  // Each grant gets its own restriction node IDs, keyed by grantIndex.
-  // Buckets: 0x301 = facet, 0x302 = group, 0x303 = context, 0x304 = condition.
-  // grantIndex offsets the index within each bucket to keep IDs unique per grant.
-  return {
-    id: equipmentChildId(equipmentId, 0x301, grantIndex),
-    groups: [
-      {
-        id: equipmentChildId(equipmentId, 0x302, grantIndex),
-        order: 0,
-        contexts: [
-          {
-            id: equipmentChildId(equipmentId, 0x303, grantIndex),
-            order: 0,
-            subject: 'CHARACTER' as const,
-            conditions: [
-              {
-                id: equipmentChildId(equipmentId, 0x304, grantIndex),
-                order: 0,
-                kind: 'PREDICATE' as const,
-                constraint: 'INCLUDE' as const,
-                predicateCode: 'WHILE_SOURCE_EQUIPPED' as const
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
+/** The SRD's deterministic child-id scheme, adapted to the shared builders' `EquipmentChildId`. */
+function srdChildId(equipmentId: string): EquipmentChildId {
+  return (bucket, index, suffix = '') => equipmentChildId(equipmentId, bucket, index) + suffix
 }
-function whileEquippedWithConditionRestriction(
+
+// The dnd5e weapon and armor grants live in `@artificer-toolkit/shared` so imports share them. The
+// functions below only bind the SRD id scheme and resolve damage type codes to vocabulary ids.
+export function fixedMeleeWeaponEffect(
   equipmentId: string,
-  grantIndex: number,
-  facetBucket: number,
-  extraConditions: FacetConditionAuthored<'CHARACTER'>[]
-) {
-  return {
-    id: equipmentChildId(equipmentId, facetBucket, grantIndex),
-    groups: [
-      {
-        id: equipmentChildId(equipmentId, facetBucket + 1, grantIndex),
-        order: 0,
-        contexts: [
-          {
-            id: equipmentChildId(equipmentId, facetBucket + 2, grantIndex),
-            order: 0,
-            subject: 'CHARACTER' as const,
-            conditions: [
-              {
-                id: equipmentChildId(equipmentId, facetBucket + 3, grantIndex),
-                order: 0,
-                kind: 'PREDICATE' as const,
-                constraint: 'INCLUDE' as const,
-                predicateCode: 'WHILE_SOURCE_EQUIPPED' as const
-              },
-              ...extraConditions
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}
-// ─── Base weapon modifier helpers ────────────────────────────────────────────
-function fixedAbilityWeaponModifier(
-  equipmentId: string,
-  bucket: number,
-  order: number,
-  valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.DAMAGE,
-  attackDomain: keyof typeof ATTACK_DOMAIN_CODE,
-  ability: AbilityCode
-): ModifierGrantAuthored {
-  return {
-    id: equipmentChildId(equipmentId, bucket, order),
-    grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode,
-    domain: { attackDomain },
-    modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-    scope: MODIFIER_SCOPE_KIND.SOURCE,
-    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    payload: { ability },
-    restrictions: whileEquippedRestriction(equipmentId, order),
-    order
-  }
+  damageTypeCode: string,
+  amount: number,
+  grip: EquipmentGrip,
+  order = 1,
+  bucket = 0x220
+): EquipmentEffectAuthored {
+  return sharedFixedMeleeWeaponEffect(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    amount,
+    grip,
+    order,
+    bucket
+  )
 }
 export function meleeWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      1,
-      VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      ATTACK_DOMAIN_CODE.MELEE,
-      'STRENGTH'
-    ) as ModifierGrantAuthored
-  )
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      2,
-      VALUE_DOMAIN_CODE.DAMAGE,
-      ATTACK_DOMAIN_CODE.MELEE,
-      'STRENGTH'
-    ) as ModifierGrantAuthored
-  )
-  return modifiers
+  return sharedMeleeWeaponAbilityModifiers(srdChildId(equipmentId))
 }
 export function rangedWeaponAbilityModifiers(
   equipmentId: string,
   ability: AbilityCode = 'DEXTERITY'
 ): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      1,
-      VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      ATTACK_DOMAIN_CODE.RANGED,
-      ability
-    ) as ModifierGrantAuthored
-  )
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      2,
-      VALUE_DOMAIN_CODE.DAMAGE,
-      ATTACK_DOMAIN_CODE.RANGED,
-      ability
-    ) as ModifierGrantAuthored
-  )
-  return modifiers
+  return sharedRangedWeaponAbilityModifiers(srdChildId(equipmentId), ability)
 }
 export function thrownWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const modifiers: ModifierGrantAuthored[] = []
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      1,
-      VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      ATTACK_DOMAIN_CODE.MELEE,
-      'STRENGTH'
-    ) as ModifierGrantAuthored
-  )
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      2,
-      VALUE_DOMAIN_CODE.DAMAGE,
-      ATTACK_DOMAIN_CODE.MELEE,
-      'STRENGTH'
-    ) as ModifierGrantAuthored
-  )
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      3,
-      VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      ATTACK_DOMAIN_CODE.RANGED,
-      'STRENGTH'
-    ) as ModifierGrantAuthored
-  )
-  modifiers.push(
-    fixedAbilityWeaponModifier(
-      equipmentId,
-      0x300,
-      4,
-      VALUE_DOMAIN_CODE.DAMAGE,
-      ATTACK_DOMAIN_CODE.RANGED,
-      'STRENGTH'
-    ) as ModifierGrantAuthored
-  )
-  return modifiers
+  return sharedThrownWeaponAbilityModifiers(srdChildId(equipmentId))
 }
-/** FINESSE: allow STR or DEX for attack and damage rolls. Bucket 0x310. */
 export function finesseWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  const restriction = (i: number) =>
-    whileEquippedWithConditionRestriction(equipmentId, i, 0x310, [])
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x310, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
-      restrictions: restriction(1),
-      order: 1
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x310, 2),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
-      restrictions: restriction(2),
-      order: 2
-    }
-  ]
+  return sharedFinesseWeaponModifiers(srdChildId(equipmentId))
 }
-/** FINESSE on a thrown/ranged weapon: STR or DEX for both melee and ranged attacks. Bucket 0x310. */
 export function finesseWeaponWithRangedModifiers(equipmentId: string) {
-  const restriction = (i: number) =>
-    whileEquippedWithConditionRestriction(equipmentId, i, 0x310, [])
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x310, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
-      restrictions: restriction(1),
-      order: 1
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x310, 2),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
-      restrictions: restriction(2),
-      order: 2
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x310, 3),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
-      restrictions: restriction(3),
-      order: 3
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x310, 4),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
-      restrictions: restriction(4),
-      order: 4
-    }
-  ]
-}
-/**
- * HEAVY: Small or Tiny wielders have disadvantage on attack rolls with this weapon, so only its own
- * attack kind is affected. Bucket 0x320; the melee grant keeps index 1 and the ranged grant index 2.
- */
-function heavyWeaponDisadvantage(
-  equipmentId: string,
-  attackDomain: typeof ATTACK_DOMAIN_CODE.MELEE | typeof ATTACK_DOMAIN_CODE.RANGED,
-  order: number
-): ModifierGrantAuthored {
-  const index = attackDomain === ATTACK_DOMAIN_CODE.MELEE ? 1 : 2
-  return {
-    id: equipmentChildId(equipmentId, 0x320, index),
-    grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-    domain: { attackDomain },
-    modifierKind: MODIFIER_KIND.DISADVANTAGE,
-    scope: MODIFIER_SCOPE_KIND.SOURCE,
-    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    restrictions: whileEquippedWithConditionRestriction(equipmentId, index, 0x320, [
-      {
-        id: equipmentChildId(equipmentId, 0x324, index),
-        order: 1,
-        kind: 'PREDICATE' as const,
-        constraint: 'INCLUDE' as const,
-        predicateCode: 'SIZE' as const,
-        authoringModeKind: 'SELECTED' as const,
-        sizes: ['SMALL', 'TINY'] as SizeCode[]
-      }
-    ]),
-    order
-  }
+  return sharedFinesseWeaponWithRangedModifiers(srdChildId(equipmentId))
 }
 export function heavyMeleeWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  return [
-    ...meleeWeaponAbilityModifiers(equipmentId),
-    heavyWeaponDisadvantage(equipmentId, ATTACK_DOMAIN_CODE.MELEE, 3)
-  ]
+  return sharedHeavyMeleeWeaponModifiers(srdChildId(equipmentId))
 }
 export function heavyRangedWeaponModifiers(equipmentId: string): ModifierGrantAuthored[] {
-  return [
-    ...rangedWeaponAbilityModifiers(equipmentId),
-    heavyWeaponDisadvantage(equipmentId, ATTACK_DOMAIN_CODE.RANGED, 3)
-  ]
+  return sharedHeavyRangedWeaponModifiers(srdChildId(equipmentId))
 }
-/**
- * Light and medium armor AC: + DEX modifier while worn (medium caps it at 2). Armor proficiency
- * does not gate it; SRD non-proficiency only affects checks, saves, attacks and spellcasting.
- * Bucket 0x330.
- */
 export function lightArmorModifiers(equipmentId: string) {
-  return armorAbilityModModifiers(equipmentId, 'DEXTERITY')
+  return sharedLightArmorModifiers(srdChildId(equipmentId))
 }
 export function mediumArmorModifiers(equipmentId: string) {
-  return armorAbilityModModifiers(equipmentId, 'DEXTERITY', { max: 2 })
+  return sharedMediumArmorModifiers(srdChildId(equipmentId))
 }
-function armorAbilityModModifiers(
-  equipmentId: string,
-  ability: AbilityCode,
-  bounds: { min?: number; max?: number } = {}
-) {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x330, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
-      domain: {},
-      modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
-      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { ability, ...bounds },
-      restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x330, []),
-      order: 1
-    }
-  ]
+export function meleeMagicWeaponModifiers(equipmentId: string, bonus: number) {
+  return sharedMeleeMagicWeaponModifiers(srdChildId(equipmentId), bonus)
 }
-/**
- * Heavy armor Strength requirement: walking speed drops by 10 feet while worn unless the wearer's
- * Strength score meets the requirement. Dwarves ignore the reduction (SRD Dwarf: "Your speed is not
- * reduced by wearing heavy armor"). Bucket 0x340 for the grant, 0x341-0x346 for its restriction.
- */
+export function rangedMagicWeaponModifiers(equipmentId: string, bonus: number) {
+  return sharedRangedMagicWeaponModifiers(srdChildId(equipmentId), bonus)
+}
+export function thrownMagicWeaponModifiers(equipmentId: string, bonus: number) {
+  return sharedThrownMagicWeaponModifiers(srdChildId(equipmentId), bonus)
+}
+export function magicArmorModifiers(equipmentId: string, bonus: number) {
+  return sharedMagicArmorModifiers(srdChildId(equipmentId), bonus)
+}
+export function magicAmmoModifiers(equipmentId: string, bonus: number) {
+  return rangedMagicWeaponModifiers(equipmentId, bonus)
+}
 export function heavyArmorStrengthModifier(
   equipmentId: string,
   strengthRequirement: number,
   order: number
 ): ModifierGrantAuthored {
-  return {
-    id: equipmentChildId(equipmentId, 0x340, 1),
-    grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
-    domain: { speedId: speedId('WALK') },
-    modifierKind: MODIFIER_KIND.PENALTY,
-    scope: MODIFIER_SCOPE_KIND.GLOBAL,
-    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    payload: { valueKind: 'FIXED' as const, amount: 10 },
-    restrictions: whileEquippedWithConditionRestriction(equipmentId, 1, 0x341, [
-      {
-        id: equipmentChildId(equipmentId, 0x345, 1),
-        order: 1,
-        kind: 'PREDICATE' as const,
-        constraint: 'INCLUDE' as const,
-        predicateCode: 'ABILITY_SCORE' as const,
-        authoringModeKind: 'SELECTED' as const,
-        abilities: 'STRENGTH' as const,
-        min: 1,
-        max: strengthRequirement - 1
-      },
-      {
-        id: equipmentChildId(equipmentId, 0x346, 1),
-        order: 2,
-        kind: 'PREDICATE' as const,
-        constraint: 'EXCLUDE' as const,
-        predicateCode: 'HERITAGE' as const,
-        authoringModeKind: 'SELECTED' as const,
-        heritageIds: [SRD_DWARVEN_HERITAGE_ID]
-      }
-    ]),
+  return sharedHeavyArmorStrengthModifier(
+    srdChildId(equipmentId),
+    { walkSpeedId: speedId('WALK'), dwarvenHeritageId: SRD_DWARVEN_HERITAGE_ID },
+    strengthRequirement,
     order
-  }
+  )
 }
-export function meleeMagicWeaponModifiers(equipmentId: string, bonus: number) {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x300, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 1),
-      order: 1
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x300, 2),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 2),
-      order: 2
-    }
-  ]
-}
-export function rangedMagicWeaponModifiers(equipmentId: string, bonus: number) {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x300, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 1),
-      order: 1
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x300, 2),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 2),
-      order: 2
-    }
-  ]
-}
-export function thrownMagicWeaponModifiers(equipmentId: string, bonus: number) {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x300, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 1),
-      order: 1
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x300, 2),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.MELEE },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 2),
-      order: 2
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x300, 3),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 3),
-      order: 3
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x300, 4),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
-      domain: { attackDomain: ATTACK_DOMAIN_CODE.RANGED },
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.SOURCE,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 4),
-      order: 4
-    }
-  ]
-}
-export function magicArmorModifiers(equipmentId: string, bonus: number) {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x300, 1),
-      grantKind: GRANT_KIND.MODIFIER_GRANT,
-      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
-      domain: {},
-      modifierKind: MODIFIER_KIND.BONUS,
-      scope: MODIFIER_SCOPE_KIND.GLOBAL,
-      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { valueKind: 'FIXED' as const, amount: bonus },
-      restrictions: whileEquippedRestriction(equipmentId, 1),
-      order: 1
-    }
-  ]
-}
-export function magicAmmoModifiers(equipmentId: string, bonus: number) {
-  return rangedMagicWeaponModifiers(equipmentId, bonus)
-}
-// ─── Weapon effect helpers ───────────────────────────────────────────────
-// Buckets: 0x210 = effect, 0x211 = range, 0x212+ = path payload (per effect)
-// For weapons with two effects (e.g. versatile, thrown), the second
-// effect uses 0x220/0x221/0x222 so IDs stay unique within the item.
-function meleeRange(equipmentId: string, effectBucket: number) {
-  return {
-    id: equipmentChildId(equipmentId, effectBucket + 1, 1),
-    rangeKind: RANGE_KIND.DISTANCE,
-    amount: 5,
-    unit: MEASUREMENT_UNIT_CODE.FEET
-  }
-}
-function reachRange(equipmentId: string, effectBucket: number) {
-  return {
-    id: equipmentChildId(equipmentId, effectBucket + 1, 1),
-    rangeKind: RANGE_KIND.DISTANCE,
-    amount: 10,
-    unit: MEASUREMENT_UNIT_CODE.FEET
-  }
-}
-/** A ranged attack's printed normal and long range ("range 80/320 ft."). */
-function distanceRange(
-  equipmentId: string,
-  effectBucket: number,
-  normalFt: number,
-  longFt: number
-) {
-  return {
-    id: equipmentChildId(equipmentId, effectBucket + 1, 1),
-    rangeKind: RANGE_KIND.DISTANCE,
-    amount: normalFt,
-    longAmount: longFt,
-    unit: MEASUREMENT_UNIT_CODE.FEET
-  }
-}
-function damagePath(
-  equipmentId: string,
-  pathBucket: number,
-  damageTypeCode: string,
-  diceConfig: string
-) {
-  return {
-    id: equipmentChildId(equipmentId, pathBucket, 1),
-    order: 1,
-    pathCode: PATH_CODE.ON_HIT,
-    groupType: PATH_GROUP_TYPE.SINGLE,
-    originKind: 'SOURCE' as const,
-    selectionKind: 'FIXED' as const,
-    resultBlock: {
-      id: equipmentChildId(equipmentId, pathBucket, 1) + '__result',
-      resultKind: 'SINGLE' as const,
-      outcomes: [
-        {
-          id: equipmentChildId(equipmentId, pathBucket, 1),
-          effectKind: EFFECT_KIND.DAMAGE,
-          damageTypeId: damageTypeId(damageTypeCode),
-          valueKind: DAMAGE_VALUE_KIND.DICE,
-          scalingKind: SCALING.NONE,
-          diceConfig
-        }
-      ]
-    }
-  }
-}
-function fixedDamagePath(
-  equipmentId: string,
-  pathBucket: number,
-  damageTypeCode: string,
-  amount: number
-) {
-  return {
-    id: equipmentChildId(equipmentId, pathBucket, 1),
-    order: 1,
-    pathCode: PATH_CODE.ON_HIT,
-    groupType: PATH_GROUP_TYPE.SINGLE,
-    originKind: 'SOURCE' as const,
-    selectionKind: 'FIXED' as const,
-    resultBlock: {
-      id: equipmentChildId(equipmentId, pathBucket, 1) + '__result',
-      resultKind: 'SINGLE' as const,
-      outcomes: [
-        {
-          id: equipmentChildId(equipmentId, pathBucket, 1),
-          effectKind: EFFECT_KIND.DAMAGE,
-          damageTypeId: damageTypeId(damageTypeCode),
-          valueKind: DAMAGE_VALUE_KIND.FIXED,
-          scalingKind: SCALING.NONE,
-          amount
-        }
-      ]
-    }
-  }
-}
-/** Pure melee weapon (e.g. mace, flail, morningstar). */
 export function meleeWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   diceConfig: string,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: grip,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x210),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
-    }
-  ]
+  return sharedMeleeWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    diceConfig,
+    grip
+  )
 }
-/** Versatile melee weapon: two effects (one-handed / two-handed). */
 export function meleeVersatileWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   dice1h: string,
   dice2h: string
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: EQUIPMENT_GRIP.ONE_HANDED,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x210),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x212, damageTypeCode, dice1h)]
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x220, 1),
-      order: 2,
-      grip: EQUIPMENT_GRIP.TWO_HANDED,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x220),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x222, damageTypeCode, dice2h)]
-    }
-  ]
+  return sharedMeleeVersatileWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    dice1h,
+    dice2h
+  )
 }
-/** Thrown weapon (also melee): two effects — melee and ranged. */
 export function thrownWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
@@ -1031,42 +452,15 @@ export function thrownWeaponEffects(
   longRangeFt: number,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: grip,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x210),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x220, 1),
-      order: 2,
-      grip: grip,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x220, normalRangeFt, longRangeFt),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x222, damageTypeCode, diceConfig)]
-    }
-  ]
+  return sharedThrownWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    diceConfig,
+    normalRangeFt,
+    longRangeFt,
+    grip
+  )
 }
-/** Thrown + versatile weapon (spear, trident): melee 1h, melee 2h, ranged. */
 export function thrownVersatileWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
@@ -1075,84 +469,28 @@ export function thrownVersatileWeaponEffects(
   normalRangeFt: number,
   longRangeFt: number
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: EQUIPMENT_GRIP.ONE_HANDED,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x210),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x212, damageTypeCode, dice1h)]
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x220, 1),
-      order: 2,
-      grip: EQUIPMENT_GRIP.TWO_HANDED,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x220),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x222, damageTypeCode, dice2h)]
-    },
-    {
-      id: equipmentChildId(equipmentId, 0x230, 1),
-      order: 3,
-      grip: EQUIPMENT_GRIP.ONE_HANDED,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x230, normalRangeFt, longRangeFt),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x232, damageTypeCode, dice1h)]
-    }
-  ]
+  return sharedThrownVersatileWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    dice1h,
+    dice2h,
+    normalRangeFt,
+    longRangeFt
+  )
 }
-/** Reach melee weapon (glaive, halberd, pike, lance, whip): 10ft range. */
 export function meleeReachWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
   diceConfig: string,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: grip,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: reachRange(equipmentId, 0x210),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
-    }
-  ]
+  return sharedMeleeReachWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    diceConfig,
+    grip
+  )
 }
-/** Pure ranged weapon (bow, crossbow, sling). */
 export function rangedWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
@@ -1161,26 +499,15 @@ export function rangedWeaponEffects(
   longRangeFt: number,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: grip,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x210, normalRangeFt, longRangeFt),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
-    }
-  ]
+  return sharedRangedWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    diceConfig,
+    normalRangeFt,
+    longRangeFt,
+    grip
+  )
 }
-/** Ranged weapon with fixed (non-dice) damage (blowgun: 1 piercing). */
 export function rangedFixedDamageWeaponEffects(
   equipmentId: string,
   damageTypeCode: string,
@@ -1189,22 +516,12 @@ export function rangedFixedDamageWeaponEffects(
   longRangeFt: number,
   grip: EquipmentGrip
 ): EquipmentEffectAuthored[] {
-  return [
-    {
-      id: equipmentChildId(equipmentId, 0x210, 1),
-      order: 1,
-      grip: grip,
-      invocation: {
-        kind: 'ACTION' as const,
-        triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x210, normalRangeFt, longRangeFt),
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.ANY
-        }
-      },
-      paths: [fixedDamagePath(equipmentId, 0x212, damageTypeCode, amount)]
-    }
-  ]
+  return sharedRangedFixedDamageWeaponEffects(
+    srdChildId(equipmentId),
+    damageTypeId(damageTypeCode),
+    amount,
+    normalRangeFt,
+    longRangeFt,
+    grip
+  )
 }

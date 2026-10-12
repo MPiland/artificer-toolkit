@@ -16,7 +16,7 @@ import { canReadAuthoredRoot, readPublishedRootDocument } from './documents'
 import { compileCurrentEquipment } from './equipmentRelationships'
 
 /** The current effective Equipment of each readable loadout entry, by Equipment id. */
-async function readLoadoutEquipment(
+export async function readLoadoutEquipment(
   ctx: QueryCtx,
   entries: readonly { equipmentId: string }[],
   userId: string | null

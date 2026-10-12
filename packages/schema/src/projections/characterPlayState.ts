@@ -87,6 +87,7 @@ type CharacterSheetStatePlay = Pick<
   'resourceUsage' | 'itemUsage' | 'partyVisibility'
 >
 type CharacterInventory = CharacterState['equipment']['inventory']
+type CharacterEquipped = CharacterState['equipment']['equipped']
 type ItemUsage = CharacterPlayState['itemUsage']
 
 const usedById = (itemUsage: ItemUsage) =>
@@ -114,6 +115,15 @@ export function effectiveInventory(
 export function effectiveItemIds(ids: readonly string[], effective: CharacterInventory): string[] {
   const visible = new Set(effective.map((item) => item.id))
   return ids.filter((id) => visible.has(id))
+}
+
+/** The equipped entries a reader sees: `effectiveItemIds` for slot-bearing entries. Pure. */
+export function effectiveEquippedItems(
+  equipped: CharacterEquipped,
+  effective: CharacterInventory
+): CharacterEquipped {
+  const visible = new Set(effective.map((item) => item.id))
+  return equipped.filter(({ itemId }) => visible.has(itemId))
 }
 
 /**
@@ -243,7 +253,7 @@ export function splitCharacterPlayState(
   base: {
     inventory: CharacterInventory
     itemUsage: ItemUsage
-    equipped: readonly string[]
+    equipped: CharacterEquipped
     attuned: readonly string[]
   } | null = null
 ): CharacterSplitState {
@@ -256,7 +266,13 @@ export function splitCharacterPlayState(
       ...ids,
       ...baseIds.filter((id) => hidden.has(id) && !ids.includes(id))
     ]
-    statePart.play.equipped = keep(statePart.play.equipped, base.equipped)
+    statePart.play.equipped = [
+      ...statePart.play.equipped,
+      ...base.equipped.filter(
+        ({ itemId }) =>
+          hidden.has(itemId) && !statePart.play.equipped.some((entry) => entry.itemId === itemId)
+      )
+    ]
     statePart.play.attuned = keep(statePart.play.attuned, base.attuned)
   }
   const sheetPart = splitCharacterSheetStatePlay(sheetState)

@@ -163,6 +163,7 @@ describe('an equipped single-use item that is used up (SPELLS-11)', () => {
     const { t, character } = fixture
     const [item] = (await readInventory(fixture, character.id)).stored
     if (!item) throw new Error('The Character carries nothing.')
+    const equippedEntry = { itemId: item.id, slot: 'WORN' as const }
     const readEquipped = () =>
       t.run(async (ctx) => {
         const row = await readCharacterRow(ctx, character.id)
@@ -188,17 +189,17 @@ describe('an equipped single-use item that is used up (SPELLS-11)', () => {
         ...document,
         state: {
           ...document.state,
-          equipment: { ...document.state.equipment, equipped: [item.id] }
+          equipment: { ...document.state.equipment, equipped: [equippedEntry] }
         }
       }))
     )
-    expect((await readEquipped()).effective).toEqual([item.id])
+    expect((await readEquipped()).effective).toEqual([equippedEntry])
 
     await setUsed(item.quantity)
-    expect(await readEquipped()).toEqual({ effective: [], stored: [item.id] })
+    expect(await readEquipped()).toEqual({ effective: [], stored: [equippedEntry] })
 
     await setUsed(0)
-    expect((await readEquipped()).effective).toEqual([item.id])
+    expect((await readEquipped()).effective).toEqual([equippedEntry])
   })
 })
 

@@ -38,6 +38,11 @@ import {
   isCompleteExternalCustomContent,
   normalizeImportedAuthoredPayload
 } from './importedAuthoredPayload.js'
+import {
+  applyImportedEquipmentTerms,
+  type ImportedEquipmentVocabulary
+} from './importedEquipmentTerms.js'
+import { applyImportedWeaponAttack, type ImportedVocabularyEntry } from './importedWeaponAttack.js'
 const DND_BEYOND_RESPONSE_MAX_BYTES = 10 * 1024 * 1024
 const DND_BEYOND_TIMEOUT_MS = 15_000
 
@@ -199,6 +204,22 @@ export interface ImportPreparationLookup {
     characterId: string
     userId: string
   }): Promise<{ label: string } | null>
+  /** The vocabulary a System defines, or null when the System is not readable. */
+  findSystemVocabulary(input: { systemId: string }): Promise<ImportSystemVocabulary | null>
+}
+
+/** The System vocabulary custom imported content resolves its named terms against. */
+export interface ImportSystemVocabulary extends ImportedEquipmentVocabulary {
+  damageTypes: readonly ImportedVocabularyEntry[]
+}
+
+const EMPTY_SYSTEM_VOCABULARY: ImportSystemVocabulary = {
+  damageTypes: [],
+  rarities: [],
+  currencies: [],
+  speeds: [],
+  skills: [],
+  heritages: []
 }
 
 export interface ResolvedReference extends ExternalContentReference {
@@ -248,11 +269,7 @@ interface PreparedUnableItem {
   issues: ImportIssueDto[]
 }
 
-export interface PreparedCustomContent {
-  subjectKind: AuthoredSubjectKindDto
-  externalId: string
-  label: string
-  payload: Record<string, unknown>
+export interface PreparedCustomContent extends ExternalCustomContent {
   targetId: string
   activate: boolean
   activationEligible: boolean
@@ -574,6 +591,11 @@ async function prepareExternalCharacter(
     : undefined
   const targetId = collision && choice === 'UPDATE_DRAFT' ? collision.subjectId : createId()
 
+  const vocabulary = parsed.customContent.length
+    ? ((await lookup.findSystemVocabulary({ systemId: defaultSystemId })) ??
+      EMPTY_SYSTEM_VOCABULARY)
+    : EMPTY_SYSTEM_VOCABULARY
+  const customIssues: ImportIssueDto[] = []
   const customContentResults: CustomContentResult[] = []
   for (const custom of parsed.customContent) {
     const existingRef = await lookup.findImportReference({
@@ -606,8 +628,17 @@ async function prepareExternalCharacter(
     }
 
     const targetId = createId()
+    // Resolve the source's attack, rarity, price and grants first: eligibility is decided on the
+    // payload the commit stages, so the preview and the commit always agree.
+    const attack = applyImportedWeaponAttack(custom, vocabulary.damageTypes, createId)
+    const terms = applyImportedEquipmentTerms(
+      { ...custom, payload: attack.payload },
+      vocabulary,
+      createId
+    )
+    customIssues.push(...attack.issues, ...terms.issues)
     const normalized = normalizeImportedAuthoredPayload(
-      custom.payload,
+      terms.payload,
       custom.subjectKind,
       targetId,
       custom.label,
@@ -625,6 +656,7 @@ async function prepareExternalCharacter(
       kind: 'NEW',
       prepared: {
         ...custom,
+        payload: terms.payload,
         targetId,
         activationEligible,
         activate:
@@ -720,6 +752,7 @@ async function prepareExternalCharacter(
     collision,
     issues: [
       ...parsed.issues,
+      ...customIssues,
       ...unsupportedSelectionIssues,
       ...(collision?.hasExistingDraft
         ? [

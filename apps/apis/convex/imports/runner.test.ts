@@ -95,6 +95,12 @@ function harness(
       authoredDrafts?: Array<{ subjectKind: 'BACKGROUND'; subjectId: string; label: string }>
     }
     availableSystemIds?: string[]
+    vocabulary?: Partial<
+      Record<
+        'damageTypes' | 'rarities' | 'currencies',
+        Array<{ id: string; code: string; label: string }>
+      >
+    >
     activeCharacterBinding?: { systemId: string; primaryRulesCatalogueId: string | null }
     failMutation?: string
   } = {}
@@ -111,7 +117,8 @@ function harness(
         activeCharacters:
           options.activeCharacterBinding && characterId
             ? [{ characterId, ...options.activeCharacterBinding }]
-            : []
+            : [],
+        equipment: []
       }
     }
     if (name === 'imports/previewLookup:loadExactForJob') {
@@ -121,7 +128,21 @@ function harness(
         activeAuthored: options.exact?.activeAuthored ?? [],
         authoredDrafts: options.exact?.authoredDrafts ?? [],
         characters: [],
-        characterDrafts: []
+        characterDrafts: [],
+        systemVocabularies: options.vocabulary
+          ? [
+              {
+                systemId,
+                damageTypes: [],
+                rarities: [],
+                currencies: [],
+                speeds: [],
+                skills: [],
+                heritages: [],
+                ...options.vocabulary
+              }
+            ]
+          : []
       }
     }
     if (name === 'imports/previewLookup:loadMasterPageForJob')
@@ -319,6 +340,297 @@ describe('native import runner', () => {
     fetch.mockRestore()
   })
 
+  it('wears an equipped custom Equipment item from its own payload and requests no stored Equipment', async () => {
+    const text = JSON.stringify({
+      data: {
+        id: 74476868,
+        name: 'Aria',
+        classes: [],
+        inventory: [
+          {
+            quantity: 1,
+            equipped: true,
+            definition: {
+              id: 31,
+              name: 'Traveler cloak',
+              description: 'A heavy cloak.',
+              isHomebrew: true
+            }
+          }
+        ]
+      }
+    })
+    const storageId = 'dnd-equipped-storage' as Id<'_storage'>
+    const fixture = {
+      blobs: new Map([[storageId, new Blob([text])]]),
+      source: {
+        ownerUserId,
+        descriptor: {
+          source: 'DND_BEYOND' as const,
+          systemId,
+          primaryRulesCatalogueId,
+          entries: [
+            {
+              claimId: '00000000-0000-4000-8000-000000000211',
+              entryId: 'character',
+              url: 'https://www.dndbeyond.com/characters/74476868'
+            }
+          ]
+        },
+        claims: [
+          {
+            claimId: '00000000-0000-4000-8000-000000000211',
+            entryId: 'character',
+            name: 'dnd-beyond-2.json',
+            actualBytes: new TextEncoder().encode(text).byteLength,
+            storageId
+          }
+        ],
+        command: {
+          commandId: '00000000-0000-4000-8000-000000000212',
+          previewId: '00000000-0000-4000-8000-000000000213',
+          selectedEntryIds: ['character'],
+          resolutions: [],
+          customContentChoices: []
+        }
+      } satisfies RunnerSource
+    }
+    const runner = harness(fixture)
+    await runImportJob(runner.ctx, jobId)
+
+    expect(calls(runner.runQuery, 'imports/runnerState:loadPreflight')).toEqual([
+      expect.objectContaining({ equipmentIds: [] })
+    ])
+    const [head] = calls(runner.runMutation, 'imports/stageDrafts:stageCharacterHead') as Array<{
+      payloadJson: string
+    }>
+    const { inventory, equipped } = JSON.parse(head!.payloadJson).character.state.equipment
+    expect(equipped).toEqual([{ itemId: inventory[0].id, slot: 'WORN' }])
+  })
+
+  describe('custom weapons imported from D&D Beyond (BUILDER-4)', () => {
+    const slashingId = '00000000-0000-0000-0004-000300000000'
+
+    function weaponFixture(
+      damageType: string,
+      definition: Record<string, unknown> = {
+        id: 41,
+        name: 'Moonlit Greatsword',
+        description: 'A blade of silver light.',
+        isHomebrew: true,
+        filterType: 'Weapon',
+        attackType: 1,
+        range: 5,
+        longRange: 5,
+        damage: { diceString: '2d6' },
+        damageType,
+        properties: [{ name: 'Heavy' }, { name: 'Two-Handed' }]
+      }
+    ) {
+      const text = JSON.stringify({
+        data: {
+          id: 74476869,
+          name: 'Aria',
+          classes: [],
+          inventory: [{ quantity: 1, equipped: true, definition }]
+        }
+      })
+      const storageId = 'dnd-weapon-storage' as Id<'_storage'>
+      return {
+        blobs: new Map([[storageId, new Blob([text])]]),
+        source: {
+          ownerUserId,
+          descriptor: {
+            source: 'DND_BEYOND' as const,
+            systemId,
+            primaryRulesCatalogueId,
+            entries: [
+              {
+                claimId: '00000000-0000-4000-8000-000000000221',
+                entryId: 'character',
+                url: 'https://www.dndbeyond.com/characters/74476869'
+              }
+            ]
+          },
+          claims: [
+            {
+              claimId: '00000000-0000-4000-8000-000000000221',
+              entryId: 'character',
+              name: 'dnd-beyond-3.json',
+              actualBytes: new TextEncoder().encode(text).byteLength,
+              storageId
+            }
+          ],
+          command: {
+            commandId: '00000000-0000-4000-8000-000000000222',
+            previewId: '00000000-0000-4000-8000-000000000223',
+            selectedEntryIds: ['character'],
+            resolutions: [],
+            customContentChoices: []
+          }
+        } satisfies RunnerSource
+      }
+    }
+
+    it('holds an equipped custom two-handed weapon in the main hand and stages its resolved attack', async () => {
+      const runner = harness(weaponFixture('Slashing'), {
+        vocabulary: { damageTypes: [{ id: slashingId, code: 'SLASHING', label: 'Slashing' }] }
+      })
+      await runImportJob(runner.ctx, jobId)
+
+      expect(calls(runner.runQuery, 'imports/runnerState:loadPreflight')).toEqual([
+        expect.objectContaining({ systemIds: [], equipmentIds: [] })
+      ])
+      const [custom] = calls(
+        runner.runMutation,
+        'imports/stageCustomAuthored:stageCustomAuthored'
+      ) as Array<{ payloadJson: string; targetId: string }>
+      const equipment = JSON.parse(custom!.payloadJson)
+      expect(equipment).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MELEE', 'HEAVY', 'TWO_HANDED'],
+        effects: [
+          {
+            grip: 'TWO_HANDED',
+            invocation: { triggerCode: 'MELEE_WEAPON_ATTACK' },
+            paths: [
+              {
+                resultBlock: {
+                  outcomes: [{ damageTypeId: slashingId, diceConfig: '2d6' }]
+                }
+              }
+            ]
+          }
+        ]
+      })
+      const [head] = calls(runner.runMutation, 'imports/stageDrafts:stageCharacterHead') as Array<{
+        payloadJson: string
+      }>
+      const { inventory, equipped } = JSON.parse(head!.payloadJson).character.state.equipment
+      expect(inventory[0].equipmentId).toBe(custom!.targetId)
+      expect(equipped).toEqual([{ itemId: inventory[0].id, slot: 'MAIN_HAND' }])
+      expect(calls(runner.runMutation, 'imports/stages:stageResult')).toEqual([
+        expect.objectContaining({ resultJson: expect.not.stringContaining('UNKNOWN_DAMAGE_TYPE') })
+      ])
+    })
+
+    const piercingId = '00000000-0000-0000-0004-000800000000'
+    const legendaryId = '00000000-0000-0000-0009-000500000000'
+    const goldId = '00000000-0000-0000-0003-000400000000'
+    const astralTearVocabulary = {
+      damageTypes: [{ id: piercingId, code: 'PIERCING', label: 'Piercing' }],
+      rarities: [{ id: legendaryId, code: 'LEGENDARY', label: 'Legendary' }],
+      currencies: [{ id: goldId, code: 'GP', label: 'Gold' }]
+    }
+    const astralTear = (rarity: string) =>
+      weaponFixture('Piercing', {
+        id: 42,
+        name: 'The Astral Tear Awakened',
+        description: 'A tear of starlight.',
+        isHomebrew: true,
+        filterType: 'Weapon',
+        type: 'Shortsword',
+        attackType: 1,
+        range: 5,
+        longRange: 5,
+        damage: { diceString: '1d6' },
+        damageType: 'Piercing',
+        properties: [{ name: 'Finesse' }, { name: 'Light' }, { name: 'Vex' }],
+        magic: true,
+        canAttune: true,
+        rarity,
+        grantedModifiers: [{ type: 'bonus', subType: 'magic', value: 1 }],
+        weight: 2.0,
+        cost: 100
+      })
+
+    it('keeps an imported item with a rarity the System does not know as a draft', async () => {
+      const runner = harness(astralTear('Mythic'), { vocabulary: astralTearVocabulary })
+      await runImportJob(runner.ctx, jobId)
+
+      const [custom] = calls(
+        runner.runMutation,
+        'imports/stageCustomAuthored:stageCustomAuthored'
+      ) as Array<{ payloadJson: string; activate: boolean }>
+      expect(JSON.parse(custom!.payloadJson)).toMatchObject({ rarityId: '' })
+      expect(custom!.activate).toBe(false)
+    })
+
+    it('imports a homebrew magic finesse shortsword as an equipped one-handed weapon with its grants, rarity and attack', async () => {
+      const runner = harness(astralTear('Legendary'), { vocabulary: astralTearVocabulary })
+      await runImportJob(runner.ctx, jobId)
+
+      const [custom] = calls(
+        runner.runMutation,
+        'imports/stageCustomAuthored:stageCustomAuthored'
+      ) as Array<{ payloadJson: string; targetId: string; activate: boolean }>
+      // The rarity, damage type and price are all known, so the item is complete and activates.
+      expect(custom!.activate).toBe(true)
+      const equipment = JSON.parse(custom!.payloadJson)
+      expect(equipment).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MELEE', 'FINESSE', 'LIGHT', 'MAGIC'],
+        requiresAttunement: true,
+        rarityId: legendaryId,
+        weight: { amount: 2, unit: 'POUNDS' },
+        cost: { amount: 100, currencyId: goldId },
+        effects: [
+          {
+            grip: 'ONE_HANDED',
+            paths: [
+              { resultBlock: { outcomes: [{ damageTypeId: piercingId, diceConfig: '1d6' }] } }
+            ]
+          }
+        ]
+      })
+      // Finesse (optional STR/DEX) attack and damage grants, then the +1 magic bonus grants.
+      expect(
+        equipment.modifiers.map(
+          (grant: { modifierKind: string; valueDomainCode: string; payload: unknown }) => [
+            grant.modifierKind,
+            grant.valueDomainCode,
+            grant.payload
+          ]
+        )
+      ).toEqual([
+        [
+          'OPTIONAL_ABILITY_MODIFIER_BONUS',
+          'ATTACK_ROLL',
+          { abilities: ['STRENGTH', 'DEXTERITY'] }
+        ],
+        ['OPTIONAL_ABILITY_MODIFIER_BONUS', 'DAMAGE', { abilities: ['STRENGTH', 'DEXTERITY'] }],
+        ['BONUS', 'ATTACK_ROLL', { valueKind: 'FIXED', amount: 1 }],
+        ['BONUS', 'DAMAGE', { valueKind: 'FIXED', amount: 1 }]
+      ])
+      expect(equipment.modifiers.map((grant: { order: number }) => grant.order)).toEqual([
+        1, 2, 3, 4
+      ])
+      const [head] = calls(runner.runMutation, 'imports/stageDrafts:stageCharacterHead') as Array<{
+        payloadJson: string
+      }>
+      const { inventory, equipped } = JSON.parse(head!.payloadJson).character.state.equipment
+      expect(inventory[0].equipmentId).toBe(custom!.targetId)
+      expect(equipped).toEqual([{ itemId: inventory[0].id, slot: 'MAIN_HAND' }])
+    })
+
+    it('stages the weapon without an attack and reports an unknown damage type', async () => {
+      const runner = harness(weaponFixture('Moonlight'), {
+        vocabulary: { damageTypes: [{ id: slashingId, code: 'SLASHING', label: 'Slashing' }] }
+      })
+      await runImportJob(runner.ctx, jobId)
+
+      const [custom] = calls(
+        runner.runMutation,
+        'imports/stageCustomAuthored:stageCustomAuthored'
+      ) as Array<{ payloadJson: string }>
+      expect(JSON.parse(custom!.payloadJson)).toMatchObject({ category: 'WEAPON' })
+      expect(JSON.parse(custom!.payloadJson).effects ?? []).toEqual([])
+      expect(calls(runner.runMutation, 'imports/stages:stageResult')).toEqual([
+        expect.objectContaining({ resultJson: expect.stringContaining('UNKNOWN_DAMAGE_TYPE') })
+      ])
+    })
+  })
+
   it('records an invalid collision resolution as FAILED without staging a head', async () => {
     const subjectId = 'collision-background'
     const fixture = source(
@@ -379,7 +691,7 @@ describe('native import runner', () => {
     await runImportJob(runner.ctx, jobId)
 
     expect(calls(runner.runQuery, 'imports/runnerState:loadPreflight')).toEqual([
-      { jobId, systemIds: [unavailableSystemId, systemId], characterIds: [] }
+      { jobId, systemIds: [unavailableSystemId, systemId], characterIds: [], equipmentIds: [] }
     ])
     expect(calls(runner.runMutation, 'imports/stageDrafts:stageAuthoredHead')).toHaveLength(1)
     const results = calls(runner.runMutation, 'imports/stages:stageResult').map((args) =>

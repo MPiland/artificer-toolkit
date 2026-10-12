@@ -501,8 +501,19 @@ shared compiler, Creature publication (`apps/apis/convex/content/creatureLoadout
 admission (`pinCreatureEquipmentSources`) and the GM's per-instance `replaceActorEquipment`, which
 also read the Equipment's `TWO_HANDED` property because a two-handed main-hand item blocks the off
 hand and a two-handed item cannot sit in the off hand. Disarm moves an item from either hand to
-`CARRIED` and records the hand in the transition's `fromState`. SHEET-8, ATTACK-18 and ATTACK-19
-reuse the function for Characters.
+`CARRIED` and records the hand in the transition's `fromState`. ATTACK-18 and ATTACK-19 reuse the
+function for Characters.
+
+**Character equipment hands (SHEET-8, D107).** `state.equipment.equipped` is
+`{ itemId, slot: MAIN_HAND | OFF_HAND | WORN }[]`; an unequipped item is carried. `nextEquipSlot`,
+`swapHeldItems` and `promotesOffHandItem` (`packages/shared` core, beside `resolveHandOccupancy`) are the
+only assignment rules: the Sheet reducer (`EQUIP_ITEM`, `SWAP_HELD_ITEMS`, `UNEQUIP_ITEM`) and the web
+optimistic projection both call them. Held categories are WEAPON and SHIELD; the rest is worn. Only the
+Sheet unequip promotes an off-hand weapon into an emptied main hand; `unequipCharacterItem`, shield stow and
+Disarm only empty the slot, and the stow undo finds the exact entry by the recorded equipment checksum. In
+the rule snapshot `EquippedState` is `{ slot }`. Armor class counts armor only when `WORN` and a shield
+only in a hand; with two held shields the one with the best total (base plus its own applied modifiers)
+counts, the main hand winning a tie. `encounterWieldConflict` picks the same shield.
 
 **Drawn weapons (user ruling, 2026-09-24).** A used Character action on a carried weapon treats it as
 drawn unless its equipment facts say `requiresEquipped`; the grant fold applies the same rule to

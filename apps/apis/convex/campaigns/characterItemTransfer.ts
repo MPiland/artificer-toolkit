@@ -59,7 +59,7 @@ function removeRosterReferences(owner: CharacterOwner, removedItemIds: ReadonlyS
       ...state,
       equipment: {
         ...state.equipment,
-        equipped: state.equipment.equipped.filter((itemId) => !removedItemIds.has(itemId)),
+        equipped: state.equipment.equipped.filter(({ itemId }) => !removedItemIds.has(itemId)),
         attuned: state.equipment.attuned.filter((itemId) => !removedItemIds.has(itemId))
       },
       ...(state.creatureEquipment

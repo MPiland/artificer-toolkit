@@ -1,4 +1,4 @@
-import type { CreatureOriginKindCode, CreatureRelationshipKindCode } from '#core'
+import type { CreatureOriginKindCode, CreatureRelationshipKindCode, EquippedSlotCode } from '#core'
 
 export interface CharacterEquipmentItemState {
   /** Character-owned item id */
@@ -13,9 +13,15 @@ export interface CharacterEquipmentItemState {
   retainedRulesJson?: string
 }
 
+/** An equipped inventory item and where it sits (D107). An item not listed is carried. */
+export interface CharacterEquippedItemState {
+  itemId: string
+  slot: EquippedSlotCode
+}
+
 export interface CharacterEquipmentState {
   inventory: CharacterEquipmentItemState[]
-  equipped: string[] // character item IDs
+  equipped: CharacterEquippedItemState[]
   attuned: string[] // character item IDs
 }
 

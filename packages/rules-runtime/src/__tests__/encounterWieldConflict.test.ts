@@ -18,7 +18,7 @@ const armorClassFacts = {
         itemInstanceId: 'armor-instance'
       },
       category: 'ARMOR' as const,
-      equippedSlot: 'ARMOR',
+      equippedSlot: 'WORN' as const,
       armorClass: 16
     },
     {
@@ -29,7 +29,7 @@ const armorClassFacts = {
         itemInstanceId: shieldId
       },
       category: 'SHIELD' as const,
-      equippedSlot: 'SHIELD',
+      equippedSlot: 'OFF_HAND' as const,
       armorClass: 3
     }
   ]

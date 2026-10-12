@@ -42,7 +42,7 @@ const character = characterDocumentSchema.parse({
         { id: 'bag', equipmentId: 'backpack', quantity: 1 },
         { id: 'wand', equipmentId: 'wand', quantity: 1, containerId: 'bag' }
       ],
-      equipped: ['wand'],
+      equipped: [{ itemId: 'wand', slot: 'WORN' }],
       attuned: []
     },
     currency: [],

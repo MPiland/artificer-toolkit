@@ -318,9 +318,15 @@ async function verifyCharacterCustody(cohort: CampaignCustodyCohort) {
     ...before.destination.state.currency,
     ...movedGroups
   ])
-  assert.equal(sourceEquipment.equipped.includes(child.id), false)
+  assert.equal(
+    sourceEquipment.equipped.some(({ itemId }) => itemId === child.id),
+    false
+  )
   assert.equal(sourceEquipment.attuned.includes(child.id), false)
-  assert.equal(destinationEquipment.equipped.includes(child.id), false)
+  assert.equal(
+    destinationEquipment.equipped.some(({ itemId }) => itemId === child.id),
+    false
+  )
   assert.equal(destinationEquipment.attuned.includes(child.id), false)
   assert.deepEqual(after.source.intent, before.source.intent)
   assert.deepEqual(after.destination.intent, before.destination.intent)

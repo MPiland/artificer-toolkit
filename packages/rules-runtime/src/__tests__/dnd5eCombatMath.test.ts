@@ -20,6 +20,7 @@ import {
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { dnd5eAttackRollContributors } from '../systems/dnd5e/characterRollModes.js'
+import { resolveDnd5eActiveShield } from '../systems/dnd5e/characterVitals.js'
 import { selectDnd5eTargetSavingThrow } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -417,6 +418,79 @@ describe('D&D 5e armor class', () => {
       kind: 'STOW_SHIELD',
       shieldItemInstanceId: character.itemInstanceId('Shield +1'),
       armorClassDelta: -3
+    })
+  })
+
+  describe('held shields (D107)', () => {
+    const armorClass = (items: { label: string; equipped: boolean }[]) =>
+      evaluateSrdCharacter({
+        abilities: { DEXTERITY: 10 },
+        classes: [fighter()],
+        items
+      }).output.derivedStats.armorClass.effective
+
+    it('counts a shield held in the off hand', () => {
+      expect(armorClass([{ label: 'Longsword', equipped: true }])).toBe(10)
+      expect(
+        armorClass([
+          { label: 'Longsword', equipped: true },
+          { label: 'Shield', equipped: true }
+        ])
+      ).toBe(12)
+    })
+
+    it('counts only the shield that adds the most when both hands hold one', () => {
+      const both = [
+        { label: 'Shield', equipped: true },
+        { label: 'Shield +1', equipped: true }
+      ]
+      expect(armorClass(both)).toBe(13)
+      expect(armorClass([...both].reverse())).toBe(13)
+      expect(
+        armorClass([
+          { label: 'Shield', equipped: true },
+          { label: 'Shield', equipped: true }
+        ])
+      ).toBe(12)
+    })
+
+    it('picks the shield that adds the most whichever hand or fact order it comes in', () => {
+      const character = evaluateSrdCharacter({
+        classes: [fighter()],
+        items: [
+          { label: 'Shield', equipped: true },
+          { label: 'Shield +1', equipped: true }
+        ]
+      })
+      const { equipment } = character.facts.armorClassFacts!
+      const plusOne = character.itemInstanceId('Shield +1')
+      const active = equipment.map((item) => item.itemInstanceId)
+      const armorClassOf = (shield: { itemInstanceId: string }) =>
+        shield.itemInstanceId === plusOne ? 3 : 2
+      expect(resolveDnd5eActiveShield(equipment, active, armorClassOf)?.itemInstanceId).toBe(
+        plusOne
+      )
+      expect(
+        resolveDnd5eActiveShield([...equipment].reverse(), active, armorClassOf)?.itemInstanceId
+      ).toBe(plusOne)
+    })
+
+    it('gives a tie to the main hand and ignores a shield that is not held', () => {
+      const character = evaluateSrdCharacter({
+        classes: [fighter()],
+        items: [
+          { label: 'Shield', equipped: true },
+          { label: 'Shield', equipped: true }
+        ]
+      })
+      const { equipment } = character.facts.armorClassFacts!
+      const mainHand = equipment.find((item) => item.equippedSlot === 'MAIN_HAND')!
+      const active = equipment.map((item) => item.itemInstanceId)
+      const chosen = (items: typeof equipment) =>
+        resolveDnd5eActiveShield(items, active, () => 2)?.itemInstanceId
+      expect(chosen(equipment)).toBe(mainHand.itemInstanceId)
+      expect(chosen([...equipment].reverse())).toBe(mainHand.itemInstanceId)
+      expect(chosen(equipment.map((item) => ({ ...item, equippedSlot: 'WORN' })))).toBeUndefined()
     })
   })
 })

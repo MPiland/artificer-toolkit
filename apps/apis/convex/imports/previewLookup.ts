@@ -16,6 +16,7 @@ import { internalQuery } from '../lib/queries'
 import { readCharacterDraftSummary } from '../characters/documents'
 import { loadCharacterState, readCharacterRecord } from '../characters/stateDocuments'
 import { canReadAuthoredRoot } from '../content/documents'
+import { readSystem } from '../content/systemDocuments'
 import { contentStream } from '../content/streams'
 import { requireIdentity } from '../lib/identity'
 import { parseImportJob, requireCurrentImportOwner } from './jobs'
@@ -48,7 +49,8 @@ const exactLookupRequestValidator = v.union(
     subjectId: v.string()
   }),
   v.object({ kind: v.literal('CHARACTER'), characterId: v.string() }),
-  v.object({ kind: v.literal('CHARACTER_DRAFT'), characterId: v.string() })
+  v.object({ kind: v.literal('CHARACTER_DRAFT'), characterId: v.string() }),
+  v.object({ kind: v.literal('SYSTEM_VOCABULARY'), systemId: v.string() })
 )
 
 const importReferenceValidator = v.object({
@@ -82,6 +84,16 @@ const masterCandidateValidator = v.object({
   subjectId: v.string(),
   label: v.string()
 })
+const vocabularyEntryValidator = v.object({ id: v.string(), code: v.string(), label: v.string() })
+const systemVocabularyValidator = v.object({
+  systemId: v.string(),
+  damageTypes: v.array(vocabularyEntryValidator),
+  rarities: v.array(vocabularyEntryValidator),
+  currencies: v.array(vocabularyEntryValidator),
+  speeds: v.array(vocabularyEntryValidator),
+  skills: v.array(vocabularyEntryValidator),
+  heritages: v.array(vocabularyEntryValidator)
+})
 
 export type ImportPreviewExactLookupRequest =
   | {
@@ -102,6 +114,7 @@ export type ImportPreviewExactLookupRequest =
     }
   | { kind: 'CHARACTER'; characterId: string }
   | { kind: 'CHARACTER_DRAFT'; characterId: string }
+  | { kind: 'SYSTEM_VOCABULARY'; systemId: string }
 
 interface ImportReferenceSnapshot {
   source: ImportSourceDto
@@ -135,6 +148,18 @@ interface CharacterDraftSnapshot {
   label: string
 }
 
+type VocabularyEntrySnapshot = { id: string; code: string; label: string }
+
+interface SystemVocabularySnapshot {
+  systemId: string
+  damageTypes: VocabularyEntrySnapshot[]
+  rarities: VocabularyEntrySnapshot[]
+  currencies: VocabularyEntrySnapshot[]
+  speeds: VocabularyEntrySnapshot[]
+  skills: VocabularyEntrySnapshot[]
+  heritages: VocabularyEntrySnapshot[]
+}
+
 export interface ImportPreviewExactLookupSnapshot {
   ownerUserId: string
   importReferences: ImportReferenceSnapshot[]
@@ -142,6 +167,7 @@ export interface ImportPreviewExactLookupSnapshot {
   authoredDrafts: AuthoredDraftSnapshot[]
   characters: CharacterSnapshot[]
   characterDrafts: CharacterDraftSnapshot[]
+  systemVocabularies: SystemVocabularySnapshot[]
 }
 
 export interface ImportPreviewMasterCandidates {
@@ -226,6 +252,10 @@ export function createImportPreviewLookupRecorder(
       record({ kind: 'CHARACTER_DRAFT', characterId: input.characterId })
       return null
     },
+    async findSystemVocabulary(input) {
+      record({ kind: 'SYSTEM_VOCABULARY', systemId: input.systemId })
+      return null
+    },
     exactRequests: () => [...requests.values()],
     masterSubjectKinds: () => [...masterKinds]
   }
@@ -300,6 +330,10 @@ export function mergeImportPreviewLookupSnapshots(
       parts.flatMap((part) => part.characterDrafts),
       (value) => value.characterId
     ),
+    systemVocabularies: uniqueBy(
+      parts.flatMap((part) => part.systemVocabularies),
+      (value) => value.systemId
+    ),
     masterCandidates: [...mastersByKind].map(([subjectKind, candidates]) => ({
       subjectKind,
       candidates: [...candidates.values()]
@@ -322,6 +356,9 @@ export function createImportPreviewMapLookup(
   const characters = new Map(snapshot.characters.map((value) => [value.characterId, value]))
   const characterDrafts = new Map(
     snapshot.characterDrafts.map((value) => [value.characterId, value])
+  )
+  const systemVocabularies = new Map(
+    snapshot.systemVocabularies.map((value) => [value.systemId, value])
   )
   const masters = new Map(
     snapshot.masterCandidates.map((value) => [value.subjectKind, value.candidates])
@@ -349,6 +386,9 @@ export function createImportPreviewMapLookup(
     async findCharacterDraft(input) {
       if (!ownerMatches(input.userId)) return null
       return characterDrafts.get(input.characterId) ?? null
+    },
+    async findSystemVocabulary(input) {
+      return systemVocabularies.get(input.systemId) ?? null
     }
   }
 }
@@ -425,7 +465,8 @@ const exactLookupSnapshotValidator = v.object({
   activeAuthored: v.array(activeAuthoredValidator),
   authoredDrafts: v.array(authoredDraftValidator),
   characters: v.array(characterValidator),
-  characterDrafts: v.array(characterDraftValidator)
+  characterDrafts: v.array(characterDraftValidator),
+  systemVocabularies: v.array(systemVocabularyValidator)
 })
 
 export interface ImportPreviewMasterPage {
@@ -473,6 +514,7 @@ async function loadExactForUser(
   const authoredDrafts = new Map<string, AuthoredDraftSnapshot>()
   const characters = new Map<string, CharacterSnapshot>()
   const characterDrafts = new Map<string, CharacterDraftSnapshot>()
+  const systemVocabularies = new Map<string, SystemVocabularySnapshot>()
   const loadedAuthored = new Set<string>()
   const loadedDrafts = new Set<string>()
   const loadedCharacters = new Set<string>()
@@ -535,6 +577,27 @@ async function loadExactForUser(
       await addDraft(request.subjectKind, request.subjectId)
       continue
     }
+    if (request.kind === 'SYSTEM_VOCABULARY') {
+      const record = await ctx.db
+        .query('systems')
+        .withIndex('by_publicId', (query) => query.eq('id', request.systemId))
+        .unique()
+      if (record) {
+        const { damageTypes, rarities, currencies, speeds, skills, heritages } = readSystem(record)
+        const entries = (list: VocabularyEntrySnapshot[]) =>
+          list.map(({ id, code, label }) => ({ id, code, label }))
+        systemVocabularies.set(request.systemId, {
+          systemId: request.systemId,
+          damageTypes: entries(damageTypes),
+          rarities: entries(rarities),
+          currencies: entries(currencies),
+          speeds: entries(speeds),
+          skills: entries(skills),
+          heritages: entries(heritages)
+        })
+      }
+      continue
+    }
     await addCharacter(request.characterId)
   }
 
@@ -544,7 +607,8 @@ async function loadExactForUser(
     activeAuthored: [...activeAuthored.values()],
     authoredDrafts: [...authoredDrafts.values()],
     characters: [...characters.values()],
-    characterDrafts: [...characterDrafts.values()]
+    characterDrafts: [...characterDrafts.values()],
+    systemVocabularies: [...systemVocabularies.values()]
   }
 }
 

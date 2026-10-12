@@ -2746,6 +2746,11 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                type: "SWAP_HELD_ITEMS";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
                 itemId: string;
                 type: "ATTUNE_ITEM";
               }
@@ -3230,7 +3235,7 @@ export declare const api: {
               displayAsAttack?: boolean;
               equipmentId: string;
               equipmentLabel?: string;
-              equipped: boolean;
+              equippedSlot: "MAIN_HAND" | "OFF_HAND" | "WORN" | null;
               id: string;
               label: string;
               notes?: string;
@@ -5690,7 +5695,7 @@ export declare const api: {
             displayName: string;
             editable: boolean;
             equipmentId: string;
-            equipped: boolean;
+            equippedSlot: "MAIN_HAND" | "OFF_HAND" | "WORN" | null;
             facts: Array<{ label: string; value: string }>;
             features: Array<{
               description?: string;
@@ -10826,7 +10831,10 @@ export declare const api: {
             }>;
             equipment: {
               attuned: Array<string>;
-              equipped: Array<string>;
+              equipped: Array<{
+                itemId: string;
+                slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+              }>;
               inventory: Array<{
                 containerId?: string;
                 customName?: string;
@@ -11204,7 +11212,10 @@ export declare const api: {
               }>;
               equipment: {
                 attuned: Array<string>;
-                equipped: Array<string>;
+                equipped: Array<{
+                  itemId: string;
+                  slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+                }>;
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
@@ -11581,7 +11592,10 @@ export declare const api: {
               }>;
               equipment: {
                 attuned: Array<string>;
-                equipped: Array<string>;
+                equipped: Array<{
+                  itemId: string;
+                  slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+                }>;
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
@@ -12284,7 +12298,10 @@ export declare const api: {
                 }>;
                 equipment: {
                   attuned: Array<string>;
-                  equipped: Array<string>;
+                  equipped: Array<{
+                    itemId: string;
+                    slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+                  }>;
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
@@ -12995,7 +13012,10 @@ export declare const api: {
                 }>;
                 equipment: {
                   attuned: Array<string>;
-                  equipped: Array<string>;
+                  equipped: Array<{
+                    itemId: string;
+                    slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+                  }>;
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
@@ -13718,7 +13738,10 @@ export declare const api: {
               }>;
               equipment: {
                 attuned: Array<string>;
-                equipped: Array<string>;
+                equipped: Array<{
+                  itemId: string;
+                  slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+                }>;
                 inventory: Array<{
                   containerId?: string;
                   customName?: string;
@@ -14415,7 +14438,10 @@ export declare const api: {
                 }>;
                 equipment: {
                   attuned: Array<string>;
-                  equipped: Array<string>;
+                  equipped: Array<{
+                    itemId: string;
+                    slot: "MAIN_HAND" | "OFF_HAND" | "WORN";
+                  }>;
                   inventory: Array<{
                     containerId?: string;
                     customName?: string;
@@ -16075,7 +16101,7 @@ export declare const api: {
             displayName: string;
             editable: boolean;
             equipmentId: string;
-            equipped: boolean;
+            equippedSlot: "MAIN_HAND" | "OFF_HAND" | "WORN" | null;
             facts: Array<{ label: string; value: string }>;
             features: Array<{
               description?: string;
@@ -17645,7 +17671,7 @@ export declare const api: {
               displayAsAttack?: boolean;
               equipmentId: string;
               equipmentLabel?: string;
-              equipped: boolean;
+              equippedSlot: "MAIN_HAND" | "OFF_HAND" | "WORN" | null;
               id: string;
               label: string;
               notes?: string;
@@ -19642,6 +19668,11 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                type: "SWAP_HELD_ITEMS";
+              }
+            | {
+                commandId: string;
+                expectedVersion: number;
                 itemId: string;
                 type: "ATTUNE_ITEM";
               }
@@ -21214,7 +21245,7 @@ export declare const api: {
                   displayAsAttack?: boolean;
                   equipmentId: string;
                   equipmentLabel?: string;
-                  equipped: boolean;
+                  equippedSlot: "MAIN_HAND" | "OFF_HAND" | "WORN" | null;
                   id: string;
                   label: string;
                   notes?: string;
@@ -49190,6 +49221,7 @@ export declare const internal: {
               }
             | { characterId: string; kind: "CHARACTER" }
             | { characterId: string; kind: "CHARACTER_DRAFT" }
+            | { kind: "SYSTEM_VOCABULARY"; systemId: string }
           >;
         },
         {
@@ -49243,6 +49275,15 @@ export declare const internal: {
               | "CHARACTER";
           }>;
           ownerUserId: string;
+          systemVocabularies: Array<{
+            currencies: Array<{ code: string; id: string; label: string }>;
+            damageTypes: Array<{ code: string; id: string; label: string }>;
+            heritages: Array<{ code: string; id: string; label: string }>;
+            rarities: Array<{ code: string; id: string; label: string }>;
+            skills: Array<{ code: string; id: string; label: string }>;
+            speeds: Array<{ code: string; id: string; label: string }>;
+            systemId: string;
+          }>;
         }
       >;
       loadExactForJob: FunctionReference<
@@ -49294,6 +49335,7 @@ export declare const internal: {
               }
             | { characterId: string; kind: "CHARACTER" }
             | { characterId: string; kind: "CHARACTER_DRAFT" }
+            | { kind: "SYSTEM_VOCABULARY"; systemId: string }
           >;
         },
         {
@@ -49347,6 +49389,15 @@ export declare const internal: {
               | "CHARACTER";
           }>;
           ownerUserId: string;
+          systemVocabularies: Array<{
+            currencies: Array<{ code: string; id: string; label: string }>;
+            damageTypes: Array<{ code: string; id: string; label: string }>;
+            heritages: Array<{ code: string; id: string; label: string }>;
+            rarities: Array<{ code: string; id: string; label: string }>;
+            skills: Array<{ code: string; id: string; label: string }>;
+            speeds: Array<{ code: string; id: string; label: string }>;
+            systemId: string;
+          }>;
         }
       >;
       loadMasterPage: FunctionReference<
@@ -49420,6 +49471,7 @@ export declare const internal: {
         "internal",
         {
           characterIds: Array<string>;
+          equipmentIds: Array<string>;
           jobId: string;
           systemIds: Array<string>;
         },
@@ -49430,6 +49482,11 @@ export declare const internal: {
             systemId: string;
           }>;
           availableSystemIds: Array<string>;
+          equipment: Array<{
+            category: string;
+            equipmentId: string;
+            twoHanded: boolean;
+          }>;
         }
       >;
       loadSource: FunctionReference<

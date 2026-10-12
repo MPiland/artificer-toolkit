@@ -1919,6 +1919,69 @@
               "id": "BUILDER-3.4"
             }
           ]
+        },
+        {
+          "id": "BUILDER-4",
+          "title": "Imported custom items keep their kind, properties and damage",
+          "status": "DONE",
+          "journeyTests": ["apps/apis/convex/imports/runner.test.ts"],
+          "journeyStatus": "verified",
+          "origin": [],
+          "note": "Registered 2026-10-11 by the product owner; done 2026-10-11. D&D Beyond homebrew and custom items, and Foundry dnd5e items, were imported as ADVENTURING_GEAR (Foundry shields as ARMOR) with no properties or damage, so an equipped imported weapon or shield never took a hand (D107, SHEET-8). Field shapes were checked against a real D&D Beyond character (74476867). The dnd5e Equipment effect and modifier builders moved to shared/authored and are used by the SRD corpus (output byte-identical, sha256 72a7281e…) and imports. Known limits: weapon-mastery properties are dropped; a versatile or thrown weapon with reach keeps the standard 5 ft range.",
+          "acs": [
+            {
+              "text": "A custom item imported from D&D Beyond or Foundry gets its real category (weapon, armor, shield, tool or gear) and its weapon properties, including two-handed and versatile.",
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/imports/importParsers.test.ts",
+                "apps/apis/convex/imports/runner.test.ts"
+              ],
+              "origin": [],
+              "id": "BUILDER-4.1"
+            },
+            {
+              "text": "An imported custom weapon keeps its damage dice, damage type, ability modifiers and magic bonus as a weapon attack; imported custom armor or a shield keeps its armor class, DEX rule and magic bonus; rarity is kept when the System knows it.",
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/imports/importedWeaponAttack.test.ts",
+                "packages/authoring/src/imports/importedEquipmentTerms.test.ts",
+                "packages/authoring/src/imports/importPreparation.test.ts",
+                "apps/apis/convex/imports/runner.test.ts"
+              ],
+              "origin": [],
+              "id": "BUILDER-4.2"
+            },
+            {
+              "text": "An imported Character with an equipped custom weapon or shield holds it in a hand, and an equipped custom armor is worn.",
+              "status": "DONE",
+              "proof": [
+                "packages/authoring/src/imports/importedCharacterPayload.test.ts",
+                "apps/apis/convex/imports/runner.test.ts"
+              ],
+              "origin": [],
+              "id": "BUILDER-4.3"
+            }
+          ],
+          "tasks": [
+            {
+              "id": "BUILDER-4.T1",
+              "text": "Map D&D Beyond definition fields (filterType, gearTypeId, armorTypeId, armorClass, properties, damage, damageType, attackType, grantedModifiers, rarity, strengthRequirement, stealthCheck) and Foundry dnd5e item fields (type, system.type.value, system.armor, system.properties, system.damage, system.strength) to the Equipment payload in importParsers.",
+              "status": "DONE",
+              "closes": ["BUILDER-4.1", "BUILDER-4.2"]
+            },
+            {
+              "id": "BUILDER-4.T2",
+              "text": "Resolve imported damage type, rarity, currency, speed and skill names to the System vocabulary during import preparation, so preview and commit agree on the payload and activation; an unknown damage type or armor vocabulary is reported as an import issue, not guessed.",
+              "status": "DONE",
+              "closes": ["BUILDER-4.2"]
+            },
+            {
+              "id": "BUILDER-4.T3",
+              "text": "Journey test: import a Character with the real equipped Astral Tear (+1 finesse shortsword) and a custom two-handed weapon and see them held in the main hand with their attacks.",
+              "status": "DONE",
+              "closes": ["BUILDER-4.1", "BUILDER-4.2", "BUILDER-4.3"]
+            }
+          ]
         }
       ]
     },
@@ -2231,30 +2294,48 @@
         {
           "id": "SHEET-8",
           "title": "Characters hold items in their hands",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/characters/sheet/inventory/CharacterSheetHeldItems.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
-          "note": "Registered 2026-10-10 by the product owner (D107). Uses the hand slots and hand-occupancy function introduced by AUTHORING-17, so Characters and Creatures share one rule.",
+          "note": "Registered 2026-10-10 by the product owner (D107); done 2026-10-11. Dev data migrated by local reset and reseed (backup local-validation/convex-reset/sheet-8-held-items.before.zip). Uses the hand slots and hand-occupancy function introduced by AUTHORING-17, so Characters and Creatures share one rule.",
           "acs": [
             {
               "text": "Equipping a held item puts it in the main hand, then the off hand; each hand holds at most one item; a two-handed weapon takes the main hand and blocks the off hand; a shield is held in a hand, and a Character may hold two.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/shared/src/__tests__/equipment-hands.test.ts",
+                "packages/schema/src/__tests__/characterEquippedState.test.ts",
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts",
+                "apps/apis/convex/characters/sheetInventory.test.ts",
+                "apps/web/src/domains/characters/sheet/inventory/CharacterSheetHeldItems.test.tsx"
+              ],
               "origin": [],
               "id": "SHEET-8.1"
             },
             {
               "text": "The player can swap the main-hand and off-hand items; emptying the main hand moves an off-hand weapon into it, while an off-hand shield stays where it is.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts",
+                "apps/apis/convex/characters/sheetInventory.test.ts",
+                "apps/web/src/data/characters/optimisticSheet.test.ts",
+                "apps/web/src/domains/characters/sheet/inspector/CharacterSheetItemPanel.test.tsx",
+                "apps/web/src/domains/characters/sheet/inventory/CharacterSheetHeldItems.test.tsx"
+              ],
               "origin": [],
               "id": "SHEET-8.2"
             },
             {
               "text": "A shield adds to the Character's AC only while held in a hand, and only one shield counts.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/dnd5eCombatMath.test.ts",
+                "apps/apis/convex/characters/sheetInventory.test.ts",
+                "apps/apis/convex/encounters/shieldStow.test.ts"
+              ],
               "origin": [],
               "id": "SHEET-8.3"
             }
@@ -2263,25 +2344,25 @@
             {
               "id": "SHEET-8.T1",
               "text": "Replace the Character rule snapshot's SHIELD equipped slot with MAIN_HAND and OFF_HAND (equippedStateForItem, EquippedState); migrate development data in the same change.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SHEET-8.1", "SHEET-8.3"]
             },
             {
               "id": "SHEET-8.T2",
               "text": "Sheet equip assignment, the swap control and off-hand promotion, through the shared hand-occupancy function.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SHEET-8.1", "SHEET-8.2"]
             },
             {
               "id": "SHEET-8.T3",
               "text": "Shield AC from hand occupancy in characterVitals (resolveDnd5eActiveShield).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SHEET-8.3"]
             },
             {
               "id": "SHEET-8.T4",
-              "text": "Journey test: equip a sword and a shield, swap them, unequip the sword, and see the hands and AC update on the Sheet.",
-              "status": "TODO",
+              "text": "Journey test: equip a sword and a shield, swap them, unequip the sword, and see the hands and AC update on the Sheet. The web journey proves the hands through the real optimistic projection; the AC half is proved by the Convex sheetInventory test.",
+              "status": "DONE",
               "closes": ["SHEET-8.1", "SHEET-8.2", "SHEET-8.3"]
             }
           ]

@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 
 import {
   characterGrantFoldInputSchema,
@@ -198,7 +199,7 @@ const characterArmorClassFactsSchema = lazySchema(() =>
           itemInstanceId: boundedIdentitySchema,
           source: characterMechanicSourceSchema,
           category: z.enum(['ARMOR', 'SHIELD']),
-          equippedSlot: boundedIdentitySchema,
+          equippedSlot: z.enum(EQUIPPED_SLOT_CODES),
           armorClass: z.nullable(finiteNumberSchema)
         })
       )

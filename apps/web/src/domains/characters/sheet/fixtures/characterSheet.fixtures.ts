@@ -1040,7 +1040,7 @@ export const characterSheetFixture = {
         costLabel: 'Silver',
         weight: { amount: 4, unit: 'POUNDS' },
         quantity: 1,
-        equipped: true,
+        equippedSlot: 'MAIN_HAND',
         attuned: false,
         requiresAttunement: false,
         notes: 'Used as a walking stick between delves.'
@@ -1053,7 +1053,7 @@ export const characterSheetFixture = {
         category: 'ADVENTURING_GEAR',
         customName: 'Tidebound Folio',
         quantity: 1,
-        equipped: false,
+        equippedSlot: null,
         attuned: true,
         requiresAttunement: true
       },
@@ -1065,7 +1065,7 @@ export const characterSheetFixture = {
           '<p>This wand has 7 charges and regains 1d6 + 1 expended charges daily at dawn.</p>',
         category: 'WONDROUS_ITEM',
         quantity: 1,
-        equipped: true,
+        equippedSlot: 'WORN',
         attuned: false,
         requiresAttunement: false
       }

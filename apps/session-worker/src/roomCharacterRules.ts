@@ -100,7 +100,7 @@ export async function prepareRoomLiveCharacterSheet(
         ),
         hitDice: facts.prepared.character.state.hitpoints.hitDice
       },
-      equipped: state.equipped.filter((itemId) => inventoryIds.has(itemId)),
+      equipped: state.equipped.filter(({ itemId }) => inventoryIds.has(itemId)),
       attuned: state.attuned.filter((itemId) => inventoryIds.has(itemId)),
       resourceUsage: state.resourceUsage.filter((usage) =>
         resourcePools.has(createCharacterResourceOwnerKey(usage.owner))

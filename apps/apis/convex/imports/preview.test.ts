@@ -336,7 +336,8 @@ describe('native import runner preparation', () => {
           activeAuthored: [],
           authoredDrafts: [],
           characters: [],
-          characterDrafts: []
+          characterDrafts: [],
+          systemVocabularies: []
         }),
         loadMasterPage: async () => ({ page: [], isDone: true, continueCursor: '' })
       },
@@ -438,7 +439,8 @@ describe('native import runner preparation', () => {
         activeAuthored: [],
         authoredDrafts: [],
         characters: [],
-        characterDrafts: []
+        characterDrafts: [],
+        systemVocabularies: []
       })
       .mockResolvedValueOnce({ page: [], isDone: true, continueCursor: 'done' })
     const jobLoaders = runnerLookupLoaders({ runQuery }, jobId)
@@ -472,7 +474,8 @@ describe('native import runner preparation', () => {
           ],
           authoredDrafts: [{ subjectKind: 'SPELL', subjectId: 'spell-1', label: 'Draft' }],
           characters: [],
-          characterDrafts: []
+          characterDrafts: [],
+          systemVocabularies: []
         }),
         loadMasterPage: async () => ({ page: [], isDone: true, continueCursor: '' })
       },

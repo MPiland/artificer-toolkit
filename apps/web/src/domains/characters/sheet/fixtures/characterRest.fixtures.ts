@@ -248,7 +248,7 @@ export const characterSheetMulticlassFixture = {
         ],
         weight: { amount: 2, unit: 'POUNDS' },
         quantity: 1,
-        equipped: true,
+        equippedSlot: 'MAIN_HAND',
         attuned: false,
         requiresAttunement: false
       },
@@ -259,7 +259,7 @@ export const characterSheetMulticlassFixture = {
         description: '<p>Tools for picking locks and disarming traps.</p>',
         category: 'TOOL',
         quantity: 1,
-        equipped: false,
+        equippedSlot: null,
         attuned: false,
         requiresAttunement: false
       }

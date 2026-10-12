@@ -65,7 +65,8 @@ describe('buildImportedCharacter', () => {
       'user-1',
       'system-1',
       'catalogue-1',
-      () => 'inventory-1'
+      () => 'inventory-1',
+      () => ({ category: 'WEAPON', twoHanded: false })
     )
 
     expect(character).toMatchObject({
@@ -89,10 +90,87 @@ describe('buildImportedCharacter', () => {
         hitpoints: { current: 11, temp: 3 },
         equipment: {
           inventory: [{ id: 'inventory-1', equipmentId: 'equipment-1', quantity: 2 }],
-          equipped: ['inventory-1'],
+          equipped: [{ itemId: 'inventory-1', slot: 'MAIN_HAND' }],
           attuned: ['inventory-1']
         }
       }
+    })
+  })
+
+  describe('equipped hands (SHEET-8)', () => {
+    const equippedReference = (subjectId: string, equipped = true) => ({
+      role: 'EQUIPMENT' as const,
+      subjectKind: 'EQUIPMENT' as const,
+      label: subjectId,
+      path: [],
+      equipped,
+      subjectId
+    })
+    const importEquipment = (
+      subjectIds: string[],
+      traits: Record<string, { category: string; twoHanded: boolean }>
+    ) => {
+      let next = 0
+      return buildImportedCharacter(
+        {
+          targetId: 'character-1',
+          label: 'Aria',
+          parsed: {
+            externalId: 'external-1',
+            label: 'Aria',
+            references: [],
+            customContent: [],
+            issues: []
+          },
+          references: subjectIds.map((subjectId) => equippedReference(subjectId))
+        },
+        'user-1',
+        'system-1',
+        'catalogue-1',
+        () => `item-${++next}`,
+        (equipmentId) => traits[equipmentId]
+      ).state.equipment
+    }
+    const sword = { category: 'WEAPON', twoHanded: false }
+
+    it('fills the main hand, then the off hand, and wears non-held equipment', () => {
+      const { equipped } = importEquipment(['sword', 'shield', 'mail'], {
+        sword,
+        shield: { category: 'SHIELD', twoHanded: false },
+        mail: { category: 'ARMOR', twoHanded: false }
+      })
+      expect(equipped).toEqual([
+        { itemId: 'item-1', slot: 'MAIN_HAND' },
+        { itemId: 'item-2', slot: 'OFF_HAND' },
+        { itemId: 'item-3', slot: 'WORN' }
+      ])
+    })
+
+    it('leaves an item carried when the hands are full', () => {
+      const { inventory, equipped } = importEquipment(['sword', 'axe', 'dagger'], {
+        sword,
+        axe: sword,
+        dagger: sword
+      })
+      expect(inventory).toHaveLength(3)
+      expect(equipped).toEqual([
+        { itemId: 'item-1', slot: 'MAIN_HAND' },
+        { itemId: 'item-2', slot: 'OFF_HAND' }
+      ])
+    })
+
+    it('takes the main hand for a two-handed weapon and leaves a second weapon carried', () => {
+      const { equipped } = importEquipment(['greatsword', 'sword'], {
+        greatsword: { category: 'WEAPON', twoHanded: true },
+        sword
+      })
+      expect(equipped).toEqual([{ itemId: 'item-1', slot: 'MAIN_HAND' }])
+    })
+
+    it('leaves an item carried when its Equipment is unknown', () => {
+      const { inventory, equipped } = importEquipment(['mystery', 'sword'], { sword })
+      expect(inventory).toHaveLength(2)
+      expect(equipped).toEqual([{ itemId: 'item-2', slot: 'MAIN_HAND' }])
     })
   })
 })

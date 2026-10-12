@@ -27,7 +27,12 @@ const state = fc.record(
         ),
         { maxLength: 4 }
       ),
-      equipped: fc.array(text, { maxLength: 4 }),
+      equipped: fc.uniqueArray(text, { maxLength: 4 }).map((itemIds) =>
+        itemIds.map((itemId, position) => ({
+          itemId,
+          slot: (['MAIN_HAND', 'OFF_HAND'] as const)[position] ?? ('WORN' as const)
+        }))
+      ),
       attuned: fc.array(text, { maxLength: 3 })
     }),
     currency: fc.constant(new Array<never>()),

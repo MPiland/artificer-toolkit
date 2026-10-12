@@ -114,7 +114,10 @@ it('reconciles native play atomically, recovers after eviction and preserves the
     spellSlots: [{ slotKey: 'STANDARD:1', used: 1 }],
     conditions: [{ conditionTypeId: uuid(0x823), notes: 'Keep this condition.' }],
     exhaustion: { level: 1, notes: 'Keep this exhaustion.' },
-    equipped: [inventoryId, 'removed-item'],
+    equipped: [
+      { itemId: inventoryId, slot: 'MAIN_HAND' },
+      { itemId: 'removed-item', slot: 'OFF_HAND' }
+    ],
     attuned: [inventoryId, 'removed-item'],
     resourceUsage: usage,
     partyVisibility: { health: 'HIDDEN', sheet: true }
@@ -148,7 +151,7 @@ it('reconciles native play atomically, recovers after eviction and preserves the
   const expectedState = {
     ...state,
     hitpoints: { ...state.hitpoints, hitDice: [{ die: 10, total: 1, used: 1 }] },
-    equipped: [inventoryId],
+    equipped: [{ itemId: inventoryId, slot: 'MAIN_HAND' }],
     attuned: [inventoryId],
     resourceUsage: usage.slice(0, 1)
   }

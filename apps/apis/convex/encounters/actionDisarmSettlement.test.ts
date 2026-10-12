@@ -172,7 +172,9 @@ describe('native Disarm preparation and settlement transactions', () => {
             ...prior.state,
             equipment: {
               ...prior.state.equipment,
-              equipped: prior.state.equipment.equipped.filter((id) => id !== base.heldItemId)
+              equipped: prior.state.equipment.equipped.filter(
+                ({ itemId }) => itemId !== base.heldItemId
+              )
             }
           }
         })

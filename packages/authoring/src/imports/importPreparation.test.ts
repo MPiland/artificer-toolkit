@@ -27,7 +27,8 @@ function createLookup(): ImportPreparationLookup {
       ),
     findActiveMasterLabelCandidates: vi.fn().mockResolvedValue([]),
     findCharacter: vi.fn().mockResolvedValue(null),
-    findCharacterDraft: vi.fn().mockResolvedValue(null)
+    findCharacterDraft: vi.fn().mockResolvedValue(null),
+    findSystemVocabulary: vi.fn().mockResolvedValue(null)
   }
 }
 
@@ -270,5 +271,160 @@ describe('import preparation', () => {
 
     expect(boundary.items).toHaveLength(2)
     expect(boundary.items.every((item) => item.kind === 'CHARACTER')).toBe(true)
+  })
+
+  describe('custom Equipment terms resolved from the System vocabulary', () => {
+    const systemId = '00000000-0000-4000-8000-000000000001'
+    const vocabulary = {
+      damageTypes: [{ id: 'damage-piercing', code: 'PIERCING', label: 'Piercing' }],
+      rarities: [{ id: 'rarity-legendary', code: 'LEGENDARY', label: 'Legendary' }],
+      currencies: [{ id: 'currency-gp', code: 'GP', label: 'Gold' }],
+      speeds: [{ id: 'speed-walk', code: 'WALK', label: 'Walking Speed' }],
+      skills: [{ id: 'skill-stealth', code: 'STEALTH', label: 'Stealth' }],
+      heritages: [{ id: 'heritage-dwarven', code: 'DWARVEN', label: 'Dwarven' }]
+    }
+
+    async function prepareAstralTear(rarity: string) {
+      const lookup = createLookup()
+      lookup.findSystemVocabulary = vi.fn().mockResolvedValue(vocabulary)
+      let next = 0
+      const prepared = await prepareImportBatch(
+        lookup,
+        {
+          source: 'DND_BEYOND',
+          systemId,
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
+          entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
+        },
+        'user-1',
+        new Map(),
+        new Map(),
+        {
+          createId: () => `00000000-0000-4000-8000-${(++next).toString().padStart(12, '0')}`,
+          loadFrozenDndBeyondPayload: vi.fn().mockResolvedValue({
+            utf8ByteLength: 128,
+            payload: {
+              data: {
+                id: 74476867,
+                name: 'Aria',
+                classes: [],
+                inventory: [
+                  {
+                    quantity: 1,
+                    equipped: true,
+                    definition: {
+                      id: 42,
+                      name: 'The Astral Tear Awakened',
+                      description: 'A tear of starlight.',
+                      isHomebrew: true,
+                      filterType: 'Weapon',
+                      type: 'Shortsword',
+                      attackType: 1,
+                      range: 5,
+                      longRange: 5,
+                      damage: { diceString: '1d6' },
+                      damageType: 'Piercing',
+                      properties: [{ name: 'Finesse' }, { name: 'Light' }],
+                      magic: true,
+                      rarity,
+                      weight: 2,
+                      cost: 100
+                    }
+                  }
+                ]
+              }
+            }
+          })
+        }
+      )
+      return { lookup, prepared }
+    }
+
+    it('activates a fully resolved imported item, in the preview and in the prepared plan', async () => {
+      const { lookup, prepared } = await prepareAstralTear('Legendary')
+      const [item] = prepared.items
+      if (item?.kind !== 'CHARACTER') throw new Error('Expected a prepared Character.')
+
+      expect(lookup.findSystemVocabulary).toHaveBeenCalledWith({ systemId })
+      expect(item.customContent[0]).toMatchObject({
+        activationEligible: true,
+        activate: true,
+        payload: {
+          rarityId: 'rarity-legendary',
+          cost: { amount: 100, currencyId: 'currency-gp' },
+          effects: [expect.anything()],
+          modifiers: expect.any(Array)
+        }
+      })
+      expect(toImportPreviewResponse(prepared).items[0]?.relatedContent).toEqual([
+        expect.objectContaining({
+          activationEligible: true,
+          destination: expect.objectContaining({ kind: 'ACTIVE_AUTHORED_CONTENT' })
+        })
+      ])
+    })
+
+    it('keeps an imported item with an unresolved rarity as a draft', async () => {
+      const { prepared } = await prepareAstralTear('Mythic')
+      const [item] = prepared.items
+      if (item?.kind !== 'CHARACTER') throw new Error('Expected a prepared Character.')
+
+      expect(item.customContent[0]).toMatchObject({
+        activationEligible: false,
+        activate: false,
+        payload: { rarityId: '' }
+      })
+    })
+
+    it('reports an unknown damage type once, on the Character, and imports the weapon without an attack', async () => {
+      const lookup = createLookup()
+      lookup.findSystemVocabulary = vi.fn().mockResolvedValue({ ...vocabulary, damageTypes: [] })
+      const prepared = await prepareImportBatch(
+        lookup,
+        {
+          source: 'DND_BEYOND',
+          systemId,
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
+          entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
+        },
+        'user-1',
+        new Map(),
+        new Map(),
+        {
+          loadFrozenDndBeyondPayload: vi.fn().mockResolvedValue({
+            utf8ByteLength: 128,
+            payload: {
+              data: {
+                id: 74476867,
+                name: 'Aria',
+                classes: [],
+                inventory: [
+                  {
+                    quantity: 1,
+                    definition: {
+                      id: 41,
+                      name: 'Moonlit Greatsword',
+                      isHomebrew: true,
+                      filterType: 'Weapon',
+                      attackType: 1,
+                      range: 5,
+                      longRange: 5,
+                      damage: { diceString: '2d6' },
+                      damageType: 'Slashing',
+                      properties: [{ name: 'Heavy' }]
+                    }
+                  }
+                ]
+              }
+            }
+          })
+        }
+      )
+      const [item] = prepared.items
+      if (item?.kind !== 'CHARACTER') throw new Error('Expected a prepared Character.')
+
+      expect(item.issues.filter(({ code }) => code === 'UNKNOWN_DAMAGE_TYPE')).toHaveLength(1)
+      expect(item.customContent[0]?.payload).not.toHaveProperty('effects')
+    })
   })
 })

@@ -157,7 +157,9 @@ describe('Encounter reads of live Character state', () => {
     const final = await storedCharacter(fixture)
     expect(final.state.hitpoints.current).toBe(edited.state.hitpoints.current - 1)
     expect(final.state.spellSlots).toEqual(edited.state.spellSlots)
-    expect(final.state.equipment.equipped).toContain(item.id)
+    expect(final.state.equipment.equipped).toContainEqual(
+      expect.objectContaining({ itemId: item.id })
+    )
     await checkpointRoom(fixture.campaign.id)
     const gmView = await fixture.owner.caller.query(api.encounters.projectionReads.get, {
       encounterId: fixture.run.id

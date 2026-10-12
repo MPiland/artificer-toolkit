@@ -58,6 +58,7 @@ export const ROOM_CHARACTER_PLAY_COMMAND_TYPES = [
   'CAST_SPELL',
   'EQUIP_ITEM',
   'UNEQUIP_ITEM',
+  'SWAP_HELD_ITEMS',
   'ATTUNE_ITEM',
   'UNATTUNE_ITEM'
 ] as const satisfies readonly CharacterSheetCommandInputDto['type'][]

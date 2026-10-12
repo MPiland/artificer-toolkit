@@ -6,6 +6,7 @@ import {
 import { characterSheetStateSchema } from '@artificer-toolkit/schema/projections/characterSheetState'
 import { splitCharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import { EQUIPMENT_PROPERTY_CODE, nextEquipSlot } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -219,12 +220,31 @@ export function characterOwnerRowFor({
       equipment: {
         ...capturedPage.inputs.character.state.equipment,
         inventory: [...capturedInventory, ...carriedInventory],
-        equipped: [
-          ...(equipped
-            ? capturedInventory.map(({ id }) => id).slice(0, 1)
-            : capturedPage.inputs.character.state.equipment.equipped),
-          ...carriedInventory.map(({ id }) => id)
-        ]
+        equipped: carriedInventory.reduce<
+          { itemId: string; slot: 'MAIN_HAND' | 'OFF_HAND' | 'WORN' }[]
+        >(
+          (entries, { id }, index) => {
+            const item = carried[index]!
+            const assignment = nextEquipSlot(
+              {
+                id,
+                category: item.category,
+                twoHanded: (item.properties ?? []).includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+              },
+              entries.flatMap(({ itemId, slot }) =>
+                slot === 'WORN' ? [] : [{ id: itemId, slot, twoHanded: false }]
+              )
+            )
+            if ('conflict' in assignment)
+              throw new Error(`Carried "${item.label}" cannot be equipped: ${assignment.conflict}.`)
+            return [...entries, { itemId: id, slot: assignment.slot }]
+          },
+          equipped
+            ? capturedInventory
+                .slice(0, 1)
+                .map(({ id }) => ({ itemId: id, slot: 'MAIN_HAND' as const }))
+            : capturedPage.inputs.character.state.equipment.equipped
+        )
       },
       hitpoints: {
         current: currentHitPoints,

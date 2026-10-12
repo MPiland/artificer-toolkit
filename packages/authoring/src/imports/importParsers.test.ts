@@ -212,6 +212,513 @@ describe('import parsers', () => {
     ).toBeNull()
   })
 
+  describe('custom Equipment mapping', () => {
+    const dndBeyondEquipment = (inventory: unknown[], customItems: unknown[] = []) =>
+      parseDndBeyondCharacterPayload({ data: { id: 1, name: 'Aria', inventory, customItems } }, '1')
+        ?.customContent ?? []
+    const homebrew = (definition: Record<string, unknown>) => ({
+      quantity: 1,
+      equipped: true,
+      definition: { isHomebrew: true, description: '', ...definition }
+    })
+    const foundryEquipment = (items: unknown[]) =>
+      parseFoundryActorPayload({
+        _id: 'actor-1',
+        name: 'Aria',
+        type: 'character',
+        _stats: { systemId: 'dnd5e' },
+        system: {},
+        items
+      })
+    const foundryItem = (type: string, name: string, system: Record<string, unknown>) => ({
+      _id: `${name}-id`,
+      name,
+      type,
+      system
+    })
+
+    it('maps a D&D Beyond two-handed weapon to a two-handed weapon attack', () => {
+      const [greatsword] = dndBeyondEquipment([
+        homebrew({
+          id: 100,
+          name: 'Moonlit Greatsword',
+          filterType: 'Weapon',
+          attackType: 1,
+          range: 5,
+          longRange: 5,
+          damage: { diceString: '2d6' },
+          damageType: 'Slashing',
+          canAttune: true,
+          magic: true,
+          properties: [{ name: 'Heavy' }, { name: 'Two-Handed' }, { name: 'Stealth' }]
+        })
+      ])
+      expect(greatsword?.payload).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MELEE', 'HEAVY', 'TWO_HANDED', 'MAGIC'],
+        requiresAttunement: true
+      })
+      expect(greatsword?.weaponAttack).toEqual({
+        damageTypeName: 'Slashing',
+        dice: '2d6',
+        grip: 'TWO_HANDED',
+        meleeReachFeet: 5
+      })
+    })
+
+    it('maps a D&D Beyond versatile ranged-thrown weapon with its two-handed dice', () => {
+      const [spear] = dndBeyondEquipment([
+        homebrew({
+          id: 101,
+          name: 'Heron Spear',
+          filterType: 'Weapon',
+          attackType: 1,
+          range: 20,
+          longRange: 60,
+          damage: { diceString: '1d6' },
+          damageType: 'Piercing',
+          properties: [{ name: 'Thrown' }, { name: 'Versatile', notes: '1d8' }]
+        })
+      ])
+      expect(spear?.payload).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MELEE', 'THROWN', 'VERSATILE']
+      })
+      expect(spear?.weaponAttack).toEqual({
+        damageTypeName: 'Piercing',
+        dice: '1d6',
+        versatileDice: '1d8',
+        grip: 'ONE_HANDED',
+        meleeReachFeet: 5,
+        ranged: { normalFeet: 20, longFeet: 60 }
+      })
+    })
+
+    it('maps a D&D Beyond ranged weapon with its normal and long range', () => {
+      const [bow] = dndBeyondEquipment([
+        homebrew({
+          id: 102,
+          name: 'Gale Bow',
+          filterType: 'Weapon',
+          attackType: 2,
+          range: 150,
+          longRange: 600,
+          damage: { diceString: '1d8' },
+          damageType: 'Piercing',
+          properties: [{ name: 'Ammunition' }, { name: 'Two-Handed' }]
+        })
+      ])
+      expect(bow?.payload).toMatchObject({
+        category: 'WEAPON',
+        properties: ['RANGED', 'AMMUNITION', 'TWO_HANDED']
+      })
+      expect(bow?.weaponAttack).toEqual({
+        damageTypeName: 'Piercing',
+        dice: '1d8',
+        grip: 'TWO_HANDED',
+        ranged: { normalFeet: 150, longFeet: 600 }
+      })
+    })
+
+    it('maps D&D Beyond armor and shields with their armor class and no attack', () => {
+      const [armor, shield, gear] = dndBeyondEquipment([
+        homebrew({
+          id: 110,
+          name: 'Dusk Mail',
+          filterType: 'Armor',
+          armorTypeId: 2,
+          armorClass: 14
+        }),
+        homebrew({
+          id: 111,
+          name: 'Aegis',
+          filterType: 'Armor',
+          armorTypeId: 4,
+          armorClass: 2
+        }),
+        homebrew({ id: 112, name: 'Rope', filterType: 'Other Gear' })
+      ])
+      expect(armor?.payload).toMatchObject({
+        category: 'ARMOR',
+        properties: ['MEDIUM'],
+        armorClass: 14
+      })
+      expect(shield?.payload).toMatchObject({ category: 'SHIELD', properties: [], armorClass: 2 })
+      expect(gear?.payload).toMatchObject({ category: 'ADVENTURING_GEAR', properties: [] })
+      expect(gear?.payload).not.toHaveProperty('armorClass')
+      expect([armor, shield, gear].map((content) => content?.weaponAttack)).toEqual([
+        undefined,
+        undefined,
+        undefined
+      ])
+    })
+
+    it('keeps D&D Beyond custom items without type fields as adventuring gear', () => {
+      const [keepsake] = dndBeyondEquipment([], [{ id: 7, name: 'Keepsake', description: 'Coin' }])
+      expect(keepsake?.payload).toMatchObject({ category: 'ADVENTURING_GEAR', properties: [] })
+      expect(keepsake?.weaponAttack).toBeUndefined()
+    })
+
+    describe('trimmed real D&D Beyond definitions', () => {
+      it('maps a homebrew magic finesse shortsword with its rarity, weight and +1 bonus', () => {
+        const [astralTear] = dndBeyondEquipment([
+          homebrew({
+            id: 200,
+            name: 'The Astral Tear Awakened',
+            filterType: 'Weapon',
+            type: 'Shortsword',
+            attackType: 1,
+            range: 5,
+            longRange: 5,
+            damage: { diceString: '1d6' },
+            damageType: 'Piercing',
+            properties: [{ name: 'Finesse' }, { name: 'Light' }, { name: 'Vex' }],
+            magic: true,
+            canAttune: true,
+            rarity: 'Legendary',
+            grantedModifiers: [{ type: 'bonus', subType: 'magic', value: 1 }],
+            weight: 2.0,
+            cost: null
+          })
+        ])
+        expect(astralTear?.payload).toMatchObject({
+          category: 'WEAPON',
+          properties: ['MELEE', 'FINESSE', 'LIGHT', 'MAGIC'],
+          requiresAttunement: true,
+          weight: { amount: 2, unit: 'POUNDS' }
+        })
+        expect(astralTear).toMatchObject({
+          magicBonus: 1,
+          rarityName: 'Legendary',
+          weaponAttack: {
+            damageTypeName: 'Piercing',
+            dice: '1d6',
+            grip: 'ONE_HANDED',
+            meleeReachFeet: 5
+          }
+        })
+        expect(astralTear).not.toHaveProperty('costGold')
+      })
+
+      it('maps a versatile longsword, dropping the weapon mastery property, with its price', () => {
+        const [longsword] = dndBeyondEquipment([
+          homebrew({
+            id: 201,
+            name: 'Longsword',
+            filterType: 'Weapon',
+            type: 'Longsword',
+            attackType: 1,
+            range: 5,
+            longRange: 5,
+            damage: { diceString: '1d8' },
+            damageType: 'Slashing',
+            properties: [{ name: 'Versatile', notes: '1d10' }, { name: 'Sap' }],
+            magic: false,
+            rarity: 'Common',
+            weight: 3.0,
+            cost: 15.0
+          })
+        ])
+        expect(longsword?.payload).toMatchObject({
+          properties: ['MELEE', 'VERSATILE'],
+          weight: { amount: 3, unit: 'POUNDS' }
+        })
+        expect(longsword).toMatchObject({
+          costGold: 15,
+          rarityName: 'Common',
+          weaponAttack: { dice: '1d8', versatileDice: '1d10' }
+        })
+        expect(longsword).not.toHaveProperty('magicBonus')
+      })
+
+      it('maps magic light armor with its +1 armor class bonus', () => {
+        const [studdedLeather] = dndBeyondEquipment([
+          homebrew({
+            id: 202,
+            name: 'Studded Leather, +1',
+            filterType: 'Armor',
+            armorTypeId: 1,
+            armorClass: 12,
+            magic: true,
+            rarity: 'Rare',
+            grantedModifiers: [{ type: 'bonus', subType: 'armor-class', value: 1 }],
+            weight: 13.0,
+            baseArmorName: 'Studded Leather',
+            strengthRequirement: 0,
+            stealthCheck: 1
+          })
+        ])
+        expect(studdedLeather?.payload).toMatchObject({
+          category: 'ARMOR',
+          properties: ['LIGHT', 'MAGIC'],
+          armorClass: 12
+        })
+        expect(studdedLeather).toMatchObject({ magicBonus: 1, rarityName: 'Rare' })
+        // The real definition states no Strength requirement (0) and no stealth penalty (1).
+        expect(studdedLeather).not.toHaveProperty('strengthRequirement')
+        expect(studdedLeather).not.toHaveProperty('stealthDisadvantage')
+      })
+
+      it('maps a D&D Beyond Strength requirement and stealth penalty on heavy armor', () => {
+        const [plate, shield] = dndBeyondEquipment([
+          homebrew({
+            id: 205,
+            name: 'Bastion Plate',
+            filterType: 'Armor',
+            armorTypeId: 3,
+            armorClass: 18,
+            strengthRequirement: 15,
+            stealthCheck: 2
+          }),
+          homebrew({
+            id: 206,
+            name: 'Aegis',
+            filterType: 'Armor',
+            armorTypeId: 4,
+            armorClass: 2,
+            strengthRequirement: 13,
+            stealthCheck: 2
+          })
+        ])
+        expect(plate).toMatchObject({ strengthRequirement: 15, stealthDisadvantage: true })
+        expect(shield).not.toHaveProperty('stealthDisadvantage')
+        expect(shield).not.toHaveProperty('strengthRequirement')
+      })
+
+      it('maps a tool by its gear type and a wondrous item by its filter type', () => {
+        const [tools, goggles] = dndBeyondEquipment([
+          homebrew({
+            id: 203,
+            name: "Thieves' Tools",
+            filterType: 'Other Gear',
+            type: 'Gear',
+            subType: 'Tool',
+            gearTypeId: 11,
+            magic: false,
+            rarity: 'Common',
+            weight: 1.0,
+            cost: 25.0
+          }),
+          homebrew({
+            id: 204,
+            name: 'Goggles of Night',
+            filterType: 'Wondrous item',
+            type: 'Wondrous item',
+            gearTypeId: 10,
+            magic: true,
+            rarity: 'Uncommon',
+            weight: 0,
+            grantedModifiers: [{ type: 'sense', subType: 'darkvision', value: 60 }]
+          })
+        ])
+        expect(tools?.payload).toMatchObject({
+          category: 'TOOL',
+          properties: [],
+          weight: { amount: 1, unit: 'POUNDS' }
+        })
+        expect(tools).toMatchObject({ costGold: 25, rarityName: 'Common' })
+        expect(goggles?.payload).toMatchObject({
+          category: 'ADVENTURING_GEAR',
+          properties: ['WONDEROUS_ITEM', 'MAGIC']
+        })
+        expect(goggles?.payload).not.toHaveProperty('weight')
+        expect(goggles).toMatchObject({ rarityName: 'Uncommon' })
+        expect(goggles).not.toHaveProperty('magicBonus')
+      })
+
+      it('maps potions and scrolls to their property and leaves rings and wands without one', () => {
+        const [potion, scroll, ring, wand] = dndBeyondEquipment(
+          ['Potion', 'Scroll', 'Ring', 'Wand'].map((filterType, index) =>
+            homebrew({ id: 210 + index, name: filterType, filterType })
+          )
+        )
+        expect(potion?.payload).toMatchObject({ properties: ['POTION'] })
+        expect(scroll?.payload).toMatchObject({ properties: ['SCROLL'] })
+        expect(ring?.payload).toMatchObject({ properties: [] })
+        expect(wand?.payload).toMatchObject({ properties: [] })
+      })
+
+      it('keeps the price and weight of a custom item and ignores an unusable price', () => {
+        const [flask, bead, claw] = dndBeyondEquipment(
+          [],
+          [
+            { id: 300, name: 'Everlasting Flask', weight: 1.5, cost: 12, quantity: 1 },
+            { id: 301, name: 'Bead of Nourishment', weight: null, cost: null, quantity: 10 },
+            { id: 302, name: 'Owlbear Claw', weight: 0.0, cost: 0, quantity: 4 }
+          ]
+        )
+        expect(flask?.payload).toMatchObject({
+          category: 'ADVENTURING_GEAR',
+          weight: { amount: 1.5, unit: 'POUNDS' }
+        })
+        expect(flask).toMatchObject({ costGold: 12 })
+        for (const content of [bead, claw]) {
+          expect(content?.payload).not.toHaveProperty('weight')
+          expect(content).not.toHaveProperty('costGold')
+        }
+      })
+    })
+
+    it('reports a weapon whose damage cannot be read instead of guessing it', () => {
+      const parsed = parseDndBeyondCharacterPayload(
+        {
+          data: {
+            id: 1,
+            name: 'Aria',
+            inventory: [
+              homebrew({
+                id: 103,
+                name: 'Odd Blade',
+                filterType: 'Weapon',
+                attackType: 1,
+                damage: { diceString: '1d8 + 1d6' },
+                damageType: 'Slashing'
+              })
+            ]
+          }
+        },
+        '1'
+      )
+      expect(parsed?.customContent[0]?.payload).toMatchObject({ category: 'WEAPON' })
+      expect(parsed?.customContent[0]?.weaponAttack).toBeUndefined()
+      expect(parsed?.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'CUSTOM_WEAPON_ATTACK_NOT_IMPORTED',
+          severity: 'INFO',
+          path: ['inventory', 0, 'definition'],
+          correctionRequired: false
+        })
+      )
+    })
+
+    it('maps a Foundry v4 two-handed weapon with array properties', () => {
+      const parsed = foundryEquipment([
+        foundryItem('weapon', 'Maul of Dawn', {
+          type: { value: 'martialM' },
+          properties: ['hvy', 'two', 'mgc', 'sil'],
+          damage: { base: { number: 2, denomination: 6, types: ['bludgeoning'] } },
+          range: { value: 5, units: 'ft' },
+          attunement: 'required',
+          equipped: true
+        })
+      ])
+      expect(parsed?.customContent[0]?.payload).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MARTIAL', 'MELEE', 'HEAVY', 'TWO_HANDED', 'MAGIC'],
+        requiresAttunement: true
+      })
+      expect(parsed?.customContent[0]?.weaponAttack).toEqual({
+        damageTypeName: 'bludgeoning',
+        dice: '2d6',
+        grip: 'TWO_HANDED',
+        meleeReachFeet: 5
+      })
+    })
+
+    it('maps a Foundry legacy versatile weapon with object properties and damage parts', () => {
+      const parsed = foundryEquipment([
+        foundryItem('weapon', 'Old Longsword', {
+          type: { value: 'martialM' },
+          properties: { ver: true, fin: false },
+          damage: { parts: [['1d8 + @mod', 'slashing']], versatile: '1d10 + @mod' }
+        })
+      ])
+      expect(parsed?.customContent[0]?.payload).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MARTIAL', 'MELEE', 'VERSATILE']
+      })
+      expect(parsed?.customContent[0]?.weaponAttack).toEqual({
+        damageTypeName: 'slashing',
+        dice: '1d8',
+        versatileDice: '1d10',
+        grip: 'ONE_HANDED',
+        meleeReachFeet: 5
+      })
+    })
+
+    it('maps a Foundry ranged weapon, a shield, armor and plain loot', () => {
+      const parsed = foundryEquipment([
+        foundryItem('weapon', 'Hand Crossbow', {
+          type: { value: 'martialR' },
+          properties: ['amm', 'lgt', 'lod'],
+          damage: { base: { number: 1, denomination: 6, types: ['piercing'] } },
+          range: { value: 30, long: 120, units: 'ft' }
+        }),
+        foundryItem('equipment', 'Ward Shield', {
+          type: { value: 'shield' },
+          armor: { value: 2 }
+        }),
+        foundryItem('equipment', 'Hide Coat', {
+          type: { value: 'medium' },
+          armor: { value: 12 }
+        }),
+        foundryItem('loot', 'Trinket', {}),
+        foundryItem('tool', 'Thieves Tools', {})
+      ])
+      const [crossbow, shield, armor, loot, tool] = parsed?.customContent ?? []
+      expect(crossbow?.payload).toMatchObject({
+        category: 'WEAPON',
+        properties: ['MARTIAL', 'RANGED', 'AMMUNITION', 'LIGHT', 'LOADING']
+      })
+      expect(crossbow?.weaponAttack).toEqual({
+        damageTypeName: 'piercing',
+        dice: '1d6',
+        grip: 'ONE_HANDED',
+        ranged: { normalFeet: 30, longFeet: 120 }
+      })
+      expect(shield?.payload).toMatchObject({ category: 'SHIELD', armorClass: 2 })
+      expect(armor?.payload).toMatchObject({
+        category: 'ARMOR',
+        properties: ['MEDIUM'],
+        armorClass: 12
+      })
+      expect(loot?.payload).toMatchObject({ category: 'ADVENTURING_GEAR', properties: [] })
+      expect(tool?.payload).toMatchObject({ category: 'TOOL' })
+    })
+
+    it('maps a Foundry Strength requirement and stealth disadvantage on armor only', () => {
+      const parsed = foundryEquipment([
+        foundryItem('equipment', 'Iron Plate', {
+          type: { value: 'heavy' },
+          armor: { value: 18 },
+          strength: 15,
+          properties: ['mgc', 'stealthDisadvantage']
+        }),
+        foundryItem('equipment', 'Quiet Mail', {
+          type: { value: 'medium' },
+          armor: { value: 14 },
+          strength: null,
+          properties: ['mgc']
+        }),
+        foundryItem('equipment', 'Ward Shield', {
+          type: { value: 'shield' },
+          armor: { value: 2 },
+          strength: 13,
+          properties: ['stealthDisadvantage']
+        })
+      ])
+      const [plate, quiet, shield] = parsed?.customContent ?? []
+      expect(plate).toMatchObject({ strengthRequirement: 15, stealthDisadvantage: true })
+      expect(quiet).not.toHaveProperty('strengthRequirement')
+      expect(quiet).not.toHaveProperty('stealthDisadvantage')
+      expect(shield).not.toHaveProperty('strengthRequirement')
+      expect(shield).not.toHaveProperty('stealthDisadvantage')
+    })
+
+    it('does not import Foundry weapon damage with more than one damage type', () => {
+      const parsed = foundryEquipment([
+        foundryItem('weapon', 'Prism Blade', {
+          type: { value: 'martialM' },
+          damage: { base: { number: 1, denomination: 8, types: ['fire', 'cold'] } }
+        })
+      ])
+      expect(parsed?.customContent[0]?.weaponAttack).toBeUndefined()
+      expect(parsed?.issues).toContainEqual(
+        expect.objectContaining({ code: 'CUSTOM_WEAPON_ATTACK_NOT_IMPORTED', path: ['items', 0] })
+      )
+    })
+  })
+
   it('removes executable markup and attributes from imported rich text', () => {
     const result = sanitizeImportedRichText(
       '<p onclick="steal()" style="color:red">Safe</p><script>alert(1)</script><a href=jav&#x61;script:steal()>link</a><img src=x onerror=steal()>'

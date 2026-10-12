@@ -932,7 +932,7 @@ export const itemPanelFixture = {
     { label: 'Cost', value: '15 gold pieces' },
     { label: 'Properties', value: 'Versatile' }
   ],
-  equipped: true,
+  equippedSlot: 'MAIN_HAND',
   attuned: false,
   requiresAttunement: true,
   numericEditors: [
@@ -1072,7 +1072,7 @@ export const astralTearItemPanelFixture = {
     { label: 'Cost', value: '2,000 gold pieces' },
     { label: 'Properties', value: 'Finesse, Light, Vex' }
   ],
-  equipped: true,
+  equippedSlot: 'MAIN_HAND',
   attuned: true,
   requiresAttunement: true,
   features: [

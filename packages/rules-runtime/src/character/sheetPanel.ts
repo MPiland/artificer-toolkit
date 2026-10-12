@@ -1025,7 +1025,7 @@ function buildItemPanel(
     displayName: item.label,
     ...(item.description ? { description: item.description } : {}),
     facts,
-    equipped: item.equipped,
+    equippedSlot: item.equippedSlot,
     attuned: item.attuned,
     requiresAttunement: item.requiresAttunement,
     features,

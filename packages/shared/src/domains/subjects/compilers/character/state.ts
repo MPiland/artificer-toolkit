@@ -3,6 +3,7 @@ import type {
   CharacterCurrencyGroupState,
   CharacterEquipmentItemState,
   CharacterEquipmentState,
+  CharacterEquippedItemState,
   CharacterHitDiceUsageState,
   CharacterHitpointsState,
   CharacterOwnedCreatureState,
@@ -78,7 +79,7 @@ export type CompiledCharacterEquipmentItem = CharacterEquipmentItemState
 
 export type CompiledCharacterEquipmentState = {
   inventory: CompiledCharacterEquipmentItem[]
-  equipped: string[]
+  equipped: CharacterEquippedItemState[]
   attuned: string[]
 }
 

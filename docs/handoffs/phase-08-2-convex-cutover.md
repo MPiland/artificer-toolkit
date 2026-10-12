@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-11. Start at "Done 2026-10-11 (AUTHORING-17 slice C" below. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
+**Updated:** 2026-10-11. Start at "Done 2026-10-11 (SHEET-8" below; SHEET-8 and BUILDER-4 are DONE, ATTACK-18 is next. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -215,7 +215,12 @@ Area path file map:
 - `replaceActorEquipment` no longer runs the whole-loadout AC check. Evaluability is per item, and `pinCreatureEquipmentSources` checks the replacement. The refusal test now asserts the room-logged cause (`roomErrorLogs()`). Red proofs for every new or strengthened test are in `local-validation/a17c/`.
 - No local codegen push: Convex changes are tests only, plus one deleted call in encounter-persistence.
 
-**Next: SHEET-8** (Character hands, `FREE_HAND`, stow and release-on-draw prompts; D107), then ATTACK-18.
+**Done 2026-10-11 (SHEET-8, tasks T1–T4, and BUILDER-4, registered and done the same day):**
+
+- SHEET-8: `state.equipment.equipped` is `{ itemId, slot: MAIN_HAND | OFF_HAND | WORN }[]`; rules are in the D107 SHEET-8 addendum. Shared helpers `nextEquipSlot`, `swapHeldItems` and `promotesOffHandItem` sit beside `resolveHandOccupancy`; the Sheet DTO carries `equippedSlot`. Sheet command `SWAP_HELD_ITEMS` and the "Swap hands" control are new. Dev data was reset and reseeded (backup `local-validation/convex-reset/sheet-8-held-items.before.zip`). Full apis suite: 375 of 376 files green; the only failures were BUILDER-4's red-first tests, added mid-run.
+- BUILDER-4: custom D&D Beyond and Foundry items keep their category, properties, armor class, attack, ability, magic, DEX, Strength and Stealth grants, rarity, cost and weight. Field shapes were checked against a real D&D Beyond character (74476867; raw JSON only in ignored `local-validation/builder4/ddb/`). Vocabulary resolution happens in import preparation (`findSystemVocabulary`, the `SYSTEM_VOCABULARY` exact request), so preview and commit agree on activation. The dnd5e Equipment builders moved to `packages/shared/src/domains/subjects/authored/dnd5eEquipmentBuilders.ts`; the SRD corpus is byte-identical (hash script `local-validation/builder4/hash.ps1`). Red logs are in `local-validation/sheet8/` and `local-validation/builder4/` (round 1 used a mutation proof). An independent assertion audit of every changed test found nothing.
+
+**Next: ATTACK-18** (D106, basic actions as authored actions).
 
 **Apis suite timing:** the full apis suite is 374 files run serially (`maxWorkers: 1`) and takes about 72 minutes. Never override `maxWorkers`; for focused runs pass explicit file paths, not folder filters.
 
@@ -227,7 +232,7 @@ Area path file map:
 - Cleanup: one `abilityModifier` for the dnd5e System; one `captureActionEconomyDefinitions` for the room action planners; `useWarnedCommand` shared by basic actions and escapes.
 - Not proved in the room: ALREADY_ENDED (no room command ends the effect while a prompted roll waits); covered by the settlement unit tests.
 
-Continue the WSJF ranking: AUTHORING-17 (slices B and C) → SHEET-8 → ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
+Continue the WSJF ranking: ATTACK-18 (D106, D107; registered 2026-10-10, in that dependency order), then ATTACK-7 slices C–G and ATTACK-19, then SPELLS-5.12 and 5.13, ATTACK-17, ENCOUNTER-8, ATTACK-10.2 to 10.5, and SPELLS-13 to 17. SPELLS-12 comes after SPELLS-8.
 
 **Subagent discipline:** in this run the agent broke the Edit/Write-only rule three times (a heredoc twice and a Python patch script once) and skipped red-first once. Restate both rules in every brief, and ask for red logs before committing. In AUTHORING-17 slice B the agent again used Python and sed edit scripts, started four duplicate watcher loops polling the same output file, and overrode the apis `maxWorkers`; state "no watcher, sleep or poll commands; wait for the completion notice" explicitly.
 

@@ -108,7 +108,7 @@ function removeEquipment(character: CharacterAuthored, equipmentId: string): voi
       item.containerId && removedItemIds.has(item.containerId) ? omit(item, 'containerId') : item
     )
   character.state.equipment.equipped = character.state.equipment.equipped.filter(
-    (itemId) => !removedItemIds.has(itemId)
+    ({ itemId }) => !removedItemIds.has(itemId)
   )
   character.state.equipment.attuned = character.state.equipment.attuned.filter(
     (itemId) => !removedItemIds.has(itemId)

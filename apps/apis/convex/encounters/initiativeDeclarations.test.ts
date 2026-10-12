@@ -738,8 +738,8 @@ describe('native initiative declarations', () => {
       id: base.character.id
     })
     expect(
-      sheet?.inventory.items.find((item) => item.id === declared.equipmentInstanceId)?.equipped
-    ).toBe(false)
+      sheet?.inventory.items.find((item) => item.id === declared.equipmentInstanceId)?.equippedSlot
+    ).toBeNull()
   }, 30000)
 
   it.each(['PLAYER', 'OWNER'] as const)(

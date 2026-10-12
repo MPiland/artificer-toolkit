@@ -9,8 +9,7 @@ import {
 } from './characterBuilderSelections.js'
 import type {
   CharacterAssemblyRegistry,
-  CharacterBuildSnapshot,
-  EquippedState
+  CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
 import {
   compileBackground,
@@ -102,17 +101,6 @@ function createAssemblyRegistry(context: CharacterRuleContext): CharacterAssembl
           speeds: registry.system.speeds ?? []
         }
       : undefined
-  }
-}
-
-function equippedStateForItem(item: CharacterAssemblyRegistry['equipment'][string]): EquippedState {
-  switch (item?.category) {
-    case 'ARMOR':
-      return { slot: 'ARMOR' }
-    case 'SHIELD':
-      return { slot: 'SHIELD' }
-    default:
-      return { slot: 'GENERIC' }
   }
 }
 
@@ -307,7 +295,9 @@ export function assembleCharacterRuleSnapshot(
   for (const [ability, score] of Object.entries(assigned)) {
     if (typeof score === 'number') abilities[ability] = score
   }
-  const equippedIds = new Set(character.state.equipment.equipped)
+  const equippedSlots = new Map(
+    character.state.equipment.equipped.map(({ itemId, slot }) => [itemId, slot])
+  )
   const attunedIds = new Set(character.state.equipment.attuned)
   const equipmentItems = character.state.equipment.inventory.flatMap((item) => {
     const acquired = context.registry.acquiredEquipmentByItemId?.get(item.id)
@@ -315,7 +305,7 @@ export function assembleCharacterRuleSnapshot(
       ? compileResolvedEquipment(acquired.equipment)
       : registry.equipment[item.equipmentId]
     if (!compiledItem) return []
-    const equippedState = equippedIds.has(item.id) ? equippedStateForItem(compiledItem) : undefined
+    const slot = equippedSlots.get(item.id)
     return [
       {
         instanceId: item.id,
@@ -326,7 +316,7 @@ export function assembleCharacterRuleSnapshot(
             : { kind: 'ACTIVE' as const },
           systemId: character.systemId
         },
-        ...(equippedState ? { equippedState } : {}),
+        ...(slot ? { equippedState: { slot } } : {}),
         attuned: attunedIds.has(item.id),
         compiledItem
       }

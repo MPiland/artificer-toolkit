@@ -127,6 +127,38 @@ describe('native import preview lookup', () => {
     ])
   })
 
+  it('records System vocabulary requests and serves the merged snapshot by System', async () => {
+    const ownerUserId = crypto.randomUUID()
+    const recorder = createImportPreviewLookupRecorder(ownerUserId)
+    expect(await recorder.findSystemVocabulary({ systemId: 'system-1' })).toBeNull()
+    await recorder.findSystemVocabulary({ systemId: 'system-1' })
+    expect(recorder.exactRequests()).toEqual([{ kind: 'SYSTEM_VOCABULARY', systemId: 'system-1' }])
+
+    const vocabulary = {
+      systemId: 'system-1',
+      damageTypes: [{ id: 'damage-1', code: 'PIERCING', label: 'Piercing' }],
+      rarities: [],
+      currencies: [],
+      speeds: [],
+      skills: [],
+      heritages: []
+    }
+    const part = {
+      ownerUserId,
+      importReferences: [],
+      activeAuthored: [],
+      authoredDrafts: [],
+      characters: [],
+      characterDrafts: [],
+      systemVocabularies: [vocabulary]
+    }
+    const lookup = createImportPreviewMapLookup(
+      mergeImportPreviewLookupSnapshots(ownerUserId, [part, part])
+    )
+    expect(await lookup.findSystemVocabulary({ systemId: 'system-1' })).toEqual(vocabulary)
+    expect(await lookup.findSystemVocabulary({ systemId: 'system-2' })).toBeNull()
+  })
+
   it('hydrates active root metadata without its payload version and isolates it to its owner', async () => {
     const base = await fixture()
     await base.t.run((ctx) =>

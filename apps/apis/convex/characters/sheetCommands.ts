@@ -94,6 +94,7 @@ function applySupportedCommand(
     case 'UPDATE_INVENTORY_ITEM':
     case 'EQUIP_ITEM':
     case 'UNEQUIP_ITEM':
+    case 'SWAP_HELD_ITEMS':
     case 'ATTUNE_ITEM':
     case 'UNATTUNE_ITEM':
     case 'ADJUST_CURRENCY':

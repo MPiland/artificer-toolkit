@@ -289,7 +289,7 @@ describe('Character Sheet inventory', () => {
             label: 'Moonlit Blade',
             customName: 'Moonlit Blade',
             description: '<p>A balanced knightly blade.</p>',
-            equipped: true
+            equippedSlot: 'MAIN_HAND' as const
           }
         : item
     )
@@ -308,7 +308,7 @@ describe('Character Sheet inventory', () => {
     expect(within(row).getByText(/moonlit blade/i)).toBeInTheDocument()
     expect(within(row).getByText(/longsword/i)).toBeInTheDocument()
     expect(within(row).getByText(/3 pounds/i)).toBeInTheDocument()
-    expect(within(row).getByText(/equipped/i)).toBeInTheDocument()
+    expect(within(row).getByText(/main hand/i)).toBeInTheDocument()
     expect(longswordItem.properties?.map((property) => property.label)).toEqual([
       'Martial',
       'Melee',

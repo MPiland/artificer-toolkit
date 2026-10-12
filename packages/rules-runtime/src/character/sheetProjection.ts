@@ -1271,7 +1271,9 @@ export function projectCharacterSheetBundle(
         armorClass: equipment?.armorClass,
         customName: item.customName,
         quantity: item.quantity,
-        equipped: character.state.equipment.equipped.includes(item.id),
+        equippedSlot:
+          character.state.equipment.equipped.find((entry) => entry.itemId === item.id)?.slot ??
+          null,
         attuned: character.state.equipment.attuned.includes(item.id),
         requiresAttunement: equipment?.requiresAttunement ?? false,
         displayAsAttack: mechanics?.displayAsAttack,

@@ -8,6 +8,15 @@ import {
   IMPORT_MAX_FOUNDRY_ITEMS
 } from '@artificer-toolkit/schema/api/imports'
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
+import {
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_GRIP,
+  EQUIPMENT_PROPERTY_CODE,
+  MEASUREMENT_UNIT_CODE,
+  type EquipmentCategoryCode,
+  type EquipmentGrip,
+  type EquipmentPropertyCode
+} from '@artificer-toolkit/shared/core'
 
 export type ImportReferenceRole =
   | 'RACE'
@@ -31,12 +40,40 @@ export interface ExternalContentReference {
   attuned?: boolean
 }
 
+/**
+ * A custom weapon's attack as the source states it. Damage types are named, not identified: the
+ * import runner resolves the name to the System's damage-type vocabulary and builds the attack
+ * effects (`applyImportedWeaponAttack`).
+ */
+export interface ImportedWeaponAttack {
+  damageTypeName: string
+  dice: string
+  /** The two-handed dice of a versatile weapon, when the source states them. */
+  versatileDice?: string
+  grip: EquipmentGrip
+  /** Present when the weapon makes a melee attack. */
+  meleeReachFeet?: number
+  /** Present when the weapon makes a ranged attack, including a thrown melee weapon. */
+  ranged?: { normalFeet: number; longFeet?: number }
+}
+
 export interface ExternalCustomContent {
   subjectKind: AuthoredSubjectKindDto
   externalId: string
   label: string
   path: Array<string | number>
   payload: Record<string, unknown>
+  weaponAttack?: ImportedWeaponAttack
+  /** Flat bonus a magic weapon adds to attack and damage rolls, or a magic armor adds to AC. */
+  magicBonus?: number
+  /** The source's rarity name; preparation resolves it against the System's rarity vocabulary. */
+  rarityName?: string
+  /** The source's price in gold pieces; preparation resolves it through the System's currencies. */
+  costGold?: number
+  /** The Strength score armor needs to avoid the speed penalty. Armor only; absent when none. */
+  strengthRequirement?: number
+  /** Whether the armor gives its wearer disadvantage on Stealth checks. Armor only. */
+  stealthDisadvantage?: boolean
 }
 
 export interface ParsedExternalCharacter {
@@ -164,42 +201,36 @@ export function parseDndBeyondCharacterPayload(
       path: ['inventory', index]
     })
     if (itemExternalId && isDndBeyondCustomDefinition(definition)) {
-      addCustomContent({
-        subjectKind: 'EQUIPMENT',
-        externalId: itemExternalId,
-        label: itemLabel,
-        path: ['inventory', index, 'definition'],
-        payload: {
-          kind: 'EQUIPMENT',
-          label: itemLabel,
-          description: sanitizeImportedRichText(readString(definition.description) ?? ''),
-          category: 'ADVENTURING_GEAR',
-          rarityId: '',
-          properties: []
-        }
-      })
+      addCustomContent(
+        customEquipmentContent(
+          {
+            externalId: itemExternalId,
+            label: itemLabel,
+            path: ['inventory', index, 'definition'],
+            description: readString(definition.description)
+          },
+          mapDndBeyondEquipment(definition),
+          issues
+        )
+      )
     }
   }
 
   for (const [index, customValue] of asArray(source.customItems).entries()) {
     const custom = asRecord(customValue)
     if (!custom) continue
-    const customId = readIdentifier(custom.id) ?? `custom-item-${index + 1}`
-    const customLabel = readString(custom.name) ?? `Imported custom item ${index + 1}`
-    addCustomContent({
-      subjectKind: 'EQUIPMENT',
-      externalId: customId,
-      label: customLabel,
-      path: ['customItems', index],
-      payload: {
-        kind: 'EQUIPMENT',
-        label: customLabel,
-        description: sanitizeImportedRichText(readString(custom.description) ?? ''),
-        category: 'ADVENTURING_GEAR',
-        rarityId: '',
-        properties: []
-      }
-    })
+    addCustomContent(
+      customEquipmentContent(
+        {
+          externalId: readIdentifier(custom.id) ?? `custom-item-${index + 1}`,
+          label: readString(custom.name) ?? `Imported custom item ${index + 1}`,
+          path: ['customItems', index],
+          description: readString(custom.description)
+        },
+        mapDndBeyondEquipment(custom),
+        issues
+      )
+    )
   }
 
   const hasSpecificSubrace =
@@ -439,22 +470,20 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
           )
           continue
         }
-        customContent.push({
-          subjectKind: 'EQUIPMENT',
-          externalId: itemExternalId,
-          label: itemLabel,
-          path,
-          payload: {
-            kind: 'EQUIPMENT',
-            label: itemLabel,
-            description: sanitizeImportedRichText(
-              itemSystem ? readNestedString(itemSystem, ['description', 'value']) : undefined
-            ),
-            category: foundryEquipmentCategory(type),
-            rarityId: '',
-            properties: []
-          }
-        })
+        customContent.push(
+          customEquipmentContent(
+            {
+              externalId: itemExternalId,
+              label: itemLabel,
+              path,
+              description: itemSystem
+                ? readNestedString(itemSystem, ['description', 'value'])
+                : undefined
+            },
+            mapFoundryEquipment(type, itemSystem),
+            issues
+          )
+        )
       }
       references.push({
         ...common,
@@ -671,11 +700,360 @@ function isFoundryCustomItem(item: Record<string, unknown>): boolean {
   )
 }
 
-function foundryEquipmentCategory(type: string | undefined): string {
-  if (type === 'weapon') return 'WEAPON'
-  if (type === 'tool') return 'TOOL'
-  if (type === 'equipment') return 'ARMOR'
-  return 'ADVENTURING_GEAR'
+interface MappedEquipment {
+  category: EquipmentCategoryCode
+  properties: EquipmentPropertyCode[]
+  armorClass?: number
+  requiresAttunement?: boolean
+  weaponAttack?: ImportedWeaponAttack
+  /** A weapon whose attack the source does not state in a form this import can read exactly. */
+  weaponAttackUnreadable?: boolean
+  magicBonus?: number
+  rarityName?: string
+  costGold?: number
+  weightPounds?: number
+  strengthRequirement?: number
+  stealthDisadvantage?: boolean
+}
+
+const DND_BEYOND_STEALTH_DISADVANTAGE = 2
+
+const DND_BEYOND_WEAPON_PROPERTIES: Record<string, EquipmentPropertyCode> = {
+  'two-handed': EQUIPMENT_PROPERTY_CODE.TWO_HANDED,
+  versatile: EQUIPMENT_PROPERTY_CODE.VERSATILE,
+  finesse: EQUIPMENT_PROPERTY_CODE.FINESSE,
+  light: EQUIPMENT_PROPERTY_CODE.LIGHT,
+  heavy: EQUIPMENT_PROPERTY_CODE.HEAVY,
+  thrown: EQUIPMENT_PROPERTY_CODE.THROWN,
+  reach: EQUIPMENT_PROPERTY_CODE.REACH,
+  ammunition: EQUIPMENT_PROPERTY_CODE.AMMUNITION,
+  loading: EQUIPMENT_PROPERTY_CODE.LOADING,
+  special: EQUIPMENT_PROPERTY_CODE.SPECIAL
+}
+
+const DND_BEYOND_ARMOR_WEIGHT: Record<number, EquipmentPropertyCode> = {
+  1: EQUIPMENT_PROPERTY_CODE.LIGHT,
+  2: EQUIPMENT_PROPERTY_CODE.MEDIUM,
+  3: EQUIPMENT_PROPERTY_CODE.HEAVY
+}
+const DND_BEYOND_SHIELD_ARMOR_TYPE = 4
+const DND_BEYOND_TOOL_GEAR_TYPE = 11
+/** `filterType` values (lower-cased) that name a kind of item the Equipment properties can state. */
+const DND_BEYOND_ITEM_KIND_PROPERTIES: Record<string, EquipmentPropertyCode> = {
+  'wondrous item': EQUIPMENT_PROPERTY_CODE.WONDEROUS_ITEM,
+  potion: EQUIPMENT_PROPERTY_CODE.POTION,
+  scroll: EQUIPMENT_PROPERTY_CODE.SCROLL
+}
+
+const FOUNDRY_WEAPON_PROPERTIES: Record<string, EquipmentPropertyCode> = {
+  two: EQUIPMENT_PROPERTY_CODE.TWO_HANDED,
+  ver: EQUIPMENT_PROPERTY_CODE.VERSATILE,
+  fin: EQUIPMENT_PROPERTY_CODE.FINESSE,
+  lgt: EQUIPMENT_PROPERTY_CODE.LIGHT,
+  hvy: EQUIPMENT_PROPERTY_CODE.HEAVY,
+  thr: EQUIPMENT_PROPERTY_CODE.THROWN,
+  rch: EQUIPMENT_PROPERTY_CODE.REACH,
+  amm: EQUIPMENT_PROPERTY_CODE.AMMUNITION,
+  lod: EQUIPMENT_PROPERTY_CODE.LOADING,
+  spc: EQUIPMENT_PROPERTY_CODE.SPECIAL,
+  mgc: EQUIPMENT_PROPERTY_CODE.MAGIC
+}
+
+const FOUNDRY_ARMOR_WEIGHT: Record<string, EquipmentPropertyCode> = {
+  light: EQUIPMENT_PROPERTY_CODE.LIGHT,
+  medium: EQUIPMENT_PROPERTY_CODE.MEDIUM,
+  heavy: EQUIPMENT_PROPERTY_CODE.HEAVY
+}
+
+const WEAPON_DICE = /^\s*(\d+d\d+)(?:\s*\+\s*@mod)?\s*$/
+
+function readWeaponDice(value: unknown): string | undefined {
+  return typeof value === 'string' ? WEAPON_DICE.exec(value)?.[1] : undefined
+}
+
+function buildWeaponAttack(input: {
+  damageTypeName: string | undefined
+  dice: string | undefined
+  versatileDice: string | undefined
+  properties: EquipmentPropertyCode[]
+  rangedWeapon: boolean
+  normalFeet: number | undefined
+  longFeet: number | undefined
+}): ImportedWeaponAttack | undefined {
+  const { damageTypeName, dice, properties, rangedWeapon, normalFeet, longFeet } = input
+  const twoHanded = properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+  const makesRangedAttack = rangedWeapon || properties.includes(EQUIPMENT_PROPERTY_CODE.THROWN)
+  if (!damageTypeName || !dice) return undefined
+  if (makesRangedAttack && normalFeet === undefined) return undefined
+  return {
+    damageTypeName,
+    dice,
+    ...(input.versatileDice && !twoHanded ? { versatileDice: input.versatileDice } : {}),
+    grip: twoHanded ? EQUIPMENT_GRIP.TWO_HANDED : EQUIPMENT_GRIP.ONE_HANDED,
+    ...(rangedWeapon
+      ? {}
+      : {
+          meleeReachFeet: properties.includes(EQUIPMENT_PROPERTY_CODE.REACH) ? 10 : 5
+        }),
+    ...(makesRangedAttack && normalFeet !== undefined
+      ? {
+          ranged: {
+            normalFeet,
+            ...(longFeet !== undefined && longFeet > normalFeet ? { longFeet } : {})
+          }
+        }
+      : {})
+  }
+}
+
+function mapDndBeyondEquipment(definition: Record<string, unknown>): MappedEquipment {
+  const filterType = readString(definition.filterType)?.toLowerCase()
+  const armorTypeId = readInteger(definition.armorTypeId)
+  const magic: EquipmentPropertyCode[] =
+    definition.magic === true ? [EQUIPMENT_PROPERTY_CODE.MAGIC] : []
+  const rarityName = readString(definition.rarity)
+  const costGold = readPositiveNumber(definition.cost)
+  const weightPounds = readPositiveNumber(definition.weight)
+  const shared = {
+    ...(definition.canAttune === true ? { requiresAttunement: true } : {}),
+    ...(rarityName ? { rarityName } : {}),
+    ...(costGold === undefined ? {} : { costGold }),
+    ...(weightPounds === undefined ? {} : { weightPounds })
+  }
+
+  if (filterType === 'armor') {
+    const shield = armorTypeId === DND_BEYOND_SHIELD_ARMOR_TYPE
+    const weight = armorTypeId === undefined ? undefined : DND_BEYOND_ARMOR_WEIGHT[armorTypeId]
+    const armorClass = readInteger(definition.armorClass)
+    const magicBonus = readDndBeyondMagicBonus(definition, 'armor-class')
+    const strengthRequirement = shield
+      ? undefined
+      : readPositiveInteger(definition.strengthRequirement)
+    return {
+      category: shield ? EQUIPMENT_CATEGORY_CODE.SHIELD : EQUIPMENT_CATEGORY_CODE.ARMOR,
+      properties: [...(weight && !shield ? [weight] : []), ...magic],
+      ...(armorClass === undefined ? {} : { armorClass }),
+      ...(magicBonus === undefined ? {} : { magicBonus }),
+      ...(strengthRequirement === undefined ? {} : { strengthRequirement }),
+      // D&D Beyond's stealthCheck: 1 is no penalty, 2 is disadvantage.
+      ...(!shield && readInteger(definition.stealthCheck) === DND_BEYOND_STEALTH_DISADVANTAGE
+        ? { stealthDisadvantage: true }
+        : {}),
+      ...shared
+    }
+  }
+
+  if (filterType !== 'weapon') {
+    const tool =
+      readInteger(definition.gearTypeId) === DND_BEYOND_TOOL_GEAR_TYPE ||
+      readString(definition.subType)?.toLowerCase() === 'tool'
+    const itemKind = filterType ? DND_BEYOND_ITEM_KIND_PROPERTIES[filterType] : undefined
+    return {
+      category: tool ? EQUIPMENT_CATEGORY_CODE.TOOL : EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+      properties: [...(itemKind ? [itemKind] : []), ...magic],
+      ...shared
+    }
+  }
+
+  const rangedWeapon = readInteger(definition.attackType) === 2
+  const named = asArray(definition.properties).flatMap((value) => {
+    const property = asRecord(value)
+    const code = DND_BEYOND_WEAPON_PROPERTIES[readString(property?.name)?.toLowerCase() ?? '']
+    return code ? [{ code, notes: readString(property?.notes) }] : []
+  })
+  const properties = [
+    rangedWeapon ? EQUIPMENT_PROPERTY_CODE.RANGED : EQUIPMENT_PROPERTY_CODE.MELEE,
+    ...named.map(({ code }) => code),
+    ...magic
+  ]
+  const weaponAttack = buildWeaponAttack({
+    damageTypeName: readString(definition.damageType),
+    dice: readWeaponDice(asRecord(definition.damage)?.diceString),
+    versatileDice: readWeaponDice(
+      named.find(({ code }) => code === EQUIPMENT_PROPERTY_CODE.VERSATILE)?.notes
+    ),
+    properties,
+    rangedWeapon,
+    normalFeet: readPositiveInteger(definition.range),
+    longFeet: readPositiveInteger(definition.longRange)
+  })
+  const magicBonus = readDndBeyondMagicBonus(definition, 'magic')
+  return {
+    category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+    properties: [...new Set(properties)],
+    ...(magicBonus === undefined ? {} : { magicBonus }),
+    ...shared,
+    ...(weaponAttack ? { weaponAttack } : { weaponAttackUnreadable: true })
+  }
+}
+
+/** The flat bonus a definition's granted `bonus` modifier of the given subtype adds, if any. */
+function readDndBeyondMagicBonus(
+  definition: Record<string, unknown>,
+  subType: 'magic' | 'armor-class'
+): number | undefined {
+  for (const value of asArray(definition.grantedModifiers)) {
+    const modifier = asRecord(value)
+    const bonus = readPositiveInteger(modifier?.value)
+    if (
+      bonus !== undefined &&
+      readString(modifier?.type) === 'bonus' &&
+      readString(modifier?.subType) === subType
+    )
+      return bonus
+  }
+  return undefined
+}
+
+function readFoundryDamage(damage: Record<string, unknown> | null): {
+  damageTypeName?: string
+  dice?: string
+  versatileDice?: string
+} {
+  if (!damage) return {}
+  const rollDice = (value: unknown): string | undefined => {
+    const roll = asRecord(value)
+    const number = readPositiveInteger(roll?.number)
+    const denomination = readPositiveInteger(roll?.denomination)
+    return number && denomination ? `${number}d${denomination}` : undefined
+  }
+  const versatileDice = rollDice(damage.versatile) ?? readWeaponDice(damage.versatile)
+  const base = asRecord(damage.base)
+  if (base) {
+    const types = asArray(base.types).flatMap((type) => readString(type) ?? [])
+    const custom = readNestedBoolean(base, ['custom', 'enabled'])
+    return types.length === 1 && !custom
+      ? { damageTypeName: types[0], dice: rollDice(base), versatileDice }
+      : {}
+  }
+  const parts = asArray(damage.parts)
+  const part = parts.length === 1 ? asArray(parts[0]) : []
+  return { damageTypeName: readString(part[1]), dice: readWeaponDice(part[0]), versatileDice }
+}
+
+/** A Foundry item's property flags, stored either as a list of codes or as a code-to-boolean map. */
+function readFoundryPropertyCodes(system: Record<string, unknown> | null): string[] {
+  const raw = system?.properties
+  return Array.isArray(raw)
+    ? raw.flatMap((code) => (typeof code === 'string' ? [code] : []))
+    : Object.entries(asRecord(raw) ?? {}).flatMap(([code, enabled]) =>
+        enabled === true ? [code] : []
+      )
+}
+
+function mapFoundryEquipment(
+  type: string | undefined,
+  system: Record<string, unknown> | null
+): MappedEquipment {
+  const attunement = system?.attunement
+  const requiresAttunement =
+    attunement === 'required' || (typeof attunement === 'number' && attunement >= 1)
+      ? { requiresAttunement: true }
+      : {}
+  const subtype = system ? readNestedString(system, ['type', 'value']) : undefined
+
+  if (type === 'weapon') {
+    const rangedWeapon = subtype?.endsWith('R') === true
+    const proficiency = subtype?.startsWith('simple')
+      ? [EQUIPMENT_PROPERTY_CODE.SIMPLE]
+      : subtype?.startsWith('martial')
+        ? [EQUIPMENT_PROPERTY_CODE.MARTIAL]
+        : []
+    const codes = readFoundryPropertyCodes(system)
+    const properties = [
+      ...proficiency,
+      rangedWeapon ? EQUIPMENT_PROPERTY_CODE.RANGED : EQUIPMENT_PROPERTY_CODE.MELEE,
+      ...codes.flatMap((code) => FOUNDRY_WEAPON_PROPERTIES[code] ?? [])
+    ]
+    const range = asRecord(system?.range)
+    const damage = readFoundryDamage(asRecord(system?.damage))
+    const weaponAttack = buildWeaponAttack({
+      damageTypeName: damage.damageTypeName,
+      dice: damage.dice,
+      versatileDice: damage.versatileDice,
+      properties,
+      rangedWeapon,
+      normalFeet: readPositiveInteger(range?.value),
+      longFeet: readPositiveInteger(range?.long)
+    })
+    return {
+      category: EQUIPMENT_CATEGORY_CODE.WEAPON,
+      properties: [...new Set(properties)],
+      ...requiresAttunement,
+      ...(weaponAttack ? { weaponAttack } : { weaponAttackUnreadable: true })
+    }
+  }
+
+  if (type === 'equipment' && subtype) {
+    const shield = subtype === 'shield'
+    const weight = FOUNDRY_ARMOR_WEIGHT[subtype]
+    if (shield || weight) {
+      const armorClass = readInteger(asRecord(system?.armor)?.value)
+      const strengthRequirement = shield ? undefined : readPositiveInteger(system?.strength)
+      const stealthDisadvantage =
+        !shield && readFoundryPropertyCodes(system).includes('stealthDisadvantage')
+      return {
+        category: shield ? EQUIPMENT_CATEGORY_CODE.SHIELD : EQUIPMENT_CATEGORY_CODE.ARMOR,
+        properties: weight ? [weight] : [],
+        ...(armorClass === undefined ? {} : { armorClass }),
+        ...(strengthRequirement === undefined ? {} : { strengthRequirement }),
+        ...(stealthDisadvantage ? { stealthDisadvantage } : {}),
+        ...requiresAttunement
+      }
+    }
+  }
+
+  return {
+    category:
+      type === 'tool' ? EQUIPMENT_CATEGORY_CODE.TOOL : EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+    properties: [],
+    ...requiresAttunement
+  }
+}
+
+function customEquipmentContent(
+  base: { externalId: string; label: string; path: Array<string | number>; description?: string },
+  mapped: MappedEquipment,
+  issues: ImportIssueDto[]
+): ExternalCustomContent {
+  if (mapped.weaponAttackUnreadable) {
+    issues.push(
+      issue(
+        'INFO',
+        'CUSTOM_WEAPON_ATTACK_NOT_IMPORTED',
+        `Custom weapon "${base.label}" has no readable single-damage-type attack, so it was imported without one.`,
+        base.path,
+        false
+      )
+    )
+  }
+  return {
+    subjectKind: 'EQUIPMENT',
+    externalId: base.externalId,
+    label: base.label,
+    path: base.path,
+    payload: {
+      kind: 'EQUIPMENT',
+      label: base.label,
+      description: sanitizeImportedRichText(base.description),
+      category: mapped.category,
+      rarityId: '',
+      properties: mapped.properties,
+      ...(mapped.armorClass === undefined ? {} : { armorClass: mapped.armorClass }),
+      ...(mapped.weightPounds === undefined
+        ? {}
+        : { weight: { amount: mapped.weightPounds, unit: MEASUREMENT_UNIT_CODE.POUNDS } }),
+      ...(mapped.requiresAttunement ? { requiresAttunement: true } : {})
+    },
+    ...(mapped.weaponAttack ? { weaponAttack: mapped.weaponAttack } : {}),
+    ...(mapped.magicBonus === undefined ? {} : { magicBonus: mapped.magicBonus }),
+    ...(mapped.rarityName ? { rarityName: mapped.rarityName } : {}),
+    ...(mapped.costGold === undefined ? {} : { costGold: mapped.costGold }),
+    ...(mapped.strengthRequirement === undefined
+      ? {}
+      : { strengthRequirement: mapped.strengthRequirement }),
+    ...(mapped.stealthDisadvantage ? { stealthDisadvantage: true } : {})
+  }
 }
 
 function isRichTextKey(key: string | undefined): boolean {
@@ -741,6 +1119,10 @@ function readInteger(value: unknown): number | undefined {
 function readPositiveInteger(value: unknown): number | undefined {
   const number = readInteger(value)
   return number !== undefined && number > 0 ? number : undefined
+}
+
+function readPositiveNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined
 }
 
 function readNonnegativeInteger(value: unknown): number | undefined {

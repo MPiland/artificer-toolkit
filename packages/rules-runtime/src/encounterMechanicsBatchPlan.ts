@@ -234,7 +234,10 @@ export function planEncounterMechanicsBatch(input: {
   }
 
   const stowItemId = batch.stowEquippedItemInstanceId
-  if (stowItemId !== undefined && !loaded.character.state.equipment.equipped.includes(stowItemId))
+  if (
+    stowItemId !== undefined &&
+    !loaded.character.state.equipment.equipped.some((entry) => entry.itemId === stowItemId)
+  )
     throw new Error('Encounter Character item to stow is no longer equipped.')
   const equippedCharacter =
     stowItemId === undefined ? loaded.character : unequipCharacterItem(loaded.character, stowItemId)

@@ -198,7 +198,7 @@ export function CharacterSheetItemPanelContent({
                   <div className={inspectorShellStyles.disclosureBody}>
                     {canSetEquipped ? (
                       <Switch
-                        checked={panel.equipped}
+                        checked={panel.equippedSlot !== null}
                         disabled={pending}
                         label='Equipped'
                         onChange={(event) =>
@@ -209,6 +209,19 @@ export function CharacterSheetItemPanelContent({
                           })
                         }
                       />
+                    ) : null}
+                    {canSetEquipped &&
+                    (panel.equippedSlot === 'MAIN_HAND' || panel.equippedSlot === 'OFF_HAND') ? (
+                      <Button
+                        disabled={pending}
+                        size='xs'
+                        variant='default'
+                        onClick={() =>
+                          void submitCommand({ type: 'SWAP_HELD_ITEMS', expectedVersion })
+                        }
+                      >
+                        Swap hands
+                      </Button>
                     ) : null}
                     {panel.requiresAttunement && canSetAttuned ? (
                       <Switch

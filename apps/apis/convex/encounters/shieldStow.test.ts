@@ -358,8 +358,8 @@ describe('shield stow on two-handed attacks', () => {
       expect(plan.shouldAdvance).toBe(true)
       expect(plan.characterStreamVersion).toBe(loaded.active.play.streamVersion + 1)
       expect(plan.updatedActor).toEqual(actor)
-      expect(plan.characterUpdate?.character.state.equipment.equipped).not.toContain(
-        base.shieldItemId
+      expect(plan.characterUpdate?.character.state.equipment.equipped).not.toContainEqual(
+        expect.objectContaining({ itemId: base.shieldItemId })
       )
       expect(plan.characterUpdate?.sheetState?.resourceUsage).toEqual([
         expect.objectContaining({ used: 1 })
@@ -393,7 +393,9 @@ describe('shield stow on two-handed attacks', () => {
     expect(result.occurrence?.status).toBe('COMPLETE')
     const after = await base.characterRow()
     expect(after?.play.streamVersion).toBe(before!.play.streamVersion + 1)
-    expect(readCharacterRecord(after!).state.equipment.equipped).not.toContain(base.shieldItemId)
+    expect(readCharacterRecord(after!).state.equipment.equipped).not.toContainEqual(
+      expect.objectContaining({ itemId: base.shieldItemId })
+    )
     expect(await base.armorClass()).toBe(12)
     // Sending the settled command again is a retry: the room's held history answers it.
     expect(await executeInRoom(base.owner.caller, { command })).toEqual(result)
@@ -455,7 +457,40 @@ describe('versatile grips', () => {
     expect(result.occurrence?.status).toBe('COMPLETE')
     expect(
       readCharacterRecord((await base.characterRow())!).state.equipment.equipped
-    ).not.toContain(base.shieldItemId)
+    ).not.toContainEqual(expect.objectContaining({ itemId: base.shieldItemId }))
+  }, 60000)
+
+  it('undoes a stow by putting the shield back in the off hand it left (D107)', async () => {
+    const base = await setup({ weapon: longsword, weaponEquipped: true })
+    const handsBefore = readCharacterRecord((await base.characterRow())!).state.equipment.equipped
+    expect(handsBefore).toContainEqual({ itemId: base.shieldItemId, slot: 'OFF_HAND' })
+    const twoHand = (
+      await base.owner.caller.query(getNativeActionChoices, {
+        encounterId: base.run.id,
+        expectedVersion: base.state.version,
+        actorId: base.actor.id
+      })
+    )?.actions.find(
+      (action) => base.actionIds.includes(action.id) && action.grip?.value === 'TWO_HANDED'
+    )
+    if (!twoHand) throw new Error('Expected a two-hand longsword choice.')
+    await executeInRoom(base.owner.caller, {
+      command: base.command(accept(base.shieldItemId), twoHand.id)
+    })
+    expect(
+      readCharacterRecord((await base.characterRow())!).state.equipment.equipped
+    ).not.toContainEqual(expect.objectContaining({ itemId: base.shieldItemId }))
+    await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'REVERT_LAST_ACTION',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.state.version + 1
+      }
+    })
+    expect(readCharacterRecord((await base.characterRow())!).state.equipment.equipped).toEqual(
+      handsBefore
+    )
   }, 60000)
 })
 

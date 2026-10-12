@@ -1,3 +1,4 @@
+import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
 
 import { abilityCodeSchema } from '../shared/enums.js'
@@ -513,7 +514,7 @@ const itemPanelDtoSchema = lazySchema(() =>
     displayName: stringSchema.check(z.minLength(1)),
     description: z.optional(stringSchema),
     facts: z.array(panelFactDtoSchema),
-    equipped: booleanSchema,
+    equippedSlot: z.nullable(z.enum(EQUIPPED_SLOT_CODES)),
     attuned: booleanSchema,
     requiresAttunement: booleanSchema,
     features: z.array(

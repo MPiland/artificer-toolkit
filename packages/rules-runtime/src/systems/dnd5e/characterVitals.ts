@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
+import { isHandSlot } from '@artificer-toolkit/shared/core'
 
 import { combineDnd5eArmorClass } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
@@ -18,26 +19,43 @@ import {
 
 type ArmorClassEquipment = NonNullable<CharacterRulePolicyInput['armorClassFacts']>['equipment']
 
-/** The one active shield D&D armor class counts, with its base armor class. */
+type ActiveShield = { itemInstanceId: string; armorClass: number }
+
+/**
+ * The one active shield D&D armor class counts, with its base armor class (D107). A shield counts
+ * only while a hand holds it, and only one counts: the one that adds the most (`armorClassOf`),
+ * the main hand's on a tie.
+ */
 export function resolveDnd5eActiveShield(
   equipment: ArmorClassEquipment,
-  activeEquipmentInstanceIds: readonly string[]
-): { itemInstanceId: string; armorClass: number } | null {
-  const shield = equipment
+  activeEquipmentInstanceIds: readonly string[],
+  armorClassOf: (shield: ActiveShield) => number
+): ActiveShield | null {
+  const held = equipment
     .filter(
       (item) =>
-        item.category === 'SHIELD' && activeEquipmentInstanceIds.includes(item.itemInstanceId)
+        item.category === 'SHIELD' &&
+        isHandSlot(item.equippedSlot) &&
+        activeEquipmentInstanceIds.includes(item.itemInstanceId)
     )
-    .at(-1)
-  return shield === undefined
-    ? null
-    : { itemInstanceId: shield.itemInstanceId, armorClass: shield.armorClass ?? 2 }
+    .map((item) => ({
+      slot: item.equippedSlot,
+      shield: { itemInstanceId: item.itemInstanceId, armorClass: item.armorClass ?? 2 }
+    }))
+  const best = held.reduce<(typeof held)[number] | undefined>((chosen, candidate) => {
+    if (chosen === undefined) return candidate
+    const difference = armorClassOf(candidate.shield) - armorClassOf(chosen.shield)
+    return difference > 0 || (difference === 0 && candidate.slot === 'MAIN_HAND')
+      ? candidate
+      : chosen
+  }, undefined)
+  return best?.shield ?? null
 }
 
 /** The armor class a shield adds: its base value and the applied modifiers it owns (magic +N). */
 export function resolveDnd5eShieldArmorClass(
-  shield: { itemInstanceId: string; armorClass: number },
-  armorClass: CharacterRulePolicyOutput['derivedStats']['armorClass']
+  shield: ActiveShield,
+  armorClass: Pick<CharacterRulePolicyOutput['derivedStats']['armorClass'], 'contributions'>
 ): number {
   return armorClass.contributions
     .filter(
@@ -63,46 +81,60 @@ export function evaluateDnd5eCharacterVitals(
     .filter(
       (item) =>
         item.category === 'ARMOR' &&
+        item.equippedSlot === 'WORN' &&
         grantFold.activeEquipmentInstanceIds.includes(item.itemInstanceId)
     )
     .at(-1)
-  const shield = resolveDnd5eActiveShield(equipment, grantFold.activeEquipmentInstanceIds)
-  const shieldItem = equipment.find((item) => item.itemInstanceId === shield?.itemInstanceId)
   // Armor class evaluates the worn armor and the active shield: their own modifiers apply.
-  const target: Dnd5eModifierTarget = {
-    ...DND5E_CHARACTER_WIDE_TARGET,
-    sourceIds: [armor, shieldItem].flatMap((item) =>
-      item === undefined ? [] : [createCharacterMechanicSourceKey(item.source)]
-    )
+  const applicableWith = (shieldItemInstanceId: string | undefined) => {
+    const shieldItem = equipment.find((item) => item.itemInstanceId === shieldItemInstanceId)
+    const target: Dnd5eModifierTarget = {
+      ...DND5E_CHARACTER_WIDE_TARGET,
+      sourceIds: [armor, shieldItem].flatMap((item) =>
+        item === undefined ? [] : [createCharacterMechanicSourceKey(item.source)]
+      )
+    }
+    return modifierGroups
+      .filter((group) => group.valueDomainCode === 'ARMOR_CLASS')
+      .flatMap((group) =>
+        group.contributions
+          .filter((contribution) =>
+            dnd5eModifierApplies(dnd5eFoldedModifierApplicability(grantFold, contribution), target)
+          )
+          .map((contribution) => ({ modifierKind: group.modifierKind, contribution }))
+      )
   }
-  const applicable = modifierGroups
-    .filter((group) => group.valueDomainCode === 'ARMOR_CLASS')
-    .flatMap((group) =>
-      group.contributions
-        .filter((contribution) =>
-          dnd5eModifierApplies(dnd5eFoldedModifierApplicability(grantFold, contribution), target)
-        )
-        .map((contribution) => ({ modifierKind: group.modifierKind, contribution }))
-    )
   // A creature uses one armor class calculation: worn armor (its base plus its own ability bonus,
   // such as light armor's DEX), 10 + DEX unarmored, or an authored formula ("your AC equals
   // 13 + DEX") whose restriction says when it applies. The best applicable one wins; they never
   // stack. A shield and flat bonuses then add.
-  const isArmorFormulaPart = (entry: (typeof applicable)[number]) =>
+  const isArmorFormulaPart = (entry: ReturnType<typeof applicableWith>[number]) =>
     armor !== undefined &&
     (entry.modifierKind === 'ABILITY_MODIFIER_BONUS' ||
       entry.modifierKind === 'OPTIONAL_ABILITY_MODIFIER_BONUS') &&
     entry.contribution.source.kind === 'EQUIPMENT_INSTANCE' &&
     entry.contribution.source.itemInstanceId === armor.itemInstanceId
-  const additive = applicable
-    .filter((entry) => entry.modifierKind !== 'SET_VALUE' && !isArmorFormulaPart(entry))
-    .map(({ contribution }) => ({
-      sourceId: contribution.sourceId,
-      source: contribution.source,
-      value: contribution.value,
-      state: contribution.state,
-      reasonCode: contribution.reasonCode
-    }))
+  const additiveOf = (applicable: ReturnType<typeof applicableWith>) =>
+    applicable
+      .filter((entry) => entry.modifierKind !== 'SET_VALUE' && !isArmorFormulaPart(entry))
+      .map(({ contribution }) => ({
+        sourceId: contribution.sourceId,
+        source: contribution.source,
+        value: contribution.value,
+        state: contribution.state,
+        reasonCode: contribution.reasonCode
+      }))
+  // Of two held shields the one adding the most counts, judged with its own modifiers applied.
+  const shield = resolveDnd5eActiveShield(
+    equipment,
+    grantFold.activeEquipmentInstanceIds,
+    (candidate) =>
+      resolveDnd5eShieldArmorClass(candidate, {
+        contributions: additiveOf(applicableWith(candidate.itemInstanceId))
+      })
+  )
+  const applicable = applicableWith(shield?.itemInstanceId)
+  const additive = additiveOf(applicable)
   const combined = combineDnd5eArmorClass({
     armor:
       armor === undefined

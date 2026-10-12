@@ -1,4 +1,5 @@
 import type { SizeCode } from '../core/size.js'
+import type { EquippedSlotCode } from '../subjects/core/equipmentHands.js'
 import type {
   CompiledEquipment,
   CompiledEquipmentVariant
@@ -24,13 +25,10 @@ export interface ContentRef {
   systemId: string
 }
 
-export type EquippedState =
-  | { slot: 'ARMOR' }
-  | { slot: 'SHIELD' }
-  | { slot: 'MAIN_HAND' }
-  | { slot: 'OFF_HAND' }
-  | { slot: 'RING'; position: 1 | 2 }
-  | { slot: 'GENERIC' }
+/** An equipped Character item, in the slot its state stores (D107). */
+export interface EquippedState {
+  slot: EquippedSlotCode
+}
 
 export interface OwnedEquipmentInstance {
   instanceId: string

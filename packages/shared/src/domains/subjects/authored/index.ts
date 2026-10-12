@@ -1,6 +1,7 @@
 export * from './background.js'
 export * from './class.js'
 export * from './creature.js'
+export * from './dnd5eEquipmentBuilders.js'
 export * from './equipment.js'
 export * from './feat.js'
 export * from './race.js'

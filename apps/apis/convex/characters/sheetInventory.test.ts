@@ -10,7 +10,9 @@ import type {
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { HAND_CONFLICT_MESSAGE } from '@artificer-toolkit/shared/core'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api, internal } from '../_generated/api'
@@ -176,7 +178,8 @@ describe('native Character Sheet inventory commands', () => {
     expect(clearedItem.notes).toBeUndefined()
 
     let expectedVersion = 4
-    for (const item of added) {
+    // Two hands hold two clubs (D107); a third is refused without a write.
+    for (const item of added.slice(0, 2)) {
       await owner.caller.mutation(execute, {
         id: character.id,
         command: {
@@ -188,6 +191,23 @@ describe('native Character Sheet inventory commands', () => {
       })
       expectedVersion += 1
     }
+    const beforeThirdClub = await readState()
+    await expect(
+      owner.caller.mutation(execute, {
+        id: character.id,
+        command: {
+          type: 'EQUIP_ITEM',
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          itemId: added[2]!.id
+        }
+      })
+    ).rejects.toThrow(HAND_CONFLICT_MESSAGE.HAND_OCCUPIED_TWICE)
+    expect(await readState()).toEqual(beforeThirdClub)
+    expect(authoredOf(beforeThirdClub).state.equipment.equipped).toEqual([
+      { itemId: added[0]!.id, slot: 'MAIN_HAND' },
+      { itemId: added[1]!.id, slot: 'OFF_HAND' }
+    ])
     for (const item of added.slice(0, 3)) {
       await owner.caller.mutation(execute, {
         id: character.id,
@@ -241,7 +261,11 @@ describe('native Character Sheet inventory commands', () => {
     }))!
     expect(finalSheet.inventory.items.find((item) => item.id === added[0]!.id)).toMatchObject({
       attuned: false,
-      equipped: false
+      equippedSlot: null
+    })
+    // Unequipping the main-hand club moved the off-hand club into the main hand.
+    expect(finalSheet.inventory.items.find((item) => item.id === added[1]!.id)).toMatchObject({
+      equippedSlot: 'MAIN_HAND'
     })
     expect(finalSheet.inventory.items.find((item) => item.id === added[3]!.id)?.attuned).toBe(true)
     const afterAttunement = await readState()
@@ -469,7 +493,9 @@ describe('native Character Sheet inventory commands', () => {
       expect(deletedSheet.inventory.items.find((item) => item.id === secondItem.id)).toBeDefined()
       expect((await readState()).receipts).toHaveLength(beforeDelete.receipts.length + 1)
       const afterDelete = await readState()
-      expect(authoredOf(afterDelete).state.equipment.equipped).not.toContain(firstItem.id)
+      expect(authoredOf(afterDelete).state.equipment.equipped).not.toContainEqual(
+        expect.objectContaining({ itemId: firstItem.id })
+      )
       expect(authoredOf(afterDelete).state.equipment.attuned).not.toContain(firstItem.id)
       expect(deleted.streamVersion).toBe(command.expectedVersion + 1)
       const replay = await owner.caller.mutation(execute, { id: character.id, command })
@@ -478,6 +504,70 @@ describe('native Character Sheet inventory commands', () => {
       expect(await readState()).toEqual(afterDelete)
     }
   )
+
+  it('assigns hands on equip, swaps them, promotes an off-hand weapon, and counts only a held shield (D107)', async () => {
+    const { t, owner, character, equipment } = await fixture()
+    await t.mutation(internal.content.import.importSubjects, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [importedSubject({ ...shieldWood, subjectKind: 'EQUIPMENT', document: shieldWood })]
+    })
+    let version = 1
+    const run = async (
+      command:
+        | { type: 'ADD_INVENTORY_ITEM'; equipmentId: string; quantity: number }
+        | { type: 'EQUIP_ITEM' | 'UNEQUIP_ITEM'; itemId: string }
+        | { type: 'SWAP_HELD_ITEMS' }
+    ) => {
+      const response = await owner.caller.mutation(execute, {
+        id: character.id,
+        command: { ...command, commandId: crypto.randomUUID(), expectedVersion: version }
+      })
+      version = response.streamVersion
+      return (await owner.caller.query(getSheet, { id: character.id }))!
+    }
+    const slots = (sheet: CharacterSheetResponseDto) =>
+      Object.fromEntries(sheet.inventory.items.map((item) => [item.equipmentId, item.equippedSlot]))
+    await run({ type: 'ADD_INVENTORY_ITEM', equipmentId: equipment.id, quantity: 1 })
+    const carried = await run({
+      type: 'ADD_INVENTORY_ITEM',
+      equipmentId: shieldWood.id,
+      quantity: 1
+    })
+    const clubId = inventoryItems(carried, equipment.id)[0]!.id
+    const shieldId = inventoryItems(carried, shieldWood.id)[0]!.id
+    const carriedArmorClass = carried.overview.armorClass
+
+    const withClub = await run({ type: 'EQUIP_ITEM', itemId: clubId })
+    expect(slots(withClub)).toMatchObject({ [equipment.id]: 'MAIN_HAND', [shieldWood.id]: null })
+    expect(withClub.overview.armorClass).toBe(carriedArmorClass)
+
+    const withShield = await run({ type: 'EQUIP_ITEM', itemId: shieldId })
+    expect(slots(withShield)).toMatchObject({
+      [equipment.id]: 'MAIN_HAND',
+      [shieldWood.id]: 'OFF_HAND'
+    })
+    expect(withShield.overview.armorClass).toBe(carriedArmorClass + 2)
+
+    const swapped = await run({ type: 'SWAP_HELD_ITEMS' })
+    expect(slots(swapped)).toMatchObject({
+      [equipment.id]: 'OFF_HAND',
+      [shieldWood.id]: 'MAIN_HAND'
+    })
+    expect(swapped.overview.armorClass).toBe(carriedArmorClass + 2)
+
+    const shieldDropped = await run({ type: 'UNEQUIP_ITEM', itemId: shieldId })
+    expect(slots(shieldDropped)).toMatchObject({
+      [equipment.id]: 'MAIN_HAND',
+      [shieldWood.id]: null
+    })
+    expect(shieldDropped.overview.armorClass).toBe(carriedArmorClass)
+
+    const lone = await run({ type: 'SWAP_HELD_ITEMS' })
+    expect(slots(lone)).toMatchObject({ [equipment.id]: 'OFF_HAND' })
+    const empty = await run({ type: 'UNEQUIP_ITEM', itemId: clubId })
+    expect(slots(empty)).toMatchObject({ [equipment.id]: null, [shieldWood.id]: null })
+    await expect(run({ type: 'SWAP_HELD_ITEMS' })).rejects.toThrow('No item is held to swap.')
+  }, 30000)
 
   it('rejects foreign or missing item ids without writes and rolls back projection failures', async () => {
     const { owner, other, character, equipment, readState } = await fixture()

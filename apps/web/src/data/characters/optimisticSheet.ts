@@ -6,6 +6,14 @@ import {
   toCharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
 
+import {
+  EQUIPMENT_PROPERTY_CODE,
+  nextEquipSlot,
+  promotesOffHandItem,
+  swapHeldItems,
+  type HeldItem
+} from '@artificer-toolkit/shared/core'
+
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommandInputs'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
@@ -330,34 +338,79 @@ function projectInventory<Sheet extends Pick<CharacterSheetResponseDto, 'invento
   }
 
   if (
-    command.type !== 'EQUIP_ITEM' &&
-    command.type !== 'UNEQUIP_ITEM' &&
-    command.type !== 'ATTUNE_ITEM' &&
-    command.type !== 'UNATTUNE_ITEM'
+    command.type === 'EQUIP_ITEM' ||
+    command.type === 'UNEQUIP_ITEM' ||
+    command.type === 'SWAP_HELD_ITEMS'
   ) {
-    return sheet
+    return {
+      ...sheet,
+      inventory: {
+        ...sheet.inventory,
+        items: projectEquippedSlots(sheet.inventory.items, command)
+      }
+    }
   }
+
+  if (command.type !== 'ATTUNE_ITEM' && command.type !== 'UNATTUNE_ITEM') return sheet
 
   return {
     ...sheet,
     inventory: {
       ...sheet.inventory,
       items: sheet.inventory.items.map((item) =>
-        item.id === command.itemId
-          ? {
-              ...item,
-              ...(command.type === 'EQUIP_ITEM'
-                ? { equipped: true }
-                : command.type === 'UNEQUIP_ITEM'
-                  ? { equipped: false }
-                  : command.type === 'ATTUNE_ITEM'
-                    ? { attuned: true }
-                    : { attuned: false })
-            }
-          : item
+        item.id === command.itemId ? { ...item, attuned: command.type === 'ATTUNE_ITEM' } : item
       )
     }
   }
+}
+
+type SheetInventoryItem = CharacterSheetResponseDto['inventory']['items'][number]
+
+function isTwoHanded(item: SheetInventoryItem): boolean {
+  return (
+    item.properties?.some((property) => property.code === EQUIPMENT_PROPERTY_CODE.TWO_HANDED) ===
+    true
+  )
+}
+
+/** Applies the shared hand rules to the Sheet's items; a move the rules refuse changes nothing. */
+function projectEquippedSlots(
+  items: readonly SheetInventoryItem[],
+  command: Extract<
+    CharacterSheetCommandInputDto,
+    { type: 'EQUIP_ITEM' | 'UNEQUIP_ITEM' | 'SWAP_HELD_ITEMS' }
+  >
+): SheetInventoryItem[] {
+  const held = items.flatMap((item): HeldItem[] =>
+    item.equippedSlot === 'MAIN_HAND' || item.equippedSlot === 'OFF_HAND'
+      ? [{ id: item.id, slot: item.equippedSlot, twoHanded: isTwoHanded(item) }]
+      : []
+  )
+  const slots = new Map<string, SheetInventoryItem['equippedSlot']>()
+
+  if (command.type === 'EQUIP_ITEM') {
+    const item = items.find((candidate) => candidate.id === command.itemId)
+    if (item && item.equippedSlot === null) {
+      const assignment = nextEquipSlot(
+        { id: item.id, category: item.category, twoHanded: isTwoHanded(item) },
+        held
+      )
+      if ('slot' in assignment) slots.set(item.id, assignment.slot)
+    }
+  } else if (command.type === 'UNEQUIP_ITEM') {
+    slots.set(command.itemId, null)
+    const removed = items.find((candidate) => candidate.id === command.itemId)
+    const offHand = items.find((candidate) => candidate.equippedSlot === 'OFF_HAND')
+    if (offHand && promotesOffHandItem(removed?.equippedSlot ?? undefined, offHand.category))
+      slots.set(offHand.id, 'MAIN_HAND')
+  } else {
+    const swapped = swapHeldItems(held)
+    if ('held' in swapped) for (const { id, slot } of swapped.held) slots.set(id, slot)
+  }
+
+  return items.map((item) =>
+    slots.has(item.id) ? { ...item, equippedSlot: slots.get(item.id) ?? null } : item
+  )
 }
 
 function projectExtras<Sheet extends Pick<CharacterSheetResponseDto, 'extras'>>(
@@ -799,15 +852,13 @@ export function projectOptimisticCharacterSheetPanel(
 
   if (
     panel.kind === 'ITEM' &&
-    (command.type === 'EQUIP_ITEM' ||
-      command.type === 'UNEQUIP_ITEM' ||
+    (command.type === 'UNEQUIP_ITEM' ||
       command.type === 'ATTUNE_ITEM' ||
       command.type === 'UNATTUNE_ITEM') &&
     panel.itemInstanceId === command.itemId
   ) {
-    if (command.type === 'EQUIP_ITEM' || command.type === 'UNEQUIP_ITEM') {
-      return { ...panel, equipped: command.type === 'EQUIP_ITEM' }
-    }
+    // The panel carries no hands, so the slot an equip or swap lands in waits for the response.
+    if (command.type === 'UNEQUIP_ITEM') return { ...panel, equippedSlot: null }
     return { ...panel, attuned: command.type === 'ATTUNE_ITEM' }
   }
 
@@ -849,6 +900,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'UPDATE_INVENTORY_ITEM':
     case 'EQUIP_ITEM':
     case 'UNEQUIP_ITEM':
+    case 'SWAP_HELD_ITEMS':
     case 'ATTUNE_ITEM':
     case 'UNATTUNE_ITEM':
     case 'ADJUST_CURRENCY':

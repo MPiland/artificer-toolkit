@@ -60,7 +60,9 @@ function heldItemDisarmed(base: Base, rows: Awaited<ReturnType<typeof disarmReco
       )?.useState === 'CARRIED'
     )
   if (!rows.character) throw new Error('Missing Character records.')
-  return !readCharacterRecord(rows.character).state.equipment.equipped.includes(base.heldItemId)
+  return !readCharacterRecord(rows.character).state.equipment.equipped.some(
+    ({ itemId }) => itemId === base.heldItemId
+  )
 }
 
 function evidence(
@@ -259,7 +261,9 @@ describe('room Disarm commands', () => {
         ...beforeCharacter.state,
         equipment: {
           ...beforeCharacter.state.equipment,
-          equipped: beforeCharacter.state.equipment.equipped.filter((id) => id !== base.heldItemId)
+          equipped: beforeCharacter.state.equipment.equipped.filter(
+            ({ itemId }) => itemId !== base.heldItemId
+          )
         }
       }
     })

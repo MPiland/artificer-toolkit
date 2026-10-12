@@ -13,13 +13,18 @@ import {
   type ImportStoredJob,
   type ImportStoredPreviewDescriptor
 } from '@artificer-toolkit/schema/projections/importJobPersistence'
+import { EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 import type { Id } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { readCharacterRecord } from '../characters/documents'
 import { readCharacterRow } from '../characters/stateDocuments'
+import { readLoadoutEquipment } from '../content/creatureLoadoutHands'
 import { readSystem } from '../content/systemDocuments'
 import { parseImportJob, requireCurrentImportOwner } from './jobs'
+
+/** Distinct Equipment ids one preflight reads: every equipped reference of every selected Character. */
+const IMPORT_MAX_PREFLIGHT_EQUIPMENT = 2000
 
 const sourceClaimValidator = v.object({
   claimId: v.string(),
@@ -44,6 +49,9 @@ const runnerPreflightValidator = v.object({
       systemId: v.string(),
       primaryRulesCatalogueId: v.union(v.string(), v.null())
     })
+  ),
+  equipment: v.array(
+    v.object({ equipmentId: v.string(), category: v.string(), twoHanded: v.boolean() })
   )
 })
 
@@ -69,6 +77,8 @@ export interface ImportRunnerPreflight {
     systemId: string
     primaryRulesCatalogueId: string | null
   }>
+  /** The readable Equipment imported Characters equip, as compiled (variants resolved). */
+  equipment: Array<{ equipmentId: string; category: string; twoHanded: boolean }>
 }
 
 async function requireRunningJob(ctx: QueryCtx, jobId: string) {
@@ -158,7 +168,8 @@ export const loadPreflight = internalQuery({
   args: {
     jobId: v.string(),
     systemIds: v.array(v.string()),
-    characterIds: v.array(v.string())
+    characterIds: v.array(v.string()),
+    equipmentIds: v.array(v.string())
   },
   returns: runnerPreflightValidator,
   handler: async (ctx, args): Promise<ImportRunnerPreflight> => {
@@ -166,6 +177,8 @@ export const loadPreflight = internalQuery({
     if (
       args.systemIds.length > IMPORT_MAX_ENTRIES ||
       args.characterIds.length > IMPORT_MAX_ENTRIES ||
+      args.equipmentIds.length > IMPORT_MAX_PREFLIGHT_EQUIPMENT ||
+      new Set(args.equipmentIds).size !== args.equipmentIds.length ||
       args.systemIds.length > job.totalEntries ||
       args.characterIds.length > job.totalEntries ||
       new Set(args.systemIds).size !== args.systemIds.length ||
@@ -196,7 +209,18 @@ export const loadPreflight = internalQuery({
       })
     }
 
-    return { availableSystemIds, activeCharacters }
+    const effectiveEquipment = await readLoadoutEquipment(
+      ctx,
+      args.equipmentIds.map((equipmentId) => ({ equipmentId })),
+      job.ownerUserId
+    )
+    const equipment = [...effectiveEquipment].map(([equipmentId, effective]) => ({
+      equipmentId,
+      category: effective.category,
+      twoHanded: effective.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+    }))
+
+    return { availableSystemIds, activeCharacters, equipment }
   }
 })
 
@@ -206,6 +230,6 @@ export const loadSourceRef = makeFunctionReference<'query', { jobId: string }, I
 
 export const loadPreflightRef = makeFunctionReference<
   'query',
-  { jobId: string; systemIds: string[]; characterIds: string[] },
+  { jobId: string; systemIds: string[]; characterIds: string[]; equipmentIds: string[] },
   ImportRunnerPreflight
 >('imports/runnerState:loadPreflight')

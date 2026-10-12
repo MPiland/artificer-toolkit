@@ -201,7 +201,10 @@ describe('native Equipment deletion source-loss cleanup', () => {
               containerId: removedItemId
             }
           ],
-          equipped: [removedItemId, backpackItemId],
+          equipped: [
+            { itemId: removedItemId, slot: 'WORN' },
+            { itemId: backpackItemId, slot: 'WORN' }
+          ],
           attuned: [removedItemId, backpackItemId]
         },
         noteGroups: [{ id: noteGroupId, label: 'Private', sortOrder: 0, kind: 'CUSTOM' }],
@@ -311,7 +314,10 @@ describe('native Equipment deletion source-loss cleanup', () => {
       expect(
         current.state.equipment.inventory.find((item) => item.id === nestedClubItemId)?.containerId
       ).toBe(removedItemId)
-      expect(current.state.equipment.equipped).toContain(removedItemId)
+      expect(current.state.equipment.equipped).toContainEqual({
+        itemId: removedItemId,
+        slot: 'WORN'
+      })
       expect(current.state.equipment.attuned).toContain(removedItemId)
       expect(
         current.intent.startingEquipment?.background?.groups?.flatMap(

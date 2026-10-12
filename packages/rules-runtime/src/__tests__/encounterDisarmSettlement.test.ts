@@ -90,7 +90,14 @@ function creatureTarget(heldState: 'MAIN_HAND' | 'OFF_HAND' | 'CARRIED' = 'MAIN_
   })
 }
 
-function targetCharacter(equipped: string[] = [HELD_ITEM_INSTANCE_ID, SHIELD_ITEM_INSTANCE_ID]) {
+const SHIELD_ENTRY = { itemId: SHIELD_ITEM_INSTANCE_ID, slot: 'OFF_HAND' as const }
+
+function targetCharacter(
+  equipped: { itemId: string; slot: 'MAIN_HAND' | 'OFF_HAND' | 'WORN' }[] = [
+    { itemId: HELD_ITEM_INSTANCE_ID, slot: 'MAIN_HAND' },
+    SHIELD_ENTRY
+  ]
+) {
   const empty = createEmptyCharacterAuthored({
     id: TARGET_CHARACTER_ID,
     systemId: SRD_SYSTEM_ID,
@@ -386,7 +393,7 @@ describe('Disarm settlement plan', () => {
     })
     const nextEquipment = {
       ...character.document.state.equipment,
-      equipped: [SHIELD_ITEM_INSTANCE_ID]
+      equipped: [SHIELD_ENTRY]
     }
     expect(planned).toEqual({
       kind: 'CHARACTER',
@@ -412,8 +419,8 @@ describe('Disarm settlement plan', () => {
       character.document.state.equipment.inventory
     )
     expect(character.document.state.equipment.equipped).toEqual([
-      HELD_ITEM_INSTANCE_ID,
-      SHIELD_ITEM_INSTANCE_ID
+      { itemId: HELD_ITEM_INSTANCE_ID, slot: 'MAIN_HAND' },
+      SHIELD_ENTRY
     ])
   })
 
@@ -425,7 +432,7 @@ describe('Disarm settlement plan', () => {
     },
     {
       name: 'the item already unequipped',
-      character: targetCharacter([SHIELD_ITEM_INSTANCE_ID]),
+      character: targetCharacter([SHIELD_ENTRY]),
       contest: () => characterContest()
     },
     {

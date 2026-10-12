@@ -243,7 +243,10 @@ describe('native Character item custody', () => {
             },
             { id: clubId, equipmentId: club.id, quantity: 2, containerId: pouchId }
           ],
-          equipped: [bagId, pouchId],
+          equipped: [
+            { itemId: bagId, slot: 'WORN' },
+            { itemId: pouchId, slot: 'WORN' }
+          ],
           attuned: [pouchId]
         },
         currency: [
@@ -437,7 +440,7 @@ describe('native Character item custody', () => {
         equipment: {
           ...character.state.equipment,
           inventory: [{ id: itemId, equipmentId: club.id, quantity: 1 }],
-          equipped: [itemId],
+          equipped: [{ itemId, slot: 'MAIN_HAND' }],
           attuned: [itemId]
         }
       }
@@ -530,7 +533,7 @@ describe('native Character item custody', () => {
         equipment: {
           ...character.state.equipment,
           inventory: [{ id: itemId, equipmentId: club.id, quantity: 1 }],
-          equipped: [itemId],
+          equipped: [{ itemId, slot: 'MAIN_HAND' }],
           attuned: [itemId]
         }
       }
@@ -553,8 +556,8 @@ describe('native Character item custody', () => {
     expect(
       readCharacterRecord(sourceAfter.character!).state.equipment.inventory
     ).not.toContainEqual(expect.objectContaining({ id: itemId }))
-    expect(readCharacterRecord(sourceAfter.character!).state.equipment.equipped).not.toContain(
-      itemId
+    expect(readCharacterRecord(sourceAfter.character!).state.equipment.equipped).not.toContainEqual(
+      expect.objectContaining({ itemId })
     )
     expect(readCharacterRecord(sourceAfter.character!).state.equipment.attuned).not.toContain(
       itemId
@@ -562,7 +565,9 @@ describe('native Character item custody', () => {
     expect(readCharacterRecord(destinationAfter).state.equipment.inventory).toContainEqual(
       expect.objectContaining({ id: itemId, equipmentId: club.id, quantity: 1 })
     )
-    expect(readCharacterRecord(destinationAfter).state.equipment.equipped).not.toContain(itemId)
+    expect(readCharacterRecord(destinationAfter).state.equipment.equipped).not.toContainEqual(
+      expect.objectContaining({ itemId })
+    )
     expect(readCharacterRecord(destinationAfter).state.equipment.attuned).not.toContain(itemId)
     expect(destinationAfter.play.streamVersion).toBe(destinationBefore.play.streamVersion + 1)
     const replaySnapshot = await base.readStored()

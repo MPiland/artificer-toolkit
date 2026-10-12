@@ -4,6 +4,8 @@ import type { OpenSheetPanel } from '../core/CharacterSheet.types'
 import * as panelStyles from '../shared/panel.css'
 import * as inventoryStyles from './inventory.css'
 
+const EQUIPPED_SLOT_LABEL = { MAIN_HAND: 'Main hand', OFF_HAND: 'Off hand', WORN: 'Worn' } as const
+
 function CharacterSheetInventoryItemRow({
   item,
   openPanel,
@@ -20,7 +22,10 @@ function CharacterSheetInventoryItemRow({
     )
     .map((resource) => `${resource.remaining} / ${resource.max}`)
     .join(' · ')
-  const state = [item.equipped ? 'Equipped' : undefined, item.attuned ? 'Attuned' : undefined]
+  const state = [
+    item.equippedSlot ? EQUIPPED_SLOT_LABEL[item.equippedSlot] : undefined,
+    item.attuned ? 'Attuned' : undefined
+  ]
     .filter(Boolean)
     .join(' · ')
 

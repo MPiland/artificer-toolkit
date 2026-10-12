@@ -73,7 +73,7 @@ describe('character sheet command contracts', () => {
       label: 'Longsword',
       properties: [{ code: 'ONE_HANDED', label: 'One-Handed' }],
       quantity: 1,
-      equipped: true,
+      equippedSlot: 'MAIN_HAND',
       attuned: false,
       requiresAttunement: false
     } as const

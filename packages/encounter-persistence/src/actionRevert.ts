@@ -33,6 +33,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { restoreConsumedGrants } from './consumedGrantPersistence.js'
@@ -785,10 +786,16 @@ async function restoreCharacter(
   if (inverse.stow) {
     const equipped = state.equipment.equipped
     const itemId = inverse.stow.itemInstanceId
-    const restored = Array.from({ length: equipped.length + 1 }, (_, index) => ({
-      ...state.equipment,
-      equipped: [...equipped.slice(0, index), itemId, ...equipped.slice(index)]
-    })).find((equipment) => checksumRuleDocument(equipment) === inverse.stow!.beforeStateChecksum)
+    // The receipt holds the equipment checksum, not the slot or the position: the one entry that
+    // reproduces the checksum is the exact one that was stowed.
+    const restored = Array.from({ length: equipped.length + 1 }, (_, index) => index)
+      .flatMap((index) =>
+        EQUIPPED_SLOT_CODES.map((slot) => ({
+          ...state.equipment,
+          equipped: [...equipped.slice(0, index), { itemId, slot }, ...equipped.slice(index)]
+        }))
+      )
+      .find((equipment) => checksumRuleDocument(equipment) === inverse.stow!.beforeStateChecksum)
     if (!restored)
       unavailable(`${row.label}'s equipment can't be restored exactly; adjust manually.`)
     state = { ...state, equipment: restored }

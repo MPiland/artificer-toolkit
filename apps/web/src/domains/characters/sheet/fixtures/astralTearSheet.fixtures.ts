@@ -82,7 +82,7 @@ export const astralTearCharacterSheetFixture = {
         costLabel: 'gold pieces',
         weight: { amount: 2, unit: 'POUNDS' },
         quantity: 1,
-        equipped: true,
+        equippedSlot: 'MAIN_HAND',
         attuned: true,
         requiresAttunement: true
       },

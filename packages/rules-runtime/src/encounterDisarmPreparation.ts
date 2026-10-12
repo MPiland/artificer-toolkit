@@ -257,7 +257,11 @@ export function readEncounterDisarmSelection(input: {
       })
       return {
         ownerState: 'CHARACTER_SHEET' as const,
-        heldItemIds: character.character.state.equipment.equipped,
+        // Only what a hand holds can be struck away; worn items stay.
+        heldItemIds: character.character.state.equipment.equipped
+          .filter(({ slot }) => slot !== 'WORN')
+          .map(({ itemId }) => itemId),
+        equipped: character.character.state.equipment.equipped,
         checkTotals: facts.checkTotals,
         equipment: facts.equippedItems,
         size: facts.effectiveSize,
@@ -440,7 +444,7 @@ export function prepareEncounterDisarmContest(input: {
             stateChecksum: checksumRuleDocument({
               itemId: heldItemId,
               streamVersion: defenderFacts.character.active.play.streamVersion,
-              equipped: defenderFacts.heldItemIds
+              equipped: defenderFacts.equipped
             })
           }
         : { kind: 'ENCOUNTER_ACTOR', currentnessChecksum: targetContext!.stateChecksum },
@@ -523,7 +527,7 @@ export function planEncounterDisarmSuccess(input: {
       target.sourceId !== character.id ||
       contest.target.characterId !== character.id ||
       contest.target.streamVersion !== character.streamVersion ||
-      !character.document.state.equipment.equipped.includes(itemId) ||
+      !character.document.state.equipment.equipped.some((entry) => entry.itemId === itemId) ||
       contest.target.stateChecksum !==
         checksumRuleDocument({
           itemId,

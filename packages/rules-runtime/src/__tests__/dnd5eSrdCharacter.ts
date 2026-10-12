@@ -4,7 +4,12 @@ import {
   type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
-import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
+import {
+  EQUIPMENT_PROPERTY_CODE,
+  nextEquipSlot,
+  type CharacterBuildSnapshot,
+  type HeldItem
+} from '@artificer-toolkit/shared/core'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   resolveEquipmentAuthored,
@@ -129,10 +134,19 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
       ? {}
       : { subclassId: srdByLabel(SRD.classes, entry.subclass).id })
   }))
+  const held: HeldItem[] = []
   const items = (input.items ?? []).map((item, index) => {
     const equipment = srdByLabel(SRD.equipment, item.label)
     const compiledItem = registry.equipment[equipment.id]
     if (compiledItem === undefined) throw new Error(`SRD item "${item.label}" did not compile.`)
+    const twoHanded = (compiledItem.properties ?? []).includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+    const assignment = item.equipped
+      ? nextEquipSlot({ id: `item-${index}`, category: compiledItem.category, twoHanded }, held)
+      : undefined
+    if (assignment && 'conflict' in assignment)
+      throw new Error(`SRD item "${item.label}" cannot be equipped: ${assignment.conflict}.`)
+    if (assignment && assignment.slot !== 'WORN')
+      held.push({ id: `item-${index}`, slot: assignment.slot, twoHanded })
     return {
       instanceId: `item-${index}`,
       contentRef: {
@@ -140,16 +154,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
         binding: { kind: 'ACTIVE' as const },
         systemId: equipment.systemId
       },
-      ...(item.equipped
-        ? {
-            equippedState:
-              compiledItem.category === 'ARMOR'
-                ? { slot: 'ARMOR' as const }
-                : compiledItem.category === 'SHIELD'
-                  ? { slot: 'SHIELD' as const }
-                  : { slot: 'MAIN_HAND' as const }
-          }
-        : {}),
+      ...(assignment ? { equippedState: { slot: assignment.slot } } : {}),
       attuned: item.attuned ?? false,
       compiledItem
     }

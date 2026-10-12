@@ -97,7 +97,7 @@ describe('Character Sheet actions', () => {
           { code: 'VERSATILE', label: 'Versatile' }
         ],
         quantity: 1,
-        equipped: true,
+        equippedSlot: 'MAIN_HAND',
         attuned: false,
         requiresAttunement: false
       }

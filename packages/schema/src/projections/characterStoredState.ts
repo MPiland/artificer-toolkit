@@ -9,6 +9,7 @@ import {
   characterPlayStateSchema,
   characterSheetStructureSchema,
   characterStructureStateSchema,
+  effectiveEquippedItems,
   effectiveInventory,
   effectiveItemIds,
   mergeCharacterSheetStatePlay,
@@ -116,7 +117,7 @@ export function readCharacterRecord(row: StoredCharacter): CharacterDocument {
       equipment: {
         ...state.equipment,
         inventory,
-        equipped: effectiveItemIds(state.equipment.equipped, inventory),
+        equipped: effectiveEquippedItems(state.equipment.equipped, inventory),
         attuned: effectiveItemIds(state.equipment.attuned, inventory)
       }
     }

@@ -351,4 +351,76 @@ describe('optimistic Character Sheet projections', () => {
       ]
     })
   })
+
+  describe('held items (SHEET-8)', () => {
+    const [template] = characterSheetFixture.inventory.items
+    const item = (
+      id: string,
+      category: string,
+      equippedSlot: 'MAIN_HAND' | 'OFF_HAND' | 'WORN' | null
+    ) => ({
+      ...template!,
+      id,
+      category,
+      properties: [],
+      equippedSlot
+    })
+    const inventoryOf = (
+      items: ReturnType<typeof item>[],
+      command: CharacterSheetCommandInputDto
+    ) =>
+      Object.fromEntries(
+        projectSlice(
+          { ...characterSheetFixture, inventory: { ...characterSheetFixture.inventory, items } },
+          'INVENTORY',
+          command
+        ).inventory.items.map((entry) => [entry.id, entry.equippedSlot])
+      )
+
+    it('gives a newly equipped weapon the main hand, then a shield the off hand', () => {
+      const items = [item('sword', 'WEAPON', null), item('shield', 'SHIELD', null)]
+      expect(inventoryOf(items, { ...commandBase, type: 'EQUIP_ITEM', itemId: 'sword' })).toEqual({
+        sword: 'MAIN_HAND',
+        shield: null
+      })
+      expect(
+        inventoryOf([item('sword', 'WEAPON', 'MAIN_HAND'), items[1]!], {
+          ...commandBase,
+          type: 'EQUIP_ITEM',
+          itemId: 'shield'
+        })
+      ).toEqual({ sword: 'MAIN_HAND', shield: 'OFF_HAND' })
+    })
+
+    it('leaves the hands alone when both are full', () => {
+      const full = [
+        item('sword', 'WEAPON', 'MAIN_HAND'),
+        item('shield', 'SHIELD', 'OFF_HAND'),
+        item('axe', 'WEAPON', null)
+      ]
+      expect(inventoryOf(full, { ...commandBase, type: 'EQUIP_ITEM', itemId: 'axe' })).toEqual({
+        sword: 'MAIN_HAND',
+        shield: 'OFF_HAND',
+        axe: null
+      })
+    })
+
+    it('swaps the hands and promotes an off-hand weapon on unequip', () => {
+      const hands = [item('sword', 'WEAPON', 'MAIN_HAND'), item('axe', 'WEAPON', 'OFF_HAND')]
+      expect(inventoryOf(hands, { ...commandBase, type: 'SWAP_HELD_ITEMS' })).toEqual({
+        sword: 'OFF_HAND',
+        axe: 'MAIN_HAND'
+      })
+      expect(inventoryOf(hands, { ...commandBase, type: 'UNEQUIP_ITEM', itemId: 'sword' })).toEqual(
+        { sword: null, axe: 'MAIN_HAND' }
+      )
+      expect(
+        inventoryOf([hands[0]!, item('shield', 'SHIELD', 'OFF_HAND')], {
+          ...commandBase,
+          type: 'UNEQUIP_ITEM',
+          itemId: 'sword'
+        })
+      ).toEqual({ sword: null, shield: 'OFF_HAND' })
+    })
+  })
 })

@@ -3,7 +3,9 @@ import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
-  CREATURE_RELATIONSHIP_KIND_CODE
+  CREATURE_RELATIONSHIP_KIND_CODE,
+  EQUIPPED_SLOT_CODES,
+  HAND_CONFLICT_MESSAGE
 } from '@artificer-toolkit/shared/core'
 
 const characterEquipmentItemStateDtoSchemaRaw = lazySchema(() =>
@@ -17,10 +19,45 @@ const characterEquipmentItemStateDtoSchemaRaw = lazySchema(() =>
     retainedRulesJson: z.optional(z.string())
   })
 )
+const characterEquippedItemStateDtoSchemaRaw = lazySchema(() =>
+  z.strictObject({
+    itemId: z.string(),
+    slot: z.enum(EQUIPPED_SLOT_CODES)
+  })
+)
+/**
+ * Each item is equipped once and each hand holds one item. Whether an item is two-handed is
+ * Equipment data the schema does not know, so the Sheet reducer checks the full hand rule.
+ */
+const characterEquippedStateDtoSchema = lazySchema(() =>
+  z.array(characterEquippedItemStateDtoSchemaRaw).check(
+    z.superRefine((equipped, context) => {
+      const itemIds = new Set<string>()
+      const hands = new Set<string>()
+      equipped.forEach(({ itemId, slot }, index) => {
+        if (itemIds.has(itemId))
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'itemId'],
+            message: 'An item can be equipped only once.'
+          })
+        itemIds.add(itemId)
+        if (slot === 'WORN') return
+        if (hands.has(slot))
+          context.addIssue({
+            code: 'custom',
+            path: [index, 'slot'],
+            message: HAND_CONFLICT_MESSAGE.HAND_OCCUPIED_TWICE
+          })
+        hands.add(slot)
+      })
+    })
+  )
+)
 const characterEquipmentStateDtoSchemaRaw = lazySchema(() =>
   z.object({
     inventory: z.array(characterEquipmentItemStateDtoSchemaRaw),
-    equipped: z.array(z.string()),
+    equipped: characterEquippedStateDtoSchema,
     attuned: z.array(z.string())
   })
 )

@@ -326,6 +326,9 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         itemId: stringSchema
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
+        type: z.literal('SWAP_HELD_ITEMS')
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('ATTUNE_ITEM'),
         itemId: stringSchema
       }),

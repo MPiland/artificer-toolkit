@@ -1,8 +1,16 @@
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
-import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
+import {
+  CHARACTER_ABILITY_GENERATION_METHOD,
+  isHandSlot,
+  nextEquipSlot,
+  type HeldItem
+} from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { ExternalContentReference, ParsedExternalCharacter } from './importParsers.js'
+
+/** What the hand rule needs to know about an Equipment document; undefined when it is unknown. */
+export type ImportedEquipmentTraits = { category: string; twoHanded: boolean }
 
 interface ImportedCharacterReference extends ExternalContentReference {
   subjectId?: string
@@ -20,7 +28,8 @@ export function buildImportedCharacter(
   userId: string,
   systemId: string,
   primaryRulesCatalogueId: string,
-  createId: () => string
+  createId: () => string,
+  equipmentTraitsOf: (equipmentId: string) => ImportedEquipmentTraits | undefined
 ): CharacterAuthored {
   const character = createEmptyCharacterAuthored({
     id: item.targetId,
@@ -47,6 +56,7 @@ export function buildImportedCharacter(
     character.state.hitpoints.temp = item.parsed.hitPoints.temp
   }
 
+  const held: HeldItem[] = []
   let lastClassIndex = -1
   for (const reference of item.references) {
     if (!reference.subjectId) continue
@@ -68,8 +78,15 @@ export function buildImportedCharacter(
         equipmentId: reference.subjectId,
         quantity: reference.quantity ?? 1
       })
-      if (reference.equipped) character.state.equipment.equipped.push(itemId)
       if (reference.attuned) character.state.equipment.attuned.push(itemId)
+      // An item whose Equipment is unknown, or whose hands are full, stays carried.
+      const traits = reference.equipped ? equipmentTraitsOf(reference.subjectId) : undefined
+      if (!traits) continue
+      const assignment = nextEquipSlot({ id: itemId, ...traits }, held)
+      if ('conflict' in assignment) continue
+      character.state.equipment.equipped.push({ itemId, slot: assignment.slot })
+      if (isHandSlot(assignment.slot))
+        held.push({ id: itemId, slot: assignment.slot, twoHanded: traits.twoHanded })
     }
   }
 

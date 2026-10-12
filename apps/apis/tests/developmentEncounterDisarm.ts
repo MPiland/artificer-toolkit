@@ -431,13 +431,18 @@ export async function verifyEncounterDisarm({
   }
   const before = await snapshot()
   assert.deepEqual(before.run, run)
-  assert.equal(before.sheet.inventory.items.find((item) => item.id === held.id)?.equipped, true)
+  assert.equal(
+    before.sheet.inventory.items.find((item) => item.id === held.id)?.equippedSlot,
+    'MAIN_HAND'
+  )
   assert.ok(
     before.sheet.inventory.items.some(
       (item) => item.equipmentId === otherEquipmentId && item.id !== held.id
     )
   )
-  assert.deepEqual(before.character.state.equipment.equipped, [held.id])
+  assert.deepEqual(before.character.state.equipment.equipped, [
+    { itemId: held.id, slot: 'MAIN_HAND' }
+  ])
   assert.equal(await owner.query(api.characters.builder.activeCharacter, { id: characterId }), null)
   function evidence(result: unknown, face: number): ResolveRuleOccurrenceInputDto {
     const occurrence = encounterCommandResultDtoSchema.parse(result).occurrence
@@ -579,7 +584,7 @@ export async function verifyEncounterDisarm({
     assert.deepEqual(after.sheet.inventory, {
       ...before.sheet.inventory,
       items: before.sheet.inventory.items.map((item) =>
-        item.id === held.id ? { ...item, equipped: false } : item
+        item.id === held.id ? { ...item, equippedSlot: null } : item
       )
     })
     const finalSource = after.run.actors.find((actor) => actor.id === source.id)

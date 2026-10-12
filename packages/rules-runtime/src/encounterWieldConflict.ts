@@ -42,7 +42,9 @@ export function evaluateEncounterCharacterActionWieldConflict(input: {
     input.candidate.equipment?.grip === 'TWO_HANDED'
       ? resolveDnd5eActiveShield(
           input.ruleFacts.armorClassFacts?.equipment ?? [],
-          input.policyOutput.grantFold.activeEquipmentInstanceIds
+          input.policyOutput.grantFold.activeEquipmentInstanceIds,
+          (candidate) =>
+            resolveDnd5eShieldArmorClass(candidate, input.policyOutput.derivedStats.armorClass)
         )
       : null
   return shield === null

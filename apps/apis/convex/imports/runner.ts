@@ -9,6 +9,7 @@ import {
   readString,
   toRelatedContent,
   validateCollisionResolution,
+  type ImportedEquipmentTraits,
   type PreparedAuthoredItem,
   type PreparedBatch,
   type PreparedCharacterItem
@@ -27,6 +28,7 @@ import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
+import { EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 import { internalAction, type ActionCtx } from '../_generated/server'
 import { completeRef } from './finalize'
 import { materializeRunnerSource, prepareWithNativeLookup, runnerLookupLoaders } from './preview'
@@ -65,6 +67,7 @@ type PlannedEntry =
   | {
       kind: 'CHARACTER'
       item: PreparedCharacterItem
+      issues: ImportResultItemDto['issues']
       systemId: string
       primaryRulesCatalogueId: string
       payloadJson: string
@@ -187,37 +190,52 @@ function planEntries(
           ]
         })
       }
-      const customPayloads = item.customContent.map((custom) => ({
-        custom,
-        payloadJson: JSON.stringify(
-          core.parse(
-            authoredSchemaByKind[custom.subjectKind],
-            normalizeImportedAuthoredPayload(
-              custom.payload,
-              custom.subjectKind,
-              custom.targetId,
-              custom.label,
-              systemId,
-              ownerUserId,
-              createId,
-              false,
-              new Map()
-            )
-          )
+      const equipmentTraits = new Map<string, ImportedEquipmentTraits>(
+        preflight.equipment.map(({ equipmentId, ...traits }) => [equipmentId, traits])
+      )
+      const customPayloads = item.customContent.map((custom) => {
+        const normalized = normalizeImportedAuthoredPayload(
+          custom.payload,
+          custom.subjectKind,
+          custom.targetId,
+          custom.label,
+          systemId,
+          ownerUserId,
+          createId,
+          false,
+          new Map()
         )
-      }))
+        const equipment =
+          custom.subjectKind === 'EQUIPMENT'
+            ? core.parse(equipmentAuthoredDtoSchema, normalized)
+            : null
+        // A custom variant's parent is not stored yet, so its hands stay unknown (carried).
+        if (equipment && equipment.category !== 'VARIANT')
+          equipmentTraits.set(custom.targetId, {
+            category: equipment.category,
+            twoHanded: equipment.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+          })
+        return {
+          custom,
+          payloadJson: JSON.stringify(
+            equipment ?? core.parse(authoredSchemaByKind[custom.subjectKind], normalized)
+          )
+        }
+      })
       const payload = characterBuilderDraftPayloadDtoSchema.parse({
         character: buildImportedCharacter(
           item,
           ownerUserId,
           systemId,
           primaryRulesCatalogueId,
-          createId
+          createId,
+          (equipmentId) => equipmentTraits.get(equipmentId)
         )
       })
       return {
         kind: 'CHARACTER',
         item,
+        issues: item.issues,
         systemId,
         primaryRulesCatalogueId,
         customPayloads,
@@ -392,7 +410,7 @@ async function executePlan(
           entry.item.collision && entry.item.targetId === entry.item.collision.subjectId
             ? 'UPDATED'
             : 'CREATED',
-        issues: entry.item.issues,
+        issues: entry.issues,
         destination: { kind: 'CHARACTER_BUILDER_DRAFT', subjectId: entry.item.targetId },
         relatedContent: entry.item.customContent.map(toRelatedContent),
         publicId: publicIdFromStage(outputJson)
@@ -480,7 +498,8 @@ export async function runImportJob(
     const systemIds = [
       ...new Set(
         prepared.items.flatMap((item) => {
-          if (item.kind !== 'AUTHORED' || !selectedEntryIds.has(item.entryId)) return []
+          if (!selectedEntryIds.has(item.entryId)) return []
+          if (item.kind !== 'AUTHORED') return []
           const itemSystemId = readString(item.envelope.item.data.systemId)
           return itemSystemId ? [itemSystemId] : []
         })
@@ -493,7 +512,29 @@ export async function runImportJob(
         )
       )
     ]
-    const preflight = await ctx.runQuery(loadPreflightRef, { jobId, systemIds, characterIds })
+    // Equipment created by this same import is not stored yet; planEntries reads it from its payload.
+    const equipmentIds = [
+      ...new Set(
+        prepared.items.flatMap((item) => {
+          if (item.kind !== 'CHARACTER' || !selectedEntryIds.has(item.entryId)) return []
+          const customTargetIds = new Set(item.customContent.map((custom) => custom.targetId))
+          return item.references.flatMap((reference) =>
+            reference.role === 'EQUIPMENT' &&
+            reference.equipped &&
+            reference.subjectId &&
+            !customTargetIds.has(reference.subjectId)
+              ? [reference.subjectId]
+              : []
+          )
+        })
+      )
+    ]
+    const preflight = await ctx.runQuery(loadPreflightRef, {
+      jobId,
+      systemIds,
+      characterIds,
+      equipmentIds
+    })
     const entries = planEntries(prepared, source.command, source.ownerUserId, preflight, createId)
     const stageCount = expectedStageCount(entries)
     if (storedPlan) {

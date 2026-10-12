@@ -4,6 +4,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { describe, expect, it } from 'vitest'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
+import { EQUIPMENT_PROPERTY_CODE, HAND_CONFLICT_MESSAGE } from '@artificer-toolkit/shared/core'
 
 import {
   applyCharacterSheetCommand,
@@ -843,5 +844,169 @@ describe('Ending Concentration (SPELLS-5.11)', () => {
     expect(() => assertSheetCommandCallerAllowed(input, false)).not.toThrow()
     expect(() => assertSheetCommandCallerAllowed(input, true)).not.toThrow()
     expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
+  })
+})
+
+describe('Character Sheet held items (SHEET-8)', () => {
+  const itemIds = {
+    sword: '50000000-0000-4000-8000-0000000000a1',
+    axe: '50000000-0000-4000-8000-0000000000a2',
+    shield: '50000000-0000-4000-8000-0000000000a3',
+    greatclub: '50000000-0000-4000-8000-0000000000a4',
+    mail: '50000000-0000-4000-8000-0000000000a5'
+  } as const
+  const inventoryItem = (
+    id: string,
+    category: string,
+    properties: CharacterSheetResponseDto['inventory']['items'][number]['properties'] = []
+  ): CharacterSheetResponseDto['inventory']['items'][number] => ({
+    id,
+    equipmentId: ids.equipment,
+    label: id,
+    category,
+    properties,
+    quantity: 1,
+    equippedSlot: null,
+    attuned: false,
+    requiresAttunement: false
+  })
+  const heldSheet = {
+    ...sheet(),
+    inventory: {
+      currencies: [],
+      items: [
+        inventoryItem(itemIds.sword, 'WEAPON'),
+        inventoryItem(itemIds.axe, 'WEAPON'),
+        inventoryItem(itemIds.shield, 'SHIELD'),
+        inventoryItem(itemIds.greatclub, 'WEAPON', [
+          { code: EQUIPMENT_PROPERTY_CODE.TWO_HANDED, label: 'Two-handed' }
+        ]),
+        inventoryItem(itemIds.mail, 'ARMOR')
+      ]
+    }
+  }
+  const carrying = (equipped: CharacterAuthored['state']['equipment']['equipped'] = []) =>
+    character({
+      equipment: {
+        inventory: Object.values(itemIds).map((id) => ({
+          id,
+          equipmentId: ids.equipment,
+          quantity: 1
+        })),
+        equipped,
+        attuned: []
+      }
+    })
+  type HeldCommand = Command extends infer Each
+    ? Each extends unknown
+      ? Omit<Each, 'expectedVersion'>
+      : never
+    : never
+  const run = (from: CharacterAuthored, command: HeldCommand) =>
+    apply(from, { ...base, ...command } as Command, { sheet: heldSheet }).state.equipment.equipped
+  const equip = (from: CharacterAuthored, itemId: string) =>
+    run(from, { type: 'EQUIP_ITEM', itemId })
+
+  it('puts the first held item in the main hand, the next in the off hand, and armor on the body', () => {
+    const withSword = apply(
+      carrying(),
+      { ...base, type: 'EQUIP_ITEM', itemId: itemIds.sword },
+      { sheet: heldSheet }
+    )
+    const withShield = apply(
+      withSword,
+      { ...base, type: 'EQUIP_ITEM', itemId: itemIds.shield },
+      { sheet: heldSheet }
+    )
+    expect(withShield.state.equipment.equipped).toEqual([
+      { itemId: itemIds.sword, slot: 'MAIN_HAND' },
+      { itemId: itemIds.shield, slot: 'OFF_HAND' }
+    ])
+    expect(equip(withShield, itemIds.mail)).toContainEqual({ itemId: itemIds.mail, slot: 'WORN' })
+  })
+
+  it('leaves an already equipped item where it is', () => {
+    const held = [{ itemId: itemIds.sword, slot: 'OFF_HAND' as const }]
+    expect(equip(carrying(held), itemIds.sword)).toEqual(held)
+  })
+
+  it('refuses a third held item and a two-handed item that does not fit', () => {
+    const full = carrying([
+      { itemId: itemIds.sword, slot: 'MAIN_HAND' },
+      { itemId: itemIds.shield, slot: 'OFF_HAND' }
+    ])
+    expect(() => equip(full, itemIds.axe)).toThrow(HAND_CONFLICT_MESSAGE.HAND_OCCUPIED_TWICE)
+    expect(() =>
+      equip(carrying([{ itemId: itemIds.sword, slot: 'MAIN_HAND' }]), itemIds.greatclub)
+    ).toThrow(HAND_CONFLICT_MESSAGE.TWO_HANDED_IN_OFF_HAND)
+    expect(() =>
+      equip(carrying([{ itemId: itemIds.greatclub, slot: 'MAIN_HAND' }]), itemIds.shield)
+    ).toThrow(HAND_CONFLICT_MESSAGE.OFF_HAND_BLOCKED)
+  })
+
+  it('swaps the hands, moves a lone item across, and refuses nothing held or a two-handed item', () => {
+    const swap = { type: 'SWAP_HELD_ITEMS' } as const
+    expect(
+      run(
+        carrying([
+          { itemId: itemIds.sword, slot: 'MAIN_HAND' },
+          { itemId: itemIds.shield, slot: 'OFF_HAND' },
+          { itemId: itemIds.mail, slot: 'WORN' }
+        ]),
+        swap
+      )
+    ).toEqual([
+      { itemId: itemIds.sword, slot: 'OFF_HAND' },
+      { itemId: itemIds.shield, slot: 'MAIN_HAND' },
+      { itemId: itemIds.mail, slot: 'WORN' }
+    ])
+    expect(run(carrying([{ itemId: itemIds.sword, slot: 'MAIN_HAND' }]), swap)).toEqual([
+      { itemId: itemIds.sword, slot: 'OFF_HAND' }
+    ])
+    expect(() => run(carrying(), swap)).toThrow('No item is held to swap.')
+    expect(() => run(carrying([{ itemId: itemIds.greatclub, slot: 'MAIN_HAND' }]), swap)).toThrow(
+      HAND_CONFLICT_MESSAGE.TWO_HANDED_IN_OFF_HAND
+    )
+  })
+
+  it('promotes an off-hand weapon into the emptied main hand but leaves an off-hand shield', () => {
+    expect(
+      run(
+        carrying([
+          { itemId: itemIds.sword, slot: 'MAIN_HAND' },
+          { itemId: itemIds.axe, slot: 'OFF_HAND' }
+        ]),
+        { type: 'UNEQUIP_ITEM', itemId: itemIds.sword }
+      )
+    ).toEqual([{ itemId: itemIds.axe, slot: 'MAIN_HAND' }])
+    expect(
+      run(
+        carrying([
+          { itemId: itemIds.sword, slot: 'MAIN_HAND' },
+          { itemId: itemIds.shield, slot: 'OFF_HAND' }
+        ]),
+        { type: 'UNEQUIP_ITEM', itemId: itemIds.sword }
+      )
+    ).toEqual([{ itemId: itemIds.shield, slot: 'OFF_HAND' }])
+    expect(
+      run(
+        carrying([
+          { itemId: itemIds.sword, slot: 'MAIN_HAND' },
+          { itemId: itemIds.axe, slot: 'OFF_HAND' }
+        ]),
+        { type: 'UNEQUIP_ITEM', itemId: itemIds.axe }
+      )
+    ).toEqual([{ itemId: itemIds.sword, slot: 'MAIN_HAND' }])
+  })
+
+  it('summarizes the swap and allows it to the Campaign owner', () => {
+    const command = { ...base, type: 'SWAP_HELD_ITEMS' } as const
+    expect(summarizeCharacterSheetCommand(command)).toBe('Held items swapped')
+    expect(() =>
+      assertCampaignGmSheetCommandAllowed({
+        ...command,
+        commandId: '50000000-0000-4000-8000-00000000000d'
+      })
+    ).not.toThrow()
   })
 })

@@ -4,6 +4,14 @@ import {
   type CharacterResourceOwnerRef,
   type CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
+import {
+  EQUIPMENT_PROPERTY_CODE,
+  HAND_CONFLICT_MESSAGE,
+  nextEquipSlot,
+  promotesOffHandItem,
+  swapHeldItems,
+  type HeldItem
+} from '@artificer-toolkit/shared/core'
 
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
@@ -207,7 +215,25 @@ function ensureInventoryItem(character: CharacterAuthored, itemId: string) {
   return item
 }
 
-/** The Sheet UNEQUIP_ITEM transition; it reads no Sheet projection, so rule settlement reuses it. */
+function isSheetItemTwoHanded(sheet: CharacterSheetResponseDto, itemId: string): boolean {
+  return (
+    findInventoryItem(sheet, itemId)?.properties?.some(
+      (property) => property.code === EQUIPMENT_PROPERTY_CODE.TWO_HANDED
+    ) ?? false
+  )
+}
+
+/** What the main and off hands hold now, with whether each item is two-handed. */
+function heldItems(character: CharacterAuthored, sheet: CharacterSheetResponseDto): HeldItem[] {
+  return character.state.equipment.equipped.flatMap(({ itemId, slot }) =>
+    slot === 'WORN' ? [] : [{ id: itemId, slot, twoHanded: isSheetItemTwoHanded(sheet, itemId) }]
+  )
+}
+
+/**
+ * The Sheet UNEQUIP_ITEM transition without hand promotion. It reads no Sheet projection, so rule
+ * settlement (shield stow, Disarm) reuses it: the item's slot is simply emptied.
+ */
 export function unequipCharacterItem(
   character: CharacterAuthored,
   itemId: string
@@ -219,7 +245,7 @@ export function unequipCharacterItem(
       ...character.state,
       equipment: {
         ...character.state.equipment,
-        equipped: character.state.equipment.equipped.filter((id) => id !== itemId)
+        equipped: character.state.equipment.equipped.filter((entry) => entry.itemId !== itemId)
       }
     }
   })
@@ -1054,7 +1080,7 @@ export function applyCharacterSheetCommand(
           )
       if (removesEntireStack) {
         next.state.equipment.equipped = next.state.equipment.equipped.filter(
-          (itemId) => itemId !== command.itemId
+          ({ itemId }) => itemId !== command.itemId
         )
         next.state.equipment.attuned = next.state.equipment.attuned.filter(
           (itemId) => itemId !== command.itemId
@@ -1084,7 +1110,7 @@ export function applyCharacterSheetCommand(
           (item) => item.id !== command.itemId
         )
         next.state.equipment.equipped = next.state.equipment.equipped.filter(
-          (itemId) => itemId !== command.itemId
+          ({ itemId }) => itemId !== command.itemId
         )
         next.state.equipment.attuned = next.state.equipment.attuned.filter(
           (itemId) => itemId !== command.itemId
@@ -1118,15 +1144,56 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
     }
 
-    case 'EQUIP_ITEM':
+    case 'EQUIP_ITEM': {
       ensureInventoryItem(next, command.itemId)
+      if (next.state.equipment.equipped.some((entry) => entry.itemId === command.itemId))
+        return clearEmptyStateArrays(next)
+      const assignment = nextEquipSlot(
+        {
+          id: command.itemId,
+          category: findInventoryItem(sheet, command.itemId)?.category,
+          twoHanded: isSheetItemTwoHanded(sheet, command.itemId)
+        },
+        heldItems(next, sheet)
+      )
+      if ('conflict' in assignment)
+        throw new CharacterSheetCommandError(HAND_CONFLICT_MESSAGE[assignment.conflict])
       next.state.equipment.equipped = [
-        ...new Set([...next.state.equipment.equipped, command.itemId])
+        ...next.state.equipment.equipped,
+        { itemId: command.itemId, slot: assignment.slot }
       ]
       return clearEmptyStateArrays(next)
+    }
 
-    case 'UNEQUIP_ITEM':
-      return unequipCharacterItem(next, command.itemId)
+    case 'SWAP_HELD_ITEMS': {
+      const held = heldItems(next, sheet)
+      if (held.length === 0) throw new CharacterSheetCommandError('No item is held to swap.')
+      const swapped = swapHeldItems(held)
+      if ('conflict' in swapped)
+        throw new CharacterSheetCommandError(HAND_CONFLICT_MESSAGE[swapped.conflict])
+      const slotByItemId = new Map(swapped.held.map(({ id, slot }) => [id, slot]))
+      next.state.equipment.equipped = next.state.equipment.equipped.map((entry) => ({
+        ...entry,
+        slot: slotByItemId.get(entry.itemId) ?? entry.slot
+      }))
+      return clearEmptyStateArrays(next)
+    }
+
+    case 'UNEQUIP_ITEM': {
+      const removed = next.state.equipment.equipped.find((entry) => entry.itemId === command.itemId)
+      const unequipped = unequipCharacterItem(next, command.itemId)
+      // Emptying the main hand moves an off-hand weapon into it; an off-hand shield stays put.
+      const offHand = unequipped.state.equipment.equipped.find((entry) => entry.slot === 'OFF_HAND')
+      if (
+        offHand === undefined ||
+        !promotesOffHandItem(removed?.slot, findInventoryItem(sheet, offHand.itemId)?.category)
+      )
+        return unequipped
+      unequipped.state.equipment.equipped = unequipped.state.equipment.equipped.map((entry) =>
+        entry === offHand ? { ...entry, slot: 'MAIN_HAND' } : entry
+      )
+      return unequipped
+    }
 
     case 'ATTUNE_ITEM': {
       ensureInventoryItem(next, command.itemId)
@@ -1447,6 +1514,8 @@ export function summarizeCharacterSheetCommand(
       return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} equipped`
     case 'UNEQUIP_ITEM':
       return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} unequipped`
+    case 'SWAP_HELD_ITEMS':
+      return 'Held items swapped'
     case 'ATTUNE_ITEM':
       return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} attuned`
     case 'UNATTUNE_ITEM':
