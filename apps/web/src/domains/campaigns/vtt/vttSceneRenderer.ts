@@ -1816,8 +1816,13 @@ export async function createVttSceneRenderer(
       gesturePath = [point]
       return
     }
-    // A press on the empty map clears the selection; one on a token has already selected it.
-    if (event.button === 0 && current.tool === 'SELECT' && event.target?.parent !== tokenLayer) {
+    // A press on the empty map clears the selection; one on a token, at any depth of its
+    // visual, has already selected it.
+    let pressedTokenVisual: Container | null = event.target
+    while (pressedTokenVisual && pressedTokenVisual.parent !== tokenLayer) {
+      pressedTokenVisual = pressedTokenVisual.parent
+    }
+    if (event.button === 0 && current.tool === 'SELECT' && !pressedTokenVisual) {
       callbacks.onTokenSelect?.(null)
     }
     // A primary press on the map outside another gesture pings once held in place.
