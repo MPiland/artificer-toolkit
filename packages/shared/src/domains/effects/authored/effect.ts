@@ -51,17 +51,29 @@ type ActionReactionMovementTriggerBindingAuthored =
       reactionMovementTrigger: ReactionMovementTriggerBindingAuthored
     }
 
-export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> = (
-  | {
-      kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-      triggerCode: Extract<TTrigger, 'SAVING_THROW'>
-      savingThrow: SavingThrowAuthored
-      activation: ActivationAuthored
-      resourceUse?: ResourceUseAuthored
-      range: RangeAuthored
-      shape?: ShapeAuthored
-      targeting?: TargetingAuthored
-    }
+export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
+  | ((
+      | {
+          kind?: typeof EFFECT_INVOCATION_KIND.ACTION
+          triggerCode: Extract<TTrigger, 'SAVING_THROW'>
+          savingThrow: SavingThrowAuthored
+          activation: ActivationAuthored
+          resourceUse?: ResourceUseAuthored
+          range: RangeAuthored
+          shape?: ShapeAuthored
+          targeting?: TargetingAuthored
+        }
+      | {
+          kind?: typeof EFFECT_INVOCATION_KIND.ACTION
+          triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
+          activation: ActivationAuthored
+          resourceUse?: ResourceUseAuthored
+          range: RangeAuthored
+          shape?: ShapeAuthored
+          targeting?: TargetingAuthored
+        }
+    ) &
+      ActionReactionMovementTriggerBindingAuthored)
   | {
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
       triggerCode: Extract<TTrigger, 'CHECK'>
@@ -71,18 +83,8 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
+      reactionMovementTrigger?: never
     }
-  | {
-      kind?: typeof EFFECT_INVOCATION_KIND.ACTION
-      triggerCode: Exclude<TTrigger, 'SAVING_THROW' | 'CHECK'>
-      activation: ActivationAuthored
-      resourceUse?: ResourceUseAuthored
-      range: RangeAuthored
-      shape?: ShapeAuthored
-      targeting?: TargetingAuthored
-    }
-) &
-  ActionReactionMovementTriggerBindingAuthored
 
 export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
   | {

@@ -5,13 +5,11 @@ import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type {
   EncounterCommandResultDto,
   EscapeRelationshipInputDto,
-  ResolveEncounterActionInputDto,
-  UseEncounterBasicActionInputDto
+  ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
-  EncounterBasicActionChoiceDto,
   EncounterEscapeChoiceDto,
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
@@ -138,46 +136,30 @@ async function resolveActionCommand(
   }
 }
 
-const basicActionSent = fn()
-const basicActions = [
+const basicActionChoices = [
   {
-    definitionId: '00000000-0000-4000-8000-000000000b01',
+    ...actions[0],
+    id: 'dash-action',
     label: 'Dash',
     rulesText:
       'You gain extra movement for the current turn, equal to your speed after applying any modifiers.',
-    actionCost: 'ACTION',
-    target: null,
-    warnings: []
+    grip: null
   },
   {
-    definitionId: '00000000-0000-4000-8000-000000000b04',
+    ...actions[0],
+    id: 'help-action',
     label: 'Help',
     rulesText: 'You aid an ally. Its next attack roll before your next turn has advantage.',
-    actionCost: 'ACTION',
-    target: 'ALLY',
-    warnings: []
+    grip: null
   },
   {
-    definitionId: '00000000-0000-4000-8000-000000000b05',
+    ...actions[0],
+    id: 'hide-action',
     label: 'Hide',
     rulesText: 'You make a Dexterity (Stealth) check to hide.',
-    actionCost: 'ACTION',
-    target: null,
-    warnings: []
+    grip: null
   }
-] satisfies EncounterBasicActionChoiceDto[]
-
-async function sendBasicActionCommand(
-  command: UseEncounterBasicActionInputDto
-): Promise<EncounterCommandResultDto> {
-  basicActionSent(command)
-  return {
-    projection: { ...tabletopGmEncounter, version: tabletopGmEncounter.version + 1 },
-    roll: null,
-    occurrence: null,
-    evidenceRoll: null
-  }
-}
+] satisfies EncounterActionChoiceDto[]
 
 const escapeSent = fn()
 const escapes = [
@@ -215,7 +197,6 @@ const meta = {
     isGm: false,
     opened: false,
     waitingOn: null,
-    basicActions: [],
     basicActionChoices: [],
     escapes: [],
     openAttackAction: null,
@@ -223,7 +204,6 @@ const meta = {
     onAreaOriginChange: fn(),
     onAreaShapeChange: fn(),
     onPickAreaOrigin: fn(),
-    onUseBasicAction: sendBasicActionCommand,
     onEscape: sendEscapeCommand,
     onOpen: fn(),
     onClose: fn()
@@ -625,26 +605,24 @@ export const WaitingOnGm: Story = {
 }
 
 export const UseBasicActions: Story = {
-  args: { ...ResolveTargetedAction.args, basicActions },
+  args: { ...ResolveTargetedAction.args, basicActionChoices },
   play: async ({ canvasElement }) => {
-    basicActionSent.mockClear()
+    resolveAction.mockClear()
     const { page, drawer } = await openActions(canvasElement)
     const section = within(drawer.getByRole('region', { name: 'Basic actions' }))
 
-    await expect(section.getByRole('button', { name: 'Use Help' })).toBeDisabled()
-    await userEvent.click(section.getByRole('combobox', { name: 'Ally to help' }))
+    await userEvent.click(section.getByRole('combobox', { name: 'Target of help' }))
     await userEvent.click(await page.findByRole('option', { name: 'Vault Warden' }))
-    await expect(section.getByRole('button', { name: 'Use Help' })).toBeEnabled()
     await userEvent.click(section.getByRole('button', { name: 'Use Dash' }))
 
-    await waitFor(() => expect(basicActionSent).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(resolveAction).toHaveBeenCalledTimes(1))
     await expect(await section.findByText('Dash used.')).toBeVisible()
-    await expect(basicActionSent).toHaveBeenCalledWith(
+    await expect(resolveAction).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'USE_BASIC_ACTION',
+        type: 'RESOLVE_ACTION',
         actorId: sourceActor.id,
-        definitionId: basicActions[0].definitionId,
-        targetActorId: null
+        actionId: basicActionChoices[0].id,
+        target: { kind: 'ACTOR', actorId: sourceActor.id }
       })
     )
   }

@@ -1138,7 +1138,6 @@ export function CampaignVttStage({
           activeEncounter.automationMode !== 'MANUAL' ? (
             <CampaignTabletopActionDrawer
               actions={currentActionChoices?.actions ?? []}
-              basicActions={currentActionChoices?.basicActions ?? []}
               basicActionChoices={currentActionChoices?.basicActionChoices ?? []}
               escapes={currentActionChoices?.escapes ?? []}
               openAttackAction={currentActionChoices?.openAttackAction ?? null}
@@ -1161,7 +1160,6 @@ export function CampaignVttStage({
               onAreaShapeChange={setAreaShape}
               onPickAreaOrigin={() => setAimingArea(true)}
               onResolve={(command) => encounterCommand.mutateAsync(command)}
-              onUseBasicAction={(command) => encounterCommand.mutateAsync(command)}
               onEscape={(command) => encounterCommand.mutateAsync(command)}
               onLoadOptionalChoices={loadOptionalActionChoices}
             />

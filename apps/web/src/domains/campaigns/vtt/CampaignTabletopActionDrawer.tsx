@@ -16,7 +16,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   EncounterActionChoiceDto,
   EncounterActionChoicesDto,
-  EncounterBasicActionChoiceDto,
   EncounterEscapeChoiceDto,
   EncounterOptionalActionChoicesDto,
   GetEncounterOptionalActionChoicesInputDto
@@ -26,8 +25,7 @@ import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
   EscapeRelationshipInputDto,
-  ResolveEncounterActionInputDto,
-  UseEncounterBasicActionInputDto
+  ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
@@ -54,7 +52,6 @@ function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto
 
 export function CampaignTabletopActionDrawer({
   actions,
-  basicActions,
   basicActionChoices,
   escapes,
   openAttackAction,
@@ -77,12 +74,10 @@ export function CampaignTabletopActionDrawer({
   onAreaShapeChange,
   onPickAreaOrigin,
   onResolve,
-  onUseBasicAction,
   onEscape,
   onLoadOptionalChoices
 }: {
   actions: EncounterActionChoiceDto[]
-  basicActions: EncounterBasicActionChoiceDto[]
   /** The System's authored basic actions, which resolve like any action. */
   basicActionChoices: EncounterActionChoiceDto[]
   escapes: EncounterEscapeChoiceDto[]
@@ -113,7 +108,6 @@ export function CampaignTabletopActionDrawer({
   /** Asks the stage to let the caster click the map for the area's center. */
   onPickAreaOrigin: () => void
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
-  onUseBasicAction: (command: UseEncounterBasicActionInputDto) => Promise<EncounterCommandResultDto>
   onEscape: (command: EscapeRelationshipInputDto) => Promise<EncounterCommandResultDto>
   onLoadOptionalChoices: (
     request: GetEncounterOptionalActionChoicesInputDto
@@ -731,19 +725,17 @@ export function CampaignTabletopActionDrawer({
           {currentActor &&
           !actionsLoading &&
           !actionChoicesError &&
-          (basicActions.length || basicActionChoices.length) ? (
+          basicActionChoices.length ? (
             <CampaignTabletopBasicActions
               actorId={currentActor.id}
               authoredActions={basicActionChoices}
               allies={encounter.actors
                 .filter((actor) => actor.id !== currentActor.id && !actor.defeated)
                 .map((actor) => ({ id: actor.id, label: actor.label }))}
-              basicActions={basicActions}
               disabled={selectionControlsDisabled}
               encounterId={encounter.id}
               encounterVersion={encounter.version}
               onResolve={onResolve}
-              onUse={onUseBasicAction}
             />
           ) : null}
           {currentActor && !actionsLoading && !actionChoicesError && escapes.length ? (
