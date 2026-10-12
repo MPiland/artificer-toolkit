@@ -201,7 +201,13 @@ export const SaveAndReview: Story = {
     if (!previewRequest || !previewed?.ok || previewed.output.operation !== 'preview')
       throw new Error('Expected a successful Finalize preview.')
     await expect(previewRequest.draft.expectedDraftId).toBe(draft.id)
+    // The typed name reached the evaluator, which judged the edited Character ready to activate.
     await expect(previewed.output.preview.character.label).toBe('Native draft hero')
+    await expect(previewed.output.preview.preview).toMatchObject({
+      predictedStatus: AUTHORED_RECORD_STATUS.ACTIVE,
+      downgradesStatus: false,
+      destructive: false
+    })
     await expect(commit.mock.calls[0]?.[0]).toEqual({
       character: previewed.output.preview.character,
       expectedDraftId: previewRequest.draft.expectedDraftId,

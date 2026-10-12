@@ -101,8 +101,9 @@ export const CharacterSheetShortRestRolled: Story = {
       name: 'Short Rest'
     })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 2' }))
-    const rolledLabels = await within(dialog).findAllByText('13 rolled', {}, { timeout: 20_000 })
-    await expect(rolledLabels[0]).toBeVisible()
+    await expect(
+      await within(dialog).findByText('13 rolled', {}, { timeout: 20_000 })
+    ).toBeVisible()
     await expect(within(dialog).getByText('12 HP selected')).toBeVisible()
   }
 }

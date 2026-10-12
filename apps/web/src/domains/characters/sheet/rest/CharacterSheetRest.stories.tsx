@@ -103,6 +103,16 @@ export const ShortRestPreviewMobile: Story = {
   }
 }
 
+export const ShortRestMulticlassPreviewMobile: Story = {
+  ...ShortRestMulticlassPreview,
+  parameters: {
+    ...ShortRestMulticlassPreview.parameters,
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}
+
 export const LongRestPreview: Story = {
   args: {
     initialTab: 'actions',

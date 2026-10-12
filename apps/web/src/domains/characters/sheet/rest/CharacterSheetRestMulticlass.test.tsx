@@ -4,7 +4,7 @@ import { ConvexReactClient } from 'convex/react'
 import { getFunctionName } from 'convex/server'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { afterEach, beforeEach, vi } from 'vitest'
-import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { playerRollDestinationOptions, playerStateRollDestinationOptions } from '../dice/dice.utils'
@@ -16,7 +16,7 @@ import {
 } from '../fixtures/playedCharacters.fixture'
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 
-const hitDieRoll = {
+const hitDieRoll = rollRecordDtoSchema.parse({
   id: '00000000-0000-4000-8000-000000000098',
   characterId: 'character-1',
   characterLabel: 'Test Character',
@@ -35,7 +35,7 @@ const hitDieRoll = {
     total: 13
   },
   createdAt: '2026-07-31T12:00:00.000Z'
-} satisfies RollRecordDto
+})
 
 describe('Character Sheet rests for the played Fighter 2 / Rogue 1', () => {
   afterEach(() => vi.restoreAllMocks())

@@ -6,6 +6,7 @@ import {
   resolveSnapshotCharacterBuilderPayload
 } from '@artificer-toolkit/rules-runtime/character/snapshotBuilderEvaluation'
 import { createSnapshotReaders } from '@artificer-toolkit/rules-runtime/character/snapshotReaders'
+import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
@@ -250,6 +251,11 @@ describe('Builder worker evaluation', () => {
     if (!previewed.ok || previewed.output.operation !== 'preview')
       throw new Error('Expected a preview.')
     expect(previewed.output.preview.character.label).toBe('Snapshot hero')
+    expect(previewed.output.preview.preview).toMatchObject({
+      predictedStatus: AUTHORED_RECORD_STATUS.ACTIVE,
+      downgradesStatus: false,
+      destructive: false
+    })
   })
 
   it('names the kind that failed to load and reports loading kinds', async () => {
