@@ -575,6 +575,62 @@ describe('authored image media', () => {
     ).toEqual({ assetId: null, revision: 1 })
   }, 20_000)
 
+  it('deletes published artwork bytes and quota only after its last draft and active reference is gone', async () => {
+    const owner = await actor(1)
+    const foreign = await actor(2)
+    const item = await draft(owner.client)
+    const { assetId } = await uploadAndSave(owner.client, item)
+    const readAsset = () =>
+      t.run((ctx) =>
+        ctx.db
+          .query('mediaAssets')
+          .withIndex('by_publicId', (q) => q.eq('id', assetId!))
+          .unique()
+      )
+    const mediaBytes = async () =>
+      (
+        await t.run((ctx) =>
+          ctx.db
+            .query('userProfiles')
+            .withIndex('by_userId', (q) => q.eq('userId', owner.identity.userId))
+            .unique()
+        )
+      )?.mediaBytes ?? 0
+    const uploaded = (await readAsset())!
+    expect(uploaded.status).toBe('READY')
+    expect(await mediaBytes()).toBe(uploaded.chargedBytes)
+
+    await owner.client.mutation(
+      publish,
+      publicationInput(
+        (await owner.client.query(api.content.drafts.get, {
+          subjectKind: 'BACKGROUND',
+          subjectId: item.subjectId
+        })) as AuthoredDraftResult
+      )
+    )
+    const active = await owner.client.action(api.media.authoredActions.getImage, {
+      target: { ...target(item), scope: 'ACTIVE' },
+      variantKind: 'DISPLAY'
+    })
+    expect((await fetch(active!.url)).status).toBe(200)
+    expect(
+      await foreign.client.action(api.media.authoredActions.getImage, {
+        target: { ...target(item), scope: 'ACTIVE' },
+        variantKind: 'DISPLAY'
+      })
+    ).toBeNull()
+
+    await owner.client.mutation(deleteActive, {
+      subjectKind: 'BACKGROUND',
+      subjectId: item.subjectId
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readAsset()).toMatchObject({ status: 'DELETED', chargedBytes: 0 })
+    expect(await mediaBytes()).toBe(0)
+    for (const variant of uploaded.variants) expect(server.objects.has(variant.objectKey)).toBe(false)
+  }, 40_000)
+
   it('rejects stale settlement after draft discard and keeps the prior draft artwork on failed processing', async () => {
     const owner = await actor(1)
     const first = await draft(owner.client)

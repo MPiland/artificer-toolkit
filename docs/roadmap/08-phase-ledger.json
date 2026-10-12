@@ -139,10 +139,13 @@
         {
           "id": "PLATFORM-4",
           "title": "Upload, view and delete images and files",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/media/library.test.ts"],
-          "journeyStatus": "partial",
-          "journeyGap": "No upload claim, finalize, signed read and cleanup run for profile and art images; vttMap.test.ts covers that sequence for maps only.",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/media/avatar.test.ts",
+            "apps/apis/convex/media/authoredAssets.test.ts",
+            "apps/apis/convex/media/library.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["F14", "PLT-1"],
           "acs": [
             {
