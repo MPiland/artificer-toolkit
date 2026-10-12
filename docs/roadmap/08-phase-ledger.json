@@ -5080,6 +5080,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
+              "note": "Product-owner ruling 2026-10-12: Disengage ends only at the holder's real end of turn (Next Turn), like Dodge. A GM cursor correction (set current actor, previous turn, set round) no longer ends it; the old Q11 proof was rewritten to cover both cases. Also changed (integration-owner call, same warn-instead-of-block rule as every self-range authored action): Disengage or Dodge aimed at another creature is the overridable TARGET_OUT_OF_RANGE warning instead of a hard refusal, and \"Do it anyway\" applies it to the chosen creature.",
               "id": "ATTACK-18.2"
             },
             {
@@ -5109,8 +5110,9 @@
             {
               "id": "ATTACK-18.T3",
               "text": "Slice B: Dash (ADD_SPEED_TO_MOVEMENT) and Disengage (OPPORTUNITY_ATTACK_IMMUNITY) are migrated and their old paths deleted.",
-              "status": "TODO",
-              "closes": ["ATTACK-18.1", "ATTACK-18.2"]
+              "status": "DONE",
+              "closes": ["ATTACK-18.1", "ATTACK-18.2"],
+              "note": "Done 2026-10-12. New reusable pieces: the ENABLE modifier kind with the OPPORTUNITY_ATTACK_IMMUNITY value domain, the ADD_SPEED_TO_MOVEMENT movement rule (dnd5e.add-speed-to-movement-proposal; the commit records the turn speed bonus from the execution trace and undo removes it), and the TURN duration, which counts the turn in progress. Disengage is a SELF grant ending at the holder's real end of turn, so GM cursor corrections keep it (product-owner ruling, see ATTACK-18.2). Logs: local-validation/attack18b."
             },
             {
               "id": "ATTACK-18.T4",
@@ -5128,6 +5130,7 @@
               "id": "ATTACK-18.T6",
               "text": "Slice E: delete the closed codes, USE_BASIC_ACTION and every old path; offer basic actions through their facet restrictions with the FREE_HAND predicate in the rules and the drawer; a journey uses an authored basic action end to end; migrate development data and update the architecture docs.",
               "status": "TODO",
+              "note": "Also delete the USE_BASIC_ACTION drawer tests and stories whose fixtures still list Dash and Hide as legacy untargeted entries (CampaignTabletopActionDrawer.test.tsx and .stories.tsx).",
               "closes": ["ATTACK-18.1", "ATTACK-18.3"]
             }
           ]

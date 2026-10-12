@@ -14,6 +14,7 @@ import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleR
 import {
   creatureActiveGrantAttackContributors,
   effectiveHitPointMaximum,
+  encounterGrantsOpportunityAttackImmunity,
   withActiveGrantSpeeds,
   withCharacterActiveGrants
 } from '../encounterActiveGrants.js'
@@ -27,6 +28,7 @@ import {
   aidEffect,
   antitoxinEffect,
   darkvisionEffect,
+  disengageEffect,
   heroismEffect,
   longstriderEffect,
   protectionFromEnergyEffect,
@@ -221,6 +223,15 @@ describe('Creature holder of an active grant', () => {
       ])
     }
     expect(creatureActiveGrantAttackContributors(HOLDER_ID, 'MELEE', [antitoxin()])).toEqual([])
+  })
+})
+
+describe('opportunity attack immunity from active grants', () => {
+  it('holds while the holder carries the real Disengage grant, and only then', () => {
+    const disengage = disengageEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })
+    expect(encounterGrantsOpportunityAttackImmunity([disengage])).toBe(true)
+    expect(encounterGrantsOpportunityAttackImmunity([])).toBe(false)
+    expect(encounterGrantsOpportunityAttackImmunity([antitoxin(), aid()])).toBe(false)
   })
 })
 

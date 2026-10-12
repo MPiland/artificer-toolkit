@@ -7,6 +7,7 @@ import {
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  MOVEMENT_RULE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
@@ -200,10 +201,43 @@ function dodgeEffect(actionId: string) {
   )
 }
 
+/** Disengage's grant: the holder's movement provokes no opportunity attacks until its turn ends. */
+function disengageEffect(actionId: string) {
+  return selfActionEffect(
+    actionId,
+    {
+      id: basicActionChildId(actionId, 0x213, 1),
+      effectKind: EFFECT_KIND.APPLY_GRANT,
+      grants: {
+        modifiers: [
+          {
+            id: basicActionChildId(actionId, 0x214, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            order: 0
+          }
+        ]
+      }
+    },
+    {
+      duration: {
+        id: basicActionChildId(actionId, 0x215, 1),
+        durationKind: 'TURN',
+        amount: 1
+      },
+      lifecycle: { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } }
+    }
+  )
+}
+
 /**
  * The SRD System's basic combat actions. Names and rules text are authored System data; only the
- * listed mechanics execute. Dodge is an authored grant; Hide, Ready, Search and Use an Object spend the Action and leave
- * the result to the GM.
+ * listed mechanics execute. Dash, Disengage and Dodge are authored effects; Hide, Ready, Search and
+ * Use an Object spend the Action and leave the result to the GM.
  */
 export const SRD_BASIC_ACTION_DEFINITIONS = [
   defineBasicAction({
@@ -211,13 +245,19 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
     label: 'Dash',
     rulesText:
       'You gain extra movement for the current turn, equal to your speed after applying any modifiers.',
-    mechanics: ['SPEED_MOVEMENT_BONUS']
+    effects: [
+      selfActionEffect(SRD_BASIC_ACTION_IDS.DASH, {
+        id: basicActionChildId(SRD_BASIC_ACTION_IDS.DASH, 0x213, 1),
+        effectKind: EFFECT_KIND.MOVEMENT_RULE,
+        ruleKind: MOVEMENT_RULE_KIND.ADD_SPEED_TO_MOVEMENT
+      })
+    ]
   }),
   defineBasicAction({
     id: SRD_BASIC_ACTION_IDS.DISENGAGE,
     label: 'Disengage',
     rulesText: "Your movement doesn't provoke opportunity attacks for the rest of the turn.",
-    mechanics: ['NO_OPPORTUNITY_ATTACKS']
+    effects: [disengageEffect(SRD_BASIC_ACTION_IDS.DISENGAGE)]
   }),
   defineBasicAction({
     id: SRD_BASIC_ACTION_IDS.DODGE,

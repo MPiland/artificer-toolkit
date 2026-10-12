@@ -381,11 +381,11 @@ Hide-action hidden state (Stealth check, ends on attack), Unconscious falling Pr
 resistance, Exhaustion 4 and 6, concentration saves under conditions, and conditions on Convex-side
 action preparation reads (the room owns resolution).
 
-### Authored basic actions (ATTACK-18 slice A, current; D106)
+### Authored basic actions (ATTACK-18 slices A and B, current; D106)
 
 A `BASIC_ACTION` System definition carries `rulesText`, `restrictions` (a nullable Facet, carried but not yet evaluated) and either
-`mechanics` (the closed codes still in use: Dash, Disengage, Help and First Aid) or `effects` (the same authored effect list a
-Feature carries), never both. Entries with `effects` are authored: Dodge, Hide, Ready, Search and Use an Object. They are compiled by
+`mechanics` (the closed codes still in use: Help and First Aid) or `effects` (the same authored effect list a
+Feature carries), never both. Entries with `effects` are authored: Dash, Disengage, Dodge, Hide, Ready, Search and Use an Object. They are compiled by
 the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action source, `BASIC_ACTION`
 (`encounterBasicActionCapabilityDiscovery.ts`, `encounterActionSources.ts`), for Characters and Creatures. Their action id is
 `${actor.id}:BASIC_ACTION:${definitionId}:EFFECT:${effectId}`, and the action choices read lists them in the separate
@@ -401,7 +401,16 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `SPEED_ABOVE_ZERO` (unknown contexts fail closed). `withEncounterHolderDefense` (`encounterHolderDefense.ts`) applies the grants
   to the target facts for attack and save resolution; the D100 sight rule drops the attack contributor only when the holder
   definitively can't see the attacker (`UNSEEN`). GM undo removes the grant and refunds the Action like any authored action.
-- **Gone with this slice:** `withEncounterBasicActionDefense`, the `dodgeContributors` plumbing, the Dodge Run-resource effect kinds,
+- **Dash** carries the `MOVEMENT_RULE` kind `ADD_SPEED_TO_MOVEMENT`, compiled to `dnd5e.add-speed-to-movement-proposal`. The
+  `RESOLVE_ACTION` commit reads it from the execution trace (`executionAddsSpeedToMovement`), calls `recordTurnSpeedBonus` and stores
+  `speedBonusTurn` on the command; GM undo calls `removeTurnSpeedBonus`. The movement budget stays condition-adjusted speed × (1 + bonuses).
+- **Disengage** is an `APPLY_GRANT` on SELF for one `TURN` with an `OPPORTUNITY_ATTACK_IMMUNITY` modifier of the flag kind `ENABLE`
+  (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsOpportunityAttackImmunity`.
+  A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
+  grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
+- **Gone with slice B:** the mechanic codes `SPEED_MOVEMENT_BONUS` and `NO_OPPORTUNITY_ATTACKS`, `suppressesEncounterOpportunityAttacks`,
+  the `speedMovementBonus` DTO field and `speedBonusTurn` on `USE_BASIC_ACTION`.
+- **Gone with slice A:** `withEncounterBasicActionDefense`, the `dodgeContributors` plumbing, the Dodge Run-resource effect kinds,
   the mechanic codes `DISADVANTAGE_ON_ATTACKS_AGAINST` and `SAVE_ADVANTAGE`, `saveAbilityIds` and
   `suspendedWhileUnableToActOrMove`.
 - **Storage.** A reusable definition's document is stored as canonical JSON text (`documentJson`, `definitionDocumentJson.ts`): an

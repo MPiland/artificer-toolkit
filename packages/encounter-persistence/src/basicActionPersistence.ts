@@ -40,7 +40,6 @@ import { writePendingSnapshot } from './pendingSnapshots.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
-import { recordTurnSpeedBonus } from './turnMovement.js'
 import type { EncounterCharacterWriteTransaction, EncounterWriteTransaction } from './ports.js'
 
 /**
@@ -85,13 +84,12 @@ export async function persistEncounterBasicAction(
     document.effects.length > 0 ||
     definition.version !== input.definition.version ||
     definition.checksum !== input.definition.checksum ||
-    input.speedMovementBonus !== document.mechanics.includes('SPEED_MOVEMENT_BONUS') ||
     input.effects.some(
       (effect) =>
         effect.definitionId !== definition.id ||
         effect.turnSequence !== state.turnSequence ||
         !document.mechanics.includes(effect.mechanic) ||
-        effect.allyActorId !== (effect.mechanic === 'ALLY_ADVANTAGE' ? command.targetActorId : null)
+        effect.allyActorId !== command.targetActorId
     ) ||
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))
@@ -135,7 +133,6 @@ export async function persistEncounterBasicAction(
     ...input.effects
   ])
   await replaceRunActor(ctx, actor, settled)
-  if (input.speedMovementBonus) await recordTurnSpeedBonus(ctx, { state, actorId: actor.id })
   // A Help the check used is consumed with the action, so a pending check keeps its advantage.
   let nextActors = await consumeEncounterAllyAdvantages(ctx, {
     actors: actors.map((entry) => (entry.id === settled.id ? settled : entry)),
@@ -222,9 +219,6 @@ export async function persistEncounterBasicAction(
         actorId: actor.id,
         actionEconomy: input.actionEconomy,
         effects: input.effects,
-        speedBonusTurn: input.speedMovementBonus
-          ? { round: state.round, turnActorId: actor.id }
-          : null,
         allyAdvantageUses: input.allyAdvantageUses,
         checkOccurrenceId: storedOccurrence?.id ?? null
       },

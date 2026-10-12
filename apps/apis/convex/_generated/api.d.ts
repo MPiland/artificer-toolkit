@@ -34156,12 +34156,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -46212,12 +46207,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -58277,12 +58267,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -70333,12 +70318,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -82424,12 +82404,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -94480,12 +94455,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -106506,12 +106476,7 @@ export declare const api: {
                 gameSystemId: string;
                 id: string;
                 kind: "BASIC_ACTION";
-                mechanics: Array<
-                  | "SPEED_MOVEMENT_BONUS"
-                  | "NO_OPPORTUNITY_ATTACKS"
-                  | "ALLY_ADVANTAGE"
-                  | "STABILIZE_TARGET"
-                >;
+                mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                 restrictions: any | null;
                 rulesText: string;
                 schemaVersion: 1;
@@ -118557,12 +118522,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;
@@ -130613,12 +130573,7 @@ export declare const api: {
                   gameSystemId: string;
                   id: string;
                   kind: "BASIC_ACTION";
-                  mechanics: Array<
-                    | "SPEED_MOVEMENT_BONUS"
-                    | "NO_OPPORTUNITY_ATTACKS"
-                    | "ALLY_ADVANTAGE"
-                    | "STABILIZE_TARGET"
-                  >;
+                  mechanics: Array<"ALLY_ADVANTAGE" | "STABILIZE_TARGET">;
                   restrictions: any | null;
                   rulesText: string;
                   schemaVersion: 1;

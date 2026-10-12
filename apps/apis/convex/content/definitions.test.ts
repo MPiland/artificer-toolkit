@@ -20,7 +20,10 @@ import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { SRD_CONCENTRATION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/concentration.js'
-import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import {
   SRD_RULE_CAPABILITY_DEFINITIONS,
   SRD_CONDITION_RULE_STATE_DEFINITIONS
@@ -514,15 +517,16 @@ describe('native reusable definitions', () => {
 
   it('authors and publishes a basic-action catalogue entry through the ordinary flow (Q11)', async () => {
     const { a } = await fixture()
+    const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)!
     const published = await publishDocument(a, 'basic-action', {
-      ...SRD_BASIC_ACTION_DEFINITIONS[0].document,
-      rulesText: 'Sprint: move twice your speed this turn.',
+      ...help.document,
+      rulesText: 'Rally: aid an ally as a bonus action.',
       actionCost: 'BONUS_ACTION'
     })
     expect(published.current?.document).toMatchObject({
       kind: 'BASIC_ACTION',
       actionCost: 'BONUS_ACTION',
-      mechanics: ['SPEED_MOVEMENT_BONUS']
+      mechanics: ['ALLY_ADVANTAGE']
     })
     const created = await a.mutation(create, {
       gameSystemId: srdSystemRecord.id,

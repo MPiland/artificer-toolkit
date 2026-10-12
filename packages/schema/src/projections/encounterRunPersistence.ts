@@ -271,6 +271,13 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       /** The Character this action newly added to the Run's `concentrationCasterCharacterIds`; its undo removes it. */
       addedConcentrationCasterId: z.nullable(postgresUuidSchema),
+      /** The turn movement record a Dash's speed bonus was added to; its undo removes it. */
+      speedBonusTurn: z.nullable(
+        z.strictObject({
+          round: z.number().check(z.int()).check(z.positive()),
+          turnActorId: postgresUuidSchema
+        })
+      ),
       /** GM-only history lines (the GM removing a creature from an area); the timeline never shows them to a player. */
       /** History lines for the user who issued the command, such as an area's outcomes for its caster; the GM sees them too. */
       issuerLines: z._default(
@@ -296,13 +303,6 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         actorId: postgresUuidSchema,
         actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
         effects: encounterBasicActionEffectsDtoSchema,
-        /** The turn movement record a speed bonus was added to. */
-        speedBonusTurn: z.nullable(
-          z.strictObject({
-            round: z.number().check(z.int()).check(z.positive()),
-            turnActorId: postgresUuidSchema
-          })
-        ),
         /** The Help a check-making action used (a used Help is consumed); undo gives it back. */
         allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
         /** The action's d20 check occurrence, pending or settled; null for an action with no check. */

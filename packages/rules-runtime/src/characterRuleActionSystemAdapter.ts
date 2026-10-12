@@ -59,6 +59,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     senses: readonly CharacterGrantFoldSense[]
     /** Whose turn boundary counts the grant down: its holder's or its source's. */
     tickAnchor: 'HOLDER' | 'SOURCE'
+    /** Whether the duration already counts the turn the grant is made in ("for the turn"). */
+    includesCurrentTurn: boolean
     /** The first event that uses the grant up. */
     consumeOnFirstEvent: 'ON_ATTACK_ROLL' | null
   }

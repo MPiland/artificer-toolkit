@@ -257,10 +257,12 @@ function prepareRecurringActiveEffect(
     : []
   const tickAnchor = grantContribution?.tickAnchor ?? 'HOLDER'
   // A grant made on its anchor actor's own turn would otherwise lose a counted turn to the very
-  // end of turn it was made in, so "until the end of the next turn" counts one more.
+  // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
+  // "for the turn" already is that end of turn.
   const initialRemaining =
     plan.initialRemaining !== null &&
     grantContribution &&
+    !grantContribution.includesCurrentTurn &&
     plan.recurrenceStage === 'END_OF_TURN' &&
     input.currentActorId ===
       (grantContribution.tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)

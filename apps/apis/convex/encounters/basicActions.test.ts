@@ -59,7 +59,7 @@ const pendingRuleOccurrence = makeFunctionReference<
   PendingEncounterRuleOccurrenceSummaryDto | null
 >('encounters/pendingReads:pendingRuleOccurrence')
 
-const [dash, disengage, , help] = SRD_BASIC_ACTION_DEFINITIONS
+const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
 
 /** The player-control Run with the System's rule states (conditions, capabilities) and catalogue. */
 async function basicActionFixture(options: Parameters<typeof playerControlFixture>[0] = {}) {
@@ -312,12 +312,12 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(
       choices?.basicActions.map(({ label, actionCost, target }) => [label, actionCost, target])
     ).toEqual([
-      ['Dash', 'ACTION', null],
-      ['Disengage', 'ACTION', null],
       ['First Aid', 'ACTION', 'DYING_CHARACTER'],
       ['Help', 'ACTION', 'ALLY']
     ])
     expect(choices?.basicActionChoices.map(({ label }) => label)).toEqual([
+      'Dash',
+      'Disengage',
       'Dodge',
       'Hide',
       'Ready',
@@ -344,10 +344,11 @@ describe('basic combat actions in the room (Q11)', () => {
     const walking = await budget()
     expect(walking).toBeGreaterThan(0)
 
-    await base.gm(
-      await useBasicAction(base, { actorId: base.companion.id, definitionId: dash!.id })
-    )
+    await base.gm(await resolveBasicAction(base, base.companion.id, 'Dash'))
     expect(await budget()).toBe(walking! * 2)
+    // The bonus lives in this turn's budget only; Dash leaves no lasting effect.
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
+    expect(encounterBasicActionEffects(await actorState(base, base.companion.id))).toEqual([])
     expect(
       encounterRuleUsageUsed(
         await actorState(base, base.companion.id),
@@ -357,17 +358,13 @@ describe('basic combat actions in the room (Q11)', () => {
 
     // The action is spent: Assisted mode warns, and "Do it anyway" records the override.
     await expect(
-      domainRejection(
-        base.gm(await useBasicAction(base, { actorId: base.companion.id, definitionId: dash!.id }))
-      )
+      domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Dash')))
     ).resolves.toMatchObject({
       reason: 'RULE_WARNINGS',
       warnings: [expect.objectContaining({ code: 'ACTION_ECONOMY_UNAVAILABLE' })]
     })
     await base.gm(
-      await useBasicAction(base, {
-        actorId: base.companion.id,
-        definitionId: dash!.id,
+      await resolveBasicAction(base, base.companion.id, 'Dash', {
         acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE']
       })
     )
@@ -384,6 +381,26 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(await budget()).toBe(0)
     await setConditions(base, base.companion.id, [])
     expect(await budget()).toBe(walking! * 3)
+  })
+
+  it('Disengage aimed at another creature warns first, and "Do it anyway" bends the rule onto that creature', async () => {
+    const base = await basicActionFixture()
+    const atEnemy = { target: { kind: 'ACTOR' as const, actorId: base.enemy.id } }
+    await expect(
+      domainRejection(base.gm(await resolveBasicAction(base, base.companion.id, 'Disengage', atEnemy)))
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
+    })
+    await base.gm(
+      await resolveBasicAction(base, base.companion.id, 'Disengage', {
+        ...atEnemy,
+        acknowledgedWarnings: ['TARGET_OUT_OF_RANGE']
+      })
+    )
+    // A self-range target is a bendable rule like any authored action's: the override applies it as chosen.
+    expect(await activeEffectCount(base, base.companion.id)).toBe(0)
+    expect(await activeEffectCount(base, base.enemy.id)).toBe(1)
   })
 
   it('Dodge gives attacks against the actor disadvantage, reads "Dodge", and ends at its next turn', async () => {
@@ -537,9 +554,7 @@ describe('basic combat actions in the room (Q11)', () => {
   it("the GM's undo takes a basic action back exactly: its effects, allowance and speed bonus", async () => {
     const base = await basicActionFixture()
     const walking = await turnBudget(base, base.companion.id)
-    await base.gm(
-      await useBasicAction(base, { actorId: base.companion.id, definitionId: dash!.id })
-    )
+    await base.gm(await resolveBasicAction(base, base.companion.id, 'Dash'))
     expect(await turnBudget(base, base.companion.id)).toBe(walking! * 2)
     await revertLastAction(base)
     expect(await turnBudget(base, base.companion.id)).toBe(walking)
@@ -606,14 +621,17 @@ describe('basic combat actions in the room (Q11)', () => {
       base.gm(await useBasicAction(base, { actorId: base.companion.id, definitionId: help!.id }))
     ).rejects.toThrow()
     await expect(
-      base.gm(
-        await useBasicAction(base, {
-          actorId: base.companion.id,
-          definitionId: disengage!.id,
-          targetActorId: base.enemy.id
-        })
+      domainRejection(
+        base.gm(
+          await resolveBasicAction(base, base.companion.id, 'Disengage', {
+            target: { kind: 'ACTOR', actorId: base.enemy.id }
+          })
+        )
       )
-    ).rejects.toThrow()
+    ).resolves.toMatchObject({
+      reason: 'RULE_WARNINGS',
+      warnings: [{ code: 'TARGET_OUT_OF_RANGE', message: 'This action can only target its user.' }]
+    })
     await base.gm({
       type: 'UPDATE_ACTOR',
       encounterId: base.run.id,

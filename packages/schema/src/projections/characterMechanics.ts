@@ -151,6 +151,7 @@ const compiledActionActiveEffectPlanSchema = lazySchema(() =>
             modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             tickAnchor: z.enum(['HOLDER', 'SOURCE']),
+            includesCurrentTurn: z.boolean(),
             consumeOnFirstEvent: z.nullable(z.literal('ON_ATTACK_ROLL'))
           })
           .check(

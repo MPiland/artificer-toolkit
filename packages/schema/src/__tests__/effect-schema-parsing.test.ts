@@ -166,6 +166,47 @@ describe('effect schema parsing', () => {
     }
   })
 
+  it.each([
+    ['path', pathDtoSchema],
+    ['manifest behavior path', manifestBehaviorPathDtoSchema]
+  ] as const)(
+    'accepts a payload-free ADD_SPEED_TO_MOVEMENT rule and an ENABLE opportunity-attack-immunity grant through the %s schema',
+    (_name, schema) => {
+      const outcomes = [
+        { id: 'dash-outcome', effectKind: 'MOVEMENT_RULE', ruleKind: 'ADD_SPEED_TO_MOVEMENT' },
+        {
+          id: 'disengage-outcome',
+          effectKind: 'APPLY_GRANT',
+          grants: {
+            modifiers: [
+              {
+                id: 'disengage-grant',
+                grantKind: 'MODIFIER_GRANT',
+                valueDomainCode: 'OPPORTUNITY_ATTACK_IMMUNITY',
+                domain: {},
+                modifierKind: 'ENABLE',
+                scope: 'GLOBAL',
+                selectionKind: 'GRANTED',
+                order: 0
+              }
+            ]
+          }
+        }
+      ]
+      for (const outcome of outcomes)
+        expect(
+          schema.parse(
+            fixedPath(
+              `${outcome.id}-path`,
+              1,
+              'ON_USE',
+              singleResultBlock(`${outcome.id}-result`, outcome)
+            )
+          )
+        ).toMatchObject({ resultBlock: { outcomes: [{ effectKind: outcome.effectKind }] } })
+    }
+  )
+
   it('accepts one UUID-backed maximum hit point reduction source and its recovery tags', () => {
     const valid = {
       id: '00000000-0000-4000-8000-0000000000f0',

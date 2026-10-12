@@ -240,6 +240,19 @@ export function hasEncounterDefensiveGrants(
   )
 }
 
+/** Whether an active grant (Disengage) makes the holder's movement provoke no opportunity attacks. */
+export function encounterGrantsOpportunityAttackImmunity(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): boolean {
+  return listEncounterActiveGrants(effects).some(({ modifiers }) =>
+    modifiers.some(
+      (modifier) =>
+        modifier.valueDomainCode === 'OPPORTUNITY_ATTACK_IMMUNITY' &&
+        modifier.modifierKind === 'ENABLE'
+    )
+  )
+}
+
 /** An attack-roll contributor the target's active grants give attacks of one attack domain against it. */
 export type EncounterAttackAgainstContributor = {
   attackDomain: AttackDomainCode

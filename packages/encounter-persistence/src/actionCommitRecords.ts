@@ -82,6 +82,7 @@ export async function recordActionRoot(
       | 'allyAdvantageUses'
       | 'consumedGrants'
       | 'addedConcentrationCasterId'
+      | 'speedBonusTurn'
     > &
       Partial<
         Pick<

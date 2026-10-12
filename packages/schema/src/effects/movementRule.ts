@@ -29,6 +29,11 @@ export const movementRuleDtoSchema = lazySchema(() =>
     z.object({
       id: authoredIdentifierSchema,
       effectKind: z.literal('MOVEMENT_RULE'),
+      ruleKind: z.literal('ADD_SPEED_TO_MOVEMENT')
+    }),
+    z.object({
+      id: authoredIdentifierSchema,
+      effectKind: z.literal('MOVEMENT_RULE'),
       ruleKind: z.enum([
         'LIMIT_DISTANCE_FROM_ANCHOR',
         'MAX_FALL_DISTANCE_FROM_ANCHOR',

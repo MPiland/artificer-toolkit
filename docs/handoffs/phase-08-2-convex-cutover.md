@@ -1,7 +1,7 @@
 # Phase 8.2 Convex cutover handoff
 
 **Status:** active; current state below, older records follow under explicit "Historical" headings.
-**Updated:** 2026-10-11. Start at "Done 2026-10-11 (SHEET-8" below; SHEET-8 and BUILDER-4 are DONE, ATTACK-18 is next. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
+**Updated:** 2026-10-12. Start at "Done 2026-10-12 (ATTACK-18 slice B" below; ATTACK-18 slices A and B are DONE, slice C is next. SPELLS-18 is DONE (`d70136fd3`). ATTACK-7 slices A (`9a2799a96`) and B (`0581507db`) are DONE. AUTHORING-17 is DONE (slices A `ce728c7dc`, B `31df3e710`, C); SHEET-8 is next. ATTACK-7 is active: D105 records the design and slices A–G; ATTACK-7.1 is split into 7.1 and 7.3–7.8. D106 (basic actions are authored) and D107 (hands, computed Creature AC) add AUTHORING-17, SHEET-8, ATTACK-18 and ATTACK-19; PBIs now carry `tasks` (`{id, text, status, closes}`), and SCENE-4 (loot tables) is registered.
 **Workspace:** regular `D:/dev/artificer-toolkit` checkout on `codex/phase-08-2-convex-cutover`. The detached `.codex/worktrees/phase-08-2-convex-cutover` remains a read-only backup.
 
 ## Current state (2026-10-07)
@@ -227,7 +227,15 @@ Area path file map:
 - Reusable-definition documents and drafts are stored as `documentJson` text (Dodge nests 19 levels; Convex allows 16); ADR 0029 updated. The receipt's `sourceCharacterId` now comes from the Character actor for every source.
 - Red logs and the audit mutations are in `local-validation/attack18a/`. Tests for the main slice were written after the code; an independent assertion audit found four weakened Dodge/Hide/schema checks, all strengthened and mutation-proved.
 
-**Next: ATTACK-18 slice B** (task T3: Dash and Disengage as authored actions, ADD_SPEED_TO_MOVEMENT and OPPORTUNITY_ATTACK_IMMUNITY).
+**Done 2026-10-12 (ATTACK-18 slice B, task T3):**
+
+- Dash (`ADD_SPEED_TO_MOVEMENT`, `dnd5e.add-speed-to-movement-proposal`; `speedBonusTurn` now on RESOLVE_ACTION, undo removes the bonus) and Disengage (SELF grant, `TURN` 1, `OPPORTUNITY_ATTACK_IMMUNITY` + new `ENABLE` kind, read in the room by `encounterGrantsOpportunityAttackImmunity`) resolve as authored actions; `SPEED_MOVEMENT_BONUS`, `NO_OPPORTUNITY_ATTACKS` and their paths are deleted. A `TURN` duration counts the current turn (`includesCurrentTurn`).
+- Product-owner ruling: Disengage ends only at a real turn end; GM cursor corrections keep it. The Q11 Convex test was replaced by two proofs (correction keeps it, Next Turn ends it). Noted on ATTACK-18.2 and in D106.
+- A self-range basic action aimed at another creature is now the overridable `TARGET_OUT_OF_RANGE` warning (was a hard refusal); the override applies it to the chosen creature, as for every authored action. An independent assertion audit found no weakened assertions; its two coverage gaps (Dash leaves no effect; another actor's Disengage doesn't cover the mover) now have Convex proofs.
+- Dev data was reset and reseeded (backup `local-validation/convex-reset/attack18b.before.zip`); SRD audit passed. Logs in `local-validation/attack18b/`.
+- The drawer's `USE_BASIC_ACTION` tests and stories still use Dash and Hide as untargeted legacy fixtures; they go with `USE_BASIC_ACTION` in slice E (noted on T6).
+
+**Next: ATTACK-18 slice C** (task T4: Help as an ally grant consumed by the first attack roll or ability check; delete `allyAdvantageUses`).
 
 **Apis suite timing:** the full apis suite is 374 files run serially (`maxWorkers: 1`) and takes about 72 minutes. Never override `maxWorkers`; for focused runs pass explicit file paths, not folder filters.
 

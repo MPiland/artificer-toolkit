@@ -10,7 +10,14 @@ import type {
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { encounterBasicActionEffects } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
-import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import type {
+  EncounterActionChoicesResponseDto,
+  GetEncounterActionChoicesInputDto
+} from '@artificer-toolkit/schema/api/encounterActionChoices'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
@@ -31,7 +38,12 @@ import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 useLocalRoomWorker()
 
-const [, disengage, , help] = SRD_BASIC_ACTION_DEFINITIONS
+const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
+const actionChoices = makeFunctionReference<
+  'query',
+  GetEncounterActionChoicesInputDto,
+  EncounterActionChoicesResponseDto
+>('encounters/actionChoices:get')
 const pendingRuleOccurrence = makeFunctionReference<
   'query',
   { encounterId: string },
@@ -83,6 +95,46 @@ async function basicAction(
   })
 }
 
+/** RESOLVE_ACTION for one of the actor's authored basic actions (a self-targeted action). */
+async function resolveBasicAction(base: MoverTurn, actorId: string, label: string) {
+  const expectedVersion = await runVersion(base)
+  const choices = await base.owner.caller.query(actionChoices, {
+    encounterId: base.run.id,
+    expectedVersion,
+    actorId
+  })
+  const choice = choices?.basicActionChoices.find((entry) => entry.label === label)
+  if (!choice) throw new Error(`The actor is not offered the ${label} basic action.`)
+  return gm(base, {
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: [],
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion,
+    actorId,
+    target: { kind: 'ACTOR', actorId },
+    actionId: choice.id,
+    optionalCombatIntent: null,
+    sceneContext: null
+  })
+}
+
+/** The Active Effects the actor holds, as Convex stores them once the room checkpoints. */
+async function activeEffectCount(base: MoverTurn, actorId: string) {
+  await checkpointLiveRoom(base.campaign.id)
+  return (
+    await base.t.run((ctx) =>
+      ctx.db
+        .query('encounterActiveRuleEffects')
+        .withIndex('by_encounterId_targetActorId_createdOrdinal_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('targetActorId', actorId)
+        )
+        .collect()
+    )
+  ).length
+}
+
 async function setCurrentActor(
   base: Pick<MoverTurn, 'owner' | 'run' | 't' | 'campaign'>,
   actorId: string
@@ -93,6 +145,16 @@ async function setCurrentActor(
     commandId: crypto.randomUUID(),
     expectedVersion: await runVersion(base),
     actorId
+  })
+}
+
+/** Ends the current actor's turn through the real room. */
+async function advanceTurn(base: MoverTurn) {
+  return gm(base, {
+    type: 'ADVANCE_TURN',
+    encounterId: base.run.id,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await runVersion(base)
   })
 }
 
@@ -177,19 +239,38 @@ it('a defeated reactor takes no opportunity attack (D63)', async () => {
 
 it('a Disengaged mover provokes no opportunity attack prompt in Assisted mode (Q11)', async () => {
   const base = await moverTurn()
-  await basicAction(base, base.mover.id, disengage!.id)
+  await resolveBasicAction(base, base.mover.id, 'Disengage')
   expect((await moveAwayFromReactor(base)).occurrence?.status).not.toBe('PENDING')
 })
 
-it("a Disengage ends with its turn: setting the mover current again doesn't revive it", async () => {
+it("another actor's Disengage leaves the mover's move provoking as before (Q11)", async () => {
   const base = await moverTurn()
-  await basicAction(base, base.mover.id, disengage!.id)
+  await setCurrentActor(base, base.reactor.id)
+  await resolveBasicAction(base, base.reactor.id, 'Disengage')
+  await setCurrentActor(base, base.mover.id)
+  expect(await activeEffectCount(base, base.reactor.id)).toBe(1)
+  expect((await moveAwayFromReactor(base)).occurrence?.status).toBe('PENDING')
+})
+
+it('a Disengage survives a GM cursor correction and ends only when its turn really ends (Q11)', async () => {
+  const base = await moverTurn()
+  await resolveBasicAction(base, base.mover.id, 'Disengage')
+  expect(await activeEffectCount(base, base.mover.id)).toBe(1)
+  // A GM correction is not the end of the turn: the grant stays and the move still provokes nothing.
   await setCurrentActor(base, base.reactor.id)
   await setCurrentActor(base, base.mover.id)
-  // The mover still holds the effect until its next turn starts, but that turn is over.
-  expect((await effectsOf(base, base.mover.id)).map((effect) => effect.mechanic)).toEqual([
-    'NO_OPPORTUNITY_ATTACKS'
-  ])
+  expect(await activeEffectCount(base, base.mover.id)).toBe(1)
+  expect((await moveAwayFromReactor(base)).occurrence?.status).not.toBe('PENDING')
+})
+
+it("a Disengage ends with the mover's real turn end, so a later turn is not covered (Q11)", async () => {
+  const base = await moverTurn()
+  await resolveBasicAction(base, base.mover.id, 'Disengage')
+  expect(await activeEffectCount(base, base.mover.id)).toBe(1)
+  // The mover's turn really ends, the reactor's turn runs, and the mover is current again.
+  await advanceTurn(base)
+  expect((await advanceTurn(base)).projection.currentActorId).toBe(base.mover.id)
+  expect(await activeEffectCount(base, base.mover.id)).toBe(0)
   expect((await moveAwayFromReactor(base)).occurrence?.status).toBe('PENDING')
 })
 

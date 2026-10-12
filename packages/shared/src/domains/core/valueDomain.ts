@@ -13,6 +13,7 @@ export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
   ATTACK_ROLL: 'ATTACK_ROLL',
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
+  OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -103,6 +104,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     tooltip: 'Advantage or disadvantage on attack rolls made against the holder.',
     description:
       'Changes how attack rolls made against the holder are rolled, for the chosen kinds of attack, optionally only against attackers the holder can see.'
+  },
+
+  [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
+    code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
+    label: 'Opportunity Attack Immunity',
+    tooltip: "The holder's movement provokes no opportunity attacks.",
+    description:
+      "While the holder carries this grant, its movement doesn't provoke opportunity attacks."
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -382,6 +391,9 @@ export type ValueDomainParamByCode = {
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
   // holder can see (D100).
   ATTACKS_AGAINST: { attackDomain: AttackDomainCode; requiresHolderSeesAttacker: boolean }
+
+  // The holder's movement provokes no opportunity attacks (Disengage).
+  OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }

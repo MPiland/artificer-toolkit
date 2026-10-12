@@ -376,6 +376,7 @@ const buildModifierGrantVariants = () => {
     buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackDomainParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
     buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
+    buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'BONUS',

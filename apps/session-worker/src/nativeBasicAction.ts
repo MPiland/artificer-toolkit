@@ -256,7 +256,6 @@ export async function planNativeLiveBasicAction(
       actionEconomy,
       ruleOverrides: warnings,
       effects: planned.effects,
-      speedMovementBonus: planned.speedMovementBonus,
       allyAdvantageUses: prepared?.allyAdvantageUses ?? [],
       check,
       rules: reconcileEncounterActorRuleOutput(

@@ -13,6 +13,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { executionAddsSpeedToMovement } from '@artificer-toolkit/rules-runtime/systems/dnd5e/addSpeedToMovement'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
@@ -22,6 +23,7 @@ import { completeActionOccurrence, recordActionRoot } from './actionCommitRecord
 import { consumeEncounterAllyAdvantages } from './allyAdvantage.js'
 import { deleteConsumedGrants } from './consumedGrantPersistence.js'
 import { projectNativeGm } from './nativeProjection.js'
+import { recordTurnSpeedBonus } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type {
@@ -345,6 +347,9 @@ export async function persistEncounterActionCommit(
       pending: null
     }
   })
+  // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
+  const addsSpeed = executionAddsSpeedToMovement(execution)
+  if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
   await recordActionRoot(ctx, {
     run,
     state,
@@ -361,7 +366,8 @@ export async function persistEncounterActionCommit(
       ruleOverrides: input.ruleOverrides,
       allyAdvantageUses: input.allyAdvantageUses,
       consumedGrants: input.consumedGrants,
-      addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null
+      addedConcentrationCasterId: maintenance?.addedConcentrationCasterId ?? null,
+      speedBonusTurn: addsSpeed ? { round: state.round, turnActorId: source.id } : null
     },
     occurredAt: input.occurredAt
   })

@@ -52,8 +52,8 @@ describe('canonical Convex import preparation', () => {
         ])
       )
     ).toEqual({
-      Dash: ['ACTION', ['SPEED_MOVEMENT_BONUS'], []],
-      Disengage: ['ACTION', ['NO_OPPORTUNITY_ATTACKS'], []],
+      Dash: ['ACTION', [], ['MOVEMENT_RULE']],
+      Disengage: ['ACTION', [], ['APPLY_GRANT']],
       Dodge: ['ACTION', [], ['APPLY_GRANT']],
       Help: ['ACTION', ['ALLY_ADVANTAGE'], []],
       Hide: ['ACTION', [], ['MANUAL_ADJUDICATION']],
@@ -128,7 +128,7 @@ describe('canonical Convex import preparation', () => {
     expect(
       basicActionReusableDefinitionDocumentDtoSchema.safeParse({
         ...hide.document,
-        mechanics: ['SPEED_MOVEMENT_BONUS']
+        mechanics: ['ALLY_ADVANTAGE']
       }).success
     ).toBe(false)
   })

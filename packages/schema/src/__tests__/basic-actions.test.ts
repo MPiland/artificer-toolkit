@@ -31,14 +31,21 @@ describe('basic-action catalogue contracts (Q11)', () => {
   })
 
   it('takes only closed, unique and sorted mechanic kinds', () => {
-    const parse = (mechanics: string[]) =>
-      basicActionReusableDefinitionDocumentDtoSchema.safeParse({ ...dodge, mechanics }).success
+    const check = { checkDefinitionId: dexterityId, dc: 10 }
+    const parse = (mechanics: string[], withCheck = false) =>
+      basicActionReusableDefinitionDocumentDtoSchema.safeParse({
+        ...dodge,
+        mechanics,
+        check: withCheck ? check : null
+      }).success
     expect(parse([])).toBe(true)
-    expect(parse(['ALLY_ADVANTAGE', 'SPEED_MOVEMENT_BONUS'])).toBe(true)
-    expect(parse(['SPEED_MOVEMENT_BONUS', 'ALLY_ADVANTAGE'])).toBe(false)
+    expect(parse(['ALLY_ADVANTAGE', 'STABILIZE_TARGET'], true)).toBe(true)
+    expect(parse(['STABILIZE_TARGET', 'ALLY_ADVANTAGE'], true)).toBe(false)
     expect(parse(['ALLY_ADVANTAGE', 'ALLY_ADVANTAGE'])).toBe(false)
     expect(parse(['DASH'])).toBe(false)
-    // Dodge is authored now: its retired mechanic codes no longer parse.
+    // Dash, Disengage and Dodge are authored now: their retired mechanic codes no longer parse.
+    expect(parse(['SPEED_MOVEMENT_BONUS'])).toBe(false)
+    expect(parse(['NO_OPPORTUNITY_ATTACKS'])).toBe(false)
     expect(parse(['SAVE_ADVANTAGE'])).toBe(false)
     expect(parse(['DISADVANTAGE_ON_ATTACKS_AGAINST'])).toBe(false)
     expect(
@@ -90,7 +97,11 @@ describe('basic-action catalogue contracts (Q11)', () => {
 
   it('rejects the retired Dodge mechanics as stored effects', () => {
     const effect = { definitionId: dodge.id, turnSequence: 4, allyActorId: null }
-    for (const mechanic of ['SAVE_ADVANTAGE', 'DISADVANTAGE_ON_ATTACKS_AGAINST'])
+    for (const mechanic of [
+      'SAVE_ADVANTAGE',
+      'DISADVANTAGE_ON_ATTACKS_AGAINST',
+      'NO_OPPORTUNITY_ATTACKS'
+    ])
       expect(encounterBasicActionEffectDtoSchema.safeParse({ ...effect, mechanic }).success).toBe(
         false
       )

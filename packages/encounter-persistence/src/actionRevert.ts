@@ -482,6 +482,13 @@ export async function revertLastEncounterAction(
     })
   }
 
+  // A Dash's speed bonus leaves the turn's movement record.
+  if (root.speedBonusTurn)
+    await removeTurnSpeedBonus(ctx, {
+      encounterId: state.id,
+      ...root.speedBonusTurn,
+      actorId: source.id
+    })
   // D99: only the command that added the Character to the Run's Concentration casters removes it.
   if (root.addedConcentrationCasterId)
     await ctx.db.patch(run._id, {
@@ -594,7 +601,7 @@ async function commitRevert(
 
 /**
  * Undoes the Run's last basic action (Q11) exactly from its receipt: the effects it added (still
- * the actor's latest), its allowance use and its turn's speed bonus.
+ * the actor's latest) and its allowance use.
  */
 async function revertBasicAction(
   ctx: EncounterCharacterWriteTransaction,
@@ -613,12 +620,6 @@ async function revertBasicAction(
     withEncounterBasicActionEffects(actor, kept),
     receipt.actionEconomy
   )
-  if (receipt.speedBonusTurn)
-    await removeTurnSpeedBonus(ctx, {
-      encounterId: state.id,
-      ...receipt.speedBonusTurn,
-      actorId: actor.id
-    })
   // The Help the check used goes back to its helpers.
   const restoredActors = new Map(actors.map((entry) => [entry.id, entry]))
   restoredActors.set(actor.id, restored)

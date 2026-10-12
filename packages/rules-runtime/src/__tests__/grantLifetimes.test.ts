@@ -4,6 +4,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import {
+  SRD_BASIC_ACTION_DEFINITIONS,
+  SRD_BASIC_ACTION_IDS
+} from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -366,6 +370,23 @@ describe('stored grants', () => {
         })
       }
     )
+  })
+})
+
+describe('a basic action’s grant made on the holder’s own turn', () => {
+  const basicActionEffect = (id: string) =>
+    onlyEffect(SRD_BASIC_ACTION_DEFINITIONS.find((entry) => entry.id === id)?.document.effects)
+  const endOfOwnTurn = { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } } as const
+  const ticksOnOwnTurn = (effect: AuthoredEffect, lifecycle: PathLifecycleAuthored) =>
+    storedGrant({ effect, lifecycle, currentActorId: SOURCE_ID, holderId: SOURCE_ID }).lifecycle
+      .remainingTicks
+
+  it('lasts through the end of that turn when its duration is a turn (Disengage)', () => {
+    expect(ticksOnOwnTurn(basicActionEffect(SRD_BASIC_ACTION_IDS.DISENGAGE), {})).toBe(1)
+  })
+
+  it('still counts one more end of turn when its duration is a round', () => {
+    expect(ticksOnOwnTurn(basicActionEffect(SRD_BASIC_ACTION_IDS.DODGE), endOfOwnTurn)).toBe(2)
   })
 })
 

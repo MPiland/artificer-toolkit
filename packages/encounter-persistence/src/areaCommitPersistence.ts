@@ -517,6 +517,7 @@ export async function persistEncounterAreaCommit(
       allyAdvantageUses: [],
       consumedGrants: [],
       addedConcentrationCasterId: null,
+      speedBonusTurn: null,
       issuerLines: children.flatMap(({ actor, batch }) => {
         // The rolled d20 keeps its failed path when Legendary Resistance turned it into a success.
         const failed =

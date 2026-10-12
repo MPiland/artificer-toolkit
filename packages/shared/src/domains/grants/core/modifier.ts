@@ -22,6 +22,9 @@ export const MODIFIER_KIND = {
   ADVANTAGE: 'ADVANTAGE',
   DISADVANTAGE: 'DISADVANTAGE',
 
+  // Switches a domain's rule on; the domain says what it enables
+  ENABLE: 'ENABLE',
+
   // Set-like mutations (domain-correlated)
   ADD_OPTION: 'ADD_OPTION',
   REMOVE_OPTION: 'REMOVE_OPTION',
@@ -100,6 +103,14 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     label: 'Disadvantage',
     tooltip: 'Grant disadvantage on the roll.',
     description: 'Causes the affected roll to be made with disadvantage.'
+  },
+
+  ENABLE: {
+    code: MODIFIER_KIND.ENABLE,
+    label: 'Enable',
+    tooltip: 'Switch the selected rule on.',
+    description:
+      'Turns on the rule the selected domain names, such as movement that provokes no opportunity attacks. It carries no value.'
   },
 
   ADD_OPTION: {
@@ -240,6 +251,8 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
   ],
 
   ATTACKS_AGAINST: [MODIFIER_KIND.ADVANTAGE, MODIFIER_KIND.DISADVANTAGE],
+
+  OPPORTUNITY_ATTACK_IMMUNITY: [MODIFIER_KIND.ENABLE],
 
   SKILL_MODIFIER: [
     MODIFIER_KIND.BONUS,
@@ -456,7 +469,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
             ? { dice: string }
             : K extends 'REPLACE_DAMAGE_TYPE'
               ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-              : K extends 'ADVANTAGE' | 'DISADVANTAGE'
+              : K extends 'ADVANTAGE' | 'DISADVANTAGE' | 'ENABLE'
                 ? undefined
                 : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
                   ? { abilities: AbilityCode[] }

@@ -1992,7 +1992,8 @@ function registerOutcomeFields(
         showIf: and([
           local.field(['effectKind']).eq(EFFECT_KIND.MOVEMENT_RULE),
           not(local.field(['ruleKind']).eq('STOP_CURRENT_MOVEMENT')),
-          not(local.field(['ruleKind']).eq('MOVEMENT_COST_MULTIPLIER'))
+          not(local.field(['ruleKind']).eq('MOVEMENT_COST_MULTIPLIER')),
+          not(local.field(['ruleKind']).eq('ADD_SPEED_TO_MOVEMENT'))
         ])
       })
     )

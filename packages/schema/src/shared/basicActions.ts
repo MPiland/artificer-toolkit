@@ -33,7 +33,7 @@ const basicActionCheckDtoSchema = lazySchema(() =>
  * One System-authored basic combat action (Q11): the System names it and writes its rules text.
  * An entry carries either `effects` (an authored action, compiled and resolved through
  * RESOLVE_ACTION like a Feature's; its activation is its cost) or the transitional closed
- * `mechanics` the room executes (Dash, Disengage, Help, First Aid); never both.
+ * `mechanics` the room executes (Help, First Aid); never both.
  * `restrictions` limit which actors the entry applies to (null = every actor) and are carried
  * until the offering rules read them. `check` is the check a `STABILIZE_TARGET` action makes.
  */
@@ -85,27 +85,15 @@ export type BasicActionReusableDefinitionDocumentDto = z.infer<
 
 /**
  * A lasting basic-action effect, kept in the acting actor's Run resources until the start of that
- * actor's next turn. `NO_OPPORTUNITY_ATTACKS` also ends when the turn it was taken in
- * (`turnSequence`) ends, and `ALLY_ADVANTAGE` when the ally's next attack roll or check uses it.
+ * actor's next turn. `ALLY_ADVANTAGE` also ends when the ally's next attack roll or check uses it.
  */
 export const encounterBasicActionEffectDtoSchema = lazySchema(() =>
-  z
-    .strictObject({
-      definitionId: postgresUuidSchema,
-      mechanic: z.enum(['ALLY_ADVANTAGE', 'NO_OPPORTUNITY_ATTACKS']),
-      turnSequence: z.number().check(z.int()).check(z.nonnegative()),
-      allyActorId: z.nullable(postgresUuidSchema)
-    })
-    .check(
-      z.superRefine((effect, context) => {
-        if ((effect.mechanic === 'ALLY_ADVANTAGE') !== (effect.allyActorId !== null))
-          context.addIssue({
-            code: 'custom',
-            path: ['allyActorId'],
-            message: 'Only an ally-advantage effect names an ally.'
-          })
-      })
-    )
+  z.strictObject({
+    definitionId: postgresUuidSchema,
+    mechanic: z.literal('ALLY_ADVANTAGE'),
+    turnSequence: z.number().check(z.int()).check(z.nonnegative()),
+    allyActorId: postgresUuidSchema
+  })
 )
 export type EncounterBasicActionEffectDto = z.infer<typeof encounterBasicActionEffectDtoSchema>
 

@@ -27,7 +27,6 @@ import type { EncounterRelationshipD20Contributor } from './encounterRelationshi
 import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 
 type ActorResources = Pick<EncounterRunActorState, 'resources'>
-type TurnPosition = Pick<EncounterRunState, 'turnSequence' | 'currentActorId'>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -57,28 +56,6 @@ export function withEncounterBasicActionEffects(
       ? { ...resources, basicActionEffects: encounterBasicActionEffectsDtoSchema.parse(effects) }
       : resources
   })
-}
-
-/**
- * Whether an effect held by `holderId` applies now. Every effect lasts until the holder's next
- * turn starts, when that turn clears it; `NO_OPPORTUNITY_ATTACKS` also ends with the turn it was
- * taken in, which a later return of the turn to the holder does not revive.
- */
-function applies(state: TurnPosition, holderId: string, effect: EncounterBasicActionEffectDto) {
-  return (
-    effect.mechanic !== 'NO_OPPORTUNITY_ATTACKS' ||
-    (effect.turnSequence === state.turnSequence && state.currentActorId === holderId)
-  )
-}
-
-/** Disengage: the actor's movement provokes no opportunity attacks this turn. */
-export function suppressesEncounterOpportunityAttacks(
-  state: TurnPosition,
-  actor: EncounterRunActorState
-): boolean {
-  return encounterBasicActionEffects(actor).some(
-    (effect) => effect.mechanic === 'NO_OPPORTUNITY_ATTACKS' && applies(state, actor.id, effect)
-  )
 }
 
 /**
@@ -216,8 +193,8 @@ export function requireEncounterBasicActionDefinition(
 }
 
 /**
- * Plans one basic action for the current actor: the effects it gains, its movement bonus and the
- * Assisted warnings of its target choice. Its allowance is evaluated by the caller.
+ * Plans one basic action for the current actor: the effects it gains and the Assisted warnings of
+ * its target choice. Its allowance is evaluated by the caller.
  */
 export function planEncounterBasicAction(input: {
   state: Pick<EncounterRunState, 'turnSequence'>
@@ -238,25 +215,22 @@ export function planEncounterBasicAction(input: {
           ? 'Choose a creature to stabilize.'
           : 'This basic action has no target.'
     )
-  const effects = document.mechanics.flatMap((mechanic): EncounterBasicActionEffectDto[] =>
-    mechanic === 'SPEED_MOVEMENT_BONUS' || mechanic === 'STABILIZE_TARGET'
-      ? []
-      : [
-          {
-            definitionId: document.id,
-            mechanic,
-            turnSequence: state.turnSequence,
-            allyActorId: mechanic === 'ALLY_ADVANTAGE' ? target!.id : null
-          }
-        ]
-  )
+  const effects: EncounterBasicActionEffectDto[] = helps
+    ? [
+        {
+          definitionId: document.id,
+          mechanic: 'ALLY_ADVANTAGE',
+          turnSequence: state.turnSequence,
+          allyActorId: target!.id
+        }
+      ]
+    : []
   const warnings: EncounterRuleWarningDto[] =
     helps && encounterActorRelationship(actor.disposition, target!.disposition) === 'HOSTILE'
       ? [{ code: 'TARGET_DISPOSITION', message: 'This helps an enemy.' }]
       : []
   return {
     effects,
-    speedMovementBonus: document.mechanics.includes('SPEED_MOVEMENT_BONUS'),
     warnings,
     actor: withEncounterBasicActionEffects(actor, [
       ...encounterBasicActionEffects(actor),

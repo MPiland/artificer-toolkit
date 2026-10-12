@@ -20,7 +20,6 @@ import {
   encounterBasicActionEffects,
   planEncounterBasicAction,
   requireEncounterBasicActionDefinition,
-  suppressesEncounterOpportunityAttacks,
   withEncounterBasicActionEffects,
   withoutEncounterAllyAdvantage
 } from '../encounterBasicActions.js'
@@ -41,7 +40,6 @@ const RESTRAINED_ID = '00000000-0000-0000-0002-000d00000000'
 const DODGE_EFFECT_ID = '00000000-0000-4000-8000-00000000d0d0'
 const IDS = {
   dash: '00000000-0000-4000-8000-000000000b01',
-  disengage: '00000000-0000-4000-8000-000000000b02',
   help: '00000000-0000-4000-8000-000000000b04',
   firstAid: '00000000-0000-4000-8000-000000000b09'
 }
@@ -211,18 +209,6 @@ function published(
 }
 
 describe('basic action mechanics (Q11)', () => {
-  it('Dash adds a movement bonus and leaves no lasting effect', () => {
-    const planned = planEncounterBasicAction({
-      state: turn(2, fighter.id),
-      actor: fighter,
-      target: null,
-      document: document(IDS.dash, ['SPEED_MOVEMENT_BONUS'])
-    })
-    expect(planned.speedMovementBonus).toBe(true)
-    expect(planned.effects).toEqual([])
-    expect(planned.actor).toEqual(fighter)
-  })
-
   it('an authored basic action resolves as an action, never as a planned mechanic', () => {
     const hide = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HIDE)!
     expect(() =>
@@ -233,21 +219,6 @@ describe('basic action mechanics (Q11)', () => {
         document: hide.document
       })
     ).toThrow('resolves as an action')
-  })
-
-  it('Disengage suppresses opportunity attacks for the rest of its own turn only', () => {
-    const state = turn(2, fighter.id)
-    const { actor: disengaged } = planEncounterBasicAction({
-      state,
-      actor: fighter,
-      target: null,
-      document: document(IDS.disengage, ['NO_OPPORTUNITY_ATTACKS'])
-    })
-    expect(suppressesEncounterOpportunityAttacks(state, disengaged)).toBe(true)
-    expect(suppressesEncounterOpportunityAttacks(state, fighter)).toBe(false)
-    // Its turn ended: another actor is current, or the turn later returned to the actor (D45).
-    expect(suppressesEncounterOpportunityAttacks(turn(3, ogre.id), disengaged)).toBe(false)
-    expect(suppressesEncounterOpportunityAttacks(turn(4, fighter.id), disengaged)).toBe(false)
   })
 
   it('Dodge gives attacks against the actor disadvantage and its Dexterity saves advantage', async () => {
@@ -373,7 +344,7 @@ describe('basic action mechanics (Q11)', () => {
         state,
         actor: fighter,
         target: rogue,
-        document: document(IDS.dash, ['SPEED_MOVEMENT_BONUS'])
+        document: document(IDS.dash, [])
       })
     ).toThrow('no target')
     expect(
@@ -396,50 +367,50 @@ describe('basic action mechanics (Q11)', () => {
       target: rogue,
       document: firstAid
     })
-    expect(planned).toMatchObject({ effects: [], speedMovementBonus: false, warnings: [] })
+    expect(planned).toMatchObject({ effects: [], warnings: [] })
     expect(planned.actor).toEqual(fighter)
   })
 
   it('clearing an actor keeps no empty entry in its resources', () => {
-    const { actor: disengaged } = planEncounterBasicAction({
+    const { actor: helper } = planEncounterBasicAction({
       state: turn(2, fighter.id),
       actor: fighter,
-      target: null,
-      document: document(IDS.disengage, ['NO_OPPORTUNITY_ATTACKS'])
+      target: rogue,
+      document: document(IDS.help, ['ALLY_ADVANTAGE'])
     })
-    expect(withEncounterBasicActionEffects(disengaged, []).resources).toEqual({})
+    expect(withEncounterBasicActionEffects(helper, []).resources).toEqual({})
   })
 })
 
 describe('basic action catalogue identity', () => {
   it("accepts only a published basic-action entry of the Run's System", () => {
-    const dash = published('Dash', document(IDS.dash, ['SPEED_MOVEMENT_BONUS']))
+    const help = published('Help', document(IDS.help, ['ALLY_ADVANTAGE']))
     expect(
-      requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, dash).document
-    ).toEqual(dash.document)
+      requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, help).document
+    ).toEqual(help.document)
     expect(() => requireEncounterBasicActionDefinition({ gameSystemId: SYSTEM_ID }, null)).toThrow()
     expect(() =>
       requireEncounterBasicActionDefinition(
         { gameSystemId: SYSTEM_ID },
-        { ...dash, definitionFamilyKey: 'sense' }
+        { ...help, definitionFamilyKey: 'sense' }
       )
     ).toThrow()
   })
 
   it('a homebrew System overrides an entry with its own name, text and cost', () => {
-    const sprint = published('Sprint', {
-      ...document(IDS.dash, ['SPEED_MOVEMENT_BONUS'], HOMEBREW_SYSTEM_ID),
-      rulesText: 'Run twice as far, as a bonus action.',
+    const sprint = published('Rally', {
+      ...document(IDS.help, ['ALLY_ADVANTAGE'], HOMEBREW_SYSTEM_ID),
+      rulesText: 'Aid an ally, as a bonus action.',
       actionCost: 'BONUS_ACTION'
     })
     const resolved = requireEncounterBasicActionDefinition(
       { gameSystemId: HOMEBREW_SYSTEM_ID },
       sprint
     )
-    expect(resolved.definition.label).toBe('Sprint')
+    expect(resolved.definition.label).toBe('Rally')
     expect(resolved.document).toMatchObject({
       actionCost: 'BONUS_ACTION',
-      mechanics: ['SPEED_MOVEMENT_BONUS']
+      mechanics: ['ALLY_ADVANTAGE']
     })
     // An SRD Encounter never uses the homebrew System's entry.
     expect(() =>

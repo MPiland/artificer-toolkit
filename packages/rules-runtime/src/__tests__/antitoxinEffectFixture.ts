@@ -98,6 +98,18 @@ export function dodgeEffect(input: { id: string; holderActorId: string }) {
   })
 }
 
+/** The active effect the real compiler plans for the SRD Disengage action, held by the mover. */
+export function disengageEffect(input: { id: string; holderActorId: string }) {
+  const disengage = SRD_BASIC_ACTION_DEFINITIONS.find(
+    ({ id }) => id === SRD_BASIC_ACTION_IDS.DISENGAGE
+  )
+  return plannedGrantEffect({
+    ...input,
+    effect: disengage?.document.effects[0],
+    sourceLabel: disengage?.label ?? 'Disengage'
+  })
+}
+
 /** The active effect the real compiler plans for the SRD Darkvision spell (a 60-foot sense). */
 export function darkvisionEffect(input: { id: string; holderActorId: string }) {
   return plannedGrantEffect({

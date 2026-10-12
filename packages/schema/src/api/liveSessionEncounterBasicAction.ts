@@ -63,8 +63,6 @@ export const liveSessionEncounterBasicActionCommitInputSchema = lazySchema(() =>
     ruleOverrides: encounterRuleWarningsDtoSchema,
     /** Effects appended to the actor's Run resources. */
     effects: encounterBasicActionEffectsDtoSchema,
-    /** Adds the actor's speed to its movement budget for the current turn. */
-    speedMovementBonus: z.boolean(),
     /** The Helps the check's roll used; the commit removes them. */
     allyAdvantageUses: encounterAllyAdvantageUsesDtoSchema,
     check: z.nullable(
